@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.ir</groupId>
+	<artifactId>structured_hive</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>jar</packaging>
+	<name>structured_hive</name>
+	<description>transactional/indexing layers on top of hbase</description>
+		<parent>
+		<artifactId>structured_hbase</artifactId>
+		<groupId>com.ir</groupId>
+		<version>1.0.0-SNAPSHOT</version>
+	</parent>
+	
+	<dependencies>
+  <!--  
+			<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-hbase-handler</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+		-->
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-cli</artifactId>
+			<version>${hive.version}</version>
+				<exclusions>
+				<exclusion>
+					<artifactId>junit</artifactId>
+					<groupId>junit</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-metastore</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-builtins</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-common</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-exec</artifactId>
+			<version>${hive.version}</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>haivvreo</artifactId>
+					<groupId>com.linkedin</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-contrib</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+
+        <dependency>
+        	<groupId>com.ir</groupId>
+        	<artifactId>structured_idx</artifactId>
+        	<version>1.0.0-SNAPSHOT</version>
+        	<type>jar</type>
+        	<scope>compile</scope>
+        </dependency>
+	</dependencies>
+	 <build>
+    <!-- Some plugins (javadoc for example) can be used in the normal build- and the site phase.
+         These plugins inherit their options from the <reporting> section below. These settings
+         can be overwritten here. -->
+    <pluginManagement>
+      <plugins>
+     
+        <plugin>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>2.2-beta-5</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${maven.jar.plugin.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>2.1.1</version>
+        </plugin>
+
+        <plugin>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>2.6.1</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>2.4</version>
+        </plugin>
+        
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+    
+    <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.5</version>
+          <configuration>
+            <forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
+            <argLine>-Xms2g -Xmx2g</argLine>
+            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+          </configuration>
+          <dependencies>
+                <dependency>
+        	<groupId>com.ir</groupId>
+        	<artifactId>structured_trx</artifactId>
+          	<version>1.0.0-SNAPSHOT</version>
+        </dependency>
+          </dependencies>
+        </plugin>
+            
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <!-- THIS might not be doable
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+        -->
+        <configuration>
+          <tarLongFileMode>gnu</tarLongFileMode>
+          <descriptors>
+            <descriptor>src/assembly/bin.xml</descriptor>
+          </descriptors>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
