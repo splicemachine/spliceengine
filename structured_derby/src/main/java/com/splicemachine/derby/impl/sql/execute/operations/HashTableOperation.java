@@ -1,0 +1,140 @@
+package com.splicemachine.derby.impl.sql.execute.operations;
+
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.CursorResultSet;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.iapi.store.access.BackingStoreHashtable;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableIntHolder;
+import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import java.util.List;
+import java.util.Properties;
+
+/**
+ * Builds a hash table on the underlying result set tree.
+ *
+ */
+public class HashTableOperation extends SpliceBaseOperation implements CursorResultSet {
+	/* Run time statistics variables */
+	public long restrictionTime;
+	public long projectionTime;
+	public int  hashtableSize;
+	public Properties scanProperties;
+
+    // set in constructor and not altered during
+    // life of object.
+    public NoPutResultSet source;
+    public GeneratedMethod singleTableRestriction;
+	public Qualifier[][] nextQualifiers;
+    private GeneratedMethod projection;
+	private int[]			projectMapping;
+	private boolean runTimeStatsOn;
+	private ExecRow			mappedResultRow;
+	public boolean reuseResult;
+	public int[]			keyColumns;
+	private boolean			removeDuplicates;
+	private long			maxInMemoryRowCount;
+    private	int				initialCapacity;
+    private	float			loadFactor;
+	private boolean			skipNullKeyColumns;
+	// Variable for managing next() logic on hash entry
+	private boolean		firstNext = true;
+	private int			numFetchedOnNext;
+	private int			entryVectorSize;
+	private List		entryVector;
+	private boolean hashTableBuilt;
+	private boolean firstIntoHashtable = true;
+	private ExecRow nextCandidate;
+	private ExecRow projRow;
+	private BackingStoreHashtable ht;
+
+    //
+    // class interface
+    //
+    public HashTableOperation(NoPutResultSet s,
+					Activation a,
+					GeneratedMethod str,
+					String equijoinQualifiers,
+					GeneratedMethod p,
+					int resultSetNumber,
+					int mapRefItem,
+					boolean reuseResult,
+					int keyColItem,
+					boolean removeDuplicates,
+					long maxInMemoryRowCount,
+					int	initialCapacity,
+					float loadFactor,
+					boolean skipNullKeyColumns,
+				    double optimizerEstimatedRowCount,
+					double optimizerEstimatedCost) 
+		throws StandardException
+	{
+		super(a, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
+     
+		source = s;
+		// source expected to be non-null, mystery stress test bug
+		// - sometimes get NullPointerException in openCore().
+		if (SanityManager.DEBUG)
+		{
+			SanityManager.ASSERT(source != null,
+				"HTRS(), source expected to be non-null");
+		}
+        singleTableRestriction = str;
+//		this.nextQualifiers = nextQualifiers;
+        projection = p;
+		projectMapping = ((ReferencedColumnsDescriptorImpl) a.getPreparedStatement().getSavedObject(mapRefItem)).getReferencedColumnPositions();
+		FormatableArrayHolder fah = (FormatableArrayHolder) a.getPreparedStatement().getSavedObject(keyColItem);
+		FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
+		keyColumns = new int[fihArray.length];
+		for (int index = 0; index < fihArray.length; index++)
+		{
+			keyColumns[index] = fihArray[index].getInt();
+		}
+
+		this.reuseResult = reuseResult;
+		this.removeDuplicates = removeDuplicates;
+		this.maxInMemoryRowCount = maxInMemoryRowCount;
+		this.initialCapacity = initialCapacity;
+		this.loadFactor = loadFactor;
+		this.skipNullKeyColumns = skipNullKeyColumns;
+
+		// Allocate a result row if all of the columns are mapped from the source
+		if (projection == null)
+		{
+			mappedResultRow = activation.getExecutionFactory().getValueRow(projectMapping.length);
+		}
+    }
+
+	@Override
+	public List<NodeType> getNodeTypes() {
+		throw new RuntimeException("Not Implemented Yet");
+	}
+
+	@Override
+	public List<SpliceOperation> getSubOperations() {
+		throw new RuntimeException("Not Implemented Yet");
+	}
+
+	@Override
+	public ExecRow getNextRowCore() throws StandardException {
+		throw new RuntimeException("Not Implemented Yet");
+	}
+
+	@Override
+	public RowLocation getRowLocation() throws StandardException {
+		throw new RuntimeException("Not Implemented Yet");
+	}
+
+	@Override
+	public ExecRow getCurrentRow() throws StandardException {
+		throw new RuntimeException("Not Implemented Yet");
+	}
+
+}

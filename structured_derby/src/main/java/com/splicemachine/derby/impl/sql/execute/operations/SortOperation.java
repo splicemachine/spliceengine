@@ -1,0 +1,282 @@
+package com.splicemachine.derby.impl.sql.execute.operations;
+
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.store.access.ColumnOrdering;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class SortOperation extends SpliceBaseOperation {
+	private static Logger LOG = Logger.getLogger(SortOperation.class);
+	private static final List<NodeType> nodeTypes;
+	
+	protected NoPutResultSet source;
+	protected boolean distinct;
+	protected int orderingItem;
+	protected int[] keyColumns;
+	protected boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
+	
+	private ExecRow currSortedRow;
+	private int numColumns;
+	private Scan reduceScan;
+	
+	static{
+		nodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SCAN);
+	}
+	
+	public SortOperation(){
+		SpliceLogUtils.trace(LOG, "instantiated without parameters");
+	}
+	
+	public SortOperation(NoPutResultSet s,
+						 boolean distinct,
+						 int orderingItem,
+						 int numColumns,
+						 Activation a,
+						 GeneratedMethod ra,
+						 int resultSetNumber,
+						 double optimizerEstimatedRowCount,
+						 double optimizerEstimatedCost) throws StandardException{
+		super(a,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+		SpliceLogUtils.trace(LOG,"instantiated with parameters");
+		SpliceLogUtils.trace(LOG,"source="+s);
+		this.source = s;
+		this.distinct = distinct;
+		this.orderingItem = orderingItem;
+		this.numColumns = numColumns;
+        init(SpliceOperationContext.newContext(a));
+	}
+	
+	@Override
+	public void readExternal(ObjectInput in) throws IOException,
+			ClassNotFoundException {
+		SpliceLogUtils.trace(LOG, "readExternal");
+		super.readExternal(in);
+		source = (SpliceOperation)in.readObject();
+		distinct = in.readBoolean();
+		orderingItem = in.readInt();
+		numColumns = in.readInt();
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		SpliceLogUtils.trace(LOG, "writeExternal");
+		super.writeExternal(out);
+		out.writeObject((SpliceOperation)source);
+		out.writeBoolean(distinct);
+		out.writeInt(orderingItem);
+		out.writeInt(numColumns);
+	}
+
+	@Override
+	public List<NodeType> getNodeTypes() {
+		return nodeTypes;
+	}
+
+	@Override
+	public List<SpliceOperation> getSubOperations() {
+		SpliceLogUtils.trace(LOG,"getSubOperations");
+		List<SpliceOperation> ops = new ArrayList<SpliceOperation>();
+		ops.add((SpliceOperation)source);
+		return ops;
+	}
+
+	@Override
+	public void init(SpliceOperationContext context){
+		SpliceLogUtils.trace(LOG,"init");
+		super.init(context);
+		((SpliceOperation)source).init(context);
+		
+		FormatableArrayHolder fah = null;
+		for(Object o : activation.getPreparedStatement().getSavedObjects()){
+			if(o instanceof FormatableArrayHolder){
+				fah = (FormatableArrayHolder)o;
+				break;
+			}
+		}
+		if(fah==null){
+			LOG.error("Unable to find column ordering for sorting!");
+			throw new RuntimeException("Unable to find Column ordering for sorting!");
+		}
+		ColumnOrdering[] order = (ColumnOrdering[])fah.getArray(ColumnOrdering.class);
+	
+		keyColumns = new int[order.length];
+		descColumns = new boolean[order.length];
+		descColumns = new boolean[getExecRowDefinition().getRowArray().length];
+		
+		for(int i =0;i<order.length;i++){
+			keyColumns[i] = order[i].getColumnId();
+			descColumns[keyColumns[i]] = order[i].getIsAscending();
+		}
+		
+		try {
+			reduceScan = SpliceUtils.generateScan(sequence[0], DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]), 
+					DerbyBytesUtil.generateEndKeyForTemp(sequence[0]), transactionID);
+		} catch (StandardException e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG,e);
+		} catch (IOException e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG,e);
+		}
+	}
+
+	@Override
+	public ExecRow getNextRowCore() throws StandardException {
+		SpliceLogUtils.trace(LOG,"getNextRowCore");
+		
+		ExecRow sortResult = null;
+	
+		if(distinct){
+			while((sortResult = getNextRowFromSource())!=null){
+				if(!filterRow(currSortedRow,sortResult)){
+					currSortedRow = (ExecRow)sortResult.getClone();
+					setCurrentRow(currSortedRow);
+					return currSortedRow;
+				}
+			}
+			clearCurrentRow();
+			currSortedRow = null;
+			return null;
+		}else{
+			sortResult = getNextRowFromSource();
+			if(sortResult !=null)
+				setCurrentRow(sortResult);
+			return sortResult;
+		}
+	}
+	
+	private boolean filterRow(ExecRow currRow,ExecRow newRow) throws StandardException{
+		if (currRow == null || currRow.nColumns() != newRow.nColumns() || !Arrays.equals(currRow.getRowArray(), newRow.getRowArray()))
+			return false;
+		
+		return true;
+		
+		/*for(int index = 1; index < numColumns; index++){
+			DataValueDescriptor currOrderable = currRow.getColumn(index);
+			DataValueDescriptor newOrderable = newRow.getColumn(index);
+			if (! (currOrderable.compare(DataValueDescriptor.ORDER_OP_EQUALS,newOrderable,true,true)))
+				return false;
+		}
+		return true;*/
+	}
+	
+	private ExecRow getNextRowFromSource() throws StandardException {
+		ExecRow sourceRow = source.getNextRowCore();
+		return sourceRow;
+	}
+
+	@Override
+	public SpliceOperation getLeftOperation() {
+		SpliceLogUtils.trace(LOG,"getLeftOperation");
+		return (SpliceOperation) this.source;
+	}
+	
+	@Override
+	public ExecRow getExecRowDefinition() {
+		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
+		ExecRow def = ((SpliceOperation)source).getExecRowDefinition();
+		source.setCurrentRow(def);
+		return def;
+	}
+	
+	@Override
+	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template){
+		SpliceUtils.setInstructions(reduceScan,getActivation(),top);
+		return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
+	}
+
+	@Override
+	public NoPutResultSet executeScan() throws StandardException {
+		SpliceLogUtils.trace(LOG,"executeScan");
+		final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
+		this.generateLeftOperationStack(opStack);
+		SpliceLogUtils.trace(LOG,"operationStack=%s",opStack);
+		
+		// Get the topmost value, instead of the bottommost, in case it's you
+		SpliceOperation regionOperation = opStack.get(opStack.size()-1); 
+		SpliceLogUtils.trace(LOG,"regionOperation=%s",opStack);
+		RowProvider provider;
+		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)){
+			provider = regionOperation.getReduceRowProvider(this,getExecRowDefinition());
+		}else {
+			provider = regionOperation.getMapRowProvider(this,getExecRowDefinition());
+		}
+		return new SpliceNoPutResultSet(activation,this,provider);
+	}
+	
+	@Override
+	public long sink() {
+		/*
+		 * We want to make use of HBase as a sorting mechanism for us.
+		 * To that end, we really just want to read all the data
+		 * out of source and write it into the TEMP Table.
+		 */
+		long numSunk=0l;
+		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
+		ExecRow row = null;
+		HTableInterface tempTable = null;
+		try{
+			Put put;
+			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
+			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,descColumns,sequence[0]);
+			while((row = getNextRowCore()) != null){
+				SpliceLogUtils.trace(LOG, "row="+row);
+				put = SpliceUtils.insert(row.getRowArray(), 
+									hasher.generateSortedHashKey(row.getRowArray()),
+										null);
+				tempTable.put(put);
+				numSunk++;
+			}
+			tempTable.flushCommits();
+			tempTable.close();
+		}catch (StandardException se){
+			SpliceLogUtils.logAndThrowRuntime(LOG,se);
+		} catch (IOException e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG, e);
+		}finally{
+			try {
+				if(tempTable!=null)
+					tempTable.close();
+			} catch (IOException e) {
+				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
+			}
+		}
+		SpliceLogUtils.trace(LOG, "sunk %d records",numSunk);
+		return numSunk;
+	}
+
+	@Override
+	public String toString() {
+		return "SortOperation {source="+source+"}";
+	}
+
+	@Override
+	public void openCore() throws StandardException {
+		if(source!=null) source.openCore();
+	}
+	
+	
+	
+}

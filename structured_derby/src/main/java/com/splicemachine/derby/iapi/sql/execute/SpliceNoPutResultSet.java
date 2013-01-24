@@ -1,0 +1,404 @@
+package com.splicemachine.derby.iapi.sql.execute;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.sql.SQLWarning;
+import java.sql.Timestamp;
+
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultDescription;
+import org.apache.derby.iapi.sql.ResultSet;
+import org.apache.derby.iapi.sql.execute.CursorResultSet;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.sql.execute.RowChanger;
+import org.apache.derby.iapi.sql.execute.TargetResultSet;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
+import com.splicemachine.utils.SpliceLogUtils;
+
+/**
+ * 
+ * Basic interface for performing NoPutResultSets.  Will extend for bulk methods..
+ * 
+ * @author johnleach
+ *
+ */
+public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
+	private static Logger LOG = Logger.getLogger(SpliceNoPutResultSet.class);
+	protected Activation activation;
+	protected ResultDescription resultDescription;
+	protected SpliceOperation topOperation;
+	protected RowProvider rowProvider;
+	protected ExecRow execRow;
+	protected boolean closed;
+	protected boolean returnsRows;
+
+	public SpliceNoPutResultSet(Activation activation,SpliceOperation topOperation,RowProvider rowProvider){
+		this(activation,topOperation,rowProvider,true);
+	}
+	
+	public SpliceNoPutResultSet(Activation activation,
+															SpliceOperation topOperation,
+															RowProvider rowProvider, boolean returnsRows){
+		SpliceLogUtils.trace(LOG, "instantiate with rowProvider %s",rowProvider);
+		this.activation = activation;
+		this.resultDescription = activation.getPreparedStatement().getResultDescription();
+		this.topOperation = topOperation;
+		this.rowProvider = rowProvider;
+		this.returnsRows = returnsRows;
+	}
+
+
+
+	public SpliceNoPutResultSet(Scan scan, String table,
+			Activation activation,
+			SpliceOperation topOperation,
+			ExecRow row) {
+		this(activation,topOperation,buildRowProvider(table,scan,activation,topOperation,row));
+	}
+
+	@Override
+	public boolean returnsRows() {
+		SpliceLogUtils.trace(LOG, "returnsRows");
+		return returnsRows;
+	}
+
+	@Override
+	public int modifiedRowCount() {
+		SpliceLogUtils.trace(LOG,"modifiedRowCount");
+		return rowProvider.getModifiedRowCount();
+	}
+
+	@Override
+	public ResultDescription getResultDescription() {
+		SpliceLogUtils.trace(LOG,"getResultDescription");
+		return resultDescription;
+	}
+
+	@Override
+	public Activation getActivation() {
+		SpliceLogUtils.trace(LOG,"getActivation");
+		return activation;
+	}
+
+	@Override
+	public void open() throws StandardException {
+		SpliceLogUtils.trace(LOG, "open");
+		openCore();
+	}
+
+	@Override
+	public ExecRow getAbsoluteRow(int row) throws StandardException {
+		SpliceLogUtils.trace(LOG,"getAbsoluteRow row: "+row);
+		return null;
+	}
+
+	@Override
+	public ExecRow getRelativeRow(int row) throws StandardException {
+		SpliceLogUtils.trace(LOG,"getRelativeRow row: "+row);
+		return null;
+	}
+
+	@Override
+	public ExecRow setBeforeFirstRow() throws StandardException {
+		SpliceLogUtils.trace(LOG, "setBeforeFirstRow");
+		return null;
+	}
+
+	@Override
+	public ExecRow getFirstRow() throws StandardException {
+		SpliceLogUtils.trace(LOG, "getFirstRow");
+		return null;
+	}
+
+	@Override
+	public ExecRow getNextRow() throws StandardException {
+		SpliceLogUtils.trace(LOG, "getNextRow");
+		return getNextRowCore();
+	}
+
+	@Override
+	public ExecRow getPreviousRow() throws StandardException {
+		SpliceLogUtils.trace(LOG,"getPreviousRow");
+		return null;
+	}
+
+	@Override
+	public ExecRow getLastRow() throws StandardException {
+		SpliceLogUtils.trace(LOG,"getLastRow");
+		return null;
+	}
+
+	@Override
+	public ExecRow setAfterLastRow() throws StandardException {
+		SpliceLogUtils.trace(LOG,"setAfterLastRow");
+		return null;
+	}
+
+	@Override
+	public void clearCurrentRow() {
+		SpliceLogUtils.trace(LOG,"clearCurrentRow");
+	}
+
+	@Override
+	public boolean checkRowPosition(int isType) throws StandardException {
+		SpliceLogUtils.trace(LOG, "checkRowPosition isType: "+ isType);
+		return false;
+	}
+
+	@Override
+	public int getRowNumber() {
+		SpliceLogUtils.trace(LOG,"getRowNumber");
+		return 0;
+	}
+
+	@Override
+	public void close() throws StandardException {
+		SpliceLogUtils.trace(LOG, "close");
+		if(closed) return; //nothing to do;
+		rowProvider.close();
+		closed =true;
+	}
+
+	@Override
+	public void cleanUp() throws StandardException {
+		SpliceLogUtils.trace(LOG, "cleanup");
+	}
+
+	@Override
+	public boolean isClosed() {
+		SpliceLogUtils.trace(LOG,"isClosed");
+		return closed;
+	}
+
+	@Override
+	public void finish() throws StandardException {
+		SpliceLogUtils.trace(LOG,"finish");
+	}
+
+	@Override
+	public long getExecuteTime() {
+		SpliceLogUtils.trace(LOG,"getExecuteTime");
+		return 0;
+	}
+
+	@Override
+	public Timestamp getBeginExecutionTimestamp() {
+		SpliceLogUtils.trace(LOG,"getBeginExecutionTimestamp");
+		return null;
+	}
+
+	@Override
+	public Timestamp getEndExecutionTimestamp() {
+		SpliceLogUtils.trace(LOG,"getEndExecutionTimestamp");
+		return null;
+	}
+
+	@Override
+	public long getTimeSpent(int type) {
+		SpliceLogUtils.trace(LOG,"getTimeSpent type "+type);
+		return 0;
+	}
+
+	@Override
+	public NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries) {
+		SpliceLogUtils.trace(LOG,"getSubqueryTrackingArray with numSubqueries "+ numSubqueries);
+		return null;
+	}
+
+	@Override
+	public ResultSet getAutoGeneratedKeysResultset() {
+		SpliceLogUtils.trace(LOG,"getAutoGeneratedKeysResultSet");
+		return null;
+	}
+
+	@Override
+	public String getCursorName() {
+		SpliceLogUtils.trace(LOG, "getCursorName");
+		if ((activation.getCursorName() == null) && isForUpdate())
+			activation.setCursorName(activation.getLanguageConnectionContext().getUniqueCursorName());
+		return activation.getCursorName();
+	}
+
+	@Override
+	public void addWarning(SQLWarning w) {
+		SpliceLogUtils.trace(LOG, "addWarning");
+	}
+
+	@Override
+	public SQLWarning getWarnings() {
+		SpliceLogUtils.trace(LOG,"getWarnings");
+		return null;
+	}
+
+	@Override
+	public boolean needsRowLocation() {
+		SpliceLogUtils.trace(LOG, "needsRowLocation");
+		return false;
+	}
+
+	@Override
+	public void rowLocation(RowLocation rl) throws StandardException {
+		SpliceLogUtils.trace(LOG,"needsRowLocation");
+	}
+
+	@Override
+	public DataValueDescriptor[] getNextRowFromRowSource()
+			throws StandardException {
+		SpliceLogUtils.trace(LOG,"getNextRowFromRowSource");
+		return null;
+	}
+
+	@Override
+	public boolean needsToClone() {
+		SpliceLogUtils.trace(LOG,"needsToClone");
+		return false;
+	}
+
+	@Override
+	public FormatableBitSet getValidColumns() {
+		SpliceLogUtils.trace(LOG,"getValidColumns");
+		return null;
+	}
+
+	@Override
+	public void closeRowSource() {
+		SpliceLogUtils.trace(LOG, "closeRowSource");
+	}
+
+	@Override
+	public void markAsTopResultSet() {
+		SpliceLogUtils.trace(LOG,"markAsTopResultSet");
+	}
+
+	@Override
+	public void openCore() throws StandardException {
+		SpliceLogUtils.trace(LOG,"opening rowProvider %s",rowProvider);
+		rowProvider.open();
+		closed=false;
+	}
+
+	@Override
+	public void reopenCore() throws StandardException {
+		SpliceLogUtils.trace(LOG, "reopening rowProvider %s",rowProvider);
+		rowProvider.open();
+		closed=false;
+	}
+
+	@Override
+	public ExecRow getNextRowCore() throws StandardException {
+		SpliceLogUtils.trace(LOG,"getNextRowCore");
+		if(rowProvider.hasNext()){
+			execRow = rowProvider.next();
+			SpliceLogUtils.trace(LOG,"nextRow=%s",execRow);
+			return execRow;
+		}else {
+			closed=true;
+			return null;
+		}
+	}
+
+	@Override
+	public int getPointOfAttachment() {
+		SpliceLogUtils.trace(LOG, "getPointOfAttachment");
+		return 0;
+	}
+
+	@Override
+	public int getScanIsolationLevel() {
+		SpliceLogUtils.trace(LOG,"getScanIsolationLevel");
+		return 0;
+	}
+
+	@Override
+	public void setTargetResultSet(TargetResultSet trs) {
+		SpliceLogUtils.trace(LOG,"setTargetResultSet %s",trs);
+	}
+
+	@Override
+	public void setNeedsRowLocation(boolean needsRowLocation) {
+		SpliceLogUtils.trace(LOG,"setNeedsRowLocation %b",needsRowLocation);
+	}
+
+	@Override
+	public double getEstimatedRowCount() {
+		SpliceLogUtils.trace(LOG,"getEstimatedRowCount");
+		return 0;
+	}
+
+	@Override
+	public int resultSetNumber() {
+		SpliceLogUtils.trace(LOG,"resultSetNumber");
+		return 0;
+	}
+
+	@Override
+	public void setCurrentRow(ExecRow row) {
+		SpliceLogUtils.trace(LOG, "setCurrentRow %s",row);
+	}
+
+	@Override
+	public boolean requiresRelocking() {
+		SpliceLogUtils.trace(LOG,"requiresRelocking");
+		return false;
+	}
+
+	@Override
+	public boolean isForUpdate() {
+		SpliceLogUtils.trace(LOG, "isForUpdate");
+		return false;
+	}
+
+	@Override
+	public void updateRow(ExecRow row, RowChanger rowChanger) throws StandardException {
+		SpliceLogUtils.trace(LOG, "updateRow with row %s, and rowChanger %s",row,rowChanger);
+	}
+
+	@Override
+	public void markRowAsDeleted() throws StandardException {
+		SpliceLogUtils.trace(LOG,"markRowAsDeleted");
+	}
+
+	@Override
+	public void positionScanAtRowLocation(RowLocation rLoc) throws StandardException {
+		SpliceLogUtils.trace(LOG,"positionScanAtRowLocation with RowLocation %s",rLoc);
+	}
+	@Override
+	public RowLocation getRowLocation() throws StandardException {
+		SpliceLogUtils.trace(LOG, "getRowLocation");
+		return rowProvider.getCurrentRowLocation();
+	}
+	@Override
+	public ExecRow getCurrentRow() throws StandardException {
+		SpliceLogUtils.trace(LOG, "getCurrentRow");
+		return execRow;
+	}
+	
+	private static RowProvider buildRowProvider(String table,Scan scan, Activation activation,
+			SpliceOperation topOperation,ExecRow execRow) {
+		SpliceObserverInstructions instructions = 
+				new SpliceObserverInstructions((GenericStorablePreparedStatement) activation.getPreparedStatement(),topOperation);
+		try {
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			ObjectOutputStream oos = new ObjectOutputStream(out);
+			oos.writeObject(instructions);
+			scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS, out.toByteArray());
+		} catch (IOException e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG, "Error Creating SpliceNoPutResultSet: "+e.getMessage(),e);
+		}
+		return new ClientScanProvider(Bytes.toBytes(table),scan,execRow,null);
+	}
+}

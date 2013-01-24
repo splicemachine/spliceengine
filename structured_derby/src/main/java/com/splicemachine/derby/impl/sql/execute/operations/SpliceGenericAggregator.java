@@ -1,0 +1,128 @@
+package com.splicemachine.derby.impl.sql.execute.operations;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.Storable;
+import org.apache.derby.iapi.services.loader.ClassFactory;
+import org.apache.derby.iapi.sql.execute.ExecAggregator;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.UserDataValue;
+import org.apache.derby.impl.sql.execute.AggregatorInfo;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
+
+/**
+ * GenericAggregator wrapper. This is a near identical copy of
+ * {@link org.apache.derby.impl.sql.execute.GenericAggregator}; That class
+ * has too strict of access restrictions to allow its constructive use outside of its
+ * package, so this class had to be created to allow better access.
+ *  
+ * @author Scott Fines
+ */
+public class SpliceGenericAggregator {
+	private static Logger LOG = Logger.getLogger(SpliceGenericAggregator.class);
+	private final AggregatorInfo aggInfo;
+	int aggregatorColumnId;
+	private int inputColumnId;
+	private int resultColumnId;
+	
+	private final ClassFactory cf;
+	
+	private ExecAggregator cachedAggregator;
+
+	public SpliceGenericAggregator(AggregatorInfo aggInfo, ClassFactory cf) {
+		this.aggInfo = aggInfo;
+		this.cf = cf;
+		
+		this.aggregatorColumnId = aggInfo.getAggregatorColNum();
+		this.inputColumnId = aggInfo.getInputColNum();
+		this.resultColumnId = aggInfo.getOutputColNum();
+	}
+	
+	public AggregatorInfo getAggregatorInfo(){
+		return this.aggInfo;
+	}
+	
+	public void accumulate(ExecRow nextRow,ExecRow accumulatorRow) throws StandardException {
+		DataValueDescriptor nextCol = nextRow.getColumn(inputColumnId+1);
+		DataValueDescriptor aggCol = accumulatorRow.getColumn(aggregatorColumnId+1);
+		accumulate(nextCol,aggCol);
+	}
+
+	public void merge(ExecRow inputRow, ExecRow mergeRow) throws StandardException {
+		SpliceLogUtils.trace(LOG,"in aggregate merge, aggregatorColumnId="+aggregatorColumnId);
+		DataValueDescriptor mergeCol = mergeRow.getColumn(aggregatorColumnId + 1);
+		DataValueDescriptor inputCol = inputRow.getColumn(aggregatorColumnId+1);
+		
+		merge(inputCol,mergeCol);
+	}
+	
+	public boolean isDistinct(){
+		return aggInfo.isDistinct();
+	}
+	
+	public DataValueDescriptor getInputColumnValue(ExecRow row) 
+											throws StandardException{
+		return row.getColumn(inputColumnId+1); 
+	}
+	
+	public boolean finish(ExecRow row) throws StandardException{
+		DataValueDescriptor outputCol = row.getColumn(resultColumnId+1);
+		DataValueDescriptor aggCol = row.getColumn(aggregatorColumnId+1);
+		
+		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
+		if(ua ==null) ua = getAggregatorInstance();
+		
+		DataValueDescriptor result = ua.getResult();
+		if(result ==null) outputCol.setToNull();
+		else outputCol.setValue(result);
+		return ua.didEliminateNulls();
+	}
+	
+	void merge(Storable aggregatedIn,Storable aggregatedOut) throws StandardException {
+		ExecAggregator uaIn = (ExecAggregator)(((UserDataValue)aggregatedIn).getObject());
+		ExecAggregator uaOut = (ExecAggregator)(((UserDataValue)aggregatedOut).getObject());
+		
+		SpliceLogUtils.trace(LOG,"in merge, uaIn="+uaIn+",uaIn="+uaIn);
+		uaOut.merge(uaIn);
+	}
+	
+	void initialize(ExecRow row) throws StandardException{
+		UserDataValue aggColumn = (UserDataValue)row.getColumn(aggregatorColumnId+1);
+		
+		ExecAggregator ua = (ExecAggregator)aggColumn.getObject();
+		if(ua == null){
+			ua = getAggregatorInstance();
+			aggColumn.setValue(ua);
+		}
+	}
+	
+	void accumulate(DataValueDescriptor inputCol,DataValueDescriptor aggCol) 
+																throws StandardException{
+		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
+		if(ua == null){
+			ua = getAggregatorInstance();
+		}
+		ua.accumulate(inputCol,this);
+	}
+	
+	private ExecAggregator getAggregatorInstance() throws StandardException {
+		ExecAggregator aggInstance;
+		if(cachedAggregator == null){
+			try{
+				Class aggClass = cf.loadApplicationClass(aggInfo.getAggregatorClassName());
+				Object agg = aggClass.newInstance();
+				aggInstance = (ExecAggregator)agg;
+				cachedAggregator = aggInstance;
+				aggInstance.setup(aggInfo.getAggregateName());
+			}catch(Exception e){
+				throw StandardException.unexpectedUserException(e);
+			}
+		}else {
+			aggInstance = cachedAggregator.newAggregator();
+		}
+		return aggInstance;
+	}
+
+}
