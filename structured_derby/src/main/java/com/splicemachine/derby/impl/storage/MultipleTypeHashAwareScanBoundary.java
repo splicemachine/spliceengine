@@ -40,7 +40,10 @@ public class MultipleTypeHashAwareScanBoundary extends BaseHashAwareScanBoundary
     public byte[] getStartKey(Result result) {
 		SpliceLogUtils.trace(LOG, "getStartKey for result %s",result);
         try {
-			rowType = (SQLInteger) DerbyBytesUtil.fromBytes(result.getValue(HBaseConstants.DEFAULT_FAMILY.getBytes(), JoinUtils.JOIN_SIDE_COLUMN), rowType);
+        	byte[] data = result.getValue(HBaseConstants.DEFAULT_FAMILY.getBytes(), JoinUtils.JOIN_SIDE_COLUMN);
+        	if (data == null)
+        		return null;
+			rowType = (SQLInteger) DerbyBytesUtil.fromBytes(data, rowType);
 			if (rowType.getInt() == JoinSide.RIGHT.ordinal()) {
 				ExecRow right = rightRow.getClone();
 				SpliceUtils.populate(result, right.getRowArray());	

@@ -168,6 +168,12 @@ public class RegionAwareScanner implements Closeable {
                     lookAheadExhausted=true;
                 }else{
 	                byte[] finalKeyStart = boundary.getStartKey(firstNotInRegion);
+	                if (finalKeyStart == null) {
+	                    localFinish = regionFinish;
+	                    lookAheadExhausted=true;
+	                    return;
+	                }
+	                
 	                if(Bytes.compareTo(finalKeyStart,regionFinish)>=0){
 	                    //that key is contained in the other region, so we are good to
 	                    //just scan to the end of the region without lookaheads or
@@ -206,9 +212,18 @@ public class RegionAwareScanner implements Closeable {
                 localScanner.next(keyValues);
                 if (keyValues.isEmpty()) {
                 	// need to do something here...
+                    localStart = regionStart;
+                    lookBehindExhausted=true;
+                    return;
                 }
                 Result behindResult = new Result(keyValues);
                 byte[] startKey = boundary.getStartKey(behindResult);
+                if (startKey == null) {
+                    localStart = regionStart;
+                    lookBehindExhausted=true;
+                    return;
+                }
+                	
                 if(Bytes.compareTo(startKey,regionStart)>=0){
                     //the key starts entirely in this region, so we don't need
                     //to worry about lookbehinds or skipping ahead
