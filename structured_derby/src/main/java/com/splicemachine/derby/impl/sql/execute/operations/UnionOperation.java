@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -83,18 +84,15 @@ public class UnionOperation extends SpliceBaseOperation {
     	super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
     	SpliceLogUtils.debug(LOG, "source1="+source1+", source2="+source2);
     	this.source1 = source1;
-    	this.source2 = source2;
-        init(SpliceOperationContext.newContext(activation));
+			this.source2 = source2;
+			init(SpliceOperationContext.newContext(activation));
 
-		try {
-			reduceScan = SpliceUtils.generateScan(sequence[0], DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]), 
-	    			DerbyBytesUtil.generateEndKeyForTemp(sequence[0]), transactionID);
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to create reduce scan",e);
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to create reduce scan",e);
+			try {
+				reduceScan = Scans.buildPrefixRangeScan(sequence[0],transactionID);
+			} catch (IOException e) {
+				SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to create reduce scan",e);
+			}
 		}
-    }
     
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {

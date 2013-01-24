@@ -1,10 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -19,12 +22,10 @@ import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
-import com.splicemachine.utils.SpliceLogUtils;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 public abstract class ScanOperation extends SpliceBaseOperation implements CursorResultSet{
 	private static Logger LOG = Logger.getLogger(ScanOperation.class);
@@ -76,8 +77,6 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		this.sameStartStopPosition = sameStartStopPosition;
 		this.startKeyGetterMethodName = (startKeyGetter!= null) ? startKeyGetter.getMethodName() : null;
 		this.stopKeyGetterMethodName = (stopKeyGetter!= null) ? stopKeyGetter.getMethodName() : null;
-		this.startSearchOperator = startSearchOperator;
-		this.stopSearchOperator = stopSearchOperator;
 		this.sameStartStopPosition = sameStartStopPosition;
 		this.conglomId = conglomId;
         this.conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(conglomId);
@@ -179,17 +178,22 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
             }
 	        if (scanQualifiersField != null)
 	            scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
-	        return SpliceUtils.setupScan(Bytes.toBytes(transactionID),accessedCols,scanQualifiers,
-	                startPosition==null? null: startPosition.getRowArray(), startSearchOperator,
-	                stopPosition==null? null: stopPosition.getRowArray(),stopSearchOperator,
-	                conglomerate.getAscDescInfo());
+					return Scans.setupScan(startPosition==null?null:startPosition.getRowArray(),startSearchOperator,
+																 stopPosition==null?null:stopPosition.getRowArray(),stopSearchOperator,
+																 scanQualifiers,conglomerate.getAscDescInfo(),accessedCols,Bytes.toBytes(transactionID));
+//					return SpliceUtils.setupScan(Bytes.toBytes(transactionID),accessedCols,scanQualifiers,
+//	                startPosition==null? null: startPosition.getRowArray(), startSearchOperator,
+//	                stopPosition==null? null: stopPosition.getRowArray(),stopSearchOperator,
+//	                conglomerate.getAscDescInfo());
         } catch (NoSuchFieldException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
         } catch (IllegalAccessException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        }
-        return null;
+        } catch (IOException e) {
+					SpliceLogUtils.logAndThrowRuntime(LOG,e);
+				}
+			return null;
     }
 }

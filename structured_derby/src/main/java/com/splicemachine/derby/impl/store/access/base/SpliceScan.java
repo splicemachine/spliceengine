@@ -1,7 +1,16 @@
 package com.splicemachine.derby.impl.store.access.base;
 
-import java.io.IOException;
-
+import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.impl.sql.execute.LazyScan;
+import com.splicemachine.derby.impl.sql.execute.ParallelScan;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -14,25 +23,11 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.filter.FilterList.Operator;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.impl.sql.execute.LazyScan;
-import com.splicemachine.derby.impl.sql.execute.ParallelScan;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.SpliceUtils;
+
+import java.io.IOException;
 
 public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	protected static Logger LOG = Logger.getLogger(SpliceScan.class);
@@ -127,14 +122,15 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				scanner.close();
 			table.close();
 		} catch (IOException e) {
-			StandardException.newException("Error closing scanner and table ",e);
+			throw StandardException.newException("Error closing scanner and table ",e);
 		}
 	}
 
 	protected void attachFilter() {
         SpliceLogUtils.trace(LOG,"attaching filter");
 		try {
-            SpliceUtils.attachFilterToScan(scan,qualifier,startKeyValue,2,stopKeyValue,2);
+				scan.setFilter(Scans.buildKeyFilter(startKeyValue,2,qualifier));
+//            SpliceUtils.attachFilterToScan(scan,qualifier,startKeyValue,2,stopKeyValue,2);
 //			FilterList masterList = new FilterList(Operator.MUST_PASS_ALL);
 //			if (qualifier != null)
 //				masterList.addFilter(SpliceUtils.constructFilter(qualifier));

@@ -10,6 +10,7 @@ import java.util.List;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
+import com.splicemachine.derby.utils.Scans;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -131,7 +132,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
 			byte[] finish = DerbyBytesUtil.generateEndKeyForTemp(sequence[0]);
 			if(regionScanner==null){
-				reduceScan = SpliceUtils.generateScan(sequence[0],start,finish,transactionID);
+				reduceScan = Scans.newScan(start,finish,transactionID);
+//				reduceScan = SpliceUtils.generateScan(sequence[0],start,finish,transactionID);
 //                rowProvider = new ScanRowProvider(regionScanner,sourceExecIndexRow);
 			}else{
                 Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);

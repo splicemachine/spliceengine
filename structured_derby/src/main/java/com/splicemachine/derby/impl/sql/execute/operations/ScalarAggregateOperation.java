@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -44,7 +45,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	protected int rowsInput = 0;
 	
 	protected boolean isOpen=false;
-	private boolean nextSatisfied;
 	private long regionId;
 	
     public ScalarAggregateOperation () {
@@ -68,8 +68,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     	sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(a));
 		sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
 		try {
-			this.reduceScan = SpliceUtils.generateScan(sequence[0], DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]), 
-					DerbyBytesUtil.generateEndKeyForTemp(sequence[0]), transactionID);
+			this.reduceScan = Scans.buildPrefixRangeScan(sequence[0], transactionID);
 		} catch(IOException e){
 			SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to get Region ids",e);
 		}
@@ -127,7 +126,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 
 	protected ExecRow doAggregation(boolean useScan) throws StandardException{
-		ExecIndexRow execIndexRow = null;
+		ExecIndexRow execIndexRow;
 		ExecIndexRow aggResult = null;
 		if(useScan){
 			while ((execIndexRow = getNextRowFromScan(false))!=null){
@@ -247,7 +246,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	public long sink() {
 		long numSunk=0l;
 		SpliceLogUtils.trace(LOG, "sink");
-		ExecRow row = null;
+		ExecRow row;
 		try{
 			Put put;
 			HTableInterface tempTable = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);

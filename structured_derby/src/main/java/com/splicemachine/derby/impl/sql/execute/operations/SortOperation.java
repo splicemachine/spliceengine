@@ -7,7 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -85,7 +85,7 @@ public class SortOperation extends SpliceBaseOperation {
 	public void writeExternal(ObjectOutput out) throws IOException {
 		SpliceLogUtils.trace(LOG, "writeExternal");
 		super.writeExternal(out);
-		out.writeObject((SpliceOperation)source);
+		out.writeObject(source);
 		out.writeBoolean(distinct);
 		out.writeInt(orderingItem);
 		out.writeInt(numColumns);
@@ -133,10 +133,7 @@ public class SortOperation extends SpliceBaseOperation {
 		}
 		
 		try {
-			reduceScan = SpliceUtils.generateScan(sequence[0], DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]), 
-					DerbyBytesUtil.generateEndKeyForTemp(sequence[0]), transactionID);
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
+			reduceScan = Scans.buildPrefixRangeScan(sequence[0], transactionID);
 		} catch (IOException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
@@ -146,12 +143,12 @@ public class SortOperation extends SpliceBaseOperation {
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getNextRowCore");
 		
-		ExecRow sortResult = null;
+		ExecRow sortResult;
 	
 		if(distinct){
 			while((sortResult = getNextRowFromSource())!=null){
 				if(!filterRow(currSortedRow,sortResult)){
-					currSortedRow = (ExecRow)sortResult.getClone();
+					currSortedRow = sortResult.getClone();
 					setCurrentRow(currSortedRow);
 					return currSortedRow;
 				}
@@ -172,7 +169,7 @@ public class SortOperation extends SpliceBaseOperation {
 			return false;
 		
 		return true;
-		
+
 		/*for(int index = 1; index < numColumns; index++){
 			DataValueDescriptor currOrderable = currRow.getColumn(index);
 			DataValueDescriptor newOrderable = newRow.getColumn(index);
@@ -183,8 +180,7 @@ public class SortOperation extends SpliceBaseOperation {
 	}
 	
 	private ExecRow getNextRowFromSource() throws StandardException {
-		ExecRow sourceRow = source.getNextRowCore();
-		return sourceRow;
+  	return source.getNextRowCore();
 	}
 
 	@Override
@@ -235,7 +231,7 @@ public class SortOperation extends SpliceBaseOperation {
 		 */
 		long numSunk=0l;
 		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
-		ExecRow row = null;
+		ExecRow row;
 		HTableInterface tempTable = null;
 		try{
 			Put put;

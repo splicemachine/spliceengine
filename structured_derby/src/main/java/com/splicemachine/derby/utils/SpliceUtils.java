@@ -1,46 +1,40 @@
 package com.splicemachine.derby.utils;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.util.*;
-
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
+import com.google.gson.Gson;
+import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SchemaConstants;
+import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.hbase.SpliceEngine;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.derby.iapi.store.raw.ContainerKey;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.Orderable;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.CompareFilter;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.filter.FilterList.Operator;
-import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
@@ -50,21 +44,13 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
-import com.google.gson.Gson;
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.SchemaConstants;
-import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
-import com.splicemachine.hbase.filter.ColumnNullableFilter;
-import com.splicemachine.utils.SpliceLogUtils;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
 
 /**
  * We need to get table name from database using Container ID and the info is stored in Data Dictionary.
@@ -224,7 +210,7 @@ public class SpliceUtils {
 		try {
 			admin = new HBaseAdmin(config);  
 			if (!admin.tableExists(htable.getTableName())) {
-				LOG.error("table does not exist in hbase - "+htable.getTableName());
+				LOG.error("table does not exist in hbase - "+Bytes.toString(htable.getTableName()));
 			} else{
 				rzk.setData(conglomeratePath + "/" + Bytes.toString(htable.getTableName()), Bytes.toBytes(conglomerateJSON), -1);
 			} 
@@ -516,215 +502,215 @@ public class SpliceUtils {
 		return false;
 	}
 
-	public static CompareFilter.CompareOp getHBaseCompareOp(int derbyOperator, boolean negateCompareResult) {
-		CompareFilter.CompareOp op = null;
+//	public static CompareFilter.CompareOp getHBaseCompareOp(int derbyOperator, boolean negateCompareResult) {
+//		CompareFilter.CompareOp op = null;
+//
+//		if (negateCompareResult) {
+//			switch (derbyOperator)
+//			{
+//			case DataValueDescriptor.ORDER_OP_EQUALS:
+//				op = CompareFilter.CompareOp.NOT_EQUAL;
+//				break;
+//			case DataValueDescriptor.ORDER_OP_LESSTHAN:
+//				op = CompareFilter.CompareOp.GREATER_OR_EQUAL;
+//				break;
+//			case DataValueDescriptor.ORDER_OP_GREATERTHAN:
+//				op = CompareFilter.CompareOp.LESS_OR_EQUAL;
+//				break;
+//			case DataValueDescriptor.ORDER_OP_LESSOREQUALS:
+//				op = CompareFilter.CompareOp.GREATER;
+//				break;
+//			case DataValueDescriptor.ORDER_OP_GREATEROREQUALS:
+//				op = CompareFilter.CompareOp.LESS;
+//				break;
+//			default:
+//				throw new RuntimeException("Derby Operator " + derbyOperator);
+//			}
+//		} else {
+//			switch (derbyOperator)
+//			{
+//			case DataValueDescriptor.ORDER_OP_EQUALS:
+//				op = CompareFilter.CompareOp.EQUAL;
+//				break;
+//			case DataValueDescriptor.ORDER_OP_LESSTHAN:
+//				op = CompareFilter.CompareOp.LESS;
+//				break;
+//			case DataValueDescriptor.ORDER_OP_GREATERTHAN:
+//				op = CompareFilter.CompareOp.GREATER;
+//				break;
+//			case DataValueDescriptor.ORDER_OP_LESSOREQUALS:
+//				op = CompareFilter.CompareOp.LESS_OR_EQUAL;
+//				break;
+//			case DataValueDescriptor.ORDER_OP_GREATEROREQUALS:
+//				op = CompareFilter.CompareOp.GREATER_OR_EQUAL;
+//				break;
+//			default:
+//				throw new RuntimeException("Derby Operator " + derbyOperator);
+//			}
+//		}
+//		return op;
+//	}
 
-		if (negateCompareResult) {
-			switch (derbyOperator)
-			{
-			case DataValueDescriptor.ORDER_OP_EQUALS:
-				op = CompareFilter.CompareOp.NOT_EQUAL;
-				break;
-			case DataValueDescriptor.ORDER_OP_LESSTHAN:
-				op = CompareFilter.CompareOp.GREATER_OR_EQUAL;
-				break;
-			case DataValueDescriptor.ORDER_OP_GREATERTHAN:
-				op = CompareFilter.CompareOp.LESS_OR_EQUAL;
-				break;
-			case DataValueDescriptor.ORDER_OP_LESSOREQUALS:
-				op = CompareFilter.CompareOp.GREATER;
-				break;
-			case DataValueDescriptor.ORDER_OP_GREATEROREQUALS:
-				op = CompareFilter.CompareOp.LESS;
-				break;
-			default:
-				throw new RuntimeException("Derby Operator " + derbyOperator);
-			}
-		} else {
-			switch (derbyOperator)
-			{
-			case DataValueDescriptor.ORDER_OP_EQUALS:
-				op = CompareFilter.CompareOp.EQUAL;
-				break;
-			case DataValueDescriptor.ORDER_OP_LESSTHAN:
-				op = CompareFilter.CompareOp.LESS;
-				break;
-			case DataValueDescriptor.ORDER_OP_GREATERTHAN:
-				op = CompareFilter.CompareOp.GREATER;
-				break;
-			case DataValueDescriptor.ORDER_OP_LESSOREQUALS:
-				op = CompareFilter.CompareOp.LESS_OR_EQUAL;
-				break;
-			case DataValueDescriptor.ORDER_OP_GREATEROREQUALS:
-				op = CompareFilter.CompareOp.GREATER_OR_EQUAL;
-				break;
-			default:
-				throw new RuntimeException("Derby Operator " + derbyOperator);
-			}
-		}
-		return op;
-	}
+//    public static FilterList buildFilter(Qualifier[] qualifiers, Operator operator) throws StandardException, IOException {
+//        FilterList list = new FilterList(operator);
+//        for(Qualifier qualifier:qualifiers){
+//            DataValueDescriptor dvd = qualifier.getOrderable();
+//            if(dvd==null||dvd.isNull()||dvd.isNullOp().getBoolean()){
+//                CompareFilter.CompareOp op = qualifier.negateCompareResult()? CompareFilter.CompareOp.NOT_EQUAL :
+//                                                                                CompareFilter.CompareOp.EQUAL;
+//                list.addFilter(new ColumnNullableFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,
+//                                                        Integer.toString(qualifier.getColumnId()).getBytes(),
+//                                                        op));
+//            }else{
+//                SingleColumnValueFilter filter = new SingleColumnValueFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,
+//                        Integer.toString(qualifier.getColumnId()).getBytes(),
+//                        getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),
+//                        DerbyBytesUtil.generateBytes(dvd));
+//                filter.setFilterIfMissing(true);
+//                list.addFilter(filter);
+//            }
+//        }
+//        return list;
+//    }
 
-    public static FilterList buildFilter(Qualifier[] qualifiers, Operator operator) throws StandardException, IOException {
-        FilterList list = new FilterList(operator);
-        for(Qualifier qualifier:qualifiers){
-            DataValueDescriptor dvd = qualifier.getOrderable();
-            if(dvd==null||dvd.isNull()||dvd.isNullOp().getBoolean()){
-                CompareFilter.CompareOp op = qualifier.negateCompareResult()? CompareFilter.CompareOp.NOT_EQUAL :
-                                                                                CompareFilter.CompareOp.EQUAL;
-                list.addFilter(new ColumnNullableFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,
-                                                        Integer.toString(qualifier.getColumnId()).getBytes(),
-                                                        op));
-            }else{
-                SingleColumnValueFilter filter = new SingleColumnValueFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,
-                        Integer.toString(qualifier.getColumnId()).getBytes(),
-                        getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),
-                        DerbyBytesUtil.generateBytes(dvd));
-                filter.setFilterIfMissing(true);
-                list.addFilter(filter);
-            }
-        }
-        return list;
-    }
+//    public static Filter constructFilter(Qualifier[][] qualList) throws StandardException,IOException{
+//        //build and clauses from first row of qualifiers
+//        //SpliceLogUtils.trace(LOG, "constructing filter from qualList %s", SpliceLogUtils.stringify(qualList));
+//        FilterList finalFilter = new FilterList(Operator.MUST_PASS_ALL);
+//
+//        SpliceLogUtils.trace(LOG,"building and filters");
+//        finalFilter.addFilter(buildFilter(qualList[0],Operator.MUST_PASS_ALL));
+//
+//        //build or clauses from the rest
+//        SpliceLogUtils.trace(LOG,"building or filters");
+//        FilterList orList = new FilterList(Operator.MUST_PASS_ALL);
+//        for(int clause=1;clause<qualList.length;clause++){
+//            orList.addFilter(buildFilter(qualList[clause],Operator.MUST_PASS_ONE));
+//        }
+//        finalFilter.addFilter(orList);
+//
+//        return finalFilter;
+//    }
 
-    public static Filter constructFilter(Qualifier[][] qualList) throws StandardException,IOException{
-        //build and clauses from first row of qualifiers
-        //SpliceLogUtils.trace(LOG, "constructing filter from qualList %s", SpliceLogUtils.stringify(qualList));
-        FilterList finalFilter = new FilterList(Operator.MUST_PASS_ALL);
+//	public static Filter generateFilter(Qualifier[][] qual_list) throws StandardException, IOException {
+//		SpliceLogUtils.trace(LOG, "generateFilter " + qual_list);
+//		FilterList masterList = new FilterList(Operator.MUST_PASS_ALL);
+//		FilterList andList = new FilterList(Operator.MUST_PASS_ALL);
+//		SpliceLogUtils.trace(LOG, "Generating where clause %d", qual_list[0].length);
+//		for (int i = 0; i < qual_list[0].length; i++) { // AND CLAUSES
+//			Qualifier q = qual_list[0][i];
+//			DataValueDescriptor o = q.getOrderable();
+//			if(o!=null)
+//				SpliceLogUtils.trace(LOG," and column=%d, operator=%s, nullable=%s,q.getOrderable().isNullOp().getBoolean()=%b,q.negateCompareResult()=%b,%s %s",
+//									q.getColumnId(),q.getOperator(),q.getOrderedNulls(),
+//									o.isNullOp().getBoolean(),q.negateCompareResult(),o.getTraceString(),q.getClass());
+//			else
+//				SpliceLogUtils.trace(LOG,"q = %s",q);
+//			if (q.getOrderable()==null||q.getOrderable().isNullOp().getBoolean()) {
+//				SpliceLogUtils.trace(LOG,"orderable is null");
+//				if (q.negateCompareResult()) { //IS NOT NULL
+//					SpliceLogUtils.trace(LOG, "negateCompareResult");
+//					andList.addFilter(new ColumnNullableFilter(
+//							HBaseConstants.DEFAULT_FAMILY.getBytes(),
+//							Integer.toString(q.getColumnId()).getBytes(),
+//							CompareFilter.CompareOp.NOT_EQUAL));
+//				} else { //IS NULL
+//					SpliceLogUtils.trace(LOG, "compareResult");
+//					andList.addFilter(new ColumnNullableFilter(
+//							HBaseConstants.DEFAULT_FAMILY.getBytes(),
+//							Integer.toString(q.getColumnId()).getBytes(),
+//							CompareFilter.CompareOp.EQUAL));
+//				}
+//			} else {
+//				SpliceLogUtils.trace(LOG, "orderable is not null");
+//				SingleColumnValueFilter filter = new SingleColumnValueFilter(
+//						HBaseConstants.DEFAULT_FAMILY.getBytes(),
+//						Integer.toString(q.getColumnId()).getBytes(),
+//						getHBaseCompareOp(q.getOperator(), q.negateCompareResult()),
+//						DerbyBytesUtil.generateBytes(q.getOrderable()));
+//				filter.setFilterIfMissing(true);
+//				andList.addFilter(filter);
+//			}
+//		}
+//		SpliceLogUtils.trace(LOG, "adding and filters");
+//		masterList.addFilter(andList);
+//		FilterList nextMasterList = new FilterList(Operator.MUST_PASS_ALL);
+//		SpliceLogUtils.trace(LOG,"and_idx.length="+qual_list.length);
+//		for (int and_idx = 1; and_idx < qual_list.length; and_idx++) { // OR CLAUSES
+//			SpliceLogUtils.trace(LOG,"or branch");
+//			// loop through each of the "and" clause.
+//			FilterList orList = new FilterList(Operator.MUST_PASS_ONE);
+//
+//			SpliceLogUtils.trace(LOG, "qual_list[and_idx].length=%d",qual_list[and_idx].length);
+//			for (int or_idx = 0; or_idx < qual_list[and_idx].length; or_idx++) {
+//				Qualifier q = qual_list[and_idx][or_idx];
+//				SpliceLogUtils.trace(LOG,"q=%s",q);
+//				if (LOG.isTraceEnabled()&&q.getOrderable()!=null)
+//					LOG.trace(" or column " + q.getColumnId() +" "+ q.getOperator() + q.getOrderable().getTraceString());
+//				else if(LOG.isTraceEnabled())
+//					LOG.trace(" or column " + q.getColumnId() +" "+ q.getOperator());
+//
+//				if (q.getOrderable()==null || q.getOrderable().isNullOp().getBoolean()) {
+//					if (q.negateCompareResult()) { //IS NOT NULL
+//						orList.addFilter(new ColumnNullableFilter(
+//								HBaseConstants.DEFAULT_FAMILY.getBytes(),
+//								Integer.toString(q.getColumnId()).getBytes(),
+//								CompareFilter.CompareOp.NOT_EQUAL));
+//
+//					} else { //IS NULL
+//						orList.addFilter(new ColumnNullableFilter(
+//								HBaseConstants.DEFAULT_FAMILY.getBytes(),
+//								Integer.toString(q.getColumnId()).getBytes(),
+//								CompareFilter.CompareOp.EQUAL));
+//					}
+//				} else {
+//					SingleColumnValueFilter filter2 = new SingleColumnValueFilter(
+//							HBaseConstants.DEFAULT_FAMILY.getBytes(),
+//							Integer.toString(q.getColumnId()).getBytes(),
+//							getHBaseCompareOp(q.getOperator(), q.negateCompareResult()),
+//							DerbyBytesUtil.generateBytes(q.getOrderable()));
+//							filter2.setFilterIfMissing(true);
+//					orList.addFilter(filter2);
+//				}
+//			}
+//			nextMasterList.addFilter(orList);
+//		}
+//		masterList.addFilter(nextMasterList);
+//		return masterList;
+//	}
 
-        SpliceLogUtils.trace(LOG,"building and filters");
-        finalFilter.addFilter(buildFilter(qualList[0],Operator.MUST_PASS_ALL));
-
-        //build or clauses from the rest
-        SpliceLogUtils.trace(LOG,"building or filters");
-        FilterList orList = new FilterList(Operator.MUST_PASS_ALL);
-        for(int clause=1;clause<qualList.length;clause++){
-            orList.addFilter(buildFilter(qualList[clause],Operator.MUST_PASS_ONE));
-        }
-        finalFilter.addFilter(orList);
-
-        return finalFilter;
-    }
-
-	public static Filter generateFilter(Qualifier[][] qual_list) throws StandardException, IOException {
-		SpliceLogUtils.trace(LOG, "generateFilter " + qual_list);		
-		FilterList masterList = new FilterList(Operator.MUST_PASS_ALL);
-		FilterList andList = new FilterList(Operator.MUST_PASS_ALL);
-		SpliceLogUtils.trace(LOG, "Generating where clause %d", qual_list[0].length);
-		for (int i = 0; i < qual_list[0].length; i++) { // AND CLAUSES
-			Qualifier q = qual_list[0][i];
-			DataValueDescriptor o = q.getOrderable();
-			if(o!=null)
-				SpliceLogUtils.trace(LOG," and column=%d, operator=%s, nullable=%s,q.getOrderable().isNullOp().getBoolean()=%b,q.negateCompareResult()=%b,%s %s",
-									q.getColumnId(),q.getOperator(),q.getOrderedNulls(),
-									o.isNullOp().getBoolean(),q.negateCompareResult(),o.getTraceString(),q.getClass());
-			else
-				SpliceLogUtils.trace(LOG,"q = %s",q);
-			if (q.getOrderable()==null||q.getOrderable().isNullOp().getBoolean()) {
-				SpliceLogUtils.trace(LOG,"orderable is null");
-				if (q.negateCompareResult()) { //IS NOT NULL
-					SpliceLogUtils.trace(LOG, "negateCompareResult");
-					andList.addFilter(new ColumnNullableFilter(
-							HBaseConstants.DEFAULT_FAMILY.getBytes(),
-							Integer.toString(q.getColumnId()).getBytes(),
-							CompareFilter.CompareOp.NOT_EQUAL));
-				} else { //IS NULL
-					SpliceLogUtils.trace(LOG, "compareResult");
-					andList.addFilter(new ColumnNullableFilter(
-							HBaseConstants.DEFAULT_FAMILY.getBytes(),
-							Integer.toString(q.getColumnId()).getBytes(),
-							CompareFilter.CompareOp.EQUAL));
-				}
-			} else {
-				SpliceLogUtils.trace(LOG, "orderable is not null");
-				SingleColumnValueFilter filter = new SingleColumnValueFilter(
-						HBaseConstants.DEFAULT_FAMILY.getBytes(),
-						Integer.toString(q.getColumnId()).getBytes(),
-						getHBaseCompareOp(q.getOperator(), q.negateCompareResult()),
-						DerbyBytesUtil.generateBytes(q.getOrderable()));
-				filter.setFilterIfMissing(true);
-				andList.addFilter(filter);
-			}
-		}
-		SpliceLogUtils.trace(LOG, "adding and filters");
-		masterList.addFilter(andList);
-		FilterList nextMasterList = new FilterList(Operator.MUST_PASS_ALL);
-		SpliceLogUtils.trace(LOG,"and_idx.length="+qual_list.length);
-		for (int and_idx = 1; and_idx < qual_list.length; and_idx++) { // OR CLAUSES
-			SpliceLogUtils.trace(LOG,"or branch");
-			// loop through each of the "and" clause.
-			FilterList orList = new FilterList(Operator.MUST_PASS_ONE);
-
-			SpliceLogUtils.trace(LOG, "qual_list[and_idx].length=%d",qual_list[and_idx].length);
-			for (int or_idx = 0; or_idx < qual_list[and_idx].length; or_idx++) {
-				Qualifier q = qual_list[and_idx][or_idx];
-				SpliceLogUtils.trace(LOG,"q=%s",q);
-				if (LOG.isTraceEnabled()&&q.getOrderable()!=null)
-					LOG.trace(" or column " + q.getColumnId() +" "+ q.getOperator() + q.getOrderable().getTraceString());
-				else if(LOG.isTraceEnabled())
-					LOG.trace(" or column " + q.getColumnId() +" "+ q.getOperator()); 
-				
-				if (q.getOrderable()==null || q.getOrderable().isNullOp().getBoolean()) {
-					if (q.negateCompareResult()) { //IS NOT NULL
-						orList.addFilter(new ColumnNullableFilter(
-								HBaseConstants.DEFAULT_FAMILY.getBytes(),
-								Integer.toString(q.getColumnId()).getBytes(),
-								CompareFilter.CompareOp.NOT_EQUAL));	  
-					
-					} else { //IS NULL 
-						orList.addFilter(new ColumnNullableFilter(
-								HBaseConstants.DEFAULT_FAMILY.getBytes(),
-								Integer.toString(q.getColumnId()).getBytes(),
-								CompareFilter.CompareOp.EQUAL));	 
-					}
-				} else {
-					SingleColumnValueFilter filter2 = new SingleColumnValueFilter(
-							HBaseConstants.DEFAULT_FAMILY.getBytes(),
-							Integer.toString(q.getColumnId()).getBytes(),
-							getHBaseCompareOp(q.getOperator(), q.negateCompareResult()),
-							DerbyBytesUtil.generateBytes(q.getOrderable()));
-							filter2.setFilterIfMissing(true);
-					orList.addFilter(filter2);
-				}
-			}
-			nextMasterList.addFilter(orList);
-		}
-		masterList.addFilter(nextMasterList);
-		return masterList;
-	}
-
-	/**
+	/*
 	 * This is a short term workaround
 	 * @param qual_list
 	 * @return
 	 * @throws StandardException
 	 * @throws IOException
 	 */
-	public static Filter generateIndexFilter(DataValueDescriptor[] dataValueDescriptors, int operator) throws StandardException, IOException {
-        SpliceLogUtils.trace(LOG,"Generating Index Filters %s with operator %d",Arrays.toString(dataValueDescriptors),operator);
-		FilterList masterList = new FilterList(Operator.MUST_PASS_ALL);
-        SpliceLogUtils.trace(LOG,"Generating where clause %d",dataValueDescriptors.length);
-		for (int i = 0; i < dataValueDescriptors.length; i++) { // AND CLAUSES
-            DataValueDescriptor dvd = dataValueDescriptors[i];
-			SpliceLogUtils.trace(LOG,"dvd=%s",dvd);
-			if (dvd !=null && !dvd.isNull()){
-				SpliceLogUtils.trace(LOG,"adding filter %s",dvd);
-				masterList.addFilter(new SingleColumnValueFilter(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-						(new Integer(i)).toString().getBytes(),
-						getHBaseCompareOp(operator, false),
-						DerbyBytesUtil.generateBytes(dataValueDescriptors[i])));	            
-				SpliceLogUtils.trace(LOG, "successfully added filter %s",dataValueDescriptors[i].getObject());
-			}else
-				SpliceLogUtils.trace(LOG,"skipping dataValueDescriptor %s because object is null",dataValueDescriptors[i]);
-		}
-		return masterList;
-	}
+//	public static Filter generateIndexFilter(DataValueDescriptor[] dataValueDescriptors, int operator) throws StandardException, IOException {
+//        SpliceLogUtils.trace(LOG,"Generating Index Filters %s with operator %d",Arrays.toString(dataValueDescriptors),operator);
+//		FilterList masterList = new FilterList(Operator.MUST_PASS_ALL);
+//        SpliceLogUtils.trace(LOG,"Generating where clause %d",dataValueDescriptors.length);
+//		for (int i = 0; i < dataValueDescriptors.length; i++) { // AND CLAUSES
+//            DataValueDescriptor dvd = dataValueDescriptors[i];
+//			SpliceLogUtils.trace(LOG,"dvd=%s",dvd);
+//			if (dvd !=null && !dvd.isNull()){
+//				SpliceLogUtils.trace(LOG,"adding filter %s",dvd);
+//				masterList.addFilter(new SingleColumnValueFilter(HBaseConstants.DEFAULT_FAMILY.getBytes(),
+//						(new Integer(i)).toString().getBytes(),
+//						getHBaseCompareOp(operator, false),
+//						DerbyBytesUtil.generateBytes(dataValueDescriptors[i])));
+//				SpliceLogUtils.trace(LOG, "successfully added filter %s",dataValueDescriptors[i].getObject());
+//			}else
+//				SpliceLogUtils.trace(LOG,"skipping dataValueDescriptor %s because object is null",dataValueDescriptors[i]);
+//		}
+//		return masterList;
+//	}
 
 	public static String generateQuorum() {
 		LOG.info("generateQuorum");
 		String servers = config.get(HBaseConstants.HBASE_ZOOKEEPER_QUOROM, "localhost");
 		String port = config.get(HBaseConstants.HBASE_ZOOKEEPER_CLIENT_PORT, "2181");
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		for (String split: servers.split(",")) {
 			sb.append(split);
 			sb.append(":");
@@ -940,152 +926,153 @@ public class SpliceUtils {
 		return transID.getBytes();
 	}
 	
-	public static Scan generateScan(DataValueDescriptor uniqueString, byte[] startRow, byte[] stopRow, String transactionID) throws StandardException, IOException {
-		return generateScan(uniqueString, startRow, stopRow, transactionID.getBytes(), 100);
-	}
+//	public static Scan generateScan(DataValueDescriptor uniqueString, byte[] startRow, byte[] stopRow, String transactionID) throws StandardException, IOException {
+//		return generateScan(uniqueString, startRow, stopRow, transactionID.getBytes(), 100);
+//	}
 	
-	public static Scan generateScan(DataValueDescriptor uniqueString, byte[] startRow, byte[] stopRow, byte[] transactionID) throws StandardException, IOException {
-		return generateScan(uniqueString, startRow, stopRow, transactionID, 100);
-	}
+//	public static Scan generateScan(DataValueDescriptor uniqueString, byte[] startRow, byte[] stopRow, byte[] transactionID) throws StandardException, IOException {
+//		return generateScan(uniqueString, startRow, stopRow, transactionID, 100);
+//	}
+//
+//	public static Scan generateScan(DataValueDescriptor uniqueString, byte[] startRow, byte[] stopRow, String transactionID, int caching) throws StandardException, IOException {
+//		return generateScan(uniqueString, startRow, stopRow, transactionID.getBytes(), caching);
+//	}
 	
-	public static Scan generateScan(DataValueDescriptor uniqueString, byte[] startRow, byte[] stopRow, String transactionID, int caching) throws StandardException, IOException {
-		return generateScan(uniqueString, startRow, stopRow, transactionID.getBytes(), caching);
-	}
+//	public static Scan generateScan(DataValueDescriptor uniqueString, byte[] startRow, byte[] stopRow, byte[] transactionID, int caching) throws StandardException, IOException {
+//		SpliceLogUtils.trace(LOG,"generateRegionScan for uniqueString %s",uniqueString);
+//		Scan scan = new Scan();
+//		scan.setCaching(caching);
+//		scan.setStartRow(startRow);
+//		scan.setStopRow(stopRow);
+//		scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+//		if (transactionID != null) { //no transaction, no need for isolation level
+//			scan.setAttribute(TxnConstants.TRANSACTION_ID, transactionID);
+//			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
+//					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
+//		}
+//		return scan;
+//	}
 	
-	public static Scan generateScan(DataValueDescriptor uniqueString, byte[] startRow, byte[] stopRow, byte[] transactionID, int caching) throws StandardException, IOException {
-		SpliceLogUtils.trace(LOG,"generateRegionScan for uniqueString %s",uniqueString);
-		Scan scan = new Scan();
-		scan.setCaching(caching);
-		scan.setStartRow(startRow);
-		scan.setStopRow(stopRow);
-		scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
-		if (transactionID != null) { //no transaction, no need for isolation level
-			scan.setAttribute(TxnConstants.TRANSACTION_ID, transactionID);
-			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL, 
-					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
-		}
-		return scan;
-	}
+//	public static Scan setupScan(byte[] transactionID,FormatableBitSet scanColumnList, Qualifier[][] qualifier,
+//			DataValueDescriptor[] startKeyValue,
+//			int startSearchOperator,
+//			DataValueDescriptor[] stopKeyValue,
+//			int stopSearchOperator,
+//			boolean[] ascDescInfo) {
+//			SpliceLogUtils.trace(LOG,"setting up scan");
+//			Scan scan = setupScanKeys(transactionID,scanColumnList, qualifier,startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator,ascDescInfo);
+//            SpliceLogUtils.trace(LOG,"Attaching filters to scan");
+////            return scan;
+//			return attachFilterToScan(scan,qualifier,startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator);
+//	}
 	
-	public static Scan setupScan(byte[] transactionID,FormatableBitSet scanColumnList, Qualifier[][] qualifier,
-			DataValueDescriptor[] startKeyValue,
-			int startSearchOperator,
-			DataValueDescriptor[] stopKeyValue,
-			int stopSearchOperator,
-			boolean[] ascDescInfo) {
-			SpliceLogUtils.trace(LOG,"setting up scan");
-			Scan scan = setupScanKeys(transactionID,scanColumnList, qualifier,startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator,ascDescInfo);
-            SpliceLogUtils.trace(LOG,"Attaching filters to scan");
-//            return scan;
-			return attachFilterToScan(scan,qualifier,startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator);
-	}
+//	public static Scan setupScanKeys(byte[] transactionID,FormatableBitSet scanColumnList, Qualifier[][] qualifier,
+//			DataValueDescriptor[] startKeyValue,
+//			int startSearchOperator,
+//			DataValueDescriptor[] stopKeyValue,
+//			int stopSearchOperator,
+//			boolean[] ascDescInfo) {
+//        SpliceLogUtils.trace(LOG,"setupScanKeys");
+//		Scan scan = new Scan();
+//		scan.setCaching(100);
+//		if (transactionID != null) {
+//			scan.setAttribute(TxnConstants.TRANSACTION_ID, transactionID);
+//			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
+//					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
+//		} else {
+//			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
+//					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_COMMITTED.toString()));
+//		}
+//
+//		FormatableBitSet tempScanColumnList = scanColumnList;
+//		if (scanColumnList != null && qualifier != null && qualifier.length > 0) {
+//			for (int and_idx = 0; and_idx < qualifier.length; and_idx++) {
+//				for (int or_idx = 0; or_idx < qualifier[and_idx].length; or_idx++) {
+//					if (!scanColumnList.isSet(qualifier[and_idx][or_idx].getColumnId()))
+//						scanColumnList.set(qualifier[and_idx][or_idx].getColumnId());
+//				}
+//			}
+//		}
+//		if (tempScanColumnList != null) {
+//			for (int i = 0; i < tempScanColumnList.size(); i++) {
+//				if (tempScanColumnList.isSet(i))
+//					scan.addColumn(HBaseConstants.DEFAULT_FAMILY.getBytes(), Integer.toString(i).getBytes());
+//			}
+//		}
+//		try {
+//			boolean generateKey = true;
+//			if (startKeyValue != null && stopKeyValue != null) {
+//				for (int i =0; i<startKeyValue.length; i++) {
+//					if (startKeyValue[i]==null||startKeyValue[i].isNull())
+//						generateKey = false; // DO WE NEED THIS? JL
+//				}
+//			}
+//			if (generateKey) {
+//				boolean[] sortOrder = ascDescInfo;
+//				scan.setStartRow(DerbyBytesUtil.generateScanKeyForIndex(startKeyValue,startSearchOperator,sortOrder));
+//				scan.setStopRow(DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue,stopSearchOperator,sortOrder));
+//				if (scan.getStartRow() != null && scan.getStopRow() != null && Bytes.compareTo(scan.getStartRow(), scan.getStopRow())>=0) {
+//					LOG.warn("Scan begin key is greater than the end key");
+//				}
+//			}
+//            //if we can't fill the start row somehow, assume that it's empty -SF-
+//            if (scan.getStartRow() == null)
+//                scan.setStartRow(HConstants.EMPTY_START_ROW);
+//            if (scan.getStopRow() == null)
+//                scan.setStopRow(HConstants.EMPTY_END_ROW);
+//		} catch (Exception e) {
+//			LOG.error("Exception creating start key",e);
+//			throw new RuntimeException(e);
+//		}
+//		return scan;
+//	}
 	
-	public static Scan setupScanKeys(byte[] transactionID,FormatableBitSet scanColumnList, Qualifier[][] qualifier,
-			DataValueDescriptor[] startKeyValue,
-			int startSearchOperator,
-			DataValueDescriptor[] stopKeyValue,
-			int stopSearchOperator,
-			boolean[] ascDescInfo) {
-        SpliceLogUtils.trace(LOG,"setupScanKeys");
-		Scan scan = new Scan();
-		scan.setCaching(100);		
-		if (transactionID != null) {
-			scan.setAttribute(TxnConstants.TRANSACTION_ID, transactionID);
-			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL, 
-					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
-		} else {
-			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL, 
-					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_COMMITTED.toString()));
-		}
-		
-		FormatableBitSet tempScanColumnList = scanColumnList;
-		if (scanColumnList != null && qualifier != null && qualifier.length > 0) {      
-			for (int and_idx = 0; and_idx < qualifier.length; and_idx++) {
-				for (int or_idx = 0; or_idx < qualifier[and_idx].length; or_idx++) {
-					if (!scanColumnList.isSet(qualifier[and_idx][or_idx].getColumnId()))
-						scanColumnList.set(qualifier[and_idx][or_idx].getColumnId());
-				}
-			}
-		} 
-		if (tempScanColumnList != null) {
-			for (int i = 0; i < tempScanColumnList.size(); i++) {
-				if (tempScanColumnList.isSet(i))
-					scan.addColumn(HBaseConstants.DEFAULT_FAMILY.getBytes(), Integer.toString(i).getBytes());
-			}
-		}
-		try {
-			boolean generateKey = true;
-			if (startKeyValue != null && stopKeyValue != null) {
-				for (int i =0; i<startKeyValue.length; i++) {
-					if (startKeyValue[i]==null||startKeyValue[i].isNull())
-						generateKey = false; // DO WE NEED THIS? JL
-				}
-			}
-			if (generateKey) {
-				boolean[] sortOrder = ascDescInfo;
-				scan.setStartRow(DerbyBytesUtil.generateScanKeyForIndex(startKeyValue,startSearchOperator,sortOrder));
-				scan.setStopRow(DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue,stopSearchOperator,sortOrder));
-				if (scan.getStartRow() != null && scan.getStopRow() != null && Bytes.compareTo(scan.getStartRow(), scan.getStopRow())>=0) {				
-					LOG.warn("Scan begin key is greater than the end key");
-				}
-			}
-            //if we can't fill the start row somehow, assume that it's empty -SF-
-            if (scan.getStartRow() == null)
-                scan.setStartRow(HConstants.EMPTY_START_ROW);
-            if (scan.getStopRow() == null)
-                scan.setStopRow(HConstants.EMPTY_END_ROW);
-		} catch (Exception e) {
-			LOG.error("Exception creating start key",e);
-			throw new RuntimeException(e);
-		}
-		return scan;
-	}
-	
-	public static Scan attachFilterToScan(Scan scan, Qualifier[][] qualifier,DataValueDescriptor[] startKeyValue,
-			int startSearchOperator,
-			DataValueDescriptor[] stopKeyValue,
-			int stopSearchOperator)  {
-            SpliceLogUtils.trace(LOG,"attachFilterToScan");
-			try {
-				FilterList masterList = new FilterList(Operator.MUST_PASS_ALL);
-				if (qualifier != null){
-                    SpliceLogUtils.trace(LOG,"Attaching qualifier filter to scan");
-					masterList.addFilter(SpliceUtils.constructFilter(qualifier));
-                }if (startSearchOperator == 1 && stopSearchOperator == 1
-                                             && startKeyValue != null
-                                             && startKeyValue.length == 1
-                                             &&startKeyValue[0].isNull()){
-					LOG.info("NOT GENERATING INDEX FILTER. DO A FULL SCAN.......");
-				} else {
-                    /*
-                     * You have to set a start equals filter, otherwise a restricted query won't work
-                     * correctly--e.g. "select * from table t where t.a = SYS" would pull back
-                     * t.a = SYS
-                     * t.a = SYSCAT
-                     * t.a = SYSTABLE
-                     * ...
-                     *
-                     * when it should really pull back just "t.a = SYS"
-                     */
-					if (startKeyValue != null && startSearchOperator >= 0){
-                        SpliceLogUtils.trace(LOG,"Attaching start index filter to scan. " +
-                                                 "startSearchOperator=%d,startKeyValue=%s",
-                                                    startSearchOperator,Arrays.toString(startKeyValue));
-						masterList.addFilter(SpliceUtils.generateIndexFilter(startKeyValue, Orderable.ORDER_OP_EQUALS));
-                    }
-//                    if (stopKeyValue != null && stopSearchOperator >= 0){
-//                        SpliceLogUtils.trace(LOG,"Attaching stop index filter to scan. " +
-//                                "stopSearchOperator=%d,stopKeyValue=%s",
-//                                stopSearchOperator,Arrays.toString(stopKeyValue));
-//						masterList.addFilter(SpliceUtils.generateIndexFilter(stopKeyValue,stopSearchOperator));
+//	public static Scan attachFilterToScan(Scan scan, Qualifier[][] qualifier,DataValueDescriptor[] startKeyValue,
+//			int startSearchOperator,
+//			DataValueDescriptor[] stopKeyValue,
+//			int stopSearchOperator)  {
+//            SpliceLogUtils.trace(LOG,"attachFilterToScan");
+//			try {
+//				FilterList masterList = new FilterList(Operator.MUST_PASS_ALL);
+//				if (qualifier != null){
+//                    SpliceLogUtils.trace(LOG,"Attaching qualifier filter to scan");
+//					masterList.addFilter(SpliceUtils.constructFilter(qualifier));
+//                }if (startSearchOperator == 1 && stopSearchOperator == 1
+//                                             && startKeyValue != null
+//                                             && startKeyValue.length == 1
+//                                             &&startKeyValue[0].isNull()){
+//					LOG.info("NOT GENERATING INDEX FILTER. DO A FULL SCAN.......");
+//				} else {
+//                    /*
+//                     * You have to set a start equals filter, otherwise a restricted query won't work
+//                     * correctly--e.g. "select * from table t where t.a = SYS" would pull back
+//                     * t.a = SYS
+//                     * t.a = SYSCAT
+//                     * t.a = SYSTABLE
+//                     * ...
+//                     *
+//                     * when it should really pull back just "t.a = SYS"
+//                     */
+//					if (startKeyValue != null && startSearchOperator >= 0){
+//                        SpliceLogUtils.trace(LOG,"Attaching start index filter to scan. " +
+//                                                 "startSearchOperator=%d,startKeyValue=%s",
+//                                                    startSearchOperator,Arrays.toString(startKeyValue));
+//						masterList.addFilter(SpliceUtils.generateIndexFilter(startKeyValue, Orderable.ORDER_OP_EQUALS));
 //                    }
-				}
-			    scan.setFilter(masterList);
-			} catch (Exception e) {
-				throw new RuntimeException("error attaching Filter",e);
-			}
-			return scan;
-	}
+////                    if (stopKeyValue != null && stopSearchOperator >= 0){
+////                        SpliceLogUtils.trace(LOG,"Attaching stop index filter to scan. " +
+////                                "stopSearchOperator=%d,stopKeyValue=%s",
+////                                stopSearchOperator,Arrays.toString(stopKeyValue));
+////						masterList.addFilter(SpliceUtils.generateIndexFilter(stopKeyValue,stopSearchOperator));
+////                    }
+//				}
+//			    scan.setFilter(masterList);
+//			} catch (Exception e) {
+//				throw new RuntimeException("error attaching Filter",e);
+//			}
+//			return scan;
+//	}
+
 	public static byte[] getUniqueKey(){
 		return gen.next().toString().getBytes();			
 	}
