@@ -163,7 +163,7 @@ public class TableScanOperation extends ScanOperation {
 			} else {
                 SpliceLogUtils.trace(LOG,"%s:populating data",mapTableName);
                 Result result = new Result(keyValues);
-				SpliceUtils.populate(result, accessedCols, currentRow.getRowArray());
+				SpliceUtils.populate(result, currentRow.getRowArray(), accessedCols,baseColumnMap);
 				currentRowLocation = new HBaseRowLocation(result.getRow());
 				SpliceLogUtils.trace(LOG, "%s:getNextRowCore with keyValues %s and currentRow %s",mapTableName,keyValues,currentRow);
 			}

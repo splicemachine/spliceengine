@@ -314,12 +314,7 @@ public class SpliceUtils {
 		try{
 			for(int i=0;i<destRow.length;i++){
 				byte[] value = currentResult.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES, (new Integer(i)).toString().getBytes());
-				if(value!=null){
-					DerbyBytesUtil.fromBytes(value,destRow[i]);
-					SpliceLogUtils.trace(LOG,"destRow with class="+destRow[i].getClass()+", and value="+destRow[i]);
-				}else{
-					destRow[i].setToNull();
-				}
+				fill(value,destRow[i]);
 			}
 		}catch(IOException ioe){
 			SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
@@ -333,18 +328,34 @@ public class SpliceUtils {
 			else{
 				for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
 					byte[] value = currentResult.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
-					if(value!=null && destRow[i]!=null){
-						DerbyBytesUtil.fromBytes(value,destRow[i]);
-					}else{
-						SpliceLogUtils.trace(LOG,"destRow[%d] is null",i);
-						if(destRow[i]!=null){
-							destRow[i].setToNull();
-						}
-					}
+					fill(value,destRow[i]);
 				}
 			}
 		} catch (IOException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Error occurred during populate", e);
+		}
+	}
+
+	public static void populate(Result currentResult, DataValueDescriptor[] destRow,
+															FormatableBitSet scanList,int[] bitSetToDestRowMap) throws StandardException{
+		if(scanList==null) populate(currentResult,destRow);
+		else{
+			try{
+				for(int i=scanList.anySetBit();i!=-1;i=scanList.anySetBit(i)){
+					byte[] value = currentResult.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
+					fill(value,destRow[bitSetToDestRowMap[i]]);
+				}
+			}catch(IOException e){
+				SpliceLogUtils.logAndThrowRuntime(LOG,"Error occurred during populate",e);
+			}
+		}
+	}
+
+	private static void fill(byte[] value, DataValueDescriptor dvd) throws StandardException, IOException {
+		if(value!=null&&dvd!=null){
+			DerbyBytesUtil.fromBytes(value,dvd);
+		}else if(dvd!=null){
+			dvd.setToNull();
 		}
 	}
 
@@ -927,21 +938,6 @@ public class SpliceUtils {
 			return null;
 		
 		return transID.getBytes();
-	}
-	
-	public static Scan generateRegionScan(DataValueDescriptor uniqueString,long startRegionId, long stopRegionId, byte[] transactionID) throws IOException {
-		SpliceLogUtils.trace(LOG,"generateRegionScan for uniqueString %s, start %d and end %d",uniqueString,startRegionId,stopRegionId);
-		Scan scan = new Scan();
-		scan.setCaching(100);
-		scan.setStartRow(DerbyBytesUtil.generateRegionHashKey(startRegionId,uniqueString));
-		scan.setStopRow(DerbyBytesUtil.generateRegionHashKey(stopRegionId,uniqueString));
-		scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
-		if (transactionID != null) { //no transaction, no need for isolation level
-			scan.setAttribute(TxnConstants.TRANSACTION_ID, transactionID);
-			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL, 
-					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
-		}
-		return scan;
 	}
 	
 	public static Scan generateScan(DataValueDescriptor uniqueString, byte[] startRow, byte[] stopRow, String transactionID) throws StandardException, IOException {

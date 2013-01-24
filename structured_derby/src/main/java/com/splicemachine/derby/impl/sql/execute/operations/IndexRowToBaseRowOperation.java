@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 
-import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -33,14 +32,17 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements CursorResultSet{
 
 	private static Logger LOG = Logger.getLogger(IndexRowToBaseRowOperation.class);
 	protected int lockMode;
 	protected int isolationLevel;
-	protected ExecRow candidate;
+//	protected ExecRow candidate;
 	protected FormatableBitSet accessedCols;
 	protected String resultRowAllocatorMethodName;
 	protected StaticCompiledOpenConglomInfo scoci;
@@ -63,7 +65,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	protected int indexColMapItem;
 	private ExecRow compactRow;
 	RowLocation baseRowLocation = null;
-	FormatableBitSet accessFromTableCols;
+//	FormatableBitSet accessFromTableCols;
 	boolean copiedFromSource = false;
 
 	/*
@@ -71,7 +73,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
  	 * getExecRowDefinition(). Save a little bit of performance by caching it
  	 * once created.
  	 */
-	private ExecRow definition;
+//	private ExecRow definition;
 	private HTableInterface table;
 
 
@@ -254,14 +256,14 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	@Override
 	public List<SpliceOperation> getSubOperations() {
 		SpliceLogUtils.trace(LOG,"getSubOperations");
-		return Collections.singletonList((SpliceOperation)source);
+		return Collections.singletonList(source);
 	}
 
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getNextRowCore");
-		ExecRow sourceRow = null;
-		ExecRow retRow = null;
+		ExecRow sourceRow;
+		ExecRow retRow;
 		boolean restrict = false;
 		DataValueDescriptor restrictBoolean;
 
@@ -279,7 +281,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 					SpliceLogUtils.trace(LOG,"compactRow=%s",compactRow);
 					rowExists = result!=null;
 					if(rowExists){
-						SpliceUtils.populate(result,accessedHeapCols,rowArray);
+						SpliceUtils.populate(result, rowArray, accessedHeapCols,baseColumnMap);
 					}
 				}catch(IOException ioe){
 					SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
@@ -334,8 +336,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 	@Override
 	public ExecRow getExecRowDefinition() {
-		ExecRow row =  compactRow.getClone();
-		return row;
+		return compactRow.getClone();
 	}
 	
 	@Override
