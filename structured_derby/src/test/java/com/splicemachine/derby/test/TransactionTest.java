@@ -247,7 +247,7 @@ public class TransactionTest extends SpliceDerbyTest {
 		try {
 			conn.setAutoCommit(false);
 			s = conn.createStatement();
-			s.execute("update locationTran set addr='rolled back address' where num=200)");
+			s.execute("update locationTran set addr='rolled back address' where num=200");
 			conn.rollback();
 			
 			rs = s.executeQuery("select addr from locationTran where num=200");
@@ -455,6 +455,142 @@ public class TransactionTest extends SpliceDerbyTest {
 		}
 	} 
 
+	@Test
+	public void testTransactionalSelectString() throws SQLException {	
+		Statement s = null;
+		ResultSet rs = null;
+		try {
+			conn.setAutoCommit(true);
+			try {
+				s = conn.createStatement();
+				s.execute("create table foobar (name varchar(40), empId int)");
+				s.execute("insert into foobar values('Mulgrew, Kate', 1)");
+				s.execute("insert into foobar values('Shatner, William', 2)");
+				s.execute("insert into foobar values('Nimoy, Leonard', 3)");
+				s.execute("insert into foobar values('Stewart, Patrick', 4)");
+				s.execute("insert into foobar values('Spiner, Brent', 5)");
+				s.execute("insert into foobar values('Duncan, Rebort', 6)");
+				s.execute("insert into foobar values('Nimoy, Leonard', 7)");
+				s.execute("insert into foobar values('Ryan, Jeri', 8)");
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				try {
+					if (s != null)
+						s.close();
+				} catch (SQLException e) {
+					//no need to print out
+				}
+			}
+			
+			conn.setAutoCommit(false);
+			s = conn.createStatement();
+			s.execute("insert into foobar values('Noncommitted, Noncommitted', 9)");
+			
+			rs = s.executeQuery("select name from foobar");
+			
+			int j = 0;
+			while (rs.next()) {
+				j++;
+				LOG.info("before rollback, select person name="+rs.getString(1));
+				Assert.assertNotNull(rs.getString(1));
+			}	
+			Assert.assertEquals(9, j);
+			
+			conn.rollback();
+			
+			rs = s.executeQuery("select name from foobar");
+			j = 0;
+			while (rs.next()) {
+				j++;
+				LOG.info("after rollback, select person name="+rs.getString(1));
+				Assert.assertNotNull(rs.getString(1));
+			}	
+			Assert.assertEquals(8, j);
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (rs!=null)
+					rs.close();
+				if (s!=null)
+					s.close();
+				dropTable("foobar");
+			} catch (SQLException e) {
+				//no need to print out
+			}
+		}
+	}		
+	
+	
+	@Test
+	public void testTransactionalDistinctString() throws SQLException {	
+		Statement s = null;
+		ResultSet rs = null;
+		try {
+			conn.setAutoCommit(true);
+			try {
+				s = conn.createStatement();
+				s.execute("create table foobar (name varchar(40), empId int)");
+				s.execute("insert into foobar values('Mulgrew, Kate', 1)");
+				s.execute("insert into foobar values('Shatner, William', 2)");
+				s.execute("insert into foobar values('Nimoy, Leonard', 3)");
+				s.execute("insert into foobar values('Stewart, Patrick', 4)");
+				s.execute("insert into foobar values('Spiner, Brent', 5)");
+				s.execute("insert into foobar values('Duncan, Rebort', 6)");
+				s.execute("insert into foobar values('Nimoy, Leonard', 7)");
+				s.execute("insert into foobar values('Ryan, Jeri', 8)");
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				try {
+					if (s != null)
+						s.close();
+				} catch (SQLException e) {
+					//no need to print out
+				}
+			}
+			
+			conn.setAutoCommit(false);
+			s = conn.createStatement();
+			s.execute("insert into foobar values('Noncommitted, Noncommitted', 9)");
+			
+			rs = s.executeQuery("select distinct name from foobar");
+			int j = 0;
+			while (rs.next()) {
+				j++;
+				LOG.info("before rollback, distinct person name="+rs.getString(1));
+				Assert.assertNotNull(rs.getString(1));
+			}	
+			Assert.assertEquals(8, j);
+			
+			conn.rollback();
+			
+			rs = s.executeQuery("select distinct name from foobar");
+			j = 0;
+			while (rs.next()) {
+				j++;
+				LOG.info("after rollback, person name="+rs.getString(1));
+				Assert.assertNotNull(rs.getString(1));
+			}	
+			Assert.assertEquals(7, j);
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (rs!=null)
+					rs.close();
+				if (s!=null)
+					s.close();
+				dropTable("foobar");
+			} catch (SQLException e) {
+				//no need to print out
+			}
+		}
+	}
+	
 	@AfterClass 
 	public static void shutdown() throws SQLException {
 		dropTable("locationTran");
