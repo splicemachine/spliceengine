@@ -13,11 +13,13 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import com.splicemachine.hbase.txn.TransactionState;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class TerminalTransactionManager extends TransactionManager {
-    static final Log LOG = LogFactory.getLog(TerminalTransactionManager.class);
+	private static final Logger LOG = Logger.getLogger(TerminalTransactionManager.class);
     protected JtaXAResource xAResource;
     protected String transactionPath;
     protected Configuration conf;
@@ -42,14 +44,12 @@ public class TerminalTransactionManager extends TransactionManager {
 	    this.transactionTable = transactionTable;
     }
     public TransactionState beginTransaction() throws KeeperException, InterruptedException, IOException, ExecutionException {
-    	if (LOG.isDebugEnabled()) 
-    		LOG.debug("Begin transaction.");
+    	SpliceLogUtils.debug(LOG,"Begin transaction.");
     	return new TransactionState(transactionTable.get(new Get(INITIALIZE_TRANSACTION_ID_BYTES)).getRow());
     }
    
     public int prepareCommit(final TransactionState transactionState) throws KeeperException, InterruptedException, IOException {
-    	if (LOG.isDebugEnabled()) 
-    		LOG.debug("Do prepareCommit on " + transactionState.getTransactionID());
+    	SpliceLogUtils.debug(LOG,"Do prepareCommit on " + transactionState.getTransactionID());
     	transactionTable.put(getPrepareCommit(transactionState));
     	return 0;
      }
@@ -61,15 +61,13 @@ public class TerminalTransactionManager extends TransactionManager {
     }
 
     public void tryCommit(final TransactionState transactionState) throws IOException, KeeperException, InterruptedException {
-    	if (LOG.isDebugEnabled()) 
-    		LOG.debug("Try commit on " +transactionState.getTransactionID());
+    	SpliceLogUtils.debug(LOG,"Try commit on " +transactionState.getTransactionID());
        	prepareCommit(transactionState);
        	doCommit(transactionState);
     }
     
     public void abort(final TransactionState transactionState) throws IOException, KeeperException, InterruptedException {
-    	if (LOG.isDebugEnabled()) 
-    		LOG.debug("Abort on " +transactionState.getTransactionID());
+    	SpliceLogUtils.debug(LOG,"Abort on " +transactionState.getTransactionID());
     	transactionTable.put(getAbortCommit(transactionState));
      }
 
@@ -81,24 +79,21 @@ public class TerminalTransactionManager extends TransactionManager {
     }
     
     public static Put getPrepareCommit(TransactionState transactionState) {
-    	if (LOG.isDebugEnabled()) 
-    		LOG.debug("Generate prepare commit put on " + transactionState.getTransactionID());
+    	SpliceLogUtils.debug(LOG,"Generate prepare commit put on " + transactionState.getTransactionID());
 		Put put = new Put(Bytes.toBytes(transactionState.getTransactionID()));
 		put.add(TRANSACTION_TABLE_PREPARE_FAMILY_BYTES, TRANSACTION_QUALIFIER, Bytes.toBytes(transactionState.getTransactionID()));
 		return put;
 	}
 	
 	public static Put getDoCommit(TransactionState transactionState) {
-    	if (LOG.isDebugEnabled()) 
-    		LOG.debug("Generate do commit on " + transactionState.getTransactionID());
+		SpliceLogUtils.debug(LOG,"Generate do commit on " + transactionState.getTransactionID());
 		Put put = new Put(Bytes.toBytes(transactionState.getTransactionID()));
 		put.add(TRANSACTION_TABLE_DO_FAMILY_BYTES, TRANSACTION_QUALIFIER, Bytes.toBytes(transactionState.getTransactionID()));
 		return put;
 	}
 	
 	public static Put getAbortCommit(TransactionState transactionState) {
-    	if (LOG.isDebugEnabled()) 
-    		LOG.debug("Generate abort commit put on " + transactionState.getTransactionID());
+		SpliceLogUtils.debug(LOG,"Generate abort commit put on " + transactionState.getTransactionID());
 		Put put = new Put(Bytes.toBytes(transactionState.getTransactionID()));
 		put.add(TRANSACTION_TABLE_ABORT_FAMILY_BYTES, TRANSACTION_QUALIFIER, Bytes.toBytes(transactionState.getTransactionID()));
 		return put;

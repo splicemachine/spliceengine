@@ -7,14 +7,16 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import com.splicemachine.constants.TransactionStatus;
 import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class TxnCoordinator2 extends TxnConstants {
-	private static final Log LOG = LogFactory.getLog(TxnCoordinator.class);
+	private static final Logger LOG = Logger.getLogger(TxnCoordinator.class);
 	private RecoverableZooKeeper zk; 
 	private long timeout;
 	private CountDownLatch latch;
@@ -33,18 +35,15 @@ public class TxnCoordinator2 extends TxnConstants {
 	public boolean watch(String path, TransactionStatus objective) throws KeeperException, InterruptedException {
 		this.objective = objective;
 		List<String> children = zk.getChildren(path, false);
-		if (LOG.isDebugEnabled())
-			LOG.debug("Latch size: " + children.size());
+		SpliceLogUtils.debug(LOG,"Latch size: " + children.size());
 		if (children.size() > 0) {
 			latch = new CountDownLatch(children.size());
 			for (String childPath: children) {
-				if (LOG.isDebugEnabled())
-					LOG.debug("Evaluating Child Path in Executor Service : " + childPath);
+				SpliceLogUtils.debug(LOG,"Evaluating Child Path in Executor Service : " + childPath);
 				new CohortWatcher(path+"/"+childPath);
 			}
 			latch.await(timeout, TimeUnit.SECONDS);
-			if (LOG.isDebugEnabled())
-				LOG.debug("Done watch.");
+			SpliceLogUtils.debug(LOG,"Done watch.");
 		}
 		return abort;
 	}
@@ -61,9 +60,9 @@ public class TxnCoordinator2 extends TxnConstants {
 				try {
 					zk.getData(subPath, false, null);
 				} catch (KeeperException e) {
-					LOG.error("CohortWatcher retire watcher error ", e);
+					SpliceLogUtils.error(LOG,"CohortWatcher retire watcher error ", e);
 				} catch (InterruptedException e) {
-					LOG.error("CohortWatcher retire watcher error ", e);
+					SpliceLogUtils.error(LOG,"CohortWatcher retire watcher error ", e);
 				}
 				latch.countDown();
 			}
@@ -81,10 +80,10 @@ public class TxnCoordinator2 extends TxnConstants {
 				}
 			} catch (KeeperException e) {
 				countDown();
-				LOG.error("CohortWatcher setUp error ", e);
+				SpliceLogUtils.error(LOG,"CohortWatcher setUp error ", e);
 			} catch (InterruptedException e) {
 				countDown();
-				LOG.error("CohortWatcher setUp error ", e);
+				SpliceLogUtils.error(LOG,"CohortWatcher setUp error ", e);
 			}
 		}
 		@Override
@@ -101,10 +100,10 @@ public class TxnCoordinator2 extends TxnConstants {
 				}
 			} catch (KeeperException e) {
 				countDown();
-				LOG.error("CohortWatcher process error ", e);
+				SpliceLogUtils.error(LOG,"CohortWatcher process error ", e);
 			} catch (InterruptedException e) {
 				countDown();
-				LOG.error("CohortWatcher process error ", e);
+				SpliceLogUtils.error(LOG,"CohortWatcher process error ", e);
 			}
 		}
 	}
