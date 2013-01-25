@@ -62,6 +62,7 @@ public class DistinctScanOperationTest extends SpliceDerbyTest {
 	@AfterClass 
 	public static void shutdown() throws SQLException {
 		dropTable("foo");
+		dropTable("foobar");
 		stopConnection();		
 	}
 	
@@ -107,6 +108,49 @@ public class DistinctScanOperationTest extends SpliceDerbyTest {
 				Assert.assertNotNull(rs.getString(1));
 			}	
 			Assert.assertEquals(7, j);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (rs!=null)
+					rs.close();
+				if (s!=null)
+					s.close();
+			} catch (SQLException e) {
+				//no need to print out
+			}
+		}
+	}	
+	
+	@Test
+	public void testTransactionalDistinctString() throws SQLException {	
+		Statement s = null;
+		ResultSet rs = null;
+		try {
+			conn.setAutoCommit(false);
+			s = conn.createStatement();
+			s.execute("insert into foobar values('Noncommitted, Noncommitted', 9)");
+			
+			rs = s.executeQuery("select distinct name from foobar");
+			int j = 0;
+			while (rs.next()) {
+				j++;
+				LOG.info("before rollback, distinct person name="+rs.getString(1));
+				Assert.assertNotNull(rs.getString(1));
+			}	
+			Assert.assertEquals(8, j);
+			
+			conn.rollback();
+			
+			rs = s.executeQuery("select distinct name from foobar");
+			j = 0;
+			while (rs.next()) {
+				j++;
+				LOG.info("after rollback, person name="+rs.getString(1));
+				Assert.assertNotNull(rs.getString(1));
+			}	
+			Assert.assertEquals(7, j);
+			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {

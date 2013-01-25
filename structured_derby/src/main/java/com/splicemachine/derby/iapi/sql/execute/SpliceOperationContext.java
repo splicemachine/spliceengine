@@ -1,14 +1,17 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
+import java.io.IOException;
+
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ParameterValueSet;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
-import java.io.IOException;
+import com.splicemachine.hbase.txn.coprocessor.region.TransactionalRegionObserver;
+import com.splicemachine.hbase.txn.coprocessor.region.TxnUtils;
 
 /**
  * Represents the context of a SpliceOperation stack.
@@ -60,7 +63,12 @@ public class SpliceOperationContext {
     public RegionScanner getScanner() throws IOException {
         if(scanner==null){
             if(region==null)return null;
-            scanner = region.getScanner(scan);
+            
+            //Bug 193: manually trigger  transactional observer's preScannerOpen to handle transaction cases - jz
+            if (TxnUtils.getTransactionID(scan) != null) 
+            	scanner = region.getCoprocessorHost().preScannerOpen(scan);
+            else
+            	scanner = region.getScanner(scan);
         }
         return scanner;
     }
