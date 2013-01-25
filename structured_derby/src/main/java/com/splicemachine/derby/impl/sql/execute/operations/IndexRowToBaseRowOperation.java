@@ -53,6 +53,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	protected GeneratedMethod restriction;
 	protected String restrictionMethodName;
 	protected FormatableBitSet accessedHeapCols;
+	protected FormatableBitSet heapOnlyCols;
 	protected FormatableBitSet accessedAllCols;
 	protected int[] indexCols;
 	protected ExecRow resultRow;
@@ -164,6 +165,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 			if (allColRefItem != -1) {
 				this.accessedAllCols = (FormatableBitSet)saved[allColRefItem];
 			}
+			if(heapOnlyColRefItem!=-1){
+				this.heapOnlyCols = (FormatableBitSet)saved[heapOnlyColRefItem];
+			}
 //            if(accessedAllCols!=null&&accessedHeapCols!=null){
 //                accessFromTableCols = new FormatableBitSet(accessedAllCols);
 //                for(int i= accessedHeapCols.anySetBit();i!=-1;i = accessedHeapCols.anySetBit(i)){
@@ -183,8 +187,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 			else {
 				// Figure out how many columns are coming from the heap				
 				final DataValueDescriptor[] resultRowArray = resultRow.getRowArray();
-				final FormatableBitSet heapOnly = (FormatableBitSet)saved[heapOnlyColRefItem];
-				final int heapOnlyLen = heapOnly.getLength();
+				final int heapOnlyLen = heapOnlyCols.getLength();
 
 				// Need a separate DataValueDescriptor array in this case
 				rowArray = new DataValueDescriptor[heapOnlyLen];
@@ -192,7 +195,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 				// Make a copy of the relevant part of rowArray
 				for (int i = 0; i < minLen; ++i) {
-					if (resultRowArray[i] != null && heapOnly.isSet(i)) {
+					if (resultRowArray[i] != null && heapOnlyCols.isSet(i)) {
 						rowArray[i] = resultRowArray[i];
 					}
 				}
@@ -204,6 +207,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 					}
 				}			
 			}
+			SpliceLogUtils.trace(LOG,"accessedAllCols=%s,accessedHeapCols=%s,heapOnlyCols=%s,accessedCols=%s",accessedAllCols,accessedHeapCols,heapOnlyCols,accessedCols);
             SpliceLogUtils.trace(LOG,"rowArray=%s,compactRow=%s,resultRow=%s,resultSetNumber=%d",
                                             Arrays.asList(rowArray),compactRow,resultRow,resultSetNumber);
 		} catch (StandardException e) {
@@ -273,15 +277,16 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 			if(sourceRow!=null){
 				baseRowLocation = (RowLocation)sourceRow.getColumn(sourceRow.nColumns());
 				Get get =  SpliceUtils.createGet(baseRowLocation, rowArray,
-						accessedHeapCols,
+						heapOnlyCols,
 						Bytes.toBytes(transactionID));
 				boolean rowExists = false;
 				try{
 					Result result = table.get(get);
-					SpliceLogUtils.trace(LOG,"compactRow=%s",compactRow);
+					SpliceLogUtils.trace(LOG,"rowArray=%s,accessedHeapCols=%s,heapOnlyCols=%s,baseColumnMap=%s",
+																		Arrays.toString(rowArray),accessedHeapCols,heapOnlyCols,Arrays.toString(baseColumnMap));
 					rowExists = result!=null;
 					if(rowExists){
-						SpliceUtils.populate(result, rowArray, accessedHeapCols,baseColumnMap);
+						SpliceUtils.populate(result, compactRow.getRowArray(), accessedHeapCols,baseColumnMap);
 					}
 				}catch(IOException ioe){
 					SpliceLogUtils.logAndThrowRuntime(LOG,ioe);

@@ -157,7 +157,6 @@ public class Scans {
 	 *
 	 * 1. "select * from t where t.key > start" or "select * from t where t.key >=start"
 	 * 	(e.g. {@code startSearchOperator = }{@link ScanController.GT} or
-	 * 	{@code startSearchOperator = }{@link ScanController.GE})
 	 * 2. "select * from t where t.key = start" (e.g. {@code startSearchOperator = }{@link ScanController.NA}
 	 * 3. "select * from t where t.key < end" or "select * from t where t.key <=end"
 	 *
@@ -177,7 +176,10 @@ public class Scans {
 			masterList.addFilter(constructQualifierFilter(qualifiers));
 		}
 
-		if(startSearchOperator==ScanController.GT||startSearchOperator==ScanController.GE){
+		/*
+		 * Because of how HBase sorts records, treat ScanController.GE the same as an Equals clause.
+		 */
+		if(startSearchOperator==ScanController.GT){
 			return masterList;
 		}
 

@@ -543,11 +543,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		if(scan==null||table==null){
 			throw new AssertionError("Cannot perform shuffle, either scan or table is null");
 		}
-		if(scan.getStartRow()!=null&&scan.getStopRow()!=null
-				&&Bytes.compareTo(scan.getStartRow(),scan.getStopRow())!=0){
-			scan.setStartRow(null);
-			scan.setStopRow(null);
-		}
 		HTableInterface htable = null;
 		try{
 			htable = SpliceAccessManager.getHTable(table);

@@ -166,21 +166,21 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		SpliceLogUtils.trace(LOG, "initIsolationLevel");
 	}
 
-    protected Scan buildScan() {
-        try{
-            if(startKeyGetter!=null){
-                startPosition = (ExecIndexRow)startKeyGetter.invoke(activation);
-                if(sameStartStopPosition)
-                    stopPosition = startPosition;
-            }
-            if(stopKeyGetter!=null){
-                stopPosition = (ExecIndexRow)stopKeyGetter.invoke(activation);
-            }
-	        if (scanQualifiersField != null)
-	            scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
-					return Scans.setupScan(startPosition==null?null:startPosition.getRowArray(),startSearchOperator,
-																 stopPosition==null?null:stopPosition.getRowArray(),stopSearchOperator,
-																 scanQualifiers,conglomerate.getAscDescInfo(),accessedCols,Bytes.toBytes(transactionID));
+	protected Scan buildScan() {
+		try{
+			if(startKeyGetter!=null){
+				startPosition = (ExecIndexRow)startKeyGetter.invoke(activation);
+				if(sameStartStopPosition)
+					stopPosition = startPosition;
+			}
+			if(stopKeyGetter!=null){
+				stopPosition = (ExecIndexRow)stopKeyGetter.invoke(activation);
+			}
+			if (scanQualifiersField != null)
+				scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
+			return Scans.setupScan(startPosition==null?null:startPosition.getRowArray(),startSearchOperator,
+					stopPosition==null?null:stopPosition.getRowArray(),stopSearchOperator,
+					scanQualifiers,conglomerate.getAscDescInfo(),accessedCols,Bytes.toBytes(transactionID));
 //					return SpliceUtils.setupScan(Bytes.toBytes(transactionID),accessedCols,scanQualifiers,
 //	                startPosition==null? null: startPosition.getRowArray(), startSearchOperator,
 //	                stopPosition==null? null: stopPosition.getRowArray(),stopSearchOperator,

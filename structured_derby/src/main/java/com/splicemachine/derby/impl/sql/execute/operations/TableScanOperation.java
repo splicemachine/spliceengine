@@ -119,13 +119,13 @@ public class TableScanOperation extends ScanOperation {
 	public List<SpliceOperation> getSubOperations() {
 		return Collections.emptyList();
 	}
-	
+
 	@Override
 	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow template){
 		SpliceLogUtils.trace(LOG, "getMapRowProvider");
-        Scan scan = buildScan();
-        SpliceUtils.setInstructions(scan, activation, top);
-        return new ClientScanProvider(Bytes.toBytes(mapTableName),scan,template,null);
+		Scan scan = buildScan();
+		SpliceUtils.setInstructions(scan, activation, top);
+		return new ClientScanProvider(Bytes.toBytes(mapTableName),scan,template,null);
 	}
 
 	@Override
@@ -157,12 +157,12 @@ public class TableScanOperation extends ScanOperation {
 		try {
 			regionScanner.next(keyValues);
 			if (keyValues.isEmpty()) {
-                SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",mapTableName);
+				SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",mapTableName);
 				currentRow = null;
-	   			currentRowLocation = null;
+				currentRowLocation = null;
 			} else {
-                SpliceLogUtils.trace(LOG,"<%s> populating data",mapTableName);
-                Result result = new Result(keyValues);
+				SpliceLogUtils.trace(LOG,"<%s> populating data",mapTableName);
+				Result result = new Result(keyValues);
 				SpliceUtils.populate(result, currentRow.getRowArray(), accessedCols,baseColumnMap);
 				currentRowLocation = new HBaseRowLocation(result.getRow());
 				SpliceLogUtils.trace(LOG, "<%s> getNextRowCore with keyValues %s and currentRow %s",mapTableName,keyValues,currentRow);
