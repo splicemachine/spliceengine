@@ -44,28 +44,24 @@ public class ZkTransactionManager extends TransactionManager {
     }
    
     public int prepareCommit(final TransactionState transactionState) throws KeeperException, InterruptedException, IOException {
-    	if (LOG.isDebugEnabled()) 
-    		LOG.debug("Do prepareCommit on " + transactionState.getTransactionID());
+    	SpliceLogUtils.trace(LOG, "Do prepareCommit on " + transactionState.getTransactionID());
     	TxnUtils.prepareCommit(transactionState.getTransactionID(), rzk);
     	return 0;
      }
 
     public void doCommit(final TransactionState transactionState) throws KeeperException, InterruptedException, IOException  {
-    	if (LOG.isDebugEnabled()) 
-    		LOG.debug("Do commit on " + transactionState.getTransactionID());
+    	SpliceLogUtils.trace(LOG, "Do commit on " + transactionState.getTransactionID());
     	TxnUtils.doCommit(transactionState.getTransactionID(), rzk);
     }
 
     public void tryCommit(final TransactionState transactionState) throws IOException, KeeperException, InterruptedException {
-    	if (LOG.isDebugEnabled()) 
-    		LOG.debug("Try commit on " +transactionState.getTransactionID());
+    	SpliceLogUtils.trace(LOG, "Try commit on " +transactionState.getTransactionID());
        	prepareCommit(transactionState);
        	doCommit(transactionState);
     }
     
     public void abort(final TransactionState transactionState) throws IOException, KeeperException, InterruptedException {
-    	if (LOG.isDebugEnabled()) 
-    		LOG.debug("Abort on " +transactionState.getTransactionID());
+    	SpliceLogUtils.trace(LOG, "Abort on " +transactionState.getTransactionID());
     	TxnUtils.abort(transactionState.getTransactionID(), rzk);
      }
 

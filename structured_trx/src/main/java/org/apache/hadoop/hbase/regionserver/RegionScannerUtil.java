@@ -6,6 +6,9 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * 
@@ -15,9 +18,9 @@ import org.apache.hadoop.hbase.client.Scan;
  *
  */
 public class RegionScannerUtil {
-	private static final Log LOG = LogFactory.getLog(RegionScannerUtil.class);
+	private static Logger LOG = Logger.getLogger(RegionScannerUtil.class);
 	public static RegionScanner getRegionScanner(HRegion region, Scan scan, List<KeyValueScanner> additionalScanners) throws IOException {
-		LOG.info("inside RegionScannerUtil getRegionScanner");
+		SpliceLogUtils.debug(LOG,"inside RegionScannerUtil getRegionScanner");
 		return region.getScanner(scan, additionalScanners);
 	}
 }

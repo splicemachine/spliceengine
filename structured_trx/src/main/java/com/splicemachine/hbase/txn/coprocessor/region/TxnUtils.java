@@ -93,8 +93,7 @@ public class TxnUtils extends TxnConstants{
 	public static void editGetResult(Get get, HRegion region, List<KeyValue> results, RecoverableZooKeeper rzk, TxnLockManager lockManager, 
 			Map<String, TransactionState> transactionStateByID, HTablePool tablePool, ObserverContext<RegionCoprocessorEnvironment> e, 
 			String txnLogPath) throws IOException {
-		if (LOG.isDebugEnabled())
-			LOG.debug("Edite Get resutl based on Isolation Level");
+		SpliceLogUtils.trace(LOG,"Edite Get resutlt based on Isolation Level");
 		TransactionIsolationLevel isoLevel = TxnUtils.getIsolationLevel(get);
 		if (isoLevel == null) isoLevel = TransactionIsolationLevel.READ_UNCOMMITED;
 		String transactionID = TxnUtils.getTransactionID(get);
@@ -126,8 +125,7 @@ public class TxnUtils extends TxnConstants{
 	}
 
 	public static Scan wrapWithDeleteActionFilter(final Scan scan, final TransactionState state) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("Wrap scan with delete action filter.");
+		SpliceLogUtils.debug(LOG,"Wrap scan with delete action filter.");
 		FilterBase deleteFilter = new FilterBase() {
 			private boolean rowFiltered = false;
 			@Override
@@ -166,17 +164,16 @@ public class TxnUtils extends TxnConstants{
 	public static RegionScanner generateScanner(Scan scan, HRegion region, RecoverableZooKeeper rzk, TxnLockManager lockManager, 
 			Map<String, TransactionState> transactionStateByID, HTablePool tablePool, ObserverContext<RegionCoprocessorEnvironment> e, 
 			String txnLogPath) throws IOException {
-		if (LOG.isDebugEnabled())
-			LOG.debug("Generate RegionScanner based on Isolation Level.");
+		SpliceLogUtils.debug(LOG,"Generate RegionScanner based on Isolation Level.");
 		TransactionIsolationLevel isoLevel = TxnUtils.getIsolationLevel(scan);
 		if (isoLevel == null) isoLevel = TransactionIsolationLevel.READ_UNCOMMITED;
 		switch (isoLevel) {
 		case READ_UNCOMMITED:
 			String transactionID = TxnUtils.getTransactionID(scan);
-			LOG.info("generateScanner read_uncommited, transactionID="+transactionID);
+			SpliceLogUtils.debug(LOG,"generateScanner read_uncommited, transactionID="+transactionID);
 			boolean exists = true;
 			if (!transactionStateByID.containsKey(transactionID)) {
-				LOG.info("generateScanner, transactionID not in map");
+				SpliceLogUtils.debug(LOG,"generateScanner, transactionID not in map");
 				exists = false;
 				transactionStateByID.put(transactionID, new TransactionState(transactionID, region, rzk, lockManager, 
 						transactionStateByID, tablePool, txnLogPath, false));
@@ -226,7 +223,7 @@ public class TxnUtils extends TxnConstants{
 			if(znode == null) {
 				return;
 			}
-			LOG.debug("create znode for "+znode);
+			SpliceLogUtils.debug(LOG,"create znode for "+znode);
 			zkw.getRecoverableZooKeeper().create(znode, new byte[0], Ids.OPEN_ACL_UNSAFE,
 					CreateMode.PERSISTENT);
 		} catch(KeeperException.NodeExistsException nee) {
@@ -248,14 +245,13 @@ public class TxnUtils extends TxnConstants{
 			rzk.create(znode, new byte[0], Ids.OPEN_ACL_UNSAFE,
 					CreateMode.PERSISTENT);
 		} catch(KeeperException.NodeExistsException nee) {
-			LOG.info("znode exists during createWithParents: "+znode);
+			SpliceLogUtils.debug(LOG,"znode exists during createWithParents: "+znode);
 			return;
 		} catch(KeeperException.NoNodeException nne) {
 			createWithParents(rzk, getParent(znode));
 			createWithParents(rzk, znode);
 		} catch(InterruptedException ie) {
-			LOG.error("error: "+ie.getMessage());
-			ie.printStackTrace();
+			SpliceLogUtils.error(LOG,ie);
 		}
 	}
 
@@ -275,7 +271,7 @@ public class TxnUtils extends TxnConstants{
 		try {
 			TxnUtils.createWithParents(zkw, transactionPath);
 			id = zkw.getRecoverableZooKeeper().create(transactionPath + "/txn-", Bytes.toBytes(TransactionStatus.PENDING.toString()), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
-			SpliceLogUtils.debug(LOG,">>>>>Begin transaction at server and create znode for transId="+id);
+			SpliceLogUtils.debug(LOG,"Begin transaction at server and create znode for transId="+id);
 		} catch (KeeperException e) {
 			e.printStackTrace();
 		} catch (InterruptedException e) {
@@ -285,44 +281,40 @@ public class TxnUtils extends TxnConstants{
 	}
 
 	public static void commit(String transactionID, RecoverableZooKeeper rzk) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("Committing Transaction: " + transactionID);
+		SpliceLogUtils.debug(LOG,"Committing Transaction: " + transactionID);
 		prepareCommit(transactionID, rzk);
 		doCommit(transactionID, rzk);
 	}
 
 	public static void prepareCommit(String transactionID, RecoverableZooKeeper rzk) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("Prepare commit transaction at server for transaction " + transactionID);
+		SpliceLogUtils.debug(LOG,"Prepare commit transaction at server for transaction " + transactionID);
 		try {
 			rzk.setData(transactionID, Bytes.toBytes(TransactionStatus.PREPARE_COMMIT.toString()), -1);
 			TxnCoordinator2 coordinator = new TxnCoordinator2(rzk);
 			if (coordinator.watch(transactionID, TransactionStatus.PREPARE_COMMIT)) {
-				LOG.info("Fail to prepare commit " + transactionID + " set back to pending.");
+				SpliceLogUtils.info(LOG,"Fail to prepare commit " + transactionID + " set back to pending.");
 				rzk.setData(transactionID, Bytes.toBytes(TransactionStatus.PENDING.toString()), -1);
 			} else {
-				LOG.info("Prepared commit " + transactionID);
+				SpliceLogUtils.debug(LOG,"Prepared commit " + transactionID);
 			}
 		} catch (KeeperException e) {
-			LOG.error("NoNode error occrres: "+e.getMessage());
+			SpliceLogUtils.info(LOG, "NoNode error occrres: "+e.getMessage());
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
 
 	public static void doCommit(String transactionID, RecoverableZooKeeper rzk) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("Do commit transaction at server, transactionID="+transactionID);
+		SpliceLogUtils.debug(LOG,"Do commit transaction at server, transactionID="+transactionID);
 		try {
 			if (TransactionStatus.valueOf(Bytes.toString(rzk.getData(transactionID, false, null))).equals(TransactionStatus.PREPARE_COMMIT)) {
 				rzk.setData(transactionID, Bytes.toBytes(TransactionStatus.DO_COMMIT.toString()), -1);				
 				TxnCoordinator2 coordinator = new TxnCoordinator2(rzk);
 				if (coordinator.watch(transactionID, TransactionStatus.DO_COMMIT)) {
-					LOG.info("Fail to commit " + transactionID + " set back to pending.");
+					SpliceLogUtils.info(LOG,"Fail to commit " + transactionID + " set back to pending.");
 					rzk.setData(transactionID, Bytes.toBytes(TransactionStatus.PENDING.toString()), -1);
 				} else {
-					if (LOG.isDebugEnabled())
-						LOG.debug("Committed " + transactionID+" and its children. delete the nodes as well");
+					SpliceLogUtils.debug(LOG,"Committed " + transactionID+" and its children. delete the nodes as well");
 					/*List<String> tree = ZKUtil.listSubTreeBFS(rzk.getZooKeeper(), transactionID);
 					LOG.info("Committed " + transactionID+",firstnode="+tree.get(0)+",size of nodes"+tree.size());
 					if (tree.size() <= 1)
@@ -338,7 +330,7 @@ public class TxnUtils extends TxnConstants{
 				throw new RuntimeException("Transaction id " + transactionID + " has not been prepared commit.");
 			}
 		} catch (KeeperException e) {
-			LOG.error("NoNode error occrres: "+e.getMessage());
+			SpliceLogUtils.error(LOG,e);
 			//e.printStackTrace();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
@@ -346,8 +338,7 @@ public class TxnUtils extends TxnConstants{
 	}
 
 	public static void abort(String transactionID, RecoverableZooKeeper rzk) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("Abort transaction at " + transactionID);
+		SpliceLogUtils.debug(LOG,"Abort transaction at " + transactionID);
 		try {
 			rzk.setData(transactionID, Bytes.toBytes(TransactionStatus.ABORT.toString()), -1);
 			/*List<String> tree = ZKUtil.listSubTreeBFS(rzk.getZooKeeper(), transactionID);
@@ -362,8 +353,7 @@ public class TxnUtils extends TxnConstants{
 			
 			ZKUtil.deleteRecursive(rzk.getZooKeeper(), transactionID);
 		} catch (KeeperException e) {
-			if (LOG.isDebugEnabled())
-				LOG.debug("in abort, node has already been deleted so no need to delete it again-"+transactionID);
+			SpliceLogUtils.debug(LOG,"in abort, node has already been deleted so no need to delete it again-"+transactionID);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -384,7 +374,7 @@ public class TxnUtils extends TxnConstants{
 					TransactionState state = entry.getValue();
 					switch (state.getSplitPointPosition(splitPoint)) {
 					case IN_STATE_RANGE: 
-						LOG.info("Split point in the range of transaction state " + id + " in region " + EnvUtils.getRegionId(state.getRegion()));
+						SpliceLogUtils.info(LOG,"Split point in the range of transaction state " + id + " in region " + EnvUtils.getRegionId(state.getRegion()));
 						List<WriteAction> left = new LinkedList<WriteAction>(state.getWriteOrdering());
 						List<WriteAction> right = new LinkedList<WriteAction>();
 						splitWriteActionList(splitPoint, left, right);
@@ -392,26 +382,23 @@ public class TxnUtils extends TxnConstants{
 							TxnLogger.logWriteActions(txnLogTable, LogRecordType.SPLIT_LOG, startKey, splitPoint, left);
 							TxnLogger.logWriteActions(txnLogTable, LogRecordType.SPLIT_LOG, splitPoint, endKey, right);
 						} catch (IOException e) {
-							LOG.info("Fail to log write action for Split.");
-							e.printStackTrace();
+							SpliceLogUtils.error(LOG,"Fail to log write action for Split.",e);
 						}
 						break;
 					case BEFORE_STATE_RANGE:
-						LOG.info("Split point before the range of transaction state " + id + " in region " + EnvUtils.getRegionId(state.getRegion()));
+						SpliceLogUtils.info(LOG,"Split point before the range of transaction state " + id + " in region " + EnvUtils.getRegionId(state.getRegion()));
 						try {
 							TxnLogger.logWriteActions(txnLogTable, LogRecordType.SPLIT_LOG, splitPoint, endKey, state.getWriteOrdering());
 						} catch (IOException e) {
-							LOG.info("Fail to log write action for Split.");
-							e.printStackTrace();
+							SpliceLogUtils.error(LOG,"Fail to log write action for Split.",e);
 						}
 						break;
 					case AFTER_STATE_RANGE:
-						LOG.info("Split point after the range of transaction state " + id + " in region " + EnvUtils.getRegionId(state.getRegion()));
+						SpliceLogUtils.debug(LOG,"Split point after the range of transaction state " + id + " in region " + EnvUtils.getRegionId(state.getRegion()));
 						try {
 							TxnLogger.logWriteActions(txnLogTable, LogRecordType.SPLIT_LOG, startKey, splitPoint, state.getWriteOrdering());
 						} catch (IOException e) {
-							LOG.info("Fail to log write action for Split.");
-							e.printStackTrace();
+							SpliceLogUtils.debug(LOG,"Fail to log write action for Split.",e);
 						}
 						break;
 					default:

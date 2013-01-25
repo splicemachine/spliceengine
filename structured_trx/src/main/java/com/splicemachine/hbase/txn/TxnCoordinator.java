@@ -4,18 +4,20 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+
 import com.splicemachine.constants.TransactionStatus;
 import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class TxnCoordinator {
-	private static final Log LOG = LogFactory.getLog(TxnCoordinator.class);
+	private static final Logger LOG = Logger.getLogger(TxnCoordinator.class);
 	private RecoverableZooKeeper zk; 
 	private long timeout;
 	private ExecutorService pool = Executors.newCachedThreadPool();
@@ -33,17 +35,14 @@ public class TxnCoordinator {
 	public boolean watch(String path, TransactionStatus objective) throws KeeperException, InterruptedException {
 		List<String> children = zk.getChildren(path, false);
 		if (children.size() > 0) {
-			if (LOG.isInfoEnabled())
-				LOG.info("Latch size: " + children.size());
+			SpliceLogUtils.debug(LOG, "Latch size: " + children.size());
 			for (String childPath: children) {
-				if (LOG.isInfoEnabled())
-					LOG.info("Evaluating Child Path in Executor Service : " + childPath);
+				SpliceLogUtils.debug(LOG, "Evaluating Child Path in Executor Service : " + childPath);
 				pool.execute(new CohortWatcher(path+"/"+childPath, objective));
 			}
 			pool.shutdown();
 			pool.awaitTermination(timeout, TimeUnit.SECONDS);
-			if (LOG.isInfoEnabled())
-				LOG.info("Done watch.");
+			SpliceLogUtils.debug(LOG, "Done watch.");
 		}
 		return abort;
 	}

@@ -3,7 +3,6 @@ package com.splicemachine.hbase.locks;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
@@ -13,6 +12,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class TxnLockManager {
 	private static Logger LOG = Logger.getLogger(TxnLockManager.class);
@@ -80,65 +81,56 @@ public class TxnLockManager {
 	private boolean acquireSharedLock(byte[] row, boolean isWriteLock) throws InterruptedException {
 		boolean acquired = false;
 		String rowKey = Bytes.toString(row);
-		if (LOG.isDebugEnabled())
-			LOG.debug("Thread " + Thread.currentThread().getId() + " wait for reading lock map.");
+		SpliceLogUtils.debug(LOG, "Thread " + Thread.currentThread().getId() + " wait for reading lock map.");
 		rml.lock();
-		if (LOG.isDebugEnabled())
-			LOG.debug("Thread " + Thread.currentThread().getId() + " acquired the read lock of lock map.");
+		SpliceLogUtils.debug(LOG, "Thread " + Thread.currentThread().getId() + " acquired the read lock of lock map.");
 		try {
 			if (locksByRow.containsKey(rowKey)) {
-				if (LOG.isDebugEnabled())
-					LOG.debug("found existing shared lock for " + rowKey);
+				SpliceLogUtils.debug(LOG, "found existing shared lock for " + rowKey);
 				if (isWriteLock) {
 					WriteLock wl = locksByRow.get(rowKey).writeLock();
 					rml.unlock();		
 					acquired = wl.tryLock(timeout, TimeUnit.SECONDS);
-					if (LOG.isDebugEnabled() && acquired)
-						LOG.debug("acquired shared write lock for " + rowKey);
+					SpliceLogUtils.debug(LOG, "acquired shared write lock for " + rowKey);
 				} else {
 					ReadLock rl = locksByRow.get(rowKey).readLock();
 					rml.unlock();
 					acquired = rl.tryLock(timeout, TimeUnit.SECONDS);
-					if (LOG.isDebugEnabled() && acquired)
-						LOG.debug("acquired shared read lock for " + rowKey);
+					SpliceLogUtils.debug(LOG, "acquired shared read lock for " + rowKey);
 				}
 			} else {
 				rml.unlock();
-				if (LOG.isDebugEnabled())
-					LOG.debug("Thread " + Thread.currentThread().getId() + " unlock the read lock of lock map.");
+				SpliceLogUtils.debug(LOG, "Thread " + Thread.currentThread().getId() + " unlock the read lock of lock map.");
 				wml.lock();
-				if (LOG.isDebugEnabled())
-					LOG.debug("Thread " + Thread.currentThread().getId() + " lock the write lock of lock map.");
+				SpliceLogUtils.debug(LOG, "Thread " + Thread.currentThread().getId() + " lock the write lock of lock map.");
 				if (locksByRow.containsKey(rowKey)) { //Double check pattern
 					rml.lock();
 					wml.unlock();
-					if (LOG.isDebugEnabled())
-						LOG.debug("found existing shared lock for " + rowKey);
+					SpliceLogUtils.debug(LOG, "found existing shared lock for " + rowKey);
 					if (isWriteLock) {
 						WriteLock wl = locksByRow.get(rowKey).writeLock();
 						rml.unlock();		
 						acquired = wl.tryLock(timeout, TimeUnit.SECONDS);
-						if (LOG.isDebugEnabled() && acquired)
-							LOG.debug("acquired shared write lock for " + rowKey);
+						if (acquired)
+							SpliceLogUtils.debug(LOG, "acquired shared write lock for " + rowKey);
 					} else {
 						ReadLock rl = locksByRow.get(rowKey).readLock();
 						rml.unlock();
 						acquired = rl.tryLock(timeout, TimeUnit.SECONDS);
-						if (LOG.isDebugEnabled() && acquired)
-							LOG.debug("acquired shared read lock for " + rowKey);
+						if (acquired)
+							SpliceLogUtils.debug(LOG, "acquired shared read lock for " + rowKey);
 					}
 				} else {
-					if (LOG.isDebugEnabled())
-						LOG.debug("create new shared lock for " + rowKey);
+					SpliceLogUtils.debug(LOG, "create new shared lock for " + rowKey);
 					ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 					if (isWriteLock) {
 						acquired = lock.writeLock().tryLock(timeout, TimeUnit.SECONDS);
-						if (LOG.isDebugEnabled() && acquired)
-							LOG.debug("acquired shared write lock for " + rowKey);
+						if (acquired)
+							SpliceLogUtils.debug(LOG, "acquired shared write lock for " + rowKey);
 					} else {
 						acquired = lock.readLock().tryLock(timeout, TimeUnit.SECONDS);
-						if (LOG.isDebugEnabled() && acquired)
-							LOG.debug("acquired shared read lock for " + rowKey);
+						if (acquired)
+							SpliceLogUtils.debug(LOG, "acquired shared read lock for " + rowKey);
 					}
 					if (acquired) 
 						locksByRow.put(rowKey, lock);
@@ -177,26 +169,21 @@ public class TxnLockManager {
 			ReentrantReadWriteLock lock = locksByRow.get(rowKey);
 			if (isWriteLock) {
 				if (lock.isWriteLockedByCurrentThread()) {
-					if (LOG.isDebugEnabled())
-						LOG.debug("release shared write lock for " + rowKey);
+					SpliceLogUtils.debug(LOG, "release shared write lock for " + rowKey);
 					lock.writeLock().unlock();
 				}
 			} else {
-				if (LOG.isDebugEnabled())
-					LOG.debug("release shared read lock for " + rowKey);
+				SpliceLogUtils.debug(LOG, "release shared read lock for " + rowKey);
 				lock.readLock().unlock();
 			}
 			if (!lock.hasQueuedThreads() && lock.getReadLockCount() == 0 && !lock.isWriteLocked()) {
 				rml.unlock();
-				if (LOG.isDebugEnabled())
-					LOG.debug("unlock read lock of lock lock map.");
+				SpliceLogUtils.debug(LOG, "unlock read lock of lock lock map.");
 				wml.lock();
-				if (LOG.isDebugEnabled())
-					LOG.debug("lock write lock of lock lock map.");
+				SpliceLogUtils.debug(LOG, "lock write lock of lock lock map.");
 				try {
 					if (!lock.hasQueuedThreads() && lock.getReadLockCount() == 0 && !lock.isWriteLocked()) { //Double check pattern
-						if (LOG.isDebugEnabled())
-							LOG.debug("remove lock from lock map for row " + rowKey);
+						SpliceLogUtils.debug(LOG, "remove lock from lock map for row " + rowKey);
 						locksByRow.remove(rowKey);
 					}
 				} finally {
@@ -234,8 +221,7 @@ public class TxnLockManager {
 			this.isWriteLock = isWriteLock;
 			this.caller = caller;
 			this.running = true;
-			if (LOG.isDebugEnabled())
-				LOG.debug("Thread " + Thread.currentThread().getId() + " Start run with parameter: " + running + " " + acquiring + " " + Bytes.toString(row) + " " + isWriteLock );
+			SpliceLogUtils.debug(LOG, "Thread " + Thread.currentThread().getId() + " Start run with parameter: " + running + " " + acquiring + " " + Bytes.toString(row) + " " + isWriteLock );
 			LockSupport.unpark(this);
 		}
 
@@ -252,19 +238,16 @@ public class TxnLockManager {
 			while(!retire) {
 				LockSupport.park(this);
 				if (running) {
-					if (LOG.isDebugEnabled())
-						LOG.debug("Thread " + Thread.currentThread().getId() + " Start running");
+					SpliceLogUtils.debug(LOG, "Thread " + Thread.currentThread().getId() + " Start running");
 					if (acquiring) {
-						if (LOG.isDebugEnabled())
-							LOG.debug("Thread " + Thread.currentThread().getId() + " acquiring");
+						SpliceLogUtils.debug(LOG, "Thread " + Thread.currentThread().getId() + " acquiring");
 						try {
 							result = acquireExclusiveLock(txnID, row, isWriteLock, infos);
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
 					} else {
-						if (LOG.isDebugEnabled())
-							LOG.debug("Thread " + Thread.currentThread().getId() + " releasing txnID " + txnID);
+						SpliceLogUtils.debug(LOG, "Thread " + Thread.currentThread().getId() + " releasing txnID " + txnID);
 						List<LockInfo> list = new ArrayList<LockInfo>();
 						for (LockInfo info : infos) {
 							try {
@@ -299,8 +282,7 @@ public class TxnLockManager {
 				try {
 					if (!threadsByTransactionID.containsKey(txnID)) { //Double check pattern
 						worker = new ExclusiveLockWorker(txnID);
-						if (LOG.isDebugEnabled())
-							LOG.debug("create new thread " + worker.getId() + " for txnID " + txnID);
+						SpliceLogUtils.debug(LOG, "create new thread " + worker.getId() + " for txnID " + txnID);
 						worker.runWithParameter(Thread.currentThread(), true, row, isWriteLock);
 						threadsByTransactionID.put(txnID, worker);
 					}
@@ -309,8 +291,7 @@ public class TxnLockManager {
 					wtl.unlock();
 				}
 			} else {
-				if (LOG.isDebugEnabled())
-					LOG.debug("found existing thread for txnID " + txnID);
+				SpliceLogUtils.debug(LOG, "found existing thread for txnID " + txnID);
 				worker = threadsByTransactionID.get(txnID);
 				worker.runWithParameter(Thread.currentThread(), true, row, isWriteLock);
 			}
@@ -324,11 +305,10 @@ public class TxnLockManager {
 	}
 
 	public void releaseExclusiveLocks(String txnID) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("release exclusive locks with txnID " + txnID);
+		SpliceLogUtils.debug(LOG, "release exclusive locks with txnID " + txnID);
 		
 		if (threadsByTransactionID.get(txnID) == null) {
-			LOG.info("threadsByTransactionID does not have txnID="+txnID+" since this transaction does not have exclusive locks");
+			SpliceLogUtils.debug(LOG, "threadsByTransactionID does not have txnID="+txnID+" since this transaction does not have exclusive locks");
 			/*String key = null;
 			for (Iterator<String> it = locksByRow.keySet().iterator(); it.hasNext();) {
 				key = it.next();
@@ -351,11 +331,9 @@ public class TxnLockManager {
 		rml.lock();
 		try {
 			if (locksByRow.containsKey(rowKey)) {
-				if (LOG.isDebugEnabled())
-					LOG.debug("found existing lock in lock map for " + rowKey + " with txnID " + txnID);
+				SpliceLogUtils.debug(LOG, "found existing lock in lock map for " + rowKey + " with txnID " + txnID);
 				if (isWriteLock) {
-					if (LOG.isDebugEnabled())
-						LOG.debug("acquire exclusive write lock for row " + rowKey + " with txnID " + txnID);
+					SpliceLogUtils.debug(LOG, "acquire exclusive write lock for row " + rowKey + " with txnID " + txnID);
 					WriteLock wl = locksByRow.get(rowKey).writeLock();
 					rml.unlock();
 					//FIXME: Do we think the transaction is executed by the same thread? how about the concurrent cases?
@@ -363,11 +341,10 @@ public class TxnLockManager {
 					//check whether it's be been held by the current thread?????
 					if (!wl.isHeldByCurrentThread())
 						acquired = wl.tryLock(timeout, TimeUnit.SECONDS);
-					if (LOG.isDebugEnabled() && acquired)
-						LOG.debug("Done with acquiring exclusive write lock for row " + rowKey + " with txnID " + txnID);
+					if (acquired)
+						SpliceLogUtils.debug(LOG, "Done with acquiring exclusive write lock for row " + rowKey + " with txnID " + txnID);
 				} else {
-					if (LOG.isDebugEnabled())
-						LOG.debug("acquire exclusive read lock for row " + rowKey + " with txnID " + txnID);
+					SpliceLogUtils.debug(LOG, "acquire exclusive read lock for row " + rowKey + " with txnID " + txnID);
 					ReentrantReadWriteLock rwlt = locksByRow.get(rowKey);
 					rml.unlock();
 					
@@ -377,8 +354,8 @@ public class TxnLockManager {
 					if (rwlt.getReadHoldCount() == 0) {
 						acquired = rl.tryLock(timeout, TimeUnit.SECONDS);
 					}
-					if (LOG.isDebugEnabled() && acquired)
-						LOG.debug("Done with acquiring exclusive read lock for row " + rowKey + " with txnID " + txnID);
+					if (acquired)
+						SpliceLogUtils.debug(LOG, "Done with acquiring exclusive read lock for row " + rowKey + " with txnID " + txnID);
 				}
 			} else {
 				rml.unlock();
@@ -386,40 +363,36 @@ public class TxnLockManager {
 				if (locksByRow.containsKey(rowKey)) { //Double check pattern
 					rml.lock();
 					wml.unlock();
-					if (LOG.isDebugEnabled())
-						LOG.debug("found existing shared lock for " + rowKey);
+					SpliceLogUtils.debug(LOG, "found existing shared lock for " + rowKey);
 					if (isWriteLock) {
 						WriteLock wl = locksByRow.get(rowKey).writeLock();
 						rml.unlock();		
 						acquired = wl.tryLock(timeout, TimeUnit.SECONDS);
-						if (LOG.isDebugEnabled() && acquired)
-							LOG.debug("acquired shared write lock for " + rowKey);
+						if (acquired)
+							SpliceLogUtils.debug(LOG, "acquired shared write lock for " + rowKey);
 					} else {
 						ReadLock rl = locksByRow.get(rowKey).readLock();
 						rml.unlock();
 						acquired = rl.tryLock(timeout, TimeUnit.SECONDS);
-						if (LOG.isDebugEnabled() && acquired)
-							LOG.debug("acquired shared read lock for " + rowKey);
+						if (acquired)
+							SpliceLogUtils.debug(LOG, "acquired shared read lock for " + rowKey);
 					}
 				} else {
 					ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 					if (LOG.isDebugEnabled())
 						LOG.debug("create new lock for " + rowKey + " with txnID " + txnID);
 					if (isWriteLock) {
-						if (LOG.isDebugEnabled())
-							LOG.debug("acquire exclusive write lock for row " + rowKey + " with txnID " + txnID);
+						SpliceLogUtils.debug(LOG, "acquire exclusive write lock for row " + rowKey + " with txnID " + txnID);
 						acquired = lock.writeLock().tryLock(timeout, TimeUnit.SECONDS);
-						if (LOG.isDebugEnabled() && acquired)
-							LOG.debug("Done with acquiring exclusive write lock for row " + rowKey + " with txnID " + txnID);
+						if (acquired)
+							SpliceLogUtils.debug(LOG, "Done with acquiring exclusive write lock for row " + rowKey + " with txnID " + txnID);
 					} else {
-						if (LOG.isDebugEnabled())
-							LOG.debug("acquire exclusive read lock for row " + rowKey + " with txnID " + txnID);
+						SpliceLogUtils.debug(LOG, "acquire exclusive read lock for row " + rowKey + " with txnID " + txnID);
 						acquired = lock.readLock().tryLock(timeout, TimeUnit.SECONDS);
-						if (LOG.isDebugEnabled() && acquired)
-							LOG.debug("Done with acquiring exclusive read lock for row " + rowKey + " with txnID " + txnID);
+						if (acquired)
+							SpliceLogUtils.debug(LOG, "Done with acquiring exclusive read lock for row " + rowKey + " with txnID " + txnID);
 					}
-					if (LOG.isDebugEnabled())
-						LOG.debug("put exclusive lock for row " + rowKey + " with txnID " + txnID);
+					SpliceLogUtils.debug(LOG, "put exclusive lock for row " + rowKey + " with txnID " + txnID);
 					locksByRow.put(rowKey, lock);
 					wml.unlock();
 				}
@@ -442,13 +415,11 @@ public class TxnLockManager {
 			ReentrantReadWriteLock lock = locksByRow.get(rowKey);
 			if (info.isWriteLock) {
 				if (lock.isWriteLockedByCurrentThread()) {
-					if (LOG.isDebugEnabled())
-						LOG.debug("release exclusive write lock for " + rowKey);
+					SpliceLogUtils.debug(LOG, "release exclusive write lock for " + rowKey);
 					lock.writeLock().unlock();
 				}
 			} else {
-				if (LOG.isDebugEnabled())
-					LOG.debug("release exclusive read lock for " + rowKey);
+				SpliceLogUtils.debug(LOG, "release exclusive read lock for " + rowKey);
 				lock.readLock().unlock();
 			}
 			if (!lock.hasQueuedThreads() && lock.getReadLockCount() == 0 && !lock.isWriteLocked()) {
@@ -456,8 +427,7 @@ public class TxnLockManager {
 				wml.lock();
 				try {
 					if (!lock.hasQueuedThreads() && lock.getReadLockCount() == 0 && !lock.isWriteLocked()) { //Double check pattern
-						if (LOG.isDebugEnabled())
-							LOG.debug("remove lock from lock map for row " + rowKey);
+						SpliceLogUtils.debug(LOG, "remove lock from lock map for row " + rowKey);
 						locksByRow.remove(rowKey);
 						return true;
 					}

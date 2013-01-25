@@ -2,8 +2,6 @@ package com.splicemachine.hbase.txn.coprocessor.region;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -11,6 +9,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
 import com.splicemachine.constants.TxnConstants;
@@ -18,9 +17,10 @@ import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.hbase.locks.TxnLockManager;
 import com.splicemachine.hbase.txn.logger.LogConstants;
 import com.splicemachine.hbase.txn.logger.TxnLogger;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class BaseTxnRegionObserver extends BaseRegionObserver {
-	private static final Log LOG = LogFactory.getLog(BaseTxnRegionObserver.class);
+	private static final Logger LOG = Logger.getLogger(BaseTxnRegionObserver.class);
 	protected RecoverableZooKeeper rzk;
 	protected ZooKeeperWatcher zkw;
 	protected TxnLockManager lockManager;
@@ -33,8 +33,7 @@ public class BaseTxnRegionObserver extends BaseRegionObserver {
 	protected String txnLogPath;
 	
 	protected void initZooKeeper(CoprocessorEnvironment e) throws IOException {
-		if (LOG.isDebugEnabled()) 
-			LOG.debug("Initialize ZooKeep in " + BaseTxnRegionObserver.class);
+		SpliceLogUtils.trace(LOG, "Initialize ZooKeep in " + BaseTxnRegionObserver.class);
 		rzk = ((RegionCoprocessorEnvironment) e).getRegionServerServices().getZooKeeper().getRecoverableZooKeeper();
 		zkw = ((RegionCoprocessorEnvironment) e).getRegionServerServices().getZooKeeper();
 		lockManager = new TxnLockManager(e.getConfiguration().getLong(TxnConstants.TRANSACTION_LOCK_TIMEOUT_ATTRIBUTE, TxnConstants.TRANSACTION_LOCK_TIMEOUT));
@@ -49,7 +48,7 @@ public class BaseTxnRegionObserver extends BaseRegionObserver {
 		splitLogPath = TxnLogger.getSplitLogPath(logPath, tableName);
 		txnLogPath = TxnLogger.getTxnLogPath(logPath, regionId);
 		if (transactionPath == null) {
-			LOG.error("Transaction Path Not Set in Configuration for " + TxnConstants.TRANSACTION_PATH_NAME);
+			SpliceLogUtils.info(LOG, "Transaction Path Not Set in Configuration for " + TxnConstants.TRANSACTION_PATH_NAME);
 			throw new IOException("Transaction Path Not Set in Configuration for " + TxnConstants.TRANSACTION_PATH_NAME);
 		}
 		try {

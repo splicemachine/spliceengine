@@ -41,6 +41,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
@@ -53,25 +54,24 @@ import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.hbase.locks.TxnLockManager;
 import com.splicemachine.hbase.txn.coprocessor.region.TransactionState;
 import com.splicemachine.hbase.txn.coprocessor.region.WriteAction;
+import com.splicemachine.utils.SpliceLogUtils;
 
 
 public class TxnLogger extends LogConstants {
 	
-	private static final Log LOG = LogFactory.getLog(TxnLogger.class);
+	private static Logger LOG = Logger.getLogger(TxnLogger.class);
 	
 	/**
 	 * split key could be null for txn log.
 	 */
 	public static void logWriteActions(HTableInterface txnTable, LogRecordType logType, byte[] beginKey, byte[] endKey, List<WriteAction> writeActions) throws IOException {
-		if (LOG.isDebugEnabled())
-			LOG.debug("Logging a new write action list from transaction state");
+		SpliceLogUtils.debug(LOG,"Logging a new write action list from transaction state");
 		List<Put> logPuts = new ArrayList<Put>();
 		for (int sequenceNum = 0; sequenceNum < writeActions.size(); ++sequenceNum) {
 			Put put = writeActions.get(sequenceNum).generateLogPut(logType, beginKey, endKey, sequenceNum);
 			logPuts.add(put);
 		}
-		if (LOG.isDebugEnabled())
-			LOG.debug("Generated " + logPuts.size() + " puts to be operated on table " + txnTable.getTableDescriptor().getNameAsString());
+		SpliceLogUtils.info(LOG,"Generated " + logPuts.size() + " puts to be operated on table " + txnTable.getTableDescriptor().getNameAsString());
 		txnTable.put(logPuts);
 	}
 
@@ -84,8 +84,7 @@ public class TxnLogger extends LogConstants {
 			Map<String, TransactionState> transactionStateByID, HTablePool tablePool, String txnLogPath, boolean isRecovered) 
 					throws IOException {
 			
-		if (LOG.isDebugEnabled())
-			LOG.debug("readTransactionStatesLog");
+		SpliceLogUtils.debug(LOG,"readTransactionStatesLog");
 		try {
 			Scan scan = new Scan();
 			if (logType.equals(LogRecordType.SPLIT_LOG))
@@ -94,8 +93,7 @@ public class TxnLogger extends LogConstants {
 				scan.setFilter(new RowFilter(CompareFilter.CompareOp.EQUAL, new BinaryPrefixComparator(TxnLogger.getTxnLogScanKey(tableName, regionID, null))));
 			else
 				throw new RuntimeException("Unsupported log type " + logType + " when trying to get scan key");
-			if (LOG.isDebugEnabled())
-				LOG.debug("Read txn states for region " +  EnvUtils.getRegionId(holder) + ", using prefix filter");
+			SpliceLogUtils.debug(LOG,"Read txn states for region " +  EnvUtils.getRegionId(holder) + ", using prefix filter");
 			ResultScanner scanner = txnTable.getScanner(scan);
 			Result result = null;
 			String priorID = null;
@@ -104,8 +102,7 @@ public class TxnLogger extends LogConstants {
 			while ((result = scanner.next()) != null) {
 				currentID = Bytes.toString(result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES, TXN_ID_COLUMN_BYTES).getValue());
 				if (currentID != null && !currentID.equals(priorID)) {
-					if (LOG.isDebugEnabled())
-						LOG.debug("Read transaction state " + currentID + " from logger and hold it in new region " + EnvUtils.getRegionId(holder));
+					SpliceLogUtils.debug(LOG,"Read transaction state " + currentID + " from logger and hold it in new region " + EnvUtils.getRegionId(holder));
 					priorID = currentID;
 					transactionState = new TransactionState(currentID, holder, rzk, lockManager, transactionStateByID, tablePool, txnLogPath, isRecovered);
 					transactionStateByID.put(currentID, transactionState);
@@ -124,8 +121,7 @@ public class TxnLogger extends LogConstants {
 	 * Actions would be kept in the List parameter. 
 	 */
 	public static void getWriteActionFromResult(Result result, String transactionID, HRegion actionHolder, List<WriteAction> writeOrdering) throws IOException {
-		if (LOG.isDebugEnabled())
-			LOG.debug("getWriteActionFromResult, result= " +  result);
+		SpliceLogUtils.debug(LOG,"getWriteActionFromResult, result= " +  result);
 		byte[] row = result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES, ROW_KEY_BYTES).getValue();
 		WriteActionType actionType = WriteActionType.valueOf(Bytes.toString(result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES, ACTION_TYPE_BYTES).getValue()));
 		byte[] action = result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES, ACTION_WRITABLE_BYTE).getValue();
@@ -148,8 +144,7 @@ public class TxnLogger extends LogConstants {
 	}
 
 	public static List<HRegionInfo> readTxnTableRegionsFromZk(String regionLogPath, RecoverableZooKeeper rzk) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("Read txn table region info from zookeeper");
+		SpliceLogUtils.debug(LOG,"Read txn table region info from zookeeper");
 		List<HRegionInfo> infos = new ArrayList<HRegionInfo>();
 		try {
 			if (rzk.exists(regionLogPath, false) != null && !rzk.getChildren(regionLogPath, false).isEmpty()) {
@@ -177,8 +172,7 @@ public class TxnLogger extends LogConstants {
 	}
 
 	public static void logTxnTableRegionsToZk(String regionLogPath, ZooKeeperWatcher zkw, Configuration conf) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("logTxnTableRegionsToZk,regionLogPath="+regionLogPath);
+		SpliceLogUtils.debug(LOG,"logTxnTableRegionsToZk,regionLogPath="+regionLogPath);
 		try {
 			HBaseAdmin admin = new HBaseAdmin(conf);
 			RecoverableZooKeeper rzk = zkw.getRecoverableZooKeeper();
@@ -196,7 +190,7 @@ public class TxnLogger extends LogConstants {
 					}
 				}
 			} else {
-				LOG.info("in TxnLogger's logTxnTableRegionsToZk,transaction table does not exist");
+				SpliceLogUtils.info(LOG,"in TxnLogger's logTxnTableRegionsToZk,transaction table does not exist");
 			}
 		} catch (KeeperException e) {
 			e.printStackTrace();
@@ -212,8 +206,7 @@ public class TxnLogger extends LogConstants {
 	}
 	
 	public static byte[] getTxnLogScanKey(String tableName, String regionID, String transactionID) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("getTxnLogScanKey, tableName="+tableName+",regionID="+regionID+",transactionID="+transactionID);
+		SpliceLogUtils.debug(LOG,"getTxnLogScanKey, tableName="+tableName+",regionID="+regionID+",transactionID="+transactionID);
 		List<byte[]> components = new ArrayList<byte[]>();
 		components.add(Bytes.toBytes(LogRecordType.TXN_LOG.toString()));
 		components.add(LogConstants.LOG_DELIMITER_BYTES);
@@ -228,8 +221,7 @@ public class TxnLogger extends LogConstants {
 	}
 
 	public static byte[] getSplitLogScanKey(LogRecordType logType, String tableName, byte[] beginKey, byte[] endKey, String transactionID) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("getSplitLogScanKey, tableName="+tableName+",logType="+logType+",transactionID="+transactionID);
+		SpliceLogUtils.debug(LOG,"getSplitLogScanKey, tableName="+tableName+",logType="+logType+",transactionID="+transactionID);
 		List<byte[]> components = new ArrayList<byte[]>();
 		components.add(Bytes.toBytes(logType.toString()));
 		components.add(LogConstants.LOG_DELIMITER_BYTES);
@@ -248,13 +240,11 @@ public class TxnLogger extends LogConstants {
 	 * Only Used for recovering transaction state when region server crash down and prepare commit has been triggered before that.
 	 */
 	public static boolean isTxnTableRegionsOnline(List<HRegionInfo> infos, RegionServerServices rss) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("isTxnTableRegionsOnline");
+		SpliceLogUtils.debug(LOG,"isTxnTableRegionsOnline");
 		for (HRegionInfo info : infos) {
-			if (LOG.isDebugEnabled())
-				LOG.debug("Checking online status of txn table region " + info.getRegionNameAsString());
+			SpliceLogUtils.debug(LOG,"Checking online status of txn table region " + info.getRegionNameAsString());
 			if (rss.getFromOnlineRegions(info.getEncodedName()) == null) {
-				LOG.info("Txn table region " + info.getRegionNameAsString() + " is not online.");
+				SpliceLogUtils.info(LOG,"Txn table region " + info.getRegionNameAsString() + " is not online.");
 				return false;
 			}
 		}
@@ -262,23 +252,19 @@ public class TxnLogger extends LogConstants {
 	}
 	
 	public static void scheduleReadingTxnLog(final HTableInterface txnLogTable, final RegionServerServices rss, String regionLogPath, final String txnLogPath, final String tableName, final String regionId, final HRegion region, final RecoverableZooKeeper rzk, final TxnLockManager lockManager, final Map<String, TransactionState> transactionStateByID, final HTablePool tablePool) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("scheduleReadingTxnLog, tableName="+tableName);
+		SpliceLogUtils.debug(LOG,"scheduleReadingTxnLog, tableName="+tableName);
 		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 		final List<HRegionInfo> infos = readTxnTableRegionsFromZk(regionLogPath, rzk);
 		final ScheduledFuture<?> handler = scheduler.scheduleWithFixedDelay(new Runnable() {
 			@Override
 			public void run() {
-				if (LOG.isDebugEnabled()) 
-					LOG.debug("scheduleReadingTxnLog ticking...");
+				SpliceLogUtils.debug(LOG,"scheduleReadingTxnLog ticking...");
 				if (isTxnTableRegionsOnline(infos, rss)) {
-					if (LOG.isDebugEnabled()) 
-						LOG.debug("Txn table regions are online, start reading log.");
+					SpliceLogUtils.debug(LOG,"Txn table regions are online, start reading log.");
 					try {
 						TxnLogger.readTransactionStatesLog(txnLogTable, LogRecordType.TXN_LOG, tableName, regionId, null, null, region, rzk, lockManager, transactionStateByID, tablePool, txnLogPath, true);
 					} catch (IOException e) {
-						LOG.debug("Fail to read txn log for table " + tableName);
-						e.printStackTrace();
+						SpliceLogUtils.error(LOG,"Fail to read txn log for table " + tableName,e);
 					} finally {
 						scheduler.shutdownNow();
 					}
@@ -317,8 +303,7 @@ public class TxnLogger extends LogConstants {
 	}
 
 	public static void removeLogNode(String path, RecoverableZooKeeper rzk) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("TxnLogger, removeLogNode for "+path);
+		SpliceLogUtils.debug(LOG,"TxnLogger, removeLogNode for "+path);
 		try {
 			rzk.delete(path, -1);
 		} catch (KeeperException e) {
@@ -329,8 +314,7 @@ public class TxnLogger extends LogConstants {
 	}
 
 	public static byte[] composeSplitLogNodeData(byte[] startKey, byte[] endKey) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("composeSplitLogNodeData");
+		SpliceLogUtils.debug(LOG,"composeSplitLogNodeData");
 		byte[] bytes = new byte[startKey.length + LOG_NODE_DELIMITER.length + endKey.length];
 		System.arraycopy(startKey, 0, bytes, 0, startKey.length);
 		System.arraycopy(LOG_NODE_DELIMITER, 0, bytes, startKey.length, LOG_NODE_DELIMITER.length);
@@ -339,21 +323,17 @@ public class TxnLogger extends LogConstants {
 	}
 
 	public static String isSplitGenerated(String splitLogNodePath, byte[] startKey, byte[] endKey, RecoverableZooKeeper rzk) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("isSplitGenerated");
+		SpliceLogUtils.debug(LOG,"isSplitGenerated");
 		String splitRegionPath = null;
 		byte[] bytes = composeSplitLogNodeData(startKey, endKey);
 		try {
-			if (LOG.isDebugEnabled())
-				LOG.debug("Get children from split node path: " + splitLogNodePath);
+			SpliceLogUtils.debug(LOG,"Get children from split node path: " + splitLogNodePath);
 			for (String child : rzk.getChildren(splitLogNodePath, false)) {
 				String path = splitLogNodePath + SchemaConstants.PATH_DELIMITER + child;
 				byte[] data = rzk.getData(path, false, null);
-				if (LOG.isDebugEnabled())
-					LOG.debug("Read data from split log node: " + path +  "; data: " + Bytes.toString(data));
+				SpliceLogUtils.debug(LOG,"Read data from split log node: " + path +  "; data: " + Bytes.toString(data));
 				if (Bytes.compareTo(data, bytes) == 0) {
-					if (LOG.isDebugEnabled())
-						LOG.debug("split log node data compare equal.");
+					SpliceLogUtils.debug(LOG,"split log node data compare equal.");
 					splitRegionPath = path;
 					break;
 				}
@@ -369,13 +349,12 @@ public class TxnLogger extends LogConstants {
 	}
 
 	public static String createLogNode(String path, RecoverableZooKeeper rzk, byte[] status, CreateMode createMode) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("createLogNode path="+path+",createMode="+createMode);
+		SpliceLogUtils.debug(LOG,"createLogNode path="+path+",createMode="+createMode);
 		try {
 			return rzk.create(path, status, Ids.OPEN_ACL_UNSAFE,
 					createMode);
 		} catch (KeeperException.NodeExistsException ne) {
-			LOG.info("Log Node " + path + " already exists.");
+			SpliceLogUtils.debug(LOG,"Log Node " + path + " already exists.");
 		} catch (KeeperException e) {
 			e.printStackTrace();
 		} catch (InterruptedException e) {
@@ -385,8 +364,7 @@ public class TxnLogger extends LogConstants {
 	}
 
 	public static int getTxnLogChildNum(String TxnLogPath, RecoverableZooKeeper rzk) {
-		if (LOG.isDebugEnabled())
-			LOG.debug("getTxnLogChildNum TxnLogPath="+TxnLogPath);
+		SpliceLogUtils.debug(LOG,"getTxnLogChildNum TxnLogPath="+TxnLogPath);
 		try {
 			return rzk.getChildren(TxnLogPath, false).size();
 		} catch (KeeperException e) {
@@ -398,8 +376,7 @@ public class TxnLogger extends LogConstants {
 	}
 
 	public static List<HRegionInfo> getTxnTableOfflineRegions(Configuration conf) throws IOException {
-		if (LOG.isDebugEnabled())
-			LOG.debug("getTxnTableOfflineRegions ");
+		SpliceLogUtils.debug(LOG,"getTxnTableOfflineRegions ");
 		final List<HRegionInfo> regions = new ArrayList<HRegionInfo>();
 		MetaReader.Visitor visitor = new MetaReader.Visitor() {
 			@Override
@@ -407,12 +384,10 @@ public class TxnLogger extends LogConstants {
 				if (r == null || r.isEmpty()) return true;
 				HRegionInfo info = MetaReader.parseHRegionInfoFromCatalogResult(
 						r, HConstants.REGIONINFO_QUALIFIER);
-				if(LOG.isDebugEnabled())
-					LOG.debug("Get region info from .META. " + info.getRegionNameAsString());
+				SpliceLogUtils.debug(LOG,"Get region info from .META. " + info.getRegionNameAsString());
 				if (info == null) return true; // Keep scanning
 				if (info.getTableNameAsString().equals(TxnConstants.TRANSACTION_LOG_TABLE) && info.isOffline()) {
-					if (LOG.isDebugEnabled())
-						LOG.debug("Get txn table offline region " + EnvUtils.getRegionId(info.getRegionNameAsString()));
+					SpliceLogUtils.debug(LOG,"Get txn table offline region " + EnvUtils.getRegionId(info.getRegionNameAsString()));
 					regions.add(info);
 				}
 				// Returning true means "keep scanning"

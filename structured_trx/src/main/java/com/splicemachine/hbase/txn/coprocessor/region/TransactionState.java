@@ -26,6 +26,7 @@ import org.apache.hadoop.hbase.regionserver.ScanQueryMatcher;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -39,9 +40,10 @@ import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.hbase.locks.TxnLockManager;
 import com.splicemachine.hbase.txn.logger.LogConstants.LogRecordType;
 import com.splicemachine.hbase.txn.logger.TxnLogger;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class TransactionState {
-	private static final Log LOG = LogFactory.getLog(TransactionState.class);
+	private static Logger LOG = Logger.getLogger(TransactionState.class);
 	private String transactionID;
 	private String path; //path down to region id 
 	private List<Delete> deletes = new LinkedList<Delete>();
@@ -55,9 +57,8 @@ public class TransactionState {
 	private TxnLockManager lockManager;
 
 	public TransactionState(final String transactionID, HRegion region, RecoverableZooKeeper rzk, TxnLockManager lockManager, Map<String, TransactionState> transactionStateByID, HTablePool tablePool, String txnLogPath, boolean isRecovered) {
-		if (LOG.isDebugEnabled()) {
-			LOG.debug("New regional transaction state with ID " + transactionID);			
-		}
+		SpliceLogUtils.debug(LOG,"New regional transaction state with ID " + transactionID);			
+		
 		this.transactionStateByID = transactionStateByID;
 		this.transactionID = transactionID;
 		this.region = region;
@@ -70,15 +71,13 @@ public class TransactionState {
 		try {
 			path = TxnUtils.getTransactionalRegionPath(transactionID, regionId);
 			if (!isRecovered) { 
-				if (LOG.isDebugEnabled())
-					LOG.debug("Creating node " + path);
+				SpliceLogUtils.debug(LOG,"Creating node " + path);
 				path = rzk.create(path, Bytes.toBytes(TransactionStatus.PENDING.toString()), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 				TransactionStatus idNodeStatus = TransactionStatus.valueOf(Bytes.toString(rzk.getData(transactionID, new TxnIdWatcher(), null)));
 				if(idNodeStatus.equals(TransactionStatus.PREPARE_COMMIT))
 					prepareCommit();
 			} else {
-				if (LOG.isDebugEnabled())
-					LOG.debug("recovering node " + path);
+				SpliceLogUtils.debug(LOG,"recovering node " + path);
 				if (getStatus().equals(TransactionStatus.PREPARE_COMMIT) || getStatus().equals(TransactionStatus.ABORT)) {
 					rzk.getData(transactionID, new TxnIdWatcher(), null);
 				} else {
@@ -97,13 +96,12 @@ public class TransactionState {
 	private class TxnIdWatcher implements Watcher {
 		@Override
 		public void process(WatchedEvent event) {
-			if (LOG.isDebugEnabled())
-				LOG.debug("Transaction state node watcher is triggered, transaction ID " + transactionID 
+			SpliceLogUtils.debug(LOG,"Transaction state node watcher is triggered, transaction ID " + transactionID 
 						+ " in table " + region.getTableDesc().getNameAsString());
 			if (event.getType().equals(EventType.NodeDataChanged)) {
 				if (nodeExist()) {
 					TransactionStatus status = getStatus(); //regional transaction id node status
-					LOG.debug("Transaction state node watcher is triggered, transaction ID " + transactionID+",status="+status);
+					SpliceLogUtils.debug(LOG,"Transaction state node watcher is triggered, transaction ID " + transactionID+",status="+status);
 					TransactionStatus txnStatus = null;
 					try {
 						txnStatus = TransactionStatus.valueOf(Bytes.toString(rzk.getData(transactionID, this, null)));
@@ -112,7 +110,7 @@ public class TransactionState {
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
-					LOG.debug("Transaction state node watcher is triggered, transaction ID " + transactionID+",txnStatus="+txnStatus
+					SpliceLogUtils.debug(LOG,"Transaction state node watcher is triggered, transaction ID " + transactionID+",txnStatus="+txnStatus
 							+",status="+status);
 					switch(txnStatus) {
 					case PREPARE_COMMIT:
@@ -148,7 +146,7 @@ public class TransactionState {
 					}
 				} else {
 					try {//retire watcher
-						LOG.debug("retire watcher transaction ID " + transactionID);
+						SpliceLogUtils.debug(LOG,"retire watcher transaction ID " + transactionID);
 						rzk.getData(transactionID, false, null);
 					} catch (KeeperException e) {
 						e.printStackTrace();
@@ -161,15 +159,13 @@ public class TransactionState {
 	}
 
 	protected void prepareCommit() {
-		if (LOG.isInfoEnabled())
-			LOG.info("Prepare commit, transaction ID " + transactionID);
+		SpliceLogUtils.debug(LOG,"Prepare commit, transaction ID " + transactionID);
 		try {
 			HTableInterface txnLogTable = tablePool.getTable(TxnConstants.TRANSACTION_LOG_TABLE_BYTES);
 			TxnLogger.logWriteActions(txnLogTable, LogRecordType.TXN_LOG, null, null, writeOrdering);
 			tablePool.close();
 		} catch (IOException e) {
-			e.printStackTrace();
-			LOG.info("Failed to log write action to prepare commit.");
+			SpliceLogUtils.error(LOG,"Failed to log write action to prepare commit.", e);
 			return;
 		}
 		setStatus(TransactionStatus.PREPARE_COMMIT);
@@ -177,8 +173,7 @@ public class TransactionState {
 	}
 
 	protected void doCommit() {
-		if (LOG.isInfoEnabled())
-			LOG.info("Do commit, transaction ID " + transactionID+",hasWrite="+hasWrite());
+		SpliceLogUtils.debug(LOG, "Do commit, transaction ID " + transactionID+",hasWrite="+hasWrite());
 		if (hasWrite()) {
 			try {
 				for (WriteAction action : writeOrdering) {
@@ -200,16 +195,14 @@ public class TransactionState {
 		Put put = action.getPut();
 		if (null != put) {
 			put.setAttribute(TxnConstants.TRANSACTION_ID, null); //prevent trigger observer once more
-			if (LOG.isInfoEnabled())
-				LOG.info("Execute put action with row key " + Bytes.toString(put.getRow()) + " on region " + regionId);
+			SpliceLogUtils.debug(LOG,"Execute put action with row key " + Bytes.toString(put.getRow()) + " on region " + regionId);
 			region.put(put, true);
 		}
 
 		Delete delete = action.getDelete();
 		if (null != delete) {
 			delete.setAttribute(TxnConstants.TRANSACTION_ID, null); //prevent trigger observer once more
-			if (LOG.isInfoEnabled())
-				LOG.info("Execute delete action with row key " + Bytes.toString(delete.getRow()) + " on region " + regionId);
+			SpliceLogUtils.debug(LOG,"Execute delete action with row key " + Bytes.toString(delete.getRow()) + " on region " + regionId);
 			region.delete(delete, null, true);
 		}
 	}
@@ -219,20 +212,19 @@ public class TransactionState {
 	}
 
 	protected void abort() {
-		LOG.info("Abort, transaction ID " + transactionID);
+		SpliceLogUtils.debug(LOG,"Abort, transaction ID " + transactionID);
 		retire();
 	}
 
 	protected void retire() {
-		if (LOG.isDebugEnabled())
-			LOG.debug("Retire, transaction "+transactionID+" in region " + regionId + " " + path);
+		SpliceLogUtils.debug(LOG,"Retire, transaction "+transactionID+" in region " + regionId + " " + path);
 		
 		lockManager.releaseExclusiveLocks(transactionID);
 		transactionStateByID.remove(transactionID);
 	}
 
 	public void addWrite(final Put write) {
-		LOG.info("Add write to transaction state with transaction ID " + transactionID);
+		SpliceLogUtils.debug(LOG,"Add write to transaction state with transaction ID " + transactionID);
 		updateLatestTimestamp(write.getFamilyMap().values(), EnvironmentEdgeManager.currentTimeMillis());
 		writeOrdering.add(new WriteAction(write, region, transactionID));
 	}
@@ -249,7 +241,7 @@ public class TransactionState {
 	}
 
 	public void addDelete(final Delete delete) {
-		LOG.info("Add delete to transaction state with transaction ID " + transactionID);
+		SpliceLogUtils.debug(LOG,"Add delete to transaction state with transaction ID " + transactionID);
 		long now = EnvironmentEdgeManager.currentTimeMillis();
 		updateLatestTimestamp(delete.getFamilyMap().values(), now);
 		if (delete.getTimeStamp() == HConstants.LATEST_TIMESTAMP) {
@@ -338,7 +330,7 @@ public class TransactionState {
 	}
 
 	private KeyValue[] getAllKVs(final Scan scan) {
-		LOG.info("Get all KVs from write actions, transaction ID " + transactionID);
+		SpliceLogUtils.debug(LOG,"Get all KVs from write actions, transaction ID " + transactionID);
 
 		List<KeyValue> kvList = new ArrayList<KeyValue>();
 
@@ -569,8 +561,7 @@ public class TransactionState {
 	}
 
 	protected void setStatus(TransactionStatus status) {
-		if (LOG.isInfoEnabled())
-			LOG.info("Set status to " + status.toString() + ", transaction ID " + transactionID + " in table " + region.getTableDesc().getNameAsString());
+		SpliceLogUtils.debug(LOG,"Set status to " + status.toString() + ", transaction ID " + transactionID + " in table " + region.getTableDesc().getNameAsString());
 		if (nodeExist()) {
 			try {
 				rzk.setData(path, Bytes.toBytes(status.toString()), -1);
