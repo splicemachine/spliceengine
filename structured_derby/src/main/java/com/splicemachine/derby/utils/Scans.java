@@ -1,9 +1,7 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.hbase.filter.ColumnNullableFilter;
+import java.io.IOException;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.Qualifier;
@@ -18,10 +16,14 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.IOException;
+import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.hbase.filter.ColumnNullableFilter;
 
 /**
  * Utility methods and classes related to building HBase Scans
+ * @author jessiezhang
+ * @author johnleach
  * @author Scott Fines
  * Created: 1/24/13 10:50 AM
  */

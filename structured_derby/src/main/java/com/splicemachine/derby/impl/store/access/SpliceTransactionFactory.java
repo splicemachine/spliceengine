@@ -30,6 +30,7 @@ import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.txn.ZkTransactionManager;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceTransactionFactory implements ModuleControl, ModuleSupportable{
 	private static Logger LOG = Logger.getLogger(SpliceTransactionFactory.class);
@@ -98,16 +99,16 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 
 	public Transaction findUserTransaction(HBaseStore hbaseStore,ContextManager contextMgr, String transName) throws StandardException {
 		if (contextMgr != contextFactory.getCurrentContextManager()) 
-			LOG.error("##############findUserTransaction, passed in context mgr not the same as current context mgr");
+			LOG.error("findUserTransaction, passed in context mgr not the same as current context mgr");
 		if (this.hbaseStore == hbaseStore) {
-			LOG.error("##############findUserTransaction, passed in context mgr not the same as current context mgr");
+			LOG.error("findUserTransaction, passed in context mgr not the same as current context mgr");
 		}
 		ZookeeperTransactionContext tc = (ZookeeperTransactionContext)contextMgr.getContext(USER_CONTEXT_ID);
 		if (tc == null) {
-			LOG.info("##############findUserTransaction, transaction controller is null for UserTransaction");
+			SpliceLogUtils.debug(LOG, "findUserTransaction, transaction controller is null for UserTransaction");
 			return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, transName, false, USER_CONTEXT_ID);
 		} else {
-			LOG.info("##############findUserTransaction, transaction controller is NOT null for UserTransaction");
+			SpliceLogUtils.debug(LOG,"findUserTransaction, transaction controller is NOT null for UserTransaction");
 			return tc.getTransaction();
 		}
 	}
@@ -145,8 +146,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 			
 			trans.setActiveState();
 			
-			if (LOG.isDebugEnabled())
-				LOG.debug("##############transaction type="+context.getIdName()+",transactionID="+trans.getTransactionState().getTransactionID());			
+			SpliceLogUtils.debug(LOG, "transaction type="+context.getIdName()+",transactionID="+trans.getTransactionState().getTransactionID());			
 			return trans;
 		} catch (Exception e) {
 			LOG.error(e.getMessage(), e);
@@ -155,86 +155,86 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 	}
 	
 	public boolean findTransaction(TransactionId id, Transaction tran) {
-		LOG.info("SpliceTransactionFactory - findTransaction trans="+tran.toString()+",id="+id.toString());
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - findTransaction trans="+tran.toString()+",id="+id.toString());
 		return false;
 	}
 
 	public void resetTranId() throws StandardException {
 		// TODO Auto-generated method stub
-		LOG.info("SpliceTransactionFactory - resetTranId");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - resetTranId");
 	}
 
 	public LogInstant firstUpdateInstant() {
 		// TODO Auto-generated method stub
-		LOG.info("SpliceTransactionFactory - firstUpdateInstant");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - firstUpdateInstant");
 		return null;
 	}
 
 	public void handlePreparedXacts(HBaseStore hbaseStore)
 			throws StandardException {
 		// TODO Auto-generated method stub
-		LOG.info("SpliceTransactionFactory - handlePreparedXacts");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - handlePreparedXacts");
 	}
 
 	public void rollbackAllTransactions(Transaction recoveryTransaction, HBaseStore hbaseStore) throws StandardException {
 		// TODO Auto-generated method stub
-		LOG.info("SpliceTransactionFactory - rollbackAllTransactions trnas="+recoveryTransaction.getGlobalId());
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - rollbackAllTransactions trnas="+recoveryTransaction.getGlobalId());
 	}
 
 	public boolean submitPostCommitWork(Serviceable work) {
 		// TODO Auto-generated method stub
-		LOG.info("SpliceTransactionFactory - submitPostCommitWork");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - submitPostCommitWork");
 		return false;
 	}
 
 	public void setHBaseStoreFactory(HBaseStore hbaseStore) throws StandardException {
 		// TODO Auto-generated method stub
-		LOG.info("SpliceTransactionFactory - setHBaseStoreFactory");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - setHBaseStoreFactory");
 		this.hbaseStore = hbaseStore;
 	}
 
 	public boolean noActiveUpdateTransaction() {
 		// TODO Auto-generated method stub
-		LOG.info("SpliceTransactionFactory - noActiveUpdateTransaction");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - noActiveUpdateTransaction");
 		return false;
 	}
 
 	public boolean hasPreparedXact() {
 		// TODO Auto-generated method stub
-		LOG.info("SpliceTransactionFactory - hasPreparedXact");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - hasPreparedXact");
 		return false;
 	}
 
 	public void createFinished() throws StandardException {
-		LOG.info("SpliceTransactionFactory - createFinished");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - createFinished");
 	}
 
 	public Formatable getTransactionTable() {
-		LOG.info("SpliceTransactionFactory -getTransactionTable");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -getTransactionTable");
 		return null;
 	}
 
 	public void useTransactionTable(Formatable transactionTable)
 			throws StandardException {
-		LOG.info("SpliceTransactionFactory -useTransactionTable");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -useTransactionTable");
 	}
 
 	public TransactionInfo[] getTransactionInfo() {
-		LOG.info("SpliceTransactionFactory -getTransactionInfo");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -getTransactionInfo");
 		return null;
 	}
 
 	public boolean blockBackupBlockingOperations(boolean wait) throws StandardException {
-		LOG.info("SpliceTransactionFactory -blockBackupBlockingOperations");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -blockBackupBlockingOperations");
 		return false;
 	}
 
 	public void unblockBackupBlockingOperations() {
-		LOG.info("SpliceTransactionFactory -unblockBackupBlockingOperations");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -unblockBackupBlockingOperations");
 	}
 	@Override
 	public boolean canSupport(Properties properties) {
-		LOG.info("SpliceTransactionFactory -canSupport");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -canSupport");
 		return true;
 	}
 
@@ -250,7 +250,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 
 	/*@SuppressWarnings(value = "deprecation")
 	private void initZookeeper() {
-		LOG.info("SpliceTransactionFactory initZookeeper");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory initZookeeper");
 		try {
 			@SuppressWarnings("resource")
 			Configuration config = HBaseConfiguration.create();
@@ -330,7 +330,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 	}
 	
 	public void stop() {
-		LOG.info("SpliceTransactionFactory -stop");
+		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -stop");
 	}
 
 }

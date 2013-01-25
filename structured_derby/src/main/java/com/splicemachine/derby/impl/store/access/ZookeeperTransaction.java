@@ -74,20 +74,17 @@ public class ZookeeperTransaction implements Transaction {
 	}
 	
 	public ContextManager getContextManager() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getContextManager");
+		SpliceLogUtils.debug(LOG,"getContextManager");
 		return transContext.getContextManager();
 	}
 	
 	public ZookeeperTransactionContext getContext() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getContext");
+		SpliceLogUtils.debug(LOG,"getContext");
 		return transContext;
 	}
 	
 	public CompatibilitySpace getCompatibilitySpace() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getCompatibilitySpace");
+		SpliceLogUtils.debug(LOG,"getCompatibilitySpace");
 		return compatibilitySpace;
 	}
 	
@@ -113,45 +110,38 @@ public class ZookeeperTransaction implements Transaction {
 	}
 	
 	public void setNoLockWait(boolean noWait) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("setNoLockWait " + noWait);
+		SpliceLogUtils.debug(LOG,"setNoLockWait " + noWait);
 	}
 
 	public void setup(PersistentSet set) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("setup " + set);
+		SpliceLogUtils.debug(LOG,"setup " + set);
 		
 	}
 
 	public GlobalTransactionId getGlobalId() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getGlobalId");
+		SpliceLogUtils.debug(LOG,"getGlobalId");
 		return null;
 	}
 
 	public LockingPolicy getDefaultLockingPolicy() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getDefaultLockingPolicy");
+		SpliceLogUtils.debug(LOG,"getDefaultLockingPolicy");
 		return null;
 	}
 	
 	public LockingPolicy newLockingPolicy(int mode, int isolation,boolean stricterOk) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("newLockingPolicy mode " + mode + ", isolation "+ isolation + ", " + stricterOk);
+		SpliceLogUtils.debug(LOG,"newLockingPolicy mode " + mode + ", isolation "+ isolation + ", " + stricterOk);
 		return null;
 	}
 
 	public void setDefaultLockingPolicy(LockingPolicy policy) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("setDefaultLockingPolicy policy " + policy);
+		SpliceLogUtils.debug(LOG,"setDefaultLockingPolicy policy " + policy);
 	}
 
 	public LogInstant commit() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("commit, state="+state+" for transaction "+ts.getTransactionID());
+		SpliceLogUtils.debug(LOG,"commit, state="+state+" for transaction "+ts.getTransactionID());
 		
 		if (state == IDLE) {
-			LOG.info("The transaction is in idle state and there is nothing to commit, transID="+ts.getTransactionID());
+			SpliceLogUtils.debug(LOG,"The transaction is in idle state and there is nothing to commit, transID="+ts.getTransactionID());
 			return null;
 		}
 		
@@ -171,14 +161,12 @@ public class ZookeeperTransaction implements Transaction {
 	}
 
 	public LogInstant commitNoSync(int commitflag) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("commitNoSync commitflag" + commitflag);
+		SpliceLogUtils.debug(LOG,"commitNoSync commitflag" + commitflag);
 		return commit();
 	}
 
 	public void abort() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("abort");	
+		SpliceLogUtils.debug(LOG,"abort");	
 		try {
 			if (state == CLOSED)
 				return;
@@ -191,8 +179,7 @@ public class ZookeeperTransaction implements Transaction {
 	}
 	
 	public void close() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("close");	
+		SpliceLogUtils.debug(LOG,"close");	
 		
 		transContext.popMe();
 		transContext = null;
@@ -202,119 +189,99 @@ public class ZookeeperTransaction implements Transaction {
 	}
 
 	public void destroy() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("destroy");
+		SpliceLogUtils.debug(LOG,"destroy");
 		if (state != CLOSED)
             abort();
 		close();
 	}
 	
 	public int setSavePoint(String name, Object kindOfSavepoint) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("setSavePoint name " + name + ", kindOfSavepoint " + kindOfSavepoint);
+		SpliceLogUtils.debug(LOG,"setSavePoint name " + name + ", kindOfSavepoint " + kindOfSavepoint);
 		return 0;
 	}
 
 	public int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("releaseSavePoint name " + name + ", kindOfSavepoint " + kindOfSavepoint);
+		SpliceLogUtils.debug(LOG,"releaseSavePoint name " + name + ", kindOfSavepoint " + kindOfSavepoint);
 		return 0;
 	}
 
 	public int rollbackToSavePoint(String name, Object kindOfSavepoint) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("rollbackToSavePoint name " + name + ", kindOfSavepoint " + kindOfSavepoint);
+		SpliceLogUtils.debug(LOG,"rollbackToSavePoint name " + name + ", kindOfSavepoint " + kindOfSavepoint);
 		return 0;
 	}
 
 	public ContainerHandle openContainer(ContainerKey containerId, int mode) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("openContainer");
+		SpliceLogUtils.debug(LOG,"openContainer");
 		return null;
 	}
 	
 	public ContainerHandle openContainer(ContainerKey containerId, LockingPolicy locking, int mode) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("openContainer");
+		SpliceLogUtils.debug(LOG,"openContainer");
 		return null;
 	}
 
 	public long addContainer(long segmentId, long containerId, int mode,Properties tableProperties, int temporaryFlag) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("addContainer");
+		SpliceLogUtils.debug(LOG,"addContainer");
 		return 0;
 	}
 
 	public void dropContainer(ContainerKey containerId) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("dropContainer");
+		SpliceLogUtils.debug(LOG,"dropContainer");
 	}
 
 	public long addAndLoadStreamContainer(long segmentId,Properties tableProperties, RowSource rowSource) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("addAndLoadStreamContainer");
+		SpliceLogUtils.debug(LOG,"addAndLoadStreamContainer");
 		return 0;
 	}
 
 	public StreamContainerHandle openStreamContainer(long segmentId,long containerId, boolean hold) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("openStreamContainer");
+		SpliceLogUtils.debug(LOG,"openStreamContainer");
 		return null;
 	}
 
 	public void dropStreamContainer(long segmentId, long containerId) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("dropStreamContainer");		
+		SpliceLogUtils.debug(LOG,"dropStreamContainer");		
 	}
 
 	public void logAndDo(Loggable operation) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("logAndDo operation " + operation);				
+		SpliceLogUtils.debug(LOG,"logAndDo operation " + operation);				
 	}
 
 	public void addPostCommitWork(Serviceable work) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("addPostCommitWork work " + work);						
+		SpliceLogUtils.debug(LOG,"addPostCommitWork work " + work);						
 	}
 
 	public void addPostTerminationWork(Serviceable work) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("addPostCommitWork work " + work);								
+		SpliceLogUtils.debug(LOG,"addPostCommitWork work " + work);								
 	}
 
 	public boolean isIdle() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("isIdle state="+state+" for transaction "+ts.getTransactionID());						
+		SpliceLogUtils.debug(LOG,"isIdle state="+state+" for transaction "+ts.getTransactionID());						
 		return (state==IDLE);
 	}
 
 	public boolean isPristine() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("isPristine");						
+		SpliceLogUtils.debug(LOG,"isPristine");						
 		return (state == IDLE  ||  state == ACTIVE);
 	}
 
 	public FileResource getFileHandler() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getFileHandler");						
+		SpliceLogUtils.debug(LOG,"getFileHandler");						
 		return null;
 	}
 
 	public boolean anyoneBlocked() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("anyoneBlocked");						
+		SpliceLogUtils.debug(LOG,"anyoneBlocked");						
 		//return getLockFactory().anyoneBlocked();
 		return false;
 	}
 	
 	public void createXATransactionFromLocalTransaction(int format_id,byte[] global_id, byte[] branch_id) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("createXATransactionFromLocalTransaction");								
+		SpliceLogUtils.debug(LOG,"createXATransactionFromLocalTransaction");								
 	}
 
 	public void xa_commit(boolean onePhase) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("xa_commit");	
+		SpliceLogUtils.debug(LOG,"xa_commit");	
 		try {
 			if (onePhase)
 				commit();
@@ -328,8 +295,7 @@ public class ZookeeperTransaction implements Transaction {
 	}
 
 	public int xa_prepare() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("xa_prepare");
+		SpliceLogUtils.debug(LOG,"xa_prepare");
 		
 		try {
 			//zkTransaction.prepareCommit(this.ts);
@@ -341,14 +307,12 @@ public class ZookeeperTransaction implements Transaction {
 	}
 
 	public void xa_rollback() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("xa_rollback");	
+		SpliceLogUtils.debug(LOG,"xa_rollback");	
 		abort();
 	}
 	
 	public String getActiveStateTxIdString() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getActiveStateTxIdString");
+		SpliceLogUtils.debug(LOG,"getActiveStateTxIdString");
 		setActiveState();
 		if (ts!=null)
 			return ts.getTransactionID();
@@ -357,8 +321,7 @@ public class ZookeeperTransaction implements Transaction {
 	}
 
 	public DataValueFactory getDataValueFactory() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getDataValueFactory");
+		SpliceLogUtils.debug(LOG,"getDataValueFactory");
 		return dataValueFactory;
 	}
 

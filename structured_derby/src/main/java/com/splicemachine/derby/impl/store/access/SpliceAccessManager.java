@@ -51,6 +51,7 @@ import org.apache.zookeeper.ZooDefs;
 
 import com.splicemachine.constants.SchemaConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 
 
 public class SpliceAccessManager implements AccessFactory, CacheableFactory, ModuleControl, PropertySetCallback {
@@ -520,7 +521,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 
 			return tc;
 		} else
-			LOG.info("in SpliceAccessManager - getAndNameTransaction, SpliceTransactionManagerContext is NOT null, so reuse transaction");
+			SpliceLogUtils.debug(LOG,"in SpliceAccessManager - getAndNameTransaction, SpliceTransactionManagerContext is NOT null, so reuse transaction");
 		return rtc.getTransactionManager();
 	}
 

@@ -1,5 +1,47 @@
 package com.splicemachine.derby.utils;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.context.ContextManager;
+import org.apache.derby.iapi.services.context.ContextService;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
+import org.apache.derby.iapi.store.raw.ContainerKey;
+import org.apache.derby.iapi.store.raw.Transaction;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
+import org.apache.log4j.Logger;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooDefs;
+import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
+
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
@@ -16,45 +58,12 @@ import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.Operati
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
-import org.apache.derby.iapi.store.raw.ContainerKey;
-import org.apache.derby.iapi.store.raw.Transaction;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
-import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.RegionSplitter;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
-import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
-import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
 
 /**
- * We need to get table name from database using Container ID and the info is stored in Data Dictionary.
- * FIXME: need to figure out how to get the info out
+ * Utility methods
  * @author jessiezhang
- *
+ * @author johnleach
+ * @author scottfines
  */
 
 @SuppressWarnings(value = "deprecation")
@@ -232,13 +241,6 @@ public class SpliceUtils {
 				LOG.error(ie.getMessage(), ie);
 			}
 		}
-	}
-
-	//Please do not remove the methods even if there are not used now until we finish the impl. I am planning to use them. 
-	//I removed some of my methods since similar methods have been added to another class today - 10/23 
-	public String getColumnName(TableDescriptor td, int position) {
-		String[] columnNames = td.getColumnNamesArray();
-		return columnNames[position];
 	}
 
 	public static String toJSON(Object object) {
