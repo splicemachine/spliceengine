@@ -47,46 +47,98 @@ public class MultiGroupGroupedAggregateOperationTest {
 	private static Map<String,Stats> fruitStats = new HashMap<String,Stats>();
     private static Stats totalStats = new Stats();
 	
-	private static final int size = 2;
-	
+	private static final int size = 10;
+
 	public static void insertData() throws Exception{
-		String bFruit = "bananas";
-		String sFruit = "strawberries";
-		String pFruit = "pineapple";
+		PreparedStatement ps = rule.prepareStatement("insert into multigrouptest (uname, fruit,bushels) values (?,?,?)");
+		List<String> fruits = Arrays.asList("strawberries","bananas","cherries");
+		List<String> users = Arrays.asList("jzhang","sfines","jleach");
+		for(int i=0;i< size;i++){
+			List<Integer> values = Arrays.asList(i*5,i*10,i*15);
+			for(String user:users){
+				for(int pos=0;pos<fruits.size();pos++){
+					String fruit = fruits.get(pos);
+					int value = values.get(pos);
+					Pair pair = Pair.newPair(user,fruit);
+					if(!pairStats.containsKey(pair))
+						pairStats.put(pair,new Stats());
+					pairStats.get(pair).add(value);
 
-        PreparedStatement ps = rule.prepareStatement("insert into multigrouptest (uname, fruit,bushels) values (?,?,?)");
-        List<String> fruits = Arrays.asList("strawberries","bananas","cherries");
-        List<String> users = Arrays.asList("jzhang","sfines","jleach");
-        for(int i=0;i< size;i++){
-            List<Integer> values = Arrays.asList(i*5,i*10,i*15);
-            for(String user:users){
-               for(int pos=0;pos<fruits.size();pos++){
-                   String fruit = fruits.get(pos);
-                   int value = values.get(pos);
-                   Pair pair = Pair.newPair(user,fruit);
-                   if(!pairStats.containsKey(pair))
-                       pairStats.put(pair,new Stats());
-                   pairStats.get(pair).add(value);
+					if(!unameStats.containsKey(user))
+						unameStats.put(user,new Stats());
+					unameStats.get(user).add(value);
 
-                   if(!unameStats.containsKey(user))
-                       unameStats.put(user,new Stats());
-                   unameStats.get(user).add(value);
-
-                   if(!fruitStats.containsKey(fruit))
-                       fruitStats.put(fruit,new Stats());
-                   fruitStats.get(fruit).add(value);
-                   ps.setString(1, user);
-                   ps.setString(2, fruit);
-                   ps.setInt(3, value);
-                   ps.executeUpdate();
-                   totalStats.add(value);
-               }
-            }
+					if(!fruitStats.containsKey(fruit))
+						fruitStats.put(fruit,new Stats());
+					fruitStats.get(fruit).add(value);
+					ps.setString(1, user);
+					ps.setString(2, fruit);
+					ps.setInt(3, value);
+					ps.executeUpdate();
+					totalStats.add(value);
+				}
+			}
 		}
 		rule.commit();
 
 		//make sure that we have multiple regions to split across
-        rule.splitTable("multigrouptest");
+		rule.splitTable("multigrouptest",size/3);
+	}
+
+	@Test
+	public void testGroupedByFirstCountOperation() throws Exception{
+		ResultSet rs = rule.executeQuery("select uname, count(bushels) from multigrouptest group by uname");
+		int rowCount =0;
+		while(rs.next()){
+			String uname = rs.getString(1);
+			int count = rs.getInt(2);
+			Assert.assertNotNull("no uname returned!",uname);
+			Assert.assertEquals("Incorrect count for uname "+ uname,unameStats.get(uname).getCount(),count);
+			rowCount++;
+		}
+		Assert.assertEquals("Not all groups found!",unameStats.size(),rowCount);
+	}
+
+	@Test
+	public void testGroupedBySecondCountOperation() throws Exception{
+		ResultSet rs = rule.executeQuery("select fruit,count(bushels) from multigrouptest group by fruit");
+		int rowCount=0;
+		while(rs.next()){
+			String fruit = rs.getString(1);
+			int count = rs.getInt(2);
+			Assert.assertNotNull("no fruit returned!",fruit);
+			Assert.assertEquals("Incorrect count for fruit "+ fruit,fruitStats.get(fruit).getCount(),count);
+			rowCount++;
+		}
+		Assert.assertEquals("Not all groups found!",fruitStats.size(),rowCount);
+	}
+
+	@Test
+	public void testGroupedByFirstCountAllOperation() throws Exception {
+		ResultSet rs = rule.executeQuery("select uname, count(*) from multigrouptest group by uname");
+		int rowCount=0;
+		while(rs.next()){
+			String uname = rs.getString(1);
+			Assert.assertNotNull("No uname returned!",uname);
+			int count = rs.getInt(2);
+			Assert.assertEquals("Incorrect count for uname "+ uname,unameStats.get(uname).getCount(),count);
+			rowCount++;
+		}
+		Assert.assertEquals("Not all groups found",unameStats.size(),rowCount);
+	}
+
+	@Test
+	public void testGroupedBySecondCountAllOperation() throws Exception{
+		ResultSet rs = rule.executeQuery("select fruit,count(*) from multigrouptest group by fruit");
+		int rowCount=0;
+		while(rs.next()){
+			String fruit = rs.getString(1);
+			int count = rs.getInt(2);
+			Assert.assertNotNull("no fruit returned!",fruit);
+			Assert.assertEquals("Incorrect count for fruit "+ fruit,fruitStats.get(fruit).getCount(),count);
+			rowCount++;
+		}
+		Assert.assertEquals("Not all groups found!",fruitStats.size(),rowCount);
 	}
 
 	@Test

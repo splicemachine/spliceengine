@@ -70,7 +70,7 @@ public class SingleGroupGroupedAggregateOperationTest {
 
         rule.splitTable("t");
     }
-	
+
 	@Test
 	public void testGroupedMinOperation() throws Exception{
 			ResultSet rs = rule.executeQuery("select username,min(i) from t group by username");
