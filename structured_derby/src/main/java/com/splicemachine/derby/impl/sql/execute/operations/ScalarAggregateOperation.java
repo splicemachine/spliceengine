@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -23,6 +24,8 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -36,44 +39,39 @@ import java.util.List;
  * @author Scott Fines
  *
  */
-public class ScalarAggregateOperation extends GenericAggregateOperation {	
+public class ScalarAggregateOperation extends GenericAggregateOperation {
+	public static long serialVersionUID = 1l;
 	private static Logger LOG = Logger.getLogger(ScalarAggregateOperation.class);
 	
 	protected boolean isInSortedOrder;
 	protected boolean singleInputRow;
 	protected int countOfRows;
 	protected int rowsInput = 0;
-	
+
 	protected boolean isOpen=false;
-	private long regionId;
-	
-    public ScalarAggregateOperation () {
-    	super();
-    }
-  
-    public ScalarAggregateOperation(NoPutResultSet s,
-			boolean isInSortedOrder,
-			int	aggregateItem,
-			Activation a,
-			GeneratedMethod ra,
-			int resultSetNumber,
-			boolean singleInputRow,
-		    double optimizerEstimatedRowCount,
-		    double optimizerEstimatedCost) throws StandardException  {
-    	super(s,aggregateItem,a,ra,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-    	this.isInSortedOrder = isInSortedOrder;
-    	this.singleInputRow = singleInputRow;
-    	
-    	ExecutionFactory factory = a.getExecutionFactory();
-    	sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(a));
+
+	public ScalarAggregateOperation () {
+		super();
+	}
+
+	public ScalarAggregateOperation(NoPutResultSet s,
+																	boolean isInSortedOrder,
+																	int	aggregateItem,
+																	Activation a,
+																	GeneratedMethod ra,
+																	int resultSetNumber,
+																	boolean singleInputRow,
+																	double optimizerEstimatedRowCount,
+																	double optimizerEstimatedCost) throws StandardException  {
+		super(s,aggregateItem,a,ra,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+		this.isInSortedOrder = isInSortedOrder;
+		this.singleInputRow = singleInputRow;
+
+		ExecutionFactory factory = a.getExecutionFactory();
+		sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(a));
 		sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
-		try {
-			this.reduceScan = Scans.buildPrefixRangeScan(sequence[0], transactionID);
-		} catch(IOException e){
-			SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to get Region ids",e);
-		}
-    }
-    
+	}
+
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		SpliceLogUtils.trace(LOG,"readExternal");
@@ -107,14 +105,16 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	public void init(SpliceOperationContext context){
 		SpliceLogUtils.trace(LOG,"init");
 		super.init(context);
-    	ExecutionFactory factory = activation.getExecutionFactory();
-    	if(regionScanner!=null)
-    		this.regionId = regionScanner.getRegionInfo().getRegionId();
-    	try {
+		ExecutionFactory factory = activation.getExecutionFactory();
+		try {
+			this.reduceScan = Scans.buildPrefixRangeScan(sequence[0],transactionID);
 			sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(activation));
 			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
-		
+
 		} catch (StandardException e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG,e);
+		} catch (IOException e) {
+
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
 	}
@@ -131,12 +131,12 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		if(useScan){
 			while ((execIndexRow = getNextRowFromScan(false))!=null){
 				SpliceLogUtils.trace(LOG,"aggResult =%s before",aggResult);
-				aggResult = aggregate(execIndexRow,aggResult,false);
+				aggResult = aggregate(execIndexRow,aggResult,false,true);
 				SpliceLogUtils.trace(LOG,"aggResult =%s after",aggResult);
 			}
 		}else{
 			while ((execIndexRow = getNextRowFromSource(false))!=null){
-				aggResult = aggregate(execIndexRow,aggResult,true);
+				aggResult = aggregate(execIndexRow,aggResult,true,false);
 			}
 		}
 		SpliceLogUtils.trace(LOG, "aggResult=%s",aggResult);
@@ -150,7 +150,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 	
 	protected ExecIndexRow aggregate(ExecIndexRow execIndexRow, 
-									ExecIndexRow aggResult, boolean doInitialize) throws StandardException{
+									ExecIndexRow aggResult, boolean doInitialize, boolean isScan) throws StandardException{
 		if(aggResult==null){
 			aggResult = (ExecIndexRow)execIndexRow.getClone();
 			SpliceLogUtils.trace(LOG, "aggResult = %s aggregate before",aggResult);
@@ -159,7 +159,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				SpliceLogUtils.trace(LOG, "aggResult = %s aggregate after",aggResult);
 			}
 		}else
-			accumulateScalarAggregation(execIndexRow, aggResult, false);
+			accumulateScalarAggregation(execIndexRow, aggResult, false,isScan);
 		return aggResult;
 	}
 	
@@ -169,6 +169,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		List<KeyValue> keyValues = new ArrayList<KeyValue>();
 		try{
 			regionScanner.next(keyValues);
+			SpliceLogUtils.trace(LOG,"keyValues.length=%d, regionScanner=%s",keyValues.size(),regionScanner);
 		}catch(IOException ioe){
 			SpliceLogUtils.logAndThrow(LOG, 
 					StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION, ioe));
@@ -177,8 +178,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		if(keyValues.isEmpty())
 			return null;
 		else{
+			SpliceLogUtils.trace(LOG,"populating next row");
 			ExecIndexRow row = (ExecIndexRow)sourceExecIndexRow.getClone();
-			SpliceUtils.populate(result, null,row.getRowArray());
+			SpliceUtils.populate(result,row.getRowArray());
 			SpliceLogUtils.trace(LOG, "returned row = %s",row);
 			return row;
 		}
@@ -201,19 +203,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	public ExecRow getExecRowDefinition(){
 		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
 		ExecRow row = sourceExecIndexRow.getClone();
-		DataValueDescriptor[] descs = new DataValueDescriptor[aggregates.length];
-		try {
-			int i=0;
-			for(SpliceGenericAggregator agg:aggregates){
-				SpliceLogUtils.trace(LOG, "aggColNum=%d",agg.getAggregatorInfo().getAggregatorColNum());
-				DataValueDescriptor desc = row.getColumn(agg.getAggregatorInfo().getAggregatorColNum());
-				descs[i] = desc;
-				i++;
-			}
-			row.setRowArray(descs);
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		}
 		return row;
 	}
 
@@ -229,11 +218,11 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	
 	protected void accumulateScalarAggregation(ExecRow nextRow,
 									ExecRow aggResult,
-									boolean hasDistinctAggregates) throws StandardException{
+									boolean hasDistinctAggregates,boolean isScan) throws StandardException{
 		int size = aggregates.length;
 		for(int i=0;i<size;i++){
 			SpliceGenericAggregator currAggregate = aggregates[i];
-			if(hasDistinctAggregates &&
+			if(isScan||hasDistinctAggregates &&
 					!currAggregate.isDistinct()){
 				currAggregate.merge(nextRow, aggResult);
 			}else{
@@ -251,12 +240,15 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 			Put put;
 			HTableInterface tempTable = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			while((row = doAggregation(false)) !=null){
-				SpliceLogUtils.trace(LOG,"row="+row);
-				put = SpliceUtils.insert(row.getRowArray(), 
-						DerbyBytesUtil.generateRegionHashKey(regionId, sequence[0]),null);
+				byte[] key = DerbyBytesUtil.generatePrefixedRowKey(sequence[0]);
+				SpliceLogUtils.trace(LOG,"row=%s, key.length=%d, afterPrefix?%b,beforeEnd?%b",
+														row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
+														Bytes.compareTo(key,reduceScan.getStopRow())<0);
+				put = SpliceUtils.insert(row.getRowArray(), key,Bytes.toBytes(transactionID));
 				SpliceLogUtils.trace(LOG, "put=%s",put);
 				tempTable.put(put);
 			}
+			tempTable.flushCommits();
 			tempTable.close();
 			numSunk++;
 		}catch(StandardException se){

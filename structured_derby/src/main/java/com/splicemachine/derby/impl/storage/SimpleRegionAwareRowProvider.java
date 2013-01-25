@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.sql.execute.operations.Hasher;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -32,6 +33,14 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
         this.scanner = RegionAwareScanner.create(region, new SingleTypeHashAwareScanBoundary(
                            columnFamily,rowTemplate, hasher),table,start,finish);
     }
+
+	public SimpleRegionAwareRowProvider(HRegion region, byte[] table,
+																			byte[] start, byte[] finish,
+																			final ExecRow rowTemplate, FormatableBitSet fbt,ScanBoundary boundary){
+		super(rowTemplate,fbt);
+		this.table = table;
+		this.scanner = RegionAwareScanner.create(region,boundary,table,start,finish);
+	}
 
     @Override
     protected Result getResult() throws IOException {

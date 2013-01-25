@@ -270,15 +270,11 @@ public class DerbyBytesUtil {
 
 	public static byte[] generateEndKeyForTemp(DataValueDescriptor uniqueString) throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG,"generateEndKeyForTemp is %s",uniqueString.getTraceString());
-		StructBuilder builder = new StructBuilder();
-		Object[] values = new Object[1];
-		RowKey rowKey;
-		rowKey = getRowKey(uniqueString);
-		builder.add(rowKey);
-		byte[] bytes = Bytes.toBytes(uniqueString.getString());
+		byte[] bytes= generateBeginKeyForTemp(uniqueString);
 		BytesUtil.incrementAtIndex(bytes,bytes.length-1);
-		values[0] = Bytes.toString(bytes);
-		return builder.toRowKey().serialize(values);
+
+		RowKey rowKey = new VariableLengthByteArrayRowKey();
+		return rowKey.serialize(bytes);
 	}
 
 	
@@ -456,7 +452,7 @@ public class DerbyBytesUtil {
         }
 
         private Object toUTF8(Object o) {
-            if(o==null|| o instanceof DerbyBytesUtil[]) return o;
+            if(o==null|| o instanceof byte[]) return o;
             return Bytes.toBytes(o.toString().trim());
         }
 

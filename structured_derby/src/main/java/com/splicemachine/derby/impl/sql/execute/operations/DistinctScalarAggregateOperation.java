@@ -116,7 +116,7 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
 	
 	@Override
     protected ExecIndexRow aggregate(ExecIndexRow execIndexRow, 
-    		ExecIndexRow aggResult, boolean doInitialize) throws StandardException{
+    		ExecIndexRow aggResult, boolean doInitialize,boolean isScan) throws StandardException{
     	if(aggResult==null){
     		aggResult = (ExecIndexRow)execIndexRow.getClone();
     		SpliceLogUtils.trace(LOG, "aggResult = %s aggregate before",aggResult);
@@ -125,7 +125,7 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
     			SpliceLogUtils.trace(LOG, "aggResult = %s aggregate after",aggResult);
     		}
     	}else
-    		accumulateScalarAggregation(execIndexRow, aggResult, true);
+    		accumulateScalarAggregation(execIndexRow, aggResult, true,isScan);
     	return aggResult;
     }
 	
@@ -170,7 +170,7 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
 		ExecIndexRow aggResult = null;
 		while ((execIndexRow = getNextRowFromScan(false))!=null){
 			SpliceLogUtils.trace(LOG,"userscan, aggResult =%s before",aggResult);
-			aggResult = aggregate(execIndexRow,aggResult,true);
+			aggResult = aggregate(execIndexRow,aggResult,true,true);
 			SpliceLogUtils.trace(LOG,"userscan aggResult =%s after",aggResult);
 		}
 		

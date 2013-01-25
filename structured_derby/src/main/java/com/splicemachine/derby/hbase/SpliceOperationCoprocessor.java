@@ -30,8 +30,8 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implements SpliceOperationProtocol{
 	private static Logger LOG = Logger.getLogger(SpliceOperationCoprocessor.class);
-	public static byte[] TEMP_TABLE = "SYS_TEMP".getBytes();
-	public static String TEMP_TABLE_STR = Bytes.toString(TEMP_TABLE);
+	public static String TEMP_TABLE_STR = "SYS_TEMP";
+	public static byte[] TEMP_TABLE = Bytes.toBytes(TEMP_TABLE_STR);
 	protected static ContextManager contextManager;
 	static {
 		Monitor.startMonitor(new Properties(), null);

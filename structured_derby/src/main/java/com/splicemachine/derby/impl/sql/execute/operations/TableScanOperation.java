@@ -161,17 +161,17 @@ public class TableScanOperation extends ScanOperation {
 				currentRow = null;
 	   			currentRowLocation = null;
 			} else {
-                SpliceLogUtils.trace(LOG,"%s:populating data",mapTableName);
+                SpliceLogUtils.trace(LOG,"<%s> populating data",mapTableName);
                 Result result = new Result(keyValues);
 				SpliceUtils.populate(result, currentRow.getRowArray(), accessedCols,baseColumnMap);
 				currentRowLocation = new HBaseRowLocation(result.getRow());
-				SpliceLogUtils.trace(LOG, "%s:getNextRowCore with keyValues %s and currentRow %s",mapTableName,keyValues,currentRow);
+				SpliceLogUtils.trace(LOG, "<%s> getNextRowCore with keyValues %s and currentRow %s",mapTableName,keyValues,currentRow);
 			}
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrow(LOG, mapTableName+":Error during getNextRowCore", StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
 		}
 		setCurrentRow(currentRow);
-		SpliceLogUtils.trace(LOG,"%s: emitting %s",mapTableName,currentRow);
+		SpliceLogUtils.trace(LOG,"<%s> emitting %s",mapTableName,currentRow);
 		return currentRow;
 	}
 	

@@ -2,6 +2,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -50,8 +51,9 @@ public class Scans {
 	 */
 	public static Scan buildPrefixRangeScan(DataValueDescriptor prefix,String transactionId) throws IOException {
 		try {
-			return newScan(DerbyBytesUtil.generateBeginKeyForTemp(prefix),
-					DerbyBytesUtil.generateEndKeyForTemp(prefix),transactionId);
+			byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(prefix);
+			byte[] finish = DerbyBytesUtil.generateEndKeyForTemp(prefix);
+			return newScan(start,finish,transactionId);
 		} catch (StandardException e) {
 			throw new IOException(e);
 		}

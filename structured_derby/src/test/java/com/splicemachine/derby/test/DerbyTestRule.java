@@ -9,7 +9,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.SpliceUtils;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.rules.TestWatchman;
@@ -177,6 +183,10 @@ public class DerbyTestRule extends TestWatchman{
     }
 
    public void splitTable(String tableName) throws Exception{
+		 SpliceUtils.splitConglomerate(getConglomId(tableName));
+    }
+
+	public long getConglomId(String tableName) throws Exception{
        /*
         * This is a needlessly-complicated and annoying way of doing this,
         * because *when it was written*, the metadata information was kind of all messed up
@@ -186,23 +196,47 @@ public class DerbyTestRule extends TestWatchman{
         * some ugly-ass code. Good luck to you.
         *
         */
-        ResultSet rs = executeQuery("select tableid from sys.systables where tablename = '"+tableName.toUpperCase()+"'");
+		ResultSet rs = executeQuery("select tableid from sys.systables where tablename = '"+tableName.toUpperCase()+"'");
 
-       if(rs.next()){
-           String tableid = rs.getString(1);
+		if(rs.next()){
+			String tableid = rs.getString(1);
 
-           rs.close();
-           rs = executeQuery("select * from sys.sysconglomerates where tableid='"+tableid+"'");
-           if(rs.next()){
-               long conglomId = rs.getLong(3);
-               LOG.info("Splitting table "+conglomId);
-               SpliceUtils.splitConglomerate(conglomId);
-           }else{
-               LOG.info("WHAT?!");
-           }
+			rs.close();
+			rs = executeQuery("select * from sys.sysconglomerates where tableid='"+tableid+"'");
+			if(rs.next()){
+				return rs.getLong(3);
+			}else{
+				LOG.info("WHAT?!");
+			}
 
-       }else{
-           LOG.warn("Unable to split table "+tableName+", conglomeration information could not be found");
-       }
-    }
+		}else{
+			LOG.warn("Unable to find the conglom id for table  "+tableName);
+		}
+		return -1l;
+	}
+
+	public void splitTable(String tableName, int position) throws Exception{
+		Scan scan = new Scan();
+		scan.setCaching(100);
+		scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+
+		long conglomId = getConglomId(tableName);
+
+		HTableInterface table = SpliceAccessManager.getHTable(conglomId);
+		ResultScanner scanner = table.getScanner(scan);
+		int count = 0;
+		Result result = null;
+		while(count < position){
+			Result next = scanner.next();
+			if(next==null){
+				SpliceLogUtils.warn(LOG,"unable to split table %s at position %d, there are not enough rows",tableName,position);
+				break;
+			}else{
+				result = next;
+			}
+			count++;
+		}
+		if(result!=null)
+			SpliceUtils.splitConglomerate(conglomId, result.getRow());
+	}
 }

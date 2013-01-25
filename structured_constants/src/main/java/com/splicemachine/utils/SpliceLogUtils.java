@@ -61,4 +61,7 @@ public class SpliceLogUtils {
 		throw new RuntimeException(t);
 	}
 
+	public static void warn(Logger log, String messagePattern,Object...args) {
+		log.warn(String.format(messagePattern,args));
+	}
 }

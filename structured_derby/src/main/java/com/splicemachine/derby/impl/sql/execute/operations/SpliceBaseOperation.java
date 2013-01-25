@@ -28,6 +28,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Base64;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -36,6 +37,7 @@ import java.sql.Timestamp;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable, NoPutResultSet {
 	private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
@@ -538,16 +540,23 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			table = rowProvider.getTableName();
 		}
 		scan = rowProvider.toScan();
-        if(scan==null||table==null){
-            throw new AssertionError("Cannot perform shuffle, either scan or table is null");
-        }
+		if(scan==null||table==null){
+			throw new AssertionError("Cannot perform shuffle, either scan or table is null");
+		}
+		if(scan.getStartRow()!=null&&scan.getStopRow()!=null
+				&&Bytes.compareTo(scan.getStartRow(),scan.getStopRow())!=0){
+			scan.setStartRow(null);
+			scan.setStopRow(null);
+		}
 		HTableInterface htable = null;
 		try{
 			htable = SpliceAccessManager.getHTable(table);
 			long numberCreated = 0;
             SpliceLogUtils.trace(LOG,"Performing coprocessorExec");
-			Map<byte[], Long> results = htable.coprocessorExec(SpliceOperationProtocol.class,
-													scan.getStartRow(),scan.getStopRow(),
+
+
+			final Map<byte[], Long> resultMap = new ConcurrentSkipListMap<byte[],Long>(Bytes.BYTES_COMPARATOR);
+			htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),
 													new Batch.Call<SpliceOperationProtocol,Long>(){
 
 				@Override
@@ -562,8 +571,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 						return -1l;
 					}
 				}
-			});
-			for(Long returnedRow : results.values()){
+			},new Batch.Callback<Long>(){
+
+						@Override
+						public void update(byte[] region, byte[] row, Long result) {
+							resultMap.put(region,result);
+						}
+					});
+			for(Long returnedRow : resultMap.values()){
 				numberCreated += returnedRow;
 			}
 			SpliceLogUtils.trace(LOG,"Completed %d shuffle tasks",numberCreated);

@@ -30,12 +30,10 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.RegionSplitter;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
@@ -65,7 +63,8 @@ public class SpliceUtils {
 	public static final String CONGLOMERATE_ATTRIBUTE = "DERBY_CONGLOMERATE";
 
 
-    public enum SpliceConglomerate {HEAP,BTREE}
+
+	public enum SpliceConglomerate {HEAP,BTREE}
 	public static Configuration config = HBaseConfiguration.create();
 	protected static Gson gson = new Gson();
 	protected static UUIDHexGenerator gen = new UUIDHexGenerator("Splice", null);
@@ -324,12 +323,13 @@ public class SpliceUtils {
 
 	public static void populate(Result currentResult, DataValueDescriptor[] destRow,
 															FormatableBitSet scanList,int[] bitSetToDestRowMap) throws StandardException{
-		if(scanList==null) populate(currentResult,destRow);
+		if(scanList==null||scanList.getNumBitsSet()<=0) populate(currentResult,destRow);
 		else{
 			try{
 				for(int i=scanList.anySetBit();i!=-1;i=scanList.anySetBit(i)){
 					byte[] value = currentResult.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
-					fill(value,destRow[bitSetToDestRowMap[i]]);
+					SpliceLogUtils.trace(LOG,"Attempting to place column[%d] into destRow %s",i,destRow[bitSetToDestRowMap[i]]);
+					fill(value, destRow[bitSetToDestRowMap[i]]);
 				}
 			}catch(IOException e){
 				SpliceLogUtils.logAndThrowRuntime(LOG,"Error occurred during populate",e);
@@ -747,6 +747,35 @@ public class SpliceUtils {
         admin.split(name);
     }
 
+	/**
+	 * Synchronously splits a Conglomerate around the specified position.
+	 *
+	 * @param conglomId the conglom to split
+	 * @param position the position to split around
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public static void splitConglomerate(long conglomId, byte[] position) throws IOException, InterruptedException {
+		HBaseAdmin admin = new HBaseAdmin(config);
+
+		byte[] name = SpliceAccessManager.getHTable(conglomId).getTableName();
+		admin.split(name,position);
+
+		boolean isSplitting=true;
+		while(isSplitting){
+			isSplitting=false;
+			//synchronously wait here until no TableRegions report isSplit()
+			List<HRegionInfo> regions = admin.getTableRegions(name);
+			for(HRegionInfo region:regions){
+				if(region.isSplit()){
+					isSplitting=true;
+					break;
+				}
+			}
+			Thread.sleep(1000l);
+		}
+	}
+
 	public static long getHighestConglomSequence(){
 		SpliceLogUtils.trace(LOG, "getHighestConglomSequence");
 		try{
@@ -925,153 +954,6 @@ public class SpliceUtils {
 		
 		return transID.getBytes();
 	}
-	
-//	public static Scan generateScan(DataValueDescriptor uniqueString, byte[] startRow, byte[] stopRow, String transactionID) throws StandardException, IOException {
-//		return generateScan(uniqueString, startRow, stopRow, transactionID.getBytes(), 100);
-//	}
-	
-//	public static Scan generateScan(DataValueDescriptor uniqueString, byte[] startRow, byte[] stopRow, byte[] transactionID) throws StandardException, IOException {
-//		return generateScan(uniqueString, startRow, stopRow, transactionID, 100);
-//	}
-//
-//	public static Scan generateScan(DataValueDescriptor uniqueString, byte[] startRow, byte[] stopRow, String transactionID, int caching) throws StandardException, IOException {
-//		return generateScan(uniqueString, startRow, stopRow, transactionID.getBytes(), caching);
-//	}
-	
-//	public static Scan generateScan(DataValueDescriptor uniqueString, byte[] startRow, byte[] stopRow, byte[] transactionID, int caching) throws StandardException, IOException {
-//		SpliceLogUtils.trace(LOG,"generateRegionScan for uniqueString %s",uniqueString);
-//		Scan scan = new Scan();
-//		scan.setCaching(caching);
-//		scan.setStartRow(startRow);
-//		scan.setStopRow(stopRow);
-//		scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
-//		if (transactionID != null) { //no transaction, no need for isolation level
-//			scan.setAttribute(TxnConstants.TRANSACTION_ID, transactionID);
-//			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
-//					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
-//		}
-//		return scan;
-//	}
-	
-//	public static Scan setupScan(byte[] transactionID,FormatableBitSet scanColumnList, Qualifier[][] qualifier,
-//			DataValueDescriptor[] startKeyValue,
-//			int startSearchOperator,
-//			DataValueDescriptor[] stopKeyValue,
-//			int stopSearchOperator,
-//			boolean[] ascDescInfo) {
-//			SpliceLogUtils.trace(LOG,"setting up scan");
-//			Scan scan = setupScanKeys(transactionID,scanColumnList, qualifier,startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator,ascDescInfo);
-//            SpliceLogUtils.trace(LOG,"Attaching filters to scan");
-////            return scan;
-//			return attachFilterToScan(scan,qualifier,startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator);
-//	}
-	
-//	public static Scan setupScanKeys(byte[] transactionID,FormatableBitSet scanColumnList, Qualifier[][] qualifier,
-//			DataValueDescriptor[] startKeyValue,
-//			int startSearchOperator,
-//			DataValueDescriptor[] stopKeyValue,
-//			int stopSearchOperator,
-//			boolean[] ascDescInfo) {
-//        SpliceLogUtils.trace(LOG,"setupScanKeys");
-//		Scan scan = new Scan();
-//		scan.setCaching(100);
-//		if (transactionID != null) {
-//			scan.setAttribute(TxnConstants.TRANSACTION_ID, transactionID);
-//			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
-//					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
-//		} else {
-//			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
-//					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_COMMITTED.toString()));
-//		}
-//
-//		FormatableBitSet tempScanColumnList = scanColumnList;
-//		if (scanColumnList != null && qualifier != null && qualifier.length > 0) {
-//			for (int and_idx = 0; and_idx < qualifier.length; and_idx++) {
-//				for (int or_idx = 0; or_idx < qualifier[and_idx].length; or_idx++) {
-//					if (!scanColumnList.isSet(qualifier[and_idx][or_idx].getColumnId()))
-//						scanColumnList.set(qualifier[and_idx][or_idx].getColumnId());
-//				}
-//			}
-//		}
-//		if (tempScanColumnList != null) {
-//			for (int i = 0; i < tempScanColumnList.size(); i++) {
-//				if (tempScanColumnList.isSet(i))
-//					scan.addColumn(HBaseConstants.DEFAULT_FAMILY.getBytes(), Integer.toString(i).getBytes());
-//			}
-//		}
-//		try {
-//			boolean generateKey = true;
-//			if (startKeyValue != null && stopKeyValue != null) {
-//				for (int i =0; i<startKeyValue.length; i++) {
-//					if (startKeyValue[i]==null||startKeyValue[i].isNull())
-//						generateKey = false; // DO WE NEED THIS? JL
-//				}
-//			}
-//			if (generateKey) {
-//				boolean[] sortOrder = ascDescInfo;
-//				scan.setStartRow(DerbyBytesUtil.generateScanKeyForIndex(startKeyValue,startSearchOperator,sortOrder));
-//				scan.setStopRow(DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue,stopSearchOperator,sortOrder));
-//				if (scan.getStartRow() != null && scan.getStopRow() != null && Bytes.compareTo(scan.getStartRow(), scan.getStopRow())>=0) {
-//					LOG.warn("Scan begin key is greater than the end key");
-//				}
-//			}
-//            //if we can't fill the start row somehow, assume that it's empty -SF-
-//            if (scan.getStartRow() == null)
-//                scan.setStartRow(HConstants.EMPTY_START_ROW);
-//            if (scan.getStopRow() == null)
-//                scan.setStopRow(HConstants.EMPTY_END_ROW);
-//		} catch (Exception e) {
-//			LOG.error("Exception creating start key",e);
-//			throw new RuntimeException(e);
-//		}
-//		return scan;
-//	}
-	
-//	public static Scan attachFilterToScan(Scan scan, Qualifier[][] qualifier,DataValueDescriptor[] startKeyValue,
-//			int startSearchOperator,
-//			DataValueDescriptor[] stopKeyValue,
-//			int stopSearchOperator)  {
-//            SpliceLogUtils.trace(LOG,"attachFilterToScan");
-//			try {
-//				FilterList masterList = new FilterList(Operator.MUST_PASS_ALL);
-//				if (qualifier != null){
-//                    SpliceLogUtils.trace(LOG,"Attaching qualifier filter to scan");
-//					masterList.addFilter(SpliceUtils.constructFilter(qualifier));
-//                }if (startSearchOperator == 1 && stopSearchOperator == 1
-//                                             && startKeyValue != null
-//                                             && startKeyValue.length == 1
-//                                             &&startKeyValue[0].isNull()){
-//					LOG.info("NOT GENERATING INDEX FILTER. DO A FULL SCAN.......");
-//				} else {
-//                    /*
-//                     * You have to set a start equals filter, otherwise a restricted query won't work
-//                     * correctly--e.g. "select * from table t where t.a = SYS" would pull back
-//                     * t.a = SYS
-//                     * t.a = SYSCAT
-//                     * t.a = SYSTABLE
-//                     * ...
-//                     *
-//                     * when it should really pull back just "t.a = SYS"
-//                     */
-//					if (startKeyValue != null && startSearchOperator >= 0){
-//                        SpliceLogUtils.trace(LOG,"Attaching start index filter to scan. " +
-//                                                 "startSearchOperator=%d,startKeyValue=%s",
-//                                                    startSearchOperator,Arrays.toString(startKeyValue));
-//						masterList.addFilter(SpliceUtils.generateIndexFilter(startKeyValue, Orderable.ORDER_OP_EQUALS));
-//                    }
-////                    if (stopKeyValue != null && stopSearchOperator >= 0){
-////                        SpliceLogUtils.trace(LOG,"Attaching stop index filter to scan. " +
-////                                "stopSearchOperator=%d,stopKeyValue=%s",
-////                                stopSearchOperator,Arrays.toString(stopKeyValue));
-////						masterList.addFilter(SpliceUtils.generateIndexFilter(stopKeyValue,stopSearchOperator));
-////                    }
-//				}
-//			    scan.setFilter(masterList);
-//			} catch (Exception e) {
-//				throw new RuntimeException("error attaching Filter",e);
-//			}
-//			return scan;
-//	}
 
 	public static byte[] getUniqueKey(){
 		return gen.next().toString().getBytes();			

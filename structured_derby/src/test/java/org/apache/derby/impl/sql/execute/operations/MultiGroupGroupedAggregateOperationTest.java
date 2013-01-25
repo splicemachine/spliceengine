@@ -390,37 +390,6 @@ public class MultiGroupGroupedAggregateOperationTest {
         Assert.assertEquals("Not all groups found!", pairStats.size()+unameStats.size()+1,row);
     }
 	
-	private static class Stats {
-		private int count;
-		private int sum;
-		private int max;
-		private int min;
-		
-		public Stats(){
-			this.count = 0;
-			this.sum = 0;
-			this.max = Integer.MIN_VALUE;
-			this.min = Integer.MAX_VALUE;
-		}
-		
-		public int getSum(){ return this.sum;}
-		
-		public int getMax(){ return this.max;}
-		
-		public int getMin(){ return this.min;}
-		
-		public int getAvg(){ return this.sum/this.count;}
-		
-		public void add(int next){
-			this.count++;
-			this.sum+=next;
-			if(next > max)
-				this.max = next;
-			if(next < min)
-				this.min = next;
-		}
-	}
-	
 	private static class Pair {
 		private final String key1;
 		private final String key2;

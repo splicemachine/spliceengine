@@ -40,20 +40,20 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	protected Activation activation; // has to be passed by reference... jl
 	
 	public SpliceOperationRegionScanner(SpliceOperation topOperation,
-                                        SpliceOperationContext context){
+																			SpliceOperationContext context){
 		this.topOperation = topOperation;
 		this.statement = context.getPreparedStatement();
 		try {
-            this.regionScanner = context.getScanner();
+			this.regionScanner = context.getScanner();
 			LanguageConnectionContext lcc = context.getLanguageConnectionContext();
 			SpliceLogUtils.trace(LOG,"lcc=%s",lcc);
 			activation = context.getActivation();//((GenericActivationHolder) statement.getActivation(lcc, false)).ac;
 			topOperation.init(context);
-        }catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        }
-    }
-	
+		}catch (IOException e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG,e);
+		}
+	}
+
 	public SpliceOperationRegionScanner(RegionScanner regionScanner, Scan scan,HRegion region) {
 		SpliceLogUtils.trace(LOG, "instantiated with "+regionScanner+", and scan "+scan);
 		this.regionScanner = regionScanner;
@@ -65,11 +65,11 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			ObjectInputStream ois = new ObjectInputStream(bis);
 			SpliceObserverInstructions soi = (SpliceObserverInstructions) ois.readObject();
 			statement = soi.getStatement();
-			topOperation = soi.getTopOperation();	
+			topOperation = soi.getTopOperation();
 			LanguageConnectionContext lcc = SpliceEngine.getLanguageConnectionContext();
-            SpliceUtils.setThreadContext();
+			SpliceUtils.setThreadContext();
 
-			
+
 			activation = ((GenericActivationHolder) statement.getActivation(lcc, false)).ac;
 			topOperation.init(new SpliceOperationContext(regionScanner,region,scan, activation, statement, lcc));
 			List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
@@ -79,12 +79,12 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
 		}
 	}
-	
+
 	@Override
 	public boolean next(List<KeyValue> results) throws IOException {
 		SpliceLogUtils.trace(LOG, "next ");
 		try {
-			ExecRow nextRow; 
+			ExecRow nextRow;
 			if ( (nextRow = topOperation.getNextRowCore()) != null) {
 				Put put = SpliceUtils.insert(nextRow.getRowArray(), null); //todo -sf- add transaction id
 				Map<byte[],List<KeyValue>> family = put.getFamilyMap();
@@ -98,8 +98,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			SpliceLogUtils.logAndThrowRuntime(LOG,"error during next call: ",e);
 		}
 		return false;
-  	}	
-	
+	}
+
 	@Override
 	public boolean next(List<KeyValue> result, int limit) throws IOException {
 		throw new RuntimeException("Not Implemented");
@@ -107,15 +107,14 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	@Override
 	public void close() throws IOException {
 		SpliceLogUtils.trace(LOG, "close");
-        try {
-            topOperation.close();
-        } catch (StandardException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        }
-        if (regionScanner != null)
-            regionScanner.close();
-        NDC.remove();
-    }
+		try {
+			topOperation.close();
+		} catch (StandardException e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG,e);
+		}
+		if (regionScanner != null)
+			regionScanner.close();
+	}
 	@Override
 	public HRegionInfo getRegionInfo() {
 		SpliceLogUtils.trace(LOG,"getRegionInfo");
