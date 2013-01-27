@@ -28,6 +28,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOp
 import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopLeftOuterJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.NormalizeOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.OnceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
 import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.RowOperation;
@@ -48,6 +49,22 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 		SpliceLogUtils.trace(LOG, "instantiating SpliceGenericResultSetFactory");
 	}
 	
+	
+	
+	@Override
+	public NoPutResultSet getOnceResultSet(NoPutResultSet source,
+			GeneratedMethod emptyRowFun, int cardinalityCheck,
+			int resultSetNumber, int subqueryNumber, int pointOfAttachment,
+			double optimizerEstimatedRowCount, double optimizerEstimatedCost)
+			throws StandardException {
+		SpliceLogUtils.trace(LOG, "getOnceResultSet");
+		return new OnceOperation(source, source.getActivation(), emptyRowFun, cardinalityCheck,
+				resultSetNumber, subqueryNumber, pointOfAttachment,
+				optimizerEstimatedRowCount, optimizerEstimatedCost);
+	}
+
+
+
 	@Override
 	public NoPutResultSet getIndexRowToBaseRowResultSet(long conglomId,
 			int scociItem, NoPutResultSet source,
