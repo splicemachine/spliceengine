@@ -8,7 +8,6 @@ import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
 import java.sql.Time;
 import java.sql.Timestamp;
-
 import com.gotometrics.orderly.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -134,7 +133,7 @@ public class DerbyBytesUtil {
 		    	case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
 		    	case StoredFormatIds.XML_ID: //return new XML();
 		    	case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar(); 
-		    		return getRowKey(descriptor).serialize(descriptor.getString().trim());
+		    		return getRowKey(descriptor).serialize(descriptor.getString());
 		    	case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
 		    	case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit();
 		    	case StoredFormatIds.SQL_BLOB_ID: //return new SQLBlob();
@@ -431,7 +430,7 @@ public class DerbyBytesUtil {
 	    	case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
 	    	case StoredFormatIds.XML_ID: //return new XML();
 	    	case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
-                return new TrimmingRowKey();
+                return new StringRowKey();
 	    	case StoredFormatIds.SQL_DECIMAL_ID:
 	    		return new BigDecimalRowKey();
 	        default:
