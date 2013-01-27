@@ -10,11 +10,13 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -149,6 +151,12 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 		return "RowOp {cachedRow=" + cachedRow + "}";
 	}
 
+	@Override
+	public NoPutResultSet executeScan() {
+		SpliceLogUtils.trace(LOG, "executeScan");
+		return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getExecRowDefinition()));
+	}
+	
 	@Override
 	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow rowTemplate){
 		return RowProviders.singletonProvider(getExecRowDefinition());
