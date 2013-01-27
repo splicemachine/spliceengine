@@ -53,7 +53,10 @@ public class DerbyBytesUtilTest {
 	@Test
 	public void paddingTest() throws Exception {
 		Assert.assertTrue(Bytes.compareTo(generateBytes("John"),
-				generateBytes("John  ")) < 0);		
+				generateBytes("John  ")) < 0);
+		Assert.assertTrue(Bytes.compareTo(generateBytes("John"),
+				generateBytes("  John")) != 0);
+		
 	}
 	
 	@Test
