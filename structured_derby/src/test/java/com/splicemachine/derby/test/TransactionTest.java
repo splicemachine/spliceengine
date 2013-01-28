@@ -338,139 +338,6 @@ public class TransactionTest extends SpliceDerbyTest {
 	}	
 	
 	@Test
-	public void testFailedInsert() throws SQLException {
-		Statement s = null;
-		LOG.info("start testing testFailedInsert for failed transaction");
-		try {
-			conn.setAutoCommit(false);
-			s = conn.createStatement();
-			s.execute("create table locationFailed(num int, addr varchar(50), zip char(5))");	
-			s.execute("insert into locationFailed values(100, '100F: 101 Califronia St', '94114')");
-			s.execute("insert into locationFailed values(200, '200F: 908 Glade Ct.', '94509')");
-			s.execute("insert into locationFailed values(300, '300F: my addr', '34166')");
-			s.execute("insert into locationFailed values(400, '400F: 182 Second St.', '94114')");
-			s.execute("insert into locationFailed(num) values(500c)");
-			s.execute("insert into locationFailed values(600, 'new addr', '34166')");
-			s.execute("insert into locationFailed(num) values(700)");
-			conn.commit();		
-		} catch (SQLException e) {
-			conn.rollback();
-			LOG.info("we should not be able to insert string into int, so rollback the transaction -"+e.getMessage());
-		} catch (Exception e) { 
-			conn.rollback();
-			LOG.info("we should not be able to insert string into int, so rollback the transaction -"+e.getMessage());
-		} finally {
-			try {
-				if (s!=null)
-					s.close();
-				dropTable("locationFailed");
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
-	} 
-	
-	@Test
-	public void testAlterTableAddColumn() throws SQLException {
-		Statement s = null;
-		ResultSet rs = null;
-		LOG.info("start testing testAlterTableAddColumn for success transaction");
-		try {
-			conn.setAutoCommit(false);
-			s = conn.createStatement();
-			s.execute("Alter table locationTran add column salary float default 0.0");	
-			s.execute("update locationTran set salary=1000.0 where zip='94114'");
-			s.execute("update locationTran set salary=5000.85 where zip='94509'");
-			rs = s.executeQuery("select zip, salary from locationTran");
-			while (rs.next()) {
-				LOG.info("zip="+rs.getString(1)+",salary="+rs.getFloat(2));
-			}
-			conn.commit();		
-		} catch (SQLException e) {
-			conn.rollback();
-			LOG.error("error during testAlterTableAddColumn-"+e.getMessage());
-		} catch (Exception e) { 
-			conn.rollback();
-			LOG.error("error during testAlterTableAddColumn-"+e.getMessage());
-		} finally {
-			try {
-				if (rs != null)
-					rs.close();
-				if (s!=null)
-					s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
-	}
-	
-	/*
-	 * From Derby's documentation, we cannot directly alter column's data type except altering the length of
-	 * varch, clob and blob. So the following test case will fail. If we want to alter column data type, we
-	 * have to use a workaround: 
-	 * add new column, 
-	 * copy data from old column to new column, 
-	 * drop old column,
-	 * then rename the new column to old column.
-	 */
-	@Test
-	public void testAlterTableModifyColumn() throws SQLException {
-		Statement s = null;
-		LOG.info("start testing testAlterTableModifyColumn for failed transaction");
-		try {
-			conn.setAutoCommit(false);
-			s = conn.createStatement();
-			s.execute("Alter table locationTran alter column salary set data type int");	
-			conn.commit();	
-			LOG.info("testAlterTableModifyColumn failed: we should not be able to insert float value into int value");
-		} catch (SQLException e) {
-			LOG.info("testAlterTableModifyColumn: Derby does not allow alter column type from float to int");
-			conn.rollback();
-		} catch (Exception e) { 
-			LOG.info("testAlterTableModifyColumn: insert float value into int value-"+e.getMessage());
-			conn.rollback();
-			e.printStackTrace();
-		} finally {
-			try {
-				if (s!=null)
-					s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
-	}
-	
-	@Test
-	public void testAlterTableDropColumn() throws SQLException {
-		Statement s = null;
-		ResultSet rs = null;
-		LOG.info("start testing testAlterTableDropColumn for success transaction");
-		try {
-			conn.setAutoCommit(false);
-			s = conn.createStatement();
-			s.execute("Alter table locationTran drop column salary");	
-			rs = s.executeQuery("select salary from locationTran");
-			Assert.assertTrue(rs==null);
-			conn.commit();		
-		} catch (SQLException e) {
-			LOG.error("error during testAlterTableDropColumn-"+e.getMessage());
-			conn.rollback();
-			e.printStackTrace();
-		} catch (Exception e) { 
-			LOG.error("error during testAlterTableDropColumn-"+e.getMessage());
-			conn.rollback();
-			e.printStackTrace();
-		} finally {
-			try {
-				if (s!=null)
-					s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
-	} 
-
-	@Test
 	public void testTransactionalSelectString() throws SQLException {	
 		Statement s = null;
 		ResultSet rs = null;
@@ -631,9 +498,144 @@ public class TransactionTest extends SpliceDerbyTest {
 		}
 	}
 	
+	
+	@Test
+	public void testFailedInsert() throws SQLException {
+		Statement s = null;
+		LOG.info("start testing testFailedInsert for failed transaction");
+		try {
+			conn.setAutoCommit(false);
+			s = conn.createStatement();
+			s.execute("create table locationFailed(num int, addr varchar(50), zip char(5))");	
+			s.execute("insert into locationFailed values(100, '100F: 101 Califronia St', '94114')");
+			s.execute("insert into locationFailed values(200, '200F: 908 Glade Ct.', '94509')");
+			s.execute("insert into locationFailed values(300, '300F: my addr', '34166')");
+			s.execute("insert into locationFailed values(400, '400F: 182 Second St.', '94114')");
+			s.execute("insert into locationFailed(num) values(500c)");
+			s.execute("insert into locationFailed values(600, 'new addr', '34166')");
+			s.execute("insert into locationFailed(num) values(700)");
+			conn.commit();		
+		} catch (SQLException e) {
+			conn.rollback();
+			LOG.info("we should not be able to insert string into int, so rollback the transaction -"+e.getMessage());
+		} catch (Exception e) { 
+			conn.rollback();
+			LOG.info("we should not be able to insert string into int, so rollback the transaction -"+e.getMessage());
+		} finally {
+			try {
+				if (s!=null)
+					s.close();
+				dropTable("locationFailed");
+			} catch (SQLException e) {
+				//no need to print out
+			}
+		}
+	} 
+	
+	@Test
+	public void testAlterTableAddColumn() throws SQLException {
+		Statement s = null;
+		ResultSet rs = null;
+		LOG.info("start testing testAlterTableAddColumn for success transaction");
+		try {
+			conn.setAutoCommit(false);
+			s = conn.createStatement();
+			s.execute("Alter table locationTran add column salary float default 0.0");	
+			s.execute("update locationTran set salary=1000.0 where zip='94114'");
+			s.execute("update locationTran set salary=5000.85 where zip='94509'");
+			rs = s.executeQuery("select zip, salary from locationTran");
+			while (rs.next()) {
+				LOG.info("zip="+rs.getString(1)+",salary="+rs.getFloat(2));
+			}
+			conn.commit();		
+		} catch (SQLException e) {
+			conn.rollback();
+			LOG.error("error during testAlterTableAddColumn-"+e.getMessage());
+		} catch (Exception e) { 
+			conn.rollback();
+			LOG.error("error during testAlterTableAddColumn-"+e.getMessage());
+		} finally {
+			try {
+				if (rs != null)
+					rs.close();
+				if (s!=null)
+					s.close();
+			} catch (SQLException e) {
+				//no need to print out
+			}
+		}
+	}
+	
+	/*
+	 * From Derby's documentation, we cannot directly alter column's data type except altering the length of
+	 * varch, clob and blob. So the following test case will fail. If we want to alter column data type, we
+	 * have to use a workaround: 
+	 * add new column, 
+	 * copy data from old column to new column, 
+	 * drop old column,
+	 * then rename the new column to old column.
+	 */
+	@Test
+	@Ignore
+	public void testAlterTableModifyColumn() throws SQLException {
+		Statement s = null;
+		LOG.info("start testing testAlterTableModifyColumn for failed transaction");
+		try {
+			conn.setAutoCommit(false);
+			s = conn.createStatement();
+			s.execute("Alter table locationTran alter column salary set data type int");	
+			conn.commit();	
+			LOG.info("testAlterTableModifyColumn failed: we should not be able to insert float value into int value");
+		} catch (SQLException e) {
+			LOG.info("testAlterTableModifyColumn: Derby does not allow alter column type from float to int");
+			//conn.rollback();
+		} catch (Exception e) { 
+			LOG.info("testAlterTableModifyColumn: insert float value into int value-"+e.getMessage());
+			//conn.rollback();
+			//e.printStackTrace();
+		} finally {
+			try {
+				if (s!=null)
+					s.close();
+			} catch (SQLException e) {
+				//no need to print out
+			}
+		}
+	}
+	
+	@Test
+	public void testAlterTableDropColumn() throws SQLException {
+		Statement s = null;
+		ResultSet rs = null;
+		LOG.info("start testing testAlterTableDropColumn for success transaction");
+		try {
+			conn.setAutoCommit(false);
+			s = conn.createStatement();
+			s.execute("Alter table locationTran drop column salary");	
+			rs = s.executeQuery("select salary from locationTran");
+			Assert.assertTrue(rs==null);
+			conn.commit();		
+		} catch (SQLException e) {
+			LOG.error("error during testAlterTableDropColumn-"+e.getMessage());
+			conn.rollback();
+			e.printStackTrace();
+		} catch (Exception e) { 
+			LOG.error("error during testAlterTableDropColumn-"+e.getMessage());
+			conn.rollback();
+			e.printStackTrace();
+		} finally {
+			try {
+				if (s!=null)
+					s.close();
+			} catch (SQLException e) {
+				//no need to print out
+			}
+		}
+	} 
+
 	@AfterClass 
 	public static void shutdown() throws SQLException {
-		dropTable("locationTranRR");
+		//dropTable("locationTranRR");
 		dropTable("locationTran");
 		stopConnection();		
 	}
