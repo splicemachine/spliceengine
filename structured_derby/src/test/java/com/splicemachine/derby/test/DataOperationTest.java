@@ -28,7 +28,7 @@ public class DataOperationTest extends SpliceDerbyTest {
 	public void testCreateAndInsert() throws SQLException {
 		Statement s = null;
 		try {
-			conn.setAutoCommit(false);
+			conn.setAutoCommit(true);
 			s = conn.createStatement();
 			s.execute("create table locationXXX(num int, addr varchar(50), zip char(5))");	
 			s.execute("insert into locationXXX values(100, '100: 101 Califronia St', '94114')");

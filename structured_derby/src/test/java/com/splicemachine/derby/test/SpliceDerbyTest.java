@@ -150,6 +150,7 @@ public class SpliceDerbyTest {
 	protected static void dropTable(String tableName) throws SQLException {	
 		Statement s = null;
 		try {
+			conn.setAutoCommit(true);
 			s = conn.createStatement();
 			s.execute("drop table "+tableName);
 		} catch (SQLException e) {

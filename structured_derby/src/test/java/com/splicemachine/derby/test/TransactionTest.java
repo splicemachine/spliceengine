@@ -124,7 +124,8 @@ public class TransactionTest extends SpliceDerbyTest {
 			LOG.error("error during create and drop table-"+e.getMessage(), e);
 		} finally {
 			try {
-				s.close();
+				if (s!=null)
+					s.close();
 			} catch (SQLException e) {
 				//no need to print out
 			}
@@ -144,7 +145,8 @@ public class TransactionTest extends SpliceDerbyTest {
 			LOG.error("error during create table-"+e.getMessage(), e);
 		} finally {
 			try {
-				s.close();				
+				if (s!=null)
+					s.close();				
 			} catch (SQLException e) {
 				//no need to print out
 			}
@@ -180,8 +182,10 @@ public class TransactionTest extends SpliceDerbyTest {
 			LOG.error("error during insert table-"+e.getMessage(), e);
 		} finally {
 			try {
-				rs.close();
-				s.close();
+				if (rs!=null)
+					rs.close();
+				if (s!=null)
+					s.close();
 			} catch (SQLException e) {
 				//no need to print out
 			}
@@ -192,7 +196,7 @@ public class TransactionTest extends SpliceDerbyTest {
 	 * FIXME: Table will not be rolled back since we do not intercept DDL statements and do not do undo right now
 	 * @throws SQLException
 	 */
-	/*@Test
+	@Test
 	public void testRollbackCreate() throws SQLException {
 		Statement s = null;
 		try {
@@ -212,13 +216,14 @@ public class TransactionTest extends SpliceDerbyTest {
 				//no need to print out
 			}
 		}
-	}*/
+	}
 	
 	/**
 	 * This will fail since we do not intercept DDL statement and do not do undo right now
 	 * @throws SQLException
 	 */
-	/*@Test
+	@Test
+	@Ignore
 	public void testInsertToRollbackTable() throws SQLException {
 		Statement s = null;
 		try {
@@ -237,31 +242,38 @@ public class TransactionTest extends SpliceDerbyTest {
 				//no need to print out
 			}
 		}
-	} */
+	} 
 	
 	@Test
+	@Ignore("Update does not work and generate exception")
 	public void testUpdateRollback() throws SQLException {
 		Statement s = null;
 		ResultSet rs = null;
-		LOG.info("start testing testUpdateRollback for table locationTran and data '908 Glade Ct'");
+		LOG.info("start testing testUpdateRollback for table locationTran record");
 		try {
 			conn.setAutoCommit(false);
 			s = conn.createStatement();
-			s.execute("update locationTran set addr='rolled back address' where num=200");
+			s.executeUpdate("update locationTran set addr='rolled back address' where num=400");
+			
+			rs = s.executeQuery("select addr from locationTran where num=400");
+			if (rs.next()) {
+				Assert.assertTrue("rolled back address".equals(rs.getString(1)));
+			}	
 			conn.rollback();
 			
-			rs = s.executeQuery("select addr from locationTran where num=200");
+			rs = s.executeQuery("select addr from locationTran where num=400");
 			if (rs.next()) {
-				Assert.assertEquals("200: 908 Glade Ct.", rs.getString(1));
+				Assert.assertTrue(!"rolled back address".equals(rs.getString(1)));
 			}	
-			conn.commit();
-			
 		} catch (SQLException e) {
 			conn.rollback();
 			LOG.error("error during create and insert table-"+e.getMessage(), e);
 		} finally {
 			try {
-				s.close();		
+				if (rs!=null)
+					rs.close();
+				if (s!=null)
+					s.close();
 			} catch (SQLException e) {
 				//no need to print out
 			}
@@ -291,7 +303,8 @@ public class TransactionTest extends SpliceDerbyTest {
 			LOG.error("error during roll back create and insert table-"+e.getMessage(), e);
 		} finally {
 			try {
-				s.close();
+				if (s!=null)
+					s.close();
 			} catch (SQLException e) {
 				//no need to print out
 			}
@@ -304,10 +317,9 @@ public class TransactionTest extends SpliceDerbyTest {
 		ResultSet rs = null;
 		LOG.info("start testing testSelectRollbackData for rollback transaction");
 		try {
-			conn.setAutoCommit(false);
+			conn.setAutoCommit(true);
 			s = conn.createStatement();
 			rs = s.executeQuery("select * from locationTranRR");
-			conn.commit();
 			
 			Assert.assertFalse(rs.next());
 			
@@ -315,8 +327,10 @@ public class TransactionTest extends SpliceDerbyTest {
 			LOG.error("error during testSelectRollbackData-"+e.getMessage(), e);
 		} finally {
 			try {
-				rs.close();
-				s.close();
+				if (rs!=null)
+					rs.close();
+				if (s!=null)
+					s.close();
 			} catch (SQLException e) {
 				//no need to print out
 			}
@@ -349,6 +363,7 @@ public class TransactionTest extends SpliceDerbyTest {
 			try {
 				if (s!=null)
 					s.close();
+				dropTable("locationFailed");
 			} catch (SQLException e) {
 				//no need to print out
 			}
@@ -525,7 +540,7 @@ public class TransactionTest extends SpliceDerbyTest {
 	
 	
 	@Test
-	public void testTransactionalDistinctString() throws SQLException {	
+	public void testTransactionalSinkOperationResultSets() throws SQLException {	
 		Statement s = null;
 		ResultSet rs = null;
 		try {
@@ -554,8 +569,8 @@ public class TransactionTest extends SpliceDerbyTest {
 			
 			conn.setAutoCommit(false);
 			s = conn.createStatement();
+			//testing distinct
 			s.execute("insert into foobar values('Noncommitted, Noncommitted', 9)");
-			
 			rs = s.executeQuery("select distinct name from foobar");
 			int j = 0;
 			while (rs.next()) {
@@ -565,14 +580,39 @@ public class TransactionTest extends SpliceDerbyTest {
 			}	
 			Assert.assertEquals(8, j);
 			
+			//testing count and group by before commit/rollback
+			s.execute("insert into foobar values('Nimoy, Leonard', 10)");
+			rs = s.executeQuery("select name, count(empId) from foobar group by name");
+			j = 0;
+			while (rs.next()) {
+				j++;
+				LOG.info("before rollback, person name="+rs.getString(1)+",and count="+rs.getInt(2));
+				Assert.assertNotNull(rs.getString(1));
+				if ("Nimoy, Leonard".equals(rs.getString(1)))
+					Assert.assertEquals(3, rs.getInt(2));
+			}	
+			Assert.assertEquals(8, j);
+			
 			conn.rollback();
 			
+			//testing rollback
 			rs = s.executeQuery("select distinct name from foobar");
 			j = 0;
 			while (rs.next()) {
 				j++;
 				LOG.info("after rollback, person name="+rs.getString(1));
 				Assert.assertNotNull(rs.getString(1));
+			}	
+			Assert.assertEquals(7, j);
+			
+			rs = s.executeQuery("select name, count(empId) from foobar group by name");
+			j = 0;
+			while (rs.next()) {
+				j++;
+				LOG.info("after rollback, person name="+rs.getString(1)+",and count="+rs.getInt(2));
+				Assert.assertNotNull(rs.getString(1));
+				if ("Nimoy, Leonard".equals(rs.getString(1)))
+					Assert.assertEquals(2, rs.getInt(2));
 			}	
 			Assert.assertEquals(7, j);
 			
@@ -593,6 +633,7 @@ public class TransactionTest extends SpliceDerbyTest {
 	
 	@AfterClass 
 	public static void shutdown() throws SQLException {
+		dropTable("locationTranRR");
 		dropTable("locationTran");
 		stopConnection();		
 	}

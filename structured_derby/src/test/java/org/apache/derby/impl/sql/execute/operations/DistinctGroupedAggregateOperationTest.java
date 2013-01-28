@@ -8,7 +8,6 @@ import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.splicemachine.derby.test.SpliceDerbyTest;
@@ -24,26 +23,15 @@ public class DistinctGroupedAggregateOperationTest extends SpliceDerbyTest {
 		Statement  s = null;
 		try {
 			s = conn.createStatement();
-			
-//			s.execute("create table ordersummary (oid int, quantity int, catalog varchar(40), score int, pbrand varchar(40))");
-//			s.execute("insert into ordersummary values(1, 5, 'clothes', 50, 'zara')");
-//			s.execute("insert into ordersummary values(2, 1, 'clothes', 10, 'ann taylor')");
-//			s.execute("insert into ordersummary values(2, 2, 'clothes', 20, 'gabbana')");
-//			s.execute("insert into ordersummary values(2, 1, 'showes', 20, 'zara')");
-//			s.execute("insert into ordersummary values(3, 10, 'showes', 100, 'burberry')");
-//			s.execute("insert into ordersummary values(3, 5, 'clothes', 50, 'gabbana')");
-//			s.execute("insert into ordersummary values(3, 1, 'handbags', 100, 'gabbana')");
-//			s.execute("insert into ordersummary values(3, 1, 'handbags', 100, 'lv')");
-			
-			s.execute("create table ordersummary (oid int, quantity int)");
-			s.execute("insert into ordersummary values(1, 5)");
-			s.execute("insert into ordersummary values(2, 1)");
-			s.execute("insert into ordersummary values(2, 2)");
-			s.execute("insert into ordersummary values(2, 1)");
-			s.execute("insert into ordersummary values(3, 10)");
-			s.execute("insert into ordersummary values(3, 5)");
-			s.execute("insert into ordersummary values(3, 1)");
-			s.execute("insert into ordersummary values(3, 1)");
+			s.execute("create table osDGA (oid int, quantity int)");
+			s.execute("insert into osDGA values(1, 5)");
+			s.execute("insert into osDGA values(2, 1)");
+			s.execute("insert into osDGA values(2, 2)");
+			s.execute("insert into osDGA values(2, 1)");
+			s.execute("insert into osDGA values(3, 10)");
+			s.execute("insert into osDGA values(3, 5)");
+			s.execute("insert into osDGA values(3, 1)");
+			s.execute("insert into osDGA values(3, 1)");
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -58,7 +46,7 @@ public class DistinctGroupedAggregateOperationTest extends SpliceDerbyTest {
 	
 	@AfterClass 
 	public static void shutdown() throws SQLException {
-		dropTable("ordersummary");
+		dropTable("osDGA");
 		stopConnection();		
 	}
 	
@@ -69,7 +57,7 @@ public class DistinctGroupedAggregateOperationTest extends SpliceDerbyTest {
 		ResultSet rs = null;
 		try {
 			s = conn.createStatement();
-			rs = s.executeQuery("select oid, sum(distinct quantity) from ordersummary group by oid");
+			rs = s.executeQuery("select oid, sum(distinct quantity) from osDGA group by oid");
 			int j = 0;
 			while (rs.next()) {
 				LOG.info("oid="+rs.getInt(1)+",sum(distinct quantity)="+rs.getInt(2));

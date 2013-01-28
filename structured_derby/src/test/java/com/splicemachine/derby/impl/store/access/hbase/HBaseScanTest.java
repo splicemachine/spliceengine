@@ -27,14 +27,14 @@ public class HBaseScanTest extends SpliceDerbyTest{
 		Statement s = null;
 		try {
 			s = conn.createStatement();
-			s.execute("create table locationXXX(num int, addr varchar(50), zip char(5))");	
-			s.execute("insert into locationXXX values(100, '100: 101 Califronia St', '94114')");
-			s.execute("insert into locationXXX values(200, '200: 908 Glade Ct.', '94509')");
-			s.execute("insert into locationXXX values(300, '300: my addr', '34166')");
-			s.execute("insert into locationXXX values(400, '400: 182 Second St.', '94114')");
-			s.execute("insert into locationXXX(num) values(500)");
-			s.execute("insert into locationXXX values(600, 'new addr', '34166')");
-			s.execute("insert into locationXXX(num) values(700)");
+			s.execute("create table locationScanTest(num int, addr varchar(50), zip char(5))");	
+			s.execute("insert into locationScanTest values(100, '100: 101 Califronia St', '94114')");
+			s.execute("insert into locationScanTest values(200, '200: 908 Glade Ct.', '94509')");
+			s.execute("insert into locationScanTest values(300, '300: my addr', '34166')");
+			s.execute("insert into locationScanTest values(400, '400: 182 Second St.', '94114')");
+			s.execute("insert into locationScanTest(num) values(500)");
+			s.execute("insert into locationScanTest values(600, 'new addr', '34166')");
+			s.execute("insert into locationScanTest(num) values(700)");
 		} catch (SQLException e) {
 			LOG.error("error during create and insert table-"+e.getMessage(), e);
 		} finally {
@@ -48,83 +48,83 @@ public class HBaseScanTest extends SpliceDerbyTest{
  
 	@Test
 	public void testGreaterEqual() throws SQLException {
-		Assert.assertEquals(6, expectedResultSetCount("select * from locationXXX where num >= 200"));
+		Assert.assertEquals(6, expectedResultSetCount("select * from locationScanTest where num >= 200"));
 	}
 
 	@Test
 	public void testGreater() throws SQLException {
-		Assert.assertEquals(5, expectedResultSetCount("select * from locationXXX where num > 200"));	
+		Assert.assertEquals(5, expectedResultSetCount("select * from locationScanTest where num > 200"));	
 	}
 
 	@Test
 	public void testLessThan() throws SQLException {
-		Assert.assertEquals(1, expectedResultSetCount("select * from locationXXX where num<200"));	
+		Assert.assertEquals(1, expectedResultSetCount("select * from locationScanTest where num<200"));	
 	}
 
 	@Test
 	public void testLessEqual() throws SQLException {	
-		Assert.assertEquals(2, expectedResultSetCount("select * from locationXXX where num<="+200));	
+		Assert.assertEquals(2, expectedResultSetCount("select * from locationScanTest where num<="+200));	
 	}
 
 	@Test
 	public void testNotEqual() throws SQLException {
-		Assert.assertEquals(6, expectedResultSetCount("select * from locationXXX where num!="+200));	
+		Assert.assertEquals(6, expectedResultSetCount("select * from locationScanTest where num!="+200));	
 	}
 
 	@Test
 	public void testIn() throws SQLException {
-		Assert.assertEquals(2, expectedResultSetCount("select * from locationXXX where num in (200, 400)"));	
+		Assert.assertEquals(2, expectedResultSetCount("select * from locationScanTest where num in (200, 400)"));	
 	}
 
 	@Test
 	public void testBetween() throws SQLException {
-		Assert.assertEquals(3, expectedResultSetCount("select * from locationXXX where num between 200 and 400"));	
+		Assert.assertEquals(3, expectedResultSetCount("select * from locationScanTest where num between 200 and 400"));	
 	}
 
 	@Test
 	public void testLeftLike() throws SQLException {
-		Assert.assertEquals(1, expectedResultSetCount("select * from locationXXX where addr LIKE '%Ct.'"));	
+		Assert.assertEquals(1, expectedResultSetCount("select * from locationScanTest where addr LIKE '%Ct.'"));	
 	}
 
 	@Test
 	public void testLike() throws SQLException {
-		Assert.assertEquals(2, expectedResultSetCount("select * from locationXXX where addr LIKE '%St%'"));	
+		Assert.assertEquals(2, expectedResultSetCount("select * from locationScanTest where addr LIKE '%St%'"));	
 	}
 
 	@Test
 	public void testRightLike() throws SQLException {
-		Assert.assertEquals(1, expectedResultSetCount("select * from locationXXX where addr LIKE '200%'"));	
+		Assert.assertEquals(1, expectedResultSetCount("select * from locationScanTest where addr LIKE '200%'"));	
 	}
 
 	@Test
 	public void testSum() throws SQLException {
-		Assert.assertEquals(500l, expectedAggregateCount("select SUM(num) from locationXXX where addr LIKE '%St%'"));
+		Assert.assertEquals(500l, expectedAggregateCount("select SUM(num) from locationScanTest where addr LIKE '%St%'"));
 	}
 
 	@Test
 	public void testNullIssues() throws SQLException {
-		Assert.assertEquals(2, expectedResultSetCount("select * from locationXXX where zip = '34166'"));
+		Assert.assertEquals(2, expectedResultSetCount("select * from locationScanTest where zip = '34166'"));
 	}
 
 
 	@Test
 	public void testIsNull() throws SQLException {
-		Assert.assertEquals(2, expectedResultSetCount("select * from locationXXX where addr IS NULL"));	
+		Assert.assertEquals(2, expectedResultSetCount("select * from locationScanTest where addr IS NULL"));	
 	}
 
 	@Test
 	public void testIsNotNull() throws SQLException {	
-		Assert.assertEquals(5, expectedResultSetCount("select * from locationXXX where addr IS NOT NULL"));	
+		Assert.assertEquals(5, expectedResultSetCount("select * from locationScanTest where addr IS NOT NULL"));	
 	}	
 	
 	@Test
 	public void testOrderBy() throws SQLException {	
-		Assert.assertEquals(7, expectedResultSetCount("select * from locationXXX order by zip"));	
+		Assert.assertEquals(7, expectedResultSetCount("select * from locationScanTest order by zip"));	
 	}	
 	
 	@Test
 	public void testGroupBy() throws SQLException {	
-		Assert.assertEquals(3, expectedResultSetCount("select zip, sum(num) from locationXXX where zip IS NOT NULL group by zip"));	
+		Assert.assertEquals(3, expectedResultSetCount("select zip, sum(num) from locationScanTest where zip IS NOT NULL group by zip"));	
 	}
 	
 	@Test
@@ -275,7 +275,7 @@ public class HBaseScanTest extends SpliceDerbyTest{
 	
 	@AfterClass
 	public static void shutdown() throws SQLException {
-		dropTable("locationXXX");
+		dropTable("locationScanTest");
 		stopConnection();		
 	}
 }
