@@ -86,8 +86,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		this.activation = activation;
 		this.resultSetNumber = resultSetNumber;
 		this.trans = (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
-		SpliceLogUtils.trace(LOG,"before seting active, transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
-				+",transactionId="+transactionID);
+		//SpliceLogUtils.trace(LOG,"before seting active, transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
+		//		+",transactionId="+transactionID);
 		this.transactionID = (trans == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
 		SpliceLogUtils.trace(LOG,"transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
 				+",transactionId="+transactionID);
