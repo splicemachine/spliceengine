@@ -31,12 +31,12 @@ public class ProjectRestrictOperationTest extends SpliceDerbyTest {
 			s.execute("insert into a values('" + i + "','" + "i')");
 		}
 		conn.commit();
+		s.close();
 	}
 	
 	@AfterClass 
 	public static void shutdown() throws SQLException {
-		executeStatement("drop table a");	
-		s.close();
+		dropTable("a");	
 	   stopConnection();		
 	}
 	
@@ -77,10 +77,10 @@ public class ProjectRestrictOperationTest extends SpliceDerbyTest {
 
     @Test
 	public void testResrictWrapperOnTableScan() throws SQLException {			
-		Statement s = null;
 		ResultSet rs = null;
 		try {
-			rs = executeQuery("select * from a where si like '%5%'");
+			s = conn.createStatement();
+			rs = s.executeQuery("select * from a where si like '%5%'");
 			int i = 0;
 			while (rs.next()) {
 				i++;
@@ -90,7 +90,6 @@ public class ProjectRestrictOperationTest extends SpliceDerbyTest {
 			}	
 			Assert.assertEquals(1, i);
 			conn.commit();
-			rs.close();	
 		} catch (SQLException e) {
 			e.printStackTrace();
 			conn.rollback();
@@ -99,6 +98,8 @@ public class ProjectRestrictOperationTest extends SpliceDerbyTest {
 			try {
 				if (rs!=null)
 					rs.close();
+				if (s!=null)
+					s.close();
 			} catch (SQLException e) {
 				//no need to print out
 			}
@@ -107,10 +108,10 @@ public class ProjectRestrictOperationTest extends SpliceDerbyTest {
 	
 	@Test
 	public void testProjectRestrictWrapperOnTableScan() throws SQLException {			
-		Statement s = null;
 		ResultSet rs = null;
 		try {
-			rs = executeQuery("select si || 'Chicken Dumplings' from a where si like '%5%'");
+			s = conn.createStatement();
+			rs = s.executeQuery("select si || 'Chicken Dumplings' from a where si like '%5%'");
 			int i = 0;
 			while (rs.next()) {
 				i++;
@@ -120,7 +121,6 @@ public class ProjectRestrictOperationTest extends SpliceDerbyTest {
 			}	
 			Assert.assertEquals(1, i);
 			conn.commit();
-			rs.close();	
 		} catch (SQLException e) {
 			e.printStackTrace();
 			conn.rollback();
@@ -129,6 +129,8 @@ public class ProjectRestrictOperationTest extends SpliceDerbyTest {
 			try {
 				if (rs!=null)
 					rs.close();
+				if (s!=null)
+					s.close();
 			} catch (SQLException e) {
 				//no need to print out
 			}
