@@ -391,7 +391,7 @@ public class IndexRowToBaseRowOperationTest {
 		String  correctTableName = "SYSSCHEMAS";
 		PreparedStatement ps = rule.prepareStatement("select " +
 																										"t.tablename as table_name,t.schemaid as table_schem," +
-																										"s.schemaid,s.schemaname," +
+																										"s.schemaname," +
 																										"c.columnname as column_name," +
 																										"c.columnnumber as ordinal_position " +
 																								"from " +
@@ -414,17 +414,16 @@ public class IndexRowToBaseRowOperationTest {
 		while(rs.next()){
 			String tableName = rs.getString(1);
 			String tSchemaId = rs.getString(2);
-			String sSchemaId = rs.getString(3);
 			String schemaName = rs.getString(4);
 			String columnName = rs.getString(5);
 
 			Assert.assertEquals("schemaName incorrect!",correctSchemaName,schemaName);
 			Assert.assertEquals("incorrect tableName",correctTableName,tableName);
-			Assert.assertEquals("t.schemaid!=s.schemaid!",tSchemaId,sSchemaId);
+			Assert.assertNotNull("no schema returned!",tSchemaId);
 			Assert.assertNotNull("columnName is null!",columnName);
 
-			results.add(String.format("t.tableName=%s,t.schemaId=%s,s.schemaId=%s,s.schemaName=%s,c.columnName=%s",
-					tableName,tSchemaId,sSchemaId,schemaName,columnName));
+			results.add(String.format("t.tableName=%s,t.schemaId=%s,s.schemaName=%s,c.columnName=%s",
+					tableName,tSchemaId,schemaName,columnName));
 		}
 		for(String result:results){
 			LOG.info(result);

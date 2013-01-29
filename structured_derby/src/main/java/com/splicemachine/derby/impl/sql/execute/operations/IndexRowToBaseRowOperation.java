@@ -259,7 +259,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG,"getNextRowCore");
+		SpliceLogUtils.trace(LOG,"<%s> getNextRowCore",indexName);
 		ExecRow sourceRow;
 		ExecRow retRow;
 		boolean restrict = false;
@@ -267,7 +267,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 		do{
 			sourceRow = source.getNextRowCore();
-			SpliceLogUtils.trace(LOG,"retrieved index row %s",sourceRow);
+			SpliceLogUtils.trace(LOG,"<%s> retrieved index row %s",indexName,sourceRow);
 			if(sourceRow!=null){
 				baseRowLocation = (RowLocation)sourceRow.getColumn(sourceRow.nColumns());
 				Get get =  SpliceUtils.createGet(baseRowLocation, rowArray,
@@ -275,8 +275,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 				boolean rowExists = false;
 				try{
 					Result result = table.get(get);
-					SpliceLogUtils.trace(LOG,"rowArray=%s,accessedHeapCols=%s,heapOnlyCols=%s,baseColumnMap=%s",
-							Arrays.toString(rowArray),accessedHeapCols,heapOnlyCols,Arrays.toString(baseColumnMap));
+					SpliceLogUtils.trace(LOG,"<%s> rowArray=%s,accessedHeapCols=%s,heapOnlyCols=%s,baseColumnMap=%s",
+							indexName,Arrays.toString(rowArray),accessedHeapCols,heapOnlyCols,Arrays.toString(baseColumnMap));
 					rowExists = result!=null;
 					if(rowExists){
 						SpliceUtils.populate(result, compactRow.getRowArray(), accessedHeapCols,baseColumnMap);
@@ -284,19 +284,19 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 				}catch(IOException ioe){
 					SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
 				}
-				SpliceLogUtils.trace(LOG,"rowArray=%s,compactRow=%s",rowArray,compactRow);
+				SpliceLogUtils.trace(LOG,"<%s>,rowArray=%s,compactRow=%s",indexName,rowArray,compactRow);
 				if(rowExists){
 					if(!copiedFromSource){
 						copiedFromSource=true;
 						for(int index=0;index < indexCols.length;index++){
 							if(indexCols[index] != -1) {
-								SpliceLogUtils.trace(LOG,"indexCol overwrite for value " + indexCols[index]);												
+								SpliceLogUtils.trace(LOG,"<%s> indexCol overwrite for value %d" ,indexName,indexCols[index]);
 								compactRow.setColumn(index+1,sourceRow.getColumn(indexCols[index]+1));
 							}
 						}
 					}
 
-					SpliceLogUtils.trace(LOG, "compactRow=%s", compactRow);
+					SpliceLogUtils.trace(LOG, "<%s>compactRow=%s", indexName,compactRow);
 					setCurrentRow(compactRow);
 					currentRowLocation = baseRowLocation;
 
