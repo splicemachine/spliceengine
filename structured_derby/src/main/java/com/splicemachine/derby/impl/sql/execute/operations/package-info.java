@@ -36,8 +36,10 @@
 			UnionResultSet
 			DistinctScalarAggregateResultSet
 			DistinctScanResultSet
-		Working On:
 			DistinctGroupedAggregateResultSet
+		Working On:
+			MiscResultSet
+			NoRowsResultSet
 			
 			
 
