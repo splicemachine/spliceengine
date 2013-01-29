@@ -2,22 +2,17 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.DerbyTestRule;
-import com.splicemachine.derby.test.SpliceDerbyTest;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class ScalarAggregateOperationTest {

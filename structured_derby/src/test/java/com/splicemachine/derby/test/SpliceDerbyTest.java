@@ -97,8 +97,7 @@ public class SpliceDerbyTest {
 		try {
 			conn = DriverManager.getConnection(protocol + dbName + ";create=true", props);
 			System.out.println("Conn: " + conn);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			System.out.println("Exception: " + e + ", conn: " + conn);
 			e.printStackTrace();
 		}
