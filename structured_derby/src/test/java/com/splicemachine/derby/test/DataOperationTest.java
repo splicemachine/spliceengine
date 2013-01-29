@@ -550,6 +550,7 @@ public class DataOperationTest extends SpliceDerbyTest {
 	}	
 
 	@Test
+	@Ignore("Until implemented")
 	public void testDelete() throws SQLException {	
 		LOG.info("start delete test");
 		Statement s = null;
@@ -577,6 +578,7 @@ public class DataOperationTest extends SpliceDerbyTest {
 	}	
 
 	@Test
+	@Ignore("Until implemented")
 	public void testAggregatedDelete() throws SQLException {	
 		LOG.info("start aggregated delete test");
 		Statement s = null;
@@ -604,6 +606,7 @@ public class DataOperationTest extends SpliceDerbyTest {
 	}	
 
 	@Test
+	@Ignore("Until implemented")
 	public void testAggregatedDeleteExt() throws SQLException {	
 		LOG.info("start aggregated delete test");
 		Statement s = null;
