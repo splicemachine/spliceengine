@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -10,6 +11,7 @@ import org.apache.derby.impl.sql.execute.GenericResultSetFactory;
 import org.apache.derby.impl.sql.execute.ScrollInsensitiveResultSet;
 import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.BulkTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DependentOperation;
@@ -24,6 +26,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.HashTableOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeSortJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MergeSortLeftOuterJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MiscOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopLeftOuterJoinOperation;
@@ -33,7 +37,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
 import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.RowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MergeSortLeftOuterJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SortOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.UnionOperation;
@@ -713,5 +716,16 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 				oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
 				optimizerEstimatedCost, userSuppliedOptimizerOverrides);
 	}
+	
+	public ResultSet getDDLResultSet(Activation activation)
+			throws StandardException {
+		SpliceLogUtils.trace(LOG, "getDDLResultSet");
+		return getMiscResultSet(activation);
+	}
 
+	public ResultSet getMiscResultSet(Activation activation)
+			throws StandardException {
+		SpliceLogUtils.trace(LOG, "getMiscResultSet");
+		return new MiscOperation(activation);
+	}
 }
