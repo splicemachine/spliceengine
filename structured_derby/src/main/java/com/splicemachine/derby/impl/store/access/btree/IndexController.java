@@ -1,6 +1,7 @@
 
 package com.splicemachine.derby.impl.store.access.btree;
 
+import com.splicemachine.derby.utils.Puts;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.raw.Transaction;
@@ -34,8 +35,10 @@ public class IndexController  extends SpliceController  {
 		if (LOG.isTraceEnabled())
 			LOG.trace("insert " + row + ", row ");	
 		try {
-			htable.put(SpliceUtils.insert(row,DerbyBytesUtil.generateIndexKey(row,((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo()), 
-					transID));
+			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
+			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
+			htable.put(Puts.buildInsert(rowKey, row, transID));
+//			htable.put(SpliceUtils.insert(row,DerbyBytesUtil.generateIndexKey(row,((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo()),  transID));
 			return 0;
 		} catch (Exception e) {
 			LOG.error(e.getMessage(),e);
@@ -49,7 +52,10 @@ public class IndexController  extends SpliceController  {
 		if (LOG.isTraceEnabled())
 			LOG.trace("insertAndFetchLocation row " + row);	
 		try {
-			Put put = SpliceUtils.insert(row,DerbyBytesUtil.generateIndexKey(row,((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo()), transID);
+			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
+			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
+			Put put = Puts.buildInsert(rowKey,row,transID);
+//			Put put = SpliceUtils.insert(row,DerbyBytesUtil.generateIndexKey(row,((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo()), transID);
 			destRowLocation.setValue(put.getRow());
 			if (LOG.isTraceEnabled())
 				LOG.trace("insertAndFetchLocation returned rowlocation " + destRowLocation.getBytes());	
@@ -66,7 +72,8 @@ public class IndexController  extends SpliceController  {
 		try {
 			boolean[] sortOrder = ((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			if (openSpliceConglomerate.cloneRowTemplate().length == row.length && validColumns == null) {
-				htable.put(SpliceUtils.insert(row, validColumns,DerbyBytesUtil.generateIndexKey(row,sortOrder), transID));
+				htable.put(Puts.buildInsert(DerbyBytesUtil.generateIndexKey(row,sortOrder),row,validColumns,transID));
+//				htable.put(SpliceUtils.insert(row, validColumns,DerbyBytesUtil.generateIndexKey(row,sortOrder), transID));
 			} else {
 				DataValueDescriptor[] oldValues = openSpliceConglomerate.cloneRowTemplate();
 				Get get = SpliceUtils.createGet(loc, oldValues, null, transID);
@@ -76,7 +83,7 @@ public class IndexController  extends SpliceController  {
 					if (validColumns.isSet(i))
 						oldValues[i] = row[i];
 				}
-				htable.put(SpliceUtils.insert(row, validColumns,DerbyBytesUtil.generateIndexKey(row,sortOrder), transID));
+				htable.put(Puts.buildInsert(DerbyBytesUtil.generateIndexKey(row,sortOrder),row,validColumns, transID));
 			}
 			super.delete(loc);
 			return true;			

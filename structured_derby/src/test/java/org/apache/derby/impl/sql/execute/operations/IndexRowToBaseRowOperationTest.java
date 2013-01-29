@@ -122,10 +122,38 @@ public class IndexRowToBaseRowOperationTest {
 				LOG.info(rs.getInt(1));
 			}
 	}
-	
+
+	@Test
+	@Ignore("Test for Bug #209, but delegated to a lower priority fix")
+	public void testScanWithNullQualifier() throws Exception{
+		PreparedStatement ps = rule.prepareStatement("select " +
+																										"s.schemaname " +
+																								 "from " +
+																										"sys.sysschemas s " +
+																								 "where " +
+																										"schemaname is null");
+		ResultSet rs = ps.executeQuery();
+		List<String> rowsReturned = Lists.newArrayList();
+		boolean hasRows = false;
+		while(rs.next()){
+			hasRows = true;
+			rowsReturned.add(String.format("schemaname=%s",rs.getString(1)));
+		}
+		if(hasRows){
+			for(String row:rowsReturned){
+				LOG.info(row);
+			}
+			Assert.fail("rows returned! Expected 0 but was " +rowsReturned.size());
+		}
+	}
     @Test
     public void testProjectRestrictSysSchemas() throws Exception{
-        PreparedStatement stmt = rule.prepareStatement("select s.schemaname,s.schemaid from sys.sysschemas s where schemaname like ? ");
+        PreparedStatement stmt = rule.prepareStatement("select " +
+																													"s.schemaname,s.schemaid " +
+																											 "from " +
+																											 		"sys.sysschemas s " +
+																											 "where " +
+																													"schemaname like ? ");
         stmt.setString(1,"SYS");
         ResultSet rs = stmt.executeQuery();
         List<String> results = Lists.newArrayList();
@@ -241,17 +269,17 @@ public class IndexRowToBaseRowOperationTest {
 		}
 
 	@Test
-	public void testJoinAndSortIndexedRows() throws Exception{
+	public void testJoinSortAndProjectIndexedRows() throws Exception{
 		String correctSchemaName = "SYS";
 		PreparedStatement ps = rule.prepareStatement("select " +
 																										"t.tablename,t.schemaid," +
 																										"s.schemaid,s.schemaname " +
-																								 "from " +
+																				 				 "from " +
 																										"sys.systables t," +
 																										"sys.sysschemas s " +
 																								 "where " +
 																										"s.schemaid = t.schemaid " +
-																										"and s.schemaname = ? " +
+																										"and s.schemaname like ? " +
 																								 "order by " +
 																										"t.tablename");
 		ps.setString(1,correctSchemaName);
@@ -268,7 +296,48 @@ public class IndexRowToBaseRowOperationTest {
 			Assert.assertEquals("schemaName incorrect",correctSchemaName,schemaName);
 
 			String result = String.format("t.tablename=%s,t.schemaid=%s,s.schemaid=%s,s.schemaname=%s",
-																													tableName,tSchemaId,sSchemaId,schemaName);
+					tableName,tSchemaId,sSchemaId,schemaName);
+			correctSort.put(tableName,result);
+			results.add(result);
+		}
+		int pos =0;
+		for(String correctName:correctSort.keySet()){
+			Assert.assertEquals("sort is incorrect!",correctSort.get(correctName),results.get(pos));
+			LOG.info(results.get(pos));
+			pos++;
+		}
+		Assert.assertTrue("no rows returned!",results.size()>0);
+	}
+
+	@Test
+	public void testJoinAndSortIndexedRows() throws Exception{
+		String correctSchemaName = "SYS";
+		PreparedStatement ps = rule.prepareStatement("select " +
+				"t.tablename,t.schemaid," +
+				"s.schemaid,s.schemaname " +
+				"from " +
+				"sys.systables t," +
+				"sys.sysschemas s " +
+				"where " +
+				"s.schemaid = t.schemaid " +
+				"and s.schemaname = ? " +
+				"order by " +
+				"t.tablename");
+		ps.setString(1,correctSchemaName);
+		final Map<String,String> correctSort = Maps.newTreeMap();
+		List<String> results = Lists.newArrayList();
+		ResultSet rs = ps.executeQuery();
+		while(rs.next()){
+			String tableName = rs.getString(1);
+			String tSchemaId = rs.getString(2);
+			String sSchemaId = rs.getString(3);
+			String schemaName = rs.getString(4);
+			Assert.assertNotNull("no table name present!",tableName);
+			Assert.assertEquals("t.schemaId != s.schemaId",tSchemaId,sSchemaId);
+			Assert.assertEquals("schemaName incorrect",correctSchemaName,schemaName);
+
+			String result = String.format("t.tablename=%s,t.schemaid=%s,s.schemaid=%s,s.schemaname=%s",
+					tableName,tSchemaId,sSchemaId,schemaName);
 			correctSort.put(tableName,result);
 			results.add(result);
 		}
@@ -285,13 +354,13 @@ public class IndexRowToBaseRowOperationTest {
 	public void testSortIndexedRows() throws Exception{
 		String correctTableName = "SYSSCHEMAS";
 		PreparedStatement ps = rule.prepareStatement("select " +
-																									"t.tablename,t.schemaid " +
-																									"from " +
-																										"sys.systables t " +
+				"t.tablename,t.schemaid " +
+				"from " +
+				"sys.systables t " +
 //																									"where " +
 //																										"t.tablename = ?" +
-																									"order by " +
-																										"t.tablename");
+				"order by " +
+				"t.tablename");
 
 		final Map<String,String> correctSort = new TreeMap<String,String>();
 //		ps.setString(1,correctTableName);
@@ -321,20 +390,23 @@ public class IndexRowToBaseRowOperationTest {
 		String correctSchemaName = "SYS";
 		String  correctTableName = "SYSSCHEMAS";
 		PreparedStatement ps = rule.prepareStatement("select " +
-																										"t.tablename as table_name,t.schemaid," +
-																							 			"s.schemaid,s.schemaname," +
-																										"c.columnname as column_name " +
-																								 "from " +
+																										"t.tablename as table_name,t.schemaid as table_schem," +
+																										"s.schemaid,s.schemaname," +
+																										"c.columnname as column_name," +
+																										"c.columnnumber as ordinal_position " +
+																								"from " +
 																										"sys.systables t," +
 																										"sys.sysschemas s," +
 																										"sys.syscolumns c " +
-																								 "where " +
+																								"where " +
 																										"s.schemaname like ? " +
 																										"and t.tablename like ? " +
 																										"and c.referenceid = t.tableid " +
 																										"and s.schemaid = t.schemaid " +
-																								 "order by " +
-																										"t.schemaid");
+																								"order by " +
+																										"table_schem," +
+																										"table_name," +
+																										"ordinal_position");
 		ps.setString(1,correctSchemaName);
 		ps.setString(2,correctTableName);
 		ResultSet rs = ps.executeQuery();
@@ -360,86 +432,86 @@ public class IndexRowToBaseRowOperationTest {
 		Assert.assertTrue("no rows returned!",results.size()>0);
 	}
 
-    @Test
-    public void testJoinMultipleIndexTablesWithLikePreparedStatement() throws Exception{
-        String correctSchemaName = "SYS";
-        String  correctTableName = "SYSSCHEMAS";
-        PreparedStatement ps = rule.prepareStatement("select " +
-                                                        "t.tablename as table_name,t.schemaid as table_schem," +
-                                                        "s.schemaid,s.schemaname," +
-                                                        "c.columnname as column_name " +
-                                                    "from " +
-                                                        "sys.systables t," +
-                                                        "sys.sysschemas s," +
-                                                        "sys.syscolumns c " +
-                                                    "where " +
-                                                        "s.schemaname like ? " +
-                                                        "and t.tablename like ? " +
-                                                        "and c.referenceid = t.tableid " +
-																												"and s.schemaid = t.schemaid ");
-        ps.setString(1,correctSchemaName);
-        ps.setString(2,correctTableName);
-        ResultSet rs = ps.executeQuery();
-        List<String> results = Lists.newArrayList();
-        while(rs.next()){
-            String tableName = rs.getString(1);
-            String tSchemaId = rs.getString(2);
-            String sSchemaId = rs.getString(3);
-            String schemaName = rs.getString(4);
-            String columnName = rs.getString(5);
+	@Test
+	public void testJoinMultipleIndexTablesWithLikePreparedStatement() throws Exception{
+		String correctSchemaName = "SYS";
+		String  correctTableName = "SYSSCHEMAS";
+		PreparedStatement ps = rule.prepareStatement("select " +
+																										"t.tablename as table_name,t.schemaid as table_schem," +
+																										"s.schemaid,s.schemaname," +
+																										"c.columnname as column_name " +
+																								"from " +
+																										"sys.systables t," +
+																										"sys.sysschemas s," +
+																										"sys.syscolumns c " +
+																								"where " +
+																										"s.schemaname like ? " +
+																										"and t.tablename like ? " +
+																										"and c.referenceid = t.tableid " +
+																										"and s.schemaid = t.schemaid ");
+		ps.setString(1,correctSchemaName);
+		ps.setString(2,correctTableName);
+		ResultSet rs = ps.executeQuery();
+		List<String> results = Lists.newArrayList();
+		while(rs.next()){
+			String tableName = rs.getString(1);
+			String tSchemaId = rs.getString(2);
+			String sSchemaId = rs.getString(3);
+			String schemaName = rs.getString(4);
+			String columnName = rs.getString(5);
 
-            Assert.assertEquals("schemaName incorrect!",correctSchemaName,schemaName);
-            Assert.assertEquals("incorrect tableName",correctTableName,tableName);
-            Assert.assertEquals("t.schemaid!=s.schemaid!",tSchemaId,sSchemaId);
-            Assert.assertNotNull("columnName is null!",columnName);
+			Assert.assertEquals("schemaName incorrect!",correctSchemaName,schemaName);
+			Assert.assertEquals("incorrect tableName",correctTableName,tableName);
+			Assert.assertEquals("t.schemaid!=s.schemaid!",tSchemaId,sSchemaId);
+			Assert.assertNotNull("columnName is null!",columnName);
 
-            results.add(String.format("t.tableName=%s,t.schemaId=%s,s.schemaId=%s,s.schemaName=%s,c.columnName=%s",
-                     tableName,tSchemaId,sSchemaId,schemaName,columnName));
-        }
-        for(String result:results){
-            LOG.info(result);
-        }
-        Assert.assertTrue("no rows returned!",results.size()>0);
-    }
+			results.add(String.format("t.tableName=%s,t.schemaId=%s,s.schemaId=%s,s.schemaName=%s,c.columnName=%s",
+					tableName,tSchemaId,sSchemaId,schemaName,columnName));
+		}
+		for(String result:results){
+			LOG.info(result);
+		}
+		Assert.assertTrue("no rows returned!",results.size()>0);
+	}
 
-    @Test
-    public void testJoinIndexedTables() throws Exception{
-        ResultSet rs = rule.executeQuery("select t.tablename,t.schemaid,s.schemaid,s.schemaname " +
-                "from sys.systables t inner join sys.sysschemas s on t.schemaid=s.schemaid");
-        List<String> results = Lists.newArrayList();
-        while(rs.next()){
-            String tableName = rs.getString(1);
-            String tSchemaId = rs.getString(2);
-            String sSchemaId = rs.getString(3);
-            String schemaName = rs.getString(4);
+	@Test
+	public void testJoinIndexedTables() throws Exception{
+		ResultSet rs = rule.executeQuery("select t.tablename,t.schemaid,s.schemaid,s.schemaname " +
+				"from sys.systables t inner join sys.sysschemas s on t.schemaid=s.schemaid");
+		List<String> results = Lists.newArrayList();
+		while(rs.next()){
+			String tableName = rs.getString(1);
+			String tSchemaId = rs.getString(2);
+			String sSchemaId = rs.getString(3);
+			String schemaName = rs.getString(4);
 
-            Assert.assertNotNull("tableName is null!",tableName);
-            Assert.assertNotNull("schemaName is null!",schemaName);
-            Assert.assertEquals("t.schemaId!=s.schemaid",sSchemaId,tSchemaId);
-            results.add(String.format("tablename=%s,schemaname=%s,t.schemaid=%s,s.schemaid=%s",
-                                                            tableName,schemaName,tSchemaId,sSchemaId));
-        }
-        for(String result:results){
-            LOG.info(result);
-        }
-    }
+			Assert.assertNotNull("tableName is null!",tableName);
+			Assert.assertNotNull("schemaName is null!",schemaName);
+			Assert.assertEquals("t.schemaId!=s.schemaid",sSchemaId,tSchemaId);
+			results.add(String.format("tablename=%s,schemaname=%s,t.schemaid=%s,s.schemaid=%s",
+					tableName,schemaName,tSchemaId,sSchemaId));
+		}
+		for(String result:results){
+			LOG.info(result);
+		}
+	}
 
-    @Test
-    public void testQuerySpecificSchemaIdPreparedStatement() throws Exception{
-        String schemaId = "80000000-00d2-b38f-4cda-000a0a412c00";
-        PreparedStatement ps = rule.prepareStatement("select s.schemaname,s.schemaid from sys.sysschemas s where s.schemaid =?");
-        ps.setString(1,schemaId);
-        ResultSet rs = ps.executeQuery();
-        int count = 0;
-        while(rs.next()){
-            String schemaName = rs.getString(1);
-            String retSchemaId = rs.getString(2);
-            Assert.assertNotNull("schema name is null!",schemaName);
-            Assert.assertEquals("incorrect schema id returned!",schemaId,retSchemaId);
-            count++;
-        }
-        Assert.assertEquals("Incorrect number of rows returned!",1,count);
-    }
+	@Test
+	public void testQuerySpecificSchemaIdPreparedStatement() throws Exception{
+		String schemaId = "80000000-00d2-b38f-4cda-000a0a412c00";
+		PreparedStatement ps = rule.prepareStatement("select s.schemaname,s.schemaid from sys.sysschemas s where s.schemaid =?");
+		ps.setString(1,schemaId);
+		ResultSet rs = ps.executeQuery();
+		int count = 0;
+		while(rs.next()){
+			String schemaName = rs.getString(1);
+			String retSchemaId = rs.getString(2);
+			Assert.assertNotNull("schema name is null!",schemaName);
+			Assert.assertEquals("incorrect schema id returned!",schemaId,retSchemaId);
+			count++;
+		}
+		Assert.assertEquals("Incorrect number of rows returned!",1,count);
+	}
 
 
 

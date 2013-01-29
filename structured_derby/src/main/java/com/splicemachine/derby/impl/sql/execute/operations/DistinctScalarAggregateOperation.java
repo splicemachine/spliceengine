@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.utils.Puts;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -142,7 +143,8 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
 			byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
 			while((row = source.getNextRowCore())!=null){
 				SpliceLogUtils.trace(LOG, "row="+row);
-				put = SpliceUtils.insert(row.getRowArray(), hasher.generateSortedHashKeyWithPostfix(row.getRowArray(), scannedTableName), null);
+				byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
+				put = Puts.buildInsert(rowKey,row.getRowArray(),null);
 				tempTable.put(put);
 				numSunk++;
 			}

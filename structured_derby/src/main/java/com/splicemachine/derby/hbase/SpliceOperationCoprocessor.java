@@ -64,15 +64,15 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	@Override
 	public long run(GenericStorablePreparedStatement statement, Scan scan, SpliceOperation topOperation) throws IOException,StandardException {
 		SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",statement.toString(),topOperation, scan);
-        HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
-        SpliceLogUtils.trace(LOG,"Creating RegionScanner");
-        LanguageConnectionContext lcc = SpliceEngine.getLanguageConnectionContext();
-        SpliceUtils.setThreadContext();
-        Activation activation = ((GenericActivationHolder)statement.getActivation(lcc,false)).ac;
+		HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
+		SpliceLogUtils.trace(LOG,"Creating RegionScanner");
+		LanguageConnectionContext lcc = SpliceEngine.getLanguageConnectionContext();
+		SpliceUtils.setThreadContext();
+		Activation activation = ((GenericActivationHolder)statement.getActivation(lcc,false)).ac;
 
-        SpliceOperationContext context = new SpliceOperationContext(region,scan, activation, statement,lcc);
+		SpliceOperationContext context = new SpliceOperationContext(region,scan, activation, statement,lcc);
 		SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(topOperation,context);
-        SpliceLogUtils.trace(LOG,"performing sink");
+		SpliceLogUtils.trace(LOG,"performing sink");
 		long out = spliceScanner.sink();
 		SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out);
 		spliceScanner.close();

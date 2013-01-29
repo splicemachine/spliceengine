@@ -92,7 +92,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
 		SpliceLogUtils.trace(LOG,"instantiate with parameters");
 		this.resultRowAllocatorMethodName = resultRowAllocator.getMethodName();
-        this.source = (SpliceOperation) source;
+		this.source = (SpliceOperation) source;
 		this.indexName = indexName;
 		this.forUpdate = forUpdate;
 		this.scociItem = scociItem;
@@ -102,9 +102,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		this.heapOnlyColRefItem = heapOnlyColRefItem;
 		this.indexColMapItem = indexColMapItem;
 		this.restrictionMethodName = restriction==null? null: restriction.getMethodName();
-        init(SpliceOperationContext.newContext(activation));
+		init(SpliceOperationContext.newContext(activation));
 	}
-	
+
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		SpliceLogUtils.trace(LOG,"readExternal");
@@ -114,7 +114,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		heapColRefItem = in.readInt();
 		allColRefItem = in.readInt();
 		heapOnlyColRefItem = in.readInt();
-		indexColMapItem = in.readInt();		
+		indexColMapItem = in.readInt();
 		source = (SpliceOperation) in.readObject();
 		accessedCols = (FormatableBitSet) in.readObject();
 		resultRowAllocatorMethodName = in.readUTF();
@@ -145,19 +145,19 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		super.init(context);
 		source.init(context);
 		try {
-            GenericStorablePreparedStatement statement = context.getPreparedStatement();
+			GenericStorablePreparedStatement statement = context.getPreparedStatement();
 			if(restrictionMethodName !=null){
-                SpliceLogUtils.trace(LOG,"%s:restrictionMethodName=%s",indexName,restrictionMethodName);
+				SpliceLogUtils.trace(LOG,"%s:restrictionMethodName=%s",indexName,restrictionMethodName);
 				restriction = statement.getActivationClass().getMethod(restrictionMethodName);
-            }
+			}
 			GeneratedMethod generatedMethod = statement.getActivationClass().getMethod(resultRowAllocatorMethodName);
 			final GenericPreparedStatement gp = (GenericPreparedStatement)activation.getPreparedStatement();
 			final Object[] saved = gp.getSavedObjects();
 			scoci = (StaticCompiledOpenConglomInfo)saved[scociItem];
 			TransactionController tc = activation.getTransactionController();
 			dcoci = tc.getDynamicCompiledConglomInfo(conglomId);
-			
-            table = SpliceAccessManager.getHTable(conglomId);
+
+			table = SpliceAccessManager.getHTable(conglomId);
 			// the saved objects, if it exists
 			if (heapColRefItem != -1) {
 				this.accessedHeapCols = (FormatableBitSet)saved[heapColRefItem];
@@ -168,12 +168,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 			if(heapOnlyColRefItem!=-1){
 				this.heapOnlyCols = (FormatableBitSet)saved[heapOnlyColRefItem];
 			}
-//            if(accessedAllCols!=null&&accessedHeapCols!=null){
-//                accessFromTableCols = new FormatableBitSet(accessedAllCols);
-//                for(int i= accessedHeapCols.anySetBit();i!=-1;i = accessedHeapCols.anySetBit(i)){
-//                    accessFromTableCols.clear(i);
-//                }
-//            }
 			// retrieve the array of columns coming from the index
 			indexCols = ((ReferencedColumnsDescriptorImpl) saved[indexColMapItem]).getReferencedColumnPositions();			
 			/* Get the result row template */
@@ -277,13 +271,12 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 			if(sourceRow!=null){
 				baseRowLocation = (RowLocation)sourceRow.getColumn(sourceRow.nColumns());
 				Get get =  SpliceUtils.createGet(baseRowLocation, rowArray,
-						heapOnlyCols,
-						Bytes.toBytes(transactionID));
+																				heapOnlyCols, Bytes.toBytes(transactionID));
 				boolean rowExists = false;
 				try{
 					Result result = table.get(get);
 					SpliceLogUtils.trace(LOG,"rowArray=%s,accessedHeapCols=%s,heapOnlyCols=%s,baseColumnMap=%s",
-																		Arrays.toString(rowArray),accessedHeapCols,heapOnlyCols,Arrays.toString(baseColumnMap));
+							Arrays.toString(rowArray),accessedHeapCols,heapOnlyCols,Arrays.toString(baseColumnMap));
 					rowExists = result!=null;
 					if(rowExists){
 						SpliceUtils.populate(result, compactRow.getRowArray(), accessedHeapCols,baseColumnMap);

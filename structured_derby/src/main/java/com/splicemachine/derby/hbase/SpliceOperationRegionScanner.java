@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.utils.Puts;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
@@ -86,7 +87,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		try {
 			ExecRow nextRow;
 			if ( (nextRow = topOperation.getNextRowCore()) != null) {
-				Put put = SpliceUtils.insert(nextRow.getRowArray(), null); //todo -sf- add transaction id
+				Put put = Puts.buildInsert(nextRow.getRowArray(), null); //todo -sf- add transaction id
 				Map<byte[],List<KeyValue>> family = put.getFamilyMap();
 				for(byte[] bytes: family.keySet()){
 					results.addAll(family.get(bytes));

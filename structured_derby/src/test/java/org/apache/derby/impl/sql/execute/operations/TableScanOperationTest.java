@@ -4,6 +4,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
+
+import com.google.common.collect.Lists;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -76,7 +79,26 @@ public class TableScanOperationTest extends SpliceDerbyTest {
 			}
 		}
 	}		
-	
+
+	@Test
+	public void testScanForNullEntries() throws SQLException{
+		ResultSet rs = executeQuery("select si from a where si is null");
+
+		boolean hasRows = false;
+		List<String> results = Lists.newArrayList();
+		while(rs.next()){
+			hasRows=true;
+			results.add(String.format("si=%s",rs.getString(1)));
+		}
+
+		if(hasRows){
+			for(String row:results){
+				LOG.info(row);
+			}
+			Assert.fail("Rows returned! expected 0 but was "+ results.size());
+		}
+	}
+
 	@Test
 	public void testQualifierTableScanPreparedStatement() throws SQLException {
         PreparedStatement stmt = null;

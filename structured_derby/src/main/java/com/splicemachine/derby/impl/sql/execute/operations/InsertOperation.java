@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 
+import com.splicemachine.derby.utils.Puts;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -240,7 +241,7 @@ public class InsertOperation extends SpliceBaseOperation {
 		try {
 			while((nextRow = source.getNextRowCore())!=null){
 				SpliceLogUtils.trace(LOG,"InsertOperation sink, nextRow="+nextRow);
-				htable.put(SpliceUtils.insert(nextRow.getRowArray(), this.transactionID.getBytes())); // Buffered
+				htable.put(Puts.buildInsert(nextRow.getRowArray(), this.transactionID.getBytes())); // Buffered
 				numSunk++;
 			}
 			htable.flushCommits();

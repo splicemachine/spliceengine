@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
@@ -229,11 +230,11 @@ public class HashScanOperation extends ScanOperation {
 				SpliceLogUtils.trace(LOG, "accessedColsToGrab="+accessedCols);				
 				SpliceUtils.populate(result, accessedCols, currentRow.getRowArray());
 				SpliceLogUtils.trace(LOG, "row to hash ="+currentRow+",key="+hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(), scannedTableName));				
-				if (eliminateDuplicates) //need to watch potential key collision 
-					put = SpliceUtils.insert(currentRow.getRowArray(), hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(), scannedTableName), null);
+				if (eliminateDuplicates) //need to watch potential key collision
+					put = Puts.buildInsert(hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),scannedTableName),currentRow.getRowArray(),null);
 				else
-					put = SpliceUtils.insert(currentRow.getRowArray(), hasher.generateSortedHashKey(currentRow.getRowArray()), null);
-				
+					put = Puts.buildInsert(hasher.generateSortedHashKey(currentRow.getRowArray()),currentRow.getRowArray(),null);
+
 				tempTable.put(put);	// TODO Buffer via list or configuration. JL			
 				numSunk++;
 				if (numSunk % 10000 ==0)

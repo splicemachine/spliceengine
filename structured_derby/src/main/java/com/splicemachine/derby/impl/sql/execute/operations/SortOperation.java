@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -199,7 +200,7 @@ public class SortOperation extends SpliceBaseOperation {
 	
 	@Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template){
-		SpliceUtils.setInstructions(reduceScan,getActivation(),top);
+//		SpliceUtils.setInstructions(reduceScan,getActivation(),top);
 		return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
 	}
 
@@ -212,7 +213,7 @@ public class SortOperation extends SpliceBaseOperation {
 		
 		// Get the topmost value, instead of the bottommost, in case it's you
 		SpliceOperation regionOperation = opStack.get(opStack.size()-1); 
-		SpliceLogUtils.trace(LOG,"regionOperation=%s",opStack);
+		SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
 		RowProvider provider;
 		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)){
 			provider = regionOperation.getReduceRowProvider(this,getExecRowDefinition());
@@ -239,9 +240,7 @@ public class SortOperation extends SpliceBaseOperation {
 			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,descColumns,sequence[0]);
 			while((row = getNextRowCore()) != null){
 				SpliceLogUtils.trace(LOG, "row="+row);
-				put = SpliceUtils.insert(row.getRowArray(), 
-									hasher.generateSortedHashKey(row.getRowArray()),
-										null);
+				put = Puts.buildInsert(hasher.generateSortedHashKey(row.getRowArray()),row.getRowArray(),null);
 				tempTable.put(put);
 				numSunk++;
 			}

@@ -6,6 +6,8 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -124,55 +126,76 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowCore");
-		if (nestedLoopIterator == null || !nestedLoopIterator.hasNext()) {
+		if (nestedLoopIterator == null) {
 			if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
 				mergedRow = null;
 				setCurrentRow(mergedRow);
 				return mergedRow;
 			} else {
-				if (nestedLoopIterator != null) 
-					nestedLoopIterator.close(); // Close Prior Connections...
 				nestedLoopIterator = new NestedLoopIterator(leftRow,isHash);
 				return getNextRowCore();
 			}
 		}
-		SpliceLogUtils.trace(LOG, "getNextRowCore loop iterate next ");		
-		return nestedLoopIterator.next();
+		if(!nestedLoopIterator.hasNext()){
+			nestedLoopIterator.close();
+
+			if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
+				mergedRow = null;
+				setCurrentRow(mergedRow);
+				return mergedRow;
+			} else {
+				nestedLoopIterator = new NestedLoopIterator(leftRow,isHash);
+				return getNextRowCore();
+			}
+		}
+
+		SpliceLogUtils.trace(LOG, "getNextRowCore loop iterate next ");
+		ExecRow next = nestedLoopIterator.next();
+		SpliceLogUtils.trace(LOG,"getNextRowCore returning %s",next);
+		setCurrentRow(next);
+//		mergedRow=null;
+		return next;
 	}
+
 	protected class NestedLoopIterator implements Iterator<ExecRow> {
 		protected ExecRow leftRow;
 		protected NoPutResultSet probeResultSet;
+		private boolean populated;
+
 		NestedLoopIterator(ExecRow leftRow, boolean hash) throws StandardException {
 			SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow " + leftRow);
 			this.leftRow = leftRow;
 			if (hash) {
 				SpliceLogUtils.trace(LOG, "Iterator - executeProbeScan on %s",getRightResultSet());
-				probeResultSet = ((SpliceOperation) getRightResultSet()).executeProbeScan();
+				probeResultSet = (getRightResultSet()).executeProbeScan();
 			}
 			else {
 				SpliceLogUtils.trace(LOG, "Iterator - executeScan on %s",getRightResultSet());
-				probeResultSet = ((SpliceOperation) getRightResultSet()).executeScan();				
+				probeResultSet = (getRightResultSet()).executeScan();
 			}
 			probeResultSet.openCore();
+			populated=false;
 		}
 		
 		@Override
 		public boolean hasNext() {
 			SpliceLogUtils.trace(LOG, "hasNext called");
+			if(populated)return true;
 			try {
 				ExecRow rightRow;
 				if ( (rightRow = probeResultSet.getNextRowCore()) != null) {
 					SpliceLogUtils.trace(LOG, "right has result " + rightRow);
-					mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);	
+					mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
 				} else {
 					SpliceLogUtils.trace(LOG, "already has seen row and no right result");
-					close();
+					populated = false;
 					return false;
 				}						
 				if (restriction != null) {
 					DataValueDescriptor restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
 					if ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean()) {
 						SpliceLogUtils.trace(LOG, "restricted row " + mergedRow);
+						populated=false;
 						hasNext();
 					}
 				}
@@ -183,14 +206,17 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				} catch (StandardException e1) {
 					SpliceLogUtils.logAndThrowRuntime(LOG, "close Failed", e1);
 				}
+				populated=false;
 				return false;
 			}
+			populated=true;
 			return true;
 		}
 
 		@Override
 		public ExecRow next() {
 			SpliceLogUtils.trace(LOG, "next row=" + mergedRow);
+			populated=false;
 			return mergedRow;
 		}
 

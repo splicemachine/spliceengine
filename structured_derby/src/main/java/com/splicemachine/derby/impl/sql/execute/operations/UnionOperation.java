@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -376,7 +377,7 @@ public class UnionOperation extends SpliceBaseOperation {
 										 DerbyBytesUtil.generateSortedHashKey(row.getRowArray(), sequence[0], keyColumns, null),
 										 null);
 										 */
-				put = SpliceUtils.insert(row.getRowArray(), DerbyBytesUtil.generatePrefixedRowKey(sequence[0]), null);
+				put = Puts.buildInsert(DerbyBytesUtil.generatePrefixedRowKey(sequence[0]),row.getRowArray(),null);
 				tempTable.put(put);
 				numSunk++;
 			}

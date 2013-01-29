@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
+import com.splicemachine.derby.utils.Puts;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.raw.Transaction;
@@ -30,7 +31,7 @@ public class HBaseController  extends SpliceController {
 		if (LOG.isTraceEnabled())
 			LOG.trace("insert into conglom " + Bytes.toString(this.htable.getTableName()) + " row " + row+", with transID="+transID);	
 		try {
-			htable.put(SpliceUtils.insert(row, transID));
+			htable.put(Puts.buildInsert(row, transID));
 			return 0;
 		} catch (Exception e) {
 			LOG.error(e.getMessage(),e);
@@ -44,7 +45,7 @@ public class HBaseController  extends SpliceController {
 		if (LOG.isTraceEnabled())
 			LOG.trace("insertAndFetchLocation into conglom " + Bytes.toString(this.htable.getTableName()) + " row " + row);	
 		try {
-			Put put = SpliceUtils.insert(row, transID);
+			Put put = Puts.buildInsert(row, transID);
 			destRowLocation.setValue(put.getRow());
 			if (LOG.isTraceEnabled())
 				LOG.trace("insertAndFetchLocation returned rowlocation " + destRowLocation.getBytes());	
@@ -59,7 +60,7 @@ public class HBaseController  extends SpliceController {
 		if (LOG.isTraceEnabled())
 			LOG.trace("replace rowlocation " + loc + ", destRow " + row + ", validColumns " + validColumns);
 		try {
-			htable.put(SpliceUtils.insert(row, validColumns, loc.getBytes(), transID));
+			htable.put(Puts.buildInsert(loc.getBytes(),row, validColumns, transID));
 			return true;			
 		} catch (Exception e) {
 			throw StandardException.newException("Error during replace " + e);

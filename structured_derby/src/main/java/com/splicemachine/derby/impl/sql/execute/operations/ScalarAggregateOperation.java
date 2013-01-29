@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -244,7 +245,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				SpliceLogUtils.trace(LOG,"row=%s, key.length=%d, afterPrefix?%b,beforeEnd?%b",
 														row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
 														Bytes.compareTo(key,reduceScan.getStopRow())<0);
-				put = SpliceUtils.insert(row.getRowArray(), key,Bytes.toBytes(transactionID));
+				put = Puts.buildInsert(key,row.getRowArray(),Bytes.toBytes(transactionID));
+//				put = SpliceUtils.insert(row.getRowArray(), key,Bytes.toBytes(transactionID));
 				SpliceLogUtils.trace(LOG, "put=%s",put);
 				tempTable.put(put);
 			}

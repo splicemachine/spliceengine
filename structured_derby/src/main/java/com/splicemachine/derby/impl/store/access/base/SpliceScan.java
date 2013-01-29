@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -484,7 +485,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		if (LOG.isTraceEnabled())
 			LOG.trace("replace values for these valid Columns " + validColumns);
 		try {
-			table.put(SpliceUtils.update(currentRowLocation, row, validColumns, transID));
+			table.put(Puts.buildUpdate(currentRowLocation, row, validColumns, transID));
 			if (validColumns != null)
 				table.delete(SpliceUtils.cleanupNullsDelete(new HBaseRowLocation(currentResult.getRow()), row, validColumns, transID)); // Might be faster to cycle through the result
 			return true;			

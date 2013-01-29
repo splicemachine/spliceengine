@@ -417,7 +417,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		return scan;
 	}
 	
-	protected ExecRow getCompactRow(LanguageConnectionContext lcc,ExecRow candidate,FormatableBitSet accessedCols,boolean isKeyed) throws StandardException {
+	protected ExecRow getCompactRow(LanguageConnectionContext lcc,
+																	ExecRow candidate,
+																	FormatableBitSet accessedCols,
+																	boolean isKeyed) throws StandardException {
 		int	numCandidateCols = candidate.nColumns();
 		ExecRow compactRow = null;
 		if (accessedCols == null) {
@@ -477,22 +480,22 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	public void init(SpliceOperationContext context){
 		SpliceLogUtils.trace(LOG,"init called");
 		this.activation = context.getActivation();
-        //set the parameter value set back on the activation
-        if(operationParams!=null){
-            try {
-                activation.setParameters(operationParams,context.getPreparedStatement().getParameterTypes());
-            } catch (StandardException e) {
-                SpliceLogUtils.trace(LOG,"Failed to set Parameters on activation",e);
-            }
-        }
-        sequence = new DataValueDescriptor[1];
+		//set the parameter value set back on the activation
+		if(operationParams!=null){
+			try {
+				activation.setParameters(operationParams,context.getPreparedStatement().getParameterTypes());
+			} catch (StandardException e) {
+				SpliceLogUtils.trace(LOG,"Failed to set Parameters on activation",e);
+			}
+		}
+		sequence = new DataValueDescriptor[1];
 		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
-        try {
-            this.regionScanner = context.getScanner();
-        } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to get Scanner",e);
-        }
-    }
+		try {
+			this.regionScanner = context.getScanner();
+		} catch (IOException e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to get Scanner",e);
+		}
+	}
 
 	@Override
 	public String getUniqueSequenceID() {

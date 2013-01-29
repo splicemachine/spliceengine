@@ -347,9 +347,9 @@ public class SpliceUtils {
 		}
 	}
 
-	public static Put insert(DataValueDescriptor[] row, byte[] transID) throws StandardException {
-		return insert(row,gen.next().toString().getBytes(), transID);
-	}
+//	public static Put insert(DataValueDescriptor[] row, byte[] transID) throws StandardException {
+//		return insert(row,gen.next().toString().getBytes(), transID);
+//	}
 
 	/**
 	 * 
@@ -362,107 +362,107 @@ public class SpliceUtils {
 	 * @return
 	 * @throws StandardException
 	 */
-	public static Put insert(DataValueDescriptor[] row, byte[] key, byte[] transID, DataValueDescriptor[] additionalInserts) throws StandardException {
-		Put put = insert(row,key,transID);
-		put = insertAdditional(additionalInserts,put);
-		return put;
-	}
+//	public static Put insert(DataValueDescriptor[] row, byte[] key, byte[] transID, DataValueDescriptor[] additionalInserts) throws StandardException {
+//		Put put = insert(row,key,transID);
+//		put = insertAdditional(additionalInserts,put);
+//		return put;
+//	}
 	
-	public static Put insertAdditional(DataValueDescriptor[] row, Put put) throws StandardException {
-//		DerbyLogUtils.traceDescriptors(LOG, "insert row with key: "+ key +" and row", row);
-		try {
-			for (int i = 0; i < row.length; i++) {
-				if (row[i] != null && !row[i].isNull()) {
-//					SpliceLogUtils.trace(LOG, "insert row type %s, value %s, qualifier %d",row[i].getTypeName(),row[i].getTraceString(),i);
-					put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(-(i+1))).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));
-				} else {
-					SpliceLogUtils.trace(LOG,
-							"skipping row since it was null "+ (row[i]==null? "NULL":row[i].getTypeName()) + 
-							", value "+ (row[i]==null? "NULL" : row[i].getTraceString()));
-				}
-			}
-			return put;
-		}
-		catch (IOException e) {
-			throw new RuntimeException(e.getMessage(), e);
-		}
-	}
+//	public static Put insertAdditional(DataValueDescriptor[] row, Put put) throws StandardException {
+////		DerbyLogUtils.traceDescriptors(LOG, "insert row with key: "+ key +" and row", row);
+//		try {
+//			for (int i = 0; i < row.length; i++) {
+//				if (row[i] != null && !row[i].isNull()) {
+////					SpliceLogUtils.trace(LOG, "insert row type %s, value %s, qualifier %d",row[i].getTypeName(),row[i].getTraceString(),i);
+//					put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(-(i+1))).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));
+//				} else {
+//					SpliceLogUtils.trace(LOG,
+//							"skipping row since it was null "+ (row[i]==null? "NULL":row[i].getTypeName()) +
+//							", value "+ (row[i]==null? "NULL" : row[i].getTraceString()));
+//				}
+//			}
+//			return put;
+//		}
+//		catch (IOException e) {
+//			throw new RuntimeException(e.getMessage(), e);
+//		}
+//	}
 	
-	public static Put insert(DataValueDescriptor[] row, byte[] key, byte[] transID) throws StandardException {
-//		DerbyLogUtils.traceDescriptors(LOG, "insert row with key: "+ key +" and row", row);
-		try {
-			Put put = new Put(key);
-			for (int i = 0; i < row.length; i++) {
-				if (row[i] != null && !row[i].isNull()) {
-//					SpliceLogUtils.trace(LOG, "insert row type %s, value %s, qualifier %d",row[i].getTypeName(),row[i].getTraceString(),i);
-					put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));
-				} else {
-					SpliceLogUtils.trace(LOG,
-							"skipping row since it was null "+ (row[i]==null? "NULL":row[i].getTypeName()) + 
-							", value "+ (row[i]==null? "NULL" : row[i].getTraceString()));
-				}
-
-			}
-			if (transID != null)
-				put.setAttribute(TxnConstants.TRANSACTION_ID, transID);
-			return put;
-		}
-		catch (IOException e) {
-			throw new RuntimeException(e.getMessage(), e);
-		}
-	}
+//	public static Put insert(DataValueDescriptor[] row, byte[] key, byte[] transID) throws StandardException {
+////		DerbyLogUtils.traceDescriptors(LOG, "insert row with key: "+ key +" and row", row);
+//		try {
+//			Put put = new Put(key);
+//			for (int i = 0; i < row.length; i++) {
+//				if (row[i] != null && !row[i].isNull()) {
+////					SpliceLogUtils.trace(LOG, "insert row type %s, value %s, qualifier %d",row[i].getTypeName(),row[i].getTraceString(),i);
+//					put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));
+//				} else {
+//					SpliceLogUtils.trace(LOG,
+//							"skipping row since it was null "+ (row[i]==null? "NULL":row[i].getTypeName()) +
+//							", value "+ (row[i]==null? "NULL" : row[i].getTraceString()));
+//				}
+//
+//			}
+//			if (transID != null)
+//				put.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+//			return put;
+//		}
+//		catch (IOException e) {
+//			throw new RuntimeException(e.getMessage(), e);
+//		}
+//	}
 	
 
-	public static Put insert(DataValueDescriptor[] row, FormatableBitSet validColumns, byte[] transID) throws StandardException {
-		return insert(row,validColumns,gen.next().toString().getBytes(), transID);
-	}
+//	public static Put insert(DataValueDescriptor[] row, FormatableBitSet validColumns, byte[] transID) throws StandardException {
+//		return insert(row,validColumns,gen.next().toString().getBytes(), transID);
+//	}
 
-	public static Put insert(DataValueDescriptor[] row, FormatableBitSet validColumns, byte[] key, byte[] transID) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("insert row " + row + " with key " + key+" with validColumns "+validColumns);
-		try {
-			Put put = new Put(key);
-			int numrows = (validColumns != null ? validColumns.getLength() : row.length);  // bug 118
-			for (int i = 0; i < numrows; i++) { 
-				if ( (validColumns != null && !validColumns.isSet(i)) || row[i] == null || row[i].isNull()) 
-					continue;
+//	public static Put insert(DataValueDescriptor[] row, FormatableBitSet validColumns, byte[] key, byte[] transID) throws StandardException {
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("insert row " + row + " with key " + key+" with validColumns "+validColumns);
+//		try {
+//			Put put = new Put(key);
+//			int numrows = (validColumns != null ? validColumns.getLength() : row.length);  // bug 118
+//			for (int i = 0; i < numrows; i++) {
+//				if ( (validColumns != null && !validColumns.isSet(i)) || row[i] == null || row[i].isNull())
+//					continue;
+//
+//				if (LOG.isTraceEnabled())
+//					LOG.trace("insert row type " + row[i].getTypeName() + ", value " + row[i].getTraceString());
+//				put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));
+//			}
+//			if (transID != null)
+//				put.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+//			return put;
+//		}
+//		catch (IOException e) {
+//			throw new RuntimeException(e.getMessage(), e);
+//		}
+//	}
 
-				if (LOG.isTraceEnabled())
-					LOG.trace("insert row type " + row[i].getTypeName() + ", value " + row[i].getTraceString());
-				put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));			
-			}
-			if (transID != null)
-				put.setAttribute(TxnConstants.TRANSACTION_ID, transID);
-			return put;
-		}
-		catch (IOException e) {
-			throw new RuntimeException(e.getMessage(), e);
-		}
-	}
-
-	public static Put update(RowLocation rowLocation, DataValueDescriptor[] row, FormatableBitSet validColumns, byte[] transID) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("insert row " + rowLocation);
-
-		try {
-			Put put = new Put(rowLocation.getBytes());
-			int numrows = (validColumns != null ? validColumns.getLength() : row.length);  // bug 118
-			for (int i = 0; i < numrows; i++) {
-				if ((validColumns != null && !validColumns.isSet(i)) || row[i] == null || row[i].isNull())
-					continue;
-
-				if (LOG.isTraceEnabled())
-					LOG.trace("update row type " + row[i].getTypeName() + ", value " + row[i].getTraceString());
-				put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));			
-			}
-			if (transID != null)
-				put.setAttribute(TxnConstants.TRANSACTION_ID, transID);
-			return put;
-		}
-		catch (IOException e) {
-			throw new RuntimeException(e.getMessage(), e);
-		}
-	}
+//	public static Put update(RowLocation rowLocation, DataValueDescriptor[] row, FormatableBitSet validColumns, byte[] transID) throws StandardException {
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("insert row " + rowLocation);
+//
+//		try {
+//			Put put = new Put(rowLocation.getBytes());
+//			int numrows = (validColumns != null ? validColumns.getLength() : row.length);  // bug 118
+//			for (int i = 0; i < numrows; i++) {
+//				if ((validColumns != null && !validColumns.isSet(i)) || row[i] == null || row[i].isNull())
+//					continue;
+//
+//				if (LOG.isTraceEnabled())
+//					LOG.trace("update row type " + row[i].getTypeName() + ", value " + row[i].getTraceString());
+//				put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));
+//			}
+//			if (transID != null)
+//				put.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+//			return put;
+//		}
+//		catch (IOException e) {
+//			throw new RuntimeException(e.getMessage(), e);
+//		}
+//	}
 
 	public static boolean update(RowLocation loc, DataValueDescriptor[] row,
 			FormatableBitSet validColumns, HTableInterface htable, byte[] transID) throws StandardException {
@@ -486,15 +486,16 @@ public class SpliceUtils {
 				return false;
 			}
 
-			Put put = new Put(loc.getBytes());
-			for (int i = 0; i < row.length; i++) {
-				if (LOG.isTraceEnabled())
-					LOG.trace("update row type " + row[i].getTypeName() + ", value " + row[i].getTraceString());
-				put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));
-			}
-			
-			if (transID != null)
-				put.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+//			Put put = new Put(loc.getBytes());
+//			for (int i = 0; i < row.length; i++) {
+//				if (LOG.isTraceEnabled())
+//					LOG.trace("update row type " + row[i].getTypeName() + ", value " + row[i].getTraceString());
+//				put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));
+//			}
+//
+//			if (transID != null)
+//				put.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+			Put put = Puts.buildUpdate(loc,row,validColumns,transID);
 			//FIXME: checkAndPut can only do one column at a time, too expensive
 			htable.put(put);
 			return true;
@@ -503,210 +504,6 @@ public class SpliceUtils {
 		} 
 		return false;
 	}
-
-//	public static CompareFilter.CompareOp getHBaseCompareOp(int derbyOperator, boolean negateCompareResult) {
-//		CompareFilter.CompareOp op = null;
-//
-//		if (negateCompareResult) {
-//			switch (derbyOperator)
-//			{
-//			case DataValueDescriptor.ORDER_OP_EQUALS:
-//				op = CompareFilter.CompareOp.NOT_EQUAL;
-//				break;
-//			case DataValueDescriptor.ORDER_OP_LESSTHAN:
-//				op = CompareFilter.CompareOp.GREATER_OR_EQUAL;
-//				break;
-//			case DataValueDescriptor.ORDER_OP_GREATERTHAN:
-//				op = CompareFilter.CompareOp.LESS_OR_EQUAL;
-//				break;
-//			case DataValueDescriptor.ORDER_OP_LESSOREQUALS:
-//				op = CompareFilter.CompareOp.GREATER;
-//				break;
-//			case DataValueDescriptor.ORDER_OP_GREATEROREQUALS:
-//				op = CompareFilter.CompareOp.LESS;
-//				break;
-//			default:
-//				throw new RuntimeException("Derby Operator " + derbyOperator);
-//			}
-//		} else {
-//			switch (derbyOperator)
-//			{
-//			case DataValueDescriptor.ORDER_OP_EQUALS:
-//				op = CompareFilter.CompareOp.EQUAL;
-//				break;
-//			case DataValueDescriptor.ORDER_OP_LESSTHAN:
-//				op = CompareFilter.CompareOp.LESS;
-//				break;
-//			case DataValueDescriptor.ORDER_OP_GREATERTHAN:
-//				op = CompareFilter.CompareOp.GREATER;
-//				break;
-//			case DataValueDescriptor.ORDER_OP_LESSOREQUALS:
-//				op = CompareFilter.CompareOp.LESS_OR_EQUAL;
-//				break;
-//			case DataValueDescriptor.ORDER_OP_GREATEROREQUALS:
-//				op = CompareFilter.CompareOp.GREATER_OR_EQUAL;
-//				break;
-//			default:
-//				throw new RuntimeException("Derby Operator " + derbyOperator);
-//			}
-//		}
-//		return op;
-//	}
-
-//    public static FilterList buildFilter(Qualifier[] qualifiers, Operator operator) throws StandardException, IOException {
-//        FilterList list = new FilterList(operator);
-//        for(Qualifier qualifier:qualifiers){
-//            DataValueDescriptor dvd = qualifier.getOrderable();
-//            if(dvd==null||dvd.isNull()||dvd.isNullOp().getBoolean()){
-//                CompareFilter.CompareOp op = qualifier.negateCompareResult()? CompareFilter.CompareOp.NOT_EQUAL :
-//                                                                                CompareFilter.CompareOp.EQUAL;
-//                list.addFilter(new ColumnNullableFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,
-//                                                        Integer.toString(qualifier.getColumnId()).getBytes(),
-//                                                        op));
-//            }else{
-//                SingleColumnValueFilter filter = new SingleColumnValueFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,
-//                        Integer.toString(qualifier.getColumnId()).getBytes(),
-//                        getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),
-//                        DerbyBytesUtil.generateBytes(dvd));
-//                filter.setFilterIfMissing(true);
-//                list.addFilter(filter);
-//            }
-//        }
-//        return list;
-//    }
-
-//    public static Filter constructFilter(Qualifier[][] qualList) throws StandardException,IOException{
-//        //build and clauses from first row of qualifiers
-//        //SpliceLogUtils.trace(LOG, "constructing filter from qualList %s", SpliceLogUtils.stringify(qualList));
-//        FilterList finalFilter = new FilterList(Operator.MUST_PASS_ALL);
-//
-//        SpliceLogUtils.trace(LOG,"building and filters");
-//        finalFilter.addFilter(buildFilter(qualList[0],Operator.MUST_PASS_ALL));
-//
-//        //build or clauses from the rest
-//        SpliceLogUtils.trace(LOG,"building or filters");
-//        FilterList orList = new FilterList(Operator.MUST_PASS_ALL);
-//        for(int clause=1;clause<qualList.length;clause++){
-//            orList.addFilter(buildFilter(qualList[clause],Operator.MUST_PASS_ONE));
-//        }
-//        finalFilter.addFilter(orList);
-//
-//        return finalFilter;
-//    }
-
-//	public static Filter generateFilter(Qualifier[][] qual_list) throws StandardException, IOException {
-//		SpliceLogUtils.trace(LOG, "generateFilter " + qual_list);
-//		FilterList masterList = new FilterList(Operator.MUST_PASS_ALL);
-//		FilterList andList = new FilterList(Operator.MUST_PASS_ALL);
-//		SpliceLogUtils.trace(LOG, "Generating where clause %d", qual_list[0].length);
-//		for (int i = 0; i < qual_list[0].length; i++) { // AND CLAUSES
-//			Qualifier q = qual_list[0][i];
-//			DataValueDescriptor o = q.getOrderable();
-//			if(o!=null)
-//				SpliceLogUtils.trace(LOG," and column=%d, operator=%s, nullable=%s,q.getOrderable().isNullOp().getBoolean()=%b,q.negateCompareResult()=%b,%s %s",
-//									q.getColumnId(),q.getOperator(),q.getOrderedNulls(),
-//									o.isNullOp().getBoolean(),q.negateCompareResult(),o.getTraceString(),q.getClass());
-//			else
-//				SpliceLogUtils.trace(LOG,"q = %s",q);
-//			if (q.getOrderable()==null||q.getOrderable().isNullOp().getBoolean()) {
-//				SpliceLogUtils.trace(LOG,"orderable is null");
-//				if (q.negateCompareResult()) { //IS NOT NULL
-//					SpliceLogUtils.trace(LOG, "negateCompareResult");
-//					andList.addFilter(new ColumnNullableFilter(
-//							HBaseConstants.DEFAULT_FAMILY.getBytes(),
-//							Integer.toString(q.getColumnId()).getBytes(),
-//							CompareFilter.CompareOp.NOT_EQUAL));
-//				} else { //IS NULL
-//					SpliceLogUtils.trace(LOG, "compareResult");
-//					andList.addFilter(new ColumnNullableFilter(
-//							HBaseConstants.DEFAULT_FAMILY.getBytes(),
-//							Integer.toString(q.getColumnId()).getBytes(),
-//							CompareFilter.CompareOp.EQUAL));
-//				}
-//			} else {
-//				SpliceLogUtils.trace(LOG, "orderable is not null");
-//				SingleColumnValueFilter filter = new SingleColumnValueFilter(
-//						HBaseConstants.DEFAULT_FAMILY.getBytes(),
-//						Integer.toString(q.getColumnId()).getBytes(),
-//						getHBaseCompareOp(q.getOperator(), q.negateCompareResult()),
-//						DerbyBytesUtil.generateBytes(q.getOrderable()));
-//				filter.setFilterIfMissing(true);
-//				andList.addFilter(filter);
-//			}
-//		}
-//		SpliceLogUtils.trace(LOG, "adding and filters");
-//		masterList.addFilter(andList);
-//		FilterList nextMasterList = new FilterList(Operator.MUST_PASS_ALL);
-//		SpliceLogUtils.trace(LOG,"and_idx.length="+qual_list.length);
-//		for (int and_idx = 1; and_idx < qual_list.length; and_idx++) { // OR CLAUSES
-//			SpliceLogUtils.trace(LOG,"or branch");
-//			// loop through each of the "and" clause.
-//			FilterList orList = new FilterList(Operator.MUST_PASS_ONE);
-//
-//			SpliceLogUtils.trace(LOG, "qual_list[and_idx].length=%d",qual_list[and_idx].length);
-//			for (int or_idx = 0; or_idx < qual_list[and_idx].length; or_idx++) {
-//				Qualifier q = qual_list[and_idx][or_idx];
-//				SpliceLogUtils.trace(LOG,"q=%s",q);
-//				if (LOG.isTraceEnabled()&&q.getOrderable()!=null)
-//					LOG.trace(" or column " + q.getColumnId() +" "+ q.getOperator() + q.getOrderable().getTraceString());
-//				else if(LOG.isTraceEnabled())
-//					LOG.trace(" or column " + q.getColumnId() +" "+ q.getOperator());
-//
-//				if (q.getOrderable()==null || q.getOrderable().isNullOp().getBoolean()) {
-//					if (q.negateCompareResult()) { //IS NOT NULL
-//						orList.addFilter(new ColumnNullableFilter(
-//								HBaseConstants.DEFAULT_FAMILY.getBytes(),
-//								Integer.toString(q.getColumnId()).getBytes(),
-//								CompareFilter.CompareOp.NOT_EQUAL));
-//
-//					} else { //IS NULL
-//						orList.addFilter(new ColumnNullableFilter(
-//								HBaseConstants.DEFAULT_FAMILY.getBytes(),
-//								Integer.toString(q.getColumnId()).getBytes(),
-//								CompareFilter.CompareOp.EQUAL));
-//					}
-//				} else {
-//					SingleColumnValueFilter filter2 = new SingleColumnValueFilter(
-//							HBaseConstants.DEFAULT_FAMILY.getBytes(),
-//							Integer.toString(q.getColumnId()).getBytes(),
-//							getHBaseCompareOp(q.getOperator(), q.negateCompareResult()),
-//							DerbyBytesUtil.generateBytes(q.getOrderable()));
-//							filter2.setFilterIfMissing(true);
-//					orList.addFilter(filter2);
-//				}
-//			}
-//			nextMasterList.addFilter(orList);
-//		}
-//		masterList.addFilter(nextMasterList);
-//		return masterList;
-//	}
-
-	/*
-	 * This is a short term workaround
-	 * @param qual_list
-	 * @return
-	 * @throws StandardException
-	 * @throws IOException
-	 */
-//	public static Filter generateIndexFilter(DataValueDescriptor[] dataValueDescriptors, int operator) throws StandardException, IOException {
-//        SpliceLogUtils.trace(LOG,"Generating Index Filters %s with operator %d",Arrays.toString(dataValueDescriptors),operator);
-//		FilterList masterList = new FilterList(Operator.MUST_PASS_ALL);
-//        SpliceLogUtils.trace(LOG,"Generating where clause %d",dataValueDescriptors.length);
-//		for (int i = 0; i < dataValueDescriptors.length; i++) { // AND CLAUSES
-//            DataValueDescriptor dvd = dataValueDescriptors[i];
-//			SpliceLogUtils.trace(LOG,"dvd=%s",dvd);
-//			if (dvd !=null && !dvd.isNull()){
-//				SpliceLogUtils.trace(LOG,"adding filter %s",dvd);
-//				masterList.addFilter(new SingleColumnValueFilter(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-//						(new Integer(i)).toString().getBytes(),
-//						getHBaseCompareOp(operator, false),
-//						DerbyBytesUtil.generateBytes(dataValueDescriptors[i])));
-//				SpliceLogUtils.trace(LOG, "successfully added filter %s",dataValueDescriptors[i].getObject());
-//			}else
-//				SpliceLogUtils.trace(LOG,"skipping dataValueDescriptor %s because object is null",dataValueDescriptors[i]);
-//		}
-//		return masterList;
-//	}
 
 	public static String generateQuorum() {
 		LOG.info("generateQuorum");
@@ -719,7 +516,7 @@ public class SpliceUtils {
 			sb.append(port);
 			sb.append(",");
 		}
-		sb.delete(sb.length() - 1, sb.length());	
+		sb.delete(sb.length() - 1, sb.length());
 		return sb.toString();
 	}
 
@@ -742,12 +539,12 @@ public class SpliceUtils {
 		return (Long) null;
 	}
 
-    public static void splitConglomerate(long conglomId) throws IOException, InterruptedException {
-        HBaseAdmin admin = new HBaseAdmin(config);
+	public static void splitConglomerate(long conglomId) throws IOException, InterruptedException {
+		HBaseAdmin admin = new HBaseAdmin(config);
 
-        byte[] name = SpliceAccessManager.getHTable(conglomId).getTableName();
-        admin.split(name);
-    }
+		byte[] name = SpliceAccessManager.getHTable(conglomId).getTableName();
+		admin.split(name);
+	}
 
 	/**
 	 * Synchronously splits a Conglomerate around the specified position.

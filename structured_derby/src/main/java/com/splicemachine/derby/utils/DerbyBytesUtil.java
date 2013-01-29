@@ -212,25 +212,6 @@ public class DerbyBytesUtil {
 		return builder.toRowKey().serialize(values);
 	}
 
-	public static byte[] generateRegionHashKey(long regionId, DataValueDescriptor uniqueString) throws IOException {
-		SpliceLogUtils.trace(LOG,"generateRegionHashKey for regionId %d and uniqueString %s",regionId,uniqueString);
-		
-		StructBuilder builder = new StructBuilder();
-		RowKey rowKey = getRowKey(uniqueString);
-		builder.add(rowKey);
-		rowKey = new LongRowKey();
-		rowKey.setOrder(Order.ASCENDING);
-		builder.add(rowKey);
-		try {
-			Object[] values = new Object[]{uniqueString.getObject(),new Long(regionId)};
-			return builder.toRowKey().serialize(values);
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrow(LOG, new IOException(e));
-			return null; //never happen
-		}
-	}
-	
-	
 	public static byte[] generateSortedHashKey(DataValueDescriptor[] descriptors, 
 											 DataValueDescriptor uniqueString, 
 											 int[] hash_keys, 
@@ -430,7 +411,7 @@ public class DerbyBytesUtil {
 	    	case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
 	    	case StoredFormatIds.XML_ID: //return new XML();
 	    	case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
-                return new StringRowKey();
+                return new NullRemovingRowKey();
 	    	case StoredFormatIds.SQL_DECIMAL_ID:
 	    		return new BigDecimalRowKey();
 	        default:
@@ -441,7 +422,7 @@ public class DerbyBytesUtil {
     /**
      * String RowKey which trims off extraneous whitespace and empty characters before serializing.
      */
-    private static class TrimmingRowKey extends UTF8RowKey {
+    private static class NullRemovingRowKey extends UTF8RowKey {
 
         @Override public Class<?> getSerializedClass() { return String.class; }
 
@@ -452,7 +433,7 @@ public class DerbyBytesUtil {
 
         private Object toUTF8(Object o) {
             if(o==null|| o instanceof byte[]) return o;
-            return Bytes.toBytes(o.toString().trim());
+            return Bytes.toBytes(o.toString().replaceAll("\u0000",""));
         }
 
         @Override

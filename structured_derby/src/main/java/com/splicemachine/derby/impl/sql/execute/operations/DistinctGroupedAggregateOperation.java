@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.splicemachine.derby.utils.Puts;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -84,7 +85,9 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 			byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
 			while((row = source.getNextRowCore())!=null){
 				SpliceLogUtils.trace(LOG, "row="+row);
-				put = SpliceUtils.insert(row.getRowArray(), hasher.generateSortedHashKeyWithPostfix(row.getRowArray(), scannedTableName), null);
+				byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
+				put = Puts.buildInsert(rowKey,row.getRowArray(),null);
+//				put = SpliceUtils.insert(row.getRowArray(), hasher.generateSortedHashKeyWithPostfix(row.getRowArray(), scannedTableName), null);
 				tempTable.put(put);
 				numSunk++;
 			}

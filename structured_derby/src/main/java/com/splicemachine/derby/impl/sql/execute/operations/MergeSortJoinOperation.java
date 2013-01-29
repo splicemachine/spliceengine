@@ -10,10 +10,7 @@ import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.JoinSideExecRow;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
@@ -278,7 +275,8 @@ public class MergeSortJoinOperation extends JoinOperation {
 			}			
 			while ((row = resultSet.getNextRowCore())!=null){
 			SpliceLogUtils.trace(LOG, "sinking row %s",row);
-				put = SpliceUtils.insert(row.getRowArray(), hasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors), null, additionalDescriptors);
+				byte[] rowKey = hasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors);
+				put = Puts.buildInsert(rowKey, row.getRowArray(),null, null, additionalDescriptors);
 				put.setWriteToWAL(false); // Seeing if this speeds stuff up a bit...
 				tempTable.put(put);
 				numSunk++;

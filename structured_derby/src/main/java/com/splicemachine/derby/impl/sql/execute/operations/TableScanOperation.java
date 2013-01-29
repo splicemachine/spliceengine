@@ -25,64 +25,65 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public class TableScanOperation extends ScanOperation {
-    /*
-     * Don't forget to change this every time you make a change that could affect serialization
-     * and/or major class behavior!
-     */
-    private static final long serialVersionUID = 1l;
+	/*
+	 * Don't forget to change this every time you make a change that could affect serialization
+	 * and/or major class behavior!
+	 */
+	private static final long serialVersionUID = 2l;
 
 	private static Logger LOG = Logger.getLogger(TableScanOperation.class);
 	protected String mapTableName;
-	protected static List<NodeType> nodeTypes; 
+	protected static List<NodeType> nodeTypes;
 	protected int indexColItem;
 	protected int[] indexCols;
 	protected String indexName;
 	static {
-		nodeTypes = new ArrayList<NodeType>();
-		nodeTypes.add(NodeType.MAP);
-		nodeTypes.add(NodeType.SCAN);		
+		nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN);
 	}
-	
+
 	public TableScanOperation() {
 		super();
 	}
-	 
+
 	public  TableScanOperation(long conglomId,
-		StaticCompiledOpenConglomInfo scoci, 
-		Activation activation, 
-		GeneratedMethod resultRowAllocator, 
-		int resultSetNumber,
-		GeneratedMethod startKeyGetter, int startSearchOperator,
-		GeneratedMethod stopKeyGetter, int stopSearchOperator,
-		boolean sameStartStopPosition,
-		String qualifiersField,
-		String tableName,
-		String userSuppliedOptimizerOverrides,
-		String indexName,
-		boolean isConstraint,
-		boolean forUpdate,
-		int colRefItem,
-		int indexColItem,
-		int lockMode,
-		boolean tableLocked,
-		int isolationLevel,
-		int rowsPerRead,
-		boolean oneRowScan,
-		double optimizerEstimatedRowCount,
-		double optimizerEstimatedCost) throws StandardException {
-        	super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,sameStartStopPosition,qualifiersField,
-        			resultRowAllocator,lockMode,tableLocked,isolationLevel,colRefItem,optimizerEstimatedRowCount,optimizerEstimatedCost);			
-        	SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",tableName,indexName,conglomId);
-            this.mapTableName = Long.toString(conglomId);
-            this.indexColItem = indexColItem;
-            this.indexName = indexName;
-            init(SpliceOperationContext.newContext(activation));
+														 StaticCompiledOpenConglomInfo scoci,
+														 Activation activation,
+														 GeneratedMethod resultRowAllocator,
+														 int resultSetNumber,
+														 GeneratedMethod startKeyGetter, int startSearchOperator,
+														 GeneratedMethod stopKeyGetter, int stopSearchOperator,
+														 boolean sameStartStopPosition,
+														 String qualifiersField,
+														 String tableName,
+														 String userSuppliedOptimizerOverrides,
+														 String indexName,
+														 boolean isConstraint,
+														 boolean forUpdate,
+														 int colRefItem,
+														 int indexColItem,
+														 int lockMode,
+														 boolean tableLocked,
+														 int isolationLevel,
+														 int rowsPerRead,
+														 boolean oneRowScan,
+														 double optimizerEstimatedRowCount,
+														 double optimizerEstimatedCost) throws StandardException {
+		super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
+				sameStartStopPosition,qualifiersField, resultRowAllocator,lockMode,tableLocked,isolationLevel,
+				colRefItem,optimizerEstimatedRowCount,optimizerEstimatedCost);
+		SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
+																																								tableName,indexName,conglomId);
+		this.mapTableName = Long.toString(conglomId);
+		this.indexColItem = indexColItem;
+		this.indexName = indexName;
+		init(SpliceOperationContext.newContext(activation));
 	}
-	
+
 	@Override
 	public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
 		SpliceLogUtils.trace(LOG,"readExternal");
@@ -103,17 +104,8 @@ public class TableScanOperation extends ScanOperation {
 	public void init(SpliceOperationContext context){
 		SpliceLogUtils.trace(LOG,"init called for tableName %s",mapTableName);
 		super.init(context);
-		try {
-            GenericStorablePreparedStatement statement = context.getPreparedStatement();
-            LanguageConnectionContext lcc = context.getLanguageConnectionContext();
-			GeneratedMethod generatedMethod = statement.getActivationClass().getMethod(resultRowAllocatorMethodName);
-			ExecRow candidate = (ExecRow) generatedMethod.invoke(activation);
-			currentRow = getCompactRow(lcc, candidate, accessedCols, isKeyed);
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
-		}
-
-    }
+		SpliceLogUtils.trace(LOG,"<%s> indexCols=%s",conglomId, Arrays.toString(indexCols));
+	}
 
 	@Override
 	public List<SpliceOperation> getSubOperations() {
@@ -134,11 +126,6 @@ public class TableScanOperation extends ScanOperation {
 		return nodeTypes;
 	}
 
-	public List<SpliceOperation> getOperations() {
-		SpliceLogUtils.trace(LOG,"getOperations");
-		return new ArrayList<SpliceOperation>();
-	}
-	
 	@Override
 	public void cleanup() {
 		SpliceLogUtils.trace(LOG,"cleanup");
@@ -161,14 +148,16 @@ public class TableScanOperation extends ScanOperation {
 				currentRow = null;
 				currentRowLocation = null;
 			} else {
-				SpliceLogUtils.trace(LOG,"<%s> populating data",mapTableName);
+				SpliceLogUtils.trace(LOG,"<%s> populating data with result %s",mapTableName,keyValues);
 				Result result = new Result(keyValues);
 				SpliceUtils.populate(result, currentRow.getRowArray(), accessedCols,baseColumnMap);
 				currentRowLocation = new HBaseRowLocation(result.getRow());
-				SpliceLogUtils.trace(LOG, "<%s> getNextRowCore with keyValues %s and currentRow %s",mapTableName,keyValues,currentRow);
+				SpliceLogUtils.trace(LOG, "<%s> getNextRowCore with keyValues %s and currentRow %s",
+																																			mapTableName,keyValues,currentRow);
 			}
 		} catch (Exception e) {
-			SpliceLogUtils.logAndThrow(LOG, mapTableName+":Error during getNextRowCore", StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
+			SpliceLogUtils.logAndThrow(LOG, mapTableName+":Error during getNextRowCore",
+																				StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
 		}
 		setCurrentRow(currentRow);
 		SpliceLogUtils.trace(LOG,"<%s> emitting %s",mapTableName,currentRow);

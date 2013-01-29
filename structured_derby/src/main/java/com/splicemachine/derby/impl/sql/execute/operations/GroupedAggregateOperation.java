@@ -10,7 +10,7 @@ import java.util.List;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
-import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -33,9 +33,6 @@ import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.DerbyLogUtils;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class GroupedAggregateOperation extends GenericAggregateOperation {	
@@ -180,7 +177,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
 			while((row = doAggregation(false)) != null){
 				SpliceLogUtils.trace(LOG, "sinking row %s",row);
-				put = SpliceUtils.insert(row.getRowArray(), hasher.generateSortedHashKey(row.getRowArray()), null);
+				put = Puts.buildInsert(hasher.generateSortedHashKey(row.getRowArray()),row.getRowArray(),null);
 				tempTable.put(put);
 				numSunk++;
 			}

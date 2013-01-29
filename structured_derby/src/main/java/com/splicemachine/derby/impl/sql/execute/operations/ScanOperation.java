@@ -29,11 +29,12 @@ import java.io.ObjectOutput;
 
 public abstract class ScanOperation extends SpliceBaseOperation implements CursorResultSet{
 	private static Logger LOG = Logger.getLogger(ScanOperation.class);
-    protected int lockMode;
-    protected int isolationLevel;
-    protected ExecRow candidate;
-    protected FormatableBitSet accessedCols;
-    protected String resultRowAllocatorMethodName;
+	private static long serialVersionUID=5l;
+	protected int lockMode;
+	protected int isolationLevel;
+	protected ExecRow candidate;
+	protected FormatableBitSet accessedCols;
+	protected String resultRowAllocatorMethodName;
 	protected String scanQualifiersField;
 	protected int startSearchOperator;
 	protected int stopSearchOperator;
@@ -42,33 +43,36 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	protected boolean sameStartStopPosition;
 	protected Qualifier[][] scanQualifiers;
 	protected ExecIndexRow stopPosition;
-    protected ExecIndexRow startPosition;
-    protected SpliceConglomerate conglomerate;
-    protected long conglomId;
-    protected boolean isKeyed;
-    private GeneratedMethod startKeyGetter;
-    private GeneratedMethod stopKeyGetter;
+	protected ExecIndexRow startPosition;
+	protected SpliceConglomerate conglomerate;
+	protected long conglomId;
+	protected boolean isKeyed;
+	private GeneratedMethod startKeyGetter;
+	private GeneratedMethod stopKeyGetter;
+
+	private int colRefItem;
+	protected GeneratedMethod resultRowAllocator;
 
 
-    public ScanOperation () {
-    	super();
-    }
+	public ScanOperation () {
+		super();
+	}
+
 	public ScanOperation (long conglomId, Activation activation, int resultSetNumber,
-			GeneratedMethod startKeyGetter, int startSearchOperator,
-			GeneratedMethod stopKeyGetter, int stopSearchOperator,
-			boolean sameStartStopPosition,
-			String scanQualifiersField,
-            GeneratedMethod resultRowAllocator,
-            int lockMode, boolean tableLocked, int isolationLevel,
-            int colRefItem,
-            double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost) throws StandardException {
+												GeneratedMethod startKeyGetter, int startSearchOperator,
+												GeneratedMethod stopKeyGetter, int stopSearchOperator,
+												boolean sameStartStopPosition,
+												String scanQualifiersField,
+												GeneratedMethod resultRowAllocator,
+												int lockMode, boolean tableLocked, int isolationLevel,
+												int colRefItem,
+												double optimizerEstimatedRowCount,
+												double optimizerEstimatedCost) throws StandardException {
 		super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
 		this.lockMode = lockMode;
 		this.isolationLevel = isolationLevel;
 		this.resultRowAllocatorMethodName = resultRowAllocator.getMethodName();
-        this.candidate = (ExecRow) resultRowAllocator.invoke(activation);
-        this.accessedCols = colRefItem != -1 ? (FormatableBitSet)(activation.getPreparedStatement().getSavedObject(colRefItem)) : null; 
+		this.colRefItem = colRefItem;
 		this.scanQualifiersField = scanQualifiersField;
 		this.startKeyGetterMethodName = (startKeyGetter!= null) ? startKeyGetter.getMethodName() : null;
 		this.stopKeyGetterMethodName = (stopKeyGetter!= null) ? stopKeyGetter.getMethodName() : null;
@@ -79,15 +83,12 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		this.stopKeyGetterMethodName = (stopKeyGetter!= null) ? stopKeyGetter.getMethodName() : null;
 		this.sameStartStopPosition = sameStartStopPosition;
 		this.conglomId = conglomId;
-        this.conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(conglomId);
-        this.isKeyed = conglomerate.getTypeFormatId() == IndexConglomerate.FORMAT_NUMBER;
 	}
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		SpliceLogUtils.trace(LOG, "readExternal");
 		super.readExternal(in);
-		accessedCols = (FormatableBitSet) in.readObject();
 		lockMode = in.readInt();
 		isolationLevel = in.readInt();
 		resultRowAllocatorMethodName = in.readUTF();
@@ -97,15 +98,14 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		stopSearchOperator = in.readInt();
 		startSearchOperator = in.readInt();
 		sameStartStopPosition = in.readBoolean();
-		conglomerate = (SpliceConglomerate) in.readObject();
-		isKeyed = in.readBoolean();
+		conglomId = in.readLong();
+		colRefItem = in.readInt();
 	}
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
 		SpliceLogUtils.trace(LOG, "writeExternal");
 		super.writeExternal(out);
-		out.writeObject(accessedCols);
 		out.writeInt(lockMode);
 		out.writeInt(isolationLevel);
 		out.writeUTF(resultRowAllocatorMethodName);
@@ -115,31 +115,38 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		out.writeInt(stopSearchOperator);
 		out.writeInt(startSearchOperator);
 		out.writeBoolean(sameStartStopPosition);
-		out.writeObject(conglomerate);
-		out.writeBoolean(isKeyed);
+		out.writeLong(conglomId);
+		out.writeInt(colRefItem);
 	}
 	
 	@Override
 	public void init(SpliceOperationContext context){
 		SpliceLogUtils.trace(LOG, "init called");
 		super.init(context);
+		GenericStorablePreparedStatement statement = context.getPreparedStatement();
+		this.accessedCols = colRefItem != -1 ? (FormatableBitSet)(statement.getSavedObject(colRefItem)) : null;
+		SpliceLogUtils.trace(LOG,"<%d> colRefItem=%d,accessedCols=%s",conglomId,colRefItem,accessedCols);
 		try {
-            GenericStorablePreparedStatement statement = context.getPreparedStatement();
-		    if (startKeyGetterMethodName != null) {
-		    	startKeyGetter = statement.getActivationClass().getMethod(startKeyGetterMethodName);
-//				startPosition = (ExecIndexRow) startKeyGetter.invoke(activation);
-//				if (sameStartStopPosition)
-//					stopPosition = startPosition;
+			resultRowAllocator = statement.getActivationClass()
+																									.getMethod(resultRowAllocatorMethodName);
+			this.conglomerate = (SpliceConglomerate)
+														((SpliceTransactionManager) activation.getTransactionController())
+																																	.findConglomerate(conglomId);
+			this.isKeyed = conglomerate.getTypeFormatId() == IndexConglomerate.FORMAT_NUMBER;
+			if (startKeyGetterMethodName != null) {
+				startKeyGetter = statement.getActivationClass().getMethod(startKeyGetterMethodName);
 			}
 			if (stopKeyGetterMethodName != null) {
 				stopKeyGetter = statement.getActivationClass().getMethod(stopKeyGetterMethodName);
-//				stopPosition = (ExecIndexRow) stopKeyGetter.invoke(activation);
 			}
+			candidate = (ExecRow) resultRowAllocator.invoke(activation);
+			currentRow = getCompactRow(context.getLanguageConnectionContext(), candidate,
+																																					accessedCols, isKeyed);
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
-		} 
+		}
 	}
-	
+
 	@Override
 	public NoPutResultSet executeScan() {
 		SpliceLogUtils.trace(LOG, "executeScan");
@@ -181,19 +188,15 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 			return Scans.setupScan(startPosition==null?null:startPosition.getRowArray(),startSearchOperator,
 					stopPosition==null?null:stopPosition.getRowArray(),stopSearchOperator,
 					scanQualifiers,conglomerate.getAscDescInfo(),accessedCols,Bytes.toBytes(transactionID));
-//					return SpliceUtils.setupScan(Bytes.toBytes(transactionID),accessedCols,scanQualifiers,
-//	                startPosition==null? null: startPosition.getRowArray(), startSearchOperator,
-//	                stopPosition==null? null: stopPosition.getRowArray(),stopSearchOperator,
-//	                conglomerate.getAscDescInfo());
-        } catch (NoSuchFieldException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        } catch (IllegalAccessException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        } catch (StandardException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        } catch (IOException e) {
-					SpliceLogUtils.logAndThrowRuntime(LOG,e);
-				}
-			return null;
-    }
+		} catch (NoSuchFieldException e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG,e);
+		} catch (IllegalAccessException e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG,e);
+		} catch (StandardException e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG,e);
+		} catch (IOException e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG,e);
+		}
+		return null;
+	}
 }
