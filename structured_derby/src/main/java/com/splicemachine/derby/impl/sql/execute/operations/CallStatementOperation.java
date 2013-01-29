@@ -8,10 +8,10 @@ import org.apache.derby.iapi.jdbc.ConnectionContext;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 
-class CallStatementOperation extends NoRowsResultSetOperation {
+public class CallStatementOperation extends NoRowsResultSetOperation {
 	private final GeneratedMethod methodCall;
 
-	CallStatementOperation(GeneratedMethod methodCall,Activation a) {
+	public CallStatementOperation(GeneratedMethod methodCall,Activation a) {
 		super(a);
 		this.methodCall = methodCall;
 	}
