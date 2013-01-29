@@ -1,20 +1,18 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Properties;
+
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.cache.ClassSize;
 import org.apache.derby.iapi.services.io.ArrayInputStream;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.FormatIdUtil;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.Storable;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
-import org.apache.derby.impl.store.access.conglomerate.OpenConglomerateScratchSpace;
-import org.apache.derby.iapi.store.access.conglomerate.ScanManager;
-import org.apache.derby.iapi.store.access.conglomerate.TransactionManager;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.store.access.ConglomerateController;
 import org.apache.derby.iapi.store.access.DynamicCompiledOpenConglomInfo;
@@ -24,19 +22,24 @@ import org.apache.derby.iapi.store.access.RowUtil;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.store.access.StoreCostController;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.store.raw.ContainerKey;
+import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
+import org.apache.derby.iapi.store.access.conglomerate.ScanManager;
+import org.apache.derby.iapi.store.access.conglomerate.TransactionManager;
 import org.apache.derby.iapi.store.raw.ContainerHandle;
+import org.apache.derby.iapi.store.raw.ContainerKey;
 import org.apache.derby.iapi.store.raw.LockingPolicy;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.services.cache.ClassSize;
-import com.splicemachine.derby.utils.SpliceUtils;
+import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
+import org.apache.derby.impl.store.access.conglomerate.OpenConglomerateScratchSpace;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
-import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.log4j.Logger;
+import com.splicemachine.derby.utils.SpliceUtils;
 
 /**
  * A hbase object corresponds to an instance of a hbase conglomerate.  
@@ -94,10 +97,11 @@ public class HBaseConglomerate extends SpliceConglomerate {
 			Storable template_column, int collation_id) throws StandardException
     {
     	if (LOG.isTraceEnabled())
-    		LOG.trace("addColumn column_id " + column_id + ", template_column " + template_column);
+    		LOG.trace("addColumn column_id=" + column_id + ", template_column=" + template_column+", table name="+getContainerid());
     	
     	HTableInterface htable = null;
 		try {
+			htable = SpliceAccessManager.getHTable(getContainerid());
 			int[] old_format_ids = format_ids;
             format_ids = new int[old_format_ids.length + 1];
             System.arraycopy(old_format_ids, 0, format_ids, 0, old_format_ids.length);
