@@ -2,10 +2,10 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.DerbyTestRule;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.junit.*;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Types;

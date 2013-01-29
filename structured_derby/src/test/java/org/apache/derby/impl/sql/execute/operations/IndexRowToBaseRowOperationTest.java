@@ -389,41 +389,51 @@ public class IndexRowToBaseRowOperationTest {
 	public void testJoinMultipleIndexTablesWithLikeAndSortPreparedStatement() throws Exception{
 		String correctSchemaName = "SYS";
 		String  correctTableName = "SYSSCHEMAS";
+//		String correctColumnName = "AUTHORIZATIONID";
 		PreparedStatement ps = rule.prepareStatement("select " +
-																										"t.tablename as table_name,t.schemaid as table_schem," +
-																										"s.schemaname," +
+																										"cast ('' as varchar(128)) as table_cat," +
+																										"s.schemaname as table_schem," +
+																										"t.tablename as table_name," +
 																										"c.columnname as column_name," +
+																										"t.schemaid," +
 																										"c.columnnumber as ordinal_position " +
 																								"from " +
-																										"sys.systables t," +
 																										"sys.sysschemas s," +
+																										"sys.systables t," +
 																										"sys.syscolumns c " +
 																								"where " +
-																										"s.schemaname like ? " +
-																										"and t.tablename like ? " +
-																										"and c.referenceid = t.tableid " +
+																										"c.referenceid = t.tableid " +
 																										"and s.schemaid = t.schemaid " +
+																										"and ((1=1) or ? is not null) " +
+																										"and s.schemaname like ? " +
+																										"and t.tablename like ? " +
+																										"and c.columnname like ? " +
 																								"order by " +
 																										"table_schem," +
 																										"table_name," +
 																										"ordinal_position");
-		ps.setString(1,correctSchemaName);
-		ps.setString(2,correctTableName);
+		ps.setString(1,"%");
+		ps.setString(2,correctSchemaName);
+		ps.setString(3,correctTableName);
+		ps.setString(4,"%%");
 		ResultSet rs = ps.executeQuery();
 		List<String> results = Lists.newArrayList();
 		while(rs.next()){
-			String tableName = rs.getString(1);
-			String tSchemaId = rs.getString(2);
-			String schemaName = rs.getString(4);
-			String columnName = rs.getString(5);
+			rs.getString(1);
+			String schemaName = rs.getString(2);
+			String tableName = rs.getString(3);
+			String columnName = rs.getString(4);
+			String tSchemaId = rs.getString(5);
+			Integer columnNumber = rs.getInt(6);
 
 			Assert.assertEquals("schemaName incorrect!",correctSchemaName,schemaName);
 			Assert.assertEquals("incorrect tableName",correctTableName,tableName);
 			Assert.assertNotNull("no schema returned!",tSchemaId);
-			Assert.assertNotNull("columnName is null!",columnName);
+			Assert.assertNotNull("no columnName!",columnName);
+			Assert.assertNotNull("no columnNumber!",columnNumber);
 
-			results.add(String.format("t.tableName=%s,t.schemaId=%s,s.schemaName=%s,c.columnName=%s",
-					tableName,tSchemaId,schemaName,columnName));
+			results.add(String.format("t.tableName=%s,t.schemaId=%s,s.schemaName=%s,c.columnName=%s,c.columnNumber=%d",
+					tableName,tSchemaId,schemaName,columnName,columnNumber));
 		}
 		for(String result:results){
 			LOG.info(result);

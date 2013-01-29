@@ -14,6 +14,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.Row;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.sql.GenericActivationHolder;
@@ -66,12 +67,21 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			ObjectInputStream ois = new ObjectInputStream(bis);
 			SpliceObserverInstructions soi = (SpliceObserverInstructions) ois.readObject();
 			statement = soi.getStatement();
+			ExecRow[] currentRows = soi.getCurrentRows();
 			topOperation = soi.getTopOperation();
 			LanguageConnectionContext lcc = SpliceEngine.getLanguageConnectionContext();
 			SpliceUtils.setThreadContext();
 
 
 			activation = ((GenericActivationHolder) statement.getActivation(lcc, false)).ac;
+			if(currentRows!=null){
+				for(int i=0;i<currentRows.length;i++){
+					ExecRow row = currentRows[i];
+					if(row!=null){
+						activation.setCurrentRow(row,i);
+					}
+				}
+			}
 			topOperation.init(new SpliceOperationContext(regionScanner,region,scan, activation, statement, lcc));
 			List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
 			topOperation.generateLeftOperationStack(opStack);

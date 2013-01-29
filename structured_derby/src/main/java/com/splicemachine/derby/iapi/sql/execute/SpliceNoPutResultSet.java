@@ -8,6 +8,7 @@ import java.sql.Timestamp;
 
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
@@ -389,16 +390,8 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	
 	private static RowProvider buildRowProvider(String table,Scan scan, Activation activation,
 			SpliceOperation topOperation,ExecRow execRow) {
-		SpliceObserverInstructions instructions = 
-				new SpliceObserverInstructions((GenericStorablePreparedStatement) activation.getPreparedStatement(),topOperation);
-		try {
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			ObjectOutputStream oos = new ObjectOutputStream(out);
-			oos.writeObject(instructions);
-			scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS, out.toByteArray());
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Error Creating SpliceNoPutResultSet: "+e.getMessage(),e);
-		}
+		byte[] instructions = SpliceUtils.generateInstructions(activation,topOperation);
+		scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,instructions);
 		return new ClientScanProvider(Bytes.toBytes(table),scan,execRow,null);
 	}
 }

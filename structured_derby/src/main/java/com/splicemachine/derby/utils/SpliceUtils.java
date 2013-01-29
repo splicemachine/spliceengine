@@ -1,17 +1,15 @@
 package com.splicemachine.derby.utils;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.io.*;
+import java.util.*;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecIndexRow;
+import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.derby.iapi.store.raw.ContainerKey;
 import org.apache.derby.iapi.store.raw.Transaction;
@@ -178,7 +176,7 @@ public class SpliceUtils {
 
 
 	public static void createHTable(long tableName, Conglomerate conglomerate) {	
-		createHTable(Long.toString(tableName),SpliceUtils.toJSON(conglomerate));
+		createHTable(Long.toString(tableName), SpliceUtils.toJSON(conglomerate));
 	}
 
 	public static void createHTable(String tableName, String conglomerateJSON) {	
@@ -759,30 +757,63 @@ public class SpliceUtils {
 	}
 
 	public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation) {
-		SpliceObserverInstructions instructions = new SpliceObserverInstructions((GenericStorablePreparedStatement) activation.getPreparedStatement(),topOperation);
+		/*
+		 * Serialize out any non-null result rows that are currently stored in the activation.
+		 *
+		 * This is necessary if you are pushing out a set of Operation to a Table inside of a Sink.
+		 */
+		int rowPos=1;
+		Map<Integer,ExecRow> rowMap = new HashMap<Integer,ExecRow>();
+		boolean shouldContinue=true;
+		while(shouldContinue){
+			try{
+				ExecRow row = (ExecRow)activation.getCurrentRow(rowPos);
+				if(row!=null){
+					rowMap.put(rowPos,row);
+				}
+				rowPos++;
+			}catch(IndexOutOfBoundsException ie){
+				//we've reached the end of the row group in activation, so stop
+				shouldContinue=false;
+			}
+		}
+		ExecRow[] currentRows = new ExecRow[rowPos];
+		for(Integer rowPosition:rowMap.keySet()){
+			ExecRow row = new SerializingExecRow(rowMap.get(rowPosition));
+			if(row instanceof ExecIndexRow)
+				currentRows[rowPosition] = new SerializingIndexRow(row);
+			else
+				currentRows[rowPosition] =  row;
+		}
+		SpliceLogUtils.trace(LOG,"serializing current rows: %s", Arrays.toString(currentRows));
+
+		SpliceObserverInstructions instructions = new SpliceObserverInstructions(
+																								(GenericStorablePreparedStatement) activation.getPreparedStatement(),
+																								currentRows,
+																								topOperation);
 		try {
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			ObjectOutputStream oos = new ObjectOutputStream(out);
 			oos.writeObject(instructions);
-            oos.flush();
-            oos.close();
+			oos.flush();
+			oos.close();
 			return out.toByteArray();
 		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Error creating SpliceNoPutResultSet "+e.getMessage(),e);
+			SpliceLogUtils.logAndThrowRuntime(LOG, "Error generating Splice instructions:"+e.getMessage(),e);
 			return null;
 		}
 	}
-	
+
 	public static void setInstructions(Scan scan, Activation activation, SpliceOperation topOperation){
 		scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(activation,topOperation));
 	}
 
+	public static void setThreadContext(){
+		SpliceLogUtils.trace(LOG,"addThreadContext");
+		ContextService contextService = new ContextService();
+		ContextManager mgr = contextService.newContextManager();
+		mgr.pushContext(SpliceEngine.getLanguageConnectionContext());
+		contextService.setCurrentContextManager(mgr);
+	}
 
-    public static void setThreadContext(){
-       SpliceLogUtils.trace(LOG,"addThreadContext");
-        ContextService contextService = new ContextService();
-        ContextManager mgr = contextService.newContextManager();
-        mgr.pushContext(SpliceEngine.getLanguageConnectionContext());
-        contextService.setCurrentContextManager(mgr);
-    }
 }

@@ -32,11 +32,13 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Maps between an Index Table and a data Table.
+ */
 public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements CursorResultSet{
 
 	private static Logger LOG = Logger.getLogger(IndexRowToBaseRowOperation.class);
@@ -213,8 +215,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	@Override
 	public NoPutResultSet executeScan() {
 		SpliceLogUtils.trace(LOG,"executeScan");
-		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
-		this.generateLeftOperationStack(operationStack);
+		final List<SpliceOperation> operationStack = getOperationStack();
 		SpliceLogUtils.trace(LOG,"operationStack=%s",operationStack);
 		SpliceOperation regionOperation = operationStack.get(0);
 		SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);

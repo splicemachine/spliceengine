@@ -229,7 +229,7 @@ public class DerbyTestRule extends TestWatchman{
 		while(count < position){
 			Result next = scanner.next();
 			if(next==null){
-				SpliceLogUtils.warn(LOG,"unable to split table %s at position %d, there are not enough rows",tableName,position);
+//				SpliceLogUtils.warn(LOG,"unable to split table %s at position %d, there are not enough rows",tableName,position);
 				break;
 			}else{
 				result = next;
