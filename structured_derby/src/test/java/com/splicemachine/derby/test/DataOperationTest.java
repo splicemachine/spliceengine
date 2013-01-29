@@ -272,7 +272,7 @@ public class DataOperationTest extends SpliceDerbyTest {
 
 	@Test
 	public void testSingleLike() throws SQLException {
-		LOG.info("start LEFT LIKE test");
+		LOG.info("start SINGLE LIKE test");
 		int count = 0;
 		Statement s = null;
 		ResultSet result = null;
