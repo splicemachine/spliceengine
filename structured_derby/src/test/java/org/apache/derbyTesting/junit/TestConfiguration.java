@@ -20,25 +20,29 @@
 package org.apache.derbyTesting.junit;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.PrintWriter;
-import java.security.*;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Properties;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Properties;
 
 import junit.extensions.TestSetup;
 import junit.framework.Assert;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+
+import org.junit.Ignore;
 
 /**
  * Class which holds information about the configuration of a Test.
@@ -60,6 +64,7 @@ import junit.framework.TestSuite;
  * removed by <code>DropDatabaseSetup</code>.
  *
  */
+@Ignore
 public final class TestConfiguration {
     /**
      * Default values for configurations

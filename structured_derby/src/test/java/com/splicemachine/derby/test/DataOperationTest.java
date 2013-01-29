@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -519,6 +520,7 @@ public class DataOperationTest extends SpliceDerbyTest {
 	}	
 
 	@Test
+	@Ignore("UpdateResultSet needs to be implemented")
 	public void testUpdate() throws SQLException {	
 		LOG.info("start Update test");
 		int count = 0;
@@ -580,7 +582,7 @@ public class DataOperationTest extends SpliceDerbyTest {
 		Statement s = null;
 		ResultSet result = null;
 		try {
-			conn.createStatement();
+			s = conn.createStatement();
 			s.executeUpdate("delete from locationXXX where num>=600");
 			result = s.executeQuery("select * from locationXXX where num>=600");
 			boolean hasResult = result.next();

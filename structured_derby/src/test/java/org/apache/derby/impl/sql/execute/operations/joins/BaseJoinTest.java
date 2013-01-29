@@ -1,9 +1,13 @@
 package org.apache.derby.impl.sql.execute.operations.joins;
 
 import java.sql.PreparedStatement;
+
+import org.junit.Ignore;
+
 import com.splicemachine.derby.test.DerbyTestRule;
 import com.splicemachine.derby.test.SpliceDerbyTest;
 
+@Ignore
 public class BaseJoinTest extends SpliceDerbyTest{
 
 	public static void createData(DerbyTestRule rule) throws Exception {

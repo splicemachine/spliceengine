@@ -2,20 +2,21 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.DerbyTestRule;
-import com.splicemachine.derby.test.SpliceDerbyTest;
 import com.splicemachine.utils.SpliceLogUtils;
-
-import org.apache.log4j.Logger;
-import org.junit.*;
 
 /**
  * Tests aggregations around single-group entries.
@@ -131,29 +132,4 @@ public class SingleGroupGroupedAggregateOperationTest {
 			}
 			Assert.assertEquals("Not all groups found!", unameStats.size(),row);
 	}
-	
-	@Test
-	public void testAllGroupedOperations() throws Exception{
-			ResultSet rs =rule.executeQuery("select username,sum(i),avg(i),min(i),max(i) from t group by username");
-			int row =0;
-			while(rs.next()){
-				String uname = rs.getString(1);
-				int sum = rs.getInt(2);
-				int avg = rs.getInt(3);
-				int min = rs.getInt(4);
-				int max = rs.getInt(5);
-				SpliceLogUtils.info(LOG,"uname=%s,sum=%d,avg=%d,min=%d,max=%d",uname,sum,avg,min,max);
-				int correctSum = unameStats.get(uname).getSum();
-				int correctAvg = unameStats.get(uname).getAvg();
-				int correctMax = unameStats.get(uname).getMax();
-				int correctMin = unameStats.get(uname).getMin();
-				Assert.assertEquals("Incorrect sum for uname "+ uname,correctSum,sum);
-				Assert.assertEquals("Incorrect avg for uname "+ uname,correctAvg,avg);
-				Assert.assertEquals("Incorrect max for uname "+ uname,correctMax,max);
-				Assert.assertEquals("Incorrect min for uname "+ uname,correctMin,min);
-				row++;
-			}
-			Assert.assertEquals("Not all groups found!", unameStats.size(),row);
-	}
-
 }

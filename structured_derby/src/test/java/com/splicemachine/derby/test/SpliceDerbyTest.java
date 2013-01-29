@@ -8,14 +8,18 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.junit.Ignore;
+
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
+@Ignore
 public class SpliceDerbyTest {
 	private static final Logger LOG = Logger.getLogger(SpliceDerbyTest.class);
     protected static String framework = "embedded";
@@ -91,10 +95,8 @@ public class SpliceDerbyTest {
 	public static void startConnection() throws SQLException {
 		loadDriver();
 		try {
-        conn = DriverManager.getConnection(protocol + dbName
-                + ";create=true", props);
-        //conn.setAutoCommit(false);	
-        System.out.println("Conn: " + conn);
+			conn = DriverManager.getConnection(protocol + dbName + ";create=true", props);
+			System.out.println("Conn: " + conn);
 		}
 		catch (Exception e) {
 			System.out.println("Exception: " + e + ", conn: " + conn);
