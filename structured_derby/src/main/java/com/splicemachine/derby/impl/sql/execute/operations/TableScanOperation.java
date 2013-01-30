@@ -104,7 +104,6 @@ public class TableScanOperation extends ScanOperation {
 	public void init(SpliceOperationContext context){
 		SpliceLogUtils.trace(LOG,"init called for tableName %s",mapTableName);
 		super.init(context);
-		SpliceLogUtils.trace(LOG,"<%s> indexCols=%s",conglomId, Arrays.toString(indexCols));
 	}
 
 	@Override

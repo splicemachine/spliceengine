@@ -181,10 +181,18 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		public boolean hasNext() {
 			SpliceLogUtils.trace(LOG, "hasNext called");
 			if(populated)return true;
+			rightResultSet.clearCurrentRow();
 			try {
 				ExecRow rightRow;
 				if ( (rightRow = probeResultSet.getNextRowCore()) != null) {
 					SpliceLogUtils.trace(LOG, "right has result " + rightRow);
+					/*
+					 * the right result set's row might be used in other branches up the stack which
+					 * occur under serialization, so the activation has to be sure and set the current row
+					 * on rightResultSet, or that row won't be serialized over, potentially breaking ProjectRestricts
+					 * up the stack.
+					 */
+					rightResultSet.setCurrentRow(rightRow); //set this here for serialization up the stack
 					mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
 				} else {
 					SpliceLogUtils.trace(LOG, "already has seen row and no right result");

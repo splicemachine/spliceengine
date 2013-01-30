@@ -71,7 +71,25 @@ public class ProjectRestrictOperationTest extends SpliceDerbyTest {
 			} catch (SQLException e) {
 				//no need to print out
 			}
+		}
+	}
 
+	@Test
+	public void testRestrictOnAnythingTableScan() throws SQLException{
+		ResultSet rs = null;
+		try{
+			rs = executeQuery("select * from a where si like '%'");
+			int count=0;
+			while(rs.next()){
+				Assert.assertNotNull("a.si is null!",rs.getString(1));
+				Assert.assertNotNull("b.si is null!",rs.getString(2));
+				LOG.info("a.si="+rs.getString(1)+",b.si="+rs.getString(2));
+				count++;
+			}
+			Assert.assertEquals("Incorrect number of rows returned!",10,count);
+		}finally{
+			if(rs!=null)
+				rs.close();
 		}
 	}
 

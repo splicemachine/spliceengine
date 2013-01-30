@@ -48,29 +48,29 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	public ProjectRestrictOperation() {
 		super();
 	}
-	
+
 	public ProjectRestrictOperation(NoPutResultSet source,
-			Activation activation,
-			GeneratedMethod restriction,
-			GeneratedMethod projection,
-			int resultSetNumber,
-			GeneratedMethod cr,
-			int mapRefItem,
-            int cloneMapItem,
-			boolean reuseResult,
-			boolean doesProjection,
-		    double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost) throws StandardException {
-				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-    			this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
-    			this.projectionMethodName = (projection == null) ? null : projection.getMethodName();
-    			this.constantRestrictionMethodName = (cr == null) ? null : cr.getMethodName();
-    			this.mapRefItem = mapRefItem;
-    			this.cloneMapItem = cloneMapItem;
-    			this.reuseResult = reuseResult;
-    			this.doesProjection = doesProjection;
-    			this.source = (SpliceOperation) source;
-                init(SpliceOperationContext.newContext(activation));
+																	Activation activation,
+																	GeneratedMethod restriction,
+																	GeneratedMethod projection,
+																	int resultSetNumber,
+																	GeneratedMethod cr,
+																	int mapRefItem,
+																	int cloneMapItem,
+																	boolean reuseResult,
+																	boolean doesProjection,
+																	double optimizerEstimatedRowCount,
+																	double optimizerEstimatedCost) throws StandardException {
+		super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+		this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
+		this.projectionMethodName = (projection == null) ? null : projection.getMethodName();
+		this.constantRestrictionMethodName = (cr == null) ? null : cr.getMethodName();
+		this.mapRefItem = mapRefItem;
+		this.cloneMapItem = cloneMapItem;
+		this.reuseResult = reuseResult;
+		this.doesProjection = doesProjection;
+		this.source = (SpliceOperation) source;
+		init(SpliceOperationContext.newContext(activation));
     }
     
  
@@ -101,7 +101,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		out.writeInt(cloneMapItem);
 		out.writeBoolean(reuseResult);
 		out.writeBoolean(doesProjection);
-		out.writeObject((SpliceOperation) source);
+		out.writeObject(source);
 	}
 
 	@Override
@@ -112,22 +112,22 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		try {
 			// Allocate a result row if all of the columns are mapped from the source			
 
-            GenericStorablePreparedStatement statement = context.getPreparedStatement();
+			GenericStorablePreparedStatement statement = context.getPreparedStatement();
 			projectMapping = ((ReferencedColumnsDescriptorImpl) statement.getSavedObject(mapRefItem)).getReferencedColumnPositions();
 			if (projectionMethodName == null) {
 				mappedResultRow = activation.getExecutionFactory().getValueRow(projectMapping.length);
-			}			
-	        cloneMap = ((boolean[])statement.getSavedObject(cloneMapItem));
-	        if (this.constantRestrictionMethodName != null) {
-	        	GeneratedMethod constantRestriction = statement.getActivationClass().getMethod(this.constantRestrictionMethodName);
-	        	DataValueDescriptor restrictBoolean = (DataValueDescriptor) constantRestriction.invoke(activation);
-	        	shortCircuitOpen  = (restrictBoolean == null) || ((restrictBoolean!=null)&&(! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
-	        }
-	        if (restrictionMethodName != null)
-	        	restriction = statement.getActivationClass().getMethod(restrictionMethodName);
-	        if (projectionMethodName != null)
-	        	projection = statement.getActivationClass().getMethod(projectionMethodName);
-	        
+			}
+			cloneMap = ((boolean[])statement.getSavedObject(cloneMapItem));
+			if (this.constantRestrictionMethodName != null) {
+				GeneratedMethod constantRestriction = statement.getActivationClass().getMethod(this.constantRestrictionMethodName);
+				DataValueDescriptor restrictBoolean = (DataValueDescriptor) constantRestriction.invoke(activation);
+				shortCircuitOpen  = (restrictBoolean == null) || ((restrictBoolean!=null)&&(! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
+			}
+			if (restrictionMethodName != null)
+				restriction = statement.getActivationClass().getMethod(restrictionMethodName);
+			if (projectionMethodName != null)
+				projection = statement.getActivationClass().getMethod(projectionMethodName);
+
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "init operation failed",e);
 		}
@@ -218,11 +218,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		if (LOG.isTraceEnabled())
-			LOG.trace("getNextRowCore");		
+			LOG.trace("getNextRowCore");
 		ExecRow candidateRow = null;
-	    ExecRow result = null;
-	    boolean restrict = false;
-	    DataValueDescriptor restrictBoolean;
+		ExecRow result = null;
+		boolean restrict = false;
+		DataValueDescriptor restrictBoolean;
 
 		/* Return null if open was short circuited by false constant expression */
 //		if (shortCircuitOpen)
@@ -230,13 +230,13 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 //			SpliceLogUtils.trace(LOG,"short circuited");
 //			return result;
 //		}
-		
-	    do {
+
+		do {
 			candidateRow = source.getNextRowCore();
-		
+
 			SpliceLogUtils.trace(LOG, "candidateRow=%s",candidateRow);
-			
-			
+
+
 			if (candidateRow != null) {
 				/* If restriction is null, then all rows qualify */
 				if (restriction == null) {
@@ -244,32 +244,31 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				}
 				else {
 					setCurrentRow(candidateRow);
-		            restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
+					restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
 
-		            // if the result is null, we make it false --
+					// if the result is null, we make it false --
 					// so the row won't be returned.
-				    restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
+					restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
 				}
-                SpliceLogUtils.trace(LOG,"restricting row %s?%b",candidateRow,restrict);
+				SpliceLogUtils.trace(LOG,"restricting row %s?%b",candidateRow,restrict);
 			}
-	    } while ( (candidateRow != null) &&
-	              (! restrict ) );
-	    if (candidateRow != null)  {
+		} while ( (candidateRow != null) && (! restrict ) );
+		if (candidateRow != null)  {
 			result = doProjection(candidateRow);
-	    }
+		}
 		/* Clear the current row, if null */
 		else {
 			clearCurrentRow();
 		}
 		currentRow = result;
-		// setCurrentRow(currentRow);
-    	return result;
-	}	
-	
+		setCurrentRow(currentRow);
+		return result;
+	}
+
 	@Override
 	public ExecRow getExecRowDefinition() {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition with source %s",source);
-		ExecRow def = ((SpliceOperation) source).getExecRowDefinition();
+		ExecRow def = source.getExecRowDefinition();
 		source.setCurrentRow(def);
 		return doProjection(def);
 	}

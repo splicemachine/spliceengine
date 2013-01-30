@@ -46,10 +46,10 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
 			ObserverContext<RegionCoprocessorEnvironment> e, Scan scan,
 			RegionScanner s) throws IOException {
 		if (scan.getAttribute(SPLICE_OBSERVER_INSTRUCTIONS) != null){
-            SpliceLogUtils.trace(LOG, "postScannerOpen called, wrapping SpliceOperationRegionScanner");
+			SpliceLogUtils.trace(LOG, "postScannerOpen called, wrapping SpliceOperationRegionScanner");
 			return super.postScannerOpen(e, scan, new SpliceOperationRegionScanner(s,scan,e.getEnvironment().getRegion()));
-        }
-        SpliceLogUtils.trace(LOG, "postScannerOpen called, but no instructions specified");
+		}
+		SpliceLogUtils.trace(LOG, "postScannerOpen called, but no instructions specified");
 		return super.postScannerOpen(e, scan, s);
 	}
 

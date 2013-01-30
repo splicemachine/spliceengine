@@ -424,27 +424,30 @@ public class DerbyBytesUtil {
      */
     private static class NullRemovingRowKey extends UTF8RowKey {
 
-        @Override public Class<?> getSerializedClass() { return String.class; }
+			@Override public Class<?> getSerializedClass() { return String.class; }
 
-        @Override
-        public int getSerializedLength(Object o) throws IOException {
-            return super.getSerializedLength(toUTF8(o));
-        }
+			@Override
+			public int getSerializedLength(Object o) throws IOException {
+				return super.getSerializedLength(toUTF8(o));
+			}
 
-        private Object toUTF8(Object o) {
-            if(o==null|| o instanceof byte[]) return o;
-            return Bytes.toBytes(o.toString().replaceAll("\u0000",""));
-        }
+			private Object toUTF8(Object o) {
+				if(o==null|| o instanceof byte[]) return o;
+				String replacedString = o.toString().replaceAll("\u0000","");
+				if(replacedString.length()<=0)
+					return null;
+				return Bytes.toBytes(replacedString);
+			}
 
-        @Override
-        public void serialize(Object o, ImmutableBytesWritable w) throws IOException {
-            super.serialize(toUTF8(o),w);
-        }
+			@Override
+			public void serialize(Object o, ImmutableBytesWritable w) throws IOException {
+				super.serialize(toUTF8(o),w);
+			}
 
-        @Override
-        public Object deserialize(ImmutableBytesWritable w) throws IOException {
-            byte[] b = (byte[])super.deserialize(w);
-            return b ==null? b :  Bytes.toString(b);
-        }
-    }
+			@Override
+			public Object deserialize(ImmutableBytesWritable w) throws IOException {
+				byte[] b = (byte[])super.deserialize(w);
+				return b ==null? b :  Bytes.toString(b);
+			}
+		}
 }

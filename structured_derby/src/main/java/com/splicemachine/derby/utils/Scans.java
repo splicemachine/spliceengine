@@ -217,10 +217,17 @@ public class Scans {
 			for(int pos=0;pos<descriptors.length;pos++){
 				DataValueDescriptor dvd = descriptors[pos];
 				if(dvd!=null&&!dvd.isNull()){
-					masterList.addFilter(new SingleColumnValueFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,
-							Integer.toString(pos).getBytes(),
-							getHBaseCompareOp(compareOp,false),
-							DerbyBytesUtil.generateBytes(dvd)));
+					/*
+					 * We have to check for whether or not the serialized bytes for this descriptor
+					 * is actually populated--otherwise we would filter out all non-null entries.
+					 */
+					byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
+					if(bytes.length>0){
+						masterList.addFilter(new SingleColumnValueFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,
+								Integer.toString(pos).getBytes(),
+								getHBaseCompareOp(compareOp,false),
+								bytes));
+					}
 				}
 			}
 		} catch (StandardException e) {
