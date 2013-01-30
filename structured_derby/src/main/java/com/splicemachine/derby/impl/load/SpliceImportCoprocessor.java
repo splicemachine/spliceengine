@@ -1,11 +1,12 @@
 package com.splicemachine.derby.impl.load;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.math.BigDecimal;
-import java.sql.Types;
-import java.util.Collection;
+import com.google.common.base.Splitter;
+import com.google.common.primitives.Longs;
+import com.gotometrics.orderly.*;
+import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -16,20 +17,21 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.util.LineReader;
 import org.apache.log4j.Logger;
 
-import com.google.common.base.Splitter;
-import com.gotometrics.orderly.BigDecimalRowKey;
-import com.gotometrics.orderly.DoubleRowKey;
-import com.gotometrics.orderly.IntegerRowKey;
-import com.gotometrics.orderly.LongRowKey;
-import com.gotometrics.orderly.RowKey;
-import com.gotometrics.orderly.StringRowKey;
-import com.gotometrics.orderly.VariableLengthByteArrayRowKey;
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.Types;
+import java.util.Arrays;
+import java.util.Collection;
 
+/**
+ * Coprocessor for Importing data from a CSV stored in an HDFS BlockLocation.
+ *
+ * @author Scott Fines
+ */
 public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements SpliceImportProtocol{
 	private static final Logger LOG = Logger.getLogger(SpliceImportCoprocessor.class);
 	private FileSystem fs;
@@ -55,51 +57,72 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 	public long doImport(String sourceFile,Collection<BlockLocation> locations,
 			String destTable,String delimiter,int[] columnTypes,FormatableBitSet activeCols)
 			throws IOException {
-		SpliceLogUtils.trace(LOG,"doImport for sourceFile %s,destinationTable %s, with delimiter %s",
-																			sourceFile,destTable,delimiter);
+		SpliceLogUtils.trace(LOG,"doImport for sourceFile %s,destinationTable %s, with delimiter %s, with columnTypes=%s",
+																			sourceFile,destTable,delimiter, Arrays.toString(columnTypes));
 		long numImported=0l;
 		Path path = new Path(sourceFile);
 		Splitter splitter = Splitter.on(delimiter).trimResults();
 		FSDataInputStream is = null;
+		//get a bulk-insert table for our table to insert
 		HTableInterface table = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(destTable));
-		BufferedReader reader = null;
+
+		LineReader reader = null;
+		//open a serializer to serialize our data
 		Serializer serializer = new Serializer();
 		try{
 			is = fs.open(path);
 			for(BlockLocation location:locations){
 				SpliceLogUtils.trace(LOG,"importing block location %s",location);
-				boolean skipFirstLine = location.getOffset() ==0;
+
+				/*
+				 * If we aren't the first block location in the file, skip the first line.
+				 * Otherwise, we might end up inserting a partial row which wouldn't be good.
+				 */
+				boolean skipFirstLine = Longs.compare(location.getOffset(),0l)==0;
+
+				//get the start of the location and seek to it
 				long start = location.getOffset();
 				long end = start + location.getLength();
 				is.seek(start);
-				reader = new BufferedReader(new InputStreamReader(is));
+
+
+				reader = new LineReader(is);
+				Text text = new Text();
 				if(skipFirstLine){
-					reader.readLine();
+					SpliceLogUtils.trace(LOG,"Skipping first line as other regions will deal with it");
+					start = reader.readLine(text);
 				}
-				String line = null;
-				while(is.getPos() < end){
-					line = reader.readLine();
-					int pos=0;
-					
-					Put put = new Put();
+				long pos = start;
+				while(pos < end){
+					long newSize = reader.readLine(text);
+					SpliceLogUtils.trace(LOG,"inserting line %s",text);
+					pos+=newSize;
+
+					Put put = new Put(SpliceUtils.getUniqueKey());
+					String line = text.toString();
+					int colPos = 0;
 					for(String col:splitter.split(line)){
 						//go to the next non-null position
-						while(!activeCols.get(pos)){
-							pos++;
-							if(pos>columnTypes.length)
+						while(!activeCols.get(colPos)){
+							colPos++;
+							if(colPos>columnTypes.length)
 								throw new IOException("Incorrect Column types or index present");
 						}
-						
+						SpliceLogUtils.trace(LOG,"placing item %s at column position %d",col,colPos);
 						put.add(HBaseConstants.DEFAULT_FAMILY_BYTES, 
-								Integer.toString(pos).getBytes(),serializer.serialize(col,columnTypes[pos]));
+								Integer.toString(colPos).getBytes(),serializer.serialize(col,columnTypes[colPos]));
+						colPos++;
 					}
 					//do the insert
 					table.put(put);
 					numImported++;
 				}
 			}
+		}catch(Exception e){
+			SpliceLogUtils.logAndThrowRuntime(LOG, "Unexpected error importing block locations", e);
 		}finally{
 			SpliceLogUtils.trace(LOG,"Finished importing all Block locations, closing table and streams");
+			//make sure that all the inserts are flushed out to their respective locations.
 			table.flushCommits();
 			table.close();
 			if(is!=null)is.close();
@@ -108,7 +131,13 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		SpliceLogUtils.trace(LOG,"Imported %d rows",numImported);
 		return numImported;
 	}
-	
+
+/*****************************************************************************************************************/
+	/*private helper stuff*/
+
+	/*
+	 * Convenience object to perform serializations without relying on DataValueDescriptors
+	 */
 	private static class Serializer{
 		private RowKey varBinRowKey;
 		private RowKey longKey;
@@ -116,7 +145,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		private RowKey stringKey;
 		private RowKey decimalRowKey;
 		private RowKey doubleKey;
-		
+
 		byte[] serialize(String column,int columnType) throws IOException {
 			switch(columnType){
 				case Types.BOOLEAN:

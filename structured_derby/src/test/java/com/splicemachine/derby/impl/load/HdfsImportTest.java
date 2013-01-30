@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.load;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.DerbyTestRule;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -8,8 +9,10 @@ import org.junit.*;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 
@@ -34,11 +37,27 @@ public class HdfsImportTest {
 	}
 
 	@Test
-    @Ignore
+//    @Ignore
 	public void testHdfsImport() throws Exception{
-		HdfsImport.importData(rule.getConnection(), null, "t", 
-		"name,title,age", 
-		"file:///Users/sfines/worksplace/structured_hbase/structured_derby/test.in",",");
+		String baseDir = System.getProperty("user.dir");
+		String location = baseDir+"/structured_derby/src/test/resources/importTest.in";
+		HdfsImport.importData(rule.getConnection(), null, "T", "NAME,TITLE,AGE", location,",");
+
+		ResultSet rs = rule.executeQuery("select * from t");
+		List<String> results = Lists.newArrayList();
+		while(rs.next()){
+			String name = rs.getString(1);
+			String title = rs.getString(2);
+			Integer age = rs.getInt(3);
+			Assert.assertNotNull("Name is null!",name);
+			Assert.assertNotNull("Title is null!", title);
+			Assert.assertNotNull("Age is null!",age);
+			results.add(String.format("name:%s,title:%s,age:%d",name,title,age));
+		}
+		for(String result:results){
+			LOG.info(result);
+		}
+		Assert.assertTrue("no rows imported!",results.size()>0);
 	}
 	
 	@Test
