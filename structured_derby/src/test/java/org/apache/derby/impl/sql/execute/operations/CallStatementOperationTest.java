@@ -22,19 +22,6 @@ public class CallStatementOperationTest extends SpliceDerbyTest {
 
 
 	@Test
-	/* The same code runs in plain Derby, and produces the following results, but in our system, nothing got printed out.
-	 * 	TABLE_SCHEM=APP
-	 	TABLE_SCHEM=NULLID
-		TABLE_SCHEM=SQLJ
-		TABLE_SCHEM=SYS
-		TABLE_SCHEM=SYSCAT
-		TABLE_SCHEM=SYSCS_DIAG
-		TABLE_SCHEM=SYSCS_UTIL
-		TABLE_SCHEM=SYSFUN
-		TABLE_SCHEM=SYSIBM
-		TABLE_SCHEM=SYSPROC
-		TABLE_SCHEM=SYSSTAT
-	 */
 	public void testCallSysSchemas() throws SQLException {
 		LOG.info("start testCallStatement");
 		Statement s = null;
