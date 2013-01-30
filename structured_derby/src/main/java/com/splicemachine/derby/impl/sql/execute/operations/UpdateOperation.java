@@ -1,21 +1,27 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.ConglomerateController;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.impl.sql.execute.*;
+import org.apache.derby.impl.sql.execute.FKInfo;
+import org.apache.derby.impl.sql.execute.RISetChecker;
+import org.apache.derby.impl.sql.execute.TriggerEventActivator;
+import org.apache.derby.impl.sql.execute.TriggerInfo;
+import org.apache.derby.impl.sql.execute.UpdateConstantAction;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.List;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 
 /**
  * Represents and Update SQL Operation
@@ -63,6 +69,13 @@ public class UpdateOperation extends SpliceBaseOperation{
     boolean deferred;
     boolean beforeUpdateCopyRequired = false;
 
+    public UpdateOperation(NoPutResultSet source, GeneratedMethod generationClauses,
+			GeneratedMethod checkGM, Activation activation) {
+    	this.source = source;
+    	this.generationClauses = generationClauses;
+    	this.checkGM = checkGM;
+    	this.activation = activation;
+    }
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);    //To change body of overridden methods use File | Settings | File Templates.

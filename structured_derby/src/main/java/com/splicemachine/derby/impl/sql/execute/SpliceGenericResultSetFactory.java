@@ -38,9 +38,11 @@ import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
 import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.RowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.SetTransactionOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SortOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.UnionOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -734,5 +736,15 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 			Activation activation) throws StandardException {
 	
 		return new CallStatementOperation(methodCall, activation);
+	}
+	
+	public ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
+			GeneratedMethod checkGM) throws StandardException {
+		return new UpdateOperation(source, generationClauses, checkGM, source.getActivation());
+	}
+	
+	public ResultSet getSetTransactionResultSet(Activation activation) 
+			throws StandardException {		
+			return new SetTransactionOperation(activation);
 	}
 }
