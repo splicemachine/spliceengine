@@ -15,6 +15,8 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.BulkTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.CallStatementOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DeleteCascadeOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DeleteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DependentOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DistinctGroupedAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DistinctScalarAggregateOperation;
@@ -136,7 +138,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 				   userSuppliedOptimizerOverrides);
 	}
 	
-@Override
+	@Override
 	public NoPutResultSet getHashScanResultSet(Activation activation,
 			long conglomId, int scociItem, GeneratedMethod resultRowAllocator,
 			int resultSetNumber, GeneratedMethod startKeyGetter,
@@ -230,18 +232,6 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 			operationTree.traverse((SpliceOperation) top);
 			return (NoPutResultSet) operationTree.execute();
 	}
-	
-
-	@Override
-	public NoPutResultSet getInsertResultSet(NoPutResultSet source,
-			GeneratedMethod generationClauses, GeneratedMethod checkGM)
-			throws StandardException {
-		SpliceOperation top = new InsertOperation(source, generationClauses, checkGM);
-		
-		OperationTree opTree = new OperationTree();
-		opTree.traverse(top);
-		return (NoPutResultSet)opTree.execute();
-	}
 
 	@Override
 	public NoPutResultSet getTableScanResultSet(Activation activation,
@@ -333,7 +323,6 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 									optimizerEstimatedCost);
 	}
 
-
 	@Override
 	public NoPutResultSet getHashLeftOuterJoinResultSet(
 			NoPutResultSet leftResultSet, int leftNumCols,
@@ -357,8 +346,6 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 				   userSuppliedOptimizerOverrides);
 	}
 
-
-
 	@Override
 	public NoPutResultSet getGroupedAggregateResultSet(NoPutResultSet source,
 			boolean isInSortedOrder, int aggregateItem, int orderItem,
@@ -371,8 +358,6 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 		optimizerEstimatedCost, isRollup);
 	}
 
-	
-	
 	@Override
 	public NoPutResultSet getScalarAggregateResultSet(NoPutResultSet source,
 			boolean isInSortedOrder, int aggregateItem, int orderItem,
@@ -406,7 +391,6 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 								 optimizerEstimatedCost);
 	}
 	
-
 	@Override
 	public NoPutResultSet getUnionResultSet(NoPutResultSet leftResultSet,
 			NoPutResultSet rightResultSet,
@@ -630,7 +614,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 								rltItem);
 	}
 	
-	
+	@Override
 	public NoPutResultSet getDistinctScalarAggregateResultSet(NoPutResultSet source,
 			boolean isInSortedOrder,
 			int aggregateItem,
@@ -649,6 +633,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 				optimizerEstimatedCost);
 	}
 
+	@Override
 	public NoPutResultSet getDistinctGroupedAggregateResultSet(NoPutResultSet source,
 			boolean isInSortedOrder,
 			int aggregateItem,
@@ -720,31 +705,76 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 				optimizerEstimatedCost, userSuppliedOptimizerOverrides);
 	}
 	
+	@Override
+	//TODO: need to wrap it in operations
 	public ResultSet getDDLResultSet(Activation activation)
 			throws StandardException {
 		SpliceLogUtils.trace(LOG, "getDDLResultSet");
 		return getMiscResultSet(activation);
 	}
 
+	@Override
+	//TODO: need to wrap it in operations
 	public ResultSet getMiscResultSet(Activation activation)
 			throws StandardException {
 		SpliceLogUtils.trace(LOG, "getMiscResultSet");
 		return new MiscOperation(activation);
 	}
 	
+	@Override
+	//TODO: need to wrap it in operations
 	public ResultSet getCallStatementResultSet(GeneratedMethod methodCall,
 			Activation activation) throws StandardException {
 	
 		return new CallStatementOperation(methodCall, activation);
 	}
 	
-	public ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
-			GeneratedMethod checkGM) throws StandardException {
-		return new UpdateOperation(source, generationClauses, checkGM, source.getActivation());
-	}
-	
+	@Override
+	//TODO: need to wrap it in operations
 	public ResultSet getSetTransactionResultSet(Activation activation) 
 			throws StandardException {		
 			return new SetTransactionOperation(activation);
 	}
+	
+	@Override
+	public NoPutResultSet getInsertResultSet(NoPutResultSet source,
+			GeneratedMethod generationClauses, GeneratedMethod checkGM)
+			throws StandardException {
+		SpliceOperation top = new InsertOperation(source, generationClauses, checkGM);	
+		OperationTree opTree = new OperationTree();
+		opTree.traverse(top);
+		return (NoPutResultSet)opTree.execute();
+	}
+	
+	@Override
+	public NoPutResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
+			GeneratedMethod checkGM) throws StandardException {
+		SpliceOperation top = new UpdateOperation(source, generationClauses, checkGM, source.getActivation());
+		OperationTree opTree = new OperationTree();
+		opTree.traverse(top);
+		return (NoPutResultSet)opTree.execute();
+	}
+	
+	@Override
+	public NoPutResultSet getDeleteResultSet(NoPutResultSet source)
+			throws StandardException
+	{
+		SpliceOperation top = new DeleteOperation(source, source.getActivation());		
+		OperationTree opTree = new OperationTree();
+		opTree.traverse(top);
+		return (NoPutResultSet)opTree.execute();
+	}
+	
+	/*@Override
+	public NoPutResultSet getDeleteCascadeResultSet(NoPutResultSet source, 
+			   int constantActionItem,
+			   ResultSet[] dependentResultSets,
+			   String resultSetId)
+			throws StandardException
+	{
+		return new DeleteCascadeOperation(source, source.getActivation(), 
+				constantActionItem,
+				dependentResultSets, 
+				resultSetId);
+	}*/
 }
