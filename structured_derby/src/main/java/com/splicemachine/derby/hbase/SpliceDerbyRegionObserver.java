@@ -48,7 +48,6 @@ public class SpliceDerbyRegionObserver extends BaseRegionObserver {
 		synchronized (this) {
 			if (server != null) {
 				try {
-					server.shutdown();
 					server = null;
 				} catch (Exception exception) {
 					SpliceLogUtils.logAndThrow(LOG, "Could Not Start Derby - Catastrophic", new IOException(exception));
