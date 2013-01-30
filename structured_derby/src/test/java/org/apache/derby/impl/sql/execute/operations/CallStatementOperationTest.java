@@ -7,6 +7,7 @@ import java.sql.Statement;
 
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -31,6 +32,7 @@ public class CallStatementOperationTest extends SpliceDerbyTest {
 			result = cs.executeQuery();
 			while (result.next()) {
 				LOG.info("TABLE_SCHEM="+result.getString(1));
+				Assert.assertNotNull(result.getString(1));
 			}
 		} catch (SQLException e) {
 			LOG.error("error in testAggregatedDeleteExt-"+e.getMessage(), e);
