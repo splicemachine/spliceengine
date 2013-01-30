@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.BulkTableScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.CallStatementOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DependentOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DistinctGroupedAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DistinctScalarAggregateOperation;
@@ -727,5 +728,11 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 			throws StandardException {
 		SpliceLogUtils.trace(LOG, "getMiscResultSet");
 		return new MiscOperation(activation);
+	}
+	
+	public ResultSet getCallStatementResultSet(GeneratedMethod methodCall,
+			Activation activation) throws StandardException {
+	
+		return new CallStatementOperation(methodCall, activation);
 	}
 }
