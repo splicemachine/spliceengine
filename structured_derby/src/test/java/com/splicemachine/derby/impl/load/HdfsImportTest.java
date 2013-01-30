@@ -7,10 +7,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.junit.*;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.sql.Types;
+import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +38,11 @@ public class HdfsImportTest {
 	public void testHdfsImport() throws Exception{
 		String baseDir = System.getProperty("user.dir");
 		String location = baseDir+"/structured_derby/src/test/resources/importTest.in";
-		HdfsImport.importData(rule.getConnection(), null, "T", "NAME,TITLE,AGE", location,",");
+		testImport(location);
+	}
+
+	private void testImport(String location) throws SQLException {
+		HdfsImport.importData(rule.getConnection(), null, "T", "NAME,TITLE,AGE", location, ",");
 
 		ResultSet rs = rule.executeQuery("select * from t");
 		List<String> results = Lists.newArrayList();
@@ -49,7 +50,7 @@ public class HdfsImportTest {
 			String name = rs.getString(1);
 			String title = rs.getString(2);
 			Integer age = rs.getInt(3);
-			Assert.assertNotNull("Name is null!",name);
+			Assert.assertNotNull("Name is null!", name);
 			Assert.assertNotNull("Title is null!", title);
 			Assert.assertNotNull("Age is null!",age);
 			results.add(String.format("name:%s,title:%s,age:%d",name,title,age));
@@ -58,6 +59,12 @@ public class HdfsImportTest {
 			LOG.info(result);
 		}
 		Assert.assertTrue("no rows imported!",results.size()>0);
+	}
+
+	@Test
+	public void testHdfsImportGzipFile() throws Exception{
+		String location = System.getProperty("user.dir")+"/structured_derby/src/test/resources/importTest.in.gz";
+		testImport(location);
 	}
 	
 	@Test
