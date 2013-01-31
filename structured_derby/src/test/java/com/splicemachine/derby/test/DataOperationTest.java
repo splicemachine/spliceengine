@@ -520,7 +520,7 @@ public class DataOperationTest extends SpliceDerbyTest {
 	}	
 
 	@Test
-	@Ignore("UpdateResultSet needs to be implemented")
+	@Ignore
 	public void testUpdate() throws SQLException {	
 		LOG.info("start Update test");
 		int count = 0;
@@ -632,7 +632,6 @@ public class DataOperationTest extends SpliceDerbyTest {
 			}
 		}		
 	}
-	
 
 	@AfterClass 
 	public static void shutdown() throws SQLException {

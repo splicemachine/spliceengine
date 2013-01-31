@@ -42,14 +42,12 @@ public class MiscOperationTest extends SpliceDerbyTest {
 		}
 	} 
 
-
 	@Test
 	public void testAlterTableAddColumn() throws SQLException {
 		Statement s = null;
 		ResultSet rs = null;
 		LOG.info("start testing testAlterTableAddColumn for success transaction");
 		try {
-			conn.setAutoCommit(false);
 			s = conn.createStatement();
 			s.execute("Alter table locationMiscX add column salary float default 0.0");	
 			s.execute("update locationMiscX set salary=1000.0 where zip='94114'");
@@ -57,12 +55,13 @@ public class MiscOperationTest extends SpliceDerbyTest {
 			rs = s.executeQuery("select zip, salary from locationMiscX");
 			while (rs.next()) {
 				LOG.info("zip="+rs.getString(1)+",salary="+rs.getFloat(2));
-			}
-			conn.commit();		
+			}	
 		} catch (SQLException e) {
 			LOG.error("error during testAlterTableAddColumn-"+e.getMessage());
+			e.printStackTrace();
 		} catch (Exception e) { 
 			LOG.error("error during testAlterTableAddColumn-"+e.getMessage());
+			e.printStackTrace();
 		} finally {
 			try {
 				if (rs != null)
