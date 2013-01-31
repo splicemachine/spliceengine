@@ -15,7 +15,6 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.BulkTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.CallStatementOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DeleteCascadeOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DeleteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DependentOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DistinctGroupedAggregateOperation;
@@ -705,7 +704,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 				optimizerEstimatedCost, userSuppliedOptimizerOverrides);
 	}
 
-	/*@Override
+	@Override
 	public NoPutResultSet getDDLResultSet(Activation activation)
 			throws StandardException {
 		SpliceLogUtils.trace(LOG, "getDDLResultSet");
@@ -740,7 +739,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 		OperationTree opTree = new OperationTree();
 		opTree.traverse(top);
 		return (NoPutResultSet)opTree.execute();
-	}*/
+	}
 
 	@Override
 	public NoPutResultSet getInsertResultSet(NoPutResultSet source,
