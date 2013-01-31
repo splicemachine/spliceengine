@@ -16,8 +16,6 @@ import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
- * Represents and Update SQL Operation
- * @author Scott Fines
  * @author jessiezhang
  */
 public class UpdateOperation extends DMLWriteOperation{

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 
 
@@ -17,7 +18,7 @@ public class SetTransactionOperation extends MiscOperation
 	 *
 	 *  @param activation		Describes run-time environment.
      */
-	public SetTransactionOperation(Activation activation)
+	public SetTransactionOperation(Activation activation) throws StandardException
     {
 		super(activation);
 	}

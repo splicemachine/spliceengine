@@ -704,38 +704,44 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 				oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
 				optimizerEstimatedCost, userSuppliedOptimizerOverrides);
 	}
-	
-	@Override
-	//TODO: need to wrap it in operations
-	public ResultSet getDDLResultSet(Activation activation)
+
+	/*@Override
+	public NoPutResultSet getDDLResultSet(Activation activation)
 			throws StandardException {
 		SpliceLogUtils.trace(LOG, "getDDLResultSet");
 		return getMiscResultSet(activation);
 	}
 
 	@Override
-	//TODO: need to wrap it in operations
-	public ResultSet getMiscResultSet(Activation activation)
+	public NoPutResultSet getMiscResultSet(Activation activation)
 			throws StandardException {
 		SpliceLogUtils.trace(LOG, "getMiscResultSet");
-		return new MiscOperation(activation);
+		SpliceOperation top = new MiscOperation(activation);	
+		OperationTree opTree = new OperationTree();
+		opTree.traverse(top);
+		return (NoPutResultSet)opTree.execute();
 	}
-	
+
 	@Override
-	//TODO: need to wrap it in operations
-	public ResultSet getCallStatementResultSet(GeneratedMethod methodCall,
+	public NoPutResultSet getCallStatementResultSet(GeneratedMethod methodCall,
 			Activation activation) throws StandardException {
-	
-		return new CallStatementOperation(methodCall, activation);
+		SpliceLogUtils.trace(LOG, "getCallStatementResultSet");
+		SpliceOperation top = new CallStatementOperation(methodCall, activation);	
+		OperationTree opTree = new OperationTree();
+		opTree.traverse(top);
+		return (NoPutResultSet)opTree.execute();
 	}
-	
+
 	@Override
-	//TODO: need to wrap it in operations
 	public ResultSet getSetTransactionResultSet(Activation activation) 
-			throws StandardException {		
-			return new SetTransactionOperation(activation);
-	}
-	
+			throws StandardException {	
+		SpliceLogUtils.trace(LOG, "getSetTransactionResultSet");
+		SpliceOperation top = new SetTransactionOperation(activation);	
+		OperationTree opTree = new OperationTree();
+		opTree.traverse(top);
+		return (NoPutResultSet)opTree.execute();
+	}*/
+
 	@Override
 	public NoPutResultSet getInsertResultSet(NoPutResultSet source,
 			GeneratedMethod generationClauses, GeneratedMethod checkGM)
