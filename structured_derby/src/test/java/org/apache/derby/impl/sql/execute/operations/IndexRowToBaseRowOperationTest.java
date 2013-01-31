@@ -48,7 +48,7 @@ public class IndexRowToBaseRowOperationTest {
 //			if(s !=null) s.close();
 //		}
 	}
-	
+
 	@Test
 	public void testRestrictScanSysConglomerates() throws Exception{
 		ResultSet s = null;
