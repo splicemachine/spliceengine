@@ -5,12 +5,9 @@ import java.io.IOException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
-import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-
-import com.splicemachine.hbase.txn.coprocessor.region.TransactionalRegionObserver;
 import com.splicemachine.hbase.txn.coprocessor.region.TxnUtils;
 
 /**
