@@ -10,6 +10,7 @@ import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.services.monitor.PersistentService;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.io.StorageFactory;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -19,6 +20,7 @@ public class SpliceService implements PersistentService {
 	private static Logger LOG = Logger.getLogger(SpliceService.class);
 	public SpliceService() {
 		SpliceLogUtils.trace(LOG,"instantiated");
+	    Thread.currentThread().setContextClassLoader(HBaseConfiguration.class.getClassLoader());
 	}
 	
 	public String getType() {
@@ -38,6 +40,7 @@ public class SpliceService implements PersistentService {
 		service.setProperty(Property.SERVICE_PROTOCOL,"org.apache.derby.database.Database");
 		service.setProperty(EngineType.PROPERTY,Integer.toString(getEngineType()));
 		service.setProperty(DataDictionary.CORE_DATA_DICTIONARY_VERSION,"10.9");
+//		service.setProperty(Property.REQUIRE_AUTHENTICATION_PARAMETER, "true");
 //		service.setProperty("derby.language.logQueryPlan", "true"); // unclear of this...
 		if (LOG.isTraceEnabled()) {
 			LOG.trace("getServiceProperties actual properties serviceName" + serviceName + ", properties " + service);
