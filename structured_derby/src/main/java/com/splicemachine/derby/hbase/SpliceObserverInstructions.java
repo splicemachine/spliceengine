@@ -4,9 +4,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-
 import org.apache.derby.iapi.services.io.ArrayUtil;
-import org.apache.derby.iapi.sql.Row;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
