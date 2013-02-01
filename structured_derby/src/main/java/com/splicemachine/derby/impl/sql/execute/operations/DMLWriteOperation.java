@@ -58,6 +58,13 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		init(SpliceOperationContext.newContext(activation));
 	}
 	
+	public DMLWriteOperation(NoPutResultSet source, Activation activation) throws StandardException{
+		super(activation,-1,0d,0d);
+		this.source = source;
+		this.activation = activation;
+		init(SpliceOperationContext.newContext(activation));
+	}
+	
 	public DMLWriteOperation(NoPutResultSet source,
 			GeneratedMethod generationClauses, 
 			GeneratedMethod checkGM) throws StandardException{

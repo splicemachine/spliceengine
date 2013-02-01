@@ -24,13 +24,16 @@ public class DeleteOperation extends DMLWriteOperation{
 	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
 	protected  boolean cascadeDelete;
 
+	public DeleteOperation(){
+		super();
+	}
 
 	public DeleteOperation(NoPutResultSet source, Activation activation) throws StandardException {
-		super(source, null, null, activation);
+		super(source, activation);
 	}
 
 	public DeleteOperation(NoPutResultSet source, ConstantAction passedInConstantAction, Activation activation) throws StandardException {
-		super(source, null, null);
+		super(source, activation);
 	}
 
 	@Override
