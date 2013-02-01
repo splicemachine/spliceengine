@@ -62,28 +62,28 @@ public class HdfsImport extends ParallelVTI {
 	private static int COLNUM_POSITION = 17;
 
 	private long insertedRowCount=0;
-	private final Path filePath;
-	private final String delimiter;
-	private final int[] columnTypes;
-	private final FormatableBitSet activeCols;
-	private final long conglomId;
+	private final ImportContext context;
 	private HBaseAdmin admin;
 
 	public static ResultSet importData(Connection connection,
-								String schemaName,String tableName,
-								String insertColumnList,String inputFileName,
-								String delimiter) throws SQLException{
+																		 String schemaName,String tableName,
+																		 String insertColumnList,String inputFileName,
+																		 String delimiter,String charDelimiter) throws SQLException{
 		if(connection ==null)
 			throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.CONNECTION_NULL));
 		if(tableName==null)
 			throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ENTITY_NAME_MISSING));
 
-		FormatableBitSet activeCols = new FormatableBitSet();
+		ImportContext.Builder builder = new ImportContext.Builder()
+				.path(inputFileName)
+				.stripCharacters(charDelimiter)
+				.colDelimiter(delimiter);
 
-		int[] columnTypes = pushColumnInformation(connection,schemaName,tableName,insertColumnList,activeCols);
+		buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder);
 
 		long conglomId = getConglomid(connection,tableName);
-		HdfsImport importer = new HdfsImport(inputFileName,conglomId,delimiter,columnTypes,activeCols);
+		builder = builder.destinationTable(conglomId);
+		HdfsImport importer = new HdfsImport(builder.build());
 		try {
 			importer.open();
 			importer.executeShuffle();
@@ -93,14 +93,41 @@ public class HdfsImport extends ParallelVTI {
 
 		return importer;
 	}
-	
-	public HdfsImport(String filePath, long conglomId,String delimiter,
-										int[] columnTypes,FormatableBitSet activeCols){
-		this.filePath = new Path(filePath);
-		this.delimiter = delimiter;
-		this.columnTypes = columnTypes;
-		this.activeCols = activeCols;
-		this.conglomId = conglomId;
+
+	public static ResultSet importData(Connection connection,
+								String schemaName,String tableName,
+								String insertColumnList,String inputFileName,
+								String delimiter,String charDelimiter,String timestampFormat) throws SQLException{
+		if(connection ==null)
+			throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.CONNECTION_NULL));
+		if(tableName==null)
+			throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ENTITY_NAME_MISSING));
+
+		ImportContext.Builder builder = new ImportContext.Builder()
+																										 .path(inputFileName)
+																										 .stripCharacters(charDelimiter)
+																										 .colDelimiter(delimiter)
+																										 .timestampFormat(timestampFormat);
+
+		buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder);
+
+		long conglomId = getConglomid(connection,tableName);
+		builder = builder.destinationTable(conglomId);
+		HdfsImport importer = new HdfsImport(builder.build());
+		try {
+			importer.open();
+			importer.executeShuffle();
+		} catch (StandardException e) {
+			throw PublicAPI.wrapStandardException(e);
+		}
+
+		return importer;
+	}
+
+
+
+	public HdfsImport(ImportContext context){
+		this.context = context;
 	}
 
 	@Override
@@ -117,12 +144,12 @@ public class HdfsImport extends ParallelVTI {
 	@Override
 	public void executeShuffle() throws StandardException {
 		CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
-		CompressionCodec codec = codecFactory.getCodec(filePath);
+		CompressionCodec codec = codecFactory.getCodec(context.getFilePath());
 		Importer importer;
 		if(codec==null ||codec instanceof SplittableCompressionCodec){
-			importer = new SplitImporter(admin,conglomId,activeCols,columnTypes,delimiter,filePath);
+			importer = new SplitImporter(admin,context);
 		}else{
-			importer = new SequentialImporter(admin,conglomId,activeCols,columnTypes,delimiter,filePath);
+			importer = new SequentialImporter(admin,context);
 		}
 
 		try {
@@ -187,6 +214,56 @@ public class HdfsImport extends ParallelVTI {
 		}
 	}
 
+	private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
+																						 String insertColumnList, ImportContext.Builder builder) throws SQLException {
+		DatabaseMetaData dmd = connection.getMetaData();
+		ResultSet rs = dmd.getColumns(null,schemaName,tableName,null);
+		if(insertColumnList!=null){
+			List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
+			int numCols = 0;
+			while(rs.next()){
+				numCols++;
+				String colName = rs.getString(COLNAME_POSITION);
+				Iterator<String> colIterator = insertCols.iterator();
+				while(colIterator.hasNext()){
+					String insertCol = colIterator.next();
+					if(insertCol.equalsIgnoreCase(colName)){
+						builder = builder.column(rs.getInt(COLNUM_POSITION)-1,rs.getInt(COLTYPE_POSITION));
+						colIterator.remove();
+						break;
+					}
+				}
+			}
+			builder = builder.numColumns(numCols);
+		}else{
+			int numCols = 0;
+			while(rs.next()){
+				numCols++;
+				builder = builder.column(rs.getInt(COLNUM_POSITION)-1,rs.getInt(COLTYPE_POSITION));
+			}
+			builder.numColumns(numCols);
+		}
+	}
+
+	private static int[] pushColumnInformation(Connection connection,
+																						 String schemaName,String tableName) throws SQLException{
+
+		/*
+		 * Gets the column information for the specified table via standard JDBC
+		 */
+		DatabaseMetaData dmd = connection.getMetaData();
+
+		//this will cause shit to break
+		ResultSet rs = dmd.getColumns(null,schemaName,tableName,null);
+		Map<Integer,Integer> indexTypeMap = new HashMap<Integer,Integer>();
+		while(rs.next()){
+			int colIndex = rs.getInt(COLNUM_POSITION);
+			indexTypeMap.put(colIndex-1,rs.getInt(COLTYPE_POSITION));
+		}
+
+		return toIntArray(indexTypeMap);
+	}
+
 	private static int[] pushColumnInformation(Connection connection,
 								String schemaName,String tableName,String insertColumnList,
 								FormatableBitSet activeAccumulator) throws SQLException{
@@ -198,23 +275,33 @@ public class HdfsImport extends ParallelVTI {
 		//this will cause shit to break
 		ResultSet rs = dmd.getColumns(null,schemaName,tableName,null);
 		Map<Integer,Integer> indexTypeMap = new HashMap<Integer,Integer>();
-		List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
+		List<String> insertCols = null;
+		if(insertColumnList!=null)
+			insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
 		while(rs.next()){
-
 			String colName = rs.getString(COLNAME_POSITION);
 			int colIndex = rs.getInt(COLNUM_POSITION);
 			indexTypeMap.put(colIndex-1, rs.getInt(COLTYPE_POSITION));
-			Iterator<String> colIter = insertCols.iterator();
-			while(colIter.hasNext()){
-				String insertCol = colIter.next();
-				if(insertCol.equalsIgnoreCase(colName)){
-					activeAccumulator.grow(colIndex);
-					activeAccumulator.set(colIndex-1);
-					colIter.remove();
-					break;
+			LOG.trace("found column "+colName+" in position "+ colIndex);
+			if(insertColumnList!=null){
+				Iterator<String> colIter = insertCols.iterator();
+				while(colIter.hasNext()){
+					String insertCol = colIter.next();
+					if(insertCol.equalsIgnoreCase(colName)){
+						LOG.trace("column "+ colName+" requested matches, adding");
+						activeAccumulator.grow(colIndex);
+						activeAccumulator.set(colIndex-1);
+						colIter.remove();
+						break;
+					}
 				}
 			}
 		}
+
+		return toIntArray(indexTypeMap);
+	}
+
+	private static int[] toIntArray(Map<Integer, Integer> indexTypeMap) {
 		int[] retArray = new int[indexTypeMap.size()];
 		for(int i=0;i<retArray.length;i++){
 			Integer next = indexTypeMap.get(i);

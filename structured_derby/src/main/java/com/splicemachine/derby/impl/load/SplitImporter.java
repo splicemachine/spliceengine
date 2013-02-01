@@ -21,6 +21,7 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -77,41 +78,33 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class SplitImporter implements Importer{
 	private static final Logger LOG = Logger.getLogger(SplitImporter.class);
-	private final Path filePath;
-	private final String delimiter;
-	private final int[] columnTypes;
-	private final FormatableBitSet activeCols;
-	private final long conglomId;
+	private final ImportContext context;
 	private HBaseAdmin admin;
 
-	public SplitImporter(HBaseAdmin admin, long conglomId, FormatableBitSet activeCols,
-										 				int[] columnTypes, String delimiter, Path filePath) {
+	public SplitImporter(HBaseAdmin admin, ImportContext context){
 		this.admin = admin;
-		this.conglomId = conglomId;
-		this.activeCols = activeCols;
-		this.columnTypes = columnTypes;
-		this.delimiter = delimiter;
-		this.filePath = filePath;
+		this.context = context;
 	}
 
 		@Override
 		public long importData() throws IOException {
 			//get all the blocks for the file to import
 			FileSystem fs = FileSystem.get(SpliceUtils.config);
-			if (!fs.exists(filePath))
-				throw new RuntimeException("File not Found: " + filePath);
-			FileStatus status = fs.getFileStatus(filePath);
+			if (!fs.exists(context.getFilePath()))
+				throw new FileNotFoundException("Unable to find file "+context.getFilePath()+
+						"in FileSystem. Did you put it into HDFS?");
+			FileStatus status = fs.getFileStatus(context.getFilePath());
 			BlockLocation[] locations = fs.getFileBlockLocations(status, 0, status.getLen());
 
 			//get the total number of region servers we have to work with
 			//ultimately, we'll get to a situation where there are no
 			int allRegionSize = admin.getClusterStatus().getServers().size();
 
-			byte[] tableBytes = Bytes.toBytes(Long.toString(conglomId));
+			byte[] tableBytes = Bytes.toBytes(Long.toString(context.getTableId()));
 			List<HRegionLocation> regions = getRegionLocations(tableBytes);
 
 			//get the conglom id for the table
-			HTableInterface htable = SpliceAccessManager.getHTable(conglomId);
+			HTableInterface htable = SpliceAccessManager.getHTable(tableBytes);
 
 			//keep a count of how many rows we've imported
 			final AtomicLong rowsImported = new AtomicLong(0l);
@@ -220,8 +213,7 @@ public class SplitImporter implements Importer{
 							@Override
 							public Long call(SpliceImportProtocol instance)
 									throws IOException {
-								return instance.doImport(filePath.toString(), blockLocs, Long.toString(conglomId),
-										delimiter, columnTypes, activeCols);
+								return instance.doImport(blockLocs, context);
 							}
 						}, new Batch.Callback<Long>() {
 

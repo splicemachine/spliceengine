@@ -34,7 +34,20 @@ public class IndexRowToBaseRowOperationTest {
 	public static void shutdown() throws Exception{
 		DerbyTestRule.shutdown();
 	}
-	
+
+	@Test
+	public void testScanSysTables() throws Exception{
+		ResultSet s = null;
+//		try{
+		s = rule.executeQuery("select tablename from sys.systables where tablename like 'ORDER_FACT'");
+		int count=0;
+		while(s.next()){
+			LOG.info(s.getString(1));
+			count++;
+		}
+		Assert.assertTrue("incorrect row count returned!",count>0);
+	}
+
 	@Test
 	public void testScanSysConglomerates() throws Exception{
 		ResultSet s = null;
@@ -72,6 +85,7 @@ public class IndexRowToBaseRowOperationTest {
 	}
 	
 	@Test
+	@Ignore
 	public void testExportTable() throws Exception{
 		LOG.info("Setting up test");
 		Statement s = null;

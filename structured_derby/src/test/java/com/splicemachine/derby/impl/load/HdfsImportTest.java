@@ -38,11 +38,11 @@ public class HdfsImportTest {
 	public void testHdfsImport() throws Exception{
 		String baseDir = System.getProperty("user.dir");
 		String location = baseDir+"/structured_derby/src/test/resources/importTest.in";
-		testImport(location);
+		testImport(location,"NAME,TITLE,AGE");
 	}
 
-	private void testImport(String location) throws SQLException {
-		HdfsImport.importData(rule.getConnection(), null, "T", "NAME,TITLE,AGE", location, ",");
+	private void testImport(String location,String colList) throws SQLException {
+		HdfsImport.importData(rule.getConnection(), null, "T", colList, location, ",","\"");
 
 		ResultSet rs = rule.executeQuery("select * from t");
 		List<String> results = Lists.newArrayList();
@@ -64,7 +64,14 @@ public class HdfsImportTest {
 	@Test
 	public void testHdfsImportGzipFile() throws Exception{
 		String location = System.getProperty("user.dir")+"/structured_derby/src/test/resources/importTest.in.gz";
-		testImport(location);
+		testImport(location,"NAME,TITLE,AGE");
+	}
+
+	@Test
+	public void testHdfsImportNullColList() throws Exception{
+		String baseDir = System.getProperty("user.dir");
+		String location = baseDir+"/structured_derby/src/test/resources/importTest.in";
+		testImport(location,null);
 	}
 	
 	@Test

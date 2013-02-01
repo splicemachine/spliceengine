@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.load;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.SpliceUtils;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -29,24 +28,16 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SequentialImporter implements Importer {
 
 	private HBaseAdmin admin;
-	private long conglomId;
-	private FormatableBitSet activeCols;
-	private int[] columnTypes;
-	private String delimiter;
-	private Path filePath;
+	private ImportContext context;
 
-	public SequentialImporter(HBaseAdmin admin, long conglomId, FormatableBitSet activeCols,
-														int[] columnTypes, String delimiter, Path filePath) {
+	public SequentialImporter(HBaseAdmin admin, ImportContext context) {
 		this.admin = admin;
-		this.conglomId = conglomId;
-		this.activeCols = activeCols;
-		this.columnTypes = columnTypes;
-		this.delimiter = delimiter;
-		this.filePath = filePath;
+		this.context = context;
 	}
 
 	@Override
 	public long importData() throws IOException {
+		Path filePath = context.getFilePath();
 		FileSystem fs = FileSystem.get(SpliceUtils.config);
 		if(!fs.exists(filePath))
 			throw new IOException("File "+filePath+" does not exist!");
@@ -54,7 +45,7 @@ public class SequentialImporter implements Importer {
 		 * Imports data sequentially, by just picking a RegionServer at random, and submitting a coprocessor
 		 * exec to the ImportCoprocessor to execute.
 		 */
-		byte[] tableBytes = Bytes.toBytes(Long.toString(conglomId));
+		byte[] tableBytes = Bytes.toBytes(Long.toString(context.getTableId()));
 
 		List<HRegionInfo> infos = admin.getTableRegions(tableBytes);
 		HRegionInfo regionInfo = null;
@@ -74,7 +65,7 @@ public class SequentialImporter implements Importer {
 			table.coprocessorExec(SpliceImportProtocol.class,start,end,new Batch.Call<SpliceImportProtocol, Long>() {
 				@Override
 				public Long call(SpliceImportProtocol instance) throws IOException {
-					return instance.importFile(filePath.toString(),Long.toString(conglomId),delimiter,columnTypes,activeCols);
+					return instance.importFile(context);
 				}
 			},new Batch.Callback<Long>() {
 						@Override

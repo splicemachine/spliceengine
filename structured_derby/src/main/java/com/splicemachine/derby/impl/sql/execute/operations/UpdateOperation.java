@@ -32,8 +32,8 @@ public class UpdateOperation extends DMLWriteOperation{
 		super.init(context);
 		heapConglom = ((UpdateConstantAction)constants).getConglomerateId();
 	}
-    
-    @Override
+
+	@Override
 	public long sink() {
 		SpliceLogUtils.trace(LOG,"sink on transactinID="+transactionID);
 		long numSunk=0l;

@@ -178,9 +178,6 @@ public class Scans {
 			masterList.addFilter(constructQualifierFilter(qualifiers));
 		}
 
-		/*
-		 * Because of how HBase sorts records, treat ScanController.GE the same as an Equals clause.
-		 */
 		if(startSearchOperator==ScanController.GT){
 			return masterList;
 		}
@@ -190,7 +187,7 @@ public class Scans {
 		if(startKeyValue==null){
 			return masterList;
 		}
-		masterList.addFilter(generateIndexFilter(startKeyValue, Orderable.ORDER_OP_EQUALS));
+		masterList.addFilter(generateIndexFilter(startKeyValue, startSearchOperator));
 		return masterList;
 	}
 
@@ -225,7 +222,8 @@ public class Scans {
 					if(bytes.length>0){
 						masterList.addFilter(new SingleColumnValueFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,
 								Integer.toString(pos).getBytes(),
-								getHBaseCompareOp(compareOp,false),
+								getCompareOp(compareOp,false),
+//								getHBaseCompareOp(compareOp,false),
 								bytes));
 					}
 				}
@@ -315,6 +313,28 @@ public class Scans {
 					return CompareFilter.CompareOp.GREATER_OR_EQUAL;
 				default:
 					throw new AssertionError("Unknown Derby operator "+ operator);
+			}
+		}
+	}
+
+	private static CompareFilter.CompareOp getCompareOp(int operator, boolean negate){
+		if(negate){
+			switch (operator){
+				case ScanController.GT:
+					return CompareFilter.CompareOp.LESS_OR_EQUAL;
+				case ScanController.GE:
+					return CompareFilter.CompareOp.LESS;
+				default:
+					return CompareFilter.CompareOp.EQUAL;
+			}
+		}else{
+			switch(operator){
+				case ScanController.GT:
+					return CompareFilter.CompareOp.GREATER;
+				case ScanController.GE:
+					return CompareFilter.CompareOp.GREATER_OR_EQUAL;
+				default:
+					return CompareFilter.CompareOp.EQUAL;
 			}
 		}
 	}

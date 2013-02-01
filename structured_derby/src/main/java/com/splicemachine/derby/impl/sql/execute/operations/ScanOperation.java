@@ -17,6 +17,7 @@ import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.Scan;
@@ -177,8 +178,17 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		try{
 			if(startKeyGetter!=null){
 				startPosition = (ExecIndexRow)startKeyGetter.invoke(activation);
-				if(sameStartStopPosition)
+				if(sameStartStopPosition){
+					/*
+					 * if the stop position is the same as the start position, we are
+					 * right at the position where we should return values, and so we need to make sure that
+					 * we only return values which match an equals filter. Otherwise, we'll need
+					 * to scan between the start and stop keys and pull back the values which are greater than
+					 * or equals to the start (e.g. leave startSearchOperator alone).
+					 */
 					stopPosition = startPosition;
+					startSearchOperator= ScanController.NA; //ensure that we put in an EQUALS filter
+				}
 			}
 			if(stopKeyGetter!=null){
 				stopPosition = (ExecIndexRow)stopKeyGetter.invoke(activation);

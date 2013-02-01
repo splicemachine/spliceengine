@@ -1590,13 +1590,13 @@ public class SystemProcedures  {
 			String  fileName,
 			String  columnDelimiter,
 			String  characterDelimiter,
-			String  codeset,
-			short   replace)
+			String  timestampFormat
+			)
 			throws SQLException
 	{
 		Connection conn = getDefaultConn();
 		try{
-			HdfsImport.importData(conn,schemaName,tableName,insertColumnList,fileName,columnDelimiter);
+			HdfsImport.importData(conn,schemaName,tableName,insertColumnList,fileName,columnDelimiter,characterDelimiter,timestampFormat);
 //			Import.importData(conn, schemaName , tableName ,
 //					insertColumnList, columnIndexes, fileName,
 //					columnDelimiter, characterDelimiter,

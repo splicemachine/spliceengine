@@ -358,123 +358,6 @@ public class SpliceUtils {
 		}
 	}
 
-//	public static Put insert(DataValueDescriptor[] row, byte[] transID) throws StandardException {
-//		return insert(row,gen.next().toString().getBytes(), transID);
-//	}
-
-	/**
-	 * 
-	 * This method adds additional fields to the initial row.  This is used for temp table writing where we want to assign a left and right.
-	 * 
-	 * @param row
-	 * @param key
-	 * @param transID
-	 * @param additionalInserts
-	 * @return
-	 * @throws StandardException
-	 */
-//	public static Put insert(DataValueDescriptor[] row, byte[] key, byte[] transID, DataValueDescriptor[] additionalInserts) throws StandardException {
-//		Put put = insert(row,key,transID);
-//		put = insertAdditional(additionalInserts,put);
-//		return put;
-//	}
-	
-//	public static Put insertAdditional(DataValueDescriptor[] row, Put put) throws StandardException {
-////		DerbyLogUtils.traceDescriptors(LOG, "insert row with key: "+ key +" and row", row);
-//		try {
-//			for (int i = 0; i < row.length; i++) {
-//				if (row[i] != null && !row[i].isNull()) {
-////					SpliceLogUtils.trace(LOG, "insert row type %s, value %s, qualifier %d",row[i].getTypeName(),row[i].getTraceString(),i);
-//					put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(-(i+1))).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));
-//				} else {
-//					SpliceLogUtils.trace(LOG,
-//							"skipping row since it was null "+ (row[i]==null? "NULL":row[i].getTypeName()) +
-//							", value "+ (row[i]==null? "NULL" : row[i].getTraceString()));
-//				}
-//			}
-//			return put;
-//		}
-//		catch (IOException e) {
-//			throw new RuntimeException(e.getMessage(), e);
-//		}
-//	}
-	
-//	public static Put insert(DataValueDescriptor[] row, byte[] key, byte[] transID) throws StandardException {
-////		DerbyLogUtils.traceDescriptors(LOG, "insert row with key: "+ key +" and row", row);
-//		try {
-//			Put put = new Put(key);
-//			for (int i = 0; i < row.length; i++) {
-//				if (row[i] != null && !row[i].isNull()) {
-////					SpliceLogUtils.trace(LOG, "insert row type %s, value %s, qualifier %d",row[i].getTypeName(),row[i].getTraceString(),i);
-//					put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));
-//				} else {
-//					SpliceLogUtils.trace(LOG,
-//							"skipping row since it was null "+ (row[i]==null? "NULL":row[i].getTypeName()) +
-//							", value "+ (row[i]==null? "NULL" : row[i].getTraceString()));
-//				}
-//
-//			}
-//			if (transID != null)
-//				put.setAttribute(TxnConstants.TRANSACTION_ID, transID);
-//			return put;
-//		}
-//		catch (IOException e) {
-//			throw new RuntimeException(e.getMessage(), e);
-//		}
-//	}
-	
-
-//	public static Put insert(DataValueDescriptor[] row, FormatableBitSet validColumns, byte[] transID) throws StandardException {
-//		return insert(row,validColumns,gen.next().toString().getBytes(), transID);
-//	}
-
-//	public static Put insert(DataValueDescriptor[] row, FormatableBitSet validColumns, byte[] key, byte[] transID) throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("insert row " + row + " with key " + key+" with validColumns "+validColumns);
-//		try {
-//			Put put = new Put(key);
-//			int numrows = (validColumns != null ? validColumns.getLength() : row.length);  // bug 118
-//			for (int i = 0; i < numrows; i++) {
-//				if ( (validColumns != null && !validColumns.isSet(i)) || row[i] == null || row[i].isNull())
-//					continue;
-//
-//				if (LOG.isTraceEnabled())
-//					LOG.trace("insert row type " + row[i].getTypeName() + ", value " + row[i].getTraceString());
-//				put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));
-//			}
-//			if (transID != null)
-//				put.setAttribute(TxnConstants.TRANSACTION_ID, transID);
-//			return put;
-//		}
-//		catch (IOException e) {
-//			throw new RuntimeException(e.getMessage(), e);
-//		}
-//	}
-
-//	public static Put update(RowLocation rowLocation, DataValueDescriptor[] row, FormatableBitSet validColumns, byte[] transID) throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("insert row " + rowLocation);
-//
-//		try {
-//			Put put = new Put(rowLocation.getBytes());
-//			int numrows = (validColumns != null ? validColumns.getLength() : row.length);  // bug 118
-//			for (int i = 0; i < numrows; i++) {
-//				if ((validColumns != null && !validColumns.isSet(i)) || row[i] == null || row[i].isNull())
-//					continue;
-//
-//				if (LOG.isTraceEnabled())
-//					LOG.trace("update row type " + row[i].getTypeName() + ", value " + row[i].getTraceString());
-//				put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));
-//			}
-//			if (transID != null)
-//				put.setAttribute(TxnConstants.TRANSACTION_ID, transID);
-//			return put;
-//		}
-//		catch (IOException e) {
-//			throw new RuntimeException(e.getMessage(), e);
-//		}
-//	}
-
 	public static boolean update(RowLocation loc, DataValueDescriptor[] row,
 			FormatableBitSet validColumns, HTableInterface htable, byte[] transID) throws StandardException {
 		if (LOG.isTraceEnabled())
@@ -497,15 +380,6 @@ public class SpliceUtils {
 				return false;
 			}
 
-//			Put put = new Put(loc.getBytes());
-//			for (int i = 0; i < row.length; i++) {
-//				if (LOG.isTraceEnabled())
-//					LOG.trace("update row type " + row[i].getTypeName() + ", value " + row[i].getTraceString());
-//				put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), DerbyBytesUtil.generateBytes(row[i]));
-//			}
-//
-//			if (transID != null)
-//				put.setAttribute(TxnConstants.TRANSACTION_ID, transID);
 			Put put = Puts.buildUpdate(loc,row,validColumns,transID);
 			//FIXME: checkAndPut can only do one column at a time, too expensive
 			htable.put(put);

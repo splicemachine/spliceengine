@@ -7,6 +7,7 @@ import com.gotometrics.orderly.*;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.StringUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.hadoop.fs.BlockLocation;
@@ -29,7 +30,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -60,21 +66,18 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 	}
 
 	@Override
-	public long doImport(String sourceFile,Collection<BlockLocation> locations,
-			String destTable,String delimiter,int[] columnTypes,FormatableBitSet activeCols)
-			throws IOException {
-		SpliceLogUtils.trace(LOG,"doImport for sourceFile %s,destinationTable %s, with delimiter %s, with columnTypes=%s",
-																			sourceFile,destTable,delimiter, Arrays.toString(columnTypes));
+	public long doImport(Collection<BlockLocation> locations,ImportContext context) throws IOException{
+		SpliceLogUtils.trace(LOG,"executing import for context %s",context);
 		long numImported=0l;
-		Path path = new Path(sourceFile);
-		Splitter splitter = Splitter.on(delimiter).trimResults();
+		Path path =  context.getFilePath();
+		Splitter splitter = Splitter.on(context.getColumnDelimiter()).trimResults();
 		FSDataInputStream is = null;
 		//get a bulk-insert table for our table to insert
-		HTableInterface table = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(destTable));
+		HTableInterface table = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(Long.toString(context.getTableId())));
 
 		LineReader reader = null;
 		//open a serializer to serialize our data
-		Serializer serializer = new Serializer();
+		Serializer serializer = new Serializer(context.getStripString(),context.getTimestampFormat());
 		try{
 			CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
 			CompressionCodec codec = codecFactory.getCodec(path);
@@ -107,7 +110,8 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 					SpliceLogUtils.trace(LOG,"inserting line %s",text);
 					pos+=newSize;
 
-					importRow(columnTypes, activeCols, splitter, table, serializer, text.toString());
+					importRow(context.getColumnTypes(), context.getActiveCols(),
+												splitter, table, serializer, text.toString());
 					numImported++;
 				}
 			}
@@ -125,14 +129,14 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		return numImported;
 	}
 
-	@Override
-	public long importFile(String sourceFile, String destTable, String delimiter,
-												 int[] columnTypes, FormatableBitSet activeCols) throws IOException {
-		Path path = new Path(sourceFile);
 
-		HTableInterface table = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(destTable));
-		Splitter splitter = Splitter.on(delimiter);
-		Serializer serializer = new Serializer();
+	@Override
+	public long importFile(ImportContext context) throws IOException{
+		Path path =  context.getFilePath();
+
+		HTableInterface table = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(context.getTableId()));
+		Splitter splitter = Splitter.on(context.getColumnDelimiter());
+		Serializer serializer = new Serializer(context.getStripString(),context.getTimestampFormat());
 		InputStream is;
 		BufferedReader reader = null;
 		long numImported=0l;
@@ -143,7 +147,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 			reader = new BufferedReader(new InputStreamReader(is));
 			String line;
 			while((line = reader.readLine())!=null){
-				importRow(columnTypes,activeCols,splitter,table,serializer,line);
+				importRow(context.getColumnTypes(),context.getActiveCols(),splitter,table,serializer,line);
 				numImported++;
 			}
 		}catch (Exception e){
@@ -161,20 +165,23 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 
 	private void importRow(int[] columnTypes, FormatableBitSet activeCols,
 												 Splitter splitter, HTableInterface table,
-												 Serializer serializer, String line) throws IOException {
+												 Serializer serializer, String line ) throws IOException {
 		/*
 		 * Constructs the put and executes it onto the table.
 		 */
 		Put put = new Put(SpliceUtils.getUniqueKey());
 		int colPos = 0;
 		for(String col:splitter.split(line)){
-			//go to the next non-null position
-			while(!activeCols.get(colPos)){
-				colPos++;
-				if(colPos>columnTypes.length)
+			if(colPos >= columnTypes.length){
+				//we've exhausted all the known columns, so skip all remaining entries on the line
+				break;
+			}
+			if(activeCols!=null){
+				//go to the next set position
+				colPos = activeCols.anySetBit(colPos);
+				if(colPos>=columnTypes.length)
 					throw new IOException("Incorrect Column types or index present");
 			}
-			SpliceLogUtils.trace(LOG, "placing item %s at column position %d", col, colPos);
 			put.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
 					Integer.toString(colPos).getBytes(),serializer.serialize(col,columnTypes[colPos]));
 			colPos++;
@@ -195,9 +202,23 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		private RowKey decimalRowKey;
 		private RowKey doubleKey;
 
+		private final String charDelimiter;
+		private final SimpleDateFormat timestampFormat;
+
+		private Serializer(String charDelimiter) {
+			this(charDelimiter,null);
+		}
+
+		public Serializer(String stripString, String timestampFormat) {
+			this.charDelimiter = stripString;
+			this.timestampFormat = new SimpleDateFormat(timestampFormat);
+		}
+
 		byte[] serialize(String column,int columnType) throws IOException {
+			String col = preProcessColumn(column);
 			switch(columnType){
 				case Types.BOOLEAN:
+				//TODO -sf- boolean serializer?
 				case Types.SMALLINT:
 				case Types.TINYINT:
 				case Types.REF:
@@ -208,37 +229,76 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 				case Types.BIT:
 					if(varBinRowKey==null)
 						varBinRowKey = new VariableLengthByteArrayRowKey();
-					return varBinRowKey.serialize(Bytes.toBytes(column));
+					return varBinRowKey.serialize(Bytes.toBytes(col));
 				case Types.DATE:
-				case Types.BIGINT:
-				case Types.TIME:
+					Date date = getDate(col);
+					if(longKey==null)longKey = new LongRowKey();
+					return longKey.serialize(date.getTime());
 				case Types.TIMESTAMP:
+					Timestamp ts = getTimestamp(col);
+					if(longKey==null)longKey = new LongRowKey();
+					return longKey.serialize(ts.getTime());
+				case Types.TIME:
+					Time time = getTime(col);
+					if(longKey==null)longKey = new LongRowKey();
+					return longKey.serialize(time.getTime());
+				case Types.BIGINT:
 					if(longKey==null)
 						longKey = new LongRowKey();
-					return longKey.serialize(Long.parseLong(column));
+					return longKey.serialize(Long.parseLong(col));
 				case Types.DOUBLE:
 					if(doubleKey == null)
 						doubleKey = new DoubleRowKey();
-					return doubleKey.serialize(Double.parseDouble(column));
+					return doubleKey.serialize(Double.parseDouble(col));
 				case Types.INTEGER:
 					if(intKey ==null)
 						intKey = new IntegerRowKey();
-					return intKey.serialize(Integer.parseInt(column.trim()));
+					return intKey.serialize(Integer.parseInt(col.trim()));
 				case Types.VARCHAR:
 				case Types.LONGNVARCHAR:
 				case Types.CLOB:
 				case Types.SQLXML:
 					if(stringKey == null)
 						stringKey = new StringRowKey();
-					return stringKey.serialize(column);
+					return stringKey.serialize(col);
 				case Types.DECIMAL:
 					if(decimalRowKey==null)
 						decimalRowKey = new BigDecimalRowKey();
-					return decimalRowKey.serialize(new BigDecimal(column));
+					return decimalRowKey.serialize(new BigDecimal(col));
 				default:
 					throw new IOException("Attempted to serialize unimplemented " +
-											"serializable entity "+column+" with column type number "+columnType);
+											"serializable entity "+col+" with col type number "+columnType);
 			}
+		}
+
+		private Date getDate(String col) throws IOException {
+			if(timestampFormat==null) return Date.valueOf(col);
+			try {
+				return new Date(timestampFormat.parse(col).getTime());
+			} catch (ParseException e) {
+				throw new IOException(e);
+			}
+		}
+
+		private Timestamp getTimestamp(String col) throws IOException{
+			try {
+				return timestampFormat==null? Timestamp.valueOf(col): new Timestamp(timestampFormat.parse(col).getTime());
+			} catch (ParseException e) {
+				throw new IOException(e);
+			}
+		}
+
+		private Time getTime(String col) throws IOException{
+			try {
+				return timestampFormat==null? Time.valueOf(col): new Time(timestampFormat.parse(col).getTime());
+			} catch (ParseException e) {
+				throw new IOException(e);
+			}
+		}
+
+		private String preProcessColumn(String column) {
+			if(charDelimiter==null) return column;
+			return StringUtils.strip(column, charDelimiter,'\\');
 		}
 	}
 }
