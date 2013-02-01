@@ -1,6 +1,6 @@
-package com.splicemachine.percolator.constants;
+package com.splicemachine.si.constants;
 
-public class SplicePercolatorConstants {
+public class SpliceSIConstants {
 	public static final byte[] LOCK = "LOCK".getBytes();
 
 }
