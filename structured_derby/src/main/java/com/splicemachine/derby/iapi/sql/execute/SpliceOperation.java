@@ -1,15 +1,10 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import java.util.List;
-
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 /**
  * 
