@@ -326,21 +326,17 @@ public class DerbyBytesUtilTest {
 			throws StandardException {
 		DataValueDescriptor desc = null;
 		if (object.getClass() == String.class) {
-			desc = dvf.getNull(StoredFormatIds.SQL_VARCHAR_ID,
-					StringDataValue.COLLATION_TYPE_UCS_BASIC);
+			desc = dvf.getNull(StoredFormatIds.SQL_VARCHAR_ID,StringDataValue.COLLATION_TYPE_UCS_BASIC);
 			desc.setValue((String) object);
 		}
 		if (object.getClass() == Integer.class) {
-			desc = dvf.getNull(StoredFormatIds.SQL_INTEGER_ID,
-					StringDataValue.COLLATION_TYPE_UCS_BASIC);
+			desc = dvf.getNull(StoredFormatIds.SQL_INTEGER_ID,StringDataValue.COLLATION_TYPE_UCS_BASIC);
 			desc.setValue(((Integer) object).intValue());
 		}
 		if (object.getClass() == Long.class) {
-			desc = dvf.getNull(StoredFormatIds.SQL_LONGINT_ID,
-					StringDataValue.COLLATION_TYPE_UCS_BASIC);
+			desc = dvf.getNull(StoredFormatIds.SQL_LONGINT_ID,StringDataValue.COLLATION_TYPE_UCS_BASIC);
 			desc.setValue(((Long) object).longValue());
 		}
-
 		return desc;
 	}
 }
