@@ -7,11 +7,9 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,21 +38,33 @@ public class ConglomerateUtils {
 																							SchemaConstants.DEFAULT_CONGLOMERATE_SCHEMA_PATH);
 		conglomSequencePath = conglomeratePath+"/__CONGLOM_SEQUENCE";
 		try {
-			ZkUtils.addIfAbsent(conglomeratePath,new byte[0],ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
-			ZkUtils.addIfAbsent(conglomSequencePath,Bytes.toBytes(0l),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
-		} catch (IOException e) {
+			ZkUtils.safeCreate(conglomeratePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+			ZkUtils.safeCreate(conglomSequencePath, Bytes.toBytes(0l), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+		} catch (KeeperException e) {
 			LOG.error("Unable to ensure Conglomerate base path exists, aborting",e);
+			/*
+			 * We can't start up without a conglomerate path, so abort the path
+			 */
+			throw new RuntimeException(e);
+		} catch (InterruptedException e) {
+			LOG.error("Interrupted while creating conglomerate paths,aborting", e);
 			/*
 			 * We can't start up without a conglomerate path, so abort the path
 			 */
 			throw new RuntimeException(e);
 		}
 
-		SLEEP_SPLIT_INTERVAL = SpliceUtils.config.getLong(SPLIT_WAIT_INTERVAL,DEFAULT_SPLIT_WAIT_INTERVAL);
+		SLEEP_SPLIT_INTERVAL = SpliceUtils.config.getLong(SPLIT_WAIT_INTERVAL, DEFAULT_SPLIT_WAIT_INTERVAL);
 	}
 
-
-
+	/**
+	 * Reads stored Conglomerate information and returns it as an instance of {@code instanceClass}.
+	 *
+	 * @param conglomId the id of the conglomerate
+	 * @param instanceClass the type to return
+	 * @param <T> the type to return
+	 * @return an instance of {@code T} which contains the conglomerate information.
+	 */
 	public static <T> T readConglomerate(long conglomId, Class<T> instanceClass){
 		LOG.trace("readConglomerate {}, for instanceClass {}",conglomId,instanceClass);
 		String table = Long.toString(conglomId);
@@ -94,11 +104,25 @@ public class ConglomerateUtils {
 		return null;
 	}
 
+	/**
+	 * Stores information about a new conglomerate, specified by {@code conglomId}.
+	 *
+	 * @param conglomId the conglom id to store information under
+	 * @param conglomerate the conglomerate to store
+	 * @throws IOException if something goes wrong and the data can't be stored.
+	 */
 	public static void createConglomerate(long conglomId,
 																				Conglomerate conglomerate) throws IOException {
 		createConglomerate(Long.toString(conglomId),SpliceUtils.toJSON(conglomerate));
 	}
 
+	/**
+	 * Stores information about a new conglomerate, specified by {@code tableName}.
+	 *
+	 * @param tableName the name of the table
+	 * @param conglomerate the conglomerate to store
+	 * @throws IOException if something goes wrong and the data can't be stored.
+	 */
 	public static void createConglomerate(String tableName,
 																				String conglomData) throws IOException {
 		LOG.debug("creating Hbase table for conglom {} with data {}",tableName,conglomData);
@@ -118,6 +142,12 @@ public class ConglomerateUtils {
 		}
 	}
 
+	/**
+	 * Update a conglomerate.
+	 *
+	 * @param conglomerate the new conglomerate information to update
+	 * @throws IOException if something goes wrong and the data can't be stored.
+	 */
 	public static void updateConglomerate(Conglomerate conglomerate) throws IOException {
 		String conglomData = SpliceUtils.toJSON(conglomerate);
 		String table = Long.toString(conglomerate.getContainerid());
@@ -134,16 +164,41 @@ public class ConglomerateUtils {
 		}
 	}
 
+	/**
+	 * Gets the next conglomerate id for the system.
+	 *
+	 * @return the next conglomerate id for the system.
+	 * @throws IOException if something goes wrong and the next id can't be fetched.
+	 */
 	public static long getNextConglomerateId() throws IOException{
 		LOG.trace("getting next conglomerate id");
 		return ZkUtils.nextSequenceId(conglomSequencePath);
 	}
 
+	/**
+	 * Split a conglomerate. This is an asynchronous operation.
+	 *
+	 * @param conglomId the conglomerate to split.
+	 * @throws IOException if something goes wrong and the split fails
+	 * @throws InterruptedException if the split is interrupted.
+	 */
 	public static void splitConglomerate(long conglomId) throws IOException, InterruptedException {
 		HBaseAdmin admin = SpliceUtils.getAdmin();
 		admin.split(Bytes.toBytes(Long.toString(conglomId)));
 	}
 
+	/**
+	 * Synchronously split a conglomerate around a specific row position.
+	 *
+	 * This method will block until it detects that the split is completed. Unfortunately,
+	 * it must block via polling. For a more responsive version, change the setting
+	 * "splice.splitWaitInterval" in splice-site.xml.
+	 *
+	 * @param conglomId the id of the conglomerate to split
+	 * @param position the row to split around
+	 * @throws IOException if something goes wrong and the split fails
+	 * @throws InterruptedException if the split operation is interrupted.
+	 */
 	public static void splitConglomerate(long conglomId,
 																			 byte[] position)
 											throws IOException, InterruptedException {

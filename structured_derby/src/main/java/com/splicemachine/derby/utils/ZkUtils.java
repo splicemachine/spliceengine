@@ -6,17 +6,17 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Op;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Utilities related to ZooKeeper.
+ *
  * @author Scott Fines
  * Created: 2/2/13 9:38 AM
  */
@@ -24,6 +24,11 @@ public class ZkUtils {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ZkUtils.class);
 	private static final SpliceZooKeeperManager zkManager = new SpliceZooKeeperManager();
 
+	/**
+	 * Gets a direct interface to a ZooKeeper instance.
+	 *
+	 * @return a direct interface to ZooKeeper.
+	 */
 	public static RecoverableZooKeeper getRecoverableZooKeeper(){
 		try {
 			return zkManager.getRecoverableZooKeeper();
@@ -33,6 +38,9 @@ public class ZkUtils {
 		}
 	}
 
+	/**
+	 * @return direct interface to a ZooKeeperWatcher
+	 */
 	public static ZooKeeperWatcher getZooKeeperWatcher(){
 		try {
 			return zkManager.getZooKeeperWatcher();
@@ -42,19 +50,16 @@ public class ZkUtils {
 		}
 	}
 
-	public static void addIfAbsent(String path, byte[] bytes,
-																 List<ACL> acls, CreateMode createMode) throws IOException {
-		try {
-			if(getRecoverableZooKeeper().exists(path,false)==null){
-				safeCreate(path,bytes,acls, createMode);
-			}
-		} catch (KeeperException e) {
-			throw new IOException(e);
-		} catch (InterruptedException e) {
-			throw new IOException(e);
-		}
-	}
 
+	/**
+	 * Creates a node in ZooKeeper if it does not already exist. If it already exists, this does nothing.
+	 *
+	 * @param path the path to create
+	 * @param bytes the bytes to set
+	 * @param acls the privileges for the new node
+	 * @param createMode the create mode for that node
+	 * @throws IOException if something goes wrong and the node can't be added.
+	 */
 	public static boolean safeCreate(String path, byte[] bytes, List<ACL> acls, CreateMode createMode)
 																														throws KeeperException, InterruptedException {
 		try {
@@ -69,9 +74,19 @@ public class ZkUtils {
 		}
 	}
 
+	/**
+	 * Sets the data onto ZooKeeper.
+	 *
+	 * This is essentially a wrapper method to clean up exception handling code.
+	 *
+	 * @param path the path to set data on
+	 * @param data the data to set
+	 * @param version the version to set (-1 if you don't care).
+	 * @throws IOException if something goes wrong and the data can't be set.
+	 */
 	public static void setData(String path, byte[] data, int version) throws IOException{
 		try {
-			ZkUtils.getRecoverableZooKeeper().setData(path,data,version);
+			getRecoverableZooKeeper().setData(path,data,version);
 		} catch (KeeperException e) {
 			throw new IOException(e);
 		} catch (InterruptedException e) {
@@ -79,6 +94,15 @@ public class ZkUtils {
 		}
 	}
 
+	/**
+	 * Gets data from ZooKeeper.
+	 *
+	 * This is essentially a wrapper method to clean up exception handling code.
+	 *
+	 * @param path the path to get data from
+	 * @return the data contained in that path
+	 * @throws IOException if something goes wrong and the data can't be set.
+	 */
 	public static byte[] getData(String path) throws IOException{
 		try{
 			return getRecoverableZooKeeper().getData(path,false,null);
@@ -89,6 +113,13 @@ public class ZkUtils {
 		}
 	}
 
+	/**
+	 * Increments a counter stored in ZooKeeper
+	 *
+	 * @param counterNode the node to store the counter in
+	 * @return the next counter number
+	 * @throws IOException if something goes wrong and the counter can't be incremented.
+	 */
 	public static long nextSequenceId(String counterNode) throws IOException {
 		/*
 		 * When generating a new, Monotonically increasing identifier
