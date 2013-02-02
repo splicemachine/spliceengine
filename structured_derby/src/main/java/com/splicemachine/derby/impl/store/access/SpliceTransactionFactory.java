@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.store.access;
 import java.io.IOException;
 import java.util.Properties;
 
+import com.splicemachine.derby.utils.ZkUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
@@ -137,8 +138,8 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		try {
 			//String transPath = config.get(TxnConstants.TRANSACTION_PATH_NAME,TxnConstants.DEFAULT_TRANSACTION_PATH);	
 			//ZkTransactionManager zkTrans = new ZkTransactionManager(transPath, zkw, rzk);
-			ZkTransactionManager zkTrans = new ZkTransactionManager(SpliceUtils.getTransactionPath(), SpliceUtils.getZooKeeperWatcher(), 
-					SpliceUtils.getRecoverableZooKeeper());
+			ZkTransactionManager zkTrans = new ZkTransactionManager(SpliceUtils.getTransactionPath(), ZkUtils.getZooKeeperWatcher(),
+					ZkUtils.getRecoverableZooKeeper());
 			ZookeeperTransaction trans = new ZookeeperTransaction(new SpliceLockSpace(),dataValueFactory,zkTrans, transName);
 			trans.setTransactionName(transName);
 			

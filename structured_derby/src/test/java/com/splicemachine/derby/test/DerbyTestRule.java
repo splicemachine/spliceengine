@@ -11,6 +11,7 @@ import java.util.Map;
 
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
@@ -178,12 +179,9 @@ public class DerbyTestRule extends TestWatchman{
 		return conn;
 	}
 
-    public void splitLastTable() throws Exception{
-       SpliceDerbyTest.splitLastTable();
-    }
 
    public void splitTable(String tableName) throws Exception{
-		 SpliceUtils.splitConglomerate(getConglomId(tableName));
+		 ConglomerateUtils.splitConglomerate(getConglomId(tableName));
     }
 
 	public long getConglomId(String tableName) throws Exception{
@@ -237,6 +235,6 @@ public class DerbyTestRule extends TestWatchman{
 			count++;
 		}
 		if(result!=null)
-			SpliceUtils.splitConglomerate(conglomId, result.getRow());
+			ConglomerateUtils.splitConglomerate(conglomId, result.getRow());
 	}
 }

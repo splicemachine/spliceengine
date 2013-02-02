@@ -203,9 +203,9 @@ public class InsertOperationTest {
 			rule.commit();
 		}finally{
 			if(s!=null)s.close();
-		}	
-		SpliceDerbyTest.splitLastTable();
-		
+		}
+		rule.splitTable("a");
+
 		//copy that data into table t
 		ResultSet rs = null;
 		try{

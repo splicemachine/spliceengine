@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.store.access;
 
 import java.util.Properties;
 
+import com.splicemachine.derby.utils.ZkUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.daemon.Serviceable;
@@ -299,7 +300,7 @@ public class ZookeeperTransaction implements Transaction {
 		
 		try {
 			//zkTransaction.prepareCommit(this.ts);
-			SpliceUtils.getRecoverableZooKeeper().setData(ts.getTransactionID(), Bytes.toBytes(TransactionStatus.PREPARE_COMMIT.toString()), -1);
+			ZkUtils.getRecoverableZooKeeper().setData(ts.getTransactionID(), Bytes.toBytes(TransactionStatus.PREPARE_COMMIT.toString()), -1);
 		} catch (Exception e) {
 			throw StandardException.newException(e.getMessage(), e);
 		}

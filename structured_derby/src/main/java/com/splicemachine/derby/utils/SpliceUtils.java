@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import java.io.*;
 import java.util.*;
 
+import com.splicemachine.SpliceConfiguration;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
@@ -18,11 +19,7 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -67,43 +64,28 @@ import com.splicemachine.utils.SpliceLogUtils;
 @SuppressWarnings(value = "deprecation")
 public class SpliceUtils {
 	private static Logger LOG = Logger.getLogger(SpliceUtils.class);
-	public static final String CONGLOMERATE_ATTRIBUTE = "DERBY_CONGLOMERATE";
-
 
 
 	public enum SpliceConglomerate {HEAP,BTREE}
-	public static Configuration config = HBaseConfiguration.create();
+	public static Configuration config = SpliceConfiguration.create();
 	protected static Gson gson = new Gson();
 	protected static UUIDHexGenerator gen = new UUIDHexGenerator("Splice", null);
 	protected static String quorum;
-	protected static String conglomeratePath;
 	protected static String transPath;
 	protected static String derbyPropertyPath = "/derbyPropertyPath";
 	protected static String queryNodePath = "/queryNodePath";	
 	protected static RecoverableZooKeeper rzk = null;
 	protected static ZooKeeperWatcher zkw = null;
 
-	public static String getTableNameString(ContainerKey kye) {
-		return "";
-	}
-
-	
 	static {
 		quorum = generateQuorum();
-		conglomeratePath = config.get(SchemaConstants.CONGLOMERATE_PATH_NAME,SchemaConstants.DEFAULT_CONGLOMERATE_SCHEMA_PATH);	
+//		conglomeratePath = config.get(SchemaConstants.CONGLOMERATE_PATH_NAME,SchemaConstants.DEFAULT_CONGLOMERATE_SCHEMA_PATH);
 		transPath = config.get(TxnConstants.TRANSACTION_PATH_NAME,TxnConstants.DEFAULT_TRANSACTION_PATH);
 		try {
-			
+
 			zkw = (new HBaseAdmin(config)).getConnection().getZooKeeperWatcher();
 			rzk = zkw.getRecoverableZooKeeper();
-//			rzk = ZKUtil.connect(config, new Watcher() {			
-//				@Override
-//				public void process(WatchedEvent event) {					
-//				}
-//			});
-			
-			if (rzk.exists(conglomeratePath, false) == null)
-				rzk.create(conglomeratePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
 			if (rzk.exists(queryNodePath, false) == null)
 				rzk.create(queryNodePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 			if (rzk.exists(derbyPropertyPath, false) == null)
@@ -115,131 +97,22 @@ public class SpliceUtils {
 		} finally {
 
 		}
-	}		
+	}
 
-	public static RecoverableZooKeeper getRecoverableZooKeeper() {
-		return rzk;
+	public static HBaseAdmin getAdmin() {
+		try {
+			return new HBaseAdmin(config);
+		} catch (MasterNotRunningException e) {
+			throw new RuntimeException(e);
+		} catch (ZooKeeperConnectionException e) {
+			throw new RuntimeException(e);
+		}
 	}
-	
-	public static ZooKeeperWatcher getZooKeeperWatcher() {
-		return zkw;
-	}
-	
+
 	public static String getTransactionPath() {
 		return transPath;
 	}
 	
-	public static <T> T readConglomerate(long tableName, Class<T> instanceClass) {	
-		if (LOG.isTraceEnabled())
-			LOG.trace("readConglomerate " + tableName + ", for instanceClass " + instanceClass);
-		HBaseAdmin admin = null;
-		String table = Long.toString(tableName);
-		try {
-			byte[] data = rzk.getData(conglomeratePath +"/"+ table, false, null);			
-			if (data == null) { // Lookup from HBase
-				LOG.error("Missing conglomerate information, make sure you do not have a transient zookeeper");
-				admin = new HBaseAdmin(config);  
-				if (admin.tableExists(table)) {
-					HTableDescriptor td = admin.getTableDescriptor(table.getBytes());
-					String json = td.getValue(CONGLOMERATE_ATTRIBUTE);
-					rzk.setData(conglomeratePath + "/" + table, Bytes.toBytes(json), -1);
-					if (LOG.isTraceEnabled())
-						LOG.trace("readConglomerate " + tableName + ", json " + json);
-					return fromJSON(json,instanceClass);
-				} else {
-					LOG.error("table does not exist in hbase - "+tableName);
-				}
-			} else {
-				return fromJSON(Bytes.toString(data),instanceClass);
-			}
-
-		} catch (MasterNotRunningException a) {
-			LOG.error(a.getMessage(), a);
-		} catch (IOException ie) {
-			LOG.error(ie.getMessage(), ie);
-		} catch (KeeperException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-			try {
-				if (admin != null)
-					admin.close();		
-			} catch (Exception ie) {
-				LOG.error(ie.getMessage(), ie);
-			}
-		}
-		return null;
-	}
-
-
-	public static void createHTable(long tableName, Conglomerate conglomerate) {	
-		createHTable(Long.toString(tableName), SpliceUtils.toJSON(conglomerate));
-	}
-
-	public static void createHTable(String tableName, String conglomerateJSON) {	
-		LOG.debug("creating table in hbase for " + tableName + ", with serialized conglomerate " + conglomerateJSON);
-		HBaseAdmin admin = null;
-		try {
-			admin = new HBaseAdmin(config);  
-				HTableDescriptor td = generateDefaultDescriptor(tableName);
-				admin.createTable(td);
-				rzk.create(conglomeratePath + "/" + tableName, Bytes.toBytes(conglomerateJSON), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-		} catch (MasterNotRunningException a) {
-			LOG.error(a.getMessage(), a);
-		} catch (IOException ie) {
-			LOG.error(ie.getMessage(), ie);
-		} catch (KeeperException e) {
-			LOG.error(e.getMessage(), e);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-			try {
-				if (admin != null)
-					admin.close();	
-			} catch (Exception ie) {
-				LOG.error(ie.getMessage(), ie);
-			}
-		}
-	}
-
-	public static void updateHTable(HTableInterface htable, Conglomerate conglomerate) {
-		if (htable == null)
-			return;
-		
-		String conglomerateJSON = SpliceUtils.toJSON(conglomerate);
-		LOG.debug("updating table in hbase for " + htable.getTableName() + ", with serialized conglomerate " + conglomerateJSON);
-		HBaseAdmin admin = null;
-		try {
-			admin = new HBaseAdmin(config);  
-			if (!admin.tableExists(htable.getTableName())) {
-				LOG.error("table does not exist in hbase - "+Bytes.toString(htable.getTableName()));
-			} else{
-				rzk.setData(conglomeratePath + "/" + Bytes.toString(htable.getTableName()), Bytes.toBytes(conglomerateJSON), -1);
-			} 
-		} catch (MasterNotRunningException a) {
-			LOG.error(a.getMessage(), a);
-		} catch (IOException ie) {
-			LOG.error(ie.getMessage(), ie);
-		} catch (KeeperException e) {
-			LOG.error(e.getMessage(), e);
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			LOG.error(e.getMessage(), e);
-			e.printStackTrace();
-		}
-		finally {
-			try {
-				if (admin != null)
-					admin.close();			
-			} catch (Exception ie) {
-				LOG.error(ie.getMessage(), ie);
-			}
-		}
-	}
 
 	public static String toJSON(Object object) {
 		return gson.toJson(object);
@@ -403,88 +276,6 @@ public class SpliceUtils {
 		}
 		sb.delete(sb.length() - 1, sb.length());
 		return sb.toString();
-	}
-
-	public static long generateConglomSequence() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("generateConglomSequence");
-		try {
-			String node = rzk.create(conglomeratePath + "/", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
-			long test = Long.parseLong(node.substring(node.length() - 10, node.length()));
-			if (LOG.isTraceEnabled())
-				LOG.trace("conglom Sequence returned " +test);
-			return test;
-		} catch (KeeperException e) {
-			//TODO -sf- better handling!
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		} catch (InterruptedException e) {
-			//TODO -sf- better handling!
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		}
-		return (Long) null;
-	}
-
-	public static void splitConglomerate(long conglomId) throws IOException, InterruptedException {
-		HBaseAdmin admin = new HBaseAdmin(config);
-
-		byte[] name = SpliceAccessManager.getHTable(conglomId).getTableName();
-		admin.split(name);
-	}
-
-	/**
-	 * Synchronously splits a Conglomerate around the specified position.
-	 *
-	 * @param conglomId the conglom to split
-	 * @param position the position to split around
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	public static void splitConglomerate(long conglomId, byte[] position) throws IOException, InterruptedException {
-		HBaseAdmin admin = new HBaseAdmin(config);
-
-		byte[] name = SpliceAccessManager.getHTable(conglomId).getTableName();
-		admin.split(name,position);
-
-		boolean isSplitting=true;
-		while(isSplitting){
-			isSplitting=false;
-			//synchronously wait here until no TableRegions report isSplit()
-			List<HRegionInfo> regions = admin.getTableRegions(name);
-			for(HRegionInfo region:regions){
-				if(region.isSplit()){
-					isSplitting=true;
-					break;
-				}
-			}
-			Thread.sleep(1000l);
-		}
-	}
-
-	public static long getHighestConglomSequence(){
-		SpliceLogUtils.trace(LOG, "getHighestConglomSequence");
-		try{
-			List<String> children = rzk.getChildren(conglomeratePath, false);
-			//filter out elements with @ sign in them--those aren't conglom sequences 
-			List<Long> values = Lists.newArrayList(Collections2.transform(Collections2.filter(children, new Predicate<String>(){
-				@Override
-				public boolean apply(String next){
-					return next!=null&&!next.contains("@");
-				}
-			}),new Function<String,Long>(){
-				@Override
-				public Long apply(String source){
-					return Long.valueOf(source);
-				}
-			}));
-			Collections.sort(values);
-			return values.get(values.size()-1);
-		}catch(KeeperException e){
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		} catch (InterruptedException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		}
-		//can't ever happen,since catch blocks will throw runtime exceptions
-		return -1l;
 	}
 
 	public static String generateQueryNodeSequence() {

@@ -23,6 +23,7 @@ package com.splicemachine.derby.impl.store.access.btree;
 
 import java.util.Properties;
 
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
@@ -113,7 +114,7 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
     	if (LOG.isTraceEnabled()) {
     		LOG.trace("readConglomerate container_key " + container_key.getContainerId());
     	}
-    	return SpliceUtils.readConglomerate(container_key.getContainerId(), IndexConglomerate.class);    	
+    	return ConglomerateUtils.readConglomerate(container_key.getContainerId(), IndexConglomerate.class);
     }
 	
 }

@@ -1,10 +1,13 @@
 package com.splicemachine.derby.impl.store.access;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Properties;
+
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
@@ -159,7 +162,11 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 		}
 
 		synchronized (conglom_cache) {
-			conglomid  = SpliceUtils.generateConglomSequence();
+			try {
+				conglomid  = ConglomerateUtils.getNextConglomerateId();
+			} catch (IOException e) {
+				throw StandardException.newException(SQLState.COMMUNICATION_ERROR,e);
+			}
 		}
 		return((conglomid << 4) | factory_type);
 	}

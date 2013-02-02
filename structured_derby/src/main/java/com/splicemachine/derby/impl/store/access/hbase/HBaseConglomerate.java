@@ -5,6 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Properties;
 
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.cache.ClassSize;
@@ -69,7 +70,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
 	int                     tmpFlag) throws StandardException {
 		super.create(rawtran, segmentId, input_containerid, template, columnOrder, collationIds, properties, conglom_format_id, tmpFlag); 
         try {
-        	SpliceUtils.createHTable(containerId,this);
+					ConglomerateUtils.createConglomerate(containerId,this);
         } catch (Exception e) {
         	LOG.error(e.getMessage(), e);
         }
@@ -116,7 +117,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
 
             // add the new column's collation id.
             collation_ids[old_collation_ids.length] =  collation_id;
-            SpliceUtils.updateHTable(htable, this);
+            ConglomerateUtils.updateConglomerate(this);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -41,9 +41,9 @@ public class RowCountOperationTest extends SpliceDerbyTest{
 			s.execute("create table t (i int)");			//			conn.commit();
 		
 			//get the conglomerate ID from ZooKeeper
-			long conglomID = SpliceUtils.getHighestConglomSequence();
-			String name = Bytes.toString(SpliceAccessManager.getHTable(conglomID).getTableName());
-			System.err.println("table id="+name);
+//			long conglomID = SpliceUtils.getHighestConglomSequence();
+//			String name = Bytes.toString(SpliceAccessManager.getHTable(conglomID).getTableName());
+//			System.err.println("table id="+name);
 			
 			s = conn.createStatement();
 			s.execute("insert into t values 1");

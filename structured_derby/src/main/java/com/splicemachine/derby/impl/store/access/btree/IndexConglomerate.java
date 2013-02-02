@@ -5,6 +5,8 @@ import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
 import java.util.Properties;
+
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.ArrayInputStream;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -141,7 +143,7 @@ public class IndexConglomerate extends SpliceConglomerate {
             SanityManager.ASSERT((nUniqueColumns == nKeyFields) || (nUniqueColumns == (nKeyFields - 1)));
         }    	
         try {
-        	SpliceUtils.createHTable(containerId,this);
+        	ConglomerateUtils.createConglomerate(containerId, this);
         } catch (Exception e) {
         	LOG.error(e.getMessage(), e);
         }

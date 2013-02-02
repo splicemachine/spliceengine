@@ -60,38 +60,6 @@ public class SpliceDerbyTest {
         }
     }
 
-    public static void splitLastTable() throws Exception {
-    	//get the conglomerate ID from ZooKeeper
-		long conglomID = SpliceUtils.getHighestConglomSequence();
-		HBaseAdmin admin = new HBaseAdmin(SpliceUtils.config);
-		
-		byte[] nameBytes = SpliceAccessManager.getHTable(conglomID).getTableName();
-		String name = Bytes.toString(nameBytes);
-		SpliceLogUtils.trace(LOG,"table id=%s",name);
-		List<HRegionInfo> existingRegions = admin.getTableRegions(nameBytes);
-		SpliceLogUtils.trace(LOG, "table %s existing regions=%s",name,existingRegions);
-		//split the HBase table for this id into two regions
-		admin.split(name);
-		List<HRegionInfo> newRegions = admin.getTableRegions(nameBytes);
-		SpliceLogUtils.trace(LOG, "table %s new regions=%s",name,newRegions);
-    }
-    
-    public static void splitTable(String tableName) throws SQLException {
-    	Statement s = null;
-    	ResultSet rs = null;
-    	try{
-    		rs = executeQuery("select * from sys.sysconglomerates ");
-    		while(rs.next()){
-    			System.out.println(rs.getString("conglomeratename"));
-    		}
-    	}finally{
-    		if (rs != null)
-    			rs.close();
-    		if (s !=null)
-    			s.close();
-    	}
-    }
-
 	public static void startConnection() throws SQLException {
 		loadDriver();
 		try {
