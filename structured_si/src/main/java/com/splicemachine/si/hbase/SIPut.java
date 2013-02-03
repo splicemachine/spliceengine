@@ -2,8 +2,10 @@ package com.splicemachine.si.hbase;
 
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.RowLock;
+import org.apache.log4j.Logger;
 
-public class SIPut extends Put{
+public class SIPut extends Put {
+	private static Logger LOG = Logger.getLogger(SIGet.class);
 	public SIPut() {
 		super();
 	}
