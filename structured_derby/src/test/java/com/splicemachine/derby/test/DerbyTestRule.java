@@ -113,7 +113,7 @@ public class DerbyTestRule extends TestWatchman{
 	public void dropTables() throws SQLException{
 		java.sql.Statement s = null;
 		try{
-			s = conn.createStatement();
+			s = getConnection().createStatement();
 			for(String tableName:tableSchemas.keySet()){
 				dropTable(s,tableName);
 			}
@@ -175,7 +175,11 @@ public class DerbyTestRule extends TestWatchman{
 		return ps;
 	}
 
-	public Connection getConnection() {
+	public Connection getConnection() throws SQLException {
+		if(conn.isClosed()){
+				SpliceDerbyTest.startConnection();
+			conn = SpliceDerbyTest.conn;
+		}
 		return conn;
 	}
 

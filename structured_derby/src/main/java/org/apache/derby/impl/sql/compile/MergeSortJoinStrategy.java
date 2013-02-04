@@ -58,7 +58,8 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	 * @exception StandardException		Thrown on error
 	 */
 	public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList,Optimizer optimizer) throws StandardException  {
-		SpliceLogUtils.trace(LOG, "feasible - testing innerTable %s with predicate list=%s and optimizer=%s",innerTable,predList,optimizer);
+		//commented out because it's annoying -SF-
+//		SpliceLogUtils.trace(LOG, "feasible - testing innerTable %s with predicate list=%s and optimizer=%s",innerTable,predList,optimizer);
 		int[] hashKeyColumns = null;
 		ConglomerateDescriptor cd = null;
 		

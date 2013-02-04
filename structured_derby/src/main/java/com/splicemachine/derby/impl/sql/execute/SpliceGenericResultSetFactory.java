@@ -65,9 +65,13 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 			double optimizerEstimatedRowCount, double optimizerEstimatedCost)
 			throws StandardException {
 		SpliceLogUtils.trace(LOG, "getOnceResultSet");
-		return new OnceOperation(source, source.getActivation(), emptyRowFun, cardinalityCheck,
+		OnceOperation op = new OnceOperation(source, source.getActivation(), emptyRowFun, cardinalityCheck,
 				resultSetNumber, subqueryNumber, pointOfAttachment,
 				optimizerEstimatedRowCount, optimizerEstimatedCost);
+
+		OperationTree operationTree = new OperationTree();
+		operationTree.traverse(op);
+		return (NoPutResultSet) operationTree.execute();
 	}
 
 
