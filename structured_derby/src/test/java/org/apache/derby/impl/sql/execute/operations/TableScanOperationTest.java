@@ -21,6 +21,7 @@ import com.splicemachine.derby.test.SpliceDerbyTest;
 public class TableScanOperationTest extends SpliceDerbyTest {
 	private static Logger LOG = Logger.getLogger(TableScanOperationTest.class);
 	protected static Statement s;
+
 	@BeforeClass 
 	public static void startup() throws SQLException {
 		startConnection();		
