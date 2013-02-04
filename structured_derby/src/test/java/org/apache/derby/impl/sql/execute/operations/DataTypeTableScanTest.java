@@ -93,10 +93,10 @@ public class DataTypeTableScanTest {
 		/*
 		 * regression test for Bug #208
 		 */
-		PreparedStatement ps = rule.prepareStatement("select i from ints where s = ?");
-		ps.setShort(1,(short)475);
-		ResultSet rs = ps.executeQuery();
-//		ResultSet rs = rule.executeQuery("select i from ints where s = 475");
+//		PreparedStatement ps = rule.prepareStatement("select i from ints where s = ?");
+//		ps.setShort(1,(short)475);
+//		ResultSet rs = ps.executeQuery();
+		ResultSet rs = rule.executeQuery("select i from ints where s = 475");
 		if(!rs.next())Assert.fail("No records returned!");
 		Assert.assertEquals(1956,rs.getInt(1));
 	}

@@ -37,6 +37,7 @@ public class DerbyBytesUtil {
 		    	case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
 		    		descriptor.setValue(((Double)getRowKey(descriptor).deserialize(bytes)).doubleValue());
 		    	    break;
+				case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
 		    	case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
 		    		descriptor.setValue(((Integer)getRowKey(descriptor).deserialize(bytes)).intValue());
 		    	    break;
@@ -54,7 +55,6 @@ public class DerbyBytesUtil {
 					ois.close();
 					bis.close();
 					break;
-		    	case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();	
 		    	case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
 		    		descriptor.setValue(Bytes.toShort((byte[])getRowKey(descriptor).deserialize(bytes)));
 		    	    break;
@@ -103,6 +103,7 @@ public class DerbyBytesUtil {
 		    		return getRowKey(descriptor).serialize(descriptor.getTimestamp(null).getTime());
 		    	case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
 		    		return getRowKey(descriptor).serialize(descriptor.getDouble());
+				case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
 		    	case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
 		    		return getRowKey(descriptor).serialize(descriptor.getInt());
 		    	case StoredFormatIds.SQL_LONGINT_ID: //return new SQLLongint();
@@ -120,8 +121,7 @@ public class DerbyBytesUtil {
 		    		oos.close();
 		    		bos.close();
 		    		return out;
-		    	case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();	
-		    		return getRowKey(descriptor).serialize(Bytes.toBytes(descriptor.getShort()));
+//		    		return getRowKey(descriptor).serialize(Bytes.toBytes(descriptor.getShort()));
 		    	case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
 		    		return getRowKey(descriptor).serialize(descriptor.getTime(null).getTime());
 		    	case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
@@ -387,7 +387,6 @@ public class DerbyBytesUtil {
 	    	case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
 	    	case StoredFormatIds.SQL_REF_ID: //return new SQLRef();
 	    	case StoredFormatIds.SQL_USERTYPE_ID_V3: //return new UserType();
-	    	case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();	
 	    	case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
 	    	case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
 	    	case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit();
@@ -402,6 +401,7 @@ public class DerbyBytesUtil {
 	    		return new LongRowKey();
 	    	case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
 	    		return new DoubleRowKey();
+			case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
 	    	case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
 	    		return new IntegerRowKey();
 	    	case StoredFormatIds.SQL_REAL_ID: //return new SQLReal();
