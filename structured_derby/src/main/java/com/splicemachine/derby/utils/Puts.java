@@ -24,28 +24,44 @@ public class Puts {
 	/**
 	 * Constructs a transaction-aware update for pushing an update to a row already present in HBase.
 	 *
-	 * Note: For all practical purposes, an update in HBase is identical to an insert. Thus, this method
-	 * is really a convenience wrapper around the associated insert code.
-	 *
 	 * @param location the location of the row to update (location.getBytes() should return the HBase row key
 	 *                 of the row to be updated).
 	 * @param row the data to update
 	 * @param validColumns flags for which columns are to be updated,or {@code null} if all columns are to be used.
+	 * @param validColPositionMap a mapping between the entries in {@code validCols} and the position of the corresponding
+	 *                            column in {@code row}
 	 * @param transactionID the id of the associated transaction
 	 * @param extraColumns any additional metadata to be tagged to the row.
 	 * @return a Put representing the row to update
 	 * @throws IOException if {@code row} or {@code extraColumns} cannot be serialized.
 	 */
 	public static Put buildUpdate(RowLocation location, DataValueDescriptor[] row,
-																FormatableBitSet validColumns,
+																FormatableBitSet validColumns,int[] validColPositionMap,
 																byte[] transactionID,DataValueDescriptor...extraColumns)
 																																			throws IOException{
 		try {
-			return buildInsert(location.getBytes(),row,validColumns,transactionID,extraColumns);
+			Put put = new Put(location.getBytes());
+			attachTransactionInformation(put,transactionID);
+			if(validColumns!=null){
+				for(int pos = validColumns.anySetBit();pos!=-1;pos=validColumns.anySetBit(pos)){
+					int rowPos = validColPositionMap[pos];
+					addColumn(put,row[rowPos],pos-1);
+				}
+			}else{
+				for(int i=0;i<row.length;i++){
+					addColumn(put,row[i],i);
+				}
+			}
+
+			for(int pos=0;pos< extraColumns.length;pos++){
+				addColumn(put,extraColumns[pos],-(pos+1));
+			}
+			return put;
 		} catch (StandardException e) {
 			throw new IOException(e);
 		}
 	}
+
 
 	/**
 	 * Constructs a transaction-aware insert for pushing data into HBase correctly, when no specific row
@@ -126,7 +142,8 @@ public class Puts {
 		return buildInsert(rowKey,row,null,transactionID,extraColumns);
 	}
 
-/* ****************************************************************************************************/
+
+	/* ****************************************************************************************************/
 	/*private helper methods*/
 	private static void addColumn(Put put,DataValueDescriptor descriptor, int columnNum) throws IOException {
 		if(descriptor==null||descriptor.isNull())

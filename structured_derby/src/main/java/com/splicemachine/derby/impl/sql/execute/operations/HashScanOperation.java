@@ -6,6 +6,8 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.utils.Puts;
@@ -177,13 +179,14 @@ public class HashScanOperation extends ScanOperation {
 			htable = SpliceAccessManager.getHTable(Bytes.toBytes(mapTableName));
 			SpliceLogUtils.trace(LOG, "executing coprocessor on table=" + mapTableName + ", with scan=" + mapScan);
 			long numberCreated = 0;
+			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,regionOperation);
 			Map<byte[], Long> results = htable.coprocessorExec(SpliceOperationProtocol.class, 
 								mapScan.getStartRow(), mapScan.getStopRow(), 
 																	new Batch.Call<SpliceOperationProtocol, Long>() {
 				@Override
 				public Long call(SpliceOperationProtocol instance) throws IOException {
 					try {
-						return instance.run((GenericStorablePreparedStatement) activation.getPreparedStatement(), mapScan, regionOperation);
+						return instance.run(mapScan,soi);
 					} catch (StandardException e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG, "Error Executing Sink", e);
 					}

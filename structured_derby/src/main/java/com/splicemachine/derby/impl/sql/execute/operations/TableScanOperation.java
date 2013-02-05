@@ -14,6 +14,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
@@ -162,7 +163,7 @@ public class TableScanOperation extends ScanOperation {
 		SpliceLogUtils.trace(LOG,"<%s> emitting %s",mapTableName,currentRow);
 		return currentRow;
 	}
-	
+
 	@Override
 	public String toString() {
 		return String.format("TableScanOperation {mapTableName=%s,isKeyed=%b}",mapTableName,isKeyed);

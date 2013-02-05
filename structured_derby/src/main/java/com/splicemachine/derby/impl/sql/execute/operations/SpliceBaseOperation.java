@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.hbase.SpliceOperationProtocol;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -552,8 +553,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			long numberCreated = 0;
             SpliceLogUtils.trace(LOG,"Performing coprocessorExec");
 
-
 			final Map<byte[], Long> resultMap = new ConcurrentSkipListMap<byte[],Long>(Bytes.BYTES_COMPARATOR);
+			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),topOperation);
 			htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),
 													new Batch.Call<SpliceOperationProtocol,Long>(){
 
@@ -562,8 +563,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 						SpliceOperationProtocol instance)
 								throws IOException {
 					try{
-						return instance.run((GenericStorablePreparedStatement)getActivation().getPreparedStatement(), 
-																									scan, topOperation);
+						return instance.run(scan,soi);
 					}catch(StandardException se){
 						SpliceLogUtils.logAndThrow(LOG, "Unexpected error executing coprocessor",new IOException(se));
 						return -1l;

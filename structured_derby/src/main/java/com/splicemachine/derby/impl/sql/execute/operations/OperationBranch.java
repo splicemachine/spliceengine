@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -83,14 +84,14 @@ public class OperationBranch {
             SpliceLogUtils.debug(LOG,"Exec Coprocessor against table=%s",Bytes.toString(table));
 			htable = SpliceAccessManager.getHTable(table);
 			long numberCreated = 0;
+			final SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
 			Map<byte[], Long> results = htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),new Batch.Call<SpliceOperationProtocol,Long>(){
 				@Override
 				public Long call(
 						SpliceOperationProtocol instance)
 								throws IOException {
 					try{
-						return instance.run((GenericStorablePreparedStatement)activation.getPreparedStatement(), 
-																									scan, topOperation);
+						return instance.run(scan,instructions);
 					}catch(StandardException se){
 						SpliceLogUtils.logAndThrow(LOG, "Unexpected error executing coprocessor",new IOException(se));
 						return -1l;

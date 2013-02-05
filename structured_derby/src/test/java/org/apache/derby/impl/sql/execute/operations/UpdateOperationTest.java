@@ -1,80 +1,94 @@
 package org.apache.derby.impl.sql.execute.operations;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+import com.google.common.collect.Lists;
+import com.splicemachine.derby.test.DerbyTestRule;
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import com.splicemachine.derby.test.SpliceDerbyTest;
 
-public class UpdateOperationTest extends SpliceDerbyTest {
+public class UpdateOperationTest {
 	private static Logger LOG = Logger.getLogger(UpdateOperationTest.class);
 
-	@BeforeClass 
-	public static void startup() throws SQLException {
-		startConnection();	
-		
-		Statement s = null;
-		try {
-			conn.setAutoCommit(true);
-			s = conn.createStatement();
-			s.execute("create table locationUpdate(num int, addr varchar(50), zip char(5))");	
-			s.execute("insert into locationUpdate values(100, '100: 101 Califronia St', '94114')");
-			s.execute("insert into locationUpdate values(200, '200: 908 Glade Ct.', '94509')");
-			s.execute("insert into locationUpdate values(300, '300: my addr', '34166')");
-			s.execute("insert into locationUpdate values(400, '400: 182 Second St.', '94114')");
-			s.execute("insert into locationUpdate(num) values(500)");
-			s.execute("insert into locationUpdate values(600, 'new addr', '34166')");
-			s.execute("insert into locationUpdate(num) values(700)");
-		} catch (SQLException e) {
-			LOG.error("error during create and insert table-"+e.getMessage(), e);
-		} finally {
-			try {
-				if(s!=null)
-					s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
+	private static final Map<String,String> tableSchemas = new HashMap<String, String>();
+	static{
+		tableSchemas.put("locations","num int, addr varchar(50), zip char(5)");
 	}
-	
+	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableSchemas,LOG);
+
+	@BeforeClass
+	public static void startup() throws Exception{
+		DerbyTestRule.start();
+	}
+	@AfterClass
+	public static void shutdown() throws Exception{
+		DerbyTestRule.shutdown();
+	}
+
+	@Before
+	public void setupTest() throws Exception{
+		PreparedStatement insertPs = rule.prepareStatement("insert into locations values(?,?,?)");
+		insertPs.setInt(1,100);
+		insertPs.setString(2,"100");
+		insertPs.setString(3, "94114");
+		insertPs.executeUpdate();
+
+		insertPs.setInt(1,200);
+		insertPs.setString(2,"200");
+		insertPs.setString(3, "94509");
+		insertPs.executeUpdate();
+
+		insertPs.setInt(1,300);
+		insertPs.setString(2,"300");
+		insertPs.setString(3, "34166");
+		insertPs.executeUpdate();
+
+	}
+
 	@Test
-	public void testUpdate() throws SQLException {	
-		LOG.info("start Update test");
-		int count = 0;
-		Statement s = null;
-		ResultSet result = null;
-		try {
-			s= conn.createStatement();
-			s.executeUpdate("update locationUpdate set addr='my new updated addr' where num=100");
-			result = s.executeQuery("select * from locationUpdate where num=100");
-			while (result.next()) {
-				LOG.info("test Update - num="+result.getInt(1)+", addr="+result.getString(2));
-				count++;
-			}
-			Assert.assertEquals(1, count);	
-		} catch (SQLException e) {
-			LOG.error("error in testUpdate-"+e.getMessage(), e);
-		} finally {
-			try {
-				if (result!=null)
-					result.close();
-				if(s!=null)
-					s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}		
-	}	
-	
-	@AfterClass 
-	public static void shutdown() throws SQLException {
-		dropTable("locationUpdate") ;
-		stopConnection();		
+	public void testUpdate() throws SQLException {
+		int updated= rule.getStatement().executeUpdate("update locations set addr='240' where num=100");
+		Assert.assertEquals("Incorrect num rows updated!",1,updated);
+		ResultSet rs = rule.executeQuery("select * from locations where num = 100");
+		List<String> results = Lists.newArrayListWithCapacity(1);
+		while(rs.next()){
+			Integer num = rs.getInt(1);
+			String addr = rs.getString(2);
+			String zip = rs.getString(3);
+			Assert.assertNotNull("no zip returned!",zip);
+			Assert.assertEquals("Incorrect num returned!",100,num.intValue());
+			Assert.assertEquals("Address incorrect","240",addr);
+			results.add(String.format("num:%d,addr:%s,zip:%s",num,addr,zip));
+		}
+		for(String result:results){
+			LOG.info(result);
+		}
+		Assert.assertEquals("Incorrect rows returned!",1,results.size());
+	}
+
+	@Test
+	public void testUpdateMultipleColumns() throws Exception{
+		int updated = rule.getStatement().executeUpdate("update locations set addr='900',zip='63367' where num=300");
+		Assert.assertEquals("incorrect number of records updated!",1,updated);
+		ResultSet rs = rule.executeQuery("select * from locations where num=300");
+		List<String>results = Lists.newArrayList();
+		while(rs.next()){
+			Integer num = rs.getInt(1);
+			String addr = rs.getString(2);
+			String zip = rs.getString(3);
+			Assert.assertEquals("incorrect num!",new Integer(300),num);
+			Assert.assertEquals("Incorrect addr!","900",addr);
+			Assert.assertEquals("incorrect zip!","63367",zip);
+			results.add(String.format("num:%d,addr:5s,zip:%s",num,addr,zip));
+		}
+		Assert.assertEquals("Incorrect rows returned!",1,results.size());
 	}
 }

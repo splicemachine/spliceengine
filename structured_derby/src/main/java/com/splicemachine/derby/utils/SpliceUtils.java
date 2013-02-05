@@ -1,16 +1,21 @@
 package com.splicemachine.derby.utils;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.util.*;
 
 import com.splicemachine.SpliceConfiguration;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultSet;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.derby.iapi.store.raw.ContainerKey;
 import org.apache.derby.iapi.store.raw.Transaction;
@@ -223,6 +228,22 @@ public class SpliceUtils {
 		}
 	}
 
+	public static SpliceObserverInstructions getSpliceObserverInstructions(Scan scan) {
+		byte[] instructions = scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS);
+		if(instructions==null) return null;
+		//Putting this here to prevent some kind of weird NullPointer situation
+		//where the LanguageConnectionContext doesn't get initialized properly
+		try {
+			ByteArrayInputStream bis = new ByteArrayInputStream(instructions);
+			ObjectInputStream ois = new ObjectInputStream(bis);
+			SpliceObserverInstructions soi = (SpliceObserverInstructions) ois.readObject();
+			return soi;
+		} catch (Exception e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
+		}
+		return null;
+	}
+
 	private static void fill(byte[] value, DataValueDescriptor dvd) throws StandardException, IOException {
 		if(value!=null&&dvd!=null){
 			DerbyBytesUtil.fromBytes(value,dvd);
@@ -253,7 +274,7 @@ public class SpliceUtils {
 				return false;
 			}
 
-			Put put = Puts.buildUpdate(loc,row,validColumns,transID);
+			Put put = Puts.buildInsert(loc.getBytes(),row,validColumns,transID);
 			//FIXME: checkAndPut can only do one column at a time, too expensive
 			htable.put(put);
 			return true;
@@ -435,40 +456,7 @@ public class SpliceUtils {
 	}
 
 	public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation) {
-		/*
-		 * Serialize out any non-null result rows that are currently stored in the activation.
-		 *
-		 * This is necessary if you are pushing out a set of Operation to a Table inside of a Sink.
-		 */
-		int rowPos=1;
-		Map<Integer,ExecRow> rowMap = new HashMap<Integer,ExecRow>();
-		boolean shouldContinue=true;
-		while(shouldContinue){
-			try{
-				ExecRow row = (ExecRow)activation.getCurrentRow(rowPos);
-				if(row!=null){
-					rowMap.put(rowPos,row);
-				}
-				rowPos++;
-			}catch(IndexOutOfBoundsException ie){
-				//we've reached the end of the row group in activation, so stop
-				shouldContinue=false;
-			}
-		}
-		ExecRow[] currentRows = new ExecRow[rowPos];
-		for(Integer rowPosition:rowMap.keySet()){
-			ExecRow row = new SerializingExecRow(rowMap.get(rowPosition));
-			if(row instanceof ExecIndexRow)
-				currentRows[rowPosition] = new SerializingIndexRow(row);
-			else
-				currentRows[rowPosition] =  row;
-		}
-		SpliceLogUtils.trace(LOG,"serializing current rows: %s", Arrays.toString(currentRows));
-
-		SpliceObserverInstructions instructions = new SpliceObserverInstructions(
-																								(GenericStorablePreparedStatement) activation.getPreparedStatement(),
-																								currentRows,
-																								topOperation);
+	SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
 		try {
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			ObjectOutputStream oos = new ObjectOutputStream(out);

@@ -23,5 +23,5 @@ public interface SpliceOperationProtocol extends CoprocessorProtocol {
 	 * @throws IOException
 	 * @throws StandardException
 	 */
-	public long run(GenericStorablePreparedStatement statement, Scan scan, SpliceOperation topOperation) throws IOException, StandardException;
+	public long run(Scan scan,SpliceObserverInstructions instructions) throws IOException, StandardException;
 }

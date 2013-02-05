@@ -58,25 +58,14 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		//Putting this here to prevent some kind of weird NullPointer situation
 		//where the LanguageConnectionContext doesn't get initialized properly
 		try {
-			ByteArrayInputStream bis = new ByteArrayInputStream(instructions);
-			ObjectInputStream ois = new ObjectInputStream(bis);
-			SpliceObserverInstructions soi = (SpliceObserverInstructions) ois.readObject();
+			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
 			statement = soi.getStatement();
-			ExecRow[] currentRows = soi.getCurrentRows();
 			topOperation = soi.getTopOperation();
 			LanguageConnectionContext lcc = SpliceEngine.getLanguageConnectionContext();
 			SpliceUtils.setThreadContext();
 
+			activation = soi.getActivation(lcc);
 
-			activation = ((GenericActivationHolder) statement.getActivation(lcc, false)).ac;
-			if(currentRows!=null){
-				for(int i=0;i<currentRows.length;i++){
-					ExecRow row = currentRows[i];
-					if(row!=null){
-						activation.setCurrentRow(row,i);
-					}
-				}
-			}
 			topOperation.init(new SpliceOperationContext(regionScanner,region,scan, activation, statement, lcc));
 			List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
 			topOperation.generateLeftOperationStack(opStack);

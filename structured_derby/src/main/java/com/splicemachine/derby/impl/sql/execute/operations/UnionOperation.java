@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.hbase.SpliceOperationProtocol;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
@@ -189,24 +190,25 @@ public class UnionOperation extends SpliceBaseOperation {
 		try{
 			htable = SpliceAccessManager.getHTable(table);
 			long numberCreated = 0;
+			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,topOperation);
 			Map<byte[], Long> results = htable.coprocessorExec(SpliceOperationProtocol.class,
 																scan.getStartRow(),scan.getStopRow(),
 																new Batch.Call<SpliceOperationProtocol,Long>(){
 				@Override
 				public Long call(SpliceOperationProtocol instance) throws IOException {
 					try{
-						return instance.run((GenericStorablePreparedStatement)activation.getPreparedStatement(), scan, topOperation);
+						return instance.run(scan,soi);
 					}catch(StandardException se){
 						SpliceLogUtils.logAndThrow(LOG, "Unexpected error executing coprocessor",new IOException(se));
 						return -1l;
 					}
 				}
 			});
-			
+
 			for(Long returnedRow : results.values()){
 				numberCreated +=returnedRow;
 			}
-			
+
 			SpliceLogUtils.trace(LOG,"Retrieved %d records",numberCreated);
 			executed = true;
 		} catch (IOException ioe){
@@ -226,7 +228,7 @@ public class UnionOperation extends SpliceBaseOperation {
 			}
 		}
 	}
-	
+
 	@Override
 	public void close() throws StandardException {
 		SpliceLogUtils.debug(LOG, "close");

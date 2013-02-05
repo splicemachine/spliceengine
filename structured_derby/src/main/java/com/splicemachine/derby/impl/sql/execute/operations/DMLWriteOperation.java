@@ -187,7 +187,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				//not on hbase derby. Thus executeUpdate from caller can trigger another commit. So on and so forth. See
 				//Bug 185 - jz
 				try {
-					if (((ZookeeperTransaction)trans).isIdle()) {
+					if (trans.isIdle()) {
 						((ZookeeperTransaction)trans).setActiveState();
 						transactionID = SpliceUtils.getTransIDString(trans);
 					}
@@ -208,8 +208,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		}
 
 		@Override public RowLocation getCurrentRowLocation() { return null; }
-        @Override public Scan toScan() { return null; }
-        @Override public byte[] getTableName() { return null; }
+		@Override public Scan toScan() { return null; }
+		@Override public byte[] getTableName() { return null; }
 
 		@Override
 		public int getModifiedRowCount() {
