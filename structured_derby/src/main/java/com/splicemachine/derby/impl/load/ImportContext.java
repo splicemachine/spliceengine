@@ -176,7 +176,9 @@ public class ImportContext implements Externalizable{
 		}
 
 		public Builder stripCharacters(String stripString) {
-			this.stripString = stripString;
+			if(stripString==null)this.stripString="\\";
+			else
+				this.stripString = stripString;
 			return this;
 		}
 
