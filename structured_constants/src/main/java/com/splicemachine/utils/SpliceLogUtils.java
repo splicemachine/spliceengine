@@ -1,7 +1,5 @@
 package com.splicemachine.utils;
 
-import java.util.Arrays;
-
 import org.apache.log4j.Logger;
 
 public class SpliceLogUtils {
