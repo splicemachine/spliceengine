@@ -27,7 +27,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 	public NestedLoopLeftOuterJoinOperation() {
 		super();
 	}
-	
+
 	public NestedLoopLeftOuterJoinOperation(
 			NoPutResultSet leftResultSet,
 			int leftNumCols,
@@ -38,20 +38,20 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 			int resultSetNumber,
 			GeneratedMethod emptyRowFun,
 			boolean wasRightOuterJoin,
-		    boolean oneRowRightSide,
-		    boolean notExistsRightSide,
-			    double optimizerEstimatedRowCount,
+			boolean oneRowRightSide,
+			boolean notExistsRightSide,
+			double optimizerEstimatedRowCount,
 			double optimizerEstimatedCost,
 			String userSuppliedOptimizerOverrides) throws StandardException {
-				super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
-						activation, restriction, resultSetNumber,oneRowRightSide, notExistsRightSide,
-						optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides);
-				SpliceLogUtils.trace(LOG, "instantiate");
-				this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();	
-				this.wasRightOuterJoin = wasRightOuterJoin;
-                init(SpliceOperationContext.newContext(activation));
+		super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
+				activation, restriction, resultSetNumber,oneRowRightSide, notExistsRightSide,
+				optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides);
+		SpliceLogUtils.trace(LOG, "instantiate");
+		this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
+		this.wasRightOuterJoin = wasRightOuterJoin;
+		init(SpliceOperationContext.newContext(activation));
 	}
-	
+
 	@Override
 	public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
 		SpliceLogUtils.trace(LOG, "readExternal");
@@ -72,19 +72,36 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowCore");
-		if (nestedLoopLeftIterator == null || !nestedLoopLeftIterator.hasNext()) {
+		if (nestedLoopIterator == null) {
 			if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
 				mergedRow = null;
 				setCurrentRow(mergedRow);
 				return mergedRow;
 			} else {
-				if (nestedLoopLeftIterator != null) nestedLoopLeftIterator.close(); // Close Prior Connections...
-				nestedLoopLeftIterator = new NestedLoopLeftIterator(leftRow,isHash);
-				getNextRowCore();
+				nestedLoopIterator = new NestedLoopIterator(leftRow,isHash);
+				return getNextRowCore();
 			}
 		}
-		SpliceLogUtils.trace(LOG, "getNextRowCore loop iterate next ");		
-		return nestedLoopLeftIterator.next();
+		if(!nestedLoopIterator.hasNext()){
+			nestedLoopIterator.close();
+
+			if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
+				mergedRow = null;
+				setCurrentRow(mergedRow);
+				return mergedRow;
+			} else {
+				nestedLoopIterator = new NestedLoopIterator(leftRow,isHash);
+				return getNextRowCore();
+			}
+		}
+
+		SpliceLogUtils.trace(LOG, "getNextRowCore loop iterate next ");
+		ExecRow next = nestedLoopIterator.next();
+		SpliceLogUtils.trace(LOG,"getNextRowCore returning %s",next);
+		setCurrentRow(next);
+//		mergedRow=null;
+		return next;
+
 	}
 
 	@Override
@@ -125,12 +142,15 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 			SpliceLogUtils.trace(LOG, "hasNext called");
 			try {
 				ExecRow rightRow;
+				probeResultSet.clearCurrentRow();
 				if ( (rightRow = probeResultSet.getNextRowCore()) != null) {
+					probeResultSet.setCurrentRow(rightRow);
 					SpliceLogUtils.trace(LOG, "right has result " + rightRow);
 					mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 				} else {
 					if (seenRow) {
 						SpliceLogUtils.trace(LOG, "already has seen row and no right result");
+						probeResultSet.setCurrentRow(null);
 						close();
 						return false;
 					}

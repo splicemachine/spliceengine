@@ -69,5 +69,6 @@ public class InnerJoinTest extends BaseJoinTest {
 			}
 		}	
 		Assert.assertEquals(9, j);
-	}			
+	}
+
 }

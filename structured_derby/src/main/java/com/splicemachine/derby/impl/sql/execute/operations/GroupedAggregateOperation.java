@@ -133,13 +133,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 //				reduceScan = SpliceUtils.generateScan(sequence[0],start,finish,transactionID);
 //                rowProvider = new ScanRowProvider(regionScanner,sourceExecIndexRow);
 			}else{
-                Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
-                rowProvider = new SimpleRegionAwareRowProvider(
-                                                            context.getRegion(),
-                                                            regionScanner.getRegionInfo().getTableName(),
-                                                            HBaseConstants.DEFAULT_FAMILY_BYTES,
-                                                            start,finish,hasher,
-                                                            sourceExecIndexRow,null);
+				Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
+				rowProvider = new SimpleRegionAwareRowProvider(
+						context.getRegion(),
+						regionScanner.getRegionInfo().getTableName(),
+						HBaseConstants.DEFAULT_FAMILY_BYTES,
+						start,finish,hasher,
+						sourceExecIndexRow,null);
 				rowProvider.open();
 			}
 		} catch (IOException e) {

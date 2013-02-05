@@ -82,5 +82,9 @@ public class HashJoinOperationTest extends SpliceDerbyTest {
 			}
 		}
 	}		
-	
+
+	@Test
+	public void testHashInnerJoin() throws Exception{
+
+	}
 }

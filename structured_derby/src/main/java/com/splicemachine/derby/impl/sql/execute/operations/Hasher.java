@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.io.IOException;
+import java.util.Arrays;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -34,39 +36,38 @@ public class Hasher {
 	public Hasher(DataValueDescriptor[] descriptors, int[] hashKeys, boolean[] sortOrder, DataValueDescriptor prefixString, DataValueDescriptor[] additional, boolean[] additionalsortOrder) {
 		super();
 		try {
-		SpliceLogUtils.trace(LOG, "instantiating the struct builder");
-		SpliceLogUtils.trace(LOG, "instantiating the struct builder with additional" + hashKeys  + " : " + additional);
+		SpliceLogUtils.trace(LOG, "instantiating the struct builder with additional %s:%s", Arrays.toString(hashKeys),Arrays.toString(additional));
 		this.hashKeys = hashKeys;
 		this.sortOrder = sortOrder;
 		if (additional == null)
 			values = new Object[hashKeys.length+2];
 		else
 			values = new Object[hashKeys.length+additional.length+2];
-		values[0] = prefixString.getObject();
-		StructBuilder structBuilder = new StructBuilder();
-		structBuilder.add(new StringRowKey());
-		RowKey rowKey;
-		for (int i=0;i<hashKeys.length;i++) {
-			rowKey = DerbyBytesUtil.getRowKey(descriptors[hashKeys[i]]);
-			if (sortOrder != null && !sortOrder[hashKeys[i]])
-				rowKey.setOrder(Order.DESCENDING);
-			structBuilder.add(rowKey);
-		}
-        if(additional!=null){
-			for (int i=0;i<additional.length;i++) {
-				rowKey = DerbyBytesUtil.getRowKey(additional[i]);
-				if (additionalsortOrder != null && !additionalsortOrder[i])
+			values[0] = prefixString.getObject();
+			StructBuilder structBuilder = new StructBuilder();
+			structBuilder.add(new StringRowKey());
+			RowKey rowKey;
+			for (int i=0;i<hashKeys.length;i++) {
+				rowKey = DerbyBytesUtil.getRowKey(descriptors[hashKeys[i]]);
+				if (sortOrder != null && !sortOrder[hashKeys[i]])
 					rowKey.setOrder(Order.DESCENDING);
 				structBuilder.add(rowKey);
 			}
-        }
-		structBuilder.add(new VariableLengthByteArrayRowKey());	
-		structRowKey = structBuilder.toRowKey();
+			if(additional!=null){
+				for (int i=0;i<additional.length;i++) {
+					rowKey = DerbyBytesUtil.getRowKey(additional[i]);
+					if (additionalsortOrder != null && !additionalsortOrder[i])
+						rowKey.setOrder(Order.DESCENDING);
+					structBuilder.add(rowKey);
+				}
+			}
+			structBuilder.add(new VariableLengthByteArrayRowKey());
+			structRowKey = structBuilder.toRowKey();
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, e);
 		}
 	}
-	
+
 	public byte[] generateSortedHashKey(DataValueDescriptor[] descriptors, DataValueDescriptor[] additionalDescriptors) throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "generateSortedHashKey");
 		int i = 0;
