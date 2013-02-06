@@ -307,34 +307,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		return numGCols();
 	}
 	
-	private void setRollupColumnsToNull(ExecRow row, int resultNum) 
-										throws StandardException{
-		int numRolledUpCols = resultRows.length - resultNum - 1;
-		int gCols = numGCols();
-		for(int i=0;i<numRolledUpCols;i++){
-			int rolledUpColIdx = gCols -i -1;
-			DataValueDescriptor rolledUpColumn = 
-					row.getColumn(order[rolledUpColIdx].getColumnId() + 1);
-			rolledUpColumn.setToNull();
-		}
-	}
-	
-	private void initializeDistinctMaps(int r, boolean allocate) 
-												throws StandardException{
-		for(int a = 0;a < aggregates.length;a++){
-			AggregatorInfo aInfo = aggregates[a].getAggregatorInfo();
-			if(aInfo.isDistinct()){
-				if(allocate)
-					distinctValues[r][a] = new HashSet<String>();
-				else
-					distinctValues[r][a].clear();
-				DataValueDescriptor newValue = aggregates[a].getInputColumnValue(resultRows[r]);
-				distinctValues[r][a].add(newValue.getString());
-			}
-		}
-	}
-	
-	protected void initializeVectorAggregation(ExecRow row) 
+	protected void initializeVectorAggregation(ExecRow row)
 											throws StandardException{
 		SpliceLogUtils.trace(LOG,"initializing row %s",row);
 		for(SpliceGenericAggregator aggregator: aggregates){
@@ -426,22 +399,22 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	public ExecRow getExecRowDefinition() {
 		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
 		ExecRow row = sourceExecIndexRow.getClone();
-		try{
-			DataValueDescriptor[] descs = new DataValueDescriptor[order.length+aggregates.length];
-			int numGCols = numGCols();
-			for(int i=0;i<numGCols;i++){
-				descs[i] = row.getColumn(order[i].getColumnId()+1);
-			}
-			
-			for(int i=0;i<aggregates.length;i++){
-				int index = numGCols + i;
-				descs[index] = row.getColumn(aggregates[i].getAggregatorInfo().getAggregatorColNum());
-			}
-			row.setRowArray(descs);
-		}catch(StandardException se){
-			SpliceLogUtils.logAndThrowRuntime(LOG, se);
-		}
-		DerbyLogUtils.traceDescriptors(LOG, "getExecRowDefinition row", row.getRowArray());
+//		try{
+//			DataValueDescriptor[] descs = new DataValueDescriptor[order.length+aggregates.length];
+//			int numGCols = numGCols();
+//			for(int i=0;i<numGCols;i++){
+//				descs[i] = row.getColumn(order[i].getColumnId()+1);
+//			}
+//
+//			for(int i=0;i<aggregates.length;i++){
+//				int index = numGCols + i;
+//				descs[index] = row.getColumn(aggregates[i].getAggregatorInfo().getAggregatorColNum());
+//			}
+//			row.setRowArray(descs);
+//		}catch(StandardException se){
+//			SpliceLogUtils.logAndThrowRuntime(LOG, se);
+//		}
+//		DerbyLogUtils.traceDescriptors(LOG, "getExecRowDefinition row", row.getRowArray());
 		return row;
 	}
 

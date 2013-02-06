@@ -28,49 +28,49 @@ public class ClientScanProvider extends AbstractScanProvider {
 
     private ResultScanner scanner;
 
-    public ClientScanProvider( byte[] tableName, Scan scan,ExecRow rowTemplate,FormatableBitSet fbt) {
-        super(rowTemplate, fbt);
-    	SpliceLogUtils.trace(LOG, "instantiated");
-        this.tableName = tableName;
-        this.scan = scan;
-    }
+	public ClientScanProvider( byte[] tableName, Scan scan,ExecRow rowTemplate,FormatableBitSet fbt) {
+		super(rowTemplate, fbt);
+		SpliceLogUtils.trace(LOG, "instantiated");
+		this.tableName = tableName;
+		this.scan = scan;
+	}
 
-    @Override
-    protected Result getResult() throws IOException {
-    	return scanner.next();
-    }
+	@Override
+	protected Result getResult() throws IOException {
+		return scanner.next();
+	}
 
-    @Override
-    public void open() {
-    	SpliceLogUtils.trace(LOG, "open");
-        if(htable==null)
-            htable = SpliceAccessManager.getHTable(tableName);
-        try {
-            scanner = htable.getScanner(scan);
-        } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ Bytes.toString(tableName),e);
-        }
-    }
+	@Override
+	public void open() {
+		SpliceLogUtils.trace(LOG, "open");
+		if(htable==null)
+			htable = SpliceAccessManager.getHTable(tableName);
+		try {
+			scanner = htable.getScanner(scan);
+		} catch (IOException e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ Bytes.toString(tableName),e);
+		}
+	}
 
-    @Override
-    public void close() {
-    	SpliceLogUtils.trace(LOG, "close");
-        if(scanner!=null)scanner.close();
-        if(htable!=null)
-            try {
-                htable.close();
-            } catch (IOException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG,"unable to close htable for "+ Bytes.toString(tableName),e);
-            }
-    }
+	@Override
+	public void close() {
+		SpliceLogUtils.trace(LOG, "close");
+		if(scanner!=null)scanner.close();
+		if(htable!=null)
+			try {
+				htable.close();
+			} catch (IOException e) {
+				SpliceLogUtils.logAndThrowRuntime(LOG,"unable to close htable for "+ Bytes.toString(tableName),e);
+			}
+	}
 
-    @Override
-    public Scan toScan() {
-        return scan;
-    }
+	@Override
+	public Scan toScan() {
+		return scan;
+	}
 
-    @Override
-    public byte[] getTableName() {
-       return tableName;
-    }
+	@Override
+	public byte[] getTableName() {
+		return tableName;
+	}
 }

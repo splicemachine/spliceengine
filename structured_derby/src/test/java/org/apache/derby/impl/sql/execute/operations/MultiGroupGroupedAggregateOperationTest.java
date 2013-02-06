@@ -168,14 +168,15 @@ public class MultiGroupGroupedAggregateOperationTest {
 	}
 
 	@Test
-	@Ignore("Known broken but checking in for communication purposes")
+//	@Ignore("Known broken but checking in for communication purposes")
 	public void testGroupedByRestrictedFirstSumOperation() throws Exception{
-		ResultSet rs = rule.executeQuery("select uname, sum(bushels) from multigrouptest group by uname having sum(bushels) < 5000");
+		int maxSum = 2000;
+		ResultSet rs = rule.executeQuery("select uname, sum(bushels) from multigrouptest group by uname having sum(bushels) < "+maxSum);
 		int rowCount=0;
 		while(rs.next()){
 			String uname = rs.getString(1);
 			int sum = rs.getInt(2);
-			Assert.assertTrue("sum > 50!",sum<500);
+			Assert.assertTrue("sum >="+maxSum,sum<maxSum);
 			rowCount++;
 		}
 		Assert.assertEquals("not all groups found!",unameStats.size(),rowCount);
@@ -429,7 +430,6 @@ public class MultiGroupGroupedAggregateOperationTest {
 	}
 
     @Test
-    @Ignore
     public void testRollupAllOperations() throws Exception{
         ResultSet rs =  rule.executeQuery("select uname, fruit,sum(bushels),avg(bushels),min(bushels),max(bushels) " +
                                            "from multigrouptest group by rollup(uname,fruit)");

@@ -63,22 +63,22 @@ public abstract class AbstractScanProvider implements RowProvider {
             return false;
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        }
-        //should never happen
-        return false;
-    }
+				} catch (IOException e) {
+					SpliceLogUtils.logAndThrowRuntime(LOG,e);
+				}
+		//should never happen
+		return false;
+	}
 
-    protected abstract Result getResult() throws IOException;
+	protected abstract Result getResult() throws IOException;
 
-    @Override
-    public ExecRow next() {
-    	SpliceLogUtils.trace(LOG, "next");
-        if(!hasNext()) throw new NoSuchElementException();
-        populated =false;
-        return currentRow;
-    }
+	@Override
+	public ExecRow next() {
+		SpliceLogUtils.trace(LOG, "next");
+		if(!hasNext()) throw new NoSuchElementException();
+		populated =false;
+		return currentRow;
+	}
 
-    @Override public void remove() { throw new UnsupportedOperationException(); }
+	@Override public void remove() { throw new UnsupportedOperationException(); }
 }
