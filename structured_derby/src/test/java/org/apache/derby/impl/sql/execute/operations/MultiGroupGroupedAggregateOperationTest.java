@@ -100,6 +100,17 @@ public class MultiGroupGroupedAggregateOperationTest {
 	}
 
 	@Test
+	public void testGroupedByFirstShownBySecondCountOperation() throws Exception{
+		ResultSet rs = rule.executeQuery("select count(bushels) from multigrouptest group by uname");
+		int rowCount=0;
+		while(rs.next()){
+			int count = rs.getInt(1);
+			rowCount++;
+		}
+		Assert.assertEquals("Not all groups found!",unameStats.size(),rowCount);
+	}
+
+	@Test
 	public void testGroupedBySecondCountOperation() throws Exception{
 		ResultSet rs = rule.executeQuery("select fruit,count(bushels) from multigrouptest group by fruit");
 		int rowCount=0;
@@ -154,6 +165,20 @@ public class MultiGroupGroupedAggregateOperationTest {
 			row++;
 		}
 		Assert.assertEquals("Not all groups found!", unameStats.size(),row);
+	}
+
+	@Test
+	@Ignore("Known broken but checking in for communication purposes")
+	public void testGroupedByRestrictedFirstSumOperation() throws Exception{
+		ResultSet rs = rule.executeQuery("select uname, sum(bushels) from multigrouptest group by uname having sum(bushels) < 5000");
+		int rowCount=0;
+		while(rs.next()){
+			String uname = rs.getString(1);
+			int sum = rs.getInt(2);
+			Assert.assertTrue("sum > 50!",sum<500);
+			rowCount++;
+		}
+		Assert.assertEquals("not all groups found!",unameStats.size(),rowCount);
 	}
 	
 	@Test
