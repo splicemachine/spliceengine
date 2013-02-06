@@ -5,6 +5,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.execute.DeleteConstantAction;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -47,13 +48,13 @@ public class DeleteOperation extends DMLWriteOperation{
 	public long sink() {
 		SpliceLogUtils.trace(LOG,"sink on transactinID="+transactionID);
 		long numSunk=0l;
-		ExecRow nextRow=null;
-		HTableInterface htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(""+heapConglom));
+		ExecRow nextRow;
+		HTableInterface htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(Long.toString(heapConglom)));
 		try {
 			while((nextRow = source.getNextRowCore())!=null){
 				SpliceLogUtils.trace(LOG,"DeleteOperation sink, nextRow="+nextRow);
-				//TODO: need a buffered delete
-				htable.delete(SpliceUtils.delete(currentRowLocation, this.transactionID.getBytes()) );
+				RowLocation locToDelete = (RowLocation) nextRow.getColumn(nextRow.nColumns()).getObject();
+				htable.delete(SpliceUtils.delete(locToDelete, this.transactionID.getBytes()) );
 				numSunk++;
 			}
 			htable.flushCommits();

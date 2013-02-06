@@ -155,16 +155,11 @@ public class SpliceUtils {
 	}
 
 	public static Delete delete(RowLocation loc, byte[] transID) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("delete row ");
-		try {
-			Delete delete = new Delete(loc.getBytes());
-			if (transID != null)
-				delete.setAttribute(TxnConstants.TRANSACTION_ID, transID);
-			return delete;
-		} catch (Exception e) {
-			throw new RuntimeException(e.getMessage(), e);
-		}
+		SpliceLogUtils.trace(LOG,"delete row at location %s",loc);
+		Delete delete = new Delete(loc.getBytes());
+		if (transID != null)
+			delete.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+		return delete;
 	}
 	
 	public static Delete cleanupNullsDelete(RowLocation loc,DataValueDescriptor[] destRow, FormatableBitSet validColumns, byte[] transID) throws StandardException {
