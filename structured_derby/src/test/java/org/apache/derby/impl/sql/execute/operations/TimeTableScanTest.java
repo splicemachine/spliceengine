@@ -8,8 +8,10 @@ import com.splicemachine.derby.test.DerbyTestRule;
 import junit.framework.Assert;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+import org.datanucleus.sco.simple.SqlDate;
 import org.junit.*;
 
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
@@ -26,8 +28,8 @@ import java.util.Random;
  * @author Scott Fines
  * Created: 1/31/13 9:17 AM
  */
-public class DataTypeTableScanTest {
-	private static final Logger LOG = Logger.getLogger(DataTypeTableScanTest.class);
+public class TimeTableScanTest {
+	private static final Logger LOG = Logger.getLogger(TimeTableScanTest.class);
 
 	private static final Map<String,String> tableSchemas = Maps.newHashMap();
 	private static final int size =10;
@@ -38,7 +40,7 @@ public class DataTypeTableScanTest {
 	private static final Multimap<String,Pair<Timestamp,Float>> resultsMap = ArrayListMultimap.create();
 
 	static{
-		tableSchemas.put("times","id varchar(40),ts timestamp, value float");
+		tableSchemas.put("times","id varchar(40),ts timestamp, value float,date date");
 		tableSchemas.put("ints","i int, s smallint");
 	}
 
@@ -60,7 +62,7 @@ public class DataTypeTableScanTest {
 		rule.createTables();
 
 		//insert data into times table
-		PreparedStatement ps = rule.prepareStatement("insert into times (id, ts, value) values (?,?,?)");
+		PreparedStatement ps = rule.prepareStatement("insert into times (id, ts, value,date) values (?,?,?,?)");
 		long stop = stopTime.getTime();
 		Random random = new Random();
 		for(String id:ids){
@@ -72,6 +74,8 @@ public class DataTypeTableScanTest {
 				float value = random.nextFloat()*size;
 				ps.setTimestamp(2,next);
 				ps.setFloat(3, value);
+				Date date = new Date(next.getTime());
+				ps.setDate(4,date);
 				ps.executeUpdate();
 				resultsMap.put(id,new Pair<Timestamp, Float>(next,value));
 			}
@@ -129,4 +133,25 @@ public class DataTypeTableScanTest {
 		Assert.assertEquals("Incorrect rows returned!",correctNums,results.size());
 	}
 
+	@Test
+	public void testCastScan() throws Exception{
+		ResultSet rs = rule.executeQuery("select cast(ts as varchar(30)) from times");
+		Assert.assertTrue("SQL query did not return data!",rs.next());
+	}
+
+	@Test
+	public void testCurrentTime() throws Exception{
+		ResultSet rs = rule.executeQuery("select ts from times where ts < CURRENT_TIMESTAMP");
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		List<String> results = Lists.newArrayList();
+		while(rs.next()){
+			Timestamp ts = rs.getTimestamp(1);
+			Assert.assertTrue("incorrect time returned!",ts.before(now));
+			results.add(String.format("ts:%s",ts.toString()));
+		}
+		for(String result:results){
+			LOG.info(result);
+		}
+		Assert.assertEquals("incorrect number of rows returned!",resultsMap.size(),results.size());
+	}
 }
