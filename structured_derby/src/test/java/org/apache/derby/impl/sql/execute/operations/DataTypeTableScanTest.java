@@ -102,7 +102,7 @@ public class DataTypeTableScanTest {
 	}
 
 	@Test
-	@Ignore
+//	@Ignore
 	public void testGetBetweenTimestamps() throws Exception{
 		PreparedStatement ps = rule.prepareStatement("select id,ts,value from times where ts between ? and ?");
 		Timestamp finish = new Timestamp(startTime.getTime()+2*INTERVAL);
@@ -125,7 +125,8 @@ public class DataTypeTableScanTest {
 			LOG.info(result);
 		}
 
-		Assert.assertEquals("Incorrect rows returned!",2*resultsMap.size(),results.size());
+		int correctNums = ids.size()*(int)((finish.getTime()-startTime.getTime())/INTERVAL);
+		Assert.assertEquals("Incorrect rows returned!",correctNums,results.size());
 	}
 
 }

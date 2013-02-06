@@ -97,7 +97,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
 		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
 
-        operationParams = activation.getParameterValueSet();
+		operationParams = activation.getParameterValueSet().getClone();
 	}
 	
 	public String getTransactioID() {
@@ -137,12 +137,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		out.writeBoolean(isTopResultSet);
 		out.writeUTF(uniqueSequenceID);
 
-        out.writeBoolean(operationParams!=null);
-        if(operationParams!=null){
-            out.writeObject(operationParams);
-        }
+
+		out.writeBoolean(operationParams!=null);
+		if(operationParams!=null){
+			out.writeObject(operationParams);
+		}
 	}
-	
+
 	@Override
 	public boolean needsRowLocation() {
 		// TODO Auto-generated method stub
