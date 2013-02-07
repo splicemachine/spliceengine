@@ -1,47 +1,37 @@
 package com.splicemachine.impl.si.txn;
 
-import org.apache.hadoop.hbase.client.Attributes;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.iapi.txn.TransactionState;
-import com.splicemachine.si.hbase.SIGet;
-import com.splicemachine.si.utils.SIUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class Transaction {
-	private static Logger LOG = Logger.getLogger(SIGet.class);
-    protected String transactionID;
-    protected long transactionStartTimestamp;
-    protected long transactionStopTimestamp;
+	private static Logger LOG = Logger.getLogger(Transaction.class);
+    protected long startTimestamp;
+    protected long stopTimestamp;
     protected TransactionState transactionState;
 
     public Transaction() {
     	super();
     }
 
-    public String getTransactionID() {
-		return transactionID;
+    public Transaction(long transacton) {
+    	super();
+    }
+
+	public long getStartTimestamp() {
+		return startTimestamp;
 	}
 
-	public void setTransactionID(String transactionID) {
-		this.transactionID = transactionID;
-	}
-	
-	public long getTransactionStartTimestamp() {
-		return transactionStartTimestamp;
+	public void setStartTimestamp(long startTimestamp) {
+		this.startTimestamp = startTimestamp;
 	}
 
-	public void setTransactionStartTimestamp(long transactionStartTimestamp) {
-		this.transactionStartTimestamp = transactionStartTimestamp;
+	public long getstopTimestamp() {
+		return stopTimestamp;
 	}
 
-	public long getTransactionStopTimestamp() {
-		return transactionStopTimestamp;
-	}
-
-	public void setTransactionStopTimestamp(long transactionStopTimestamp) {
-		this.transactionStopTimestamp = transactionStopTimestamp;
+	public void setstopTimestamp(long stopTimestamp) {
+		this.stopTimestamp = stopTimestamp;
 	}
 
 	public TransactionState getTransactionState() {
@@ -52,37 +42,31 @@ public class Transaction {
 		this.transactionState = transactionState;
 	}
 
-	public Attributes setTransactionIdToAction(Attributes attributableOperation) {
-		attributableOperation.setAttribute(TxnConstants.TRANSACTION_ID, Bytes.toBytes(transactionID));
-		return attributableOperation;
-	}
-
 	@Override
     public String toString() {
-        return String.format("transactionID: %s, transactionStartTimeStamp %d, " +
-        		"transactionCommitTimestamp %d, transactionStatus %s",transactionID,
-        		transactionStartTimestamp,transactionStopTimestamp,transactionState);	
+        return String.format("transactionStartTimeStamp %d, " +
+        		"transactionCommitTimestamp %d, transactionStatus %s",
+        		startTimestamp,stopTimestamp,transactionState);	
 	}
 	
 	public static Transaction beginTransaction() {
 		SpliceLogUtils.trace(LOG, "beginTransaction");
 		Transaction transaction = new Transaction();
-		transaction.transactionID = SIUtils.getUniqueTransactionID();
 		SpliceLogUtils.trace(LOG, "transaction started %s",transaction);		
 		return transaction;
 	}
 
-	public static int prepareCommit(Transaction transaction) {
-		SpliceLogUtils.trace(LOG, "prepareCommit %s",transaction);
+	public int prepareCommit() {
+		SpliceLogUtils.trace(LOG, "prepareCommit %s",this);
 		return 0;
 	}
 
-	public static void doCommit(Transaction transaction) {
-		SpliceLogUtils.trace(LOG, "doCommit %s",transaction);
+	public void doCommit() {
+		SpliceLogUtils.trace(LOG, "doCommit %s",this);
 	}
 	
-	public static void abort(Transaction transaction) {
-		SpliceLogUtils.trace(LOG, "doCommit %s",transaction);
+	public void abort() {
+		SpliceLogUtils.trace(LOG, "doCommit %s",this);
 	}
 	
 

@@ -14,12 +14,10 @@ import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
-import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
-
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.impl.si.txn.JtaXAResource;
@@ -29,12 +27,10 @@ import com.splicemachine.impl.si.txn.Transaction;
 public abstract class TransactionManager extends TxnConstants {
 	
     static final Log LOG = LogFactory.getLog(TransactionManager.class);
-	protected ZooKeeperWatcher zkw;
     protected RecoverableZooKeeper rzk;
 	
     public TransactionManager() {}
     
-    @SuppressWarnings(value = "deprecation")
 	public TransactionManager(Configuration config) {
 		try {
 			@SuppressWarnings("resource")
@@ -52,8 +48,6 @@ public abstract class TransactionManager extends TxnConstants {
 				desc.addFamily(new HColumnDescriptor(TxnConstants.DEFAULT_FAMILY));
 				admin.createTable(desc);
 			}
-			//zkw = admin.getConnection().getZooKeeperWatcher();
-			//rzk = zkw.getRecoverableZooKeeper();
 			final CountDownLatch connSignal = new CountDownLatch(1);
 			rzk = ZKUtil.connect(config, new Watcher() {			
 				@Override
@@ -74,6 +68,9 @@ public abstract class TransactionManager extends TxnConstants {
 			e.printStackTrace();
 		}
 	}
+	public RecoverableZooKeeper getRecoverableZooKeeper() {
+		return rzk;
+	}
 
 	public abstract Transaction beginTransaction() throws KeeperException, InterruptedException, IOException, ExecutionException;
 
@@ -87,4 +84,6 @@ public abstract class TransactionManager extends TxnConstants {
 	
 	public abstract JtaXAResource getXAResource();
 
+	
+	
 }
