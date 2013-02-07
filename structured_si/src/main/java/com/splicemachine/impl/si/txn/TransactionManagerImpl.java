@@ -63,7 +63,6 @@ public class TransactionManagerImpl extends TransactionManager {
     public void abort(final Transaction transactionState) throws IOException, KeeperException, InterruptedException {
     	if (LOG.isDebugEnabled()) 
     		LOG.debug("Abort on " +transactionState.getTransactionID());
-    	TxnUtils.abort(transactionState.getTransactionID(), rzk);
      }
 
     public synchronized JtaXAResource getXAResource() {
