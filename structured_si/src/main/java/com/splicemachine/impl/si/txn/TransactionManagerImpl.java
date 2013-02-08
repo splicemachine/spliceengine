@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.iapi.txn.TransactionManager;
+import com.splicemachine.si.utils.SIUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class TransactionManagerImpl extends TransactionManager {
@@ -18,8 +19,7 @@ public class TransactionManagerImpl extends TransactionManager {
     }
     
     public TransactionManagerImpl(final Configuration conf) throws IOException {
-    	super(conf);
-    	this.transactionPath = conf.get(TxnConstants.TRANSACTION_PATH_NAME,TxnConstants.DEFAULT_TRANSACTION_PATH);
+    	this(conf.get(TxnConstants.TRANSACTION_PATH_NAME,TxnConstants.DEFAULT_TRANSACTION_PATH),conf);
     }
 
     public TransactionManagerImpl(final String transactionPath, final Configuration conf) throws IOException {
@@ -29,7 +29,8 @@ public class TransactionManagerImpl extends TransactionManager {
     
     public Transaction beginTransaction() throws KeeperException, InterruptedException, IOException, ExecutionException {
     	SpliceLogUtils.trace(LOG, "Begin transaction");
-    	return Transaction.beginTransaction();
+    	Transaction transaction = new Transaction(SIUtils.createIncreasingTimestamp(transactionPath, rzk));
+    	return transaction;
     }
    
     public int prepareCommit(final Transaction transaction) throws KeeperException, InterruptedException, IOException {

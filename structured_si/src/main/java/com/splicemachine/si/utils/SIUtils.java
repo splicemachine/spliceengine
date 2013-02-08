@@ -39,6 +39,8 @@ public class SIUtils {
 		descriptor.addFamily(attributes);
 		return descriptor;
 	}
+	public static long createIncreasingTimestamp(rzk)
+	
 	public static long createIncreasingTimestamp(String transactionPath, RecoverableZooKeeper rzk) {
 		SpliceLogUtils.trace(LOG,"Begin transaction at server and create znode for %s",transactionPath);
 		String id = null;

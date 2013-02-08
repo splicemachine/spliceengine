@@ -1,7 +1,10 @@
 package com.splicemachine.impl.si.txn;
 
 import org.apache.log4j.Logger;
+
+import com.splicemachine.iapi.txn.TransactionManager;
 import com.splicemachine.iapi.txn.TransactionState;
+import com.splicemachine.si.utils.SIUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class Transaction {
@@ -49,13 +52,6 @@ public class Transaction {
         		startTimestamp,stopTimestamp,transactionState);	
 	}
 	
-	public static Transaction beginTransaction() {
-		SpliceLogUtils.trace(LOG, "beginTransaction");
-		Transaction transaction = new Transaction();
-		SpliceLogUtils.trace(LOG, "transaction started %s",transaction);		
-		return transaction;
-	}
-
 	public int prepareCommit() {
 		SpliceLogUtils.trace(LOG, "prepareCommit %s",this);
 		return 0;
