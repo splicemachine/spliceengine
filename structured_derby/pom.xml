@@ -3,14 +3,14 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.splicemachine</groupId>
 	<artifactId>structured_derby</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>structured_derby</name>
 	<description>Derby Structure</description>
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.0</version>
+		<version>1.0.1-SNAPSHOT</version>
 	</parent>
   
 	<dependencies>
@@ -80,7 +80,7 @@
         		<dependency>
         			<groupId>com.splicemachine</groupId>
         			<artifactId>structured_trx</artifactId>
-        			<version>1.0.0</version>
+        			<version>1.0.1-SNAPSHOT</version>
         			<type>jar</type>
         			<scope>compile</scope>
         		</dependency>
