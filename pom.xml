@@ -12,8 +12,8 @@
 		<module>structured_derby</module>
 	</modules>
 	<scm>
-		<connection>scm:svn:svn+ssh://www.inciteretail.com/db/svn/repos/Leach/InciteRetail/Source/structured_hbase/trunk</connection>
-		<developerConnection>scm:svn:svn+ssh://www.inciteretail.com/db/svn/repos/Leach/InciteRetail/Source/structured_hbase/trunk</developerConnection>
+		<connection>scm:svn+ssh://www.inciteretail.com/db/svn/repos/Leach/InciteRetail/Source/structured_hbase/trunk</connection>
+		<developerConnection>scm:svn+ssh://www.inciteretail.com/db/svn/repos/Leach/InciteRetail/Source/structured_hbase/trunk</developerConnection>
 	</scm>
 	
 	<distributionManagement>
