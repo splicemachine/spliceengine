@@ -3,14 +3,14 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.splicemachine</groupId>
 	<artifactId>structured_trx</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>structured_trx</name>
 	<description>transactional/indexing layers on top of hbase</description>
 		<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.0</version>
+		<version>1.0.0-SNAPSHOT</version>
 	</parent>
 	
 	<dependencies>
@@ -36,7 +36,7 @@
         <dependency>
         	<groupId>com.splicemachine</groupId>
         	<artifactId>structured_constants</artifactId>
-        	<version>1.0.0</version>
+        	<version>1.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
         	<groupId>org.apache.hadoop</groupId>
