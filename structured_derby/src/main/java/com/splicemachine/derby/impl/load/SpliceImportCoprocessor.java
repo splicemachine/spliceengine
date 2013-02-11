@@ -15,6 +15,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
@@ -147,6 +148,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 			reader = new BufferedReader(new InputStreamReader(is));
 			String line;
 			while((line = reader.readLine())!=null){
+
 				importRow(context.getColumnTypes(),context.getActiveCols(),splitter,table,serializer,line);
 				numImported++;
 			}
@@ -182,12 +184,46 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 				if(colPos>=columnTypes.length)
 					throw new IOException("Incorrect Column types or index present");
 			}
-			put.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
+			try{
+				put.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
 					Integer.toString(colPos).getBytes(),serializer.serialize(col,columnTypes[colPos]));
+			}catch(Exception e){
+				String errorMessage=String.format("Unable to parse line %s, " +
+						"column %d did not serialize correctly: expected type %s for column string %s",
+						line,colPos,getTypeString(columnTypes[colPos]),col);
+				SpliceLogUtils.logAndThrow(LOG,new DoNotRetryIOException(errorMessage));
+			}
 			colPos++;
 		}
 		//do the insert
 		table.put(put);
+	}
+
+	private String getTypeString(int columnType) {
+		switch(columnType){
+			case Types.BIT: return "Bit";
+			case Types.TINYINT: return "TinyInt";
+			case Types.SMALLINT: return "SmallInt";
+			case Types.INTEGER: return "Integer";
+			case Types.BIGINT: return "BigInt";
+			case Types.FLOAT: return "Float";
+			case Types.REAL: return "Real";
+			case Types.DOUBLE: return "Double";
+			case Types.NUMERIC: return "Numeric";
+			case Types.DECIMAL: return "Decimal";
+			case Types.CHAR: return "Char";
+			case Types.VARCHAR: return "Varchar";
+			case Types.LONGNVARCHAR: return "LongVarChar";
+			case Types.DATE: return "Date";
+			case Types.TIME :  return "Time";
+			case Types.TIMESTAMP: return "Timestamp";
+			case Types.BINARY: return "Binary";
+			case Types.VARBINARY: return "VarBinary";
+			case Types.LONGVARBINARY: return "LongVarBinary";
+			case Types.NULL: return "Null";
+			default:
+				return "Other";
+		}
 	}
 
 
@@ -211,6 +247,8 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 
 		public Serializer(String stripString, String timestampFormat) {
 			this.charDelimiter = stripString;
+			if(timestampFormat==null)
+				timestampFormat ="yyyy-mm-dd hh:mm:ss";
 			this.timestampFormat = new SimpleDateFormat(timestampFormat);
 		}
 

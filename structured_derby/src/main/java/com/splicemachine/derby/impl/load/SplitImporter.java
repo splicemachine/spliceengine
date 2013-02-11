@@ -8,6 +8,9 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.PublicAPI;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -192,7 +195,7 @@ public class SplitImporter implements Importer{
 
 	private void submitAndWait(HTableInterface htable,
 										 final AtomicLong rowsImported,
-										 Multimap<HRegionLocation, BlockLocation> regionToBlockMap) {
+										 Multimap<HRegionLocation, BlockLocation> regionToBlockMap) throws IOException {
 		/*
 		 * This will submit our BlockLocations out to all our available Regions asynchronously, then
 		 * wait for all of them to respond back with success before returning.
@@ -226,7 +229,7 @@ public class SplitImporter implements Importer{
 						}
 				);
 			} catch (Throwable e) {
-				SpliceLogUtils.logAndThrowRuntime(LOG, e);
+				throw new IOException(e);
 			}
 		}
 

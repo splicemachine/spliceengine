@@ -19,6 +19,8 @@ public class HdfsImportTest {
 	static final Map<String,String> tableSchemaMap = Maps.newHashMap();
 	static{
 		tableSchemaMap.put("t","name varchar(40), title varchar(40), age int");
+		tableSchemaMap.put("order_detail","order_id VARCHAR(50), item_id INT, order_amt INT,order_date TIMESTAMP, emp_id INT, " +
+				"promotion_id INT, qty_sold INT, unit_price FLOAT, unit_cost FLOAT, discount FLOAT, customer_id INT");
 	}
 	
 	@Rule public DerbyTestRule rule = new DerbyTestRule(tableSchemaMap,LOG);
@@ -65,6 +67,13 @@ public class HdfsImportTest {
 	public void testHdfsImportGzipFile() throws Exception{
 		String location = System.getProperty("user.dir")+"/structured_derby/src/test/resources/importTest.in.gz";
 		testImport(location,"NAME,TITLE,AGE");
+	}
+
+	@Test
+	public void testImportFromSQL() throws Exception{
+		PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null,'ORDER_DETAIL',null,null," +
+				"'/Users/sfines/Downloads/order_detail_small.csv',',',null,null)");
+		ps.execute();
 	}
 
 	@Test

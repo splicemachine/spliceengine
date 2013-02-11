@@ -19,7 +19,7 @@ import java.util.Map;
  * Created: 2/1/13 11:08 AM
  */
 public class ImportContext implements Externalizable{
-	private static final long serialVersionUID = 1l;
+	private static final long serialVersionUID = 2l;
 	//the path to the file to import
 	private Path filePath;
 	//the delimiter which separates columns
@@ -103,7 +103,9 @@ public class ImportContext implements Externalizable{
 		out.writeUTF(filePath.toString());
 		out.writeLong(tableId);
 		out.writeUTF(columnDelimiter);
-		out.writeUTF(stripString);
+		out.writeBoolean(stripString!=null);
+		if(stripString!=null)
+			out.writeUTF(stripString);
 		out.writeInt(columnTypes.length);
 		for(int colType:columnTypes){
 			out.writeInt(colType);
@@ -121,7 +123,8 @@ public class ImportContext implements Externalizable{
 		filePath = new Path(in.readUTF());
 		tableId = in.readLong();
 		columnDelimiter = in.readUTF();
-		stripString = in.readUTF();
+		if(in.readBoolean())
+			stripString = in.readUTF();
 		columnTypes = new int[in.readInt()];
 		for(int i=0;i<columnTypes.length;i++){
 			columnTypes[i] = in.readInt();
@@ -176,9 +179,7 @@ public class ImportContext implements Externalizable{
 		}
 
 		public Builder stripCharacters(String stripString) {
-			if(stripString==null)this.stripString="\"";
-			else
-				this.stripString = stripString;
+			this.stripString = stripString;
 			return this;
 		}
 
