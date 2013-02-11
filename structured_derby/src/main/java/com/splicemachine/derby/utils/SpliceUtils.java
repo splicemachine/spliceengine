@@ -182,9 +182,15 @@ public class SpliceUtils {
 
 	public static void populate(Result currentResult, DataValueDescriptor[] destRow) throws StandardException {
 		SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",currentResult.raw().length,destRow.length);
+		/**
+		 * We have to use dataMap here instead of using currentResult.getValue() because for some reason columns larger
+		 * than 9 will go missing if you call getValue() --likely its due to the fact that we are serializing ints
+		 * as strings instead of as ints themselves.
+		 */
+		Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
 		try{
 			for(int i=0;i<destRow.length;i++){
-				byte[] value = currentResult.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES, (new Integer(i)).toString().getBytes());
+				byte[] value = dataMap.get(Integer.toString(i).getBytes());
 				fill(value,destRow[i]);
 			}
 		}catch(IOException ioe){
@@ -197,8 +203,9 @@ public class SpliceUtils {
 		try {
 			if(scanColumnList == null) populate(currentResult,destRow);
 			else{
+				Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
 				for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
-					byte[] value = currentResult.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
+					byte[] value = dataMap.get(Integer.toString(i).getBytes());
 					fill(value,destRow[i]);
 				}
 			}
@@ -212,8 +219,9 @@ public class SpliceUtils {
 		if(scanList==null||scanList.getNumBitsSet()<=0) populate(currentResult,destRow);
 		else{
 			try{
+				Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
 				for(int i=scanList.anySetBit();i!=-1;i=scanList.anySetBit(i)){
-					byte[] value = currentResult.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
+					byte[] value = dataMap.get(Integer.toString(i).getBytes());
 					SpliceLogUtils.trace(LOG,"Attempting to place column[%d] into destRow %s",i,destRow[bitSetToDestRowMap[i]]);
 					fill(value, destRow[bitSetToDestRowMap[i]]);
 				}

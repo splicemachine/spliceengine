@@ -71,9 +71,43 @@ public class HdfsImportTest {
 
 	@Test
 	public void testImportFromSQL() throws Exception{
+		String location = System.getProperty("user.dir")+"structured_derby/src/test/resources/order_detail_small.csv";
 		PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null,'ORDER_DETAIL',null,null," +
-				"'/Users/sfines/Downloads/order_detail_small.csv',',',null,null)");
+				"'"+location+"',',',null,null)");
 		ps.execute();
+
+		ResultSet rs = rule.executeQuery("select * from order_detail");
+		List<String> results = Lists.newArrayList();
+		while(rs.next()){
+			String orderId = rs.getString(1);
+			int item_id = rs.getInt(2);
+			int order_amt = rs.getInt(3);
+			Timestamp order_date = rs.getTimestamp(4);
+			int emp_id = rs.getInt(5);
+			int prom_id = rs.getInt(6);
+			int qty_sold = rs.getInt(7);
+			float unit_price = rs.getInt(8);
+			float unit_cost = rs.getFloat(9);
+			float discount = rs.getFloat(10);
+			int cust_id = rs.getInt(11);
+			Assert.assertNotNull("No Order Id returned!",orderId);
+			Assert.assertTrue("ItemId incorrect!",item_id>0);
+			Assert.assertTrue("Order amt incorrect!",order_amt>0);
+			Assert.assertNotNull("order_date incorrect",order_date);
+			Assert.assertTrue("EmpId incorrect",emp_id>0);
+			Assert.assertEquals("prom_id incorrect",0,prom_id);
+			Assert.assertTrue("qty_sold incorrect",qty_sold>0);
+			Assert.assertTrue("unit price incorrect!",unit_price>0);
+			Assert.assertTrue("unit cost incorrect",unit_cost>0);
+			Assert.assertEquals("discount incorrect",0.0f,discount,1/100f);
+			Assert.assertTrue("cust_id incorrect",cust_id!=0);
+			results.add(String.format("orderId:%s,item_id:%d,order_amt:%d,order_date:%s,emp_id:%d,prom_id:%d,qty_sold:%d,unit_price:%f,unit_cost:%f,discount:%f,cust_id:%d",orderId,item_id,order_amt,order_date,emp_id,prom_id,qty_sold,unit_price,unit_cost,discount,cust_id));
+		}
+		for(String result:results){
+			LOG.info(result);
+		}
+
+		Assert.assertTrue("import failed!",results.size()>0);
 	}
 
 	@Test

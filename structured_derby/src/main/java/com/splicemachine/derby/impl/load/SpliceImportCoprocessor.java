@@ -90,7 +90,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 				 * If we aren't the first block location in the file, skip the first line.
 				 * Otherwise, we might end up inserting a partial row which wouldn't be good.
 				 */
-				boolean skipFirstLine = Longs.compare(location.getOffset(),0l)==0;
+				boolean skipFirstLine = Longs.compare(location.getOffset(),0l)!=0;
 
 				//get the start of the location and seek to it
 				long start = location.getOffset();
@@ -178,12 +178,6 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 				//we've exhausted all the known columns, so skip all remaining entries on the line
 				break;
 			}
-			if(activeCols!=null){
-				//go to the next set position
-				colPos = activeCols.anySetBit(colPos);
-				if(colPos>=columnTypes.length)
-					throw new IOException("Incorrect Column types or index present");
-			}
 			try{
 				put.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
 					Integer.toString(colPos).getBytes(),serializer.serialize(col,columnTypes[colPos]));
@@ -193,7 +187,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 						line,colPos,getTypeString(columnTypes[colPos]),col);
 				SpliceLogUtils.logAndThrow(LOG,new DoNotRetryIOException(errorMessage));
 			}
-			colPos++;
+			colPos = activeCols!=null?activeCols.anySetBit(colPos):colPos+1;
 		}
 		//do the insert
 		table.put(put);
