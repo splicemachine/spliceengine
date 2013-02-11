@@ -23,7 +23,7 @@ public class TableScanOperationTest {
 
 	private static final Map<String,String> tableSchemas = Maps.newHashMap();
 	static{
-		tableSchemas.put("a","si varchar(40),sa character varying(40),sc varchar(40),sd int");
+		tableSchemas.put("a","si varchar(40),sa character varying(40),sc varchar(40),sd int,se float");
 	}
 
 	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableSchemas,false,LOG);
@@ -36,12 +36,13 @@ public class TableScanOperationTest {
 	}
 
 	private static void insertData() throws SQLException {
-		PreparedStatement ps = rule.prepareStatement("insert into a (si, sa, sc,sd) values (?,?,?,?)");
+		PreparedStatement ps = rule.prepareStatement("insert into a (si, sa, sc,sd,se) values (?,?,?,?,?)");
 		for (int i =0; i< 10; i++) {
 			ps.setString(1, "" + i);
 			ps.setString(2, "i");
 			ps.setString(3, "" + i*10);
-			ps.setInt(4,i);
+			ps.setInt(4, i);
+			ps.setFloat(5,10.0f*i);
 			ps.executeUpdate();
 		}
 	}
@@ -129,7 +130,7 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanWithLessThanOperator() throws SQLException{
+	public void testScanIntWithLessThanOperator() throws SQLException{
 		ResultSet rs = rule.executeQuery("select  sd from a where sd < 5");
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
@@ -144,7 +145,7 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanWithLessThanEqualOperator() throws SQLException{
+	public void testScanIntWithLessThanEqualOperator() throws SQLException{
 		ResultSet rs = rule.executeQuery("select  sd from a where sd <= 5");
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
@@ -159,7 +160,7 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanWithGreaterThanOperator() throws SQLException{
+	public void testScanIntWithGreaterThanOperator() throws SQLException{
 		ResultSet rs = rule.executeQuery("select  sd from a where sd > 5");
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
@@ -174,7 +175,7 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanWithGreaterThanEqualsOperator() throws SQLException{
+	public void testScanIntWithGreaterThanEqualsOperator() throws SQLException{
 		ResultSet rs = rule.executeQuery("select  sd from a where sd >= 5");
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
@@ -189,7 +190,7 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanWithNotEqualsOperator() throws SQLException{
+	public void testScanIntWithNotEqualsOperator() throws SQLException{
 		ResultSet rs = rule.executeQuery("select  sd from a where sd != 5");
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
@@ -203,4 +204,84 @@ public class TableScanOperationTest {
 		Assert.assertEquals("Incorrect rows returned!",9,results.size());
 	}
 
+
+	@Test
+	public void testScanFloatWithLessThanOperator() throws SQLException{
+		float correctCompare = 50f;
+		ResultSet rs = rule.executeQuery("select se from a where se < "+correctCompare);
+		List<String> results  = Lists.newArrayList();
+		while(rs.next()){
+			float se = rs.getFloat(1);
+			Assert.assertTrue("incorrect se returned!",se<correctCompare);
+			results.add(String.format("se:%f",se));
+		}
+		for(String result:results){
+			LOG.info(result);
+		}
+		Assert.assertEquals("Incorrect rows returned!",5,results.size());
+	}
+
+	@Test
+	public void testScanFloatWithLessThanEqualOperator() throws SQLException{
+		float correctCompare = 50f;
+		ResultSet rs = rule.executeQuery("select  se from a where se <= "+correctCompare);
+		List<String> results  = Lists.newArrayList();
+		while(rs.next()){
+			float se = rs.getFloat(1);
+			Assert.assertTrue("incorrect se returned!se:"+se,se<=correctCompare);
+			results.add(String.format("se:%f",se));
+		}
+		for(String result:results){
+			LOG.info(result);
+		}
+		Assert.assertEquals("Incorrect rows returned!",6,results.size());
+	}
+
+	@Test
+	public void testScanFloatWithGreaterThanOperator() throws SQLException{
+		float correctCompare = 50f;
+		ResultSet rs = rule.executeQuery("select  se from a where se > "+correctCompare);
+		List<String> results  = Lists.newArrayList();
+		while(rs.next()){
+			float se = rs.getFloat(1);
+			Assert.assertTrue("incorrect se returned!",se>5);
+			results.add(String.format("se:%f",se));
+		}
+		for(String result:results){
+			LOG.info(result);
+		}
+		Assert.assertEquals("Incorrect rows returned!",4,results.size());
+	}
+
+	@Test
+	public void testScanFloatWithGreaterThanEqualsOperator() throws SQLException{
+		float correctCompare = 50f;
+		ResultSet rs = rule.executeQuery("select  se from a where se >= "+correctCompare);
+		List<String> results  = Lists.newArrayList();
+		while(rs.next()){
+			float se = rs.getFloat(1);
+			Assert.assertTrue("incorrect se returned!",se>=correctCompare);
+			results.add(String.format("se:%f",se));
+		}
+		for(String result:results){
+			LOG.info(result);
+		}
+		Assert.assertEquals("Incorrect rows returned!",5,results.size());
+	}
+
+	@Test
+	public void testScanFloatWithNotEqualsOperator() throws SQLException{
+		float correctCompare = 50f;
+		ResultSet rs = rule.executeQuery("select  se from a where se != "+correctCompare);
+		List<String> results  = Lists.newArrayList();
+		while(rs.next()){
+			float se = rs.getFloat(1);
+			Assert.assertTrue("incorrect se returned!",se!=correctCompare);
+			results.add(String.format("se:%f",se));
+		}
+		for(String result:results){
+			LOG.info(result);
+		}
+		Assert.assertEquals("Incorrect rows returned!",9,results.size());
+	}
 }

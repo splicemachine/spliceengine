@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import com.gotometrics.orderly.*;
@@ -23,7 +24,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class DerbyBytesUtil {
 	private static Logger LOG = Logger.getLogger(DerbyBytesUtil.class);
-	
+
 	public static DataValueDescriptor fromBytes (byte[] bytes, DataValueDescriptor descriptor) throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG,"fromBytes %s",descriptor.getTypeName());
 		try {
@@ -31,11 +32,11 @@ public class DerbyBytesUtil {
 		    	case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
 		    		descriptor.setValue(Bytes.toBoolean((byte[])getRowKey(descriptor).deserialize(bytes)));
 		    	    break;
-		    	case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();		    		
-		    		 descriptor.setValue(new Timestamp((Long) getRowKey(descriptor).deserialize(bytes)));
+		    	case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
+		    		 descriptor.setValue(new Date((Long) getRowKey(descriptor).deserialize(bytes)));
 		    	    break;
 		    	case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
-		    		descriptor.setValue(((Double)getRowKey(descriptor).deserialize(bytes)).doubleValue());
+						descriptor.setValue(((BigDecimal)getRowKey(descriptor).deserialize(bytes)).doubleValue());
 		    	    break;
 				case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
 		    	case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
@@ -68,14 +69,14 @@ public class DerbyBytesUtil {
 		    	case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
 		    	case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
 		    	case StoredFormatIds.XML_ID: //return new XML();
-		    	case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar(); 
+		    	case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
 		    		descriptor.setValue((String)getRowKey(descriptor).deserialize(bytes));
 		    	    break;
 		    	case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
 		    	case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit();
 		    	case StoredFormatIds.SQL_BLOB_ID: //return new SQLBlob();
 		    	case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
-		    	case StoredFormatIds.SQL_BIT_ID: //return new SQLBit();	
+		    	case StoredFormatIds.SQL_BIT_ID: //return new SQLBit();
 		    		descriptor.setValue((byte[])getRowKey(descriptor).deserialize(bytes));
 		    	    break;
 		    	case StoredFormatIds.SQL_DECIMAL_ID:
@@ -84,7 +85,7 @@ public class DerbyBytesUtil {
 		        default:
 					LOG.error("Byte array generation failed " + descriptor.getClass());
 		        	throw new RuntimeException("Attempt to serialize an unimplemented serializable object " + descriptor.getClass());
-			}			
+			}
 			return descriptor;
 		} catch (Exception e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG, "Byte array generation failed " + descriptor.getClass() + ":"+e.getMessage(),e);
@@ -102,7 +103,7 @@ public class DerbyBytesUtil {
 		    	case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
 		    		return getRowKey(descriptor).serialize(descriptor.getTimestamp(null).getTime());
 		    	case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
-		    		return getRowKey(descriptor).serialize(descriptor.getDouble());
+		    		return getRowKey(descriptor).serialize(BigDecimal.valueOf(descriptor.getDouble()));
 				case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
 		    	case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
 		    		return getRowKey(descriptor).serialize(descriptor.getInt());
@@ -125,21 +126,21 @@ public class DerbyBytesUtil {
 		    	case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
 		    		return getRowKey(descriptor).serialize(descriptor.getTime(null).getTime());
 		    	case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
-		    		return getRowKey(descriptor).serialize(descriptor.getTimestamp(null).getTime());		    		
+		    		return getRowKey(descriptor).serialize(descriptor.getTimestamp(null).getTime());
 		    	case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
-		    		return getRowKey(descriptor).serialize(Bytes.toBytes(descriptor.getByte()));		    		
+		    		return getRowKey(descriptor).serialize(Bytes.toBytes(descriptor.getByte()));
 		    	case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
 		    	case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
 		    	case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
 		    	case StoredFormatIds.XML_ID: //return new XML();
-		    	case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar(); 
+		    	case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
 		    		return getRowKey(descriptor).serialize(descriptor.getString());
 		    	case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
 		    	case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit();
 		    	case StoredFormatIds.SQL_BLOB_ID: //return new SQLBlob();
 		    	case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
-		    	case StoredFormatIds.SQL_BIT_ID: //return new SQLBit();	
-		    		return getRowKey(descriptor).serialize(descriptor.getBytes());		    		
+		    	case StoredFormatIds.SQL_BIT_ID: //return new SQLBit();
+		    		return getRowKey(descriptor).serialize(descriptor.getBytes());
 		    	case StoredFormatIds.SQL_DECIMAL_ID:
 		    		return getRowKey(descriptor).serialize((BigDecimal) descriptor.getObject());
 		        default:
@@ -399,8 +400,6 @@ public class DerbyBytesUtil {
 	    	case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
 	    	case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
 	    		return new LongRowKey();
-	    	case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
-	    		return new DoubleRowKey();
 			case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
 	    	case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
 	    		return new IntegerRowKey();
@@ -411,9 +410,10 @@ public class DerbyBytesUtil {
 	    	case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
 	    	case StoredFormatIds.XML_ID: //return new XML();
 	    	case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
-                return new NullRemovingRowKey();
-	    	case StoredFormatIds.SQL_DECIMAL_ID:
-	    		return new BigDecimalRowKey();
+					return new NullRemovingRowKey();
+			case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
+			case StoredFormatIds.SQL_DECIMAL_ID:
+					return new BigDecimalRowKey();
 	        default:
 	        	throw new RuntimeException("Attempt to serialize an unimplemented serializable object " + descriptor.getClass());
 		}

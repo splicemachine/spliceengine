@@ -223,7 +223,6 @@ public class Scans {
 						masterList.addFilter(new SingleColumnValueFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,
 								Integer.toString(pos).getBytes(),
 								getCompareOp(compareOp,false),
-//								getHBaseCompareOp(compareOp,false),
 								bytes));
 					}
 				}
