@@ -10,6 +10,7 @@
 		<module>structured_constants</module>
 		<module>structured_trx</module>
 		<module>structured_derby</module>
+		<module>structured_si</module>
 	</modules>
 	<scm>
 		<connection>scm:svn:svn+ssh://www.inciteretail.com/db/svn/repos/Leach/InciteRetail/Source/structured_hbase/trunk</connection>
