@@ -26,8 +26,7 @@ rm -Rf org/apache/derby/iapi/sql/compile/ExpressionClassBuilderInterface.class
 rm -Rf org/apache/derby/catalog/SystemProcedures.class
 rm -Rf org/apache/derby/impl/services/reflect/DirectCall.class
 rm -Rf org/apache/derby/impl/sql/catalog/DataDictionaryImpl.class
-rm -Rf org/apache/derby/iapi/sql/types/SQLChar.class
-
+rm -Rf org/apache/derby/iapi/types/SQLChar.class
 
 
 
