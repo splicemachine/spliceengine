@@ -230,7 +230,6 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		private RowKey intKey;
 		private RowKey stringKey;
 		private RowKey decimalRowKey;
-		private RowKey doubleKey;
 
 		private final String charDelimiter;
 		private final SimpleDateFormat timestampFormat;
@@ -279,9 +278,8 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 						longKey = new LongRowKey();
 					return longKey.serialize(Long.parseLong(col));
 				case Types.DOUBLE:
-					if(doubleKey == null)
-						doubleKey = new DoubleRowKey();
-					return doubleKey.serialize(Double.parseDouble(col));
+					if(decimalRowKey==null) decimalRowKey = new BigDecimalRowKey();
+					return decimalRowKey.serialize(new BigDecimal(col));
 				case Types.INTEGER:
 					if(intKey ==null)
 						intKey = new IntegerRowKey();
