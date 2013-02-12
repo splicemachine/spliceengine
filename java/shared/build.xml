@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!-- ==================================================================== -->
+<!--                       Derby Shared Classes build file                -->
+<!-- ==================================================================== -->
+<project default="shared" basedir="../..">
+
+<!-- ==================================================================== -->
+<!--                           Set properties                             -->
+<!-- ==================================================================== -->
+
+
+  <!-- User settings -->
+  <property file="${user.home}/ant.properties"/>
+
+  <!-- Set property lib dir -->
+  <property name="properties.dir" value="tools/ant/properties"/>
+
+  <!-- Significant dirs -->
+  <property file="${properties.dir}/dirs.properties"/>
+
+  <!-- Compiler settings -->
+  <property file="${properties.dir}/defaultcompiler.properties"/>
+  <property file="${properties.dir}/${build.compiler}.properties"/>
+
+
+  <!-- Compile-time classpath properties files -->
+  <property file="${properties.dir}/extrapath.properties"/>
+  <property file="${properties.dir}/compilepath.properties"/>
+
+  <!-- Release and Version info -->
+  <property file="${properties.dir}/release.properties"/>
+  
+
+<!-- Targets -->
+
+<!-- compile classes  -->
+  <echo level="info" message="building generated sanity info"/>
+  <target name="compile">
+  	<javac
+      source="1.4"
+      target="1.4"
+      bootclasspath="${empty}"
+      nowarn="on"
+      debug="${debug}"
+      depend="${depend}"
+      deprecation="${deprecation}"
+      optimize="${optimize}"
+      proceed="${proceed}"
+      verbose="${verbose}"
+      srcdir="${generated.src.dir}"
+      destdir="${out.dir}">
+      <classpath>
+          <pathelement path="${java15compile.classpath}"/>
+      </classpath>
+    </javac>
+
+  	<javac
+      source="1.4"
+      target="1.4"
+      bootclasspath="${empty}"
+      nowarn="on"
+      debug="${debug}"
+      depend="${depend}"
+      deprecation="${deprecation}"
+      optimize="${optimize}"
+      proceed="${proceed}"
+      verbose="${verbose}"
+      srcdir="${derby.shared.src.dir}"
+      includes="org/apache/derby/shared/**"
+      destdir="${out.dir}">
+      <classpath>
+          <pathelement path="${java15compile.classpath}"/>
+      </classpath>
+      <include name="org/apache/derby/shared/**"/>
+  	  <exclude name="org/apache/derby/shared/common/sanity/ThreadDump.java"/>
+    </javac>
+  	
+  	<javac
+  	      source="1.5"
+  	      target="1.5"
+  	      bootclasspath="${empty}"
+  	      nowarn="on"
+  	      debug="${debug}"
+  	      depend="${depend}"
+  	      deprecation="${deprecation}"
+  	      optimize="${optimize}"
+  	      proceed="${proceed}"
+  	      verbose="${verbose}"
+  	      srcdir="${derby.shared.src.dir}"
+  	      destdir="${out.dir}">
+  	      <classpath>
+  	        <pathelement path="${java15compile.classpath}"/>
+  	      </classpath>
+  	    <include name="org/apache/derby/shared/common/sanity/ThreadDump.java"/>
+  	    </javac>
+</target>
+  
+
+<!-- default target  -->
+  <target name="shared" depends="compile"/>
+</project>
+

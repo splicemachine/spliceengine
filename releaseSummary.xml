@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- 
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at      
+
+http://www.apache.org/licenses/LICENSE-2.0  
+
+Unless required by applicable law or agreed to in writing, software  
+distributed under the License is distributed on an "AS IS" BASIS,  
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  
+See the License for the specific language governing permissions and  
+limitations under the License.
+-->
+
+<!-- 
+This is the template for the release summary which the Release Manager
+writes. The ReleaseNotesGenerator uses this summary in order to
+generate various sections of the release notes. Please replace all placeholders
+with real information.
+-->
+
+<summary>
+
+<!--
+    Identifier of previous release. The release notes describe the
+    delta between releaseID and previousReleaseID.
+
+    E.g.: 10.2.1.7
+
+-->
+<previousReleaseID>10.9.1.0</previousReleaseID>
+
+<!--
+    Identifier(s) of previously released versions. Any issue that was fixed in
+    any of these versions will be excluded from the fixed bugs list, and the
+    release notes list.
+
+    E.g.: 10.3.1.4 and 10.3.2.1
+    
+-->
+
+<buildInfo>
+
+  <!-- Machine environment. E.g.:  Cygwin on Microsoft Windows XP Professional Version 2002 Service Pack 2. -->
+  <machine>Cygwin on Microsoft Windows 7 Ultimate</machine>
+
+  <!-- Ant version. E.g.:  Apache Ant version 1.6.5 compiled on June 2 2005. -->
+  <antVersion>Apache Ant version 1.7.1 compiled on June 27 2008.</antVersion>
+
+  <!-- Output of "java -version" run from your jdk1.4 installation. E.g.:  Java(TM) 2 Runtime Environment, Standard Edition (build 1.4.2_12-b03). -->
+  <jdk1.4>Java(TM) 2 Runtime Environment, Standard Edition (build 1.4.2_19-b04, mixed mode).</jdk1.4>
+
+  <!-- Output of "java -version" run from your Java 6 installation. E.g.:  Java(TM) 2 Runtime Environment, Standard Edition (build 1.6.0-b105). -->
+  <java6>Java(TM) SE Runtime Environment (build 1.6.0_35-b10, mixed mode, sharing).</java6>
+
+  <!--
+         Say which compilers you used.
+         E.g.:
+
+           The 1.4.2_12-b03 javac was used to compile all classes
+           except for the JDBC4 drivers. The JDBC4 driver classes were compiled using the 1.6.0-b105 javac.
+  -->
+  <compilers>The 1.6.0_13 javac was used to compile all classes.</compilers>
+
+  <!--
+         Say here whether you built the Java ME support and, if so, which
+         tookit you used.
+         E.g.: Java ME support was built using java.sun.com/j2me (j2me_cdc_fp-1_0_2).
+  -->
+  <jsr169>Java ME support was built using libraries from phoneME Advanced Milestone Release 3.</jsr169>
+
+</buildInfo>
+
+<overview>
+
+<p>
+The most up to date information about Derby releases can be found on the
+<a href="http://db.apache.org/derby/derby_downloads.html">Derby download page</a>.
+</p>
+
+<p>
+Apache Derby is a pure Java relational database engine using standard SQL and
+JDBC as its APIs. More information about Derby can be found on the
+<a href="http://db.apache.org/derby/">Apache web site</a>.
+Derby functionality includes:
+</p>
+
+<ul>
+<li>Embedded engine with JDBC drivers</li>
+<li>Network Server</li>
+<li>Network client JDBC drivers</li>
+<li>Command line tools: ij (SQL scripting), dblook (schema dump) and sysinfo (system info)</li>
+</ul>
+
+<p>
+Java and JDBC versions supported:
+</p>
+<ul>
+  <li>Java SE 1.4 and higher with
+    JDBC 2.1, 3.0, 4.0 and 4.1</li>
+  <li>Java ME CDC/Foundation Profile 1.1 with
+    JSR-169 JDBC Optional Package for CDC/Foundation Profile.</li>
+</ul>
+</overview>
+
+<newFeatures>
+
+<p>
+This is a maintenance release. No new features were added.
+</p>
+
+<ul>
+
+</ul>
+
+</newFeatures>
+
+<!--
+    These are the instructions for verifying the signed distributions. Probably you
+    won't need to touch this section.
+    
+-->
+
+<releaseVerification>
+
+<p>It is essential that you verify the integrity of the downloaded
+files using the PGP and MD5 signatures.  MD5 verification ensures the
+file was not corrupted during the download process.  PGP verification
+ensures that the file came from a certain person.</p>
+
+<p>The PGP signatures can be verified using
+<a href="http://www.pgpi.org/">PGP</a> or
+<a href="http://www.gnupg.org/">GPG</a>.
+First download the Apache Derby
+<a href="http://svn.apache.org/repos/asf/db/derby/code/trunk/KEYS">KEYS</a>
+as well as the <code>asc</code> signature file for the particular
+distribution. It is important that you get these files from the ultimate
+trusted source - the main ASF distribution site, rather than from a mirror.
+Then verify the signatures using ...</p>
+
+<pre>
+% pgpk -a KEYS
+% pgpv db-derby-X.Y.tar.gz.asc
+
+<em>or</em>
+
+% pgp -ka KEYS
+% pgp db-derby-X.Y.tar.gz.asc
+
+<em>or</em>
+
+% gpg --import KEYS
+% gpg --verify db-derby-X.Y.tar.gz.asc
+
+</pre>
+
+<p>To verify the MD5 signature on the files, you need to use a program
+called <code>md5</code> or <code>md5sum</code>, which is
+included in many unix distributions.  It is also available as part of
+<a href="http://www.gnu.org/software/textutils/textutils.html">GNU
+Textutils</a>.  Windows users can get binary md5 programs from <a
+href="http://www.fourmilab.ch/md5/">here</a>, <a
+href="http://www.pc-tools.net/win32/freeware/console/">here</a>, or
+<a href="http://www.slavasoft.com/fsum/">here</a>.</p>
+
+<p>We strongly recommend that you verify your downloads with both PGP and MD5.</p>
+
+
+</releaseVerification>
+
+</summary>
+
+

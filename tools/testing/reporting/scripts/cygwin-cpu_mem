@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# NB Assuming all CPUs are identical....
+SYSINF="sysinf$$"
+systeminfo > ${SYSINF}
+NUMBER=`grep "Processor" ${SYSINF} | gawk '{ print $2 }'`
+MODEL=`grep "System Model:" ${SYSINF} | gawk '{ print $3" "$4 }'`
+MODEL2=`grep 'Mhz' ${SYSINF} | gawk '{ print $2" "$3" "$4" "$5" "$6" "$7" "$8" "$9 }'`
+FREQ=`grep 'Mhz' ${SYSINF} | gawk '{ print $10 }'`
+CACHE=`grep "Virtual Memory: Max Size" ${SYSINF} | gawk '{ print $5" "$6 }'`
+
+MEMTOTAL=`grep "Total Physical Memory:" ${SYSINF} | gawk '{ print $4 }'`
+MEMFREE=`grep "Available Physical Memory" ${SYSINF} | gawk '{ print $4" "$5 }'`
+
+echo "${NUMBER} X [${MODEL} ${MODEL2}]: ${FREQ} MHz, ${CACHE} cache. ${MEMTOTAL} Total Memory."
+rm ${SYSINF}

@@ -1,0 +1,151 @@
+<?xml version="1.0"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<project default="demo" basedir="../..">
+
+<!-- Set Properties -->
+  <!-- User settings -->
+  <property file="${user.home}/ant.properties"/>
+  <!-- Set property lib dir -->
+  <property name="properties.dir" value="${ant.home}/properties"/>
+  <!-- Significant dirs -->
+  <property file="${properties.dir}/dirs.properties"/>
+  <!-- Compiler settings -->
+  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <!-- Compile-time classpath properties files -->
+  <property file="${properties.dir}/extrapath.properties"/>
+  <property file="${properties.dir}/compilepath.properties"/>
+
+<!-- Targets -->
+  <target name="demo" depends="compile,checktoursdb,toursdb"/>
+
+  <target name="compile">
+    <javac
+      source="1.4"
+      target="1.4"
+      bootclasspath="${empty}"
+      nowarn="on"
+      debug="${debug}"
+      depend="${depend}"
+      deprecation="${deprecation}"
+      optimize="${optimize}"
+      proceed="${proceed}"
+      verbose="${verbose}"
+      srcdir="nserverdemo"
+      destdir="${out.dir}"
+      includes="Simple*">
+      <classpath>
+        <pathelement path="${java15compile.classpath}"/>
+      </classpath>
+    </javac>
+    <javac
+      source="1.4"
+      target="1.4"
+      bootclasspath="${empty}"
+      nowarn="on"
+      debug="${debug}"
+      depend="${depend}"
+      deprecation="${deprecation}"
+      optimize="${optimize}"
+      proceed="${proceed}"
+      verbose="${verbose}"
+      srcdir="."
+      destdir="${out.dir}"
+      includes="nserverdemo/**"
+      excludes="nserverdemo/Simple*">
+      <classpath>
+        <pathelement path="${java15compile.classpath}"/>
+      </classpath>
+    </javac>
+    <!-- "simple" demos under java/demo/ (SimpleApp, SimpleMobileApp) -->
+    <javac
+      source="1.4"
+      target="1.4"
+      bootclasspath="${empty}"
+      nowarn="on"
+      debug="${debug}"
+      depend="${depend}"
+      deprecation="${deprecation}"
+      optimize="${optimize}"
+      proceed="${proceed}"
+      verbose="${verbose}"
+      srcdir="${derby.demo.src.dir}/simple:${derby.demo.src.dir}/simplemobile"
+      destdir="${out.dir}">
+      <classpath>
+        <pathelement location="${javasrc.dir}"/>
+        <pathelement path="${java15compile.classpath}"/>
+      </classpath>
+    </javac>
+    <javac
+      source="1.4"
+      target="1.4"
+      bootclasspath="${empty}"
+      nowarn="on"
+      debug="${debug}"
+      depend="${depend}"
+      deprecation="${deprecation}"
+      optimize="${optimize}"
+      proceed="${proceed}"
+      verbose="${verbose}"
+      srcdir="${derby.demo.src.dir}/workingwithderby"
+      destdir="${out.dir}">
+      <classpath>
+        <pathelement location="${javasrc.dir}"/>
+        <pathelement path="${java15compile.classpath}"/>
+      </classpath>
+    </javac>
+    <ant target="compile" dir="toursdb"/>
+  </target>
+
+  <target name="checktoursdb">
+    <condition property="toursdb.available">
+      <and>
+        <available file="${generated.toursdb.dir}/toursdb.jar"/>
+        <available file="${generated.toursdb.dir}/toursdb"/>
+      </and>
+    </condition>
+  </target>
+
+  <target name="toursdb" unless="toursdb.available">
+    <ant dir="${derby.demo.src.dir}/toursdb"/>
+  </target>
+
+  <target name="compile-vtidemo">
+    <javac
+      source="1.5"
+      target="1.5"
+      bootclasspath="${empty}"
+      nowarn="on"
+      debug="${debug}"
+      depend="${depend}"
+      deprecation="${deprecation}"
+      optimize="${optimize}"
+      proceed="${proceed}"
+      verbose="${verbose}"
+      srcdir="${derby.demo.src.dir}/vtis/java"
+      destdir="${out.dir}">
+      <classpath>
+        <pathelement path="${java15compile.classpath}"/>
+      </classpath>
+       <!-- <compilerarg value="-Xlint:unchecked"/> -->
+    </javac>
+  </target>
+
+
+</project>
+

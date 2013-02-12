@@ -1,0 +1,178 @@
+ij(CONNECTION1)> --
+--   Licensed to the Apache Software Foundation (ASF) under one or more
+--   contributor license agreements.  See the NOTICE file distributed with
+--   this work for additional information regarding copyright ownership.
+--   The ASF licenses this file to You under the Apache License, Version 2.0
+--   (the "License"); you may not use this file except in compliance with
+--   the License.  You may obtain a copy of the License at
+--
+--      http://www.apache.org/licenses/LICENSE-2.0
+--
+--   Unless required by applicable law or agreed to in writing, software
+--   distributed under the License is distributed on an "AS IS" BASIS,
+--   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+--   See the License for the specific language governing permissions and
+--   limitations under the License.
+--
+
+-- this test shows some ij abilities against an active database
+
+create table t (i int);
+0 rows inserted/updated/deleted
+ij(CONNECTION1)> insert into t values (3), (4);
+2 rows inserted/updated/deleted
+ij(CONNECTION1)> prepare s as 'select * from t';
+ij(CONNECTION1)> execute s;
+I          
+-----------
+3          
+4          
+ij(CONNECTION1)> remove s;
+ij(CONNECTION1)> -- now it won't find s
+execute s;
+IJ ERROR: Unable to establish prepared statement S@CONNECTION1
+ij(CONNECTION1)> prepare s as 'select * from t where i=?';
+ij(CONNECTION1)> -- fails, needs parameter
+execute s;
+ERROR 07000: At least one parameter to the current statement is uninitialized.
+ij(CONNECTION1)> -- works, finds value
+execute s using 'values 3';
+IJ WARNING: Autocommit may close using result set
+I          
+-----------
+3          
+ij(CONNECTION1)> prepare t as 'values 3';
+ij(CONNECTION1)> -- same as last execute
+execute s using t;
+IJ WARNING: Autocommit may close using result set
+I          
+-----------
+3          
+ij(CONNECTION1)> -- same as last execute
+execute 'select * from t where i=?' using 'values 3';
+IJ WARNING: Autocommit may close using result set
+I          
+-----------
+3          
+ij(CONNECTION1)> -- same as last execute
+execute 'select * from t where i=?' using t;
+IJ WARNING: Autocommit may close using result set
+I          
+-----------
+3          
+ij(CONNECTION1)> -- param that is not needed gets out of range message
+execute 'select * from t where i=?' using 'values (3,4)';
+IJ WARNING: Autocommit may close using result set
+ERROR XCL13: The parameter position '2' is out of range.  The number of parameters for this prepared  statement is '1'.
+ij(CONNECTION1)> -- ignores rows that are not needed
+execute 'select * from t where i=?' using 'values 3,4';
+IJ WARNING: Autocommit may close using result set
+I          
+-----------
+3          
+ij(CONNECTION1)> -- with autocommit off, extra rows are processed and no warning results
+autocommit off;
+ij(CONNECTION1)> execute 'select * from t where i=?' using 'values 3,4';
+I          
+-----------
+3          
+I          
+-----------
+4          
+ij(CONNECTION1)> execute 'select * from t where i=?' using 'values 3';
+I          
+-----------
+3          
+ij(CONNECTION1)> autocommit on;
+ij(CONNECTION1)> -- will say params not set when no rows in using values
+execute 'select * from t where i=?' using 'select * from t where i=9';
+IJ ERROR: Using clause had no results
+ij(CONNECTION1)> -- will say params not set when using values is not a query
+execute 'select * from t where i=?' using 'create table s (i int)';
+IJ ERROR: Using clause had no results
+ij(CONNECTION1)> -- note that the using part was, however, executed...
+drop table s;
+0 rows inserted/updated/deleted
+ij(CONNECTION1)> -- DERBY-2558: Verify that we get a reasonable message when the 'dimension'
+-- of the 'using-set' does not match the 'dimension' of the prepared statement:
+create table t2558 (i int);
+0 rows inserted/updated/deleted
+ij(CONNECTION1)> insert into t2558 values (3), (4);
+2 rows inserted/updated/deleted
+ij(CONNECTION1)> -- First two statements below should fail. Third one should work.
+execute 'select * from t2558 where i = ?' using 'values (3,4)';
+IJ WARNING: Autocommit may close using result set
+ERROR XCL13: The parameter position '2' is out of range.  The number of parameters for this prepared  statement is '1'.
+ij(CONNECTION1)> execute 'select * from t2558 where i in (?,?,?)' using 'values (3,4)';
+IJ WARNING: Autocommit may close using result set
+ERROR 07000: At least one parameter to the current statement is uninitialized.
+ij(CONNECTION1)> execute 'select * from t2558 where i = ? or i = ?' using 'values (3,4)';
+IJ WARNING: Autocommit may close using result set
+I          
+-----------
+3          
+4          
+ij(CONNECTION1)> -- bug 5926 - make sure the using clause result set got closed
+drop table t;
+0 rows inserted/updated/deleted
+ij(CONNECTION1)> create table t(c1 int);
+0 rows inserted/updated/deleted
+ij(CONNECTION1)> insert into t values(1);
+1 row inserted/updated/deleted
+ij(CONNECTION1)> execute 'select * from t where c1=?' using 'select * from t where c1=1';
+IJ WARNING: Autocommit may close using result set
+C1         
+-----------
+1          
+ij(CONNECTION1)> drop table t;
+0 rows inserted/updated/deleted
+ij(CONNECTION1)> create table t(c1 int);
+0 rows inserted/updated/deleted
+ij(CONNECTION1)> insert into t values(1);
+1 row inserted/updated/deleted
+ij(CONNECTION1)> insert into t values(2);
+1 row inserted/updated/deleted
+ij(CONNECTION1)> execute 'select * from t where c1=?' using 'select * from t where c1>=1';
+IJ WARNING: Autocommit may close using result set
+C1         
+-----------
+1          
+ij(CONNECTION1)> drop table t;
+0 rows inserted/updated/deleted
+ij(CONNECTION1)> -- Bug 4694 Test automatic rollback with close of connection
+-- in ij
+connect 'wombat';
+ij(CONNECTION2)> autocommit off;
+ij(CONNECTION2)> create table a (a int);
+0 rows inserted/updated/deleted
+ij(CONNECTION2)> select count(*) from a;
+1          
+-----------
+0          
+ij(CONNECTION2)> disconnect;
+ij> set connection connection0;
+WARNING 01J01: Database 'wombat' not created, connection made to existing database instead.
+ij(CONNECTION0)> select count(*) from a;
+ERROR 42X05: Table/View 'A' does not exist.
+ij(CONNECTION0)> create table t ( c char(50));
+0 rows inserted/updated/deleted
+ij(CONNECTION0)> insert into t values('hello');
+1 row inserted/updated/deleted
+ij(CONNECTION0)> select cast(c as varchar(20)) from t;
+1                   
+--------------------
+hello               
+ij(CONNECTION0)> drop table t;
+0 rows inserted/updated/deleted
+ij(CONNECTION0)> -- DERBY-3408: Unknown command error should suggest referring to server docs:
+show schema;
+ERROR 42X01: Syntax error: Encountered "show" at line 2, column 1.
+Issue the 'help' command for general information on IJ command syntax.
+Any unrecognized commands are treated as potential SQL commands and executed directly.
+Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
+ij(CONNECTION0)> xxx;
+ERROR 42X01: Syntax error: Encountered "xxx" at line 1, column 1.
+Issue the 'help' command for general information on IJ command syntax.
+Any unrecognized commands are treated as potential SQL commands and executed directly.
+Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
+ij(CONNECTION0)> 

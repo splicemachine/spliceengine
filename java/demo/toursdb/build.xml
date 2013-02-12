@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<project default="toursdb" basedir=".">
+
+<!-- Set Properties -->
+  <!-- User settings -->
+  <property file="${user.home}/ant.properties"/>
+  <!-- Set property lib dir -->
+  <property name="properties.dir" value="${ant.home}/properties"/>
+  <!-- Significant dirs -->
+  <property file="${properties.dir}/dirs.properties"/>
+  <!-- Compiler settings -->
+  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <!-- Compile-time classpath properties files -->
+  <property file="${properties.dir}/extrapath.properties"/>
+  <property file="${properties.dir}/compilepath.properties"/>
+
+
+<!-- Targets -->
+
+  <target name="toursdb" depends="compile,builddb,jarup,copyfiles"/>
+
+  <target name="compile">
+    <javac
+      source="1.4"
+      target="1.4"
+      bootclasspath="${empty}"
+      debug="${debug}"
+      depend="${depend}"
+      deprecation="${deprecation}"
+      optimize="${optimize}"
+      proceed="${proceed}"
+      verbose="${verbose}"
+      srcdir="${derby.demo.src.dir}"
+      destdir="${out.dir}">
+      <classpath>
+        <pathelement path="${java15compile.classpath}"/>
+      </classpath>
+      <include name="toursdb/insertMaps.java"/>
+    </javac>
+  </target>
+
+  <target name="builddb">
+    <echo level="info" message="Begin building toursdb"/>
+    <echo file="${generated.toursdb.dir}/build_toursdb.sql">
+      run 'ToursDB_schema.sql';
+      run 'loadTables.sql';
+      -- ToursDB_schema.sql turns autocommit off, so commit now.
+      commit;
+    </echo>
+    <antcall target="runijscript">
+      <param name="script.name"
+             value="${generated.toursdb.dir}/build_toursdb.sql"/>
+    </antcall>
+    <java classname="toursdb.insertMaps"
+          output="${generated.toursdb.dir}/toursdb.out" append="true"
+          failonerror="true"
+          dir="${derby.demo.src.dir}/toursdb" fork="true">
+      <classpath>
+        <pathelement path="${out.dir}"/>
+        <pathelement path="${compile.classpath}"/>
+      </classpath>
+      <sysproperty key="derby.system.home" value="${generated.toursdb.dir}"/>
+    </java>
+  </target>
+
+  <target name="runijscript">
+    <echo level="info" message="Running script ${script.name}"/>
+    <java classname="org.apache.derby.tools.ij"
+          output="${generated.toursdb.dir}/toursdb.out"
+          append="true"
+          failonerror="true"
+          dir="${derby.demo.src.dir}/toursdb" fork="true">
+      <classpath>
+        <pathelement path="${out.dir}"/>
+        <pathelement path="${compile.classpath}"/>
+      </classpath>
+      <sysproperty key="derby.system.home" value="${generated.toursdb.dir}"/>
+      <sysproperty key="ij.driver" value="org.apache.derby.jdbc.EmbeddedDriver"/>
+      <sysproperty key="ij.database" value="jdbc:derby:toursdb;create=true"/>
+      <arg value="${script.name}"/>
+    </java>
+  </target>
+
+  <target name="jarup"> 
+    <zip destfile="${generated.toursdb.dir}/toursdb.jar"
+         basedir="${generated.toursdb.dir}"
+         includes="toursdb/**"/>
+    <echo level="info" message="Finished building toursdb"/>
+  </target>
+
+  <target name="copyfiles">
+    <copy todir="${out.dir}/${derby.testing.functest.dir}/tests/demo">
+      <fileset dir="${derby.demo.src.dir}/toursdb"
+               includes="*.sql,*.gif"/>
+    </copy>
+  </target>
+
+</project>

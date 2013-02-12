@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?><!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+--><project xmlns="http://www.netbeans.org/ns/project/1">
+    <type>org.netbeans.modules.ant.freeform</type>
+    <configuration>
+        <general-data xmlns="http://www.netbeans.org/ns/freeform-project/1">
+            <name>derby</name>
+        </general-data>
+        <general-data xmlns="http://www.netbeans.org/ns/freeform-project/2">
+            <!-- Do not use Project Properties customizer when editing this file manually. -->
+            <name>derby</name>
+            <properties>
+                <property name="project.dir">../../..</property>
+                <property name="ant.script">${project.dir}/build.xml</property>
+            </properties>
+            <folders>
+                <source-folder>
+                    <label>trunk</label>
+                    <location>${project.dir}</location>
+                </source-folder>
+                <source-folder>
+                    <label>derby</label>
+                    <location>.</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>java/build</label>
+                    <type>java</type>
+                    <location>${project.dir}/java/build</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>java/client</label>
+                    <type>java</type>
+                    <location>${project.dir}/java/client</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>java/demo</label>
+                    <type>java</type>
+                    <location>${project.dir}/java/demo</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>java/drda</label>
+                    <type>java</type>
+                    <location>${project.dir}/java/drda</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>java/engine</label>
+                    <type>java</type>
+                    <location>${project.dir}/java/engine</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>java/shared</label>
+                    <type>java</type>
+                    <location>${project.dir}/java/shared</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>java/storeless</label>
+                    <type>java</type>
+                    <location>${project.dir}/java/storeless</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>java/testing</label>
+                    <type>java</type>
+                    <location>${project.dir}/java/testing</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
+                    <label>java/tools</label>
+                    <type>java</type>
+                    <location>${project.dir}/java/tools</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+            </folders>
+            <ide-actions>
+                <action name="build">
+                    <script>${ant.script}</script>
+                    <target>nb-buildall</target>
+                </action>
+                <action name="clean">
+                    <script>${ant.script}</script>
+                    <target>cleanalljars</target>
+                    <target>clobber</target>
+                </action>
+                <action name="javadoc">
+                    <script>${ant.script}</script>
+                    <target>javadoc</target>
+                </action>
+                <action name="test">
+                    <script>${ant.script}</script>
+                    <target>junit-core</target>
+                </action>
+                <action name="rebuild">
+                    <script>${ant.script}</script>
+                    <target>cleanalljars</target>
+                    <target>clobber</target>
+                    <target>nb-buildall</target>
+                </action>
+                <action name="debug-ij">
+                    <script>nbproject/ide-file-targets.xml</script>
+                    <target>debug-ij</target>
+                </action>
+                <action name="debug-server">
+                    <script>nbproject/ide-file-targets.xml</script>
+                    <target>debug-server</target>
+                </action>
+            </ide-actions>
+            <export>
+                <type>jar</type>
+                <location>${project.dir}/jars/sane/derby.jar</location>
+                <script>${ant.script}</script>
+                <build-target>nb-buildall</build-target>
+            </export>
+            <export>
+                <type>jar</type>
+                <location>${project.dir}/jars/sane/derbyTesting.jar</location>
+                <script>${ant.script}</script>
+                <build-target>nb-buildall</build-target>
+            </export>
+            <export>
+                <type>jar</type>
+                <location>${project.dir}/jars/sane/derbyclient.jar</location>
+                <script>${ant.script}</script>
+                <build-target>nb-buildall</build-target>
+            </export>
+            <export>
+                <type>jar</type>
+                <location>${project.dir}/jars/sane/derbynet.jar</location>
+                <script>${ant.script}</script>
+                <build-target>nb-buildall</build-target>
+            </export>
+            <export>
+                <type>jar</type>
+                <location>${project.dir}/jars/sane/derbyrun.jar</location>
+                <script>${ant.script}</script>
+                <build-target>nb-buildall</build-target>
+            </export>
+            <export>
+                <type>jar</type>
+                <location>${project.dir}/jars/sane/derbytools.jar</location>
+                <script>${ant.script}</script>
+                <build-target>nb-buildall</build-target>
+            </export>
+            <view>
+                <items>
+                    <source-folder style="packages">
+                        <label>java/build</label>
+                        <location>${project.dir}/java/build</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>java/client</label>
+                        <location>${project.dir}/java/client</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>java/demo</label>
+                        <location>${project.dir}/java/demo</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>java/drda</label>
+                        <location>${project.dir}/java/drda</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>java/engine</label>
+                        <location>${project.dir}/java/engine</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>java/shared</label>
+                        <location>${project.dir}/java/shared</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>java/storeless</label>
+                        <location>${project.dir}/java/storeless</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>java/testing</label>
+                        <location>${project.dir}/java/testing</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>java/tools</label>
+                        <location>${project.dir}/java/tools</location>
+                    </source-folder>
+                    <source-file>
+                        <location>${ant.script}</location>
+                    </source-file>
+                </items>
+                <context-menu>
+                    <ide-action name="build"/>
+                    <ide-action name="rebuild"/>
+                    <ide-action name="clean"/>
+                    <ide-action name="javadoc"/>
+                    <ide-action name="test"/>
+                    <ide-action name="debug-ij"/>
+                    <ide-action name="debug-server"/>
+                </context-menu>
+            </view>
+            <subprojects/>
+        </general-data>
+        <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/2">
+            <compilation-unit>
+                <package-root>${project.dir}/java/build</package-root>
+                <package-root>${project.dir}/java/client</package-root>
+                <package-root>${project.dir}/java/demo</package-root>
+                <package-root>${project.dir}/java/drda</package-root>
+                <package-root>${project.dir}/java/engine</package-root>
+                <package-root>${project.dir}/java/shared</package-root>
+                <package-root>${project.dir}/java/storeless</package-root>
+                <package-root>${project.dir}/java/testing</package-root>
+                <package-root>${project.dir}/java/tools</package-root>
+                <classpath mode="compile">${project.dir}/tools/java/geronimo-spec-servlet-2.4-rc4.jar:${project.dir}/tools/java/jakarta-oro-2.0.8.jar:${project.dir}/tools/java/javacc.jar:${project.dir}/tools/java/junit.jar:${ant.core.lib}:${project.dir}/classes/stubs/felix</classpath>
+                <built-to>${project.dir}/jars/sane/derby.jar</built-to>
+                <built-to>${project.dir}/jars/sane/derbyTesting.jar</built-to>
+                <built-to>${project.dir}/jars/sane/derbyclient.jar</built-to>
+                <built-to>${project.dir}/jars/sane/derbynet.jar</built-to>
+                <built-to>${project.dir}/jars/sane/derbyrun.jar</built-to>
+                <built-to>${project.dir}/jars/sane/derbytools.jar</built-to>
+                <javadoc-built-to>${project.dir}/javadoc</javadoc-built-to>
+                <source-level>1.5</source-level>
+            </compilation-unit>
+        </java-data>
+        <preferences xmlns="http://www.netbeans.org/ns/auxiliary-configuration-preferences/1">
+            <module name="org-netbeans-modules-editor-indent">
+                <node name="CodeStyle">
+                    <property name="usedProfile" value="project"/>
+                    <node name="project">
+                        <property name="spaces-per-tab" value="4"/>
+                        <property name="tab-size" value="4"/>
+                        <property name="indent-shift-width" value="4"/>
+                        <property name="expand-tabs" value="true"/>
+                        <property name="text-limit-width" value="80"/>
+                        <property name="text-line-wrap" value="none"/>
+                    </node>
+                </node>
+                <node name="text">
+                    <node name="x-java">
+                        <node name="CodeStyle">
+                            <node name="project">
+                                <property name="allowConvertToStarImport" value="false"/>
+                                <property name="allowConvertToStaticStarImport" value="false"/>
+                                <property name="importGroupsOrder" value="*"/>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </module>
+            <module name="org-netbeans-modules-projectimport-eclipse-core"/>
+        </preferences>
+    </configuration>
+</project>

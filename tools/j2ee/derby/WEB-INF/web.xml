@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!DOCTYPE web-app PUBLIC
+	"-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN"
+	"http://java.sun.com/j2ee/dtds/web-app_2_2.dtd">
+
+<web-app id = "DERBYNET_ID">
+
+<display-name>Apache Derby Network Server</display-name>
+<description> Apache Network Server Administration </description>
+
+<servlet>
+	<servlet-name> derbynet </servlet-name>
+	<servlet-class> org.apache.derby.drda.NetServlet </servlet-class>
+	<init-param>
+	  <param-name>  startNetworkServerOnInit </param-name>
+	  <param-value> true </param-value>
+	  <description> Starts the Network Server at servlet 
+				initialization if 'true'. </description>
+	</init-param>
+	<init-param>
+	  <param-name>  portNumber </param-name>
+	  <param-value> 1527 </param-value>
+	  <description> Port number to use. The default is 1527. </description>
+	</init-param>
+        <!--
+        The "host" parameter allows configuration of the host name that will
+        be used for the listening socket for network connections. By default,
+        the Network Server will listen to requests only on the loopback
+        address, which means that it will only accept connections from the
+        local host. Changing this value could expose the server to
+        external connections, which raises security concerns, so before using
+        the "host" parameter, you should run under the Java security
+        manager and enable user authentication.
+        -->
+	<init-param>
+	  <param-name>  host </param-name>
+	  <param-value> localhost </param-value>
+	  <description> Host Name to use. The default is "localhost". Please secure any server which listens on a public address. </description>
+	</init-param>
+	<init-param>
+	  <param-name>  tracingDirectory </param-name>
+	  <param-value></param-value>
+	  <description> Directory where trace files should be placed. </description>
+	</init-param>
+</servlet>
+
+<servlet-mapping>
+	<servlet-name> derbynet </servlet-name>
+	<url-pattern> /derbynet </url-pattern>
+</servlet-mapping>
+
+<welcome-file-list>
+     <welcome-file>/derbynet</welcome-file>
+</welcome-file-list>
+
+</web-app>

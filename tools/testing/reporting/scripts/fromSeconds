@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#
+SecOnlyString=$1
+# echo ${SecOnlyString}
+let " Hours = ${SecOnlyString} / 3600 "
+let " Rest = ${SecOnlyString} - ${Hours}*3600 "
+let " Minutes = ${Rest} / 60 "
+let " Seconds = ${Rest} - ${Minutes}*60 "
+if [ ${Seconds} -le 9 ]
+then
+  Seconds="0${Seconds}"
+fi
+if [ ${Minutes} -le 9 ]
+then
+  Minutes="0${Minutes}"
+fi
+if [ ${Hours} -le 9 ]
+then
+  Hours="0${Hours}"
+fi
+echo "${Hours}:${Minutes}:${Seconds} "

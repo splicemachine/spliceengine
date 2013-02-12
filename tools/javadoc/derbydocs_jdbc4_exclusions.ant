@@ -1,0 +1,32 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# for new packages.
+#
+# IMPORTANT: if you are adding a new package, be sure to add it to
+#            the list of packages in the publishedapi target in
+#            the toplevel build.xml file.
+#
+# Please do not add whitespace in front of class names.
+# Blank lines and comments are allowed.
+#
+# The classes in this file are the JDBC4 support which choke
+# the 1.4 javadoc tool. These classes are excluded if we
+# are not building the JDBC4 support.
+#
+
+**/*40.java
+org/apache/derby/impl/jdbc/EmbedRowId.java
+org/apache/derby/client/am/RowId.java

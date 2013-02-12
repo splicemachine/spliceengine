@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+TOOLDIR="${DERBYDIR}/${BRANCH_DIR}/tools/testing/reporting/scripts" # then add
+. ${TOOLDIR}/env
+
+# Run only when all platforms are ready (test completed).
+# if [ "$1" = "" ]
+# then
+#   echo "Usage: $0 [details]"
+#   # exit
+# fi
+
+echo "*** Start mkAllDerbyTestInfo"
+
+DETAILS="$1"
+DETAILS="details"
+
+${TOOLDIR}/testSummariesDerby current ${DETAILS} # May be overkill, but .....
+${TOOLDIR}/testSummariesDerby previous ${DETAILS}
+
+# Get the list of revisions, look for the latest update/build:
+LATESTREVISION=`gawk '{ print $1 }' ${REVISIONLIST} | grep -v "^#" | head -1`
+echo "${TOOLDIR}/testSummariesDerby ${LATESTREVISION} ${DETAILS}"
+${TOOLDIR}/testSummariesDerby ${LATESTREVISION} ${DETAILS}
+
+# Next needed when new test is started before latest info has been created (e.g. Tinderbox...)
+PREVIOUSREVISION=`gawk '{ print $1 }' ${REVISIONLIST} | grep -v "^#" | head -2 | tail -1`
+echo "${TOOLDIR}/testSummariesDerby ${PREVIOUSREVISION} ${DETAILS}"
+${TOOLDIR}/testSummariesDerby ${PREVIOUSREVISION} ${DETAILS}
+
+echo "${TOOLDIR}/testHistoriesDerby ${DETAILS}"
+${TOOLDIR}/testHistoriesDerby ${DETAILS}
+
+# echo "${TOOLDIR}/testPlatformsDerby ${DETAILS}"
+# ${TOOLDIR}/testPlatformsDerby ${DETAILS}
+
+echo "${TOOLDIR}/mkDerbyTestIndex ${DETAILS}"
+${TOOLDIR}/mkDerbyTestIndex ${DETAILS}
+
+echo "*** Done mkAllDerbyTestInfo"

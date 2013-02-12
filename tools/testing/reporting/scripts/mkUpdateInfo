@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+if [ "$1" = ""  -o  "$2" = "" ]
+then
+  echo "Usage: $0 oldrevision/$1 revision/$2"
+  exit
+fi
+OLDREVISION=$1
+REVISION=$2
+#
+
+# You should NOT need to modify anything below.
+# NB: derby_source must be defined.
+#---------------------------------------------
+TOOLDIR="${DERBYDIR}/${BRANCH_DIR}/tools/testing/reporting/scripts"
+. ${TOOLDIR}/env
+
+echo "cd ${DERBYDIR}"
+cd ${DERBYDIR}
+
+          UPDATEINFO="UpdateInfo"
+          mkdir -p ${DERBYDIR}/testing/${UPDATEINFO}
+          echo "Changes from ${OLDREVISION} to ${REVISION}:" > ${DERBYDIR}/testing/${UPDATEINFO}/${REVISION}.txt
+               echo "${TOOLDIR}/svnLogRevs.new ${OLDREVISION} ${REVISION} >> ${DERBYDIR}/testing/${UPDATEINFO}/${REVISION}.txt"
+          ${TOOLDIR}/svnLogRevs.new ${OLDREVISION} ${REVISION} >> ${DERBYDIR}/testing/${UPDATEINFO}/${REVISION}.txt
+          echo "" >> ${DERBYDIR}/testing/${UPDATEINFO}/${REVISION}.txt
+          grep -v "sun.com" ${UPDATELOGDIR}/${REVISION}/update.out >> ${DERBYDIR}/testing/${UPDATEINFO}/${REVISION}.txt
+          chmod go+r ${DERBYDIR}/testing/${UPDATEINFO}/${REVISION}.txt
+
+          SRC="${DERBYDIR}/testing/${UPDATEINFO}/${REVISION}.txt"
+          DST="${PUBLISHDIR}/${UPDATEINFO}/${REVISION}.txt"
+          echo "**** OBS! ${SCPUT} ${SRC} ${PUBLISHUSER}@${PUBLISHSITE}:${DST}"
+          ### ${SCPUT} ${SRC} ${PUBLISHUSER}@${PUBLISHSITE}:${DST}

@@ -1,0 +1,908 @@
+ij> --
+--   Licensed to the Apache Software Foundation (ASF) under one or more
+--   contributor license agreements.  See the NOTICE file distributed with
+--   this work for additional information regarding copyright ownership.
+--   The ASF licenses this file to You under the Apache License, Version 2.0
+--   (the "License"); you may not use this file except in compliance with
+--   the License.  You may obtain a copy of the License at
+--
+--      http://www.apache.org/licenses/LICENSE-2.0
+--
+--   Unless required by applicable law or agreed to in writing, software
+--   distributed under the License is distributed on an "AS IS" BASIS,
+--   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+--   See the License for the specific language governing permissions and
+--   limitations under the License.
+--
+-- tests for synonym support
+-- When we decide to convert this test to junit test, the converted tests can 
+-- go in existing SynonymTest.java
+
+set schema APP;
+0 rows inserted/updated/deleted
+ij> -- negative tests
+-- Create a synonym to itself. Error.
+create synonym syn for syn;
+ERROR 42916: Synonym 'SYN' cannot be created for 'APP.SYN' as it would result in a circular synonym chain.
+ij> create synonym syn for APP.syn;
+ERROR 42916: Synonym 'SYN' cannot be created for 'APP.SYN' as it would result in a circular synonym chain.
+ij> create synonym APP.syn for syn;
+ERROR 42916: Synonym 'APP.SYN' cannot be created for 'APP.SYN' as it would result in a circular synonym chain.
+ij> create synonym APP.syn for APP.syn;
+ERROR 42916: Synonym 'APP.SYN' cannot be created for 'APP.SYN' as it would result in a circular synonym chain.
+ij> -- Create a simple synonym loop. Error.
+create synonym synonym1 for synonym;
+0 rows inserted/updated/deleted
+WARNING 01522: The newly defined synonym 'SYNONYM1' resolved to the object 'APP.SYNONYM' which is currently undefined.
+ij> create synonym synonym for synonym1;
+ERROR 42916: Synonym 'SYNONYM' cannot be created for 'SYNONYM1' as it would result in a circular synonym chain.
+ij> drop synonym synonym1;
+0 rows inserted/updated/deleted
+ij> -- Create a larger synonym loop.
+create synonym ts1 for ts;
+0 rows inserted/updated/deleted
+WARNING 01522: The newly defined synonym 'TS1' resolved to the object 'APP.TS' which is currently undefined.
+ij> create synonym ts2 for ts1;
+0 rows inserted/updated/deleted
+WARNING 01522: The newly defined synonym 'TS2' resolved to the object 'APP.TS' which is currently undefined.
+ij> create synonym ts3 for ts2;
+0 rows inserted/updated/deleted
+WARNING 01522: The newly defined synonym 'TS3' resolved to the object 'APP.TS' which is currently undefined.
+ij> create synonym ts4 for ts3;
+0 rows inserted/updated/deleted
+WARNING 01522: The newly defined synonym 'TS4' resolved to the object 'APP.TS' which is currently undefined.
+ij> create synonym ts5 for ts4;
+0 rows inserted/updated/deleted
+WARNING 01522: The newly defined synonym 'TS5' resolved to the object 'APP.TS' which is currently undefined.
+ij> create synonym ts6 for ts5;
+0 rows inserted/updated/deleted
+WARNING 01522: The newly defined synonym 'TS6' resolved to the object 'APP.TS' which is currently undefined.
+ij> create synonym ts for ts6;
+ERROR 42916: Synonym 'TS' cannot be created for 'TS6' as it would result in a circular synonym chain.
+ij> drop synonym App.ts1;
+0 rows inserted/updated/deleted
+ij> drop synonym "APP".ts2;
+0 rows inserted/updated/deleted
+ij> drop synonym TS3;
+0 rows inserted/updated/deleted
+ij> drop synonym ts4;
+0 rows inserted/updated/deleted
+ij> drop synonym ts5;
+0 rows inserted/updated/deleted
+ij> drop synonym app.ts6;
+0 rows inserted/updated/deleted
+ij> -- Synonyms and table/view share same namespace. Negative tests for this.
+create table table1 (i int, j int);
+0 rows inserted/updated/deleted
+ij> insert into table1 values (1,1), (2,2);
+2 rows inserted/updated/deleted
+ij> create view view1 as select i, j from table1;
+0 rows inserted/updated/deleted
+ij> create synonym table1 for t1;
+ERROR X0Y68: Table/View 'TABLE1' already exists.
+ij> create synonym APP.Table1 for t1;
+ERROR X0Y68: Table/View 'TABLE1' already exists.
+ij> create synonym app.TABLE1 for "APP"."T";
+ERROR X0Y68: Table/View 'TABLE1' already exists.
+ij> create synonym APP.VIEW1 for v1;
+ERROR X0Y68: Table/View 'VIEW1' already exists.
+ij> create synonym "APP"."VIEW1" for app.v;
+ERROR X0Y68: Table/View 'VIEW1' already exists.
+ij> -- Synonyms can't be created on temporary tables
+declare global temporary table session.t1 (c1 int) not logged;
+0 rows inserted/updated/deleted
+ij> create synonym synForTemp for session.t1;
+ERROR XCL51: The requested function can not reference tables in SESSION schema.
+ij> create synonym synForTemp for session."T1";
+ERROR XCL51: The requested function can not reference tables in SESSION schema.
+ij> -- Synonyms can't be created in session schemas
+create synonym session.table1 for APP.table1;
+ERROR XCL51: The requested function can not reference tables in SESSION schema.
+ij> -- Creating a table or a view when a synonym of that name is present. Error.
+create synonym myTable for table1;
+0 rows inserted/updated/deleted
+ij> create table myTable(i int, j int);
+ERROR X0Y32: Table/View 'MYTABLE' already exists in Schema 'APP'.
+ij> create view myTable as select * from table1;
+ERROR X0Y32: Table/View 'MYTABLE' already exists in Schema 'APP'.
+ij> -- Positive test cases
+
+-- Using synonym in DML
+select * from myTable;
+I          |J          
+-----------------------
+1          |1          
+2          |2          
+ij> select * from table1;
+I          |J          
+-----------------------
+1          |1          
+2          |2          
+ij> insert into myTable values (3,3), (4,4);
+2 rows inserted/updated/deleted
+ij> select * from mytable;
+I          |J          
+-----------------------
+1          |1          
+2          |2          
+3          |3          
+4          |4          
+ij> update myTable set i=3 where j=4;
+1 row inserted/updated/deleted
+ij> select * from mytable;
+I          |J          
+-----------------------
+1          |1          
+2          |2          
+3          |3          
+3          |4          
+ij> select * from table1;
+I          |J          
+-----------------------
+1          |1          
+2          |2          
+3          |3          
+3          |4          
+ij> delete from myTable where i> 2;
+2 rows inserted/updated/deleted
+ij> select * from "APP"."MYTABLE";
+I          |J          
+-----------------------
+1          |1          
+2          |2          
+ij> select * from APP.table1;
+I          |J          
+-----------------------
+1          |1          
+2          |2          
+ij> -- Try some cursors
+get cursor c1 as 'select * from myTable';
+ij> next c1;
+I          |J          
+-----------------------
+1          |1          
+ij> next c1;
+I          |J          
+-----------------------
+2          |2          
+ij> close c1;
+ij> -- Try updatable cursors
+
+autocommit off;
+ij> get cursor c2 as 'select * from myTable for update';
+ij> next c2;
+I          |J          
+-----------------------
+1          |1          
+ij> update myTable set i=5 where current of c2;
+1 row inserted/updated/deleted
+ij> close c2;
+ij> autocommit on;
+ij> select * from table1;
+I          |J          
+-----------------------
+5          |1          
+2          |2          
+ij> -- Try updatable cursors, with synonym at the top, base table inside.
+autocommit off;
+ij> get cursor c2 as 'select * from app.table1 for update';
+ij> next c2;
+I          |J          
+-----------------------
+5          |1          
+ij> update myTable set i=6 where current of c2;
+1 row inserted/updated/deleted
+ij> close c2;
+ij> autocommit on;
+ij> select * from table1;
+I          |J          
+-----------------------
+6          |1          
+2          |2          
+ij> -- trigger tests
+create table table2 (i int, j int);
+0 rows inserted/updated/deleted
+ij> -- Should fail
+create trigger tins after insert on myTable referencing new_table as new for each statement insert into table2 select i,j from table1;
+ERROR 42Y55: 'CREATE TRIGGER' cannot be performed on 'MYTABLE' because it does not exist.
+ij> -- Should pass
+create trigger tins after insert on table1 referencing new_table as new for each statement insert into table2 select i,j from table1;
+0 rows inserted/updated/deleted
+ij> drop trigger tins;
+0 rows inserted/updated/deleted
+ij> create trigger triggerins after insert on table2 referencing new_table as new for each statement insert into myTable select i,j from new;
+0 rows inserted/updated/deleted
+ij> select * from myTable;
+I          |J          
+-----------------------
+6          |1          
+2          |2          
+ij> insert into table2 values (5, 5);
+1 row inserted/updated/deleted
+ij> select * from myTable;
+I          |J          
+-----------------------
+6          |1          
+2          |2          
+5          |5          
+ij> drop table table2;
+0 rows inserted/updated/deleted
+ij> -- Try referential constraints. Synonyms should not be allowed there.
+
+create table primaryTab (i int not null primary key, j int, c char(10));
+0 rows inserted/updated/deleted
+ij> create synonym synPrimary for primaryTab;
+0 rows inserted/updated/deleted
+ij> -- Should fail
+create table foreignTab(i int, j int CONSTRAINT SYNPK_F references synPrimary(i));
+ERROR X0Y46: Constraint 'SYNPK_F' is invalid: referenced table SYNPRIMARY does not exist.
+ij> create table foreignTab(i int, j int references primaryTab(i));
+0 rows inserted/updated/deleted
+ij> drop table foreignTab;
+0 rows inserted/updated/deleted
+ij> drop table primaryTab;
+0 rows inserted/updated/deleted
+ij> drop synonym synPrimary;
+0 rows inserted/updated/deleted
+ij> -- Tests with non existant schemas
+-- Implicitly creates junkSchema
+create synonym junkSchema.syn1 for table2;
+0 rows inserted/updated/deleted
+WARNING 01522: The newly defined synonym 'SYN1' resolved to the object 'JUNKSCHEMA.TABLE2' which is currently undefined.
+ij> select * from junkSchema.syn1;
+ERROR 42X05: Table/View 'JUNKSCHEMA.TABLE2' does not exist.
+ij> set schema junkSchema;
+0 rows inserted/updated/deleted
+ij> create table table2(c char(10));
+0 rows inserted/updated/deleted
+ij> select * from syn1;
+C         
+----------
+ij> set schema APP;
+0 rows inserted/updated/deleted
+ij> -- Should resolve to junkSchema.table2
+select * from junkSchema.syn1;
+C         
+----------
+ij> drop table junkSchema.table2;
+0 rows inserted/updated/deleted
+ij> -- Should fail. Need to drop synonym first
+drop schema junkSchema restrict;
+ERROR X0Y54: Schema 'JUNKSCHEMA' cannot be dropped because it is not empty.
+ij> drop synonym junkSchema.syn1;
+0 rows inserted/updated/deleted
+ij> drop schema junkSchema restrict;
+0 rows inserted/updated/deleted
+ij> -- Test with target schema missing
+create synonym mySynonym for notPresent.t1;
+0 rows inserted/updated/deleted
+WARNING 01522: The newly defined synonym 'MYSYNONYM' resolved to the object 'NOTPRESENT.T1' which is currently undefined.
+ij> select * from mySynonym;
+ERROR 42Y07: Schema 'NOTPRESENT' does not exist
+ij> create table notPresent.t1(j int, c char(10));
+0 rows inserted/updated/deleted
+ij> insert into notPresent.t1 values (100, 'satheesh');
+1 row inserted/updated/deleted
+ij> -- Should resolve now
+select * from mySynonym;
+J          |C         
+----------------------
+100        |satheesh  
+ij> drop table notPresent.t1;
+0 rows inserted/updated/deleted
+ij> drop synonym mySynonym;
+0 rows inserted/updated/deleted
+ij> -- Positive test case with three levels of synonym chaining
+
+create schema synonymSchema;
+0 rows inserted/updated/deleted
+ij> create synonym synonymSchema.mySynonym1 for APP.table1;
+0 rows inserted/updated/deleted
+ij> create synonym APP.mySynonym2 for "SYNONYMSCHEMA"."MYSYNONYM1";
+0 rows inserted/updated/deleted
+ij> create synonym mySynonym for mySynonym2;
+0 rows inserted/updated/deleted
+ij> select * from table1;
+I          |J          
+-----------------------
+6          |1          
+2          |2          
+5          |5          
+ij> select * from mySynonym;
+I          |J          
+-----------------------
+6          |1          
+2          |2          
+5          |5          
+ij> insert into mySynonym values (6,6);
+1 row inserted/updated/deleted
+ij> insert into mySynonym select * from mySynonym where i<2;
+0 rows inserted/updated/deleted
+ij> select * from mySynonym;
+I          |J          
+-----------------------
+6          |1          
+2          |2          
+5          |5          
+6          |6          
+ij> update mySynonym set j=5;
+4 rows inserted/updated/deleted
+ij> update mySynonym set j=4 where i=5;
+1 row inserted/updated/deleted
+ij> delete from mySynonym where j=6;
+0 rows inserted/updated/deleted
+WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
+ij> select * from mySynonym;
+I          |J          
+-----------------------
+6          |5          
+2          |5          
+5          |4          
+6          |5          
+ij> select * from table1;
+I          |J          
+-----------------------
+6          |5          
+2          |5          
+5          |4          
+6          |5          
+ij> -- cursor on mySynonym
+get cursor c1 as 'select * from mySynonym';
+ij> next c1;
+I          |J          
+-----------------------
+6          |5          
+ij> next c1;
+I          |J          
+-----------------------
+2          |5          
+ij> next c1;
+I          |J          
+-----------------------
+5          |4          
+ij> close c1;
+ij> -- More negative tests to check dependencies
+select * from mySynonym;
+I          |J          
+-----------------------
+6          |5          
+2          |5          
+5          |4          
+6          |5          
+ij> drop synonym mySynonym;
+0 rows inserted/updated/deleted
+ij> -- Previously compiled cached statement should get invalidated
+select * from mySynonym;
+ERROR 42X05: Table/View 'MYSYNONYM' does not exist.
+ij> -- drop and recreate schema test
+create schema testSchema;
+0 rows inserted/updated/deleted
+ij> create synonym multiSchema for testSchema.testtab;
+0 rows inserted/updated/deleted
+WARNING 01522: The newly defined synonym 'MULTISCHEMA' resolved to the object 'TESTSCHEMA.TESTTAB' which is currently undefined.
+ij> select * from multiSchema;
+ERROR 42X05: Table/View 'TESTSCHEMA.TESTTAB' does not exist.
+ij> create table testSchema.testtab(i int, c char(10));
+0 rows inserted/updated/deleted
+ij> insert into testSchema.testtab values (1, 'synonym');
+1 row inserted/updated/deleted
+ij> select * from multiSchema;
+I          |C         
+----------------------
+1          |synonym   
+ij> drop table testSchema.testtab;
+0 rows inserted/updated/deleted
+ij> drop schema testSchema restrict;
+0 rows inserted/updated/deleted
+ij> create schema testSchema;
+0 rows inserted/updated/deleted
+ij> create table testSchema.testtab(j int, c1 char(10), c2 char(20));
+0 rows inserted/updated/deleted
+ij> insert into testSchema.testtab values (1, 'synonym', 'test');
+1 row inserted/updated/deleted
+ij> select * from multiSchema;
+J          |C1        |C2                  
+-------------------------------------------
+1          |synonym   |test                
+ij> drop synonym multiSchema;
+0 rows inserted/updated/deleted
+ij> drop table testSchema.testtab;
+0 rows inserted/updated/deleted
+ij> drop view view1;
+0 rows inserted/updated/deleted
+ij> drop table table1;
+0 rows inserted/updated/deleted
+ij> -- DERBY-1784
+create schema test1;
+0 rows inserted/updated/deleted
+ij> create schema test2;
+0 rows inserted/updated/deleted
+ij> create table test1.t1 ( id bigint not null );
+0 rows inserted/updated/deleted
+ij> insert into test1.t1 values 1;
+1 row inserted/updated/deleted
+ij> create synonym test2.t1 for test1.t1;
+0 rows inserted/updated/deleted
+ij> set schema test1;
+0 rows inserted/updated/deleted
+ij> select t1.id from t1;
+ID                  
+--------------------
+1                   
+ij> set schema test2;
+0 rows inserted/updated/deleted
+ij> select id from t1;
+ID                  
+--------------------
+1                   
+ij> select id from test2.t1;
+ID                  
+--------------------
+1                   
+ij> select t1.id from t1;
+ID                  
+--------------------
+1                   
+ij> select t1.id from test2.t1;
+ID                  
+--------------------
+1                   
+ij> -- DERBY-1894 
+-- ORDER BY clause with column qualifed by a synonym name where it is declared in 
+-- a different schema than the underlying table.
+select t1.id from t1 order by id;
+ID                  
+--------------------
+1                   
+ij> select t1.id from t1 order by t1.id;
+ID                  
+--------------------
+1                   
+ij> select t1.id as c1 from t1 order by c1;
+C1                  
+--------------------
+1                   
+ij> select t1.id from t1 where t1.id > 0 order by t1.id;
+ID                  
+--------------------
+1                   
+ij> select t1.id from t1 where t1.id > 0 group by t1.id;
+ID                  
+--------------------
+1                   
+ij> select t1.id from t1 where t1.id > 0 group by t1.id having t1.id > 0 order by t1.id;
+ID                  
+--------------------
+1                   
+ij> select test2.t1.id from t1;
+ID                  
+--------------------
+1                   
+ij> select test2.t1.id from test2.t1;
+ID                  
+--------------------
+1                   
+ij> select test2.t1.id from test2.t1 where t1.id > 0;
+ID                  
+--------------------
+1                   
+ij> select test2.t1.id from test2.t1 where t1.id > 0 order by t1.id;
+ID                  
+--------------------
+1                   
+ij> select test2.t1.id from test2.t1 order by id;
+ID                  
+--------------------
+1                   
+ij> select test2.t1.id from test2.t1 order by t1.id;
+ID                  
+--------------------
+1                   
+ij> select test2.t1.id from test2.t1 where t1.id > 0 order by test2.t1.id;
+ID                  
+--------------------
+1                   
+ij> select test2.t1.id from test2.t1 where t1.id > 0 group by test2.t1.id;
+ID                  
+--------------------
+1                   
+ij> select test2.t1.id from test2.t1 where t1.id > 0 group by test2.t1.id having test2.t1.id > 0 order by test2.t1.id;
+ID                  
+--------------------
+1                   
+ij> select w1.id from t1 w1 order by id;
+ID                  
+--------------------
+1                   
+ij> select w1.id from t1 w1 order by w1.id;
+ID                  
+--------------------
+1                   
+ij> select t1.id as idcolumn1, t1.id as idcolumn2 from t1 order by idcolumn1, idcolumn2;
+IDCOLUMN1           |IDCOLUMN2           
+-----------------------------------------
+1                   |1                   
+ij> select t1.id as idcolumn1, t1.id as idcolumn2 from t1 order by t1.idcolumn1, t1.idcolumn2;
+ERROR 42X04: Column 'T1.IDCOLUMN1' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'T1.IDCOLUMN1' is not a column in the target table.
+ij> select t1.id from (select t1.id from t1) t1 order by t1.id;
+ID                  
+--------------------
+1                   
+ij> select t1.id from (select t1.id from t1 a, t1 b where a.id=b.id) t1 order by t1.id;
+ERROR 42X04: Column 'T1.ID' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'T1.ID' is not a column in the target table.
+ij> create table t2 (id bigint not null, name varchar(20));
+0 rows inserted/updated/deleted
+ij> create synonym s1 for test2.t1;
+0 rows inserted/updated/deleted
+ij> create synonym s2 for test2.t2;
+0 rows inserted/updated/deleted
+ij> insert into s2 values (1, 'John');
+1 row inserted/updated/deleted
+ij> insert into s2 values (2, 'Yip');
+1 row inserted/updated/deleted
+ij> insert into s2 values (3, 'Jane');
+1 row inserted/updated/deleted
+ij> select s1.id, s2.name from s1, s2 where s1.id=s2.id order by s1.id, s2.name;
+ID                  |NAME                
+-----------------------------------------
+1                   |John                
+ij> select s2.name from s2 where s2.id in (select s1.id from s1) order by s2.id;
+NAME                
+--------------------
+John                
+ij> select s2.name from s2 where exists (select s1.id from s1) order by s2.id;
+NAME                
+--------------------
+John                
+Yip                 
+Jane                
+ij> select s2.name from s2 where exists (select s1.id from s1 where s1.id=s2.id) order by s2.id;
+NAME                
+--------------------
+John                
+ij> -- should fail
+select w1.id from t1 w1 order by test2.w1.id;
+ERROR 42X10: 'TEST2.W1' is not an exposed table name in the scope in which it appears.
+ij> select w1.id from t1 w1 order by test1.w1.id;
+ERROR 42X10: 'TEST1.W1' is not an exposed table name in the scope in which it appears.
+ij> select t1.id as idcolumn1, t1.id as idcolumn2 from t1 group by idcolumn1, idcolumn2 order by idcolumn1, idcolumn2;
+ERROR 42X04: Column 'IDCOLUMN1' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'IDCOLUMN1' is not a column in the target table.
+ij> select t1.id as idcolumn1, t1.id as idcolumn2 from t1 group by t1.idcolumn1, t1.idcolumn2 order by t1.idcolumn1, t1.idcolumn2;
+ERROR 42X04: Column 'T1.IDCOLUMN1' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'T1.IDCOLUMN1' is not a column in the target table.
+ij> select t1.id as c1 from t1 where c1 > 0 order by c1;
+ERROR 42X04: Column 'C1' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'C1' is not a column in the target table.
+ij> drop synonym s1;
+0 rows inserted/updated/deleted
+ij> drop synonym s2;
+0 rows inserted/updated/deleted
+ij> drop synonym t1;
+0 rows inserted/updated/deleted
+ij> drop table test2.t2;
+0 rows inserted/updated/deleted
+ij> drop table test1.t1;
+0 rows inserted/updated/deleted
+ij> set schema app;
+0 rows inserted/updated/deleted
+ij> create table A (id integer);
+0 rows inserted/updated/deleted
+ij> insert into A values 29;
+1 row inserted/updated/deleted
+ij> create synonym B for A;
+0 rows inserted/updated/deleted
+ij> select a.id from a;
+ID         
+-----------
+29         
+ij> select b.id from b;
+ID         
+-----------
+29         
+ij> select b.id from b as b;
+ID         
+-----------
+29         
+ij> select b.id from (select b.id from b) as b;
+ID         
+-----------
+29         
+ij> select b.id from (select b.id from b as b) as b;
+ID         
+-----------
+29         
+ij> drop synonym B;
+0 rows inserted/updated/deleted
+ij> drop table A;
+0 rows inserted/updated/deleted
+ij> create table t1 (i int, j int);
+0 rows inserted/updated/deleted
+ij> create view v1 as select * from t1;
+0 rows inserted/updated/deleted
+ij> insert into t1 values (1, 10);
+1 row inserted/updated/deleted
+ij> create synonym s1 for t1;
+0 rows inserted/updated/deleted
+ij> create synonym sv1 for v1;
+0 rows inserted/updated/deleted
+ij> -- should fail
+select t1.i from s1;
+ERROR 42X04: Column 'T1.I' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'T1.I' is not a column in the target table.
+ij> select v1.i from sv1;
+ERROR 42X04: Column 'V1.I' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'V1.I' is not a column in the target table.
+ij> select sv1.i from sv1 as w1;
+ERROR 42X04: Column 'SV1.I' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'SV1.I' is not a column in the target table.
+ij> select s1.j from s1 where s1.k = 1;
+ERROR 42X04: Column 'S1.K' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'S1.K' is not a column in the target table.
+ij> select s1.j from s1 where w1.i = 1;
+ERROR 42X04: Column 'W1.I' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'W1.I' is not a column in the target table.
+ij> select * from s1 where w1.i = 1;
+ERROR 42X04: Column 'W1.I' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'W1.I' is not a column in the target table.
+ij> select s1.j from s1 as w1 where w1.i = 1;
+ERROR 42X04: Column 'S1.J' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'S1.J' is not a column in the target table.
+ij> select w1.j from s1 as w1 where s1.i = 1;
+ERROR 42X04: Column 'S1.I' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'S1.I' is not a column in the target table.
+ij> select s1.j from s1 where t1.i = 1;
+ERROR 42X04: Column 'T1.I' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'T1.I' is not a column in the target table.
+ij> select s1.j from s1 group by t1.j;
+ERROR 42X04: Column 'T1.J' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'T1.J' is not a column in the target table.
+ij> select s1.j from s1 group by s1.j having t1.j > 0;
+ERROR 42X04: Column 'T1.J' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'T1.J' is not a column in the target table.
+ij> insert into s1 (t1.i) values 100;
+ERROR 42X55: Table name 'T1' should be the same as 'S1'.
+ij> update s1 set t1.i=1;
+ERROR 42X55: Table name 'T1' should be the same as 'S1'.
+ij> delete from s1 where t1.i=100;
+ERROR 42X04: Column 'T1.I' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'T1.I' is not a column in the target table.
+ij> -- ok
+select s1.i from s1;
+I          
+-----------
+1          
+ij> select s1.i from s1 as s1;
+I          
+-----------
+1          
+ij> select s1.i from s1 where i = 1;
+I          
+-----------
+1          
+ij> select s1.i from s1 where s1.i = 1;
+I          
+-----------
+1          
+ij> select s1.i from s1 as s1 where i = 1;
+I          
+-----------
+1          
+ij> select w1.i from s1 as w1 where w1.i = 1;
+I          
+-----------
+1          
+ij> select sv1.i from sv1;
+I          
+-----------
+1          
+ij> select sv1.i from sv1 as sv1;
+I          
+-----------
+1          
+ij> select sv1.i from sv1 where i = 1;
+I          
+-----------
+1          
+ij> select sv1.i from sv1 where sv1.i = 1;
+I          
+-----------
+1          
+ij> select sv1.i from sv1 as sv1 where i = 1;
+I          
+-----------
+1          
+ij> select wv1.i from sv1 as wv1 where wv1.i = 1;
+I          
+-----------
+1          
+ij> select s1.i, s1.i from s1;
+I          |I          
+-----------------------
+1          |1          
+ij> select sv1.i, sv1.i from sv1;
+I          |I          
+-----------------------
+1          |1          
+ij> select * from s1;
+I          |J          
+-----------------------
+1          |10         
+ij> select * from s1 where i = 1;
+I          |J          
+-----------------------
+1          |10         
+ij> select * from s1 where s1.i = 1;
+I          |J          
+-----------------------
+1          |10         
+ij> select * from s1 as s1;
+I          |J          
+-----------------------
+1          |10         
+ij> select * from s1 as w1;
+I          |J          
+-----------------------
+1          |10         
+ij> select * from sv1;
+I          |J          
+-----------------------
+1          |10         
+ij> select * from sv1 as sv1;
+I          |J          
+-----------------------
+1          |10         
+ij> select * from sv1 as w1;
+I          |J          
+-----------------------
+1          |10         
+ij> select * from sv1 where i = 1;
+I          |J          
+-----------------------
+1          |10         
+ij> select * from sv1 where sv1.i = 1;
+I          |J          
+-----------------------
+1          |10         
+ij> select s1.i from (select s1.i from s1) as s1;
+I          
+-----------
+1          
+ij> select sv1.i from (select sv1.i from sv1) as sv1;
+I          
+-----------
+1          
+ij> create table t2 (i int, j int);
+0 rows inserted/updated/deleted
+ij> insert into t2 values (1, 100), (1, 100), (2, 200);
+3 rows inserted/updated/deleted
+ij> create view v2 as select * from t2;
+0 rows inserted/updated/deleted
+ij> create synonym s2 for t2;
+0 rows inserted/updated/deleted
+ij> create synonym sv2 for v2;
+0 rows inserted/updated/deleted
+ij> select s2.j from s2 group by s2.j order by s2.j;
+J          
+-----------
+100        
+200        
+ij> select s2.j from s2 group by s2.j having s2.j > 100 order by s2.j;
+J          
+-----------
+200        
+ij> select s1.i, s1.j from (select s1.i, s2.j from s1,s2 where s1.i=s2.i) as s1;
+I          |J          
+-----------------------
+1          |100        
+1          |100        
+ij> select sv2.j from sv2 group by sv2.j order by sv2.j;
+J          
+-----------
+100        
+200        
+ij> select sv2.j from sv2 group by sv2.j having sv2.j > 100 order by sv2.j;
+J          
+-----------
+200        
+ij> select sv1.i, sv1.j from (select sv1.i, sv2.j from sv1,sv2 where sv1.i=sv2.i) as sv1;
+I          |J          
+-----------------------
+1          |100        
+1          |100        
+ij> select max(s2.i) from s2;
+1          
+-----------
+2          
+ij> select max(sv2.i) from sv2;
+1          
+-----------
+2          
+ij> select * from s1 inner join s2 on (s1.i = s2.i);
+I          |J          |I          |J          
+-----------------------------------------------
+1          |10         |1          |100        
+1          |10         |1          |100        
+ij> select * from sv1 inner join sv2 on (sv1.i = sv2.i);
+I          |J          |I          |J          
+-----------------------------------------------
+1          |10         |1          |100        
+1          |10         |1          |100        
+ij> select s1.* from s1;
+I          |J          
+-----------------------
+1          |10         
+ij> select sv1.* from sv1;
+I          |J          
+-----------------------
+1          |10         
+ij> create table t3 (i int, j int);
+0 rows inserted/updated/deleted
+ij> insert into t3 values (10, 0), (11, 0), (12, 0);
+3 rows inserted/updated/deleted
+ij> create synonym s3 for t3;
+0 rows inserted/updated/deleted
+ij> insert into s1 (s1.i, s1.j) values (2, 20);
+1 row inserted/updated/deleted
+ij> insert into app.s1 (s1.i, s1.j) values (3, 30);
+1 row inserted/updated/deleted
+ij> insert into app.s1 (app.s1.i, s1.j) values (4, 40);
+1 row inserted/updated/deleted
+ij> insert into app.s1 (app.s1.i, app.s1.j) values (5, 50);
+1 row inserted/updated/deleted
+ij> update s1 set s1.j = 1;
+5 rows inserted/updated/deleted
+ij> update app.s1 set s1.j = 2;
+5 rows inserted/updated/deleted
+ij> update app.s1 set app.s1.j = 3;
+5 rows inserted/updated/deleted
+ij> update s1 set s1.j = 4 where s1.i = 3;
+1 row inserted/updated/deleted
+ij> update app.s1 set app.s1.j = 5 where app.s1.i = 4;
+1 row inserted/updated/deleted
+ij> delete from s1 where s1.i = 4;
+1 row inserted/updated/deleted
+ij> delete from app.s1 where app.s1.i = 5;
+1 row inserted/updated/deleted
+ij> update app.s1 set s1.j = s1.i, s1.i = s1.j;
+3 rows inserted/updated/deleted
+ij> select * from s1;
+I          |J          
+-----------------------
+3          |1          
+3          |2          
+4          |3          
+ij> update app.s1 set s1.j = s1.i, s1.i = s1.j;
+3 rows inserted/updated/deleted
+ij> select * from s1;
+I          |J          
+-----------------------
+1          |3          
+2          |3          
+3          |4          
+ij> delete from s1;
+3 rows inserted/updated/deleted
+ij> -- should fail
+insert into s1 (s1.i) select s1.i from s3;
+ERROR 42X04: Column 'S1.I' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'S1.I' is not a column in the target table.
+ij> -- ok
+insert into s1 (s1.i) select s3.i from s3;
+3 rows inserted/updated/deleted
+ij> insert into s1 select * from s3;
+3 rows inserted/updated/deleted
+ij> select * from s1;
+I          |J          
+-----------------------
+10         |NULL       
+11         |NULL       
+12         |NULL       
+10         |0          
+11         |0          
+12         |0          
+ij> -- clean up  
+drop synonym s3;
+0 rows inserted/updated/deleted
+ij> drop synonym sv2;
+0 rows inserted/updated/deleted
+ij> drop synonym s2;
+0 rows inserted/updated/deleted
+ij> drop synonym s1;
+0 rows inserted/updated/deleted
+ij> drop synonym sv1;
+0 rows inserted/updated/deleted
+ij> drop view v2;
+0 rows inserted/updated/deleted
+ij> drop view v1;
+0 rows inserted/updated/deleted
+ij> drop table t3;
+0 rows inserted/updated/deleted
+ij> drop table t2;
+0 rows inserted/updated/deleted
+ij> drop table t1;
+0 rows inserted/updated/deleted
+ij> 

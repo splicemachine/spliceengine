@@ -1,0 +1,62 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to you under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+This branch of the Demo subtree contains sample table functions.
+
+This code is now built as part of the standard Derby build.
+To build the javadoc, invoke the demodocs target in the top level
+build script.
+
+Two sql scripts are provided to test-drive these table functions.
+Use Derby's ij tool to run these scripts:
+
+1)  sql/demoFileVtis.sql
+2)  sql/demoForeignDbmsVtis.sql
+
+1) The first script needs to be customized as explained in the
+script's header.
+
+This first script exercises the following table functions:
+
+a) PropertyFileVTI - a table function for presenting a property file
+as a table.
+
+b) XmlVTI - a table function for presenting an arbitrary XML file as
+a table.
+
+c) ApacheServerLogVTI - an example of an XmlVTI which makes a table
+out of an Apache web server log.
+
+d) DerbyJiraReportVTI - an example of an XmlVTI which makes a table
+out of a JIRA report.
+
+e) SubversionLogVTI - a table function for making a table from the
+output of the "svn log" command.
+
+
+2) The second script runs table functions against the sample MySQL
+database called "world". To run this script, you must be running a
+MySQL server which manages the world database. You will also need
+to customize this script as its header explains. The second script
+exercises the following machinery:
+
+a) A table function which queries the CountryLanguage table in the
+MySQL database.
+
+b) A parameterized subscription from several tables in the MySQL
+database. This subscription is defined by an annotated class called
+WorldDBSnapshot.

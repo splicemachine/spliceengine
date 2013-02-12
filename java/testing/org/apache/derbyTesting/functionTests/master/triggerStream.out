@@ -1,0 +1,257 @@
+Start creating tables and functions to be used in triggers ...
+... done creating tables and functions to be used in triggers.
+Start creating triggers for Ascii stream tests ...
+... done creating triggers for Ascii stream tests.
+Call #1 to insertAsciiColumn
+getAsciiColumn() called
+getAsciiColumn() called
+Call #2 to insertAsciiColumn
+getAsciiColumn() called
+getAsciiColumn() called
+Call #3 to insertAsciiColumn
+getAsciiColumn() called
+getAsciiColumn() called
+Call #4 to insertAsciiColumn
+getAsciiColumn() called
+getAsciiColumn() called
+Call #5 to insertAsciiColumn
+getAsciiColumn() called
+getAsciiColumn() called
+Call #6 to insertAsciiColumn
+getAsciiColumn() called
+getAsciiColumn() called
+Call #7 to insertAsciiColumn
+getAsciiColumn() called
+getAsciiColumn() called
+Call #8 to insertAsciiColumn
+getAsciiColumn() called
+getAsciiColumn() called
+Call #9 to insertAsciiColumn
+getAsciiColumn() called
+getAsciiColumn() called
+Call #10 to insertAsciiColumn
+getAsciiColumn() called
+getAsciiColumn() called
+#### Executing "update x1 set x = x+1"
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+#### Executing "update x1 set x = null"
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+#### Executing "insert into x1 select * from x1"
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+#### Executing "delete from x1"
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+getAsciiColumn() called
+Start creating triggers for binary stream tests ...
+... done creating triggers for binary stream tests.
+Call #1 to insertBinaryColumn
+getBinaryColumn() called
+getBinaryColumn() called
+Call #2 to insertBinaryColumn
+getBinaryColumn() called
+getBinaryColumn() called
+Call #3 to insertBinaryColumn
+getBinaryColumn() called
+getBinaryColumn() called
+Call #4 to insertBinaryColumn
+getBinaryColumn() called
+getBinaryColumn() called
+Call #5 to insertBinaryColumn
+getBinaryColumn() called
+getBinaryColumn() called
+Call #6 to insertBinaryColumn
+getBinaryColumn() called
+getBinaryColumn() called
+Call #7 to insertBinaryColumn
+getBinaryColumn() called
+getBinaryColumn() called
+Call #8 to insertBinaryColumn
+getBinaryColumn() called
+getBinaryColumn() called
+Call #9 to insertBinaryColumn
+getBinaryColumn() called
+getBinaryColumn() called
+Call #10 to insertBinaryColumn
+getBinaryColumn() called
+getBinaryColumn() called
+Call #11 to insertBinaryColumn
+getBinaryColumn() called
+getBinaryColumn() called
+#### Executing "select x, length(c1) from x2 order by 1"
+X          |2          
+-----------------------
+1          |1          
+2          |10         
+3          |100        
+4          |1000       
+5          |10000      
+6          |32700      
+7          |32699      
+8          |16384      
+9          |16383      
+10         |0          
+11         |666        
+#### Executing "update x2 set x = x+1"
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+#### Executing "select x, length(c1) from x2 order by 1"
+X          |2          
+-----------------------
+2          |1          
+3          |10         
+4          |100        
+5          |1000       
+6          |10000      
+7          |32700      
+8          |32699      
+9          |16384      
+10         |16383      
+11         |0          
+12         |666        
+#### Executing "update x2 set x = null"
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+#### Executing "select x, length(c1) from x2 order by 2"
+X          |2          
+-----------------------
+NULL       |0          
+NULL       |1          
+NULL       |10         
+NULL       |100        
+NULL       |666        
+NULL       |1000       
+NULL       |10000      
+NULL       |16383      
+NULL       |16384      
+NULL       |32699      
+NULL       |32700      
+#### Executing "insert into x2 select * from x2"
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+#### Executing "select x, length(c1) from x2 order by 2"
+X          |2          
+-----------------------
+NULL       |0          
+NULL       |0          
+NULL       |1          
+NULL       |1          
+NULL       |10         
+NULL       |10         
+NULL       |100        
+NULL       |100        
+NULL       |666        
+NULL       |666        
+NULL       |1000       
+NULL       |1000       
+NULL       |10000      
+NULL       |10000      
+NULL       |16383      
+NULL       |16383      
+NULL       |16384      
+NULL       |16384      
+NULL       |32699      
+NULL       |32699      
+NULL       |32700      
+NULL       |32700      
+#### Executing "delete from x2"
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
+getBinaryColumn() called
