@@ -6,6 +6,7 @@ import com.splicemachine.derby.hbase.SpliceOperationProtocol;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.storage.RowProviders.SourceRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
@@ -545,8 +546,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			table = rowProvider.getTableName();
 		}
 		scan = rowProvider.toScan();
-		if(scan==null||table==null){
-			throw new AssertionError("Cannot perform shuffle, either scan or table is null");
+		if(scan==null||table==null){ 
+			if (SourceRowProvider.class.equals(rowProvider.getClass())) {
+	    		topOperation.init(SpliceOperationContext.newContext(activation));
+	    		topOperation.sink();
+	    		return;
+	    	} else
+	    		throw new AssertionError("Cannot perform shuffle, either scan or table is null: scan="+scan+",table="+table);
 		}
 		HTableInterface htable = null;
 		try{

@@ -1,26 +1,18 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.hbase.SpliceOperationProtocol;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
@@ -29,13 +21,22 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.hbase.SpliceOperationProtocol;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.impl.storage.RowProviders.SourceRowProvider;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * In Derby world, UnionResultSet is a pass-through: work/operation is passed to the left and right sub-operations 
@@ -84,7 +85,7 @@ public class UnionOperation extends SpliceBaseOperation {
     		double optimizerEstimatedRowCount,
     		double optimizerEstimatedCost) throws StandardException {
     	super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-    	SpliceLogUtils.debug(LOG, "source1="+source1+", source2="+source2);
+    	SpliceLogUtils.trace(LOG, "source1="+source1+", source2="+source2);
     	this.source1 = source1;
 			this.source2 = source2;
 			init(SpliceOperationContext.newContext(activation));
@@ -98,7 +99,7 @@ public class UnionOperation extends SpliceBaseOperation {
     
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		SpliceLogUtils.debug(LOG,"readExternal");
+		SpliceLogUtils.trace(LOG,"readExternal");
 		super.readExternal(in);
 		source1 = (SpliceOperation)in.readObject();
 		source2 = (SpliceOperation)in.readObject();
@@ -107,7 +108,7 @@ public class UnionOperation extends SpliceBaseOperation {
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		SpliceLogUtils.debug(LOG,"writeExternal");
+		SpliceLogUtils.trace(LOG,"writeExternal");
 		super.writeExternal(out);
 		out.writeObject((SpliceOperation)source1);
 		out.writeObject((SpliceOperation)source2);
@@ -116,13 +117,13 @@ public class UnionOperation extends SpliceBaseOperation {
 	
 	@Override
 	public List<NodeType> getNodeTypes() {
-		SpliceLogUtils.debug(LOG, "getNodeTypes");
+		SpliceLogUtils.trace(LOG, "getNodeTypes");
 		return isScan? nodeTypes: sequentialNodeTypes;
 	}
 	
 	@Override
 	public List<SpliceOperation> getSubOperations() {
-		SpliceLogUtils.debug(LOG, "getSubOperations");
+		SpliceLogUtils.trace(LOG, "getSubOperations");
 		List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
 		operations.add((SpliceOperation) source1);
 		operations.add((SpliceOperation) source2);
@@ -131,7 +132,7 @@ public class UnionOperation extends SpliceBaseOperation {
 
 	@Override
 	public void init(SpliceOperationContext context){
-		SpliceLogUtils.debug(LOG, ">>>>>>>>>>>>>init called");
+		SpliceLogUtils.trace(LOG, "init called");
 		super.init(context);
 		((SpliceOperation)source1).init(context);
 		((SpliceOperation)source2).init(context);
@@ -158,7 +159,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	}
 	
 	private List<SpliceOperation> getOperations(){
-		SpliceLogUtils.debug(LOG, ">>>>>>>>>>>>>getOperations");
+		SpliceLogUtils.trace(LOG, "getOperations");
 		List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
 		generateLeftOperationStack(operations);
 		return operations;
@@ -166,7 +167,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	
 	@Override
 	public void executeShuffle() throws StandardException {
-		SpliceLogUtils.debug(LOG,">>>>>>>>>>>>executeShuffle");
+		SpliceLogUtils.trace(LOG,"executeShuffle");
 		
 		final List<SpliceOperation> opStack = getOperations();
 		final SpliceOperation topOperation = getOperations().get(opStack.size()-1);
@@ -183,9 +184,15 @@ public class UnionOperation extends SpliceBaseOperation {
 		RowProvider provider = regionOperation.getMapRowProvider(topOperation,regionOperation.getExecRowDefinition());
 		final byte[] table = provider.getTableName();
 		final Scan scan = provider.toScan();
-		SpliceLogUtils.debug(LOG,">>>>>>>>>>>>executeSink, map table="+table+",map scan="+scan);
-	    if(scan==null||table==null)
-            throw new AssertionError("Cannot perform shuffle, either scan or table is null");
+		SpliceLogUtils.trace(LOG,"executeSink, map table="+table+",map scan="+scan);
+	    if(scan==null||table==null) {
+	    	if (provider.getClass().equals(SourceRowProvider.class)) {
+	    		topOperation.init(SpliceOperationContext.newContext(activation));
+	    		topOperation.sink();
+	    		return;
+	    	} else
+	    		throw new AssertionError("Cannot perform shuffle, either scan or table is null");
+	    }
 		HTableInterface htable = null;
 		try{
 			htable = SpliceAccessManager.getHTable(table);
@@ -231,7 +238,7 @@ public class UnionOperation extends SpliceBaseOperation {
 
 	@Override
 	public void close() throws StandardException {
-		SpliceLogUtils.debug(LOG, "close");
+		SpliceLogUtils.trace(LOG, "close");
 		clearCurrentRow();
 
 		switch (whichSource) {
@@ -248,7 +255,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	
 	@Override
 	public void finish() throws StandardException {
-		SpliceLogUtils.debug(LOG, "finish");
+		SpliceLogUtils.trace(LOG, "finish");
 		source1.finish();
 		source2.finish();
 		super.finish();
@@ -256,7 +263,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	
 	@Override
 	public SpliceOperation getLeftOperation() {
-		SpliceLogUtils.debug(LOG, "getLeftOperation");
+		SpliceLogUtils.trace(LOG, "getLeftOperation");
 		return (SpliceOperation) this.source1;
 	}
 
@@ -279,7 +286,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	@Override
 	public void	openCore() throws StandardException 
 	{
-		SpliceLogUtils.debug(LOG, "openCore");
+		SpliceLogUtils.trace(LOG, "openCore");
 		switch (whichSource) {
 			case 1: source1.openCore();
 				break;
@@ -294,7 +301,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	
 	@Override
 	public ExecRow	getNextRowCore() throws StandardException {
-		SpliceLogUtils.debug(LOG, "getNextRowCore, whichSource=%s,regionScanner=%s,isScan=%b",whichSource,regionScanner,isScan);
+		SpliceLogUtils.trace(LOG, "getNextRowCore, whichSource=%s,regionScanner=%s,isScan=%b",whichSource,regionScanner,isScan);
 		return isScan? getNextRowFromScan() : getNextRowFromSources();
 	}
 
@@ -302,7 +309,7 @@ public class UnionOperation extends SpliceBaseOperation {
 		List<KeyValue> keyValues = new ArrayList<KeyValue>();
 		try {
 			regionScanner.next(keyValues);
-			SpliceLogUtils.trace(LOG,">>>>>>>>>>>getNextRowCore, keyvalue="+keyValues);
+			SpliceLogUtils.trace(LOG,"getNextRowCore, keyvalue="+keyValues);
 			Result result = new Result(keyValues);
 			if (keyValues.isEmpty()) {
 				currentRow = null;
@@ -325,7 +332,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	}
 	
 	protected ExecRow	getNextRowFromSources() throws StandardException {
-		SpliceLogUtils.debug(LOG, "getNextRowFromSources, whichSource="+whichSource);
+		SpliceLogUtils.trace(LOG, "getNextRowFromSources, whichSource="+whichSource);
 	    ExecRow result = null;
 	    //if (isOpen) {
 	        switch (whichSource) {
@@ -333,14 +340,14 @@ public class UnionOperation extends SpliceBaseOperation {
 	                     if ( result == (ExecRow) null ) {
 	                        source1.close();
 	                        whichSource = 2;
-	                        SpliceLogUtils.debug(LOG, "getNextRowFromSources, open source 2");
+	                        SpliceLogUtils.trace(LOG, "getNextRowFromSources, open source 2");
 	                        source2.openCore();
-	                        SpliceLogUtils.debug(LOG, "getNextRowFromSources, getNextRowCore from source 2");
+	                        SpliceLogUtils.trace(LOG, "getNextRowFromSources, getNextRowCore from source 2");
 	                        result = source2.getNextRowCore();
 							if (result != null)
 								rowsSeenRight++;
 	                     } else {
-	                    	 SpliceLogUtils.debug(LOG, "getNextRowFromSources, getNextRowCore from source 1");
+	                    	 SpliceLogUtils.trace(LOG, "getNextRowFromSources, getNextRowCore from source 1");
 							 rowsSeenLeft++;
 	                     }
 	                     break;
@@ -363,7 +370,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	
 	@Override
 	public long sink() {
-		SpliceLogUtils.debug(LOG, "sink");
+		SpliceLogUtils.trace(LOG, "sink");
 		long numSunk=0l;
 		ExecRow row = null;
 		HTableInterface tempTable = null;
@@ -373,7 +380,7 @@ public class UnionOperation extends SpliceBaseOperation {
 			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			openCore();
 			while((row = getNextRowFromSources()) != null){
-				SpliceLogUtils.debug(LOG, "row="+row);
+				SpliceLogUtils.trace(LOG, "row="+row);
 				/* Need to use non-sorted non-hashed rowkey with the prefix
 				put = SpliceUtils.insert(row.getRowArray(), 
 										 DerbyBytesUtil.generateSortedHashKey(row.getRowArray(), sequence[0], keyColumns, null),
@@ -426,7 +433,7 @@ public class UnionOperation extends SpliceBaseOperation {
 
 	@Override
 	public ExecRow getExecRowDefinition() {
-		SpliceLogUtils.debug(LOG, "getExecRowDefinition");
+		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 		currentRow = ((SpliceOperation)source1).getExecRowDefinition();
 		/*
 		switch (whichSource) 
