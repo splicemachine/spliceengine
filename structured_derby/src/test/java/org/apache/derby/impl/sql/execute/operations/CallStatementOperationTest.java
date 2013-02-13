@@ -42,7 +42,7 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
 				Assert.assertTrue(result.getBoolean(1));
 				count++;
 			}
-			Assert.assertEquals(1, count);
+			Assert.assertEquals(11, count);
 		} catch (SQLException e) {
 			LOG.error("error in testAggregatedDeleteExt-"+e.getMessage(), e);
 		} finally {
