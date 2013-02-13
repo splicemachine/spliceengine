@@ -15,6 +15,7 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 /**
@@ -26,7 +27,6 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class SpliceEngine {
 	private static Logger LOG = Logger.getLogger(SpliceEngine.class);
-	public static byte[] TEMP_TABLE = "SYS_TEMP".getBytes();
 	protected static J2SEDataValueFactory dvf = new J2SEDataValueFactory();
 	protected static ReflectClassesJava2 classLoader = new ReflectClassesJava2();
 	protected static ModuleFactory monitor;
@@ -53,10 +53,10 @@ public class SpliceEngine {
 		}
 		try {
 			HBaseAdmin admin = new HBaseAdmin(new Configuration());
-			if (!admin.tableExists(TEMP_TABLE)) {
-				HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(Bytes.toString(TEMP_TABLE));
+			if (!admin.tableExists(TxnConstants.TEMP_TABLE)) {
+				HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(TxnConstants.TEMP_TABLE);
 				admin.createTable(td);
-				SpliceLogUtils.info(LOG, TEMP_TABLE + " created");
+				SpliceLogUtils.info(LOG, TxnConstants.TEMP_TABLE + " created");
 			}
 			admin.close();
 		} catch (Exception e) {

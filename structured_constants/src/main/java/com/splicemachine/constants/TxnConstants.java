@@ -16,6 +16,7 @@ public class TxnConstants extends HBaseConstants {
 	public static final String TRANSACTION_TABLE = "__TXN";
 	public static final String TRANSACTION_LOG_TABLE = "__TXN_LOG";
 	public static final String TEMP_TABLE = "SYS_TEMP";
+	public static final byte[] TEMP_TABLE_BYTES = Bytes.toBytes(TEMP_TABLE);
 	public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
 	public static final byte[] TRANSACTION_LOG_TABLE_BYTES = Bytes.toBytes(TRANSACTION_LOG_TABLE);
 	public static final byte[] TRANSACTION_TABLE_PREPARE_FAMILY_BYTES = TxnManagerOperation.PREPARE.toString().getBytes();
