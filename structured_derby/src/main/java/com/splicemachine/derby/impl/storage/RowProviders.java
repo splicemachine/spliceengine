@@ -99,10 +99,10 @@ public class RowProviders {
 		@Override public void remove() { throw new UnsupportedOperationException("Remove not supported"); }
     }
 
-	private static class SourceRowProvider implements RowProvider{
+	public static class SourceRowProvider implements RowProvider{
 		private final NoPutResultSet source;
 		private final Logger log;
-		private boolean populated = false;
+		//private boolean populated = false;
 		private ExecRow nextEntry;
 
 		private SourceRowProvider(NoPutResultSet source, Logger log) {
@@ -140,7 +140,7 @@ public class RowProviders {
 
 		@Override
 		public boolean hasNext() {
-			if(populated==true) return true;
+			//if(populated==true) return true;
 			try {
 				nextEntry = source.getNextRowCore();
 			} catch (StandardException e) {
@@ -151,8 +151,8 @@ public class RowProviders {
 
 		@Override
 		public ExecRow next() {
-			if(!populated) return null;
-			populated=false;
+			//if(!populated) return null;
+			//populated=false;
 			return nextEntry;
 		}
 
