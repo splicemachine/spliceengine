@@ -11,9 +11,10 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.splicemachine.derby.test.SpliceDerbyTest;
+import com.splicemachine.derby.test.SpliceNetDerbyTest;
 
-public class CallStatementOperationTest extends SpliceDerbyTest {
+//public class CallStatementOperationTest extends SpliceDerbyTest {
+public class CallStatementOperationTest extends SpliceNetDerbyTest {
 	private static Logger LOG = Logger.getLogger(CallStatementOperationTest.class);
 	
 	@BeforeClass 
@@ -29,11 +30,19 @@ public class CallStatementOperationTest extends SpliceDerbyTest {
 		ResultSet result = null;
 		try {
 			CallableStatement cs = conn.prepareCall("CALL SYSIBM.SQLTABLES('', '', '', '', 'GETSCHEMAS=1')");
+			//CallableStatement cs = conn.prepareCall("CALL SYSIBM.METADATA()");
 			result = cs.executeQuery();
+			
+			//s = conn.createStatement();
+			//result = s.executeQuery("SELECT SCHEMANAME AS TABLE_SCHEM, CAST(NULL AS VARCHAR(128)) AS TABLE_CATALOG FROM SYS.SYSSCHEMAS WHERE SCHEMANAME LIKE '%' ORDER BY TABLE_SCHEM");
+			
+			int count = 0;
 			while (result.next()) {
-				LOG.info("TABLE_SCHEM="+result.getString(1));
-				Assert.assertNotNull(result.getString(1));
+				LOG.info("c1="+result.getString(1)+",c2="+result.getString(2));
+				Assert.assertTrue(result.getBoolean(1));
+				count++;
 			}
+			Assert.assertEquals(1, count);
 		} catch (SQLException e) {
 			LOG.error("error in testAggregatedDeleteExt-"+e.getMessage(), e);
 		} finally {
