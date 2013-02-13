@@ -5,6 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -14,10 +15,11 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.utils.SpliceLogUtils;
 
 
@@ -159,11 +161,14 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	
 	@Override
 	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow rowTemplate){
-		return RowProviders.singletonProvider(getExecRowDefinition());
+		SpliceLogUtils.trace(LOG, "getMapRowProvider,top="+top);
+		top.init(SpliceOperationContext.newContext(activation));
+		return RowProviders.sourceProvider(top, LOG);
 	}
 	
 	@Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow rowTemplate){
+		SpliceLogUtils.info(LOG, "getReduceRowProvider,top="+top);
 		return RowProviders.singletonProvider(getExecRowDefinition());
 	}
 
