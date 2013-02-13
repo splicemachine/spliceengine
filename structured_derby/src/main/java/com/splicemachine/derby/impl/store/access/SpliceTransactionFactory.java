@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.HBaseConstants;
@@ -303,10 +304,11 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 	private void initZookeeper() {
 		if (LOG.isDebugEnabled())
 			LOG.debug("SpliceTransactionFactory initZookeeper");
+		HBaseAdmin admin = null;
 		try {
 			@SuppressWarnings("resource")
 			Configuration config = HBaseConfiguration.create();
-			HBaseAdmin admin = new HBaseAdmin(config);
+			admin = new HBaseAdmin(config);
 			if (!admin.tableExists(TxnConstants.TRANSACTION_LOG_TABLE_BYTES)) {
 				HTableDescriptor desc = new HTableDescriptor(TxnConstants.TRANSACTION_LOG_TABLE_BYTES);
 				desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
@@ -320,13 +322,25 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 				desc.addFamily(new HColumnDescriptor(TxnConstants.DEFAULT_FAMILY));
 				admin.createTable(desc);
 			}
-				
+			if (!admin.tableExists(TxnConstants.TEMP_TABLE)) {
+				HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(TxnConstants.TEMP_TABLE);
+				admin.createTable(td);
+				SpliceLogUtils.info(LOG, TxnConstants.TEMP_TABLE + " created");
+			}
 		} catch (MasterNotRunningException e) {
-			e.printStackTrace();
+			SpliceLogUtils.error(LOG,e);
 		} catch (ZooKeeperConnectionException e) {
-			e.printStackTrace();
+			SpliceLogUtils.error(LOG,e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			SpliceLogUtils.error(LOG,e);
+		} finally {
+			if (admin != null) {
+				try {
+					admin.close();
+				} catch (Exception e) {
+					SpliceLogUtils.error(LOG,e);
+				}
+			}
 		}
 	}
 	
