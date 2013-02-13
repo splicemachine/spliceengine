@@ -26,7 +26,7 @@ public class HBaseConstants {
 	public static final String KEY_FAMILY = "family";
 	public static final String FAMILY_SEPARATOR=":";
 	public static final String SPACE = " ";
-//	public static final String TABLE_COMPRESSION = "com.splicemachine.table.compression";
+	public static final String TABLE_COMPRESSION = "com.splicemachine.table.compression";
 	public static final String HBASE_ZOOKEEPER_CLIENT_PORT = "hbase.zookeeper.property.clientPort";
 	public static final String HBASE_ZOOKEEPER_QUOROM = "hbase.zookeeper.quorum";
 	public static final byte[] TABLE_CONFIGURATION = "TABLE_CONFIGURATION".getBytes();
