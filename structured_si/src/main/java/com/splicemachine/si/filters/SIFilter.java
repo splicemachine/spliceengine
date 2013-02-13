@@ -7,11 +7,11 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.log4j.Logger;
 
-public class ReadCommittedFilter extends FilterBase {
-	private static Logger LOG = Logger.getLogger(ReadCommittedFilter.class);
+public class SIFilter extends FilterBase {
+	private static Logger LOG = Logger.getLogger(SIFilter.class);
 	protected long timestamp;
 	protected byte[] currentRow;
-	public ReadCommittedFilter(long timestamp) {
+	public SIFilter(long timestamp) {
 		this.timestamp = timestamp;
 	}
 	
@@ -23,7 +23,6 @@ public class ReadCommittedFilter extends FilterBase {
 	@Override
 	public ReturnCode filterKeyValue(KeyValue keyValue) {
 		currentRow = keyValue.getRow();
-
 		return super.filterKeyValue(keyValue);
 	}
 

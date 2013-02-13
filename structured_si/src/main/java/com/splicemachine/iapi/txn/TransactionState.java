@@ -13,5 +13,5 @@ package com.splicemachine.iapi.txn;
  *
  */
 public enum TransactionState {
-	ACTIVE,ERROR,COMMIT,ABORT,COMPLETE
+	ACTIVE,ERROR,COMMIT,ABORT
 }

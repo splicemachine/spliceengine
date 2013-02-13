@@ -40,12 +40,14 @@ public class SIObserver extends BaseRegionObserver {
 	@Override
 	public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
 		SpliceLogUtils.trace(LOG, "prePut %s", put);
+		// write-write conflict detection
 		super.prePut(e, put, edit, writeToWAL);
 	}
 
 	@Override
 	public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e, Delete delete, WALEdit edit, boolean writeToWAL) throws IOException {
 		SpliceLogUtils.trace(LOG, "preDelete %s", delete);
+		// Write - Write Conflict Detection
 		// tombstone ?
 		super.preDelete(e, delete, edit, writeToWAL);
 	}

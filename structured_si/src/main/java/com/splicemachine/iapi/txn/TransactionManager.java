@@ -4,50 +4,30 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.impl.si.txn.JtaXAResource;
 import com.splicemachine.impl.si.txn.Transaction;
+import com.splicemachine.si.utils.SIConstants;
 
 
-public abstract class TransactionManager extends TxnConstants {
-	
-    static final Log LOG = LogFactory.getLog(TransactionManager.class);
+public abstract class TransactionManager extends SIConstants {
+	private static Logger LOG = Logger.getLogger(TransactionManager.class);
     protected RecoverableZooKeeper rzk;
-	
+
+    
     public TransactionManager() {}
     
 	public TransactionManager(Configuration config) {
 		try {
-			@SuppressWarnings("resource")
-			HBaseAdmin admin = new HBaseAdmin(config);
-			if (!admin.tableExists(TxnConstants.TRANSACTION_LOG_TABLE_BYTES)) {
-				HTableDescriptor desc = new HTableDescriptor(TxnConstants.TRANSACTION_LOG_TABLE_BYTES);
-				desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-						HBaseConstants.DEFAULT_VERSIONS,
-						HBaseConstants.DEFAULT_COMPRESSION,
-//						config.get(HBaseConstants.TABLE_COMPRESSION,HBaseConstants.DEFAULT_COMPRESSION),
-						HBaseConstants.DEFAULT_IN_MEMORY,
-						HBaseConstants.DEFAULT_BLOCKCACHE,
-						HBaseConstants.DEFAULT_TTL,
-						HBaseConstants.DEFAULT_BLOOMFILTER));
-				desc.addFamily(new HColumnDescriptor(TxnConstants.DEFAULT_FAMILY));
-				admin.createTable(desc);
-			}
 			final CountDownLatch connSignal = new CountDownLatch(1);
 			rzk = ZKUtil.connect(config, new Watcher() {			
 				@Override
@@ -56,7 +36,6 @@ public abstract class TransactionManager extends TxnConstants {
 						connSignal.countDown();
 				}
 			});
-			
 			connSignal.await();
 		} catch (MasterNotRunningException e) {
 			e.printStackTrace();
