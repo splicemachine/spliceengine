@@ -159,7 +159,7 @@ class DirectCall implements GeneratedMethod {
 			return null;
 		} catch (StandardException se) {
 			throw se;
-		}		
+		}
 		catch (Throwable t) {
 			throw StandardException.unexpectedUserException(t);
 		}

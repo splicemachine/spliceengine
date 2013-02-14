@@ -27,6 +27,10 @@ rm -Rf org/apache/derby/catalog/SystemProcedures.class
 rm -Rf org/apache/derby/impl/services/reflect/DirectCall.class
 rm -Rf org/apache/derby/impl/sql/catalog/DataDictionaryImpl.class
 rm -Rf org/apache/derby/iapi/types/SQLChar.class
+#rm -Rf org/apache/derby/impl/sql/compile/DMLModStatementNode.class
+#rm -Rf org/apache/derby/impl/sql/compile/InsertNode.class
+rm -Rf org/apache/derby/impl/services/reflect/DirectCall.class
+rm -rf org/apache/derby/iapi/util/InterruptStatus.class
 
 
 
