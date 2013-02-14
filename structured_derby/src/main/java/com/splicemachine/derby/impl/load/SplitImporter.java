@@ -8,14 +8,9 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.PublicAPI;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -208,7 +203,7 @@ public class SplitImporter implements Importer{
 			if (endRow.length > 0)
 				BytesUtil.decrementAtIndex(endRow, endRow.length - 1);//ensure that we are inside the region fully
 
-			final Collection<BlockLocation> blockLocs = regionToBlockMap.get(region);
+			final Collection<BlockLocation> blockLocs = Lists.newArrayList(regionToBlockMap.get(region));
 			try {
 				htable.coprocessorExec(SpliceImportProtocol.class, startRow, endRow,
 						new Batch.Call<SpliceImportProtocol, Long>() {

@@ -18,7 +18,7 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
 	private static Logger LOG = Logger.getLogger(CallStatementOperationTest.class);
 	
 	@BeforeClass 
-	public static void startup() throws SQLException {
+	public static void startup() throws Exception {
 		startConnection();	
 	} 
 
@@ -43,8 +43,6 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
 				count++;
 			}
 			Assert.assertEquals(11, count);
-		} catch (SQLException e) {
-			LOG.error("error in testAggregatedDeleteExt-"+e.getMessage(), e);
 		} finally {
 			try {
 				if (result!=null)
@@ -56,7 +54,8 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
 			}
 		}		
 	}
-	
+
+
 	@AfterClass 
 	public static void shutdown() throws SQLException {
 		stopConnection();		

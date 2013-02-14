@@ -53,16 +53,11 @@ public class SpliceNetDerbyTest {
         }
     }
 
-	public static void startConnection() throws SQLException {
-		loadDriver();
-		try {
-			conn = DriverManager.getConnection(protocol + dbName + ";create=true", props);
-			System.out.println("Conn: " + conn);
-		} catch (Exception e) {
-			System.out.println("Exception: " + e + ", conn: " + conn);
-			e.printStackTrace();
-		}
-	}
+    public static void startConnection() throws Exception {
+        loadDriver();
+        conn = DriverManager.getConnection(protocol + dbName + ";create=true", props);
+        System.out.println("Conn: " + conn);
+    }
 	
 	public static void stopConnection() throws SQLException {
 	    //Connection
