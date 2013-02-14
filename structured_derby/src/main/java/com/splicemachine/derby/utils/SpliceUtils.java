@@ -479,7 +479,7 @@ public class SpliceUtils {
 
 	public static void setThreadContext(){
 		SpliceLogUtils.trace(LOG,"addThreadContext");
-		ContextService contextService = new ContextService();
+        ContextService contextService = ContextService.getFactory();
 		ContextManager mgr = contextService.newContextManager();
 		mgr.pushContext(SpliceEngine.getLanguageConnectionContext());
 		contextService.setCurrentContextManager(mgr);

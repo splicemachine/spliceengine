@@ -9327,10 +9327,10 @@ public final class	DataDictionaryImpl
 			{
 				SanityManager.ASSERT(! booting, "booting is expected to be false");
 			}
-			{
+
 				LanguageConnectionContext lcc = getLCC();
 				return lcc.getTransactionCompile();
-			}
+
 		}
 	}
 

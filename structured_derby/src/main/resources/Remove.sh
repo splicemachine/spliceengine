@@ -32,6 +32,7 @@ rm -Rf org/apache/derby/iapi/types/SQLChar.class
 rm -Rf org/apache/derby/impl/services/reflect/DirectCall.class
 rm -rf org/apache/derby/iapi/util/InterruptStatus.class
 rm -rf org/apache/derby/impl/sql/compile/ExecSPSNode.class
+rm -rf org/apache/derby/
 
 
 

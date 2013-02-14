@@ -289,7 +289,10 @@ public class NetworkServerControl{
 		serverImpl = new NetworkServerControlImpl();
 	}
 	
-    
+
+    public void setSSLMode(int sslMode){
+        serverImpl.setSSLMode(sslMode);
+    }
 	/**
 	 * main routine for NetworkServerControl
 	 *
@@ -831,4 +834,7 @@ public class NetworkServerControl{
         return stringForm;
     }
 
+    public void setLogConnections(boolean logConnections) {
+        serverImpl.setLogConnections(logConnections);
+    }
 }

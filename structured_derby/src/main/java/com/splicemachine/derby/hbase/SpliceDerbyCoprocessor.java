@@ -3,6 +3,7 @@ package com.splicemachine.derby.hbase;
 import java.io.IOException;
 
 import org.apache.derby.drda.NetworkServerControl;
+import org.apache.derby.impl.drda.NetworkServerControlImpl;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
@@ -31,9 +32,11 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
 			if (server == null) {
 				try {
 					server = new NetworkServerControl();
+                    server.setSSLMode(NetworkServerControlImpl.SSL_BASIC);
+                    server.setLogConnections(true);
 					server.start(new DerbyOutputLoggerWriter()); // This will log to log4j
-					server.logConnections(true);
-					SpliceLogUtils.info(LOG, server.getSysinfo());
+
+//					SpliceLogUtils.info(LOG, server.getSysinfo());
 				} catch (Exception exception) {
 					SpliceLogUtils.logAndThrowRuntime(LOG, "Could Not Start Derby - Catastrophic", exception);
 				}
