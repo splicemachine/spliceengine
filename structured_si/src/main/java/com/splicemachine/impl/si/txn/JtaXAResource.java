@@ -20,6 +20,7 @@ public class JtaXAResource implements XAResource {
     private Map<Xid, Transaction> xidToTransactionState = new HashMap<Xid, Transaction>();
     private final TransactionManager transactionManager;
     private ThreadLocal<Transaction> threadLocalTransactionState = new ThreadLocal<Transaction>();
+    private int transactionTimeout = 60;
 
     public JtaXAResource(final TransactionManager transactionManager) {
         this.transactionManager = transactionManager;
@@ -70,7 +71,7 @@ public class JtaXAResource implements XAResource {
     }
 
     public int getTransactionTimeout() throws XAException {
-        return 0;
+        return transactionTimeout;
     }
 
     public boolean isSameRM(final XAResource xares) throws XAException {
@@ -103,7 +104,8 @@ public class JtaXAResource implements XAResource {
     }
 
     public boolean setTransactionTimeout(final int seconds) throws XAException {
-        return false; // Currently not supported. (Only global lease time) XXX-TODO Guangle Fan
+    	transactionTimeout = seconds;
+        return true; 
     }
     @Override
     public void start(final Xid xid, final int flags) throws XAException {

@@ -4,6 +4,7 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.HTablePool;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -12,6 +13,8 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooDefs.Ids;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.SchemaConstants;
+import com.splicemachine.constants.TxnConstants.TableEnv;
+import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SIUtils extends SIConstants {	
@@ -20,7 +23,7 @@ public class SIUtils extends SIConstants {
 	
 	public static HTableDescriptor generateSIHtableDescriptor(String tableName) {
 		HTableDescriptor descriptor = new HTableDescriptor(tableName);
-		HColumnDescriptor snapShot = new HColumnDescriptor(SNAPSHOT_ISOLATION,
+		HColumnDescriptor snapShot = new HColumnDescriptor(SNAPSHOT_ISOLATION_FAMILY_BYTES,
 				Integer.MAX_VALUE,
 				HBaseConstants.DEFAULT_COMPRESSION,
 				HBaseConstants.DEFAULT_IN_MEMORY,
@@ -28,7 +31,7 @@ public class SIUtils extends SIConstants {
 				HBaseConstants.DEFAULT_TTL,
 				HBaseConstants.DEFAULT_BLOOMFILTER);
 		HColumnDescriptor attributes = new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-				HBaseConstants.DEFAULT_VERSIONS,
+				Integer.MAX_VALUE,
 				HBaseConstants.DEFAULT_COMPRESSION,
 				HBaseConstants.DEFAULT_IN_MEMORY,
 				HBaseConstants.DEFAULT_BLOCKCACHE,
@@ -87,5 +90,7 @@ public class SIUtils extends SIConstants {
 		SpliceLogUtils.trace(LOG,"pushTransactionTable");
 		return pool.getTable(TRANSACTION_TABLE_BYTES);
 	}
-	
+	public static TableEnv getTableEnv(RegionCoprocessorEnvironment e) {
+		return EnvUtils.getTableEnv(e.getRegion().getTableDesc().getNameAsString());
+	}
 }

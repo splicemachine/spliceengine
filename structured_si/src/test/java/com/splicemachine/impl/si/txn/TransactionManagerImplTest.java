@@ -25,7 +25,7 @@ public class TransactionManagerImplTest {
 	public void beginTransactionTest() throws Exception {
 		Transaction transaction = tm.beginTransaction();
 		Assert.assertNotNull(transaction);
-		Assert.assertTrue(transaction.getStartTimestamp() > 0);
+		Assert.assertTrue(transaction.getStartTimestamp() >= 0);
 		Assert.assertEquals(transaction.getTransactionState(),TransactionState.ACTIVE);
 		Transaction readTrans = Transaction.readTransaction(transaction.getStartTimestamp());
 		Assert.assertEquals(readTrans, transaction);
@@ -36,7 +36,7 @@ public class TransactionManagerImplTest {
 		Transaction transaction = tm.beginTransaction();
 		tm.prepareCommit(transaction);
 		Assert.assertNotNull(transaction);
-		Assert.assertTrue(transaction.getStartTimestamp() > 0);
+		Assert.assertTrue(transaction.getStartTimestamp() >= 0);
 		Assert.assertEquals(transaction.getTransactionState(),TransactionState.ACTIVE);
 		Transaction readTrans = Transaction.readTransaction(transaction.getStartTimestamp());
 		Assert.assertEquals(readTrans, transaction);
