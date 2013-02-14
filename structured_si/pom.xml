@@ -17,64 +17,14 @@
 	<dependencies>
 
 		<dependency>
-        	<groupId>org.apache.derby</groupId>
-        	<artifactId>derby</artifactId>
-        	<version>${derby.version}</version>
-        </dependency>
-
-		<dependency>
         	<groupId>junit</groupId>
         	<artifactId>junit</artifactId>
         	<version>${junit.version}</version>
-        </dependency>
-          <dependency>
-        	<groupId>org.apache.derby</groupId>
-        	<artifactId>derbytesting</artifactId>
-        	<version>${derby.version}</version>
-        </dependency>
-          <dependency>
-        	<groupId>org.apache.derby</groupId>
-        	<artifactId>derbynet</artifactId>
-        	<version>${derby.version}</version>
-        </dependency>
-		<dependency>
-			<groupId>org.apache.derby</groupId>
-			<artifactId>derbyclient</artifactId>
-			<version>${derby.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.datanucleus</groupId>
-			<artifactId>datanucleus-core</artifactId>
-			<version>2.0.3</version>
-		</dependency>
-		<dependency>
-        	<groupId>org.apache.derby</groupId>
-        	<artifactId>derbytools</artifactId>
-        	<version>${derby.version}</version>
-        </dependency>
-        <dependency>
-        	<groupId>org.apache.derby</groupId>
-        	<artifactId>derbyrun</artifactId>
-        	<version>${derby.version}</version>
         </dependency>
         		<dependency>
         			<groupId>org.slf4j</groupId>
         			<artifactId>slf4j-log4j12</artifactId>
         			<version>1.7.1</version>
-        			<type>jar</type>
-        			<scope>compile</scope>
-        		</dependency>
-        		<dependency>
-        			<groupId>org.aspectj</groupId>
-        			<artifactId>aspectjrt</artifactId>
-        			<version>1.6.11</version>
-        			<type>jar</type>
-        			<scope>compile</scope>
-        		</dependency>
-        		<dependency>
-        			<groupId>org.aspectj</groupId>
-        			<artifactId>aspectjweaver</artifactId>
-        			<version>1.6.11</version>
         			<type>jar</type>
         			<scope>compile</scope>
         		</dependency>
@@ -180,11 +130,7 @@
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
 				</configuration>
 				<dependencies>
-					<dependency>
-						<groupId>com.splicemachine</groupId>
-						<artifactId>structured_trx</artifactId>
-						<version>1.0.1-SNAPSHOT</version>
-					</dependency>
+
 				</dependencies>
 			</plugin>
 
