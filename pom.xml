@@ -143,24 +143,24 @@
 		<repository>
 			<id>central</id>
 			<url>http://repo1.maven.org/maven2</url>
-		</repository>
-		
-			<repository>
-			<id>inciteretail</id>
-			<url>http://www.inciteretail.com/nexus/content/repositories/releases/</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-		</repository>
-		
-	<!-- 	<repository>
-			<id>apache</id>
-			<url>https://repository.apache.org/content/repositories/snapshots</url>
-		</repository>
-		<repository>
-			<id>apache-release</id>
-			<url>https://repository.apache.org/content/repositories/releases</url>
-		</repository> -->
+        </repository>
+
+        <repository>
+            <id>inciteretail</id>
+            <url>http://www.inciteretail.com/nexus/content/repositories/releases/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+
+        <!-- 	<repository>
+                <id>apache</id>
+                <url>https://repository.apache.org/content/repositories/snapshots</url>
+            </repository>
+            <repository>
+                <id>apache-release</id>
+                <url>https://repository.apache.org/content/repositories/releases</url>
+            </repository> -->
 		<repository>
 			<id>gson-repo</id>
 			<url>http://google-gson.googlecode.com/svn/mavenrepo</url>
