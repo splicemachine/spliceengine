@@ -24,6 +24,19 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
 
 
 	@Test
+	public void testCallSqlProcedures() throws SQLException {
+        ResultSet resultSet = null;
+        try{
+            resultSet = conn.getMetaData().getProcedures(null, null, null);
+            while(resultSet.next()){
+                LOG.info("c1="+resultSet.getString(1));
+            }
+        }finally{
+            if(resultSet!=null)resultSet.close();
+        }
+    }
+
+    @Test
 	public void testCallSysSchemas() throws SQLException {
 		LOG.info("start testCallStatement");
 		Statement s = null;

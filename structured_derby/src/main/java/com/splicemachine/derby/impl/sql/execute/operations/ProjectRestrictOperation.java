@@ -209,13 +209,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		SpliceOperation regionOperation = operationStack.get(0);
 		LOG.trace("regionOperation="+regionOperation);
 		RowProvider provider;
-        ExecRow fromResults;
-        try{
-            fromResults = getFromResultDescription(activation.getResultDescription());
-        } catch (StandardException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
-            return null;// can't happen
-        }
+        ExecRow fromResults = getExecRowDefinition();
         if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
 			SpliceLogUtils.trace(LOG,"scanning Temp Table");
 			provider = regionOperation.getReduceRowProvider(this,fromResults);
