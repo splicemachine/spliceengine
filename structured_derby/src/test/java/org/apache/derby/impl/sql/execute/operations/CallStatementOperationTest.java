@@ -26,6 +26,7 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
 	@Test
 	public void testCallSqlProcedures() throws SQLException {
         ResultSet resultSet = null;
+        conn.setAutoCommit(false);
         try{
             resultSet = conn.getMetaData().getProcedures(null, null, null);
             while(resultSet.next()){

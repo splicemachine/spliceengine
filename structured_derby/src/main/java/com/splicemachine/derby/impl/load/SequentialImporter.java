@@ -27,8 +27,8 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class SequentialImporter implements Importer {
 
-	private HBaseAdmin admin;
-	private ImportContext context;
+	protected final HBaseAdmin admin;
+	protected final ImportContext context;
 
 	public SequentialImporter(HBaseAdmin admin, ImportContext context) {
 		this.admin = admin;

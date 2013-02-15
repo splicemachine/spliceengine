@@ -74,122 +74,125 @@ import java.util.concurrent.atomic.AtomicLong;
  * remaining BlockLocations out amongst all the available regions, and do a final import stage. Then, we
  * can safely complete our tasks.
  */
-public class SplitImporter implements Importer{
+public class SplitImporter extends SequentialImporter{
 	private static final Logger LOG = Logger.getLogger(SplitImporter.class);
-	private final ImportContext context;
-	private HBaseAdmin admin;
 
 	public SplitImporter(HBaseAdmin admin, ImportContext context){
-		this.admin = admin;
-		this.context = context;
+        super(admin,context);
 	}
 
-		@Override
-		public long importData() throws IOException {
-			//get all the blocks for the file to import
-			FileSystem fs = FileSystem.get(SpliceUtils.config);
-			if (!fs.exists(context.getFilePath()))
-				throw new FileNotFoundException("Unable to find file "+context.getFilePath()+
-						"in FileSystem. Did you put it into HDFS?");
-			FileStatus status = fs.getFileStatus(context.getFilePath());
-			BlockLocation[] locations = fs.getFileBlockLocations(status, 0, status.getLen());
+    @Override
+    public long importData() throws IOException {
+        //get all the blocks for the file to import
+        FileSystem fs = FileSystem.get(SpliceUtils.config);
+        if (!fs.exists(context.getFilePath()))
+            throw new FileNotFoundException("Unable to find file "+context.getFilePath()+
+                    "in FileSystem. Did you put it into HDFS?");
+        FileStatus status = fs.getFileStatus(context.getFilePath());
+        BlockLocation[] locations = fs.getFileBlockLocations(status, 0, status.getLen());
 
-			//get the total number of region servers we have to work with
-			//ultimately, we'll get to a situation where there are no
-			int allRegionSize = admin.getClusterStatus().getServers().size();
+        //get the total number of region servers we have to work with
+        //ultimately, we'll get to a situation where there are no
+        int allRegionSize = admin.getClusterStatus().getServers().size();
 
-			byte[] tableBytes = Bytes.toBytes(Long.toString(context.getTableId()));
-			List<HRegionLocation> regions = getRegionLocations(tableBytes);
+        byte[] tableBytes = Bytes.toBytes(Long.toString(context.getTableId()));
+        List<HRegionLocation> regions = getRegionLocations(tableBytes);
+        //when in doubt, just default to the serial mechanism
+        if(regions.size()<=0)
+            return super.importData();
 
-			//get the conglom id for the table
-			HTableInterface htable = SpliceAccessManager.getHTable(tableBytes);
+        //get the conglom id for the table
+        HTableInterface htable = SpliceAccessManager.getHTable(tableBytes);
 
-			//keep a count of how many rows we've imported
-			final AtomicLong rowsImported = new AtomicLong(0l);
+        //keep a count of how many rows we've imported
+        final AtomicLong rowsImported = new AtomicLong(0l);
 
-			Multimap<HRegionLocation, BlockLocation> regionToBlockMap = ArrayListMultimap.create();
-			Map<HRegionLocation, Integer> taskSizeMap = Maps.newHashMapWithExpectedSize(regions.size());
-			int oldCount;
-			boolean locationsLeft;
-			do {
-				//clear out our previous run's regionMap, and reset our regionSize counter
-				oldCount = regions.size();
-				regionToBlockMap.clear();
+        Multimap<HRegionLocation, BlockLocation> regionToBlockMap = ArrayListMultimap.create();
+        Map<HRegionLocation, Integer> taskSizeMap = Maps.newHashMapWithExpectedSize(regions.size());
+        int oldCount;
+        boolean locationsLeft;
+        do {
+            //clear out our previous run's regionMap, and reset our regionSize counter
+            oldCount = regions.size();
+            regionToBlockMap.clear();
 
-				//find all the regions which have a replica
-				locationsLeft = false;
-				for (int i = 0; i < locations.length; i++) {
-					BlockLocation location = locations[i];
-					if (location == null) continue;
+            //find all the regions which have a replica
+            locationsLeft = false;
+            for (int i = 0; i < locations.length; i++) {
+                BlockLocation location = locations[i];
+                if (location == null) continue;
 
-					//we have a location that needs to be allocated
-					taskSizeMap.clear();
-					populateRegionLocationMatches(location, regions, taskSizeMap);
+                //we have a location that needs to be allocated
+                taskSizeMap.clear();
+                populateRegionLocationMatches(location, regions, taskSizeMap);
 
-					if (taskSizeMap.size() > 0) {
-						regionToBlockMap.put(getLeastLoadedRegion(taskSizeMap), location);
-						locations[i] = null; //remove this from locations to do
-					} else {
-						//There are no regions (currently) which are tied to this BlockLocation
-						//ignore this location--we'll deal with it later.
-						locationsLeft = true;
-					}
-				}
-				//we've populated all the blocks that we can in this round, time to submit them
-				submitAndWait(htable, rowsImported, regionToBlockMap);
+                if (taskSizeMap.size() > 0) {
+                    regionToBlockMap.put(getLeastLoadedRegion(taskSizeMap), location);
+                    locations[i] = null; //remove this from locations to do
+                } else {
+                    //There are no regions (currently) which are tied to this BlockLocation
+                    //ignore this location--we'll deal with it later.
+                    locationsLeft = true;
+                }
+            }
+            //we've populated all the blocks that we can in this round, time to submit them
+            submitAndWait(htable, rowsImported, regionToBlockMap);
 
-				//refresh the regions list in light of the new inserts
-				regions = getRegionLocations(tableBytes);
-			} while (locationsLeft && regions.size() != oldCount && regions.size() != allRegionSize);
+            //refresh the regions list in light of the new inserts
+            regions = getRegionLocations(tableBytes);
+        } while (locationsLeft && regions.size() != oldCount && regions.size() != allRegionSize);
 
-			//we've run out of regions which map to Block Locations and/or we have put a region on every
-			//server. No more waiting for regions, submit all remaining block locations for processing.
-			if (locationsLeft) {
-				regionToBlockMap.clear();
-				for(BlockLocation location:locations){
-					if (location == null) continue; //already dealt with this location, no need to do it again
+        //we've run out of regions which map to Block Locations and/or we have put a region on every
+        //server. No more waiting for regions, submit all remaining block locations for processing.
+        if (locationsLeft) {
+            regionToBlockMap.clear();
+            for(BlockLocation location:locations){
+                if (location == null) continue; //already dealt with this location, no need to do it again
 
-					taskSizeMap.clear();
-					populateRegionLocationMatches(location, regions, taskSizeMap);
-					if (taskSizeMap.size() > 0) {
-						regionToBlockMap.put(getLeastLoadedRegion(taskSizeMap), location);
-					} else {
-						//we don't match a region, so just submit it to the least loaded Region we have
-						HRegionLocation smallLoc = null;
-						int smallCount = Integer.MAX_VALUE;
-						for (HRegionLocation region : regions) {
-							if (!regionToBlockMap.containsKey(region)) {
-								//found a Region without any blocks, shove it there
-								smallLoc = region;
-								break;
-							} else if (smallCount < regionToBlockMap.get(region).size()) {
-								smallLoc = region;
-								smallCount = regionToBlockMap.get(region).size();
-							}
-						}
-						regionToBlockMap.put(smallLoc, location);
-					}
-				}
-				submitAndWait(htable, rowsImported, regionToBlockMap);
-			}
-			return rowsImported.get();
-		}
+                taskSizeMap.clear();
+                populateRegionLocationMatches(location, regions, taskSizeMap);
+                if (taskSizeMap.size() > 0) {
+                    regionToBlockMap.put(getLeastLoadedRegion(taskSizeMap), location);
+                } else {
+                    //we don't match a region, so just submit it to the least loaded Region we have
+                    HRegionLocation smallLoc = null;
+                    int smallCount = Integer.MAX_VALUE;
+                    for (HRegionLocation region : regions) {
+                        if (!regionToBlockMap.containsKey(region)) {
+                            //found a Region without any blocks, shove it there
+                            smallLoc = region;
+                            break;
+                        } else if (smallCount < regionToBlockMap.get(region).size()) {
+                            smallLoc = region;
+                            smallCount = regionToBlockMap.get(region).size();
+                        }
+                    }
+                    regionToBlockMap.put(smallLoc, location);
+                }
+            }
+            submitAndWait(htable, rowsImported, regionToBlockMap);
+        }
+        return rowsImported.get();
+    }
 
-	private List<HRegionLocation> getRegionLocations(byte[] tableBytes) throws IOException {
+    private List<HRegionLocation> getRegionLocations(byte[] tableBytes) throws IOException {
 		/*
 		 * Get the RegionLocations for a table based on the HRegionInfos returned.
 		 */
-		List<HRegionInfo> tableRegions = admin.getTableRegions(tableBytes);
+        List<HRegionInfo> tableRegions = admin.getTableRegions(tableBytes);
 
-		List<HRegionLocation> regions = Lists.newArrayListWithCapacity(tableRegions.size());
-		for (HRegionInfo tableRegion : tableRegions) {
-			regions.add(admin.getConnection().locateRegion(tableRegion.getTableName(), tableRegion.getStartKey()));
-		}
-		return regions;
-	}
+        List<HRegionLocation> regions = Lists.newArrayListWithCapacity(tableRegions.size());
+        for (HRegionInfo tableRegion : tableRegions) {
+            HRegionLocation loc = admin.getConnection().locateRegion(tableRegion.getRegionName());
+            if(loc!=null)
+                regions.add(loc);
 
-	private void submitAndWait(HTableInterface htable,
-										 final AtomicLong rowsImported,
+        }
+        return regions;
+    }
+
+    private void submitAndWait(HTableInterface htable,
+                               final AtomicLong rowsImported,
 										 Multimap<HRegionLocation, BlockLocation> regionToBlockMap) throws IOException {
 		/*
 		 * This will submit our BlockLocations out to all our available Regions asynchronously, then
