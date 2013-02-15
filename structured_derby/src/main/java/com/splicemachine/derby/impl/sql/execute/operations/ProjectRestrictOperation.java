@@ -211,7 +211,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		RowProvider provider;
         ExecRow fromResults;
         try{
-            fromResults = getFromResultDescription();
+            fromResults = getFromResultDescription(activation.getResultDescription());
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
             return null;// can't happen
@@ -226,15 +226,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		return new SpliceNoPutResultSet(activation,this, provider);
 	}
 
-    private ExecRow getFromResultDescription() throws StandardException {
-        ResultDescription rd = activation.getResultDescription();
-        ExecRow row = new ValueRow(rd.getColumnCount());
-        for(int i=1;i<=rd.getColumnCount();i++){
-            ResultColumnDescriptor rcd = rd.getColumnDescriptor(i);
-            row.setColumn(i, rcd.getType().getNull());
-        }
-        return row;
-    }
+
 
     @Override
 	public ExecRow getNextRowCore() throws StandardException {

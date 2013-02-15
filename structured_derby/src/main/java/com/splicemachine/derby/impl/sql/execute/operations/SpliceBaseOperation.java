@@ -6,6 +6,7 @@ import com.splicemachine.derby.hbase.SpliceOperationProtocol;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.storage.RowProviders.SourceRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -14,16 +15,12 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ParameterValueSet;
-import org.apache.derby.iapi.sql.ResultDescription;
-import org.apache.derby.iapi.sql.ResultSet;
+import org.apache.derby.iapi.sql.*;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.*;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
@@ -606,6 +603,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			}
 		}
 	}
+
+    protected ExecRow getFromResultDescription(ResultDescription resultDescription) throws StandardException {
+        ExecRow row = new ValueRow(resultDescription.getColumnCount());
+        for(int i=1;i<=resultDescription.getColumnCount();i++){
+            ResultColumnDescriptor rcd = resultDescription.getColumnDescriptor(i);
+            row.setColumn(i, rcd.getType().getNull());
+        }
+        return row;
+    }
 
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {

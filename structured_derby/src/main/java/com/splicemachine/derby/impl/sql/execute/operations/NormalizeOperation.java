@@ -108,13 +108,13 @@ public class NormalizeOperation extends SpliceBaseOperation {
 
 	@Override
 	public ExecRow getExecRowDefinition() {
-		try {
-			return normalizeRow(((SpliceOperation)source).getExecRowDefinition(),false);
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-			return null;
-		}
-	}
+        try {
+            return getFromResultDescription(resultDescription);
+        } catch (StandardException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            return null;
+        }
+    }
 	
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {

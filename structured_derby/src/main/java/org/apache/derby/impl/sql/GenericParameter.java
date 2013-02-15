@@ -21,6 +21,7 @@
 
 package org.apache.derby.impl.sql;
 
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.reference.JDBC30Translation;
 
@@ -29,6 +30,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.TypeId;
+import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -42,7 +44,7 @@ import java.sql.Types;
  */
 final class GenericParameter implements Externalizable
 {
-    public static final long serialVersionUID=1l;
+    public static final long serialVersionUID=4l;
 
     // These defaults match the Network Server/ JCC max precision and
     // The JCC "guessed" scale. They are used as the defaults for
@@ -337,7 +339,6 @@ final class GenericParameter implements Externalizable
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeObject(this.value);
         out.writeInt(this.jdbcTypeId);
         out.writeUTF(this.declaredClassName);
         out.writeShort(this.parameterMode);
@@ -346,12 +347,14 @@ final class GenericParameter implements Externalizable
         out.writeInt(this.registerOutType);
         out.writeInt(this.registerOutScale);
         out.writeInt(this.registerOutPrecision);
+        out.writeBoolean(!value.isNull());
+        if(!value.isNull())
+            out.writeObject(this.value);
 
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        value = (DataValueDescriptor)in.readObject();
         jdbcTypeId = in.readInt();
         declaredClassName = in.readUTF();
         parameterMode = in.readShort();
@@ -360,6 +363,15 @@ final class GenericParameter implements Externalizable
         registerOutType = in.readInt();
         registerOutScale = in.readInt();
         registerOutPrecision = in.readInt();
+        if(in.readBoolean())
+            value = (DataValueDescriptor)in.readObject();
+        else{
+            try{
+                value = DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdbcTypeId).getNull();
+            }catch(StandardException se){
+                throw new IOException(se);
+            }
+        }
     }
 }
 
