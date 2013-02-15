@@ -1,24 +1,3 @@
-/*
-
-   Derby - Class org.apache.derby.impl.sql.GenericStatement
-
-   Licensed to the Apache Software Foundation (ASF) under one or more
-   contributor license agreements.  See the NOTICE file distributed with
-   this work for additional information regarding copyright ownership.
-   The ASF licenses this file to you under the Apache License, Version 2.0
-   (the "License"); you may not use this file except in compliance with
-   the License.  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
- */
-
 package org.apache.derby.impl.sql;
 
 import java.sql.Timestamp;
@@ -44,17 +23,22 @@ import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecutionContext;
 import org.apache.derby.impl.sql.compile.StatementNode;
 import org.apache.derby.impl.sql.conn.GenericLanguageConnectionContext;
+import org.apache.derby.iapi.util.ByteArray;
 import org.apache.derby.iapi.util.InterruptStatus;
+import org.apache.log4j.Logger;
 
-public class GenericStatement
-	implements Statement {
+import com.splicemachine.derby.hbase.SpliceEngine;
+import com.splicemachine.utils.SpliceLogUtils;
+
+public class GenericStatement implements Statement {
+	private static Logger LOG = Logger.getLogger(GenericStatement.class);
 
 	// these fields define the identity of the statement
 	private final SchemaDescriptor compilationSchema;
 	private final String			statementText;
         private final boolean isForReadOnly;
 	private int                      prepareIsolationLevel;
-	private GenericPreparedStatement preparedStmt;
+	private GenericStorablePreparedStatement preparedStmt;
 
 	/**
 	 * Constructor for a Statement given the text of the statement in a String
@@ -63,8 +47,8 @@ public class GenericStatement
 	 * @param isForReadOnly if the statement is opened with level CONCUR_READ_ONLY
 	 */
 
-	public GenericStatement(SchemaDescriptor compilationSchema, String statementText, boolean isForReadOnly)
-	{
+	public GenericStatement(SchemaDescriptor compilationSchema, String statementText, boolean isForReadOnly) {
+		SpliceLogUtils.trace(LOG, "Creating generic statement for sql: %s",statementText);
 		this.compilationSchema = compilationSchema;
 		this.statementText = statementText;
 		this.isForReadOnly = isForReadOnly;
@@ -226,11 +210,11 @@ public class GenericStatement
 		if (preparedStmt == null) 
 		{
 			if (cacheMe)
-				preparedStmt = (GenericPreparedStatement)((GenericLanguageConnectionContext)lcc).lookupStatement(this);
+				preparedStmt = (GenericStorablePreparedStatement)((GenericLanguageConnectionContext)lcc).lookupStatement(this);
 
 			if (preparedStmt == null) 
 			{
-				preparedStmt = new GenericPreparedStatement(this);
+				preparedStmt = new GenericStorablePreparedStatement(this);
 			}
 			else
 			{
@@ -254,7 +238,7 @@ public class GenericStatement
 						// cannot use this state since it is private to a connection.
 						// switch to a new statement.
 						foundInCache = false;
-						preparedStmt = new GenericPreparedStatement(this);
+						preparedStmt = new GenericStorablePreparedStatement(this);
 						break;
 					}
 				}
@@ -542,7 +526,8 @@ public class GenericStatement
 						}
 					}
 
-					GeneratedClass ac = qt.generate(preparedStmt.getByteCodeSaver());
+					ByteArray array = preparedStmt.getByteCodeSaver();
+					GeneratedClass ac = qt.generate(array);
 
 					generateTime = getCurrentTimeMillis(lcc);
 					/* endTimestamp only meaningful if generateTime is meaningful.
@@ -680,9 +665,9 @@ public class GenericStatement
 		if (ps == null)
 			ps = new GenericStorablePreparedStatement(this);
 		else
-			((GenericPreparedStatement) ps).statement = this;
+			((GenericStorablePreparedStatement) ps).statement = this;
 
-		this.preparedStmt = (GenericPreparedStatement) ps;
+		this.preparedStmt = (GenericStorablePreparedStatement) ps;
 		return prepMinion(lcc, false, paramDefaults, spsSchema, internalSQL);
 	}
 

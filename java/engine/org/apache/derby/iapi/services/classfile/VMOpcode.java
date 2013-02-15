@@ -1,6 +1,5 @@
 /*
-
-   Derby - Class org.apache.derby.iapi.services.classfile.VMOpcode
+Derby - Class org.apache.derby.iapi.services.classfile.VMOpcode
 
    Licensed to the Apache Software Foundation (ASF) under one or more
    contributor license agreements.  See the NOTICE file distributed with

@@ -185,7 +185,7 @@ public class NetworkServerControl{
 	
 	public final static int DEFAULT_PORTNUMBER = 1527;
 
-	private final static String DERBYNET_JAR = "derbynet.jar";
+	private final static String DERBYNET_JAR = "derbynet-10.9.1.0.splice.jar";
 	private final static String POLICY_FILENAME = "server.policy";
 	private final static String POLICY_FILE_PROPERTY = "java.security.policy";
 	private final static String DERBY_HOSTNAME_WILDCARD = "0.0.0.0";
@@ -289,7 +289,9 @@ public class NetworkServerControl{
 		serverImpl = new NetworkServerControlImpl();
 	}
 	
-    
+	public void setSSLMode(int sslMode){
+		serverImpl.setSSLMode(sslMode);
+	}
 	/**
 	 * main routine for NetworkServerControl
 	 *
@@ -312,9 +314,12 @@ public class NetworkServerControl{
         
         try
         {
+        	System.out.println("Creating Server");
             server = new NetworkServerControlImpl();
+        	System.out.println("Control Created");
             
             int     command = server.parseArgs( args );
+        	System.out.println("After parse args?");
 
             // Java 7 and above: file permission restriction
             if (command == NetworkServerControlImpl.COMMAND_START &&
@@ -337,17 +342,21 @@ public class NetworkServerControl{
             // In order to run secure-by-default, we install a security manager
             // if one isn't already installed. This feature is described by DERBY-2196.
             //
+        	System.out.println("Security Manager?");
+        	/*
             if ( needsSecurityManager( server, command ) )
             {
                 verifySecurityState( server );
                 installSecurityManager( server );
             }
-
+            */
+        	System.out.println("Doen Security Manager?");
             //
             // From this point on, NetworkServerControlImpl is responsible for
             // printing errors.
             //
             printErrors = false;
+        	System.out.println("Execute Work?");
             server.executeWork( command );
         }
         catch (Exception e)
@@ -823,5 +832,9 @@ public class NetworkServerControl{
 
         return stringForm;
     }
+
+	public void setLogConnections(boolean logConnections) {
+		serverImpl.setLogConnections(logConnections);
+	}
 
 }

@@ -34,6 +34,8 @@ import org.apache.derby.iapi.sql.execute.ResultSetFactory;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+
+import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperation;
 /**
  * ResultSetFactory provides a wrapper around all of
  * the result sets used in this execution implementation.
@@ -54,7 +56,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
  * be painful ... that might be a problem for execution.
  *
  */
-public class GenericResultSetFactory implements ResultSetFactory 
+public abstract class GenericResultSetFactory implements ResultSetFactory 
 {
 	//
 	// ResultSetFactory interface
@@ -224,40 +226,6 @@ public class GenericResultSetFactory implements ResultSetFactory
             constantRestriction, mapRefItem, cloneMapItem,
 			reuseResult,
 			doesProjection,
-		    optimizerEstimatedRowCount,
-			optimizerEstimatedCost);
-	}
-
-	/**
-		@see ResultSetFactory#getHashTableResultSet
-		@exception StandardException thrown on error
-	 */
-	public NoPutResultSet getHashTableResultSet(NoPutResultSet source,
-		GeneratedMethod singleTableRestriction, 
-		Qualifier[][] equijoinQualifiers,
-		GeneratedMethod projection, int resultSetNumber,
-		int mapRefItem,
-		boolean reuseResult,
-		int keyColItem,
-		boolean removeDuplicates,
-		long maxInMemoryRowCount,
-		int	initialCapacity,
-		float loadFactor,
-		double optimizerEstimatedRowCount,
-		double optimizerEstimatedCost)
-			throws StandardException
-	{
-		return new HashTableResultSet(source, source.getActivation(), 
-			singleTableRestriction, 
-            equijoinQualifiers,
-			projection, resultSetNumber, 
-			mapRefItem, 
-			reuseResult,
-			keyColItem, removeDuplicates,
-			maxInMemoryRowCount,
-			initialCapacity,
-			loadFactor,
-			true,		// Skip rows with 1 or more null key columns
 		    optimizerEstimatedRowCount,
 			optimizerEstimatedCost);
 	}
@@ -433,118 +401,6 @@ public class GenericResultSetFactory implements ResultSetFactory
 	}
 
 	/**
-		@see ResultSetFactory#getVTIResultSet
-		@exception StandardException thrown on error
-	 */
-	public NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
-									 int resultSetNumber,
-									 GeneratedMethod constructor,
-									 String javaClassName,
-									 Qualifier[][] pushedQualifiers,
-									 int erdNumber,
-									 boolean version2,
-									 boolean reuseablePs,
-									 int ctcNumber,
-									 boolean isTarget,
-									 int scanIsolationLevel,
-									 double optimizerEstimatedRowCount,
-									 double optimizerEstimatedCost,
-                                     boolean isDerbyStyleTableFunction,
-                                     int returnTypeNumber,
-                                     int vtiProjectionNumber,
-                                     int vtiRestrictionNumber
-                                          )
-		throws StandardException
-	{
-		return new VTIResultSet(activation, row, resultSetNumber, 
-								constructor,
-								javaClassName,
-								pushedQualifiers,
-								erdNumber,
-								version2, reuseablePs,
-								ctcNumber,
-								isTarget,
-								scanIsolationLevel,
-							    optimizerEstimatedRowCount,
-								optimizerEstimatedCost,
-								isDerbyStyleTableFunction,
-                                returnTypeNumber,
-                                vtiProjectionNumber,
-                                vtiRestrictionNumber
-                                );
-	}
-
-	/**
-    	a hash scan generator, for ease of use at present.
-		@see ResultSetFactory#getHashScanResultSet
-		@exception StandardException thrown on error
-	 */
-	public NoPutResultSet getHashScanResultSet(
-                        			Activation activation,
-									long conglomId,
-									int scociItem,
-									GeneratedMethod resultRowAllocator,
-									int resultSetNumber,
-									GeneratedMethod startKeyGetter,
-									int startSearchOperator,
-									GeneratedMethod stopKeyGetter,
-									int stopSearchOperator,
-									boolean sameStartStopPosition,
-									Qualifier[][] scanQualifiers,
-									Qualifier[][] nextQualifiers,
-									int initialCapacity,
-									float loadFactor,
-									int maxCapacity,
-									int hashKeyColumn,
-									String tableName,
-									String userSuppliedOptimizerOverrides,
-									String indexName,
-									boolean isConstraint,
-									boolean forUpdate,
-									int colRefItem,
-									int indexColItem,
-									int lockMode,
-									boolean tableLocked,
-									int isolationLevel,
-									double optimizerEstimatedRowCount,
-									double optimizerEstimatedCost)
-			throws StandardException
-	{
-        StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
-						getSavedObject(scociItem));
-
-		return new HashScanResultSet(
-								conglomId,
-								scoci,
-								activation,
-								resultRowAllocator,
-								resultSetNumber,
-								startKeyGetter,
-								startSearchOperator,
-								stopKeyGetter,
-								stopSearchOperator,
-								sameStartStopPosition,
-								scanQualifiers,
-								nextQualifiers,
-								initialCapacity,
-								loadFactor,
-								maxCapacity,
-								hashKeyColumn,
-								tableName,
-								userSuppliedOptimizerOverrides,
-								indexName,
-								isConstraint,
-								forUpdate,
-								colRefItem,
-								lockMode,
-								tableLocked,
-								isolationLevel,
-								true,		// Skip rows with 1 or more null key columns
-								optimizerEstimatedRowCount,
-								optimizerEstimatedCost);
-	}
-
-	/**
     	a distinct scan generator, for ease of use at present.
 		@see ResultSetFactory#getHashScanResultSet
 		@exception StandardException thrown on error
@@ -585,213 +441,6 @@ public class GenericResultSetFactory implements ResultSetFactory
 								lockMode,
 								tableLocked,
 								isolationLevel,
-								optimizerEstimatedRowCount,
-								optimizerEstimatedCost);
-	}
-
-	/**
-    	a minimal table scan generator, for ease of use at present.
-		@see ResultSetFactory#getTableScanResultSet
-		@exception StandardException thrown on error
-	 */
-	public NoPutResultSet getTableScanResultSet(
-                        			Activation activation,
-									long conglomId,
-									int scociItem,
-									GeneratedMethod resultRowAllocator,
-									int resultSetNumber,
-									GeneratedMethod startKeyGetter,
-									int startSearchOperator,
-									GeneratedMethod stopKeyGetter,
-									int stopSearchOperator,
-									boolean sameStartStopPosition,
-									Qualifier[][] qualifiers,
-									String tableName,
-									String userSuppliedOptimizerOverrides,
-									String indexName,
-									boolean isConstraint,
-									boolean forUpdate,
-									int colRefItem,
-									int indexColItem,
-									int lockMode,
-									boolean tableLocked,
-									int isolationLevel,
-									boolean oneRowScan,
-									double optimizerEstimatedRowCount,
-									double optimizerEstimatedCost)
-			throws StandardException
-	{
-        StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
-						getSavedObject(scociItem));
-		return new TableScanResultSet(
-								conglomId,
-								scoci,
-								activation,
-								resultRowAllocator,
-								resultSetNumber,
-								startKeyGetter,
-								startSearchOperator,
-								stopKeyGetter,
-								stopSearchOperator,
-								sameStartStopPosition,
-								qualifiers,
-								tableName,
-								userSuppliedOptimizerOverrides,
-								indexName,
-								isConstraint,
-								forUpdate,
-								colRefItem,
-								indexColItem,
-								lockMode,
-								tableLocked,
-								isolationLevel,
-								1,	// rowsPerRead is 1 if not a bulkTableScan
-								oneRowScan,
-								optimizerEstimatedRowCount,
-								optimizerEstimatedCost);
-	}
-
-	/**
-    	Table/Index scan where rows are read in bulk
-		@see ResultSetFactory#getBulkTableScanResultSet
-		@exception StandardException thrown on error
-	 */
-	public NoPutResultSet getBulkTableScanResultSet(
-                       			    Activation activation,
-									long conglomId,
-									int scociItem,
-									GeneratedMethod resultRowAllocator,
-									int resultSetNumber,
-									GeneratedMethod startKeyGetter,
-									int startSearchOperator,
-									GeneratedMethod stopKeyGetter,
-									int stopSearchOperator,
-									boolean sameStartStopPosition,
-									Qualifier[][] qualifiers,
-									String tableName,
-									String userSuppliedOptimizerOverrides,
-									String indexName,
-									boolean isConstraint,
-									boolean forUpdate,
-									int colRefItem,
-									int indexColItem,
-									int lockMode,
-									boolean tableLocked,
-									int isolationLevel,
-									int rowsPerRead,
-                                    boolean disableForHoldable,
-									boolean oneRowScan,
-									double optimizerEstimatedRowCount,
-									double optimizerEstimatedCost)
-			throws StandardException
-	{
-		//Prior to Cloudscape 10.0 release, holdability was false by default. Programmers had to explicitly
-		//set the holdability to true using JDBC apis. Since holdability was not true by default, we chose to disable the
-		//prefetching for RR and Serializable when holdability was explicitly set to true. 
-		//But starting Cloudscape 10.0 release, in order to be DB2 compatible, holdability is set to true by default.
-		//Because of that, we can not continue to disable the prefetching for RR and Serializable, since it causes
-		//severe performance degradation - bug 5953.    
-
-        StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
-						getSavedObject(scociItem));
-		return new BulkTableScanResultSet(
-								conglomId,
-								scoci,
-								activation,
-								resultRowAllocator,
-								resultSetNumber,
-								startKeyGetter,
-								startSearchOperator,
-								stopKeyGetter,
-								stopSearchOperator,
-								sameStartStopPosition,
-								qualifiers,
-								tableName,
-								userSuppliedOptimizerOverrides,
-								indexName,
-								isConstraint,
-								forUpdate,
-								colRefItem,
-								indexColItem,
-								lockMode,
-								tableLocked,
-								isolationLevel,
-								rowsPerRead,
-                                disableForHoldable,
-								oneRowScan,
-								optimizerEstimatedRowCount,
-								optimizerEstimatedCost);
-	}
-
-	/**
-		Multi-probing scan that probes an index for specific values contained
-		in the received probe list.
-
-		All index rows for which the first column equals probeVals[0] will
-		be returned, followed by all rows for which the first column equals
-		probeVals[1], and so on.  Assumption is that we only get here if
-		probeVals has at least one value.
-
-		@see ResultSetFactory#getMultiProbeTableScanResultSet
-		@exception StandardException thrown on error
-	 */
-	public NoPutResultSet getMultiProbeTableScanResultSet(
-									Activation activation,
-									long conglomId,
-									int scociItem,
-									GeneratedMethod resultRowAllocator,
-									int resultSetNumber,
-									GeneratedMethod startKeyGetter,
-									int startSearchOperator,
-									GeneratedMethod stopKeyGetter,
-									int stopSearchOperator,
-									boolean sameStartStopPosition,
-									Qualifier[][] qualifiers,
-									DataValueDescriptor [] probeVals,
-									int sortRequired,
-									String tableName,
-									String userSuppliedOptimizerOverrides,
-									String indexName,
-									boolean isConstraint,
-									boolean forUpdate,
-									int colRefItem,
-									int indexColItem,
-									int lockMode,
-									boolean tableLocked,
-									int isolationLevel,
-									boolean oneRowScan,
-									double optimizerEstimatedRowCount,
-									double optimizerEstimatedCost)
-			throws StandardException
-	{
-		StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)
-			activation.getPreparedStatement().getSavedObject(scociItem);
-
-		return new MultiProbeTableScanResultSet(
-								conglomId,
-								scoci,
-								activation,
-								resultRowAllocator,
-								resultSetNumber,
-								startKeyGetter,
-								startSearchOperator,
-								stopKeyGetter,
-								stopSearchOperator,
-								sameStartStopPosition,
-								qualifiers,
-								probeVals,
-								sortRequired,
-								tableName,
-								userSuppliedOptimizerOverrides,
-								indexName,
-								isConstraint,
-								forUpdate,
-								colRefItem,
-								indexColItem,
-								lockMode,
-								tableLocked,
-								isolationLevel,
-								oneRowScan,
 								optimizerEstimatedRowCount,
 								optimizerEstimatedCost);
 	}
@@ -880,7 +529,7 @@ public class GenericResultSetFactory implements ResultSetFactory
 								   String userSuppliedOptimizerOverrides)
 			throws StandardException
 	{
-		return new NestedLoopJoinResultSet(leftResultSet, leftNumCols,
+		return new NestedLoopJoinOperation(leftResultSet, leftNumCols,
 										   rightResultSet, rightNumCols,
 										   leftResultSet.getActivation(), joinClause,
 										   resultSetNumber, 
@@ -1205,74 +854,6 @@ public class GenericResultSetFactory implements ResultSetFactory
 
 
 
-	/**
-	 *	a referential action dependent table scan generator.
-	 *  @see ResultSetFactory#getTableScanResultSet
-	 *	@exception StandardException thrown on error
-	 */
-	public NoPutResultSet getRaDependentTableScanResultSet(
-			                        Activation activation,
-									long conglomId,
-									int scociItem,
-									GeneratedMethod resultRowAllocator,
-									int resultSetNumber,
-									GeneratedMethod startKeyGetter,
-									int startSearchOperator,
-									GeneratedMethod stopKeyGetter,
-									int stopSearchOperator,
-									boolean sameStartStopPosition,
-									Qualifier[][] qualifiers,
-									String tableName,
-									String userSuppliedOptimizerOverrides,
-									String indexName,
-									boolean isConstraint,
-									boolean forUpdate,
-									int colRefItem,
-									int indexColItem,
-									int lockMode,
-									boolean tableLocked,
-									int isolationLevel,
-									boolean oneRowScan,
-									double optimizerEstimatedRowCount,
-									double optimizerEstimatedCost,
-									String parentResultSetId,
-									long fkIndexConglomId,
-									int fkColArrayItem,
-									int rltItem)
-			throws StandardException
-	{
-        StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
-						getSavedObject(scociItem));
-		return new DependentResultSet(
-								conglomId,
-								scoci,
-								activation,
-								resultRowAllocator,
-								resultSetNumber,
-								startKeyGetter,
-								startSearchOperator,
-								stopKeyGetter,
-								stopSearchOperator,
-								sameStartStopPosition,
-								qualifiers,
-								tableName,
-								userSuppliedOptimizerOverrides,
-								indexName,
-								isConstraint,
-								forUpdate,
-								colRefItem,
-								lockMode,
-								tableLocked,
-								isolationLevel,
-								1,
-								oneRowScan,
-								optimizerEstimatedRowCount,
-								optimizerEstimatedCost,
-								parentResultSetId,
-								fkIndexConglomId,
-								fkColArrayItem,
-								rltItem);
-	}
 	
 	/**
 	 * @see ResultSetFactory#getRowCountResultSet

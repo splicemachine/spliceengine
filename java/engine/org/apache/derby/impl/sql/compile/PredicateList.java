@@ -3032,6 +3032,21 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
     boolean absolute)
         throws StandardException
 	{
+		generateProbeQualifiers(acbi,mb,optTable,absolute);
+	}
+
+	/**
+	 * @see OptimizablePredicateList#generateQualifiers
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public void generateProbeQualifiers(
+		ExpressionClassBuilderInterface acbi,
+		MethodBuilder mb,
+		Optimizable optTable,
+		boolean absolute)
+			throws StandardException
+		{
 		ExpressionClassBuilder  acb         = (ExpressionClassBuilder) acbi;
 
 		String                  retvalType  = ClassName.Qualifier + "[][]";
@@ -3040,8 +3055,8 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 
 		/* Create and initialize the array of Qualifiers */
 		LocalField qualField = 
-            acb.newFieldDeclaration(Modifier.PRIVATE, retvalType);
-
+            acb.newFieldDeclaration(Modifier.PUBLIC, retvalType); // made it public... - JL
+		mb.push("e" + (((ExpressionClassBuilder) acbi).getNextFieldNum() - 1));
 
 		/* 
 		** Stick a reinitialize of the Qualifier array in execute().
@@ -3269,7 +3284,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		** Return a reference to the field that holds the initialized
 		** array of Qualifiers.
 		*/
-		mb.getField(qualField);
+		//mb.getField(qualField); // Removed. passing method name
 	}
 
 

@@ -22,6 +22,7 @@
 package org.apache.derby.impl.sql;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.services.loader.ClassInspector;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.reference.JDBC30Translation;
@@ -34,7 +35,7 @@ import org.apache.derby.iapi.types.SQLBit;
 import org.apache.derby.iapi.types.SQLBlob;
 import org.apache.derby.iapi.types.SQLChar;
 
-import java.io.InputStream;
+import java.io.*;
 import java.sql.Types;
 
 /**
@@ -44,13 +45,21 @@ import java.sql.Types;
  *
  */
 
-final class GenericParameterValueSet implements ParameterValueSet 
+final class GenericParameterValueSet implements ParameterValueSet,Externalizable
 {
-  //all this has to be copied in the clone constructor
-	private final GenericParameter[]				parms;
-	final ClassInspector 			ci;
-	private	final boolean			hasReturnOutputParam;
+    public static final long serialVerionUID = 1l;
 
+  //all this has to be copied in the clone constructor
+    private GenericParameter[]				parms;
+    ClassInspector 			ci;
+    private boolean			hasReturnOutputParam;
+
+
+    /*
+     * Constructor for serialization/deserialization, DO NOT USE
+     */
+    @Deprecated
+    public GenericParameterValueSet(){}
 
 	/**
 	 * Constructor for a GenericParameterValueSet
@@ -491,4 +500,29 @@ final class GenericParameterValueSet implements ParameterValueSet
 		return parms[parameterIndex-1].getPrecision();
 	}
 
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        /*
+         * For the moment, we ignore the ClassInspector, because it's not
+         * serializable (and even if it were, it would probably not work the way
+         * we wanted it to). It's only used to set parameters, which should be
+         * done client-side before serialization anyway, so it shouldn't be a
+         * big deal.
+         */
+        ArrayUtil.writeArray(out,parms);
+        out.writeBoolean(hasReturnOutputParam);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        parms = new GenericParameter[in.readInt()];
+        ArrayUtil.readArrayItems(in,parms);
+        hasReturnOutputParam = in.readBoolean();
+
+        //set the value set on each parameter
+        for(GenericParameter parm:parms){
+            parm.setParameterValueSet(this);
+        }
+    }
 }
+

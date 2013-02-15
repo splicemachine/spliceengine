@@ -74,31 +74,31 @@ import java.util.Calendar;
 
 /**
 
-The SQLChar represents a CHAR value with UCS_BASIC collation.
-SQLChar may be used directly by any code when it is guaranteed
-that the required collation is UCS_BASIC, e.g. system columns.
-<p>
-The state may be in char[], a String, a Clob, or an unread stream, depending
-on how the datatype was created.  
-<p>
-Stream notes:
-<p>
-When the datatype comes from the database layer and the length of the bytes
-necessary to store the datatype on disk exceeds the size of a page of the
-container holding the data then the store returns a stream rather than reading
-all the bytes into a char[] or String.  The hope is that the usual usage case
-is that data never need be expanded in the derby layer, and that client can
-just be given a stream that can be read a char at a time through the jdbc
-layer.  Even though SQLchar's can't ever be this big, this code is shared
-by all the various character datatypes including SQLClob which is expected
-to usually larger than a page.
-<p>
-The state can also be a stream in the case of insert/update where the client
-has used a jdbc interface to set the value as a stream rather than char[].  
-In this case the hope is that the usual usage case is that stream never need
-be read until it is passed to store, read once, and inserted into the database.
+ The SQLChar represents a CHAR value with UCS_BASIC collation.
+ SQLChar may be used directly by any code when it is guaranteed
+ that the required collation is UCS_BASIC, e.g. system columns.
+ <p>
+ The state may be in char[], a String, a Clob, or an unread stream, depending
+ on how the datatype was created.
+ <p>
+ Stream notes:
+ <p>
+ When the datatype comes from the database layer and the length of the bytes
+ necessary to store the datatype on disk exceeds the size of a page of the
+ container holding the data then the store returns a stream rather than reading
+ all the bytes into a char[] or String.  The hope is that the usual usage case
+ is that data never need be expanded in the derby layer, and that client can
+ just be given a stream that can be read a char at a time through the jdbc
+ layer.  Even though SQLchar's can't ever be this big, this code is shared
+ by all the various character datatypes including SQLClob which is expected
+ to usually larger than a page.
+ <p>
+ The state can also be a stream in the case of insert/update where the client
+ has used a jdbc interface to set the value as a stream rather than char[].
+ In this case the hope is that the usual usage case is that stream never need
+ be read until it is passed to store, read once, and inserted into the database.
 
-**/
+ **/
 
 public class SQLChar
     extends DataType implements StringDataValue, StreamStorable
@@ -1183,7 +1183,7 @@ public class SQLChar
         int count = 0;
         int strlen = 0;
 
-readingLoop:
+		readingLoop:
         while (((strlen < knownStrLen) || (knownStrLen == 0)) &&
                 ((count < utflen) || (utflen == 0)))
         {
@@ -3076,7 +3076,9 @@ readingLoop:
     /** @exception StandardException        Thrown on error */
     private Locale getLocale() throws StandardException
     {
-        return getLocaleFinder().getCurrentLocale();
+		LocaleFinder finder = getLocaleFinder();
+		if(finder==null) return Locale.getDefault();
+		else return finder.getCurrentLocale();
     }
 
     protected RuleBasedCollator getCollatorForCollation() 

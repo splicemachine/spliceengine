@@ -35,6 +35,7 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.StringTokenizer;
 
+import com.splicemachine.derby.impl.load.HdfsImport;
 import org.apache.derby.iapi.db.Factory;
 import org.apache.derby.iapi.db.PropertyInfo;
 import org.apache.derby.iapi.error.PublicAPI;
@@ -80,7 +81,7 @@ import org.apache.derby.iapi.sql.dictionary.UserDescriptor;
 	<P>
 	Also used for builtin-routines, such as SYSFUN functions, when direct calls
 	into Java libraries cannot be made.
-*/
+ */
 public class SystemProcedures  {
 
 
@@ -1589,16 +1590,17 @@ public class SystemProcedures  {
 	String  fileName,
 	String  columnDelimiter,
 	String  characterDelimiter,
-	String  codeset,
-	short   replace)
+			String  timestampFormat
+			)
         throws SQLException
     {
 		Connection conn = getDefaultConn();
 		try{
-			Import.importData(conn, schemaName , tableName ,
-								  insertColumnList, columnIndexes, fileName,
-								  columnDelimiter, characterDelimiter, 
-								  codeset, replace, false);
+			HdfsImport.importData(conn,schemaName,tableName,insertColumnList,fileName,columnDelimiter,characterDelimiter,timestampFormat);
+//			Import.importData(conn, schemaName , tableName ,
+//					insertColumnList, columnIndexes, fileName,
+//					columnDelimiter, characterDelimiter,
+//					codeset, replace, false);
 		}catch(SQLException se)
 		{
 		    rollBackAndThrowSQLException(conn, se);

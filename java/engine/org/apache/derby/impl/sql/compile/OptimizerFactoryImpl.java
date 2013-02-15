@@ -28,23 +28,11 @@ import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
 import org.apache.derby.iapi.sql.compile.Optimizer;
 import org.apache.derby.iapi.sql.compile.OptimizerFactory;
 import org.apache.derby.iapi.sql.compile.RequiredRowOrdering;
-
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-
-import org.apache.derby.iapi.store.access.TransactionController;
-
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-
 import org.apache.derby.iapi.services.monitor.ModuleControl;
-import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.property.PropertyUtil;
-
-import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.error.StandardException;
-
-import org.apache.derby.iapi.reference.Property;
-
 import java.util.Properties;
 
 /**
@@ -151,9 +139,10 @@ public class OptimizerFactoryImpl
 		 */
 		if (joinStrategySet == null)
 		{
-			JoinStrategy[] jss = new JoinStrategy[2];
+			JoinStrategy[] jss = new JoinStrategy[3];
 			jss[0] = new NestedLoopJoinStrategy();
 			jss[1] = new HashJoinStrategy();
+			jss[2] = new MergeSortJoinStrategy();
 			joinStrategySet = jss;
 		}
 

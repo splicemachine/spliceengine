@@ -164,4 +164,9 @@ class DirectCall implements GeneratedMethod {
 			throw StandardException.unexpectedUserException(t);
 		}
 	}
+
+	@Override
+	public String getMethodName() {
+		return "e"+which;
+	}
 }

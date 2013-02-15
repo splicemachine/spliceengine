@@ -352,7 +352,7 @@ public interface ResultSetFactory {
 	 */
 	public NoPutResultSet getHashTableResultSet(NoPutResultSet source,
 		GeneratedMethod singleTableRestriction, 
-		Qualifier[][] equijoinQualifiers,
+		String equijoinQualifiersField,
 		GeneratedMethod projection, int resultSetNumber,
 		int mapRefItem,
 		boolean reuseResult,
@@ -663,7 +663,7 @@ public interface ResultSetFactory {
 									 int resultSetNumber,
 									 GeneratedMethod constructor,
 									 String javaClassName,
-									 Qualifier[][] pushedQualifiers,
+									 String pushedQualifiersField,
 									 int erdNumber,
 									 boolean version2, boolean reuseablePs,
 									 int ctcNumber,
@@ -750,8 +750,8 @@ public interface ResultSetFactory {
 								GeneratedMethod stopKeyGetter,
 								int stopSearchOperator,
 								boolean sameStartStopPosition,
-								Qualifier[][] scanQualifiers,
-								Qualifier[][] nextQualifiers,
+								String scanQualifiersField,
+								String nextQualifierField,
 								int initialCapacity,
 								float loadFactor,
 								int maxCapacity,
@@ -898,7 +898,7 @@ public interface ResultSetFactory {
 								GeneratedMethod stopKeyGetter,
 								int stopSearchOperator,
 								boolean sameStartStopPosition,
-								Qualifier[][] qualifiers,
+								String qualifiersField,
 								String tableName,
 								String userSuppliedOptimizerOverrides,
 								String indexName,
@@ -991,7 +991,7 @@ public interface ResultSetFactory {
 								GeneratedMethod stopKeyGetter,
 								int stopSearchOperator,
 								boolean sameStartStopPosition,
-								Qualifier[][] qualifiers,
+								String qualifiersField,
 								String tableName,
 								String userSuppliedOptimizerOverrides,
 								String indexName,
@@ -1035,7 +1035,7 @@ public interface ResultSetFactory {
 								GeneratedMethod stopKeyGetter,
 								int stopSearchOperator,
 								boolean sameStartStopPosition,
-								Qualifier[][] qualifiers,
+								String qualifiersField,
 								DataValueDescriptor [] probeVals,
 								int sortRequired,
 								String tableName,
@@ -1191,6 +1191,20 @@ public interface ResultSetFactory {
 								   String userSuppliedOptimizerOverrides)
 			throws StandardException;
 
+    public NoPutResultSet getMergeSortJoinResultSet(NoPutResultSet leftResultSet,
+			   int leftNumCols,
+			   NoPutResultSet rightResultSet,
+			   int rightNumCols,
+			   int leftHashKeyItem,
+			   int rightHashKeyItem,
+			   GeneratedMethod joinClause,
+			   int resultSetNumber,
+			   boolean oneRowRightSide,
+			   boolean notExistsRightSide,
+			   double optimizerEstimatedRowCount,
+			   double optimizerEstimatedCost,
+			   String userSuppliedOptimizerOverrides)
+					   throws StandardException;
 	/**
 		A hash join.
 
@@ -1373,6 +1387,52 @@ public interface ResultSetFactory {
 											double optimizerEstimatedRowCount,
 											double optimizerEstimatedCost) 
 		throws StandardException;
+	/**
+	 A left outer join using a sort merge join.
+
+	@param leftResultSet	Outer ResultSet for join.
+	@param leftNumCols		Number of columns in the leftResultSet
+	@param rightResultSet	Inner ResultSet for join.
+	@param rightNumCols		Number of columns in the rightResultSet
+	@param joinClause a reference to a method in the activation
+		that is applied to the activation's "current row" field
+		to determine whether the joinClause is staisfied or not.
+		The signature of this method is
+		<verbatim>
+			Boolean joinClause() throws StandardException;
+		</verbatim>
+	@param resultSetNumber	The resultSetNumber for the ResultSet
+	@param emptyRowFun a reference to a method in the activation
+		that is called if the right child returns no rows
+	@param wasRightOuterJoin	Whether or not this was originally a right outer join
+	@param oneRowRightSide	boolean, whether or not the right side returns
+		a single row. (No need to do 2nd next() if it does.)
+	@param notExistsRightSide	boolean, whether or not the right side resides a
+		NOT EXISTS base table
+	@param optimizerEstimatedRowCount	Estimated total # of rows by
+		optimizer
+	@param optimizerEstimatedCost	Estimated total cost by optimizer
+	@param userSuppliedOptimizerOverrides	Overrides specified by the user on the sql
+	@return the nested loop join operation as a result set.
+	@exception StandardException thrown when unable to create the 
+		result set
+	*/
+	public NoPutResultSet getMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+				int leftNumCols,
+				NoPutResultSet rightResultSet,
+				int rightNumCols,
+				int leftHashKeyItem,
+				int rightHashKeyItem,
+				GeneratedMethod joinClause,
+				int resultSetNUmber,
+				GeneratedMethod emptyRowFun,
+				boolean wasRightOuterJoin,
+				boolean oneRowRightSide,
+				boolean noExistsRightSide,
+				double optimizerEstimatedRowCount,
+				double optimizerEstimatedCost,
+				String userSuppliedOptimizerOverrides)
+	throws StandardException;
 
 	/**
 		REMIND: needs more description...
@@ -1606,7 +1666,7 @@ public interface ResultSetFactory {
 									GeneratedMethod stopKeyGetter,
 									int stopSearchOperator,
 									boolean sameStartStopPosition,
-									Qualifier[][] qualifiers,
+									String qualifiersField,
 									String tableName,
 									String userSuppliedOptimizerOverrides,
 									String indexName,

@@ -9327,10 +9327,10 @@ public final class	DataDictionaryImpl
  			{
 				SanityManager.ASSERT(! booting, "booting is expected to be false");
 			}
-			{
+
 			LanguageConnectionContext lcc = getLCC();
 			return lcc.getTransactionCompile();
-			}
+
 		}
 	}
 
@@ -11395,7 +11395,7 @@ public final class	DataDictionaryImpl
             // procedure argument names
             String[] arg_names = {"schemaName", "tableName", "insertColumnList","columnIndexes",
 								  "fileName", " columnDelimiter", "characterDelimiter", 
-								  "codeset", "replace"};
+					"timestampFormat"};
 
             // procedure argument types
 			
@@ -11410,8 +11410,9 @@ public final class	DataDictionaryImpl
 				Types.CHAR, 1),
 				DataTypeDescriptor.getCatalogType(
 				Types.CHAR, 1),
-                CATALOG_TYPE_SYSTEM_IDENTIFIER,
-                TypeDescriptor.SMALLINT,
+					varchar32672Type
+//					CATALOG_TYPE_SYSTEM_IDENTIFIER,
+//					TypeDescriptor.SMALLINT,
             };
 
 
@@ -11428,6 +11429,8 @@ public final class	DataDictionaryImpl
                 newlyCreatedRoutines,
                 tc);
         }
+
+
 
 						
 		/*  

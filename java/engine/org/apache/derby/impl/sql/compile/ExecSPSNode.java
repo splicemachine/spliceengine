@@ -21,6 +21,9 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import org.apache.derby.iapi.reference.Property;
+import org.apache.derby.iapi.services.compiler.LocalField;
+import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
 import org.apache.derby.iapi.services.loader.GeneratedClass;
@@ -44,10 +47,14 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.sql.PreparedStatement;
 import org.apache.derby.iapi.sql.ResultDescription;
 
+import org.apache.derby.impl.services.bytecode.GClass;
 import org.apache.derby.impl.sql.CursorInfo;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 
 import org.apache.derby.iapi.util.ByteArray;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Enumeration;
 
 /**
@@ -185,6 +192,27 @@ public class ExecSPSNode extends StatementNode
 		getCompilerContext().setSavedObjects(ps.getSavedObjects());
 		getCompilerContext().setCursorInfo(ps.getCursorInfo());
 		GeneratedClass gc = ps.getActivationClass();
+
+		/*
+		 * If we can store the bytes, do so, because otherwise serialization
+		 * may get all kinds of mucked up.
+		 */
+		if(ps instanceof GenericStorablePreparedStatement){
+		//ugly little hack to ensure that we can write the class file out for ExecSPSNode types
+			if(SanityManager.DEBUG && SanityManager.DEBUG_On("DumpClassFile")){
+				String systemHome = AccessController.doPrivileged(new PrivilegedAction<String>() {
+					
+					@Override
+					public String run() {
+						return System.getProperty(Property.SYSTEM_HOME_PROPERTY,".");
+					}
+				});	
+				new DumbGCClass((GenericStorablePreparedStatement)ps,gc.getName()).writeClassFile(systemHome,false,null);
+			}
+			//store the byteCode for serialization
+			ByteArray source = ((GenericStorablePreparedStatement)ps).getByteCodeSaver();
+			ignored.setBytes(source.getArray(), source.getOffset(), source.getLength());
+		}
 		
 		return gc;
 	}
@@ -320,4 +348,53 @@ public class ExecSPSNode extends StatementNode
 	{
 		return spsd;
 	}
+
+    private static class DumpGClass extends GClass {
+        private final GenericStorablePreparedStatement ps;
+
+        private DumpGClass(GenericStorablePreparedStatement ps,String name) {
+            super(null,name);
+            this.ps = ps;
+            this.bytecode=ps.getByteCodeSaver();
+        }
+
+        @Override
+        public LocalField addField(String type, String name, int modifiers) {
+            return null; //no-op
+        }
+
+        @Override
+        public ByteArray getClassBytecode() throws StandardException {
+            return ps.getByteCodeSaver();
+        }
+
+        @Override
+        public void writeClassFile(String dir, boolean logMessage, Throwable t) throws StandardException {
+            super.writeClassFile(dir, logMessage, t);
+        }
+
+        @Override
+        public String getName() {
+            return ps.getObjectName();
+        }
+
+        @Override
+        public MethodBuilder newMethodBuilder(int modifiers, String returnType, String methodName) {
+            return null;
+        }
+
+        @Override
+        public MethodBuilder newMethodBuilder(int modifiers, String returnType, String methodName, String[] parms) {
+            return null;
+        }
+
+        @Override
+        public MethodBuilder newConstructorBuilder(int modifiers) {
+            return null;
+        }
+
+        @Override
+        public void newFieldWithAccessors(String getter, String setter, int methodModifier, boolean staticField, String type) {
+        }
+    }
 }

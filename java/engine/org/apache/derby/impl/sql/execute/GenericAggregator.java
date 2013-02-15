@@ -33,8 +33,7 @@ import org.apache.derby.iapi.types.UserDataValue;
  * Adaptor that sits between execution layer and aggregates.
  *
  */
-class GenericAggregator 
-{
+public class GenericAggregator {
 	private final AggregatorInfo			aggInfo;
 	int						aggregatorColumnId;
 	private int						inputColumnId;
@@ -54,7 +53,7 @@ class GenericAggregator
 	 * @param aggInfo 	information about the user aggregate
 	 * @param cf		the class factory. 
 	 */
-	GenericAggregator
+	public GenericAggregator
 	(
 		AggregatorInfo	aggInfo, 
 		ClassFactory	cf
@@ -240,7 +239,7 @@ class GenericAggregator
 	 *
 	 * @exception StandardException on error
 	 */
-	boolean finish(ExecRow row)
+	public boolean finish(ExecRow row)
 		throws StandardException
 	{
 		DataValueDescriptor outputColumn = row.getColumn(resultColumnId + 1);

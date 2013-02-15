@@ -27,49 +27,21 @@ import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.compiler.JavaFactory;
 import org.apache.derby.iapi.services.compiler.LocalField;
 import org.apache.derby.iapi.reference.ClassName;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.compile.ExpressionClassBuilderInterface;
-
-import org.apache.derby.iapi.sql.execute.ResultSetFactory;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
-import org.apache.derby.iapi.sql.execute.ExecIndexRow;
-
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ParameterValueSet;
-import org.apache.derby.iapi.sql.Row;
-
-import org.apache.derby.iapi.sql.execute.ExecRow;
-
 import org.apache.derby.impl.sql.compile.OrderedColumnList;
 import org.apache.derby.impl.sql.compile.ResultColumnList;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
-
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.iapi.types.TypeId;
-
 import org.apache.derby.iapi.sql.compile.TypeCompiler;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.util.ByteArray;
-
-import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.services.loader.GeneratedClass;
-import org.apache.derby.iapi.services.loader.GeneratedByteCode;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-
 import java.lang.reflect.Modifier;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
-
-import org.apache.derby.iapi.services.monitor.Monitor;
-
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-
 import java.io.Serializable;
 
 /**
@@ -663,6 +635,8 @@ abstract	class ExpressionClassBuilder implements ExpressionClassBuilderInterface
 		// generated Java:
 		//	this.getResultSetFactory()
 		//
+		
+		
 		if (getRSF == null) {
 			getRSF = mb.describeMethod(VMOpcode.INVOKEVIRTUAL, getBaseClassName(),
 					"getResultSetFactory",
@@ -919,14 +893,9 @@ abstract	class ExpressionClassBuilder implements ExpressionClassBuilderInterface
 		return currentRowScanResultSetName;
 	}
 
-	
+	public int getNextFieldNum() {
+		return this.nextFieldNum;
+	}
+
+
 }
-
-
-
-
-
-
-
-
-

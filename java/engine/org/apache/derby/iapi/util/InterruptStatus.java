@@ -232,20 +232,20 @@ public class InterruptStatus {
      */
     public static void restoreIntrFlagIfSeen(LanguageConnectionContext lcc) {
 
-        if (SanityManager.DEBUG) {
-            LanguageConnectionContext ctxLcc = null;
-            try {
-                ctxLcc = (LanguageConnectionContext)ContextService.
-                    getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
-
-                SanityManager.ASSERT(
-                    lcc == ctxLcc,
-                    "lcc=" + lcc + " getContextOrNull=" + ctxLcc);
-
-            } catch (ShutdownException e) {
-                // ignore
-            }
-        }
+//		if (SanityManager.DEBUG) {
+//			LanguageConnectionContext ctxLcc = null;
+//			try {
+//				ctxLcc = (LanguageConnectionContext)ContextService.
+//						getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+//
+//				SanityManager.ASSERT(
+//						lcc == ctxLcc,
+//						"lcc=" + lcc + " getContextOrNull=" + ctxLcc);
+//
+//			} catch (ShutdownException e) {
+//				// ignore
+//			}
+//		}
 
         if (lcc.getInterruptedException() != null) {
 

@@ -1,6 +1,5 @@
 /*
-
-   Derby - Class org.apache.derby.impl.sql.compile.HashJoinStrategy
+Derby - Class org.apache.derby.impl.sql.compile.HashJoinStrategy
 
    Licensed to the Apache Software Foundation (ASF) under one or more
    contributor license agreements.  See the NOTICE file distributed with
@@ -72,9 +71,10 @@ public class HashJoinStrategy extends BaseJoinStrategy {
 					throws StandardException 
 	{
 		int[] hashKeyColumns = null;
-
 		ConglomerateDescriptor cd = null;
 
+		OptimizerFactoryImpl impl;
+		
 		/* If the innerTable is a VTI, then we
 		 * must check to see if there are any
 		 * join columns in the VTI's parameters.
@@ -164,6 +164,8 @@ public class HashJoinStrategy extends BaseJoinStrategy {
 											cd,
 											predList);
 
+		
+		
 		if (SanityManager.DEBUG)
 		{
 			if (hashKeyColumns == null)
@@ -370,14 +372,14 @@ public class HashJoinStrategy extends BaseJoinStrategy {
 
 		ExpressionClassBuilder acb = (ExpressionClassBuilder) acbi;
 
+		
 		fillInScanArgs1(tc,
 										mb,
 										innerTable,
 										storeRestrictionList,
 										acb,
 										resultRowAllocator);
-
-		nonStoreRestrictionList.generateQualifiers(acb,	mb, innerTable, true);
+		((PredicateList) nonStoreRestrictionList).generateProbeQualifiers(acb,	mb, innerTable, true);
 		mb.push(innerTable.initialCapacity());
 		mb.push(innerTable.loadFactor());
 		mb.push(innerTable.maxCapacity( (JoinStrategy) this, maxMemoryPerTable));
@@ -389,6 +391,7 @@ public class HashJoinStrategy extends BaseJoinStrategy {
 		int hashKeyItem = acb.addItem(hashKeyHolder);
 		mb.push(hashKeyItem);
 
+		
 		fillInScanArgs2(mb,
 						innerTable,
 						bulkFetch,

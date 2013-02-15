@@ -301,6 +301,8 @@ public class BaseTypeIdImpl implements Formatable
     public void readExternal( ObjectInput in )
              throws IOException, ClassNotFoundException
     {
+    	JDBCTypeId = in.readInt();
+    	formatId = in.readInt();
         unqualifiedName = in.readUTF();
 
         //
@@ -326,6 +328,8 @@ public class BaseTypeIdImpl implements Formatable
     public void writeExternal( ObjectOutput out )
              throws IOException
     {
+    	out.writeInt(JDBCTypeId);
+    	out.writeInt(formatId);
         if ( schemaName == null ) { out.writeUTF( unqualifiedName ); }
         else
         {

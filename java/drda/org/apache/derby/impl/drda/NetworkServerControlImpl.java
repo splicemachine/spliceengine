@@ -332,9 +332,9 @@ public final class NetworkServerControlImpl {
 	private boolean shutdownDatabasesOnShutdown = false;
 
 	// SSL related stuff
-	private static final int SSL_OFF = 0;
-	private static final int SSL_BASIC = 1;
-	private static final int SSL_PEER_AUTHENTICATION = 2;
+	public static final int SSL_OFF = 0;
+	public static final int SSL_BASIC = 1;
+    public static final int SSL_PEER_AUTHENTICATION = 2;
 
 	private int sslMode = SSL_OFF;
 
@@ -781,7 +781,7 @@ public final class NetworkServerControlImpl {
                                    getNetProductVersionHolder(),
                                    SystemPermission.SERVER),
                            VersionMBean.class,
-                           "type=Version,jar=derbynet.jar");
+                           "type=Version,jar=derbynet-10.9.1.0.splice.jar");
         final Object networkServerMBean = mgmtService.registerMBean(
                             new NetworkServerMBeanImpl(this),
                             NetworkServerMBean.class,
@@ -2570,7 +2570,7 @@ public final class NetworkServerControlImpl {
 											SSLSocket s1 = (SSLSocket)NaiveTrustManager.getSocketFactory().
 												createSocket(hostAddress, portNumber);
 											// Need to handshake now to get proper error reporting.
-											s1.startHandshake();
+//											s1.startHandshake();
 											return s1;
 
 										case SSL_PEER_AUTHENTICATION:
@@ -3554,7 +3554,7 @@ public final class NetworkServerControlImpl {
 	 *
 	 * @param value	true to turn logging connections on; false to turn it off
 	 */
-	private void setLogConnections(boolean value)
+	public void setLogConnections(boolean value)
 	{
 		synchronized(logConnectionsSync) {
 			logConnections = value;
@@ -3749,7 +3749,7 @@ public final class NetworkServerControlImpl {
 		}
 	}
 
-	protected void setSSLMode(int mode)
+	public void setSSLMode(int mode)
 	{
 		sslMode = mode;
 	}
