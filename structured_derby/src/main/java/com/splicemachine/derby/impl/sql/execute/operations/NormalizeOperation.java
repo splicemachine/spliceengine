@@ -52,6 +52,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 							 boolean forUpdate) throws StandardException{
 		super(activaation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
 		this.source = source;
+        this.erdNumber = erdNumber;
 		init(SpliceOperationContext.newContext(activation));
 	}
 

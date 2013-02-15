@@ -434,9 +434,9 @@ public class UnionOperation extends SpliceBaseOperation {
 	@Override
 	public ExecRow getExecRowDefinition() {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
-		currentRow = ((SpliceOperation)source1).getExecRowDefinition();
-		/*
-		switch (whichSource) 
+
+//		currentRow = ((SpliceOperation)source1).getExecRowDefinition();
+		switch (whichSource)
 		{
 	        case 1: 
 	        	currentRow = ((SpliceOperation)source1).getExecRowDefinition();
@@ -445,7 +445,8 @@ public class UnionOperation extends SpliceBaseOperation {
 	        case 2: 
 	        	currentRow = ((SpliceOperation) source2).getExecRowDefinition();
 	            break;
-        }*/
+        }
+        setCurrentRow(currentRow);
 		return this.currentRow;														
 	}
 

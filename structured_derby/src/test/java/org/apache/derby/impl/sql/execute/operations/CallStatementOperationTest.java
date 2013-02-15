@@ -55,6 +55,21 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
 		}		
 	}
 
+    @Test
+    public void testCallGetTypeInfo() throws Exception{
+        Statement s = null;
+        ResultSet rs = null;
+        try{
+            CallableStatement cs = conn.prepareCall("call SYSIBM.SQLGETTYPEINFO(0,null)");
+            rs = cs.executeQuery();
+            while(rs.next()){
+                LOG.info(String.format("1=%s",rs.getString(1)));
+            }
+        }finally{
+            if(rs!=null)rs.close();
+            if(s!=null)s.close();
+        }
+    }
 
 	@AfterClass 
 	public static void shutdown() throws SQLException {

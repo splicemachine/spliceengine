@@ -8,10 +8,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
+import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
@@ -206,17 +209,34 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		SpliceOperation regionOperation = operationStack.get(0);
 		LOG.trace("regionOperation="+regionOperation);
 		RowProvider provider;
-		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
+        ExecRow fromResults;
+        try{
+            fromResults = getFromResultDescription();
+        } catch (StandardException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            return null;// can't happen
+        }
+        if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
 			SpliceLogUtils.trace(LOG,"scanning Temp Table");
-			provider = regionOperation.getReduceRowProvider(this,getExecRowDefinition());
+			provider = regionOperation.getReduceRowProvider(this,fromResults);
 		} else {
 			SpliceLogUtils.trace(LOG,"scanning Map Table");
-			provider = regionOperation.getMapRowProvider(this,getExecRowDefinition());
+			provider = regionOperation.getMapRowProvider(this,fromResults);
 		}
 		return new SpliceNoPutResultSet(activation,this, provider);
 	}
 
-	@Override
+    private ExecRow getFromResultDescription() throws StandardException {
+        ResultDescription rd = activation.getResultDescription();
+        ExecRow row = new ValueRow(rd.getColumnCount());
+        for(int i=1;i<=rd.getColumnCount();i++){
+            ResultColumnDescriptor rcd = rd.getColumnDescriptor(i);
+            row.setColumn(i, rcd.getType().getNull());
+        }
+        return row;
+    }
+
+    @Override
 	public ExecRow getNextRowCore() throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getNextRowCore");
