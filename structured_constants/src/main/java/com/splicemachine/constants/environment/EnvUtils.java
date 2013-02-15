@@ -9,7 +9,7 @@ import com.splicemachine.constants.TxnConstants.TableEnv;
 
 public class EnvUtils {
 	private static Logger LOG = Logger.getLogger(EnvUtils.class);
-	private static long FIRST_USER_TABLE_NUMBER = 2304;
+	private static long FIRST_USER_TABLE_NUMBER = 1168;
 
 	public static TableEnv getTableEnv(String tableName) {
 		LOG.info("Checking table environment for " + tableName);
