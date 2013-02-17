@@ -140,11 +140,16 @@ public class SIFilter extends FilterBase {
 			throw new RuntimeException(SIConstants.FILTER_CHECKING_MULTIPLE_ROW_TOMBSTONES);
 		}
 		if (Arrays.equals(keyValue.getFamily(),SIConstants.DEFAULT_FAMILY) && 
-				!Arrays.equals(lastValidQualifier,keyValue.getQualifier())) {
-			if (committedTransactions.containsKey(keyValue.getTimestamp()) || 
+			!Arrays.equals(lastValidQualifier,keyValue.getQualifier())) {
+				if (committedTransactions.containsKey(keyValue.getTimestamp()) || 
 					startTimestamp == keyValue.getTimestamp()) {
-				lastValidQualifier = keyValue.getQualifier();
-				return ReturnCode.INCLUDE;
+					if (keyValue.getValue() != null && Arrays.equals(keyValue.getValue(),SIConstants.ZERO_BYTE_ARRAY)) { 
+						return ReturnCode.NEXT_COL;
+					}
+					if (currentTombstoneMarker == null || currentTombstoneMarker < keyValue.getTimestamp()) {
+						lastValidQualifier = keyValue.getQualifier();
+						return ReturnCode.INCLUDE;
+					}
 			} 
 		}
 		return ReturnCode.SKIP;
