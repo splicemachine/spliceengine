@@ -14,9 +14,7 @@ import com.splicemachine.iapi.txn.TransactionManager;
  * View hbase as a JTA transactional resource. This allows it to participate in transactions across multiple resources.
  */
 public class JtaXAResource implements XAResource {
-
     static final Log LOG = LogFactory.getLog(JtaXAResource.class);
-
     private Map<Xid, Transaction> xidToTransactionState = new HashMap<Xid, Transaction>();
     private final TransactionManager transactionManager;
     private ThreadLocal<Transaction> threadLocalTransactionState = new ThreadLocal<Transaction>();

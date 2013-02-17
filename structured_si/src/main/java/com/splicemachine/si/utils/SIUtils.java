@@ -2,9 +2,11 @@ package com.splicemachine.si.utils;
 
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -93,4 +95,16 @@ public class SIUtils extends SIConstants {
 	public static TableEnv getTableEnv(RegionCoprocessorEnvironment e) {
 		return EnvUtils.getTableEnv(e.getRegion().getTableDesc().getNameAsString());
 	}
+	public static KeyValue createTombstone(byte[] row, long timestamp) {
+		return new KeyValue(row,SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN,timestamp,SIConstants.ZERO_BYTE_ARRAY);
+	}
+
+	public static KeyValue createEmptyCommitTimestamp(byte[] row, long beginTimestamp) {
+		return new KeyValue(row,SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,beginTimestamp,SIConstants.ZERO_BYTE_ARRAY);
+	}
+
+	public static KeyValue createActualCommitTimestamp(byte[] row, long beginTimestamp, long commitTimestamp) {
+		return new KeyValue(row,SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,beginTimestamp,Bytes.toBytes(commitTimestamp));
+	}
+
 }
