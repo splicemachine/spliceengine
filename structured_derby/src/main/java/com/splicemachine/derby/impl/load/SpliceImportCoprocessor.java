@@ -74,7 +74,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		Splitter splitter = Splitter.on(context.getColumnDelimiter()).trimResults();
 		FSDataInputStream is = null;
 		//get a bulk-insert table for our table to insert
-		HTableInterface table = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(Long.toString(context.getTableId())));
+		HTableInterface table = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(context.getTableName()));
 
 		LineReader reader = null;
 		//open a serializer to serialize our data
@@ -135,7 +135,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 	public long importFile(ImportContext context) throws IOException{
 		Path path =  context.getFilePath();
 
-		HTableInterface table = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(context.getTableId()));
+		HTableInterface table = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(context.getTableName()));
 		Splitter splitter = Splitter.on(context.getColumnDelimiter());
 		Serializer serializer = new Serializer(context.getStripString(),context.getTimestampFormat());
 		InputStream is;

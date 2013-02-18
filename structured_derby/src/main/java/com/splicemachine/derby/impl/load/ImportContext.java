@@ -90,6 +90,10 @@ public class ImportContext implements Externalizable{
 		return tableId;
 	}
 
+    public String getTableName(){
+        return Long.toString(tableId);
+    }
+
 	public FormatableBitSet getActiveCols() {
 		return activeCols;
 	}

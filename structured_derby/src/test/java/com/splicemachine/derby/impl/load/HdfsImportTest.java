@@ -119,6 +119,7 @@ public class HdfsImportTest {
 	}
 	
 	@Test
+    @Ignore
 	public void testCallScript() throws Exception{
 		ResultSet rs = rule.getConnection().getMetaData().getColumns(null, "SYS","SYSSCHEMAS",null);
 		Map<String,Integer>colNameToTypeMap = Maps.newHashMap();
