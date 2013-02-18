@@ -35,7 +35,6 @@ import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
-import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperation;
 /**
  * ResultSetFactory provides a wrapper around all of
  * the result sets used in this execution implementation.
@@ -529,7 +528,7 @@ public abstract class GenericResultSetFactory implements ResultSetFactory
 								   String userSuppliedOptimizerOverrides)
 			throws StandardException
 	{
-		return new NestedLoopJoinOperation(leftResultSet, leftNumCols,
+		return new NestedLoopJoinResultSet(leftResultSet, leftNumCols,
 										   rightResultSet, rightNumCols,
 										   leftResultSet.getActivation(), joinClause,
 										   resultSetNumber, 

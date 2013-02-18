@@ -46,9 +46,6 @@ import org.apache.derby.iapi.util.PropertyUtil;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
-import org.apache.log4j.Logger;
-
-import com.splicemachine.utils.SpliceLogUtils;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -67,7 +64,6 @@ import java.util.Vector;
  */
 
 public class JoinNode extends TableOperatorNode {
-	private static Logger LOG = Logger.getLogger(JoinNode.class);
 	/* Join semantics */
 	public static final int INNERJOIN = 1;
 	public static final int CROSSJOIN = 2;
@@ -1668,12 +1664,12 @@ public class JoinNode extends TableOperatorNode {
 		if (((Optimizable) rightResultSet).getTrulyTheBestAccessPath().getJoinStrategy() instanceof MergeSortJoinStrategy) {
 			MergeSortJoinStrategy msjs = (MergeSortJoinStrategy) ((Optimizable) rightResultSet).getTrulyTheBestAccessPath().getJoinStrategy();
 			if (msjs.hashKeyMap != null) {
-				List<Integer> leftKeys = msjs.hashKeyMap.get(leftResultSet.getReferencedTableMap().getFirstSetBit());
-				List<Integer> rightKeys = msjs.hashKeyMap.get(rightResultSet.getReferencedTableMap().getFirstSetBit());
+				List leftKeys = (List)msjs.hashKeyMap.get(new Integer(leftResultSet.getReferencedTableMap().getFirstSetBit()));
+				List rightKeys = (List)msjs.hashKeyMap.get(new Integer(rightResultSet.getReferencedTableMap().getFirstSetBit()));
 				if (leftKeys != null && leftKeys.size() > 0) {
 					leftHashKeys = new int[leftKeys.size()];
 					for (int i = 0; i < leftKeys.size();i++) { 
-						leftHashKeys[i] = leftKeys.get(i).intValue();
+						leftHashKeys[i] = ((Integer)leftKeys.get(i)).intValue();
 					}
 					FormatableIntHolder[] fihArray = FormatableIntHolder.getFormatableIntHolders(leftHashKeys); 
 					FormatableArrayHolder hashKeyHolder = new FormatableArrayHolder(fihArray);
@@ -1684,7 +1680,7 @@ public class JoinNode extends TableOperatorNode {
 				if (rightKeys != null && rightKeys.size() > 0) {
 					rightHashKeys = new int[rightKeys.size()];
 					for (int i = 0; i < rightKeys.size();i++) { 
-						rightHashKeys[i] = rightKeys.get(i).intValue();
+						rightHashKeys[i] = ((Integer)rightKeys.get(i)).intValue();
 					}
 					FormatableIntHolder[] fihArray = FormatableIntHolder.getFormatableIntHolders(rightHashKeys); 
 					FormatableArrayHolder hashKeyHolder = new FormatableArrayHolder(fihArray);

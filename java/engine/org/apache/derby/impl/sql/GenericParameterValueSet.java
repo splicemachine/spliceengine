@@ -58,7 +58,6 @@ final class GenericParameterValueSet implements ParameterValueSet,Externalizable
     /*
      * Constructor for serialization/deserialization, DO NOT USE
      */
-    @Deprecated
     public GenericParameterValueSet(){}
 
 	/**
@@ -500,7 +499,6 @@ final class GenericParameterValueSet implements ParameterValueSet,Externalizable
 		return parms[parameterIndex-1].getPrecision();
 	}
 
-    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         /*
          * For the moment, we ignore the ClassInspector, because it's not
@@ -513,15 +511,14 @@ final class GenericParameterValueSet implements ParameterValueSet,Externalizable
         out.writeBoolean(hasReturnOutputParam);
     }
 
-    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         parms = new GenericParameter[in.readInt()];
         ArrayUtil.readArrayItems(in,parms);
         hasReturnOutputParam = in.readBoolean();
 
         //set the value set on each parameter
-        for(GenericParameter parm:parms){
-            parm.setParameterValueSet(this);
+	for(int pos=0;pos<parms.length;pos++){
+            parms[pos].setParameterValueSet(this);
         }
     }
 }
