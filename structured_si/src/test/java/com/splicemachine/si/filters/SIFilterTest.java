@@ -22,7 +22,6 @@ import com.splicemachine.si.utils.SIConstants;
 import com.splicemachine.si.utils.SIUtils;
 
 public class SIFilterTest {
-	protected static List<KeyValue> singleRowRead = new ArrayList<KeyValue>();
 	protected static TransactionManagerImpl tm;
 	protected static Transaction activeTransaction;
 	protected static Transaction commitTransaction;

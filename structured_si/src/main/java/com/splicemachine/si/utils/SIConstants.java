@@ -20,5 +20,6 @@ public class SIConstants {
 	public static final String WRITE_WRITE_CONFLICT_COMMIT = "Write-Write Conflict violates Snashot Isolation for mutation %s";
 	public static final String NO_TRANSACTION_STATUS = "Transaction with start timestamp %s does not have a transaction status";
 	public static final String FILTER_CHECKING_MULTIPLE_ROW_TOMBSTONES = "Filter should never hit multiple row level tombstones, one tombstone hit we move on.";
+	public static final String SI = "SI";
 	
 }

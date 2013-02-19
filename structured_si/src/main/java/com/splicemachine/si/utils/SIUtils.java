@@ -5,6 +5,7 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.HTablePool;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
@@ -107,4 +108,7 @@ public class SIUtils extends SIConstants {
 		return new KeyValue(row,SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,beginTimestamp,Bytes.toBytes(commitTimestamp));
 	}
 
+	public static boolean shouldUseSI(OperationWithAttributes operationWithAttributes) {
+		return operationWithAttributes.getAttribute(SI) != null;
+	}
 }

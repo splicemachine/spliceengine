@@ -71,8 +71,9 @@ public class SIFilter extends FilterBase {
 		Put put = new Put(keyValue.getRow(),keyValue.getTimestamp());
 		put.add(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN, Bytes.toBytes(transaction.getCommitTimestamp()));
 		try {
-			region.put(put, false);
+			region.put(put,false);
 		} catch (Exception e) {
+			e.printStackTrace();
 			SpliceLogUtils.logAndThrowRuntime(LOG, e);
 		}		
 	}
