@@ -1,12 +1,10 @@
 package com.splicemachine.derby.hbase;
 
-import java.io.IOException;
+import java.net.InetAddress;
 
 import org.apache.derby.drda.NetworkServerControl;
-import org.apache.derby.impl.drda.NetworkServerControlImpl;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
-import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
@@ -31,12 +29,15 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
 		synchronized (this) {
 			if (server == null) {
 				try {
-					server = new NetworkServerControl();
-                    server.setSSLMode(NetworkServerControlImpl.SSL_BASIC);
-                    server.setLogConnections(true);
+					/*we may need to use security policy to allow/disallow clients from connecting to the server.
+					  right now, I will let any clients to access. For now, turn off SSL as well - jz*/
+					//System.setProperty("derby.drda.startNetworkServer", "true");
+					server = new NetworkServerControl(InetAddress.getByName("0.0.0.0"), 1527);
+		    		//server = new NetworkServerControl();
+                    //server.setSSLMode(NetworkServerControlImpl.SSL_BASIC);
+     				server.logConnections(true);
 					server.start(new DerbyOutputLoggerWriter()); // This will log to log4j
-
-//					SpliceLogUtils.info(LOG, server.getSysinfo());
+					//SpliceLogUtils.info(LOG, server.getSysinfo());
 				} catch (Exception exception) {
 					SpliceLogUtils.logAndThrowRuntime(LOG, "Could Not Start Derby - Catastrophic", exception);
 				}
