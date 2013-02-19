@@ -47,7 +47,6 @@ public class SIWrites extends SIBaseTest {
 		HTableInterface siExample = pool.getTable(SI_EXAMPLE);
 		siExample.put(generatePut(transaction,Bytes.toBytes(0),Bytes.toBytes(12)));
 		siExample.put(generatePut(transaction,Bytes.toBytes(1),Bytes.toBytes(12)));	
-		HTableUtil util;
 		tm.doCommit(transaction);
 		Transaction lateTransaction = tm.beginTransaction();
 		Result result = siExample.get(new SIGet(Bytes.toBytes(0),earlyTransaction.getStartTimestamp()));
