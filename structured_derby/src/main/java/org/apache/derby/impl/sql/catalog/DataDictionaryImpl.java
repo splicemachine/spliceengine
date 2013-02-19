@@ -11406,8 +11406,7 @@ public final class	DataDictionaryImpl
 					varchar32672Type,
 					varchar32672Type,
 					varchar32672Type,
-					DataTypeDescriptor.getCatalogType(
-							Types.CHAR, 1),
+                    varchar32672Type,
 					DataTypeDescriptor.getCatalogType(
 							Types.CHAR, 1),
 					varchar32672Type

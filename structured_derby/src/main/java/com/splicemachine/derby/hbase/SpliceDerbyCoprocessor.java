@@ -35,7 +35,7 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
 					server = new NetworkServerControl(InetAddress.getByName("0.0.0.0"), 1527);
 		    		//server = new NetworkServerControl();
                     //server.setSSLMode(NetworkServerControlImpl.SSL_BASIC);
-     				server.logConnections(true);
+     				server.setLogConnections(true);
 					server.start(new DerbyOutputLoggerWriter()); // This will log to log4j
 					//SpliceLogUtils.info(LOG, server.getSysinfo());
 				} catch (Exception exception) {

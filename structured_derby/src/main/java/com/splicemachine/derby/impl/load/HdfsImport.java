@@ -103,13 +103,20 @@ public class HdfsImport extends ParallelVTI {
 		if(tableName==null)
 			throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ENTITY_NAME_MISSING));
 
-		ImportContext.Builder builder = new ImportContext.Builder()
-																										 .path(inputFileName)
-																										 .stripCharacters(charDelimiter)
-																										 .colDelimiter(delimiter)
-																										 .timestampFormat(timestampFormat);
+        ImportContext.Builder builder;
+        try{
+            builder = new ImportContext.Builder()
+                    .path(inputFileName)
+                    .stripCharacters(charDelimiter)
+                    .colDelimiter(delimiter)
+                    .timestampFormat(timestampFormat);
+
 
 		buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder);
+        }catch(AssertionError ae){
+            //the input data is bad in some way
+            throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ID_PARSE_ERROR,ae.getMessage()));
+        }
 
 		long conglomId = getConglomid(connection,tableName);
 		builder = builder.destinationTable(conglomId);

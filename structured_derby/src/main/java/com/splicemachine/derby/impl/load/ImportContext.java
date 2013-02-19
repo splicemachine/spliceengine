@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.load;
 
 import com.google.common.base.Preconditions;
+import com.splicemachine.derby.utils.StringUtils;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.hadoop.fs.Path;
 
@@ -178,7 +179,13 @@ public class ImportContext implements Externalizable{
 		}
 
 		public Builder colDelimiter(String columnDelimiter) {
-			this.columnDelimiter = columnDelimiter;
+            String colDelim = StringUtils.parseControlCharacters(columnDelimiter);
+            if(System.getProperty("line.separator").equals(colDelim)){
+                throw new AssertionError("cannot use linebreaks as column separators");
+            }
+
+            //ensure that the System
+			this.columnDelimiter = colDelim;
 			return this;
 		}
 

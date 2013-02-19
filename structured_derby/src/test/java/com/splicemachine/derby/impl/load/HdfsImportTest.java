@@ -21,6 +21,7 @@ public class HdfsImportTest {
 		tableSchemaMap.put("t","name varchar(40), title varchar(40), age int");
 		tableSchemaMap.put("order_detail","order_id VARCHAR(50), item_id INT, order_amt INT,order_date TIMESTAMP, emp_id INT, " +
 				"promotion_id INT, qty_sold INT, unit_price FLOAT, unit_cost FLOAT, discount FLOAT, customer_id INT");
+        tableSchemaMap.put("lu_cust_city","cust_city_id int, cust_city_name varchar(64), cust_state_id int");
 	}
 	
 	@Rule public DerbyTestRule rule = new DerbyTestRule(tableSchemaMap,LOG);
@@ -117,6 +118,48 @@ public class HdfsImportTest {
 		String location = baseDir+"/structured_derby/src/test/resources/importTest.in";
 		testImport(location,null);
 	}
+
+    @Test
+    public void testImportWithExtraTabDelimited() throws Exception{
+        String location = System.getProperty("user.dir")+"/structured_derby/src/test/resources/lu_cust_city.txt";
+        PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null,'LU_CUST_CITY',null,null," +
+                "'"+location+"',',',null,null)");
+        ps.execute();
+
+        ResultSet rs = rule.executeQuery("select * from lu_cust_city");
+        List<String>results = Lists.newArrayList();
+        while(rs.next()){
+            int id = rs.getInt(1);
+            String name = rs.getString(2);
+            int stateId = rs.getInt(3);
+
+            results.add(String.format("%d\t%s\t%d",id,name,stateId));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+    }
+
+    @Test
+    public void testImportTabDelimited() throws Exception{
+        String location = System.getProperty("user.dir")+"/structured_derby/src/test/resources/lu_cust_city_tab.txt";
+        PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null,'LU_CUST_CITY',null,null," +
+                "'"+location+"','\t',null,null)");
+        ps.execute();
+
+        ResultSet rs = rule.executeQuery("select * from lu_cust_city");
+        List<String>results = Lists.newArrayList();
+        while(rs.next()){
+            int id = rs.getInt(1);
+            String name = rs.getString(2);
+            int stateId = rs.getInt(3);
+
+            results.add(String.format("%d\t%s\t%d",id,name,stateId));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+    }
 	
 	@Test
     @Ignore

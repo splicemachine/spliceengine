@@ -1,5 +1,7 @@
 package com.splicemachine.derby.utils;
 
+import com.google.common.base.Charsets;
+
 import java.util.Arrays;
 
 /**
@@ -43,6 +45,74 @@ public class StringUtils {
 		return sb.toString();
 	}
 
+    /**
+     * Parses control characters into actual ISOControl Characters.
+     *
+     * For example, if {@code controlChars = "\t"}, then the output will be
+     * just \t. (E.g. the String representation "\t" will be transformed into \u0009
+     * --the unicode tab delimiter).
+     *
+     * @param controlChars the controlChar representation
+     * @return the same string, with any ISOControl character representations replaced
+     * with actual unicode values.
+     */
+    public static String parseControlCharacters(String controlChars){
+        char[] chars = controlChars.toCharArray();
+        StringBuilder sb = new StringBuilder();
+        char[] unicode = null;
+        int pos=0;
+        iterator:
+        while(pos < chars.length){
+            if(chars[pos]!='\\'){
+                sb.append(chars[pos]);
+                pos++;
+                continue iterator;
+            }
+            pos++;
+            if(pos==chars.length){
+                sb.append(toControlCharacter(chars[pos]));
+                pos++;
+                continue iterator;
+            }else if(chars[pos]=='u'){
+                if(unicode==null)unicode = new char[4];
+                for(int i=0;i<4;i++){
+                    pos++;
+                    if(pos==chars.length){
+                        //we don't have enough characters for unicode, so just append everything back
+                        //and bail
+                        sb.append("\\u");
+                        for(int j=0;j<i;j++){
+                            sb.append(unicode[j]);
+                        }
+                        continue iterator;
+                    }
+                    unicode[i] = chars[pos];
+                }
+                sb.append(unicodeToChar(unicode));
+                pos++;
+            }else{
+                sb.append(toControlCharacter(chars[pos]));
+                pos++;
+            }
+        }
+        return sb.toString();
+    }
+
+    private static String unicodeToChar(char[] unicode){
+        return String.valueOf((char)Integer.parseInt(String.valueOf(unicode),16));
+    }
+
+    private static char toControlCharacter(char letter){
+        switch(letter){
+            case 't': return '\t';
+            case 'n': return '\n';
+            case 'r': return '\r';
+            default:
+                return letter; //can't parse it
+        }
+    }
+
+
 	private static boolean offsetEquals(char[] one, int oneOffset,char[] two,int twoOffset, int len){
 		if(one.length-oneOffset < len || two.length - twoOffset < len) return false;
 
@@ -51,5 +121,7 @@ public class StringUtils {
 		}
 		return true;
 	}
+
+
 
 }
