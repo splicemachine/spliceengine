@@ -13,6 +13,7 @@ import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
@@ -24,12 +25,15 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 
 public class RowOperation extends SpliceBaseOperation implements CursorResultSet{
+    private static final long serialVersionUID = 2l;
 	private static Logger LOG = Logger.getLogger(RowOperation.class);
 	protected int rowsReturned;
 	protected boolean canCacheRow;
 	protected boolean next;
 	protected GeneratedMethod row;
 	protected ExecRow		cachedRow;
+    private String rowMethodName; //name of the row method for
+
 	/**
 	 * Required for serialization...
 	 */
@@ -47,6 +51,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 		super(activation, resultSetNumber,optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.row = row;
 		this.canCacheRow = canCacheRow;
+        this.rowMethodName = row.getMethodName();
     }
 	
 	public RowOperation (
@@ -60,19 +65,40 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
         this.cachedRow = constantRow;
 		this.canCacheRow = canCacheRow;
     }
-	
-	@Override
+
+
+    @Override
+    public void init(SpliceOperationContext context) {
+        super.init(context);
+        if(row==null && rowMethodName!=null){
+            if(rowMethodName!=null){
+                try {
+                    this.row = activation.getPreparedStatement().getActivationClass().getMethod(rowMethodName);
+                } catch (StandardException e) {
+                    SpliceLogUtils.logAndThrowRuntime(LOG,e);
+                }
+            }
+        }
+    }
+
+    @Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		SpliceLogUtils.trace(LOG, "readExternal");
 		super.readExternal(in);
 		canCacheRow = in.readBoolean();
+        if(in.readBoolean())
+            rowMethodName = in.readUTF();
 	}
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
 		SpliceLogUtils.trace(LOG, "writeExternal");
 		super.writeExternal(out);
-		out.writeBoolean(canCacheRow);		
+		out.writeBoolean(canCacheRow);
+        out.writeBoolean(row!=null);
+        if(row!=null){
+            out.writeUTF(rowMethodName);
+        }
 	}
 	
 	public void	openCore() throws StandardException  {

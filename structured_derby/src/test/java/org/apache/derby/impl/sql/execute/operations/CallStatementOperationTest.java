@@ -5,6 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.splicemachine.derby.test.SpliceDerbyTest;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -85,6 +86,25 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
             while(rs.next()){
                 LOG.info(String.format("1=%s",rs.getString(1)));
             }
+        }finally{
+            if(rs!=null)rs.close();
+            if(s!=null)s.close();
+        }
+    }
+
+    @Test
+    public void testCallSQLTABLES() throws Exception{
+        CallableStatement s = null;
+        ResultSet rs = null;
+        try{
+            s = conn.prepareCall("call SYSIBM.SQLTABLES(null,'APP','%','TABLE','')");
+            rs = s.executeQuery();
+            int count =0;
+            while(rs.next()){
+                LOG.info(String.format("1=%s",rs.getString(1)));
+                count++;
+            }
+            Assert.assertTrue("Incorrect rows returned!",count>0);
         }finally{
             if(rs!=null)rs.close();
             if(s!=null)s.close();
