@@ -98,7 +98,7 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
         try{
             s = conn.createStatement();
             
-            /* Orginal statement
+            /* Original statement
              * 
              * SELECT CAST ('' AS VARCHAR(128)) AS TABLE_CAT, SCHEMANAME AS TABLE_SCHEM,  TABLENAME AS TABLE_NAME, 
              * (CAST (RTRIM(TABLE_TYPE) AS VARCHAR(12))) AS TABLE_TYPE, CAST ('' AS VARCHAR(128)) AS REMARKS, CAST (NULL AS VARCHAR(128)) AS TYPE_CAT, 
