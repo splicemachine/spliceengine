@@ -142,7 +142,7 @@ public class HashScanOperation extends ScanOperation {
 			FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
 			keyColumns = new int[fihArray.length];
 			for (int index = 0; index < fihArray.length; index++) {
-				keyColumns[index] = fihArray[index].getInt()-1;
+				keyColumns[index] = fihArray[index].getInt();
 			}
 			LanguageConnectionContext lcc = context.getLanguageConnectionContext();
 			//move accessedCols down by one
