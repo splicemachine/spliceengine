@@ -13,10 +13,10 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.splicemachine.derby.test.SpliceNetDerbyTest;
+import com.splicemachine.derby.test.SpliceDerbyTest;
 
-//public class CallStatementOperationTest extends SpliceDerbyTest {
-public class CallStatementOperationTest extends SpliceNetDerbyTest {
+public class CallStatementOperationTest extends SpliceDerbyTest {
+//public class CallStatementOperationTest extends SpliceNetDerbyTest {
 	private static Logger LOG = Logger.getLogger(CallStatementOperationTest.class);
 	
 	@BeforeClass 
@@ -132,11 +132,11 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
             rs = s.executeQuery("SELECT CAST ('' AS VARCHAR(128)) AS TABLE_CAT, SCHEMANAME AS TABLE_SCHEM,  TABLENAME AS TABLE_NAME, " +          
             		"(CAST (RTRIM(TABLE_TYPE) AS VARCHAR(12))) AS TABLE_TYPE, CAST ('' AS VARCHAR(128)) AS REMARKS, " +
             		"CAST (NULL AS VARCHAR(128)) AS TYPE_CAT, CAST (NULL AS VARCHAR(128)) AS TYPE_SCHEM, CAST (NULL AS VARCHAR(128)) AS TYPE_NAME, " +
-            		"CAST (NULL AS VARCHAR(128)) AS SELF_REFERENCING_COL_NAME, CAST (NULL AS VARCHAR(128)) AS REF_GENERATION FROM SYS.SYSTABLES, " +
-            		"SYS.SYSSCHEMAS, (VALUES ('T','TABLE'), ('S','SYSTEM TABLE'), ('V', 'VIEW'), ('A', 'SYNONYM')) T(TTABBREV,TABLE_TYPE) " +
-            		"WHERE (TTABBREV=TABLETYPE 	AND (SYS.SYSTABLES.SCHEMAID = SYS.SYSSCHEMAS.SCHEMAID)  " +
-            		"AND (SYS.SYSSCHEMAS.SCHEMANAME LIKE '%APP%') " +
-            		"AND (TABLENAME LIKE '%') AND TABLETYPE like '%') ORDER BY TABLE_TYPE, TABLE_SCHEM, TABLE_NAME");
+            		"CAST (NULL AS VARCHAR(128)) AS SELF_REFERENCING_COL_NAME, CAST (NULL AS VARCHAR(128)) AS REF_GENERATION " +
+            		"FROM SYS.SYSTABLES, SYS.SYSSCHEMAS, (VALUES ('T','TABLE'), ('S','SYSTEM TABLE'), ('V', 'VIEW'), ('A', 'SYNONYM')) T(TTABBREV,TABLE_TYPE) " +
+            		"WHERE (TTABBREV=TABLETYPE 	AND (SYS.SYSTABLES.SCHEMAID = SYS.SYSSCHEMAS.SCHEMAID) AND (SYS.SYSSCHEMAS.SCHEMANAME LIKE '%') " +
+            		"AND (TABLENAME LIKE '%') AND TABLETYPE IN ('TABLE', 'SYSTEM TABLE', 'VIEW', 'SYNONYM')) " +
+            		"ORDER BY TABLE_TYPE, TABLE_SCHEM, TABLE_NAME");
             while(rs.next()){
                 LOG.info(String.format("1=%s",rs.getString(1)));
             }
