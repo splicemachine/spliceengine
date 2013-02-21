@@ -298,9 +298,10 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 		if(rowProvider.hasNext()){
 			execRow = rowProvider.next();
 			SpliceLogUtils.trace(LOG,"nextRow=%s",execRow);
+            setCurrentRow(execRow);
 			return execRow;
 		}else {
-			closed=true;
+            setCurrentRow(null);
 			return null;
 		}
 	}
