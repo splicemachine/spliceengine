@@ -1,5 +1,7 @@
 package com.splicemachine.si.utils;
 
+import java.util.Arrays;
+
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
@@ -108,6 +110,12 @@ public class SIUtils extends SIConstants {
 		return new KeyValue(row,SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,beginTimestamp,Bytes.toBytes(commitTimestamp));
 	}
 
+	public static boolean isEmptyCommitTimestamp(KeyValue keyValue) {
+		return Arrays.equals(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) && 
+				Arrays.equals(keyValue.getQualifier(),SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN) &&
+				Arrays.equals(keyValue.getValue(),SIConstants.ZERO_BYTE_ARRAY);			
+	}
+	
 	public static boolean shouldUseSI(OperationWithAttributes operationWithAttributes) {
 		return operationWithAttributes.getAttribute(SI) != null;
 	}

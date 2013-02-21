@@ -12,6 +12,8 @@ import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
+import com.google.common.cache.Cache;
 import com.splicemachine.impl.si.txn.Transaction;
 import com.splicemachine.si.utils.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -23,6 +25,7 @@ public class SIFilter extends FilterBase {
 	protected Long currentTombstoneMarker;
 	protected HashMap<Long,Long> committedTransactions;
 	protected HRegion region;
+	protected Cache<Long,Transaction> transactionCache;
 	protected byte[] lastValidQualifier = SIConstants.ZERO_BYTE_ARRAY;
 	
 	public SIFilter() {
@@ -47,7 +50,19 @@ public class SIFilter extends FilterBase {
 		this.startTimestamp = startTimestamp;
 		this.region = region;
 	}
-	
+
+	/**
+	 * Server side filter wrapped into other filters on the coprocessor side.
+	 * 
+	 * @param startTimestamp
+	 * @param region
+	 */
+	public SIFilter(long startTimestamp, HRegion region, Cache<Long,Transaction> transactionCache) {
+		this.startTimestamp = startTimestamp;
+		this.region = region;
+		this.transactionCache = transactionCache;
+	}
+
 	@Override
 	public void write(DataOutput out) throws IOException {
 		out.writeLong(startTimestamp);		
@@ -77,7 +92,7 @@ public class SIFilter extends FilterBase {
 			SpliceLogUtils.logAndThrowRuntime(LOG, e);
 		}		
 	}
-	
+		
 	private void updateCommitTimestamps (KeyValue keyValue) {
  		byte[] commitValue = keyValue.getValue();
  		if (Arrays.equals(commitValue,SIConstants.ZERO_BYTE_ARRAY)) {

@@ -8,6 +8,8 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
+import com.google.common.cache.Cache;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import com.splicemachine.iapi.txn.TransactionState;
@@ -107,7 +109,27 @@ public class Transaction extends SIConstants {
 				}
 		}
 	}
+	/**
+	 * Transaction with status ABORT, ERROR, or COMMIT.  Active transactions are mutable so they cannot be cached.
+	 * 
+	 * @return boolean
+	 */
+	protected boolean isCacheable() {
+		return transactionState.equals(TransactionState.ABORT) || transactionState.equals(TransactionState.ERROR) || transactionState.equals(TransactionState.COMMIT);
+	}
 	
+	public static Transaction readTransaction(long startTimestamp, Cache<Long,Transaction> transactionCache) {
+		SpliceLogUtils.trace(LOG, "readTransaction %d",startTimestamp);
+		Transaction transaction;
+		if ( transactionCache != null && (transaction = transactionCache.getIfPresent(startTimestamp)) !=null) // Cache Hit
+			return transaction;
+		transaction = new Transaction(startTimestamp);
+		transaction.read();
+		if (transactionCache != null && transaction.isCacheable())
+			transactionCache.put(transaction.startTimestamp, transaction);
+		return transaction;
+	}
+
 	public static Transaction readTransaction(long startTimestamp) {
 		SpliceLogUtils.trace(LOG, "readTransaction %d",startTimestamp);
 		Transaction transaction = new Transaction(startTimestamp);
