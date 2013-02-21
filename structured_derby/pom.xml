@@ -97,6 +97,11 @@
         	<scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>net.sf.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>2.3</version>
+        </dependency>
+        <dependency>
         <groupId>com.gotometrics.orderly</groupId>
         <artifactId>orderly</artifactId>
         <version>0.11</version>

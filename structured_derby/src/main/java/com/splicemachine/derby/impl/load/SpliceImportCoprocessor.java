@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.load;
 
-import com.google.common.base.Splitter;
+import au.com.bytecode.opencsv.CSVReader;
 import com.google.common.io.Closeables;
 import com.google.common.primitives.Longs;
 import com.gotometrics.orderly.*;
@@ -30,6 +30,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -48,7 +49,7 @@ import java.util.Collection;
 public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements SpliceImportProtocol{
 	private static final Logger LOG = Logger.getLogger(SpliceImportCoprocessor.class);
 	private FileSystem fs;
-	
+
 	@Override
 	public void start(CoprocessorEnvironment env) {
 		SpliceLogUtils.trace(LOG,"Starting SpliceImport coprocessor");
@@ -71,7 +72,6 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		SpliceLogUtils.trace(LOG,"executing import for context %s",context);
 		long numImported=0l;
 		Path path =  context.getFilePath();
-		Splitter splitter = Splitter.on(context.getColumnDelimiter()).trimResults();
 		FSDataInputStream is = null;
 		//get a bulk-insert table for our table to insert
 		HTableInterface table = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(context.getTableName()));
@@ -112,7 +112,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 					pos+=newSize;
 
 					importRow(context.getColumnTypes(), context.getActiveCols(),
-												splitter, table, serializer, text.toString());
+							context.getColumnDelimiter(), table, serializer, text.toString());
 					numImported++;
 				}
 			}
@@ -136,7 +136,6 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		Path path =  context.getFilePath();
 
 		HTableInterface table = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(context.getTableName()));
-		Splitter splitter = Splitter.on(context.getColumnDelimiter());
 		Serializer serializer = new Serializer(context.getStripString(),context.getTimestampFormat());
 		InputStream is;
 		BufferedReader reader = null;
@@ -149,7 +148,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 			String line;
 			while((line = reader.readLine())!=null){
 
-				importRow(context.getColumnTypes(),context.getActiveCols(),splitter,table,serializer,line);
+				importRow(context.getColumnTypes(),context.getActiveCols(), context.getColumnDelimiter(),table,serializer,line);
 				numImported++;
 			}
 		}catch (Exception e){
@@ -166,14 +165,14 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 	/*private helper stuff*/
 
 	private void importRow(int[] columnTypes, FormatableBitSet activeCols,
-												 Splitter splitter, HTableInterface table,
+												 String columnDelimiter, HTableInterface table,
 												 Serializer serializer, String line ) throws IOException {
 		/*
 		 * Constructs the put and executes it onto the table.
 		 */
 		Put put = new Put(SpliceUtils.getUniqueKey());
 		int colPos = 0;
-		for(String col:splitter.split(line)){
+		for(String col:parseCsvLine(columnDelimiter, line)){
 			if(colPos >= columnTypes.length){
 				//we've exhausted all the known columns, so skip all remaining entries on the line
 				break;
@@ -191,6 +190,11 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		}
 		//do the insert
 		table.put(put);
+	}
+
+	static String[] parseCsvLine(String columnDelimiter, String line) throws IOException {
+		final CSVReader csvReader = new CSVReader(new StringReader(line), columnDelimiter.charAt(0));
+		return csvReader.readNext();
 	}
 
 	private String getTypeString(int columnType) {
