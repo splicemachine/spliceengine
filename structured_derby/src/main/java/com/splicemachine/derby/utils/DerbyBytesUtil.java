@@ -419,6 +419,23 @@ public class DerbyBytesUtil {
 		}
 	}
 
+    public static Object getObject(DataValueDescriptor descriptor) throws StandardException {
+        switch(descriptor.getTypeFormatId()){
+            case StoredFormatIds.SQL_TIMESTAMP_ID:
+                return descriptor.getTimestamp(null).getTime();
+            case StoredFormatIds.SQL_DATE_ID:
+                return descriptor.getDate(null).getTime();
+            case StoredFormatIds.SQL_TIME_ID:
+                return descriptor.getTime(null).getTime();
+			case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
+                return descriptor.getInt();
+			case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
+                return BigDecimal.valueOf(descriptor.getDouble());
+	        default:
+                return descriptor.getObject();
+        }
+    }
+
     /**
      * String RowKey which trims off extraneous whitespace and empty characters before serializing.
      */

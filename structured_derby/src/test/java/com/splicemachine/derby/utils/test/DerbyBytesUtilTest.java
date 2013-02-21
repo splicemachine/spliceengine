@@ -308,6 +308,13 @@ public class DerbyBytesUtilTest {
 		Assert.assertTrue(Bytes.compareTo(beginKey, endKey) < 0);
 	}
 
+    @Test
+    public void testCompareSequenceIds() throws Exception {
+        byte[] begin = DerbyBytesUtil.generateBeginKeyForTemp(dvf.getVarcharDataValue("14168@Scott-Finess-MacBook-Pro.local0000000201"));
+        byte[] end = BytesUtil.copyAndIncrement(begin);
+        System.out.printf("%s%n",new StringRowKey().deserialize(end));
+    }
+
 	public DataValueDescriptor[] generateDataValueDescriptors(Object... objects)
 			throws StandardException {
 		List<DataValueDescriptor> descriptors = new ArrayList<DataValueDescriptor>();
@@ -339,4 +346,5 @@ public class DerbyBytesUtilTest {
 		}
 		return desc;
 	}
+
 }
