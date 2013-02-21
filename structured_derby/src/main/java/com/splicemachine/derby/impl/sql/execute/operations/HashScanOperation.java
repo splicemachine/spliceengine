@@ -11,6 +11,7 @@ import java.util.Map;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import org.apache.derby.iapi.error.StandardException;
@@ -140,13 +141,12 @@ public class HashScanOperation extends ScanOperation {
 			ExecRow candidate = (ExecRow) generatedMethod.invoke(activation);
 			FormatableArrayHolder fah = (FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(hashKeyItem));
 			FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
+			LanguageConnectionContext lcc = context.getLanguageConnectionContext();
+			currentRow = getCompactRow(lcc,candidate, accessedCols, false);
 			keyColumns = new int[fihArray.length];
 			for (int index = 0; index < fihArray.length; index++) {
-				keyColumns[index] = fihArray[index].getInt();
+				keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(accessedCols, fihArray[index].getInt());
 			}
-			LanguageConnectionContext lcc = context.getLanguageConnectionContext();
-			//move accessedCols down by one
-			currentRow = getCompactRow(lcc,candidate, accessedCols, false);
 			LOG.info("activation.getClass()="+activation.getClass()+",aactivation="+activation);
 			if (scanQualifiersField != null)
 				scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
