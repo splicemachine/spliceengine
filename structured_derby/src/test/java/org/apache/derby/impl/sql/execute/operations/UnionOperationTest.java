@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.splicemachine.derby.test.SpliceDerbyTest;
@@ -111,6 +112,43 @@ public class UnionOperationTest extends SpliceDerbyTest {
 			}
 		}
 	}		
+	
+	
+	@Test
+	@Ignore
+	/**
+	 * 
+	 * This needs to use a provider interface for boths its traversals and not use isScan - JL
+	 * 
+	 * @throws SQLException
+	 */
+	public void testValuesUnion() throws SQLException {
+		
+		Statement s = null;
+		ResultSet rs = null;
+		try {
+			s = conn.createStatement();
+			rs = s.executeQuery("SELECT TTABBREV, TABLE_TYPE from (VALUES ('T','TABLE'), ('S','SYSTEM TABLE'), ('V', 'VIEW'), ('A', 'SYNONYM')) T (TTABBREV,TABLE_TYPE)");
+			int i = 0;
+			while (rs.next()) {
+				i++;
+			}	
+			Assert.assertTrue(i>0);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (rs!=null)
+					rs.close();
+				if (s != null)
+					s.close();
+			} catch (SQLException e) {
+				//no need to print out
+			}
+		}
+	}
+	
+	
 	
 	@Test
 	public void testUnion() throws SQLException {			
