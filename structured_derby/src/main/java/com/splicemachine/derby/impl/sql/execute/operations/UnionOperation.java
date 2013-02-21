@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.derby.impl.storage.RowProviders;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.sql.Activation;
@@ -430,6 +431,11 @@ public class UnionOperation extends SpliceBaseOperation {
 		SpliceUtils.setInstructions(reduceScan, activation, top);
 		return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE, reduceScan, template,null);
 	}
+
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template){
+        return RowProviders.sourceProvider(top,LOG);
+    }
 
 	@Override
 	public ExecRow getExecRowDefinition() {
