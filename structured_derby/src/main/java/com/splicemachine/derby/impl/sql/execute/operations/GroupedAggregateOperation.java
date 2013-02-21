@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
@@ -127,7 +129,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
 		try {
 			byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
-			byte[] finish = DerbyBytesUtil.generateEndKeyForTemp(sequence[0]);
+			byte[] finish = BytesUtil.copyAndIncrement(start);
 			if(regionScanner==null){
 				reduceScan = Scans.newScan(start,finish,transactionID);
 //				reduceScan = SpliceUtils.generateScan(sequence[0],start,finish,transactionID);
@@ -156,7 +158,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             SpliceUtils.setInstructions(reduceScan,activation,top);
             provider = new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
         }
-//        provider.open();
         return provider;
 	}
 
@@ -169,7 +170,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		 */
 		long numSunk=0l;
 		SpliceLogUtils.trace(LOG, "sink");
-		ExecRow row = null;
+		ExecRow row;
 		HTableInterface tempTable = null;
 		try{
 			Put put;

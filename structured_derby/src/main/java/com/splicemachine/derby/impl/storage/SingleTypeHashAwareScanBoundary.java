@@ -2,9 +2,13 @@ package com.splicemachine.derby.impl.storage;
 
 import java.io.IOException;
 
+import com.splicemachine.derby.utils.Scans;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.bytes.BytesUtil;
@@ -23,7 +27,19 @@ public class SingleTypeHashAwareScanBoundary extends BaseHashAwareScanBoundary {
 		this.hasher = hasher;
 		this.execRow = execRow;
 	}
-	
+
+    @Override
+    public Scan buildScan(byte[] start, byte[] finish) {
+        Scan scan = super.buildScan(start,finish);
+
+        try{
+            scan.setFilter(new PrefixFilter(hasher.getPrefixBytes()));
+        }catch(IOException ioe){
+            SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
+        }
+        return super.buildScan(start, finish);    //To change body of overridden methods use File | Settings | File Templates.
+    }
+
     @Override
     public byte[] getStartKey(Result result) {
         try {
