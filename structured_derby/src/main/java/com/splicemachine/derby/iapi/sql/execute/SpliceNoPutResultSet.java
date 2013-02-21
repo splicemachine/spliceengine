@@ -10,6 +10,7 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.ResultSet;
+import org.apache.derby.iapi.sql.conn.StatementContext;
 import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
@@ -37,10 +38,12 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	protected SpliceOperation topOperation;
 	protected RowProvider rowProvider;
 	protected ExecRow execRow;
-	protected boolean closed;
+	protected volatile boolean closed;
 	protected boolean returnsRows;
+    private StatementContext statementContext;
+    private NoPutResultSet[] subqueryTrackingArray;
 
-	public SpliceNoPutResultSet(Activation activation,SpliceOperation topOperation,RowProvider rowProvider){
+    public SpliceNoPutResultSet(Activation activation,SpliceOperation topOperation,RowProvider rowProvider){
 		this(activation,topOperation,rowProvider,true);
 	}
 	
@@ -121,10 +124,21 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	@Override
 	public ExecRow getNextRow() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRow");
+        attachStatementContext();
 		return getNextRowCore();
 	}
 
-	@Override
+    private void attachStatementContext() throws StandardException {
+        if(statementContext == null || !statementContext.onStack()){
+            statementContext = activation.getLanguageConnectionContext().getStatementContext();
+        }
+        statementContext.setTopResultSet(topOperation,subqueryTrackingArray);
+        if(subqueryTrackingArray == null)
+            subqueryTrackingArray = statementContext.getSubqueryTrackingArray();
+        statementContext.setActivation(activation);
+    }
+
+    @Override
 	public ExecRow getPreviousRow() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getPreviousRow");
 		return null;
@@ -164,6 +178,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 		SpliceLogUtils.trace(LOG, "close");
 		if(closed) return; //nothing to do;
 		rowProvider.close();
+        topOperation.close();
 		closed =true;
 	}
 
@@ -174,13 +189,14 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 	@Override
 	public boolean isClosed() {
-		SpliceLogUtils.trace(LOG,"isClosed");
+		SpliceLogUtils.trace(LOG, "isClosed?%b",closed);
 		return closed;
 	}
 
 	@Override
 	public void finish() throws StandardException {
-		SpliceLogUtils.trace(LOG,"finish");
+		SpliceLogUtils.trace(LOG, "finish");
+        if(!isClosed())close();
 	}
 
 	@Override
@@ -297,11 +313,9 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 		SpliceLogUtils.trace(LOG,"getNextRowCore");
 		if(rowProvider.hasNext()){
 			execRow = rowProvider.next();
-			SpliceLogUtils.trace(LOG,"nextRow=%s",execRow);
-            setCurrentRow(execRow);
+			SpliceLogUtils.trace(LOG, "nextRow=%s", execRow);
 			return execRow;
 		}else {
-            setCurrentRow(null);
 			return null;
 		}
 	}
@@ -337,12 +351,13 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	@Override
 	public int resultSetNumber() {
 		SpliceLogUtils.trace(LOG,"resultSetNumber");
-		return 0;
+		return topOperation.resultSetNumber();
 	}
 
 	@Override
 	public void setCurrentRow(ExecRow row) {
 		SpliceLogUtils.trace(LOG, "setCurrentRow %s",row);
+        activation.setCurrentRow(row, topOperation.resultSetNumber());
 	}
 
 	@Override

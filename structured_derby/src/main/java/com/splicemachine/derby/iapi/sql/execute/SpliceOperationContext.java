@@ -60,23 +60,23 @@ public class SpliceOperationContext {
     public RegionScanner getScanner() throws IOException {
         if(scanner==null){
             if(region==null)return null;
-            
+
             //Bug 193: manually trigger  transactional observer's preScannerOpen to handle transaction cases. 
             //I am not using the TransactionalRegionObserver class implicitly since this is the highest priority
             //coprocessor in our transactional system thus its preScannerOpen is called by default - jz
             if (TxnUtils.getTransactionID(scan) != null) {
-            	scanner = region.getCoprocessorHost().preScannerOpen(scan);
-							if(scanner==null){
+                scanner = region.getCoprocessorHost().preScannerOpen(scan);
+                if(scanner==null){
 								/*
 								 * the Coprocessor host may bypass calling preScannerOpen, in which case we need
 								 * to open the scanner ourselves and run it through postScannerOpen to make sure it gets
 								 * pushed through the coprocessor framework correctly
 								 */
-								scanner = region.getScanner(scan);
+                    scanner = region.getScanner(scan);
 //								scanner = region.getCoprocessorHost().postScannerOpen(scan,scanner);
-							}
-						}else
-            	scanner = region.getScanner(scan);
+                }
+            }else
+                scanner = region.getScanner(scan);
         }
         return scanner;
     }

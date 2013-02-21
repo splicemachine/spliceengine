@@ -173,7 +173,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		Put put = new Put(SpliceUtils.getUniqueKey());
 		int colPos = 0;
 		for(String col:parseCsvLine(columnDelimiter, line)){
-			if(colPos >= columnTypes.length){
+			if(colPos >= columnTypes.length||colPos<0){
 				//we've exhausted all the known columns, so skip all remaining entries on the line
 				break;
 			}

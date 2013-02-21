@@ -1,11 +1,9 @@
 package org.apache.derby.impl.sql.execute.operations;
 
-import java.sql.CallableStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 import com.splicemachine.derby.test.SpliceDerbyTest;
+import com.splicemachine.derby.test.SpliceNetDerbyTest;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -15,8 +13,8 @@ import org.junit.Test;
 
 import com.splicemachine.derby.test.SpliceDerbyTest;
 
-public class CallStatementOperationTest extends SpliceDerbyTest {
-//public class CallStatementOperationTest extends SpliceNetDerbyTest {
+//public class CallStatementOperationTest extends SpliceDerbyTest {
+public class CallStatementOperationTest extends SpliceNetDerbyTest {
 	private static Logger LOG = Logger.getLogger(CallStatementOperationTest.class);
 	
 	@BeforeClass 
@@ -94,20 +92,45 @@ public class CallStatementOperationTest extends SpliceDerbyTest {
 
     @Test
     public void testCallSQLTABLES() throws Exception{
-        CallableStatement s = null;
+        CallableStatement cs = null;
         ResultSet rs = null;
+        Statement s = null;
         try{
-            s = conn.prepareCall("call SYSIBM.SQLTABLES(null,'APP','%','TABLE','')");
-            rs = s.executeQuery();
+            //create a table in the APP schema
+//            s = conn.createStatement();
+//            s.execute("create table test(a int)");
+            cs = conn.prepareCall("call SYSIBM.SQLTABLES(null,'APP',null,'TABLE',null)",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY);
+            rs = cs.executeQuery();
             int count =0;
             while(rs.next()){
-                LOG.info(String.format("1=%s",rs.getString(1)));
+                Object data = rs.getObject(2);
+                LOG.info(String.format("2=%s",data));
                 count++;
             }
             Assert.assertTrue("Incorrect rows returned!",count>0);
         }finally{
             if(rs!=null)rs.close();
             if(s!=null)s.close();
+            if(cs!=null)cs.close();
+        }
+    }
+
+    @Test
+    public void testCastScan() throws Exception{
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try{
+            ps = conn.prepareStatement("select cast('' as varchar(128)) as cat,schemaname from sys.sysschemas");
+            rs = ps.executeQuery();
+            int count=0;
+            while(rs.next()){
+                LOG.info(String.format("%s,%s",rs.getObject(1),rs.getObject(2)));
+                count++;
+            }
+            Assert.assertTrue("incorrect count returned!",count>0);
+        }finally{
+            if(rs!=null)rs.close();
+            if(ps!=null)ps.close();
         }
     }
 
@@ -117,7 +140,8 @@ public class CallStatementOperationTest extends SpliceDerbyTest {
         ResultSet rs = null;
         try{
             s = conn.createStatement();
-            
+//            s.execute("create table test(value int)");
+//            s.execute("create table test2(value int)");
             /* Original statement
              * 
              * SELECT CAST ('' AS VARCHAR(128)) AS TABLE_CAT, SCHEMANAME AS TABLE_SCHEM,  TABLENAME AS TABLE_NAME, 
@@ -129,17 +153,36 @@ public class CallStatementOperationTest extends SpliceDerbyTest {
              * ORDER BY TABLE_TYPE, TABLE_SCHEM, TABLE_NAME
              * 
              */
-            rs = s.executeQuery("SELECT CAST ('' AS VARCHAR(128)) AS TABLE_CAT, SCHEMANAME AS TABLE_SCHEM,  TABLENAME AS TABLE_NAME, " +          
-            		"(CAST (RTRIM(TABLE_TYPE) AS VARCHAR(12))) AS TABLE_TYPE, CAST ('' AS VARCHAR(128)) AS REMARKS, " +
-            		"CAST (NULL AS VARCHAR(128)) AS TYPE_CAT, CAST (NULL AS VARCHAR(128)) AS TYPE_SCHEM, CAST (NULL AS VARCHAR(128)) AS TYPE_NAME, " +
-            		"CAST (NULL AS VARCHAR(128)) AS SELF_REFERENCING_COL_NAME, CAST (NULL AS VARCHAR(128)) AS REF_GENERATION " +
-            		"FROM SYS.SYSTABLES, SYS.SYSSCHEMAS, (VALUES ('T','TABLE'), ('S','SYSTEM TABLE'), ('V', 'VIEW'), ('A', 'SYNONYM')) T(TTABBREV,TABLE_TYPE) " +
-            		"WHERE (TTABBREV=TABLETYPE 	AND (SYS.SYSTABLES.SCHEMAID = SYS.SYSSCHEMAS.SCHEMAID) AND (SYS.SYSSCHEMAS.SCHEMANAME LIKE '%') " +
-            		"AND (TABLENAME LIKE '%') AND TABLETYPE IN ('TABLE', 'SYSTEM TABLE', 'VIEW', 'SYNONYM')) " +
-            		"ORDER BY TABLE_TYPE, TABLE_SCHEM, TABLE_NAME");
+            rs = s.executeQuery("SELECT " +
+                    "CAST ('' AS VARCHAR(128)) AS TABLE_CAT, " +
+                    "SCHEMANAME AS TABLE_SCHEM,  " +
+                    "TABLENAME AS TABLE_NAME, " +
+            		"(CAST (RTRIM(TABLE_TYPE) AS VARCHAR(12))) AS TABLE_TYPE, " +
+                    "CAST ('' AS VARCHAR(128)) AS REMARKS, " +
+            		"CAST (NULL AS VARCHAR(128)) AS TYPE_CAT, " +
+                    "CAST (NULL AS VARCHAR(128)) AS TYPE_SCHEM, " +
+                    "CAST (NULL AS VARCHAR(128)) AS TYPE_NAME, " +
+            		"CAST (NULL AS VARCHAR(128)) AS SELF_REFERENCING_COL_NAME, " +
+                    "CAST (NULL AS VARCHAR(128)) AS REF_GENERATION " +
+            		"FROM SYS.SYSTABLES, " +
+                    "SYS.SYSSCHEMAS, " +
+                    "(VALUES ('T','TABLE'), ('S','SYSTEM TABLE'), ('V', 'VIEW'), ('A', 'SYNONYM')) T(TTABBREV,TABLE_TYPE) " +
+            		"WHERE " +
+                    "(TTABBREV=TABLETYPE 	" +
+                    "AND (SYS.SYSTABLES.SCHEMAID = SYS.SYSSCHEMAS.SCHEMAID) " +
+                    "AND (SYS.SYSSCHEMAS.SCHEMANAME LIKE '%') " +
+            		"AND (TABLENAME LIKE '%')) " +
+//                    "AND TABLETYPE IN ('TABLE', 'SYSTEM TABLE', 'VIEW', 'SYNONYM')) " +
+            		"ORDER BY " +
+                    "TABLE_TYPE, " +
+                    "TABLE_SCHEM, " +
+                    "TABLE_NAME");
+            int count =0;
             while(rs.next()){
                 LOG.info(String.format("1=%s",rs.getString(1)));
+                count++;
             }
+            Assert.assertTrue("incorrect rows returned",count>0);
         }catch (Exception e) {
         	e.printStackTrace();
         } finally{

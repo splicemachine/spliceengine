@@ -29,6 +29,7 @@ public abstract class AbstractScanProvider implements RowProvider {
     protected RowLocation currentRowLocation;
 
     protected FormatableBitSet fbt;
+    protected int called = 0;
 
     protected AbstractScanProvider(ExecRow rowTemplate,FormatableBitSet fbt){
     	SpliceLogUtils.trace(LOG, "instantiated");
@@ -49,17 +50,21 @@ public abstract class AbstractScanProvider implements RowProvider {
 
 	@Override
     public boolean hasNext() {
-    	SpliceLogUtils.trace(LOG, "hasNext");
         if(populated)return true;
+        called++;
+        SpliceLogUtils.trace(LOG, "hasNext");
 
         try{
             Result result = getResult();
             if(result!=null){
-                SpliceUtils.populate(result,fbt, currentRow.getRowArray());
+                SpliceLogUtils.trace(LOG,"result!=null. currentRow=%s",currentRow);
+                SpliceUtils.populate(result, fbt, currentRow.getRowArray());
+                SpliceLogUtils.trace(LOG, "after populate, currentRow=%s", currentRow);
                 currentRowLocation = new HBaseRowLocation(result.getRow());
                 populated = true;
                 return true;
             }
+            SpliceLogUtils.trace(LOG,"no result returned");
             return false;
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);

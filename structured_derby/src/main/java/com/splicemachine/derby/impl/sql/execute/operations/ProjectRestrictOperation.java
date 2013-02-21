@@ -81,34 +81,34 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
     
  
 	@Override
-	public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("readExternal");
-		super.readExternal(in);
-		restrictionMethodName = readNullableString(in);
-		projectionMethodName = readNullableString(in);
-		constantRestrictionMethodName = readNullableString(in);
-		mapRefItem = in.readInt();
-		cloneMapItem = in.readInt();
-		reuseResult = in.readBoolean();
-		doesProjection = in.readBoolean();
-		source = (SpliceOperation) in.readObject();
-	}
+    public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
+        if (LOG.isTraceEnabled())
+            LOG.trace("readExternal");
+        super.readExternal(in);
+        restrictionMethodName = readNullableString(in);
+        projectionMethodName = readNullableString(in);
+        constantRestrictionMethodName = readNullableString(in);
+        mapRefItem = in.readInt();
+        cloneMapItem = in.readInt();
+        reuseResult = in.readBoolean();
+        doesProjection = in.readBoolean();
+        source = (SpliceOperation) in.readObject();
+    }
 
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("writeExternal");
-		super.writeExternal(out);
-		writeNullableString(restrictionMethodName, out);
-		writeNullableString(projectionMethodName, out);
-		writeNullableString(constantRestrictionMethodName, out);
-		out.writeInt(mapRefItem);
-		out.writeInt(cloneMapItem);
-		out.writeBoolean(reuseResult);
-		out.writeBoolean(doesProjection);
-		out.writeObject(source);
-	}
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        if (LOG.isTraceEnabled())
+            LOG.trace("writeExternal");
+        super.writeExternal(out);
+        writeNullableString(restrictionMethodName, out);
+        writeNullableString(projectionMethodName, out);
+        writeNullableString(constantRestrictionMethodName, out);
+        out.writeInt(mapRefItem);
+        out.writeInt(cloneMapItem);
+        out.writeBoolean(reuseResult);
+        out.writeBoolean(doesProjection);
+        out.writeObject(source);
+    }
 
 	@Override
 	public void init(SpliceOperationContext context){

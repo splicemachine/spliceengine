@@ -323,6 +323,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 			}
 		}while(sourceRow!=null && !restrict);
 		SpliceLogUtils.trace(LOG, "emitting row %s",retRow);
+//        setCurrentRow(retRow);
 		return retRow;
 	}
 

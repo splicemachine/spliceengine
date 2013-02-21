@@ -121,38 +121,38 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	}
 	
 	@Override
-	public void init(SpliceOperationContext context){
-		SpliceLogUtils.trace(LOG, "init called");
-		super.init(context);
-		GenericStorablePreparedStatement statement = context.getPreparedStatement();
-		this.accessedCols = colRefItem != -1 ? (FormatableBitSet)(statement.getSavedObject(colRefItem)) : null;
-		SpliceLogUtils.trace(LOG,"<%d> colRefItem=%d,accessedCols=%s",conglomId,colRefItem,accessedCols);
-		try {
-			resultRowAllocator = statement.getActivationClass()
-																									.getMethod(resultRowAllocatorMethodName);
-			this.conglomerate = (SpliceConglomerate)
-														((SpliceTransactionManager) activation.getTransactionController())
-																																	.findConglomerate(conglomId);
-			this.isKeyed = conglomerate.getTypeFormatId() == IndexConglomerate.FORMAT_NUMBER;
-			if (startKeyGetterMethodName != null) {
-				startKeyGetter = statement.getActivationClass().getMethod(startKeyGetterMethodName);
-			}
-			if (stopKeyGetterMethodName != null) {
-				stopKeyGetter = statement.getActivationClass().getMethod(stopKeyGetterMethodName);
-			}
-			candidate = (ExecRow) resultRowAllocator.invoke(activation);
-			currentRow = getCompactRow(context.getLanguageConnectionContext(), candidate,
-																																					accessedCols, isKeyed);
-		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
-		}
-	}
+    public void init(SpliceOperationContext context){
+        SpliceLogUtils.trace(LOG, "init called");
+        super.init(context);
+        GenericStorablePreparedStatement statement = context.getPreparedStatement();
+        this.accessedCols = colRefItem != -1 ? (FormatableBitSet)(statement.getSavedObject(colRefItem)) : null;
+        SpliceLogUtils.trace(LOG,"<%d> colRefItem=%d,accessedCols=%s",conglomId,colRefItem,accessedCols);
+        try {
+            resultRowAllocator = statement.getActivationClass()
+                    .getMethod(resultRowAllocatorMethodName);
+            this.conglomerate = (SpliceConglomerate)
+                    ((SpliceTransactionManager) activation.getTransactionController())
+                            .findConglomerate(conglomId);
+            this.isKeyed = conglomerate.getTypeFormatId() == IndexConglomerate.FORMAT_NUMBER;
+            if (startKeyGetterMethodName != null) {
+                startKeyGetter = statement.getActivationClass().getMethod(startKeyGetterMethodName);
+            }
+            if (stopKeyGetterMethodName != null) {
+                stopKeyGetter = statement.getActivationClass().getMethod(stopKeyGetterMethodName);
+            }
+            candidate = (ExecRow) resultRowAllocator.invoke(activation);
+            currentRow = getCompactRow(context.getLanguageConnectionContext(), candidate,
+                    accessedCols, isKeyed);
+        } catch (Exception e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
+        }
+    }
 
-	@Override
-	public NoPutResultSet executeScan() {
-		SpliceLogUtils.trace(LOG, "executeScan");
-		return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getExecRowDefinition()));
-	}
+    @Override
+    public NoPutResultSet executeScan() {
+        SpliceLogUtils.trace(LOG, "executeScan");
+        return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getExecRowDefinition()));
+    }
 	@Override
 	public SpliceOperation getLeftOperation() {
 		SpliceLogUtils.trace(LOG, "getLeftOperation");
