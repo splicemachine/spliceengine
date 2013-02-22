@@ -21,7 +21,8 @@ public class HdfsImportTest {
 		tableSchemaMap.put("t","name varchar(40), title varchar(40), age int");
 		tableSchemaMap.put("order_detail","order_id VARCHAR(50), item_id INT, order_amt INT,order_date TIMESTAMP, emp_id INT, " +
 				"promotion_id INT, qty_sold INT, unit_price FLOAT, unit_cost FLOAT, discount FLOAT, customer_id INT");
-        tableSchemaMap.put("lu_cust_city","cust_city_id int, cust_city_name varchar(64), cust_state_id int");
+		tableSchemaMap.put("lu_cust_city","cust_city_id int, cust_city_name varchar(64), cust_state_id int");
+		tableSchemaMap.put("hello_there","i int, j varchar(20)");
 	}
 	
 	@Rule public DerbyTestRule rule = new DerbyTestRule(tableSchemaMap,LOG);
@@ -63,6 +64,32 @@ public class HdfsImportTest {
 		}
 		Assert.assertTrue("no rows imported!",results.size()>0);
 	}
+
+	@Test
+	public void testImportHelloThere() throws Exception {
+		String baseDir = System.getProperty("user.dir");
+		String csvLocation = baseDir+"/structured_derby/src/test/resources/hello_there.csv";
+		String importQuery = String.format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(null,'HELLO_THERE', null, null, '%s', ',', null, null)", csvLocation);
+		PreparedStatement ps = rule.prepareStatement(importQuery);
+		ps.execute();
+
+		ResultSet rs = rule.executeQuery("select i, j from HELLO_THERE");
+		List<String> results = Lists.newArrayList();
+		while(rs.next()){
+			Integer i = rs.getInt(1);
+			String j = rs.getString(2);
+			Assert.assertNotNull("i is null!", i);
+			Assert.assertNotNull("j is null!", j);
+			results.add(String.format("i:%d,j:%s",i,j));
+		}
+		for(String result:results){
+			LOG.info(result);
+		}
+		Assert.assertTrue("wrong row count imported!",results.size()==2);
+		Assert.assertEquals("first row wrong","i:1,j:Hello", results.get(0));
+		Assert.assertEquals("second row wrong","i:2,j:There", results.get(1));
+	}
+
 
 	@Test
 	public void testHdfsImportGzipFile() throws Exception{
