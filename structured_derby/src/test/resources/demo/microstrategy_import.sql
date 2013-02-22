@@ -98,3 +98,18 @@ call SYSCS_UTIL.SYSCS_IMPORT_DATA ('splice_demo', 'ITEM', null, null, '/Users/jo
 call SYSCS_UTIL.SYSCS_IMPORT_DATA ('splice_demo', 'CUSTOMER', null, null, '/Users/johnleach/ms/microstrategydata/customer_iso.csv', ',', '"', null);
 call SYSCS_UTIL.SYSCS_IMPORT_DATA ('splice_demo', 'CATEGORY', null, null, '/Users/johnleach/ms/microstrategydata/category.csv', ',', '"', null);
 call SYSCS_UTIL.SYSCS_IMPORT_DATA ('splice_demo', 'CATEGORY_SUB', null, null, '/Users/johnleach/ms/microstrategydata/category_sub.csv', ',', '"', null);
+
+create view splice_demo.V_CATEGORY as select CAT_ID, UPPER(CAT_NAME) as CAT_NAME from Splice_demo.category;
+
+create view splice_demo.V_CATEGORY_SUB as select sbc_id, UPPER(sbc_desc) as sbc_desc, sbc_category_id from Splice_demo.category_sub;
+
+create view splice_demo.V_CUSTOMER as 
+select cst_id, cst_last_name,cst_first_name,case 
+when cst_gender_id = 1 then 'Male'
+when cst_gender_id = 2 then 'Female'
+else 'Unknown' end as cst_gender, cst_birthdate,cst_email,cst_address,cst_zipcode,
+	cst_income_id,cst_city_id,cst_age_years,cst_agerange_id,cst_maritalstatus_id,cst_education_id,
+	cst_housingtype_id,cst_householdcount_id,cst_plan_id,cst_first_order,cst_last_order,
+	cst_tenure,cst_recency,cst_status_id from splice_demo.CUSTOMER;
+
+
