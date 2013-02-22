@@ -81,7 +81,7 @@ public class HdfsImport extends ParallelVTI {
 
 		buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder);
 
-		long conglomId = getConglomid(connection,tableName);
+		long conglomId = getConglomid(connection,tableName,schemaName);
 		builder = builder.destinationTable(conglomId);
 		HdfsImport importer = new HdfsImport(builder.build());
 		try {
@@ -102,7 +102,6 @@ public class HdfsImport extends ParallelVTI {
 			throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.CONNECTION_NULL));
 		if(tableName==null)
 			throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ENTITY_NAME_MISSING));
-
         ImportContext.Builder builder;
         try{
             builder = new ImportContext.Builder()
@@ -118,7 +117,7 @@ public class HdfsImport extends ParallelVTI {
             throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ID_PARSE_ERROR,ae.getMessage()));
         }
 
-		long conglomId = getConglomid(connection,tableName);
+		long conglomId = getConglomid(connection,tableName,schemaName);
 		builder = builder.destinationTable(conglomId);
 		HdfsImport importer = new HdfsImport(builder.build());
 		try {
@@ -189,12 +188,14 @@ public class HdfsImport extends ParallelVTI {
 /************************************************************************************************************/
 
 	/*private helper functions*/
-	private static long getConglomid(Connection conn, String tableName) throws SQLException {
+	private static long getConglomid(Connection conn, String tableName, String schemaName) throws SQLException {
 		/*
 		 * gets the conglomerate id for the specified human-readable table name
 		 *
 		 * TODO -sf- make this a stored procedure?
 		 */
+		if (schemaName == null)
+			schemaName = "APP";
 		ResultSet rs = null;
 		PreparedStatement s = null;
 		try{
@@ -202,18 +203,21 @@ public class HdfsImport extends ParallelVTI {
 					"select " +
 						"conglomeratenumber " +
 					"from " +
-						"sys.sysconglomerates c," +
-						"sys.systables t " +
+						"sys.sysconglomerates c, " +
+						"sys.systables t, " +
+						"sys.sysschemas s " +						
 					"where " +
-						"t.tableid = c.tableid " +
-						"and t.tablename = ?");
-			s.setString(1,tableName);
-
+						"t.tableid = c.tableid and " +
+						"t.schemaid = s.schemaid and " +
+						"s.schemaname = ? and " +
+						"t.tablename = ?");
+			s.setString(1,schemaName.toUpperCase());
+			s.setString(2,tableName);			
 			rs = s.executeQuery();
 			if(rs.next()){
 				return rs.getLong(1);
 			}else{
-				throw new SQLException("No Conglomerate id found for table name "+tableName);
+				throw new SQLException(String.format("No Conglomerate id found for table [%s] in schema [%s] ",tableName,schemaName.toUpperCase()));
 			}
 		}finally{
 			if(rs!=null) rs.close();
@@ -223,8 +227,8 @@ public class HdfsImport extends ParallelVTI {
 
 	private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
 																						 String insertColumnList, ImportContext.Builder builder) throws SQLException {
-		DatabaseMetaData dmd = connection.getMetaData();
-		ResultSet rs = dmd.getColumns(null,schemaName,tableName,null);
+		DatabaseMetaData dmd = connection.getMetaData();		
+		ResultSet rs = dmd.getColumns(null,(schemaName==null?"APP":schemaName.toUpperCase()),tableName,null);
 		if(insertColumnList!=null){
 			List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
 			int numCols = 0;

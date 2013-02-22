@@ -181,6 +181,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 				put.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
 					Integer.toString(colPos).getBytes(),serializer.serialize(col,columnTypes[colPos]));
 			}catch(Exception e){
+				e.printStackTrace();
 				String errorMessage=String.format("Unable to parse line %s, " +
 						"column %d did not serialize correctly: expected type %s for column string %s",
 						line,colPos,getTypeString(columnTypes[colPos]),col);
@@ -192,7 +193,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		table.put(put);
 	}
 
-	static String[] parseCsvLine(String columnDelimiter, String line) throws IOException {
+	public static String[] parseCsvLine(String columnDelimiter, String line) throws IOException {
 		final CSVReader csvReader = new CSVReader(new StringReader(line), columnDelimiter.charAt(0));
 		return csvReader.readNext();
 	}
@@ -331,8 +332,8 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		}
 
 		private String preProcessColumn(String column) {
-			if(charDelimiter==null) return column;
-			return StringUtils.strip(column, charDelimiter,'\\');
+			return column;
+			// Commented Out - John Leach - CSVParser already handles this...
 		}
 	}
 }
