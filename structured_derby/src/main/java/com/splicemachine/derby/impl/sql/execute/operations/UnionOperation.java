@@ -86,17 +86,17 @@ public class UnionOperation extends SpliceBaseOperation {
     		double optimizerEstimatedRowCount,
     		double optimizerEstimatedCost) throws StandardException {
     	super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-    	SpliceLogUtils.trace(LOG, "source1="+source1+", source2="+source2);
+    	SpliceLogUtils.trace(LOG, "source1="+source1+", source2="+source2+",whichSource"+whichSource);
     	this.source1 = source1;
-			this.source2 = source2;
-			init(SpliceOperationContext.newContext(activation));
+    	this.source2 = source2;
+    	init(SpliceOperationContext.newContext(activation));
 
-			try {
-				reduceScan = Scans.buildPrefixRangeScan(sequence[0],transactionID);
-			} catch (IOException e) {
-				SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to create reduce scan",e);
-			}
-		}
+    	try {
+    		reduceScan = Scans.buildPrefixRangeScan(sequence[0],transactionID);
+    	} catch (IOException e) {
+    		SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to create reduce scan",e);
+    	}
+    }
     
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
@@ -133,8 +133,9 @@ public class UnionOperation extends SpliceBaseOperation {
 
 	@Override
 	public void init(SpliceOperationContext context){
-		SpliceLogUtils.trace(LOG, "init called");
+		SpliceLogUtils.trace(LOG, "UnionOperation init called,whichSource="+whichSource);
 		super.init(context);
+		
 		((SpliceOperation)source1).init(context);
 		((SpliceOperation)source2).init(context);
 		
@@ -178,6 +179,8 @@ public class UnionOperation extends SpliceBaseOperation {
 		
 		whichSource = 2;
 		executeShuffle((SpliceOperation) source2, topOperation);
+		
+		//whichSource = 1;
 	}
 	
 	protected void executeShuffle(SpliceOperation regionOperation, final SpliceOperation topOperation) throws StandardException {
@@ -239,7 +242,7 @@ public class UnionOperation extends SpliceBaseOperation {
 
 	@Override
 	public void close() throws StandardException {
-		SpliceLogUtils.trace(LOG, "close");
+		SpliceLogUtils.trace(LOG, "close, whichSource="+whichSource);
 		clearCurrentRow();
 
 		switch (whichSource) {
@@ -333,28 +336,36 @@ public class UnionOperation extends SpliceBaseOperation {
 	}
 	
 	protected ExecRow	getNextRowFromSources() throws StandardException {
-		SpliceLogUtils.trace(LOG, "getNextRowFromSources, whichSource="+whichSource);
+		SpliceLogUtils.trace(LOG, "getNextRowFromSources, whichSource="+whichSource+",source1="+source1+",source2="+source2);
 	    ExecRow result = null;
 	    //if (isOpen) {
 	        switch (whichSource) {
 	            case 1 : result = source1.getNextRowCore();
+	            		SpliceLogUtils.trace(LOG, "getNextRowFromSources,result from source 1="+result);
 	                     if ( result == (ExecRow) null ) {
 	                        source1.close();
 	                        whichSource = 2;
-	                        SpliceLogUtils.trace(LOG, "getNextRowFromSources, open source 2");
+	                        SpliceLogUtils.trace(LOG, "getNextRowFromSources, open source 2 since result from source 1 is null");
 	                        source2.openCore();
 	                        SpliceLogUtils.trace(LOG, "getNextRowFromSources, getNextRowCore from source 2");
 	                        result = source2.getNextRowCore();
-							if (result != null)
+							if (result != null) {
+								SpliceLogUtils.trace(LOG, "UnionOperation from source 1 to source 2, getNextRowFromSources="+result);
 								rowsSeenRight++;
+							}
 	                     } else {
-	                    	 SpliceLogUtils.trace(LOG, "getNextRowFromSources, getNextRowCore from source 1");
+	                    	 SpliceLogUtils.trace(LOG, "UnionOperation getNextRowFromSources from source 1="+result);
 							 rowsSeenLeft++;
 	                     }
 	                     break;
 	            case 2 : result = source2.getNextRowCore();
-						 if (result != null)
+						 if (result != null) {
+							SpliceLogUtils.trace(LOG, "UnionOperation source=2, getNextRowFromSources="+result);
 							rowsSeenRight++;
+						 } else {
+							 whichSource = 1;
+							 SpliceLogUtils.trace(LOG, "UnionOperation source2 has no more getNextRowCore");
+						 }
 	                     break;
 	            default: 
 	            	//SpliceLogUtils.logAndThrow(LOG, "Bad source number in union", StandardException);
@@ -381,7 +392,7 @@ public class UnionOperation extends SpliceBaseOperation {
 			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			openCore();
 			while((row = getNextRowFromSources()) != null){
-				SpliceLogUtils.trace(LOG, "row="+row);
+				SpliceLogUtils.trace(LOG, "UnionOperation sink, row="+row);
 				/* Need to use non-sorted non-hashed rowkey with the prefix
 				put = SpliceUtils.insert(row.getRowArray(), 
 										 DerbyBytesUtil.generateSortedHashKey(row.getRowArray(), sequence[0], keyColumns, null),
@@ -452,6 +463,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	        	currentRow = ((SpliceOperation) source2).getExecRowDefinition();
 	            break;
         }
+		SpliceLogUtils.trace(LOG, "getExecRowDefinition, whichSource="+whichSource+",currentRow="+currentRow);
         setCurrentRow(currentRow);
 		return this.currentRow;														
 	}

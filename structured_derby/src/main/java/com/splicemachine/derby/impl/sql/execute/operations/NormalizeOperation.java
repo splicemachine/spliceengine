@@ -6,7 +6,7 @@ import java.io.ObjectOutput;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
@@ -16,10 +16,11 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class NormalizeOperation extends SpliceBaseOperation {
@@ -53,6 +54,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		super(activaation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
 		this.source = source;
         this.erdNumber = erdNumber;
+        this.forUpdate = forUpdate;
 		init(SpliceOperationContext.newContext(activation));
 	}
 

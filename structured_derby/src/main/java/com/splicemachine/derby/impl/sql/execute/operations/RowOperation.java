@@ -13,7 +13,6 @@ import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
@@ -29,7 +28,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	private static Logger LOG = Logger.getLogger(RowOperation.class);
 	protected int rowsReturned;
 	protected boolean canCacheRow;
-	protected boolean next;
+	protected boolean next = false;
 	protected GeneratedMethod row;
 	protected ExecRow		cachedRow;
     private String rowMethodName; //name of the row method for
@@ -52,6 +51,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
         this.row = row;
 		this.canCacheRow = canCacheRow;
         this.rowMethodName = row.getMethodName();
+        init(SpliceOperationContext.newContext(activation));
     }
 	
 	public RowOperation (
@@ -64,12 +64,14 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 		super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.cachedRow = constantRow;
 		this.canCacheRow = canCacheRow;
+		init(SpliceOperationContext.newContext(activation));
     }
 
 
     @Override
     public void init(SpliceOperationContext context) {
         super.init(context);
+        next = false;
         if(row==null && rowMethodName!=null){
             if(rowMethodName!=null){
                 try {
@@ -86,6 +88,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 		SpliceLogUtils.trace(LOG, "readExternal");
 		super.readExternal(in);
 		canCacheRow = in.readBoolean();
+		next = in.readBoolean();
         if(in.readBoolean())
             rowMethodName = in.readUTF();
 	}
@@ -95,6 +98,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 		SpliceLogUtils.trace(LOG, "writeExternal");
 		super.writeExternal(out);
 		out.writeBoolean(canCacheRow);
+		out.writeBoolean(next);
         out.writeBoolean(row!=null);
         if(row!=null){
             out.writeUTF(rowMethodName);
@@ -107,7 +111,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	}
 	
 	public ExecRow	getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG, "getNextRowCore");
+		SpliceLogUtils.trace(LOG, "getNextRowCore, next="+next+",cachedRow="+cachedRow);
 		currentRow = null;
 		if (!next) {
 			next = true;
@@ -121,6 +125,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	private ExecRow getRow() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getRow");
 		if (cachedRow != null) {
+			SpliceLogUtils.trace(LOG,"getRow,cachedRow="+cachedRow);
 		    return cachedRow;
 		}
 		else if (row != null) {
@@ -208,5 +213,14 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 			SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			return null;
 		}
+	}
+	
+	@Override
+	public void	close() throws StandardException
+	{
+		SpliceLogUtils.trace(LOG,"close");
+	    clearCurrentRow();
+	    next = false;
+		super.close();
 	}
 }

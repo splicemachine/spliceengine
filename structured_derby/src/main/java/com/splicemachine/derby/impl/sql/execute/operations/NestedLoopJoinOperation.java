@@ -6,9 +6,7 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -16,18 +14,19 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.iapi.storage.RowProvider;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class NestedLoopJoinOperation extends JoinOperation {
 	private static Logger LOG = Logger.getLogger(NestedLoopJoinOperation.class);
-	protected int rightNumCols;
 	protected ExecRow rightTemplate;
 	protected NestedLoopIterator nestedLoopIterator;
 	protected boolean isHash;
-	protected static List<NodeType> nodeTypes; 
+	protected static List<NodeType> nodeTypes;
 	
 	static {
 		nodeTypes = new ArrayList<NodeType>();
@@ -54,7 +53,6 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		super(leftResultSet,leftNumCols,rightResultSet,rightNumCols,activation,restriction,
 				resultSetNumber,oneRowRightSide,notExistsRightSide,optimizerEstimatedRowCount,
 				   optimizerEstimatedCost,userSuppliedOptimizerOverrides);	
-		this.rightNumCols = rightNumCols;
 		this.isHash = false;
         init(SpliceOperationContext.newContext(activation));
 	}
@@ -69,7 +67,6 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
 		SpliceLogUtils.trace(LOG,"readExternal");
 		super.readExternal(in);
-		rightNumCols = in.readInt();
 		isHash = in.readBoolean();
 	}
 
@@ -77,7 +74,6 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	public void writeExternal(ObjectOutput out) throws IOException {
 		SpliceLogUtils.trace(LOG,"writeExternal");
 		super.writeExternal(out);
-		out.writeInt(rightNumCols);
 		out.writeBoolean(isHash);
 	}
 
@@ -110,12 +106,6 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 		JoinUtils.getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition(),false,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
-	}
-
-	@Override
-	public SpliceOperation getLeftOperation() {
-		SpliceLogUtils.trace(LOG,"getLeftOperation");
-		return leftResultSet;
 	}
 	
 	@Override
@@ -155,6 +145,13 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		setCurrentRow(next);
 //		mergedRow=null;
 		return next;
+	}
+	
+	@Override
+	public void	close() throws StandardException
+	{ 
+		clearCurrentRow();
+		super.close();
 	}
 
 	protected class NestedLoopIterator implements Iterator<ExecRow> {
