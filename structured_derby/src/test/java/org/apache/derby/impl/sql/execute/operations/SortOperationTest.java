@@ -4,6 +4,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -30,6 +31,7 @@ public class SortOperationTest {
 	private static Map<String,String> tableSchemaMap = Maps.newHashMap();
 	static{
 		tableSchemaMap.put("food", "name varchar(255),value1 varchar(255),value2 varchar(255)");
+		tableSchemaMap.put("person", "name varchar(255), age float");
 	}
 	
 	@Rule public static DerbyTestRule  rule = new DerbyTestRule(tableSchemaMap,false,LOG);
@@ -132,6 +134,11 @@ public class SortOperationTest {
 		Collections.sort(distinctCorrectByName,k1Comparator);
 		Collections.sort(correctByAscDesc,ascDescComparator);
 		Collections.sort(correctByDescAsc,descAscComparator);
+
+		// add row to person
+		rule.prepareStatement("insert into person values ('joe', 5.5)").executeUpdate();
+		rule.prepareStatement("insert into person values ('bob', 1.2)").executeUpdate();
+		rule.prepareStatement("insert into person values ('tom', 13.4667)").executeUpdate();
 		rule.commit();
 	}
 
@@ -283,6 +290,24 @@ public class SortOperationTest {
 			if(rs !=null) rs.close();
 			if(s !=null) s.close();
 		}
+	}
+
+	@Test
+	public void testOrderByFloat() throws Exception {
+		Statement s = null;
+		ResultSet rs = null;
+		s = rule.getStatement();
+		s = rule.getStatement();
+		rs = s.executeQuery("select * from person order by age");
+
+		List<String> returnedByName = new ArrayList<String>();
+		while(rs.next()){
+			String v = rs.getString(1) + "," + rs.getFloat(2);
+			SpliceLogUtils.info(LOG, "v=%s",v);
+			returnedByName.add(v);
+		}
+		SpliceLogUtils.info(LOG, "returnedByName=%s",returnedByName);
+		Assert.assertEquals("results are wrong", Arrays.asList("bob,1.2", "joe,5.5", "tom,13.4667"), returnedByName);
 	}
 
 	private static class Triplet implements Comparable<Triplet>{
