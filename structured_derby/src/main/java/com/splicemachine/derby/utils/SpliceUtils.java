@@ -71,7 +71,7 @@ public class SpliceUtils {
 	private static Logger LOG = Logger.getLogger(SpliceUtils.class);
 
 
-	public enum SpliceConglomerate {HEAP,BTREE}
+    public enum SpliceConglomerate {HEAP,BTREE}
 	public static Configuration config = SpliceConfiguration.create();
 	protected static Gson gson = new Gson();
 	protected static UUIDHexGenerator gen = new UUIDHexGenerator("Splice", null);
@@ -457,6 +457,10 @@ public class SpliceUtils {
 	public static byte[] getUniqueKey(){
 		return gen.next().toString().getBytes();			
 	}
+
+    public static String getUniqueKeyString() {
+        return gen.next().toString();
+    }
 
 	public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation) {
 	SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);

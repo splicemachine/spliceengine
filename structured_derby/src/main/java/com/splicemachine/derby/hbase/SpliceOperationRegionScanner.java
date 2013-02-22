@@ -54,7 +54,6 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	public SpliceOperationRegionScanner(RegionScanner regionScanner, Scan scan,HRegion region) {
 		SpliceLogUtils.trace(LOG, "instantiated with "+regionScanner+", and scan "+scan);
 		this.regionScanner = regionScanner;
-		byte[] instructions = scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS);
 		//Putting this here to prevent some kind of weird NullPointer situation
 		//where the LanguageConnectionContext doesn't get initialized properly
 		try {

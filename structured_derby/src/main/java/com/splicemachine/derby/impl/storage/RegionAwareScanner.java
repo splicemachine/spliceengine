@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.avro.generated.HBase;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -73,7 +74,7 @@ public class RegionAwareScanner implements Closeable {
 	        //get next row from scanner
 	        if(!lookBehindExhausted){
 	            currentResult = lookBehindScanner.next();
-	            if(currentResult!=null) return currentResult;
+	            if(currentResult!=null&&!currentResult.isEmpty()) return currentResult;
 	            else
 	                lookBehindExhausted=true;
 	        }
@@ -84,7 +85,7 @@ public class RegionAwareScanner implements Closeable {
 	        }
 	        if(!lookAheadExhausted){
 	            currentResult = lookAheadScanner.next();
-	            if(currentResult!=null) return currentResult;
+	            if(currentResult!=null&&!currentResult.isEmpty()) return currentResult;
 	            else
 	                lookAheadExhausted = true;
 	        }
@@ -150,7 +151,7 @@ public class RegionAwareScanner implements Closeable {
     
     private void handleEndOfRegion() throws IOException {
     	//deal with the end of the region
-        if(Bytes.compareTo(regionFinish,scanFinish)>=0){
+        if(Bytes.compareTo(regionFinish,scanFinish)>=0 || regionFinish.length<=0){
             //cool, no remote ends!
             localFinish = scanFinish;
             lookAheadExhausted = true;
@@ -163,7 +164,7 @@ public class RegionAwareScanner implements Closeable {
             try{
                 aheadScanner = table.getScanner(aheadScan);
                 Result firstNotInRegion = aheadScanner.next();
-                if (firstNotInRegion == null) { // No values, exhaust
+                if (firstNotInRegion == null|| firstNotInRegion.isEmpty()) { // No values, exhaust
                     localFinish = regionFinish;
                     lookAheadExhausted=true;
                 }else{
@@ -196,7 +197,7 @@ public class RegionAwareScanner implements Closeable {
     }
     private void handleStartOfRegion() throws IOException {
         //deal with the start of the region
-        if(Bytes.compareTo(scanStart,regionStart)>=0){
+        if(Bytes.compareTo(scanStart,regionStart)>=0||regionStart.length<=0){
             //cool, no remoteStarts!
             localStart = scanStart;
             lookBehindExhausted=true;

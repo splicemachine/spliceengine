@@ -128,8 +128,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			distinctValues = (HashSet<String>[][])new HashSet[resultRows.length][aggregates.length];
 
 		try {
-			byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
-			byte[] finish = BytesUtil.copyAndIncrement(start);
+            byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
+            byte[] finish = BytesUtil.copyAndIncrement(start);
 			if(regionScanner==null){
 				reduceScan = Scans.newScan(start,finish,transactionID);
 //				reduceScan = SpliceUtils.generateScan(sequence[0],start,finish,transactionID);
@@ -400,22 +400,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	public ExecRow getExecRowDefinition() {
 		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
 		ExecRow row = sourceExecIndexRow.getClone();
-//		try{
-//			DataValueDescriptor[] descs = new DataValueDescriptor[order.length+aggregates.length];
-//			int numGCols = numGCols();
-//			for(int i=0;i<numGCols;i++){
-//				descs[i] = row.getColumn(order[i].getColumnId()+1);
-//			}
-//
-//			for(int i=0;i<aggregates.length;i++){
-//				int index = numGCols + i;
-//				descs[index] = row.getColumn(aggregates[i].getAggregatorInfo().getAggregatorColNum());
-//			}
-//			row.setRowArray(descs);
-//		}catch(StandardException se){
-//			SpliceLogUtils.logAndThrowRuntime(LOG, se);
-//		}
-//		DerbyLogUtils.traceDescriptors(LOG, "getExecRowDefinition row", row.getRowArray());
 		return row;
 	}
 

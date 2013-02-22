@@ -583,7 +583,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			for(Long returnedRow : resultMap.values()){
 				numberCreated += returnedRow;
 			}
-			SpliceLogUtils.trace(LOG,"Completed %d shuffle tasks",numberCreated);
+			SpliceLogUtils.trace(LOG,"Sunk %d records",numberCreated);
 			rowsSunk=numberCreated;
 		}catch(IOException ioe){
 			if(ioe.getCause() instanceof StandardException)

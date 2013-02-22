@@ -56,7 +56,7 @@ public abstract class AbstractScanProvider implements RowProvider {
 
         try{
             Result result = getResult();
-            if(result!=null){
+            if(result!=null && !result.isEmpty()){
                 SpliceLogUtils.trace(LOG,"result!=null. currentRow=%s",currentRow);
                 SpliceUtils.populate(result, fbt, currentRow.getRowArray());
                 SpliceLogUtils.trace(LOG, "after populate, currentRow=%s", currentRow);

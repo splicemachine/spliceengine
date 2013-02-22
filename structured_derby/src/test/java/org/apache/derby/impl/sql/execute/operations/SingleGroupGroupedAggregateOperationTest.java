@@ -69,7 +69,7 @@ public class SingleGroupGroupedAggregateOperationTest {
         }
         rule.commit();
 
-        rule.splitTable("t");
+        rule.splitTable("t",size/3);
     }
 
     @Test

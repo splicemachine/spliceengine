@@ -1,6 +1,6 @@
 package org.apache.derby.impl.sql.execute.operations;
 
-final class Stats {
+public final class Stats {
 	private int count;
 	private int sum;
 	private int max;
