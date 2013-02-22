@@ -1,16 +1,6 @@
-connect 'jdbc:derby:splice:wombat';
+CREATE SCHEMA splice_demo;
 
-
-drop table category;
-drop table category_sub;
-drop table customer;
-drop table item;
-drop table subcategory;
-drop table order_line;
-
-
--- 101,Apparel,Apparel_DE,Apparel_FR,Apparel_ES,Apparel_IT,Apparel_PO,Apparel_JA,Apparel_SCH,Apparel_KO
-CREATE TABLE category (
+CREATE TABLE splice_demo.category (
 	cat_id			INT,
 	cat_name		VARCHAR(128),
 	cat_name_de		VARCHAR(128),
@@ -21,11 +11,8 @@ CREATE TABLE category (
 	cat_name_ja		VARCHAR(128),
 	cat_name_sch		VARCHAR(128),
 	cat_name_ko		VARCHAR(128));
-call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CATEGORY', null, null, '/data/Splice/microstrategydata/category.csv', ',', '"', null);
 
-
--- "SUBCAT_ID","SUBCAT_DESC","CATEGORY_ID","SUBCAT_DESC_DE","SUBCAT_DESC_FR","SUBCAT_DESC_ES","SUBCAT_DESC_IT","SUBCAT_DESC_PO","SUBCAT_DESC_JA","SUBCAT_DESC_SCH","SUBCAT_DESC_KO",
-CREATE TABLE category_sub (
+CREATE TABLE splice_demo.category_sub (
 	sbc_id			INT,
 	sbc_desc		VARCHAR(128),
 	sbc_category_id 	INT,
@@ -37,13 +24,8 @@ CREATE TABLE category_sub (
 	sbc_desc_ja		VARCHAR(128),
 	sbc_desc_sch		VARCHAR(128),
 	sbc_desc_ko		VARCHAR(128));
-call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CATEGORY_SUB', null, null, '/data/Splice/microstrategydata/category_sub.csv', ',', '"', null);
 
-
-
--- "CUSTOMER_ID","CUST_LAST_NAME","CUST_FIRST_NAME","GENDER_ID","CUST_BIRTHDATE","EMAIL","ADDRESS","ZIPCODE","INCOME_ID","CUST_CITY_ID","AGE_YEARS","AGERANGE_ID",
--- "MARITALSTATUS_ID","EDUCATION_ID","HOUSINGTYPE_ID","HOUSEHOLDCOUNT_ID","PLAN_ID","FIRST_ORDER","LAST_ORDER","TENURE","RECENCY","STATUS_ID",
-CREATE TABLE customer (
+CREATE TABLE splice_demo.customer (
 	cst_id 			INT, 
 	cst_last_name 		VARCHAR(64), 
 	cst_first_name 		VARCHAR(64),
@@ -66,13 +48,8 @@ CREATE TABLE customer (
 	cst_tenure		INT,
 	cst_recency		INT,
 	cst_status_id		INT);
-call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CUSTOMER', null, null, '/data/Splice/microstrategydata/customer_iso.csv', ',', '"', null);
 
-
--- "ITEM_ID","ITEM_NAME","ITEM_LONG_DESC","ITEM_FOREIGN_NAME","ITEM_URL","DISC_CD","ITEM_UPC","WARRANTY","UNIT_PRICE","UNIT_COST","SUBCAT_ID","SUPPLIER_ID","BRAND_ID",
--- "ITEM_NAME_DE","ITEM_NAME_FR","ITEM_NAME_ES","ITEM_NAME_IT","ITEM_NAME_PO","ITEM_NAME_JA","ITEM_NAME_SCH","ITEM_NAME_KO",
--- "ITEM_LONG_DESC_DE","ITEM_LONG_DESC_FR","ITEM_LONG_DESC_ES","ITEM_LONG_DESC_IT","ITEM_LONG_DESC_PO","ITEM_LONG_DESC_JA","ITEM_LONG_DESC_SCH","ITEM_LONG_DESC_KO",
-CREATE TABLE item (
+CREATE TABLE splice_demo.item (
 	itm_id			INT,
 	itm_name		VARCHAR(128),
 	itm_long_desc		VARCHAR(32672),
@@ -102,11 +79,8 @@ CREATE TABLE item (
 	itm_itm_long_desc_ja	VARCHAR(32672),
 	itm_long_desc_sch	VARCHAR(32672),
 	itm_long_desc_ko	VARCHAR(32672));
-call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ITEM', null, null, '/data/Splice/microstrategydata/item.csv', ',', '"', null);
 
-
--- "ORDER_ID","ITEM_ID","ORDER_AMT","ORDER_AMT","ORDER_DATE","EMP_ID","PROMOTION_ID","QTY_SOLD","UNIT_PRICE","UNIT_COST","DISCOUNT","CUSTOMER_ID"
-CREATE TABLE order_line (
+CREATE TABLE splice_demo.order_line (
 	orl_order_id 		VARCHAR(50), 
 	orl_item_id 		INT, 
 	orl_amt 		INT, 
@@ -118,15 +92,9 @@ CREATE TABLE order_line (
 	orl_unit_cost 		FLOAT, 
 	orl_discount 		FLOAT, 
 	orl_customer_id 	INT);
-call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_LINE', null, null, '/data/Splice/microstrategydata/order_line_500K.csv', ',', '"', null);
 
-
-show tables; /* Doesn't return anything ??? */
-
-
-SELECT COUNT(1) FROM category;
-SELECT COUNT(1) FROM category_sub;
-SELECT COUNT(1) FROM customer;
-SELECT COUNT(1) FROM item;
-SELECT COUNT(1) FROM order_line;
-
+call SYSCS_UTIL.SYSCS_IMPORT_DATA ('splice_demo', 'ORDER_LINE', null, null, '/Users/johnleach/ms/microstrategydata/order_line_500K.csv', ',', '"', null);
+call SYSCS_UTIL.SYSCS_IMPORT_DATA ('splice_demo', 'ITEM', null, null, '/Users/johnleach/ms/microstrategydata/item.csv', ',', '"', null);
+call SYSCS_UTIL.SYSCS_IMPORT_DATA ('splice_demo', 'CUSTOMER', null, null, '/Users/johnleach/ms/microstrategydata/customer_iso.csv', ',', '"', null);
+call SYSCS_UTIL.SYSCS_IMPORT_DATA ('splice_demo', 'CATEGORY', null, null, '/Users/johnleach/ms/microstrategydata/category.csv', ',', '"', null);
+call SYSCS_UTIL.SYSCS_IMPORT_DATA ('splice_demo', 'CATEGORY_SUB', null, null, '/Users/johnleach/ms/microstrategydata/category_sub.csv', ',', '"', null);
