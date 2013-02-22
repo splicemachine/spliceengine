@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.monitor.ModuleFactory;
@@ -17,11 +18,12 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.J2SEDataValueFactory;
 import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.derby.impl.sql.execute.GenericScanQualifier;
-import org.apache.derby.impl.store.access.UTFQualifier;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
+
 import com.gotometrics.orderly.IntegerRowKey;
 import com.gotometrics.orderly.Order;
 import com.gotometrics.orderly.RowKey;
@@ -32,6 +34,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 
+@Ignore
 public class DerbyBytesUtilTest {
 	protected static J2SEDataValueFactory dvf = new J2SEDataValueFactory();
 
