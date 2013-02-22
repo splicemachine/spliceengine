@@ -179,12 +179,12 @@ public class MergeSortJoinOperation extends JoinOperation {
         return clientProvider;
 	}
 
-	private int[] generateHashKeys(int hashKeyItem) {
+	private int[] generateHashKeys(int hashKeyItem, SpliceBaseOperation resultSet) {
 		FormatableArrayHolder fah = (FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(hashKeyItem));
 		FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
 		int[] keyColumns = new int[fihArray.length];
 		for (int index = 0; index < fihArray.length; index++) {
-			keyColumns[index] = fihArray[index].getInt();
+			keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(resultSet.getRootAccessedCols(),fihArray[index].getInt());
 		}
 		return keyColumns;
 	}
@@ -194,8 +194,8 @@ public class MergeSortJoinOperation extends JoinOperation {
 		SpliceLogUtils.trace(LOG, "init");
 		super.init(context);
 		try {
-			leftHashKeys = generateHashKeys(leftHashKeyItem);
-			rightHashKeys = generateHashKeys(rightHashKeyItem);
+			leftHashKeys = generateHashKeys(leftHashKeyItem, (SpliceBaseOperation) this.leftResultSet);
+			rightHashKeys = generateHashKeys(rightHashKeyItem, (SpliceBaseOperation) this.rightResultSet);
 			mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
 			rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
 			byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
