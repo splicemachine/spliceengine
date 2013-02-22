@@ -11,6 +11,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
@@ -289,6 +290,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	public void openCore() throws StandardException {
 		if(source!=null) source.openCore();
 	}
-	
+	@Override
+	public FormatableBitSet getRootAccessedCols() {
+		if (source instanceof SpliceBaseOperation)
+			return ((SpliceBaseOperation) source).getRootAccessedCols();
+		throw new RuntimeException("Source of merge join not a SpliceBaseOperation, it is this " + source);
+	}
 	
 }
