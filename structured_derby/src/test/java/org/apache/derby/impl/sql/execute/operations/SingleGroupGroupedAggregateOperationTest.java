@@ -72,7 +72,22 @@ public class SingleGroupGroupedAggregateOperationTest {
         rule.splitTable("t");
     }
 
-	@Test
+    @Test
+	public void testGroupedCountOperation() throws Exception{
+			ResultSet rs = rule.executeQuery("select username,count(i) from t group by username");
+			int row =0;
+			while(rs.next()){
+				String uname = rs.getString(1);
+				int count = rs.getInt(2);
+				int correctCount = unameStats.get(uname).getCount();
+				SpliceLogUtils.trace(LOG, "uname=%s, count=%d, correctCount=%d",uname,count,correctCount);
+				Assert.assertEquals("Incorrect count for uname "+ uname,correctCount,count);
+				row++;
+			}
+			Assert.assertEquals("Not all groups found!", unameStats.size(),row);
+	}
+
+    @Test
 	public void testGroupedMinOperation() throws Exception{
 			ResultSet rs = rule.executeQuery("select username,min(i) from t group by username");
 			int row =0;
