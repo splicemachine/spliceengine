@@ -78,7 +78,7 @@ public class MsOrderDetailTest {
     private static void importData(String table, String filename) throws SQLException {
         String userDir = System.getProperty("user.dir");
         if(!userDir.endsWith("structured_derby"))
-            userDir = userDir+"structured_derby/";
+            userDir = userDir+"/structured_derby/";
         PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, ?, null,null," +
                 "?,',',null,null)");
         ps.setString(1,table);
@@ -99,6 +99,7 @@ public class MsOrderDetailTest {
             int groupCount = groupedRs.getInt(2);
             Assert.assertTrue("empty group count!",groupCount>0);
             Assert.assertTrue("Already seen key "+ groupKey, !uniqueGroups.contains(groupKey));
+            uniqueGroups.add(groupKey);
         }
         Assert.assertTrue("No groups found!",uniqueGroups.size()>0);
     }
