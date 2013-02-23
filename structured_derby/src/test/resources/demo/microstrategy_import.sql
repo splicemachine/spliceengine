@@ -112,4 +112,9 @@ else 'Unknown' end as cst_gender, cst_birthdate,cst_email,cst_address,cst_zipcod
 	cst_housingtype_id,cst_householdcount_id,cst_plan_id,cst_first_order,cst_last_order,
 	cst_tenure,cst_recency,cst_status_id from splice_demo.CUSTOMER;
 
+	CREATE FUNCTION REPLACE2(str VARCHAR(50), matchStr VARCHAR(50), replaceStr VARCHAR(50)) RETURNS VARCHAR(50)
+PARAMETER STYLE JAVA NO SQL LANGUAGE JAVA
+EXTERNAL NAME 'org.apache.commons.lang.StringUtils.replace';
 
+
+org.apache.commons.lang.StringUtils
