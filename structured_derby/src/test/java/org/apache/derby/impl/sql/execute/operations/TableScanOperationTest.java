@@ -102,6 +102,23 @@ public class TableScanOperationTest {
 		Assert.assertEquals(1, i);
 	}
 
+    @Test
+	public void testOrQualifiedTableScanPreparedStatement() throws SQLException {
+		PreparedStatement stmt = rule.prepareStatement("select * from a where si = ? or si = ?");
+		stmt.setString(1,"5");
+        stmt.setString(2,"4");
+		ResultSet rs = stmt.executeQuery();
+		int i = 0;
+		while (rs.next()) {
+			i++;
+			LOG.info("a.si="+rs.getString(1)+",b.si="+rs.getString(2)+",c.si="+rs.getString(3));
+			Assert.assertNotNull(rs.getString(1));
+			Assert.assertNotNull(rs.getString(2));
+			Assert.assertNotNull(rs.getString(3));
+		}
+		Assert.assertEquals(2, i);
+	}
+
 	@Test
 	public void testQualifierTableScan() throws SQLException {
 		ResultSet rs = rule.executeQuery("select * from a where si = '5'");

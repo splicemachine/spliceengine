@@ -48,8 +48,8 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	protected SpliceConglomerate conglomerate;
 	protected long conglomId;
 	protected boolean isKeyed;
-	private GeneratedMethod startKeyGetter;
-	private GeneratedMethod stopKeyGetter;
+	protected GeneratedMethod startKeyGetter;
+	protected GeneratedMethod stopKeyGetter;
 
 	private int colRefItem;
 	protected GeneratedMethod resultRowAllocator;
@@ -176,40 +176,56 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 
 	protected Scan buildScan() {
 		try{
-			if(startKeyGetter!=null){
-				startPosition = (ExecIndexRow)startKeyGetter.invoke(activation);
-				if(sameStartStopPosition){
-					/*
-					 * if the stop position is the same as the start position, we are
-					 * right at the position where we should return values, and so we need to make sure that
-					 * we only return values which match an equals filter. Otherwise, we'll need
-					 * to scan between the start and stop keys and pull back the values which are greater than
-					 * or equals to the start (e.g. leave startSearchOperator alone).
-					 */
-					stopPosition = startPosition;
-					startSearchOperator= ScanController.NA; //ensure that we put in an EQUALS filter
-				}
-			}
-			if(stopKeyGetter!=null){
-				stopPosition = (ExecIndexRow)stopKeyGetter.invoke(activation);
-			}
-			if (scanQualifiersField != null)
-				scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
-			return Scans.setupScan(startPosition==null?null:startPosition.getRowArray(),startSearchOperator,
-					stopPosition==null?null:stopPosition.getRowArray(),stopSearchOperator,
-					scanQualifiers,conglomerate.getAscDescInfo(),accessedCols,Bytes.toBytes(transactionID));
-		} catch (NoSuchFieldException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		} catch (IllegalAccessException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		} catch (StandardException e) {
+            populateStartAndStopPositions();
+            populateQualifiers();
+            return getScan();
+        } catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		} catch (IOException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
 		return null;
 	}
-	@Override
+
+    protected Scan getScan() throws IOException {
+        return Scans.setupScan(startPosition == null ? null : startPosition.getRowArray(), startSearchOperator,
+                stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator,
+                scanQualifiers, conglomerate.getAscDescInfo(), accessedCols, Bytes.toBytes(transactionID));
+    }
+
+    protected void populateQualifiers()  {
+        if (scanQualifiersField != null){
+            try {
+                scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
+            } catch (IllegalAccessException e) {
+                SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            } catch (NoSuchFieldException e) {
+                SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            }
+        }
+    }
+
+    protected void populateStartAndStopPositions() throws StandardException {
+        if(startKeyGetter!=null){
+            startPosition = (ExecIndexRow)startKeyGetter.invoke(activation);
+            if(sameStartStopPosition){
+                /*
+                 * if the stop position is the same as the start position, we are
+                 * right at the position where we should return values, and so we need to make sure that
+                 * we only return values which match an equals filter. Otherwise, we'll need
+                 * to scan between the start and stop keys and pull back the values which are greater than
+                 * or equals to the start (e.g. leave startSearchOperator alone).
+                 */
+                stopPosition = startPosition;
+                startSearchOperator= ScanController.NA; //ensure that we put in an EQUALS filter
+            }
+        }
+        if(stopKeyGetter!=null){
+            stopPosition = (ExecIndexRow)stopKeyGetter.invoke(activation);
+        }
+    }
+
+    @Override
 	public FormatableBitSet getRootAccessedCols() {
 		return this.accessedCols;
 	}
