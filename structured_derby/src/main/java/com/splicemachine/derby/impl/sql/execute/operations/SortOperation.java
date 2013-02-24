@@ -33,14 +33,12 @@ import java.util.List;
 public class SortOperation extends SpliceBaseOperation {
 	private static Logger LOG = Logger.getLogger(SortOperation.class);
 	private static final List<NodeType> nodeTypes;
-	
 	protected NoPutResultSet source;
 	protected boolean distinct;
 	protected int orderingItem;
 	protected int[] keyColumns;
 	protected boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
-	
-	private ExecRow currSortedRow;
+	private ExecRow sortResult;
 	private int numColumns;
 	private Scan reduceScan;
 	
@@ -143,52 +141,14 @@ public class SortOperation extends SpliceBaseOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getNextRowCore");
-		
-		ExecRow sortResult;
-	
-		if(distinct){
-			while((sortResult = getNextRowFromSource())!=null){
-				if(!filterRow(currSortedRow,sortResult)){
-					currSortedRow = sortResult.getClone();
-					setCurrentRow(currSortedRow);
-					return currSortedRow;
-				}
-			}
-			clearCurrentRow();
-			currSortedRow = null;
-			return null;
-		}else{
-			sortResult = getNextRowFromSource();
-			if(sortResult !=null)
-				setCurrentRow(sortResult);
-			return sortResult;
-		}
-	}
-	
-	/**
-	 * This should not be needed with the sink.
-	 * @param currRow
-	 * @param newRow
-	 * @return
-	 * @throws StandardException
-	 */
-	private boolean filterRow(ExecRow currRow,ExecRow newRow) throws StandardException{
-		if (currRow == null || currRow.nColumns() != newRow.nColumns() || !Arrays.equals(currRow.getRowArray(), newRow.getRowArray())) {
-			return false;
-		}
-		return true;
-
-		/*for(int index = 1; index < numColumns; index++){
-			DataValueDescriptor currOrderable = currRow.getColumn(index);
-			DataValueDescriptor newOrderable = newRow.getColumn(index);
-			if (! (currOrderable.compare(DataValueDescriptor.ORDER_OP_EQUALS,newOrderable,true,true)))
-				return false;
-		}
-		return true;*/
+		sortResult = getNextRowFromSource();
+		if(sortResult !=null)
+			setCurrentRow(sortResult);
+		return sortResult;
 	}
 	
 	private ExecRow getNextRowFromSource() throws StandardException {
-  	return source.getNextRowCore();
+		return source.getNextRowCore();
 	}
 
 	@Override
