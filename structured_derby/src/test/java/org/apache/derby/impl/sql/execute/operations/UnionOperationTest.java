@@ -33,11 +33,14 @@ public class UnionOperationTest extends SpliceDerbyTest {
 			s.execute("insert into st_mars values(2, 1, 'Shatner, William')");
 			s.execute("insert into st_mars values(3, 1, 'Nimoy, Leonard')");
 			s.execute("insert into st_mars values(4, 1, 'Patrick')");
-
+			s.execute("insert into st_mars values(5, 1, null)");
+			
 			s.execute("insert into st_earth values(1, 1, 'Spiner, Brent')");
 			s.execute("insert into st_earth values(2, 1, 'Duncan, Rebort')");
 			s.execute("insert into st_earth values(3, 1, 'Nimoy, Leonard')");
 			s.execute("insert into st_earth values(4, 1, 'Ryan, Jeri')");
+			s.execute("insert into st_earth values(5, 1, null)");
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -68,9 +71,8 @@ public class UnionOperationTest extends SpliceDerbyTest {
 			while (rs.next()) {
 				i++;
 				LOG.info("person name="+rs.getString(1));
-				Assert.assertNotNull(rs.getString(1));			
 			}	
-			Assert.assertEquals(8, i);
+			Assert.assertEquals(10, i);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
@@ -96,9 +98,8 @@ public class UnionOperationTest extends SpliceDerbyTest {
 			while (rs.next()) {
 				i++;
 				LOG.info("person name="+rs.getString(1));
-				Assert.assertNotNull(rs.getString(1));			
 			}	
-			Assert.assertEquals(7, i);
+			Assert.assertEquals(8, i);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
@@ -160,9 +161,8 @@ public class UnionOperationTest extends SpliceDerbyTest {
 			while (rs.next()) {
 				i++;
 				LOG.info("id="+rs.getInt(1)+",person name="+rs.getString(2));
-				Assert.assertNotNull(rs.getString(2));			
 			}	
-			Assert.assertEquals(7, i);
+			Assert.assertEquals(8, i);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
