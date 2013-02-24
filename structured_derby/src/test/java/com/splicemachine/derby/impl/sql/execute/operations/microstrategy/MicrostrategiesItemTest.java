@@ -87,7 +87,7 @@ public class MicrostrategiesItemTest {
         PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, ?, null,null," +
                 "?,',',null,null)");
         ps.setString(1,table);
-        ps.setString(2,userDir+"src/test/resources/microstrategy/"+filename);
+        ps.setString(2,userDir+"/src/test/resources/microstrategy/"+filename);
         ps.executeUpdate();
     }
 

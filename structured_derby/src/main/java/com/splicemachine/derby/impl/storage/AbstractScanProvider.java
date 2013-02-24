@@ -68,11 +68,11 @@ public abstract class AbstractScanProvider implements RowProvider {
             return false;
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
-				} catch (IOException e) {
-					SpliceLogUtils.logAndThrowRuntime(LOG,e);
-				}
-		//should never happen
-		return false;
+        } catch (IOException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG,e);
+        }
+        //should never happen
+        return false;
 	}
 
 	protected abstract Result getResult() throws IOException;

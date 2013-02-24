@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,8 +18,9 @@ import java.util.Set;
 
 /**
  * @author Scott Fines
- *         Created on: 2/24/13
+ * Created on: 2/24/13
  */
+@Category(MicrostrategiesTests.class)
 public class MicostrategiesCustomerTest {
     private static final Logger LOG = Logger.getLogger(MicostrategiesCustomerTest.class);
 
@@ -79,7 +81,7 @@ public class MicostrategiesCustomerTest {
         PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, ?, null,null," +
                 "?,',',null,null)");
         ps.setString(1,table);
-        ps.setString(2,userDir+"src/test/resources/microstrategy/"+filename);
+        ps.setString(2,userDir+"/src/test/resources/microstrategy/"+filename);
         ps.executeUpdate();
     }
 

@@ -12,7 +12,11 @@
 		<groupId>com.splicemachine</groupId>
 		<version>1.0.1-SNAPSHOT</version>
 	</parent>
-  
+
+    <properties>
+        <runSuite>**/AllOperationSuite.class</runSuite>
+    </properties>
+
 	<dependencies>
 
 		<dependency>
@@ -124,7 +128,7 @@
       <directory>src/main/resources</directory>
     </resource>
   </resources>
-		<!-- Some plugins (javadoc for example) can be used in the normal build- 
+		<!-- Some plugins (javadoc for example) can be used in the normal build-
 			and the site phase. These plugins inherit their options from the <reporting> 
 			section below. These settings can be overwritten here. -->
 		<pluginManagement>
@@ -182,6 +186,9 @@
 					<forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
 					<argLine>-Xms2g -Xmx2g</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <includes>
+                        <include>${runSuite}</include>
+                    </includes>
 				</configuration>
 				<dependencies>
 					<dependency>

@@ -15,6 +15,7 @@ import org.junit.Test;
 
 import com.splicemachine.derby.test.DerbyTestRule;
 import com.splicemachine.derby.test.SpliceDerbyTest;
+import org.junit.experimental.categories.Category;
 
 /**
  * This tests basic table scans with and without projection/restriction
@@ -89,6 +90,7 @@ public class DistinctScanOperationTest extends SpliceDerbyTest {
 	}	
 	
 	@Test
+    @Category(OperationCategories.Transactional.class)
 	public void testTransactionalDistinctString() throws SQLException {	
 		rule.setAutoCommit(false);
 		Statement s = rule.getStatement();

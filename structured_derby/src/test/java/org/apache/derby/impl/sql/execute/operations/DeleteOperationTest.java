@@ -40,7 +40,6 @@ public class DeleteOperationTest {
 
 	@Before
 	public void setUp() throws Exception {
-		rule.createTables();
 
 		PreparedStatement ps = rule.prepareStatement("insert into t values (?,?)");
 		ps.setInt(1,1);
@@ -54,10 +53,7 @@ public class DeleteOperationTest {
 		initialResults.put(3,4);
 	}
 
-	@After
-	public void tearDown() throws Exception {
-		rule.dropTables();
-	}
+	@After public void tearDown() throws Exception { }
 
 	@Test
 	public void testDelete() throws Exception{

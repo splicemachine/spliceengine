@@ -4,6 +4,7 @@ import java.sql.*;
 
 import com.splicemachine.derby.test.SpliceDerbyTest;
 import com.splicemachine.derby.test.SpliceNetDerbyTest;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -26,12 +27,14 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
 	@Test
 	public void testCallSqlProcedures() throws SQLException {
         ResultSet resultSet = null;
+        DatabaseMetaData dmd;
         conn.setAutoCommit(false);
         try{
         	conn.setAutoCommit(false);
-            resultSet = conn.getMetaData().getProcedures(null, null, null);
+            dmd = conn.getMetaData();
+            resultSet = dmd.getProcedures(null, null, null);
             while(resultSet.next()){
-                LOG.info("c1="+resultSet.getString(1));
+                SpliceLogUtils.info(LOG,"c1=%s,c2=%s,c3=%s",resultSet.getString(1),resultSet.getString(2),resultSet.getString(3));
             }
             conn.commit();
         }finally{
@@ -39,7 +42,7 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
         }
     }
 
-    @Ignore
+//    @Ignore
 	public void testCallSysSchemas() throws SQLException {
     	conn.setAutoCommit(true);
 		LOG.info("start testCallStatement");
@@ -99,12 +102,12 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
             //create a table in the APP schema
 //            s = conn.createStatement();
 //            s.execute("create table test(a int)");
-            cs = conn.prepareCall("call SYSIBM.SQLTABLES(null,'APP',null,'TABLE',null)",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY);
+            cs = conn.prepareCall("call SYSIBM.SQLTABLES(null,'SYS',null,'SYSTEM TABLE',null)",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY);
             rs = cs.executeQuery();
             int count =0;
             while(rs.next()){
                 Object data = rs.getObject(2);
-                LOG.info(String.format("2=%s",data));
+                LOG.info(String.format("schema=%s,table=%s",data,rs.getString(3)));
                 count++;
             }
             Assert.assertTrue("Incorrect rows returned!",count>0);
@@ -179,7 +182,7 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
                     "TABLE_NAME");
             int count =0;
             while(rs.next()){
-                LOG.info(String.format("1=%s",rs.getString(1)));
+                LOG.info(String.format("2=%s",rs.getString(2)));
                 count++;
             }
             Assert.assertTrue("incorrect rows returned",count>0);

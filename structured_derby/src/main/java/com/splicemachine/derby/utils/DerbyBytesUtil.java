@@ -83,16 +83,16 @@ public class DerbyBytesUtil {
 		    		descriptor.setBigDecimal((BigDecimal)getRowKey(descriptor).deserialize(bytes));
 		    	    break;
 		        default:
-					LOG.error("Byte array generation failed " + descriptor.getClass());
-		        	throw new RuntimeException("Attempt to serialize an unimplemented serializable object " + descriptor.getClass());
-			}
-			return descriptor;
-		} catch (Exception e) {
-				SpliceLogUtils.logAndThrowRuntime(LOG, "Byte array generation failed " + descriptor.getClass() + ":"+e.getMessage(),e);
-				//won't happen, because the above method will throw a runtime exception
-				return null;
-		}
-	}
+                    LOG.error("Byte array generation failed " + descriptor.getClass());
+                    throw new RuntimeException("Attempt to serialize an unimplemented serializable object " + descriptor.getClass());
+            }
+            return descriptor;
+        } catch (Exception e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG, "Byte array generation failed " + descriptor.getClass() + ":"+e.getMessage(),e);
+            //won't happen, because the above method will throw a runtime exception
+            return null;
+        }
+    }
 		
 	public static byte[] generateBytes (DataValueDescriptor descriptor) throws StandardException, IOException {
 		//SpliceLogUtils.trace(LOG,"generateBytes for descriptor %s with value %s",descriptor,descriptor.getTraceString());
@@ -193,7 +193,10 @@ public class DerbyBytesUtil {
 				else if (rowKey.getSerializedClass() == String.class) {
 					String test = (String)descriptors[i].cloneValue(true).getObject();
 					byte[] testByteArray = Bytes.toBytes(test);
-					BytesUtil.incrementAtIndex(testByteArray, testByteArray.length - 1);
+//                    if(testByteArray.length != 0)
+                        BytesUtil.incrementAtIndex(testByteArray, testByteArray.length - 1);
+//                    else
+//                        testByteArray = new byte[]{(byte)1};
 					values[i] = Bytes.toString(testByteArray);										
 				}
 				else if (rowKey.getSerializedClass() == BigDecimal.class) {

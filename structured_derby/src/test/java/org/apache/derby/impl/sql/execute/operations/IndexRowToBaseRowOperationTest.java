@@ -36,6 +36,7 @@ public class IndexRowToBaseRowOperationTest {
 	}
 
 	@Test
+    @Ignore
 	public void testScanSysTables() throws Exception{
 		ResultSet s = null;
 //		try{

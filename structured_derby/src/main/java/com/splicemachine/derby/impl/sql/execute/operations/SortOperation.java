@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class SortOperation extends SpliceBaseOperation {
+    private static final long serialVersionUID = 2l;
 	private static Logger LOG = Logger.getLogger(SortOperation.class);
 	private static final List<NodeType> nodeTypes;
 	protected NoPutResultSet source;
