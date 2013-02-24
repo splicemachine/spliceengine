@@ -57,7 +57,7 @@ public class HashScanOperation extends ScanOperation {
 	protected int[] keyColumns;
 	protected String nextQualifierField;
 	protected Qualifier[][] nextQualifier;
-	
+	protected Result result;
 	protected boolean eliminateDuplicates;
 	public static final	int	DEFAULT_INITIAL_CAPACITY = -1;
 	public static final float DEFAULT_LOADFACTOR = (float) -1.0;
@@ -232,10 +232,9 @@ public class HashScanOperation extends ScanOperation {
 			byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
 			while (!keyValues.isEmpty()) {
 				SpliceLogUtils.trace(LOG, "Sinking Record ");
-				Result result = new Result(keyValues);
+				result = new Result(keyValues);
 				SpliceLogUtils.trace(LOG, "accessedColsToGrab=%s",accessedCols);
 				SpliceUtils.populate(result, currentRow.getRowArray(),accessedCols,baseColumnMap);
-				
 				byte[] tempRowKey ;
 				if (eliminateDuplicates) {
 					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),scannedTableName);					
