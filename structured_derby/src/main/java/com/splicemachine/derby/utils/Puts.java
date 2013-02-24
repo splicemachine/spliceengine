@@ -118,6 +118,16 @@ public class Puts {
 		for(int pos=0;pos < extraColumns.length;pos++){
 			addColumn(put,extraColumns[pos],-(pos+1));
 		}
+
+        /*
+         * We need to ensure that all puts have at least one column, or they can't be written out to HBase.
+         * Thus, we just check to make sure that there is at least one column in the put. If there isn't, we
+         * set one at -LONG.MAX_VALUE that's an empty byte []. That way, we shouldn't interfere with any
+         * other entries in the row.
+         */
+        if(put.size()==0){
+            put.add(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(-Integer.MAX_VALUE).getBytes(),new byte[]{});
+        }
 		return put;
 	}
 
@@ -125,7 +135,7 @@ public class Puts {
 	 * Constructs a transaction-aware insert for direct HBase actions.
 	 *
 	 * This is a convenience wrapper method around
-	 * {@link #buildUpdate(org.apache.derby.iapi.types.RowLocation,
+	 * {@code buildUpdate(org.apache.derby.iapi.types.RowLocation,
 	 * 										 org.apache.derby.iapi.types.DataValueDescriptor[],
 	 * 										 org.apache.derby.iapi.services.io.FormatableBitSet, byte[])}
 	 * for when no bitset is available, or the entire row is desired.
