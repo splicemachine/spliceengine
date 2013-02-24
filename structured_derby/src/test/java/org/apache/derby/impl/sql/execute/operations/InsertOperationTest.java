@@ -6,7 +6,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,21 +14,18 @@ import org.junit.*;
 
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.DerbyTestRule;
-import com.splicemachine.derby.test.SpliceDerbyTest;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class InsertOperationTest {
 	private static final Logger LOG = Logger.getLogger(InsertOperationTest.class);
 	
-	private static final Map<String,String> tableMap;
+	private static final Map<String,String> tableMap = Maps.newHashMap();
 	static{
-		Map<String,String> tMap = new HashMap<String,String>();
-		tMap.put("t","name varchar(40)");
-		tMap.put("a","name varchar(40)");
-		tMap.put("s","name varchar(40), count int");
-		
-		tableMap = tMap;
+		tableMap.put("t","name varchar(40)");
+		tableMap.put("a","name varchar(40)");
+		tableMap.put("s","name varchar(40), count int");
 	}
+
 	@Rule public DerbyTestRule rule = new DerbyTestRule(tableMap,LOG);
 
 	@BeforeClass
@@ -47,9 +43,10 @@ public class InsertOperationTest {
 	}
 	
 	@Before
-	public void setUpTest() throws Exception{
-	}
-	
+	public void setUpTest() throws Exception{ }
+
+    @After
+    public void tearDownTest() throws Exception{ }
 	
 	@Test
 	public void testInsertMultipleRecords() throws Exception{
@@ -85,7 +82,7 @@ public class InsertOperationTest {
 			s.execute("insert into a values('jleach')");
 			List<String> correctNames = Arrays.asList("gdavis");
 			Collections.sort(correctNames);
-			rs = SpliceDerbyTest.executeQuery("select * from t");
+			rs = rule.executeQuery("select * from t");
 			List<String> names = new ArrayList<String>();
 			while(rs.next()){
 				names.add(rs.getString(1));
@@ -120,7 +117,7 @@ public class InsertOperationTest {
 			s.execute("insert into t (name) select name from a");
 			rule.commit();
 			
-			rs = SpliceDerbyTest.executeQuery("select * from t");
+			rs = rule.executeQuery("select * from t");
 			List<String> names = new ArrayList<String>();
 			while(rs.next()){
 				LOG.info("name="+rs.getString(1));
@@ -214,7 +211,7 @@ public class InsertOperationTest {
 			LOG.warn(String.format("inserted %d rows",returned));
 			rule.commit();
 			
-			rs = SpliceDerbyTest.executeQuery("select * from s");
+			rs = rule.executeQuery("select * from s");
 			int groupCount=0;
 			while(rs.next()){
 				String name = rs.getString(1);

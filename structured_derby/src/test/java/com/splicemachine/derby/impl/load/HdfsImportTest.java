@@ -41,8 +41,7 @@ public class HdfsImportTest {
 //    @Ignore
 	public void testHdfsImport() throws Exception{
 		String baseDir = System.getProperty("user.dir");
-		String location = baseDir+"/structured_derby/src/test/resources/importTest.in";
-		testImport(location,"NAME,TITLE,AGE");
+		testImport(getBaseDirectory()+"importTest.in","NAME,TITLE,AGE");
 	}
 
 	private void testImport(String location,String colList) throws SQLException {
@@ -67,8 +66,7 @@ public class HdfsImportTest {
 
 	@Test
 	public void testImportHelloThere() throws Exception {
-		String baseDir = System.getProperty("user.dir");
-		String csvLocation = baseDir+"/structured_derby/src/test/resources/hello_there.csv";
+		String csvLocation = getBaseDirectory()+"hello_there.csv";
 		String importQuery = String.format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(null,'HELLO_THERE', null, null, '%s', ',', null, null)", csvLocation);
 		PreparedStatement ps = rule.prepareStatement(importQuery);
 		ps.execute();
@@ -90,18 +88,24 @@ public class HdfsImportTest {
 		Assert.assertEquals("second row wrong","i:2,j:There", results.get(1));
 	}
 
+    private String getBaseDirectory() {
+        String dir = System.getProperty("user.dir");
+        if(!dir.endsWith("structured_derby"))
+            dir = dir+"/structured_derby";
+        return dir+"/src/test/resources/";
+    }
 
-	@Test
+
+    @Test
 	public void testHdfsImportGzipFile() throws Exception{
-		String location = System.getProperty("user.dir")+"/structured_derby/src/test/resources/importTest.in.gz";
-		testImport(location,"NAME,TITLE,AGE");
+		testImport(getBaseDirectory()+"importTest.in.gz","NAME,TITLE,AGE");
 	}
 
 	@Test
 	public void testImportFromSQL() throws Exception{
-		String location = System.getProperty("user.dir")+"/structured_derby/src/test/resources/order_detail_small.csv";
-		PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null,'ORDER_DETAIL',null,null," +
-				"'"+location+"',',',null,null)");
+		PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null,'ORDER_DETAIL',null,null,?" +
+				",',',null,null)");
+        ps.setString(1,getBaseDirectory()+"order_detail_small.csv");
 		ps.execute();
 
 		ResultSet rs = rule.executeQuery("select * from order_detail");
@@ -141,14 +145,12 @@ public class HdfsImportTest {
 
 	@Test
 	public void testHdfsImportNullColList() throws Exception{
-		String baseDir = System.getProperty("user.dir");
-		String location = baseDir+"/structured_derby/src/test/resources/importTest.in";
-		testImport(location,null);
+		testImport(getBaseDirectory()+"importTest.in",null);
 	}
 
     @Test
     public void testImportWithExtraTabDelimited() throws Exception{
-        String location = System.getProperty("user.dir")+"/structured_derby/src/test/resources/lu_cust_city.txt";
+        String location = getBaseDirectory()+"lu_cust_city.txt";
         PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null,'LU_CUST_CITY',null,null," +
                 "'"+location+"',',',null,null)");
         ps.execute();
@@ -169,7 +171,7 @@ public class HdfsImportTest {
 
     @Test
     public void testImportTabDelimited() throws Exception{
-        String location = System.getProperty("user.dir")+"/structured_derby/src/test/resources/lu_cust_city_tab.txt";
+        String location = getBaseDirectory()+"lu_cust_city_tab.txt";
         PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null,'LU_CUST_CITY',null,null," +
                 "'"+location+"','\t',null,null)");
         ps.execute();
