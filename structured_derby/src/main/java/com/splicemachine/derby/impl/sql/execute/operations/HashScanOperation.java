@@ -235,14 +235,14 @@ public class HashScanOperation extends ScanOperation {
 				Result result = new Result(keyValues);
 				SpliceLogUtils.trace(LOG, "accessedColsToGrab=%s",accessedCols);
 				SpliceUtils.populate(result, currentRow.getRowArray(),accessedCols,baseColumnMap);
-				byte[] tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),com.google.common.primitives.Bytes.concat(scannedTableName,SpliceUtils.getUniqueKey()));
+				byte[] tempRowKey ;
+				if (eliminateDuplicates) {
+					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),com.google.common.primitives.Bytes.concat(scannedTableName));					
+				} else {
+					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),com.google.common.primitives.Bytes.concat(scannedTableName,SpliceUtils.getUniqueKey()));					
+				}					
 				SpliceLogUtils.trace(LOG, "row to hash =%s, key=%s",currentRow, Arrays.toString(tempRowKey));
 				put = Puts.buildInsert(tempRowKey,currentRow.getRowArray(),null);
-//				if (eliminateDuplicates) //need to watch potential key collision
-//					put = Puts.buildInsert(hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),scannedTableName),currentRow.getRowArray(),null);
-//				else
-//					put = Puts.buildInsert(hasher.generateSortedHashKey(currentRow.getRowArray()),currentRow.getRowArray(),null);
-
 				tempTable.put(put);	// TODO Buffer via list or configuration. JL			
 				numSunk++;
 				if (numSunk % 10000 ==0)
