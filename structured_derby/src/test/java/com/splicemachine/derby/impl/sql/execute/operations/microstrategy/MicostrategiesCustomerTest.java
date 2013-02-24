@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;

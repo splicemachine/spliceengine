@@ -1,4 +1,4 @@
-package org.apache.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -10,7 +10,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
