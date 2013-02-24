@@ -206,9 +206,9 @@ public class SortOperation extends SpliceBaseOperation {
 			Put put;
 			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,descColumns,sequence[0]);
+			byte[] tempRowKey;
 			while((row = getNextRowCore()) != null){
 				SpliceLogUtils.trace(LOG, "row="+row);
-				byte[] tempRowKey;
 				if (this.distinct) {
 					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),null);					
 				} else {
