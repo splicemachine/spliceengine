@@ -11,17 +11,13 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -43,6 +39,7 @@ public class TableScanOperation extends ScanOperation {
 	protected int indexColItem;
 	protected int[] indexCols;
 	protected String indexName;
+	protected Result result;
 	static {
 		nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN);
 	}
@@ -149,7 +146,7 @@ public class TableScanOperation extends ScanOperation {
 				currentRowLocation = null;
 			} else {
 				SpliceLogUtils.trace(LOG,"<%s> populating data with result %s",mapTableName,keyValues);
-				Result result = new Result(keyValues);
+				result = new Result(keyValues);
 				SpliceUtils.populate(result, currentRow.getRowArray(), accessedCols,baseColumnMap);
 				currentRowLocation = new HBaseRowLocation(result.getRow());
 				SpliceLogUtils.trace(LOG, "<%s> getNextRowCore with keyValues %s and currentRow %s",
