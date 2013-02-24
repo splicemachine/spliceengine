@@ -277,7 +277,7 @@ public class SortOperation extends SpliceBaseOperation {
 
 	@Override
 	public String toString() {
-		return "SortOperation {source="+source+"}";
+		return "SortOperation {resultSetNumber="+resultSetNumber+",source="+source+"}";
 	}
 
 	@Override

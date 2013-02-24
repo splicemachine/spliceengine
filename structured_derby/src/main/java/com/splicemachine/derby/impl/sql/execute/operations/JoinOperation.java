@@ -144,6 +144,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 	@Override
 	public String toString() {
-		return String.format("JoinOperation {left=%s,right=%s}",leftResultSet,rightResultSet);
+		return String.format("JoinOperation {resultSetNumber=%d,left=%s,right=%s}",resultSetNumber,leftResultSet,rightResultSet);
 	}
 }

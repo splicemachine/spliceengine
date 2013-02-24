@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -211,6 +212,12 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		LOG.trace("regionOperation="+regionOperation);
 		RowProvider provider;
         ExecRow fromResults = getExecRowDefinition();
+//        ExecRow fromResults = null;
+//        try{
+//            fromResults = getFromResultDescription(activation.getResultDescription());
+//        }catch(StandardException se){
+//            SpliceLogUtils.logAndThrowRuntime(LOG,se);
+//        }
         if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
 			SpliceLogUtils.trace(LOG,"scanning Temp Table");
 			provider = regionOperation.getReduceRowProvider(this,fromResults);
@@ -277,13 +284,18 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	public ExecRow getExecRowDefinition() {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition with source %s",source);
 		ExecRow def = source.getExecRowDefinition();
-		source.setCurrentRow(def);
+        try {
+            SpliceUtils.populateDefaultValues(def.getRowArray());
+        } catch (StandardException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG,e);
+        }
+        source.setCurrentRow(def);
 		return doProjection(def);
 	}
 	
 	@Override
 	public String toString() {
-		return String.format("ProjectRestrictOperation {source=%s}",source);
+		return String.format("ProjectRestrictOperation {source=%s,resultSetNumber=%d}",source,resultSetNumber);
 	}
 
 	@Override

@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable, NoPutResultSet {
+    private static final long serialVersionUID = 4l;
 	private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
 	protected double optimizerEstimatedRowCount;
 	protected double optimizerEstimatedCost;
@@ -120,9 +121,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		isTopResultSet = in.readBoolean();
 		uniqueSequenceID = in.readUTF();
 
-        if(in.readBoolean()){
-            operationParams = (ParameterValueSet)in.readObject();
-        }
+//        if(in.readBoolean()){
+//            operationParams = (ParameterValueSet)in.readObject();
+//        }
 	}
 
 	@Override
@@ -136,10 +137,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		out.writeUTF(uniqueSequenceID);
 
 
-		out.writeBoolean(operationParams!=null);
-		if(operationParams!=null){
-			out.writeObject(operationParams);
-		}
+//		out.writeBoolean(operationParams!=null);
+//		if(operationParams!=null){
+//			out.writeObject(operationParams);
+//		}
 	}
 
 	@Override
@@ -481,13 +482,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		SpliceLogUtils.trace(LOG,"init called");
 		this.activation = context.getActivation();
 		//set the parameter value set back on the activation
-		if(operationParams!=null){
-			try {
-				activation.setParameters(operationParams,context.getPreparedStatement().getParameterTypes());
-			} catch (StandardException e) {
-				SpliceLogUtils.trace(LOG,"Failed to set Parameters on activation",e);
-			}
-		}
+//		if(operationParams!=null){
+//			try {
+//				activation.setParameters(operationParams,context.getPreparedStatement().getParameterTypes());
+//			} catch (StandardException e) {
+//				SpliceLogUtils.trace(LOG,"Failed to set Parameters on activation",e);
+//			}
+//		}
 		sequence = new DataValueDescriptor[1];
 		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
 		try {

@@ -166,7 +166,7 @@ public class TableScanOperation extends ScanOperation {
 
 	@Override
 	public String toString() {
-		return String.format("TableScanOperation {mapTableName=%s,isKeyed=%b}",mapTableName,isKeyed);
+		return String.format("TableScanOperation {mapTableName=%s,isKeyed=%b,resultSetNumber=%s}",mapTableName,isKeyed,resultSetNumber);
 	}
 
     @Override

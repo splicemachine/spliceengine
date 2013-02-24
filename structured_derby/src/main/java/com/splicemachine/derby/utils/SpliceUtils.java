@@ -10,6 +10,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -69,6 +70,40 @@ import com.splicemachine.utils.SpliceLogUtils;
 @SuppressWarnings(value = "deprecation")
 public class SpliceUtils {
 	private static Logger LOG = Logger.getLogger(SpliceUtils.class);
+
+    /**
+     * Populates an array of DataValueDescriptors with a default value based on their type.
+     *
+     * This is used mainly to prevent NullPointerExceptions from occurring in administrative
+     * operations such as getExecRowDefinition().
+     *
+     * @param dvds
+     * @throws StandardException
+     */
+    public static void populateDefaultValues(DataValueDescriptor[] dvds) throws StandardException {
+        for(DataValueDescriptor dvd:dvds){
+            if(dvd.isNull()){
+                switch(dvd.getTypeFormatId()){
+                    case StoredFormatIds.SQL_DOUBLE_ID:
+                        dvd.setValue(0.0d);
+                        break;
+                    case StoredFormatIds.SQL_SMALLINT_ID:
+                    case StoredFormatIds.SQL_INTEGER_ID:
+                        dvd.setValue(0);
+                        break;
+                    case StoredFormatIds.SQL_BOOLEAN_ID:
+                        dvd.setValue(false);
+                        break;
+                    case StoredFormatIds.SQL_LONGINT_ID:
+                        dvd.setValue(0l);
+                    case StoredFormatIds.SQL_REAL_ID:
+                        dvd.setValue(0f);
+                    default:
+                        //no op, this doesn't have a useful default value
+                }
+            }
+        }
+    }
 
 
     public enum SpliceConglomerate {HEAP,BTREE}

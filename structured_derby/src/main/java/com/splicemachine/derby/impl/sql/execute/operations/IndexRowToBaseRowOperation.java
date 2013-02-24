@@ -341,7 +341,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	
 	@Override
 	public String toString() {
-		return String.format("IndexRowToBaseRow {source=%s,indexName=%s,conglomId=%d}",
-                                                                        source,indexName,conglomId);
+		return String.format("IndexRowToBaseRow {source=%s,indexName=%s,conglomId=%d,resultSetNumber=%d}",
+                                                                        source,indexName,conglomId,resultSetNumber);
 	}
 }
