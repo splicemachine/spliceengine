@@ -4,15 +4,12 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.utils.JoinSideExecRow;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
@@ -20,6 +17,7 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 	protected String emptyRowFunMethodName;
 	protected boolean wasRightOuterJoin;
 	protected GeneratedMethod emptyRowFun;
+	protected ExecRow emptyRow;
 	
 	public MergeSortLeftOuterJoinOperation() {
 		super();
@@ -70,64 +68,13 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowCore");
-		if (rightIterator!= null && rightIterator.hasNext()) {
-			currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, this.rightNumCols, this.leftNumCols, mergedRow);
-			this.setCurrentRow(currentRow);
-			SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
-			return currentRow;
-		}
-		if (!serverProvider.hasNext()) {
-			SpliceLogUtils.trace(LOG, "serverProvider exhausted");
+		if (mergeSortIterator == null)
+			mergeSortIterator = new MergeSortNextRowIterator(true);
+		if (mergeSortIterator.hasNext()) {
+			return mergeSortIterator.next();
+		} else {
+			setCurrentRow(null);
 			return null;
-		}
-		JoinSideExecRow joinRow = serverProvider.nextJoinRow();
-		SpliceLogUtils.trace(LOG, "joinRow=%s",joinRow);
-		if (joinRow == null) {
-			SpliceLogUtils.trace(LOG, "serverProvider returned null rows");
-			this.setCurrentRow(null);
-			return null;
-		}
-		
-		if (joinRow.getJoinSide().ordinal() == JoinSide.RIGHT.ordinal()) { // Right Side
-			rightHash = joinRow.getHash();
-			if (joinRow.sameHash(priorHash)) {
-				SpliceLogUtils.trace(LOG, "adding additional right=%s",joinRow);
-				rights.add(joinRow.getRow());
-			} else {
-				resetRightSide();
-				SpliceLogUtils.trace(LOG, "adding initial right=%s",joinRow);
-				rights.add(joinRow.getRow());
-				priorHash = joinRow.getHash();
-			}
-			return getNextRowCore();
-		} else { // Left Side
-			leftRow = joinRow.getRow();
-			if (joinRow.sameHash(priorHash)) {
-				if (joinRow.sameHash(rightHash)) {
-					SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s",joinRow);
-					rightIterator = rights.iterator();
-					currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, this.rightNumCols, this.leftNumCols, mergedRow);
-					this.setCurrentRow(currentRow);
-					SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
-					return currentRow;
-				} else {
-					SpliceLogUtils.trace(LOG, "right hash miss left=%s",joinRow);
-					resetRightSide();	
-					priorHash = joinRow.getHash();
-					currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, this.rightNumCols, this.leftNumCols, mergedRow); // Can this be null?
-					this.setCurrentRow(currentRow);
-					SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
-					return currentRow;
-				}
-			} else {
-				SpliceLogUtils.trace(LOG, "simple left emit=%s",joinRow);
-				resetRightSide();
-				priorHash = joinRow.getHash();
-				currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, this.leftNumCols, this.rightNumCols, mergedRow);
-				this.setCurrentRow(currentRow);
-				SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
-				return currentRow;			
-			}			
 		}
 	}
 	
@@ -142,13 +89,14 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 		}
 	}
 	
-	private ExecRow getEmptyRow () {
-		try {
-			return (ExecRow) emptyRowFun.invoke(activation);
-		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Cannot Retrieve Empty Row", e);
-		}
-		return null;
-	}
-	
+	protected ExecRow getEmptyRow () {
+		if (emptyRow ==null)
+			try {
+				emptyRow =  (ExecRow) emptyRowFun.invoke(activation);
+			} catch (StandardException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		return emptyRow;
+	}	
 }

@@ -55,6 +55,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 	protected List<ExecRow> rights;
 	protected byte[] rightHash;
 	protected Iterator<ExecRow> rightIterator;
+	protected MergeSortNextRowIterator mergeSortIterator;
 	
 	static {
 		nodeTypes = new ArrayList<NodeType>();
@@ -112,61 +113,14 @@ public class MergeSortJoinOperation extends JoinOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowCore");
-		if (rightIterator!= null && rightIterator.hasNext()) {
-			currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, this.leftNumCols, this.rightNumCols, mergedRow);
-			this.setCurrentRow(currentRow);
-			currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
-			SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
-			return currentRow;
-		}
-		if (!serverProvider.hasNext()) {
-			SpliceLogUtils.trace(LOG, "serverProvider exhausted");
+		if (mergeSortIterator == null)
+			mergeSortIterator = new MergeSortNextRowIterator(false);
+		if (mergeSortIterator.hasNext()) {
+			ExecRow next = mergeSortIterator.next();
+			return next;
+		} else {
+			setCurrentRow(null);
 			return null;
-		}
-		JoinSideExecRow joinRow = serverProvider.nextJoinRow();
-		SpliceLogUtils.trace(LOG, "joinRow=%s",joinRow);
-		if (joinRow == null) {
-			SpliceLogUtils.trace(LOG, "serverProvider returned null rows");
-			this.setCurrentRow(null);
-			return null;
-		}
-		
-		if (joinRow.getJoinSide().ordinal() == JoinSide.RIGHT.ordinal()) { // Right Side
-			rightHash = joinRow.getHash();
-			if (joinRow.sameHash(priorHash)) {
-				SpliceLogUtils.trace(LOG, "adding additional right=%s",joinRow);
-				rights.add(joinRow.getRow());
-			} else {
-				resetRightSide();
-				SpliceLogUtils.trace(LOG, "adding initial right=%s",joinRow);
-				rights.add(joinRow.getRow());
-				priorHash = joinRow.getHash();
-			}
-			return getNextRowCore();
-		} else { // Left Side
-			leftRow = joinRow.getRow();
-			if (joinRow.sameHash(priorHash)) {
-				if (joinRow.sameHash(rightHash)) {
-					SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s",joinRow);
-					rightIterator = rights.iterator();
-					currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, this.leftNumCols, this.rightNumCols, mergedRow);
-					this.setCurrentRow(currentRow);
-					currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());					
-					SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
-					return currentRow;
-				} else {
-					SpliceLogUtils.trace(LOG, "right hash miss left=%s",joinRow);
-					resetRightSide();	
-					priorHash = joinRow.getHash();
-					return getNextRowCore();
-				}
-			} else {
-				SpliceLogUtils.trace(LOG, "simple left with no right=%s",joinRow);
-				resetRightSide();
-				priorHash = joinRow.getHash();
-				SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
-				return getNextRowCore();			
-			}			
 		}
 	}
 
@@ -321,5 +275,102 @@ public class MergeSortJoinOperation extends JoinOperation {
 	protected void resetRightSide() {
 		this.rights = new ArrayList<ExecRow>();
 		this.rightIterator = null;
+	}
+	
+	protected class MergeSortNextRowIterator implements Iterator<ExecRow> {
+		protected JoinSideExecRow joinRow;
+		protected boolean outerJoin;
+		public MergeSortNextRowIterator(boolean outerJoin) {
+			this.outerJoin = outerJoin;
+		}
+
+		@Override
+		public boolean hasNext() {
+			if (rightIterator!= null && rightIterator.hasNext()) {
+				currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, leftNumCols, rightNumCols, mergedRow);
+				setCurrentRow(currentRow);
+				currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
+				SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
+				return true;
+			}
+			if (!serverProvider.hasNext()) {
+				SpliceLogUtils.trace(LOG, "serverProvider exhausted");
+				return false;
+			}
+			while ( serverProvider.hasNext() && (joinRow = serverProvider.nextJoinRow()) != null) {
+				if (joinRow.getJoinSide().ordinal() == JoinSide.RIGHT.ordinal()) { // Right Side
+					rightHash = joinRow.getHash();
+					if (joinRow.sameHash(priorHash)) {
+						SpliceLogUtils.trace(LOG, "adding additional right=%s",joinRow);
+						rights.add(joinRow.getRow());
+					} else {
+						resetRightSide();
+						SpliceLogUtils.trace(LOG, "adding initial right=%s",joinRow);
+						rights.add(joinRow.getRow());
+						priorHash = joinRow.getHash();
+					}
+					continue;
+				} 
+				else { // Left Side
+					leftRow = joinRow.getRow();
+					if (joinRow.sameHash(priorHash)) {
+						if (joinRow.sameHash(rightHash)) {
+							SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s",joinRow);
+							rightIterator = rights.iterator();
+							currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, leftNumCols, rightNumCols, mergedRow);
+							setCurrentRow(currentRow);
+							currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());					
+							SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
+							return true;
+						} else {
+							if (outerJoin) {
+								SpliceLogUtils.trace(LOG, "simple left emit=%s",joinRow);
+								resetRightSide();
+								priorHash = joinRow.getHash();
+								currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, leftNumCols, rightNumCols, mergedRow);
+								setCurrentRow(currentRow);
+								return true;					
+							} else {
+								SpliceLogUtils.trace(LOG, "right hash miss left=%s",joinRow);
+								resetRightSide();	
+								priorHash = joinRow.getHash();
+								continue;				
+								
+							}
+						}
+					} 
+					else {
+						if (outerJoin) {
+							SpliceLogUtils.trace(LOG, "simple left with no right=%s",joinRow);
+							resetRightSide();
+							priorHash = joinRow.getHash();
+							currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, leftNumCols, rightNumCols, mergedRow);
+							setCurrentRow(currentRow);
+							return true;	
+						} else {
+							resetRightSide();
+							priorHash = joinRow.getHash();
+							SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
+							continue;
+						}
+					}			
+				}
+			}
+			SpliceLogUtils.trace(LOG, "serverProvider returned null rows");
+			return false;
+		}
+
+		@Override
+		public ExecRow next() {
+			return currentRow;
+		}
+
+		@Override
+		public void remove() {
+			throw new RuntimeException("Cannot Be Removed - Not Implemented!");			
+		}			
+	}
+	protected ExecRow getEmptyRow () {
+		throw new RuntimeException("Should only be called on outer joins");
 	}
 }
