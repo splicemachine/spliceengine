@@ -8,15 +8,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.utils.FormatableBitSetUtils;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.Scans;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -35,14 +28,21 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.hbase.SpliceOperationProtocol;
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
+import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -235,11 +235,12 @@ public class HashScanOperation extends ScanOperation {
 				Result result = new Result(keyValues);
 				SpliceLogUtils.trace(LOG, "accessedColsToGrab=%s",accessedCols);
 				SpliceUtils.populate(result, currentRow.getRowArray(),accessedCols,baseColumnMap);
+				
 				byte[] tempRowKey ;
 				if (eliminateDuplicates) {
-					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),com.google.common.primitives.Bytes.concat(scannedTableName));					
+					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),scannedTableName);					
 				} else {
-					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),com.google.common.primitives.Bytes.concat(scannedTableName,SpliceUtils.getUniqueKey()));					
+					tempRowKey = hasher.generateSortedHashKey(currentRow.getRowArray());					
 				}					
 				SpliceLogUtils.trace(LOG, "row to hash =%s, key=%s",currentRow, Arrays.toString(tempRowKey));
 				put = Puts.buildInsert(tempRowKey,currentRow.getRowArray(),null);
