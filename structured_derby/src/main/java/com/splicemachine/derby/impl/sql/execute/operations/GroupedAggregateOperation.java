@@ -119,10 +119,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			keyColumns[index] = order[index].getColumnId();
 			descAscInfo[index] = order[index].getIsAscending();
 		}
-		if(isRollup)
-			resultRows = new ExecIndexRow[numGCols()+1];
-		else
-			resultRows = new ExecIndexRow[1];
+//		if(isRollup)
+//			resultRows = new ExecIndexRow[numGCols()+1];
+//		else
+//			resultRows = new ExecIndexRow[1];
 		if(numDistinctAggs>0)
 			distinctValues = (HashSet<String>[][])new HashSet[resultRows.length][aggregates.length];
 
@@ -237,19 +237,32 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			return makeCurrent(finishedResults.remove(0));
 		else if (completedExecution)
 			return null; //we're finished, don't waste effort
-		
+
+        /*
+         * Lazily create the rollup result rows array to make sure that it's sized
+         * appropriately on both sides of the MR boundary.
+         */
+        if(resultRows==null){
+            if(isRollup&&!useScan){
+                resultRows = new ExecIndexRow[numGCols()+1];
+            }else{
+                resultRows = new ExecIndexRow[1];
+            }
+        }
 		//get the next row. if it's null, we've finished reading results, so use what we already have
 		ExecIndexRow nextRow = useScan? getNextRowFromScan():getNextRowFromSource();
 		if(nextRow ==null) return finalizeResults();
 		do{
 			//the next row pulled isn't empty, so have to process it
 			SpliceLogUtils.trace(LOG,"nextRow=%s",nextRow);
-            ExecIndexRow[] rolledUpRows = getRolledUpRows(nextRow);
+            ExecIndexRow[] rolledUpRows = getRolledUpRows(nextRow,useScan);
             SpliceLogUtils.trace(LOG,"adding rolledUpRows %s", Arrays.toString(rolledUpRows));
             for(ExecIndexRow rolledUpRow:rolledUpRows){
+                if(!useScan)
+                    initializeVectorAggregation(rolledUpRow);
 				if(!currentAggregations.merge(rolledUpRow,merger)){
-					SpliceLogUtils.trace(LOG, "New result value found");
-					ExecIndexRow row = (ExecIndexRow)nextRow.getClone();
+					SpliceLogUtils.trace(LOG, "found new results %s",rolledUpRow);
+					ExecIndexRow row = (ExecIndexRow)rolledUpRow.getClone();
 
 					ExecIndexRow finalized = currentAggregations.add(row);
 					if(finalized!=null&&finalized !=row){
@@ -265,9 +278,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		return next;
 	}
 
-    private ExecIndexRow[] getRolledUpRows(ExecIndexRow rowToRollUp) throws StandardException {
+    private ExecIndexRow[] getRolledUpRows(ExecIndexRow rowToRollUp, boolean scanned) throws StandardException {
         SpliceLogUtils.trace(LOG,"getRolledUpRows?"+isRollup);
-        if(!isRollup){
+        if(!isRollup||scanned){
             resultRows[0] = rowToRollUp;
             return resultRows;
         }
@@ -371,8 +384,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			sourceExecIndexRow.execRowToExecIndexRow(sourceRow);
 			inputRow = sourceExecIndexRow;
 		}
-		if(inputRow!=null)
-			initializeVectorAggregation(inputRow);
+//		if(inputRow!=null)
+//			initializeVectorAggregation(inputRow);
 		return inputRow;
 	}
 	

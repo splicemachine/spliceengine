@@ -47,12 +47,12 @@ public class MultiGroupGroupedAggregateOperationTest {
 	private static Map<String,Stats> fruitStats = new HashMap<String,Stats>();
     private static Stats totalStats = new Stats();
 	
-	private static final int size = 10;
+	private static final int size = 2;
 
 	public static void insertData() throws Exception{
 		PreparedStatement ps = rule.prepareStatement("insert into multigrouptest (uname, fruit,bushels) values (?,?,?)");
-		List<String> fruits = Arrays.asList("strawberries","bananas","cherries");
-		List<String> users = Arrays.asList("jzhang","sfines","jleach");
+		List<String> fruits = Arrays.asList("strawberries");//,"bananas","cherries");
+		List<String> users = Arrays.asList("jzhang");//,"sfines","jleach");
 		for(int i=0;i< size;i++){
 			List<Integer> values = Arrays.asList(i*5,i*10,i*15);
 			for(String user:users){
@@ -82,7 +82,7 @@ public class MultiGroupGroupedAggregateOperationTest {
 		rule.commit();
 
 		//make sure that we have multiple regions to split across
-		rule.splitTable("multigrouptest",size/3);
+//		rule.splitTable("multigrouptest",size/3);
 	}
 
 	@Test
@@ -431,7 +431,7 @@ public class MultiGroupGroupedAggregateOperationTest {
 
     @Test
     public void testRollupAllOperations() throws Exception{
-        ResultSet rs =  rule.executeQuery("select uname, fruit,sum(bushels),avg(bushels),min(bushels),max(bushels) " +
+        ResultSet rs =  rule.executeQuery("select uname, fruit,sum(bushels),avg(bushels),min(bushels),max(bushels),count(bushels) " +
                                            "from multigrouptest group by rollup(uname,fruit)");
         int row =0;
         while(rs.next()){
@@ -453,11 +453,13 @@ public class MultiGroupGroupedAggregateOperationTest {
             int avg = rs.getInt(4);
             int min = rs.getInt(5);
             int max = rs.getInt(6);
+            int count = rs.getInt(7);
             int cMin = cStats.getMin();
             int cMax = cStats.getMax();
             int cSum = cStats.getSum();
             int cAvg = cStats.getAvg();
-            SpliceLogUtils.trace(LOG, "pair=%s, sum=%d,avg=%d,min=%d,max=%d, cSum=%d,cAvg=%d,cMin=%d,cMax=%d",pair,sum,avg,min,max,cSum,cAvg,cMin,cMax);
+            int cCount = cStats.getCount();
+            SpliceLogUtils.trace(LOG, "pair=%s, sum=%d,avg=%d,min=%d,max=%d,count=%d, cSum=%d,cAvg=%d,cMin=%d,cMax=%d,cCount=%d",pair,sum,avg,min,max,count,cSum,cAvg,cMin,cMax,cCount);
             Assert.assertEquals("Incorrect min for pair "+ pair,cMin,min);
             Assert.assertEquals("Incorrect max for pair "+ pair,cMax,max);
             Assert.assertEquals("Incorrect avg for pair "+ pair,cAvg,avg);
