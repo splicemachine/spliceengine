@@ -165,10 +165,17 @@ public class SortOperation extends SpliceBaseOperation {
 		}
 	}
 	
+	/**
+	 * This should not be needed with the sink.
+	 * @param currRow
+	 * @param newRow
+	 * @return
+	 * @throws StandardException
+	 */
 	private boolean filterRow(ExecRow currRow,ExecRow newRow) throws StandardException{
-		if (currRow == null || currRow.nColumns() != newRow.nColumns() || !Arrays.equals(currRow.getRowArray(), newRow.getRowArray()))
+		if (currRow == null || currRow.nColumns() != newRow.nColumns() || !Arrays.equals(currRow.getRowArray(), newRow.getRowArray())) {
 			return false;
-		
+		}
 		return true;
 
 		/*for(int index = 1; index < numColumns; index++){
@@ -240,7 +247,13 @@ public class SortOperation extends SpliceBaseOperation {
 			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,descColumns,sequence[0]);
 			while((row = getNextRowCore()) != null){
 				SpliceLogUtils.trace(LOG, "row="+row);
-				put = Puts.buildInsert(hasher.generateSortedHashKey(row.getRowArray()),row.getRowArray(),null);
+				byte[] tempRowKey;
+				if (this.distinct) {
+					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),null);					
+				} else {
+					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),SpliceUtils.getUniqueKey());					
+				}					
+				put = Puts.buildInsert(tempRowKey,row.getRowArray(),null);
 				tempTable.put(put);
 				numSunk++;
 			}
