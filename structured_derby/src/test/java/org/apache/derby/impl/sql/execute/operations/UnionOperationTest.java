@@ -26,18 +26,18 @@ public class UnionOperationTest extends SpliceDerbyTest {
 		Statement  s = null;
 		try {
 			s = conn.createStatement();
-			s.execute("create table st_mars (empId int, name varchar(40))");
-			s.execute("create table st_earth (empId int, name varchar(40))");
+			s.execute("create table st_mars (empId int, empNo int, name varchar(40))");
+			s.execute("create table st_earth (empId int, empNo int, name varchar(40))");
 
-			s.execute("insert into st_mars values(1, 'Mulgrew, Kate')");
-			s.execute("insert into st_mars values(2, 'Shatner, William')");
-			s.execute("insert into st_mars values(3, 'Nimoy, Leonard')");
-			s.execute("insert into st_mars values(4, 'Stewart, Patrick')");
+			s.execute("insert into st_mars values(1, 1, 'Mulgrew, Kate')");
+			s.execute("insert into st_mars values(2, 1, 'Shatner, William')");
+			s.execute("insert into st_mars values(3, 1, 'Nimoy, Leonard')");
+			s.execute("insert into st_mars values(4, 1, 'Patrick')");
 
-			s.execute("insert into st_earth values(1, 'Spiner, Brent')");
-			s.execute("insert into st_earth values(2, 'Duncan, Rebort')");
-			s.execute("insert into st_earth values(3, 'Nimoy, Leonard')");
-			s.execute("insert into st_earth values(4, 'Ryan, Jeri')");
+			s.execute("insert into st_earth values(1, 1, 'Spiner, Brent')");
+			s.execute("insert into st_earth values(2, 1, 'Duncan, Rebort')");
+			s.execute("insert into st_earth values(3, 1, 'Nimoy, Leonard')");
+			s.execute("insert into st_earth values(4, 1, 'Ryan, Jeri')");
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -115,7 +115,6 @@ public class UnionOperationTest extends SpliceDerbyTest {
 	
 	
 	@Test
-	@Ignore
 	/**
 	 * 
 	 * This needs to use a provider interface for boths its traversals and not use isScan - JL
