@@ -5,6 +5,7 @@ import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation.NodeType;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider;
@@ -55,13 +56,12 @@ public class BroadcastJoinOperation extends JoinOperation {
 	protected List<ExecRow> rights;
 	protected byte[] rightHash;
 	protected Iterator<ExecRow> rightIterator;
-	protected MergeSortNextRowIterator mergeSortIterator;
+	protected BroadcastNextRowIterator broadcastIterator;
 	
 	static {
 		nodeTypes = new ArrayList<NodeType>();
-		nodeTypes.add(NodeType.REDUCE);
-		nodeTypes.add(NodeType.SCAN);
-		nodeTypes.add(NodeType.SINK);
+		nodeTypes.add(NodeType.MAP);
+		nodeTypes.add(NodeType.SCROLL);
 	}
 	
 	public BroadcastJoinOperation() {
@@ -113,10 +113,10 @@ public class BroadcastJoinOperation extends JoinOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowCore");
-		if (mergeSortIterator == null)
-			mergeSortIterator = new MergeSortNextRowIterator(false);
-		if (mergeSortIterator.hasNext()) {
-			ExecRow next = mergeSortIterator.next();
+		if (broadcastIterator == null)
+			broadcastIterator = new BroadcastNextRowIterator(false);
+		if (broadcastIterator.hasNext()) {
+			ExecRow next = broadcastIterator.next();
 			return next;
 		} else {
 			setCurrentRow(null);
@@ -277,10 +277,10 @@ public class BroadcastJoinOperation extends JoinOperation {
 		this.rightIterator = null;
 	}
 	
-	protected class MergeSortNextRowIterator implements Iterator<ExecRow> {
+	protected class BroadcastNextRowIterator implements Iterator<ExecRow> {
 		protected JoinSideExecRow joinRow;
 		protected boolean outerJoin;
-		public MergeSortNextRowIterator(boolean outerJoin) {
+		public BroadcastNextRowIterator(boolean outerJoin) {
 			this.outerJoin = outerJoin;
 		}
 
