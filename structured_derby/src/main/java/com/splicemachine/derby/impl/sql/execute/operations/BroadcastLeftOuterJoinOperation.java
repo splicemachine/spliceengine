@@ -12,7 +12,7 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public class BroadcastLeftOuterJoinOperation extends MergeSortJoinOperation {
+public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 	private static Logger LOG = Logger.getLogger(BroadcastLeftOuterJoinOperation.class);
 	protected String emptyRowFunMethodName;
 	protected boolean wasRightOuterJoin;
