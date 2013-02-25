@@ -37,6 +37,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.NormalizeOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OnceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
 import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.RowCountOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.RowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SetTransactionOperation;
@@ -786,4 +787,24 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 				dependentResultSets, 
 				resultSetId);
 	}*/
+	
+	public NoPutResultSet getRowCountResultSet(
+			NoPutResultSet source,
+			Activation activation,
+			int resultSetNumber,
+			GeneratedMethod offsetMethod,
+			GeneratedMethod fetchFirstMethod,
+			boolean hasJDBClimitClause,
+			double optimizerEstimatedRowCount,
+			double optimizerEstimatedCost) throws StandardException {		 
+		SpliceLogUtils.trace(LOG, "getRowCountResultSet");
+		return new RowCountOperation(source,
+				activation,
+				resultSetNumber,
+				offsetMethod,
+				fetchFirstMethod,
+				hasJDBClimitClause,
+				optimizerEstimatedRowCount,
+				optimizerEstimatedCost);
+	}
 }
