@@ -19,8 +19,8 @@ public class OuterJoinTest extends BaseJoinTest {
 	private static final Map<String,String> tableMap;
 	static{
 		Map<String,String> tMap = new HashMap<String,String>();
-		tMap.put("c","si varchar(40), sa varchar(40)");
-		tMap.put("d","si varchar(40), sa varchar(40)");		
+		tMap.put("f","si varchar(40), sa varchar(40)");
+		tMap.put("g","si varchar(40), sa varchar(40)");
 		tableMap = tMap;
 	}
 	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,false,LOG);
@@ -29,7 +29,7 @@ public class OuterJoinTest extends BaseJoinTest {
 	public static void startup() throws Exception{
 		DerbyTestRule.start();
 		rule.createTables();
-		createData(rule);
+		createData("f","g",rule);
 	}
 	
 	@AfterClass
@@ -40,7 +40,7 @@ public class OuterJoinTest extends BaseJoinTest {
 	
 	@Test
 	public void testScrollableVarcharLeftOuterJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select c.si, d.si from c left outer join d on c.si = d.si");
+		ResultSet rs = rule.executeQuery("select f.si, g.si from f left outer join g on f.si = g.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -57,7 +57,7 @@ public class OuterJoinTest extends BaseJoinTest {
 
 	@Test
 	public void testSinkableVarcharLeftOuterJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select c.si, count(*) from c left outer join d on c.si = d.si group by c.si");
+		ResultSet rs = rule.executeQuery("select f.si, count(*) from f left outer join g on f.si = g.si group by f.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -71,7 +71,7 @@ public class OuterJoinTest extends BaseJoinTest {
 	
 	@Test
 	public void testScrollableVarcharRightOuterJoin() throws SQLException {			
-		ResultSet rs = rule.executeQuery("select c.si, d.si from c right outer join d on c.si = d.si");
+		ResultSet rs = rule.executeQuery("select f.si, g.si from f right outer join g on f.si = g.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -88,7 +88,7 @@ public class OuterJoinTest extends BaseJoinTest {
 	}	
 	@Test
 	public void testSinkableVarcharRightOuterJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select c.si, count(*) from c right outer join d on c.si = d.si group by c.si");
+		ResultSet rs = rule.executeQuery("select f.si, count(*) from f right outer join g on f.si = g.si group by f.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;

@@ -228,7 +228,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     }
 
     @Override
-	public FormatableBitSet getRootAccessedCols() {
-		return this.accessedCols;
+	public int[] getRootAccessedCols() {
+        return baseColumnMap;
 	}
 }

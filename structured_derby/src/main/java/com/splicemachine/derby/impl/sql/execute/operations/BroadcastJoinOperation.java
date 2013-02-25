@@ -36,6 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 
 public class BroadcastJoinOperation extends JoinOperation {
+    private static final long serialVersionUID = 2l;
 	private static Logger LOG = Logger.getLogger(BroadcastJoinOperation.class);
 	protected String emptyRowFunMethodName;
 	protected boolean wasRightOuterJoin;
@@ -133,15 +134,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         return clientProvider;
 	}
 
-	private int[] generateHashKeys(int hashKeyItem, SpliceBaseOperation resultSet) {
-		FormatableArrayHolder fah = (FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(hashKeyItem));
-		FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
-		int[] keyColumns = new int[fihArray.length];
-		for (int index = 0; index < fihArray.length; index++) {
-			keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(resultSet.getRootAccessedCols(),fihArray[index].getInt());
-		}
-		return keyColumns;
-	}
+
 	
 	@Override
 	public void init(SpliceOperationContext context){

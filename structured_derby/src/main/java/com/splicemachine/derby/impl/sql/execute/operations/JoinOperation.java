@@ -4,9 +4,14 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -17,6 +22,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class JoinOperation extends SpliceBaseOperation {
+    private static final long serialVersionUID = 2l;
 
 	private static Logger LOG = Logger.getLogger(JoinOperation.class);
 	protected int leftNumCols;
@@ -110,11 +116,41 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 			restriction = (restrictionMethodName == null) ? null : statement.getActivationClass().getMethod(restrictionMethodName);
 			leftResultSet.init(context);
 			rightResultSet.init(context);
+            SpliceLogUtils.trace(LOG,"leftResultSet=%s,rightResultSet=%s",leftResultSet,rightResultSet);
 			leftRow = ((SpliceOperation)this.leftResultSet).getExecRowDefinition();
-			rightRow = ((SpliceOperation)this.rightResultSet).getExecRowDefinition(); 
+			rightRow = ((SpliceOperation)this.rightResultSet).getExecRowDefinition();
+            SpliceLogUtils.trace(LOG,"leftRow=%s,rightRow=%s",leftRow,rightRow);
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
 		}
+	}
+
+    protected int[] generateHashKeys(int hashKeyItem, SpliceBaseOperation resultSet) {
+		FormatableArrayHolder fah = (FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(hashKeyItem));
+		FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
+        int[] rootAccessedCols = resultSet.getRootAccessedCols();
+        FormatableBitSet intHolderSet = new FormatableBitSet(rootAccessedCols.length);
+        for(int i=0;i<fihArray.length;i++){
+            int next = fihArray[i].getInt();
+            intHolderSet.grow(next+1);
+            intHolderSet.set(next);
+        }
+        SpliceLogUtils.trace(LOG,"rootAccessedCols =%s,intHolderSet=%s", Arrays.toString(rootAccessedCols),intHolderSet);
+        int[] keyColumns = new int[intHolderSet.getNumBitsSet()];
+        int setBit =0;
+        for(int i=0;i<keyColumns.length;i++){
+            int value = setBit==0?intHolderSet.anySetBit(): intHolderSet.anySetBit(setBit);
+            keyColumns[i] = rootAccessedCols[value];
+            setBit = value;
+        }
+        return keyColumns;
+//		int[] keyColumns = new int[fihArray.length];
+//        int[] rootAccessedCols = resultSet.getRootAccessedCols();
+//		for (int index = 0; index < fihArray.length; index++) {
+//			keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(rootAccessedCols, fihArray[index].getInt());
+//            SpliceLogUtils.trace(LOG,"fihArray[%d]=%d,keyColumns[index]=%d",index,fihArray[index].getInt(),keyColumns[index]);
+//		}
+//		return keyColumns;
 	}
 
 	@Override

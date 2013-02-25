@@ -36,7 +36,8 @@ public class Hasher {
 	public Hasher(DataValueDescriptor[] descriptors, int[] hashKeys, boolean[] sortOrder, DataValueDescriptor prefixString, DataValueDescriptor[] additional, boolean[] additionalsortOrder) {
 		super();
         try {
-            SpliceLogUtils.trace(LOG, "instantiating the struct builder with additional %s:%s", Arrays.toString(hashKeys),Arrays.toString(additional));
+            SpliceLogUtils.trace(LOG, "Building hasher with descriptors %s,hashKeys %s, prefix %s, and additional columns %s",
+                    Arrays.toString(descriptors),Arrays.toString(hashKeys),prefixString,Arrays.toString(additional));
             this.hashKeys = hashKeys;
             this.sortOrder = sortOrder;
             if (additional == null)

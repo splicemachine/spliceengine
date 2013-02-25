@@ -13,4 +13,8 @@ public class FormatableBitSetUtils {
 		}
 		return position;
 	}
+
+    public static int currentRowPositionFromBaseRow(int[] accessedColMap, int baseRowPosition) {
+        return accessedColMap[baseRowPosition];
+    }
 }

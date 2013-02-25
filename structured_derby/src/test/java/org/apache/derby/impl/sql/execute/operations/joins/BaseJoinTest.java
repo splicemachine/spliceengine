@@ -10,10 +10,14 @@ import com.splicemachine.derby.test.SpliceDerbyTest;
 @Ignore
 public class BaseJoinTest extends SpliceDerbyTest{
 
-	public static void createData(DerbyTestRule rule) throws Exception {
+    public static void createData(DerbyTestRule rule) throws Exception {
+        createData("c","d",rule);
+    }
+
+	public static void createData(String t1,String t2,DerbyTestRule rule) throws Exception {
 		rule.setAutoCommit(true);
-		PreparedStatement psC = rule.prepareStatement("insert into c values (?,?)");
-		PreparedStatement psD = rule.prepareStatement("insert into d values (?,?)");
+		PreparedStatement psC = rule.prepareStatement("insert into "+t1+" values (?,?)");
+		PreparedStatement psD = rule.prepareStatement("insert into "+t2+" values (?,?)");
 		for (int i =0; i< 10; i++) {
 			psC.setString(1, "" + i);
 			psC.setString(2, "i");

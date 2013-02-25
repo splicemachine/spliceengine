@@ -118,12 +118,14 @@ public class SimpleJoinTest {
 	public void testDefaultJoin() throws Exception{
 		ResultSet rs = rule.executeQuery("select f.name, h.addr from f join h on f.id = h.fid");
 		List<String> results = Lists.newArrayList();
-
+        Multimap<String,String> foundResults = ArrayListMultimap.create();
 		while(rs.next()){
 			String name = rs.getString(1);
 			String address = rs.getString(2);
 			Assert.assertNotNull("No name specified!",name);
-			Assert.assertTrue("incorrect address!",joinedResults.get(name).contains(address));
+			Assert.assertTrue("address does not belong to "+name,joinedResults.get(name).contains(address));
+            Assert.assertTrue("Address "+address+" already found for "+name,!foundResults.get(name).contains(address));
+            foundResults.put(name,address);
 			results.add(String.format("name:%s,addr:%s",name,address));
 		}
 		for(String result:results){

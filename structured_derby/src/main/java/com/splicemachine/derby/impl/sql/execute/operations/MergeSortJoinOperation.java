@@ -31,10 +31,12 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
 public class MergeSortJoinOperation extends JoinOperation {
+    private static final long serialVersionUID = 2l;
 	private static Logger LOG = Logger.getLogger(MergeSortJoinOperation.class);
 	protected String emptyRowFunMethodName;
 	protected boolean wasRightOuterJoin;
@@ -133,16 +135,6 @@ public class MergeSortJoinOperation extends JoinOperation {
         return clientProvider;
 	}
 
-	private int[] generateHashKeys(int hashKeyItem, SpliceBaseOperation resultSet) {
-		FormatableArrayHolder fah = (FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(hashKeyItem));
-		FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
-		int[] keyColumns = new int[fihArray.length];
-		for (int index = 0; index < fihArray.length; index++) {
-			keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(resultSet.getRootAccessedCols(),fihArray[index].getInt());
-		}
-		return keyColumns;
-	}
-	
 	@Override
 	public void init(SpliceOperationContext context){
 		SpliceLogUtils.trace(LOG, "init");
@@ -276,6 +268,11 @@ public class MergeSortJoinOperation extends JoinOperation {
 		this.rights = new ArrayList<ExecRow>();
 		this.rightIterator = null;
 	}
+
+    @Override
+    public String toString(){
+        return "Merge"+super.toString();
+    }
 	
 	protected class MergeSortNextRowIterator implements Iterator<ExecRow> {
 		protected JoinSideExecRow joinRow;
@@ -302,11 +299,11 @@ public class MergeSortJoinOperation extends JoinOperation {
 					rightHash = joinRow.getHash();
 					if (joinRow.sameHash(priorHash)) {
 						SpliceLogUtils.trace(LOG, "adding additional right=%s",joinRow);
-						rights.add(joinRow.getRow());
+						rights.add(joinRow.getRow().getClone());
 					} else {
 						resetRightSide();
 						SpliceLogUtils.trace(LOG, "adding initial right=%s",joinRow);
-						rights.add(joinRow.getRow());
+						rights.add(joinRow.getRow().getClone());
 						priorHash = joinRow.getHash();
 					}
 					continue;

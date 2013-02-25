@@ -669,7 +669,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		throw new UnsupportedOperationException("class "+this.getClass()+" does not implement getLeftOperation!");
 	}
 	
-	public FormatableBitSet getRootAccessedCols() {
+	public int[] getRootAccessedCols() {
 		throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement getRootAccessedCols");
 	}
 	
