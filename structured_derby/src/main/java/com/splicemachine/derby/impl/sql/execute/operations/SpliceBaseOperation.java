@@ -417,12 +417,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		scan.readFields(dis);
 		return scan;
 	}
-	
-	protected ExecRow getCompactRow(LanguageConnectionContext lcc,
-																	ExecRow candidate,
-																	FormatableBitSet accessedCols,
-																	boolean isKeyed) throws StandardException {
-		int	numCandidateCols = candidate.nColumns();
+
+    protected ExecRow getCompactRow(LanguageConnectionContext lcc,
+                                    ExecRow candidate,
+                                    FormatableBitSet accessedCols,
+                                    boolean isKeyed) throws StandardException {
+        int	numCandidateCols = candidate.nColumns();
 		ExecRow compactRow = null;
 		if (accessedCols == null) {
 			compactRow =  candidate;

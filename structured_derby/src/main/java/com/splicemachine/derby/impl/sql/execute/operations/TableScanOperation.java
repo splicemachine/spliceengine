@@ -48,44 +48,44 @@ public class TableScanOperation extends ScanOperation {
 		super();
 	}
 
-	public  TableScanOperation(long conglomId,
-														 StaticCompiledOpenConglomInfo scoci,
-														 Activation activation,
-														 GeneratedMethod resultRowAllocator,
-														 int resultSetNumber,
-														 GeneratedMethod startKeyGetter, int startSearchOperator,
-														 GeneratedMethod stopKeyGetter, int stopSearchOperator,
-														 boolean sameStartStopPosition,
-														 String qualifiersField,
-														 String tableName,
-														 String userSuppliedOptimizerOverrides,
-														 String indexName,
-														 boolean isConstraint,
-														 boolean forUpdate,
-														 int colRefItem,
-														 int indexColItem,
-														 int lockMode,
-														 boolean tableLocked,
-														 int isolationLevel,
-														 int rowsPerRead,
-														 boolean oneRowScan,
-														 double optimizerEstimatedRowCount,
-														 double optimizerEstimatedCost) throws StandardException {
-		super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
-				sameStartStopPosition,qualifiersField, resultRowAllocator,lockMode,tableLocked,isolationLevel,
-				colRefItem,optimizerEstimatedRowCount,optimizerEstimatedCost);
-		SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
-																																								tableName,indexName,conglomId);
-		this.mapTableName = Long.toString(conglomId);
-		this.indexColItem = indexColItem;
-		this.indexName = indexName;
-		init(SpliceOperationContext.newContext(activation));
-	}
+    public  TableScanOperation(long conglomId,
+                               StaticCompiledOpenConglomInfo scoci,
+                               Activation activation,
+                               GeneratedMethod resultRowAllocator,
+                               int resultSetNumber,
+                               GeneratedMethod startKeyGetter, int startSearchOperator,
+                               GeneratedMethod stopKeyGetter, int stopSearchOperator,
+                               boolean sameStartStopPosition,
+                               String qualifiersField,
+                               String tableName,
+                               String userSuppliedOptimizerOverrides,
+                               String indexName,
+                               boolean isConstraint,
+                               boolean forUpdate,
+                               int colRefItem,
+                               int indexColItem,
+                               int lockMode,
+                               boolean tableLocked,
+                               int isolationLevel,
+                               int rowsPerRead,
+                               boolean oneRowScan,
+                               double optimizerEstimatedRowCount,
+                               double optimizerEstimatedCost) throws StandardException {
+        super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
+                sameStartStopPosition,qualifiersField, resultRowAllocator,lockMode,tableLocked,isolationLevel,
+                colRefItem,optimizerEstimatedRowCount,optimizerEstimatedCost);
+        SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
+                tableName,indexName,conglomId);
+        this.mapTableName = Long.toString(conglomId);
+        this.indexColItem = indexColItem;
+        this.indexName = indexName;
+        init(SpliceOperationContext.newContext(activation));
+    }
 
-	@Override
-	public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-		SpliceLogUtils.trace(LOG,"readExternal");
-		super.readExternal(in);
+    @Override
+    public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
+        SpliceLogUtils.trace(LOG,"readExternal");
+        super.readExternal(in);
 		mapTableName = in.readUTF();
 		indexColItem = in.readInt();
 	}
@@ -131,7 +131,7 @@ public class TableScanOperation extends ScanOperation {
 	@Override
 	public ExecRow getExecRowDefinition() {
 		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
-		return currentRow;
+		return currentTemplate;
 	}
 
 	@Override

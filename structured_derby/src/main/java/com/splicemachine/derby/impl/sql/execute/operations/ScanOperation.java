@@ -53,6 +53,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 
 	private int colRefItem;
 	protected GeneratedMethod resultRowAllocator;
+    protected ExecRow currentTemplate;
 
 
 	public ScanOperation () {
@@ -143,6 +144,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
             candidate = (ExecRow) resultRowAllocator.invoke(activation);
             currentRow = getCompactRow(context.getLanguageConnectionContext(), candidate,
                     accessedCols, isKeyed);
+            currentTemplate = currentRow.getClone();
         } catch (Exception e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
         }

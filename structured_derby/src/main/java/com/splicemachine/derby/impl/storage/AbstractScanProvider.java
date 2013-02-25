@@ -44,7 +44,7 @@ public abstract class AbstractScanProvider implements RowProvider {
     }
 
 	@Override
-	public int getModifiedRowCount() {
+    public int getModifiedRowCount() {
 		return 0;
 	}
 
