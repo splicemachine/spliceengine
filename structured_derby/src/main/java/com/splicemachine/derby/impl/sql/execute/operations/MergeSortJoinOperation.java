@@ -22,6 +22,7 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLInteger;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
@@ -30,6 +31,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -206,7 +208,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 		try{
 			Put put;
 			Hasher hasher = null;
-			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
+			tempTable = getBufferedTable();
 			NoPutResultSet resultSet = null;
 			DataValueDescriptor[] additionalDescriptors = {activation.getDataValueFactory().getDataValue(joinSide.ordinal(), null)};
 			switch (joinSide) {
@@ -218,7 +220,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 					hasher = new Hasher(rightResultSet.getExecRowDefinition().getRowArray(),rightHashKeys,null,sequence[0],additionalDescriptors,null);
 					resultSet = rightResultSet;
 					break;
-			}			
+			}
 			while ((row = resultSet.getNextRowCore())!=null){
 			SpliceLogUtils.trace(LOG, "sinking row %s",row);
 				byte[] rowKey = hasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors);
@@ -226,6 +228,9 @@ public class MergeSortJoinOperation extends JoinOperation {
 				put.setWriteToWAL(false); // Seeing if this speeds stuff up a bit...
 				tempTable.put(put);
 				numSunk++;
+				if ((numSunk % 50000) == 0) {
+					SpliceLogUtils.trace(LOG, "number sunk = %d", numSunk);
+				}
 			}
 			tempTable.flushCommits();
 			tempTable.close();
@@ -244,6 +249,23 @@ public class MergeSortJoinOperation extends JoinOperation {
 		return numSunk;
 	}
 
+	private HTableInterface getBufferedTable() throws IOException {
+		return makeBuffered(SpliceOperationCoprocessor.threadLocalEnvironment.get().getTable(SpliceOperationCoprocessor.TEMP_TABLE));
+	}
+
+	private HTableInterface makeBuffered(HTableInterface tableWrapper) {
+		try {
+			final Field tableField = tableWrapper.getClass().getDeclaredField("table");
+			tableField.setAccessible(true);
+			final HTable htable = (HTable) tableField.get(tableWrapper);
+			htable.setAutoFlush(false);
+		} catch (NoSuchFieldException e) {
+			throw new RuntimeException(e);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+		return tableWrapper;
+	}
 
 	@Override
 	public ExecRow getExecRowDefinition() {

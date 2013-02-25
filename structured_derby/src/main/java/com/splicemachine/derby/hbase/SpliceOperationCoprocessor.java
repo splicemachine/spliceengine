@@ -33,6 +33,8 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	public static String TEMP_TABLE_STR = "SYS_TEMP";
 	public static byte[] TEMP_TABLE = Bytes.toBytes(TEMP_TABLE_STR);
 	protected static ContextManager contextManager;
+	public static final ThreadLocal<CoprocessorEnvironment> threadLocalEnvironment = new ThreadLocal<CoprocessorEnvironment>();
+
 	static {
 		Monitor.startMonitor(new Properties(), null);
 		Monitor.clearMonitor();
@@ -63,21 +65,26 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	 */
 	@Override
 	public long run(Scan scan,SpliceObserverInstructions instructions) throws IOException,StandardException {
-		SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
-																		instructions.getStatement(),instructions.getTopOperation(), scan);
-		HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
-		SpliceLogUtils.trace(LOG,"Creating RegionScanner");
-		LanguageConnectionContext lcc = SpliceEngine.getLanguageConnectionContext();
-		SpliceUtils.setThreadContext();
-		Activation activation = instructions.getActivation(lcc);
+		threadLocalEnvironment.set(getEnvironment());
+		try {
+			SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
+																			instructions.getStatement(),instructions.getTopOperation(), scan);
+			HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
+			SpliceLogUtils.trace(LOG,"Creating RegionScanner");
+			LanguageConnectionContext lcc = SpliceEngine.getLanguageConnectionContext();
+			SpliceUtils.setThreadContext();
+			Activation activation = instructions.getActivation(lcc);
 
-		SpliceOperationContext context = new SpliceOperationContext(region,scan, activation, instructions.getStatement(),lcc);
-		SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
-		SpliceLogUtils.trace(LOG,"performing sink");
-		long out = spliceScanner.sink();
-		SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out);
-		spliceScanner.close();
-		return out;
+			SpliceOperationContext context = new SpliceOperationContext(region,scan, activation, instructions.getStatement(),lcc);
+			SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
+			SpliceLogUtils.trace(LOG,"performing sink");
+			long out = spliceScanner.sink();
+			SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out);
+			spliceScanner.close();
+			return out;
+		} finally {
+			threadLocalEnvironment.set(null);
+		}
 	}
 
 }
