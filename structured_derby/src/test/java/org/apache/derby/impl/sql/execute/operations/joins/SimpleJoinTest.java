@@ -34,7 +34,7 @@ public class SimpleJoinTest {
 	private static final Multimap<String,String> joinedResults = ArrayListMultimap.create();
 
 	static{
-		tableSchemas.put("f","id int, name varchar(50), zip char(5)");
+		tableSchemas.put("k","id int, name varchar(50), zip char(5)");
 		tableSchemas.put("h","id int, addr varchar(50),fid int");
 	}
 
@@ -56,7 +56,7 @@ public class SimpleJoinTest {
 	}
 
 	private static void insertData() throws SQLException {
-		PreparedStatement fps = rule.prepareStatement("insert into f values (?,?,?)");
+		PreparedStatement fps = rule.prepareStatement("insert into k values (?,?,?)");
 		Pair<String,String> pair = Pair.newPair("scott", "65203");
 		fps.setInt(1,1);
 		fps.setString(2, pair.getFirst());
@@ -116,7 +116,7 @@ public class SimpleJoinTest {
 
 	@Test
 	public void testDefaultJoin() throws Exception{
-		ResultSet rs = rule.executeQuery("select f.name, h.addr from f join h on f.id = h.fid");
+		ResultSet rs = rule.executeQuery("select k.name, h.addr from k join h on k.id = h.fid");
 		List<String> results = Lists.newArrayList();
         Multimap<String,String> foundResults = ArrayListMultimap.create();
 		while(rs.next()){
@@ -137,7 +137,7 @@ public class SimpleJoinTest {
 
 	@Test
 	public void testOuterJoin() throws Exception{
-		ResultSet rs = rule.executeQuery("select f.name, h.addr from f left outer join h on f.id = h.fid");
+		ResultSet rs = rule.executeQuery("select k.name, h.addr from k left outer join h on k.id = h.fid");
 		List<String> results = Lists.newArrayList();
 
 		while(rs.next()){

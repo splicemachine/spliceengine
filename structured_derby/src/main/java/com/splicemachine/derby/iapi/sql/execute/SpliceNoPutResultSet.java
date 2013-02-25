@@ -189,7 +189,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 	@Override
 	public boolean isClosed() {
-		SpliceLogUtils.trace(LOG, "isClosed?%b",closed);
+//		SpliceLogUtils.trace(LOG, "isClosed?%b",closed);
 		return closed;
 	}
 
@@ -250,7 +250,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 	@Override
 	public SQLWarning getWarnings() {
-		SpliceLogUtils.trace(LOG,"getWarnings");
+//		SpliceLogUtils.trace(LOG,"getWarnings");
 		return null;
 	}
 
@@ -368,7 +368,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 	@Override
 	public boolean isForUpdate() {
-		SpliceLogUtils.trace(LOG, "isForUpdate");
+//		SpliceLogUtils.trace(LOG, "isForUpdate");
 		return false;
 	}
 

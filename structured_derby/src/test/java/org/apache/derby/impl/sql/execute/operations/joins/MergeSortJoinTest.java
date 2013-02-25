@@ -116,7 +116,7 @@ public class MergeSortJoinTest extends BaseJoinTest {
 	}			
 	
 	@Test
-	@Ignore
+//	@Ignore
 	public void testScrollableVarcharRightOuterJoin() throws SQLException {			
 		ResultSet rs = rule.executeQuery("select c.si, d.si from c right outer join d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on c.si = d.si");
 		int j = 0;

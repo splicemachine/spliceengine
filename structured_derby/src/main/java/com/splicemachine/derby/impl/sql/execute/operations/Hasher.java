@@ -86,7 +86,6 @@ public class Hasher {
 	}	
 	
 	public byte[] generateSortedHashKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
-		SpliceLogUtils.trace(LOG, "generateSortedHashKey");
 		for (int i=0;i<hashKeys.length;i++) {
 			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
 		}
@@ -105,7 +104,6 @@ public class Hasher {
 	 * @throws IOException
 	 */
 	public byte[] generateSortedHashScanKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
-		SpliceLogUtils.trace(LOG, "generateSortedHashScanKey");
 		for (int i=0;i<hashKeys.length;i++) {
 			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
 		}

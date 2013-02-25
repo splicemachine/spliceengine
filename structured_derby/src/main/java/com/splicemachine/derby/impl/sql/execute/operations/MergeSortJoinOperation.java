@@ -284,7 +284,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 		@Override
 		public boolean hasNext() {
 			if (rightIterator!= null && rightIterator.hasNext()) {
-				currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, leftNumCols, rightNumCols, mergedRow);
+				currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
 				setCurrentRow(currentRow);
 				currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
 				SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
@@ -314,7 +314,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 						if (joinRow.sameHash(rightHash)) {
 							SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s",joinRow);
 							rightIterator = rights.iterator();
-							currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, leftNumCols, rightNumCols, mergedRow);
+							currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, rightNumCols,leftNumCols, mergedRow);
 							setCurrentRow(currentRow);
 							currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());					
 							SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
@@ -324,7 +324,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 								SpliceLogUtils.trace(LOG, "simple left emit=%s",joinRow);
 								resetRightSide();
 								priorHash = joinRow.getHash();
-								currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, leftNumCols, rightNumCols, mergedRow);
+								currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
 								setCurrentRow(currentRow);
 								return true;					
 							} else {
@@ -341,7 +341,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 							SpliceLogUtils.trace(LOG, "simple left with no right=%s",joinRow);
 							resetRightSide();
 							priorHash = joinRow.getHash();
-							currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, leftNumCols, rightNumCols, mergedRow);
+							currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
 							setCurrentRow(currentRow);
 							return true;	
 						} else {

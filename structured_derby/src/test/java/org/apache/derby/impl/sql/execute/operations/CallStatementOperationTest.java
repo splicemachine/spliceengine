@@ -42,6 +42,21 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
         }
     }
 
+    @Test
+    public void testConnectionMetadata() throws SQLException{
+        DatabaseMetaData dmd;
+        ResultSet rs = null;
+        try{
+            dmd = conn.getMetaData();
+            rs = dmd.getColumns(null,null,"CATEGORY",null);
+            while(rs.next()){
+                SpliceLogUtils.info(LOG,"c1=%s,c2=%s,c3=%s",rs.getString(1),rs.getString(2),rs.getString(3));
+            }
+        }finally{
+            if(rs!=null)rs.close();
+        }
+    }
+
 //    @Ignore
 	public void testCallSysSchemas() throws SQLException {
     	conn.setAutoCommit(true);
@@ -115,6 +130,43 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
             if(rs!=null)rs.close();
             if(s!=null)s.close();
             if(cs!=null)cs.close();
+        }
+    }
+
+    @Test
+    public void testCallSQLTABLESInAppSchema() throws Exception{
+        CallableStatement cs = null;
+        ResultSet rs = null;
+        Statement s = null;
+        //create a table in app
+        try{
+            s = conn.createStatement();
+            s.execute("create table test1(a int)");
+        }finally{
+            if(s!=null)s.close();
+        }
+        try{
+            //create a table in the APP schema
+//            s = conn.createStatement();
+//            s.execute("create table test(a int)");
+            cs = conn.prepareCall("call SYSIBM.SQLTABLES(null,'APP',null,null,null)",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY);
+            rs = cs.executeQuery();
+            int count =0;
+            while(rs.next()){
+                Object data = rs.getObject(2);
+                LOG.info(String.format("schema=%s,table=%s",data,rs.getString(3)));
+                count++;
+            }
+            Assert.assertTrue("Incorrect rows returned!",count>0);
+        }finally{
+            if(rs!=null)rs.close();
+            if(cs!=null)cs.close();
+            try{
+                s = conn.createStatement();
+                s.execute("drop table test1");
+            }finally{
+                if(s!=null)s.close();
+            }
         }
     }
 
