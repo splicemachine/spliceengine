@@ -221,9 +221,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		@Override
 		public void merge(ExecIndexRow curr,ExecIndexRow next){
 			try {
-				SpliceLogUtils.trace(LOG, "merging %s with %s",curr,next);
+//				SpliceLogUtils.trace(LOG, "merging %s with %s",curr,next);
 				mergeVectorAggregates(next,curr,-1);
-				SpliceLogUtils.trace(LOG,"merged result = %s",curr);
+//				SpliceLogUtils.trace(LOG,"merged result = %s",curr);
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
@@ -261,7 +261,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 if(!useScan)
                     initializeVectorAggregation(rolledUpRow);
 				if(!currentAggregations.merge(rolledUpRow,merger)){
-					SpliceLogUtils.trace(LOG, "found new results %s",rolledUpRow);
+//					SpliceLogUtils.trace(LOG, "found new results %s",rolledUpRow);
 					ExecIndexRow row = (ExecIndexRow)rolledUpRow.getClone();
 
 					ExecIndexRow finalized = currentAggregations.add(row);
@@ -322,17 +322,17 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	
 	protected void initializeVectorAggregation(ExecRow row)
 											throws StandardException{
-		SpliceLogUtils.trace(LOG,"initializing row %s",row);
+//		SpliceLogUtils.trace(LOG,"initializing row %s",row);
 		for(SpliceGenericAggregator aggregator: aggregates){
 			aggregator.initialize(row);
 			aggregator.accumulate(row, row);
 		}
-		SpliceLogUtils.trace(LOG,"After initialization, row=%s",row);
+//		SpliceLogUtils.trace(LOG,"After initialization, row=%s",row);
 	}
 	
 	private void mergeVectorAggregates(ExecRow newRow, ExecRow currRow, 
 											int level) throws StandardException {
-		SpliceLogUtils.trace(LOG,"merging agg %s with %s",currRow, newRow);
+//		SpliceLogUtils.trace(LOG,"merging agg %s with %s",currRow, newRow);
 		for(int i=0;i<aggregates.length;i++){
 			SpliceGenericAggregator agg = aggregates[i];
 //			if(agg.isDistinct()){
@@ -345,7 +345,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 //			}
 			agg.merge(newRow,currRow);
 		}
-		SpliceLogUtils.trace(LOG,"agg row after merging = %s",currRow);
+//		SpliceLogUtils.trace(LOG,"agg row after merging = %s",currRow);
 	}
 	
 	private int numGCols(){

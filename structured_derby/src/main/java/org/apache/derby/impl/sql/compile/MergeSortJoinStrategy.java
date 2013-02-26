@@ -20,6 +20,9 @@ Derby - Class org.apache.derby.impl.sql.compile.HashJoinStrategy
 
 package org.apache.derby.impl.sql.compile;
 
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.ExpressionClassBuilderInterface;
 import org.apache.derby.iapi.sql.compile.JoinStrategy;
@@ -42,13 +45,13 @@ import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Vector;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	private static Logger LOG = Logger.getLogger(MergeSortJoinStrategy.class);
-	public HashMap<Integer,ArrayList<Integer>> hashKeyMap = new HashMap<Integer,ArrayList<Integer>>();
 	public MergeSortJoinStrategy() {
 	}
 
@@ -316,61 +319,29 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 							boolean genInListVals) throws StandardException {
 		SpliceLogUtils.trace(LOG, "getScanArgs");
 		ExpressionClassBuilder acb = (ExpressionClassBuilder) acbi;
-		int numArgs;
-		SpliceLogUtils.trace(LOG, "scanning ignoring nonStoreRestrictionList with size %d",(nonStoreRestrictionList != null)?nonStoreRestrictionList.size():null);
-		if (nonStoreRestrictionList != null) {
-			for (int i = 0; i < nonStoreRestrictionList.size(); i++) {
-				Predicate op = (Predicate) nonStoreRestrictionList.getOptPredicate(i);
-				BinaryRelationalOperatorNode opNode = (BinaryRelationalOperatorNode)op.getAndNode().getLeftOperand();
-				// Get left operand's name.
-				if (opNode.getLeftOperand() instanceof ColumnReference && opNode.getRightOperand() instanceof ColumnReference) {
-					ColumnReference left = (ColumnReference) opNode.getLeftOperand();
-					ColumnReference right = (ColumnReference) opNode.getRightOperand();						
-					// left
-					ArrayList<Integer> columns = hashKeyMap.get(left.getTableNumber());
-					if (columns == null) {
-						columns = new ArrayList<Integer>();
-						columns.add((left.getSource().getColumnPosition() - 1));
-						hashKeyMap.put(left.getTableNumber(), columns);
-					} else {
-						columns.add((left.getSource().getColumnPosition() - 1));
-					}
-					// right
-					columns = hashKeyMap.get(right.getTableNumber());
-					if (columns == null) {
-						columns = new ArrayList<Integer>();
-						columns.add((right.getSource().getColumnPosition() - 1));
-						hashKeyMap.put(right.getTableNumber(), columns);
-					} else {
-						columns.add((right.getSource().getColumnPosition() - 1));
-					}
-				}
-								
-			}
-		}
-		
+        int numArgs;
 		/* If we're going to generate a list of IN-values for index probing
 		 * at execution time then we push TableScanResultSet arguments plus
 		 * two additional arguments: 1) the list of IN-list values, and 2)
 		 * a boolean indicating whether or not the IN-list values are already
 		 * sorted.
 		 */
-		if (genInListVals) {
-			numArgs = 26;
-		}
-		else if (bulkFetch > 1) {
+        if (genInListVals) {
+            numArgs = 26;
+        }
+        else if (bulkFetch > 1) {
             // Bulk-fetch uses TableScanResultSet arguments plus two
             // additional arguments: 1) bulk fetch size, and 2) whether the
             // table contains LOB columns (used at runtime to decide if
             // bulk fetch is safe DERBY-1511).
             numArgs = 26;
-		}
-		else {
-			numArgs = 24 ;
-		}
-		fillInScanArgs1(tc, mb, innerTable, storeRestrictionList, acb, resultRowAllocator);
-		if (genInListVals)
-			((PredicateList)storeRestrictionList).generateInListValues(acb, mb);
+        }
+        else {
+            numArgs = 24 ;
+        }
+        fillInScanArgs1(tc, mb, innerTable, storeRestrictionList, acb, resultRowAllocator);
+        if (genInListVals)
+            ((PredicateList)storeRestrictionList).generateInListValues(acb, mb);
 
 		if (SanityManager.DEBUG) {
 			/* If we're not generating IN-list values with which to probe
@@ -390,7 +361,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 			}
 		}
 
-		fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel);
+        fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel);
 		return numArgs;
 	}
 	

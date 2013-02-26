@@ -142,6 +142,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 		SpliceLogUtils.trace(LOG, "init");
 		super.init(context);
 		try {
+            SpliceLogUtils.trace(LOG,"leftHashkeyItem=%d,rightHashKeyItem=%d",leftHashKeyItem,rightHashKeyItem);
 			leftHashKeys = generateHashKeys(leftHashKeyItem, (SpliceBaseOperation) this.leftResultSet);
 			rightHashKeys = generateHashKeys(rightHashKeyItem, (SpliceBaseOperation) this.rightResultSet);
 			mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);

@@ -129,28 +129,11 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		FormatableArrayHolder fah = (FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(hashKeyItem));
 		FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
         int[] rootAccessedCols = resultSet.getRootAccessedCols();
-        FormatableBitSet intHolderSet = new FormatableBitSet(rootAccessedCols.length);
+        int[] keyColumns = new int[fihArray.length];
         for(int i=0;i<fihArray.length;i++){
-            int next = fihArray[i].getInt();
-            intHolderSet.grow(next+1);
-            intHolderSet.set(next);
-        }
-        SpliceLogUtils.trace(LOG,"rootAccessedCols =%s,intHolderSet=%s", Arrays.toString(rootAccessedCols),intHolderSet);
-        int[] keyColumns = new int[intHolderSet.getNumBitsSet()];
-        int setBit =0;
-        for(int i=0;i<keyColumns.length;i++){
-            int value = setBit==0?intHolderSet.anySetBit(): intHolderSet.anySetBit(setBit);
-            keyColumns[i] = rootAccessedCols[value];
-            setBit = value;
+            keyColumns[i] = rootAccessedCols[fihArray[i].getInt()-1];
         }
         return keyColumns;
-//		int[] keyColumns = new int[fihArray.length];
-//        int[] rootAccessedCols = resultSet.getRootAccessedCols();
-//		for (int index = 0; index < fihArray.length; index++) {
-//			keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(rootAccessedCols, fihArray[index].getInt());
-//            SpliceLogUtils.trace(LOG,"fihArray[%d]=%d,keyColumns[index]=%d",index,fihArray[index].getInt(),keyColumns[index]);
-//		}
-//		return keyColumns;
 	}
 
 	@Override

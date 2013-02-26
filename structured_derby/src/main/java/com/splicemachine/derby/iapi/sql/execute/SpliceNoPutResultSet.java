@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultDescription;
@@ -250,7 +251,6 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 	@Override
 	public SQLWarning getWarnings() {
-//		SpliceLogUtils.trace(LOG,"getWarnings");
 		return null;
 	}
 
@@ -311,13 +311,17 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getNextRowCore");
-		if(rowProvider.hasNext()){
-			execRow = rowProvider.next();
-			SpliceLogUtils.trace(LOG, "nextRow=%s", execRow);
-			return execRow;
-		}else {
-			return null;
-		}
+        try{
+            if(rowProvider.hasNext()){
+                execRow = rowProvider.next();
+                SpliceLogUtils.trace(LOG, "nextRow=%s", execRow);
+                return execRow;
+            }else {
+                return null;
+            }
+        }catch(Throwable t){
+            throw StandardException.newException(SQLState.RAWSTORE_UNEXPECTED_EXCEPTION,t);
+        }
 	}
 
 	@Override

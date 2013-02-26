@@ -17,29 +17,29 @@ import com.splicemachine.derby.test.DerbyTestRule;
 
 public class MergeSortJoinTest extends BaseJoinTest {
 	private static Logger LOG = Logger.getLogger(OuterJoinTest.class);
-	
+
 	private static final Map<String,String> tableMap;
 	static{
 		Map<String,String> tMap = new HashMap<String,String>();
 		tMap.put("c","si varchar(40), sa varchar(40)");
-		tMap.put("d","si varchar(40), sa varchar(40)");		
+		tMap.put("d","si varchar(40), sa varchar(40)");
 		tableMap = tMap;
 	}
 	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,false,LOG);
-	
+
 	@BeforeClass
 	public static void startup() throws Exception{
 		DerbyTestRule.start();
 		rule.createTables();
 		createData(rule);
 	}
-	
+
 	@AfterClass
 	public static void shutdown() throws Exception{
 		rule.dropTables();
 		DerbyTestRule.shutdown();
 	}
-	
+
 	@Test
 	public void testScrollableVarcharLeftOuterJoin() throws SQLException {
 		ResultSet rs = rule.executeQuery("select c.si, d.si from c left outer join d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on c.si = d.si");
@@ -53,13 +53,13 @@ public class MergeSortJoinTest extends BaseJoinTest {
 			} else {
 				Assert.assertNull(rs.getString(2));
 			}
-		}	
+		}
 		Assert.assertEquals(10, j);
-	}		
+	}
 
 	@Test
 	public void testSinkableVarcharLeftOuterJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select c.sa, count(*) from c left outer join d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on c.si = d.si group by c.sa");
+		ResultSet rs = rule.executeQuery("select c.si, count(*) from c left outer join d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on c.si = d.si group by c.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -68,7 +68,7 @@ public class MergeSortJoinTest extends BaseJoinTest {
 //			if (!rs.getString(1).equals("9")) {
 //				Assert.assertEquals(1l,rs.getLong(2));
 //			}
-		}	
+		}
 		Assert.assertEquals(10, j);
 	}
 
@@ -79,7 +79,7 @@ public class MergeSortJoinTest extends BaseJoinTest {
 			LOG.info(String.format("c.sa=%s,d.sa=%s",rs.getString(1),rs.getString(2)));
 		}
 	}
-	
+
 	@Test
 	public void testScrollableInnerJoin() throws SQLException {
 		ResultSet rs = rule.executeQuery("select c.si, d.si from c inner join d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on c.si = d.si");
@@ -93,12 +93,12 @@ public class MergeSortJoinTest extends BaseJoinTest {
 			} else {
 				Assert.assertNull(rs.getString(2));
 			}
-		}	
+		}
 		Assert.assertEquals(9, j);
-	}		
-	
+	}
+
 	@Test
-	public void testSinkableInnerJoin() throws SQLException {			
+	public void testSinkableInnerJoin() throws SQLException {
 		ResultSet rs = rule.executeQuery("select c.si, count(*) from c inner join d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on c.si = d.si group by c.si");
 		int j = 0;
 		while (rs.next()) {
@@ -111,12 +111,12 @@ public class MergeSortJoinTest extends BaseJoinTest {
 			} else {
 				Assert.assertNull(rs.getString(1));
 			}
-		}	
+		}
 		Assert.assertEquals(9, j);
-	}			
-	
+	}
+
 	@Test
-//	@Ignore
+	@Ignore
 	public void testScrollableVarcharRightOuterJoin() throws SQLException {			
 		ResultSet rs = rule.executeQuery("select c.si, d.si from c right outer join d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on c.si = d.si");
 		int j = 0;
