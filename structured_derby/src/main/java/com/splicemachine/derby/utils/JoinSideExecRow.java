@@ -1,9 +1,13 @@
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.derby.impl.sql.execute.operations.Hasher;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
+
+import java.io.IOException;
 
 public class JoinSideExecRow {
 	protected ExecRow row;
@@ -23,6 +27,11 @@ public class JoinSideExecRow {
 	public byte[] getHash() {
 		return hash;
 	}
+
+    public void setHash(byte[] hash) {
+        this.hash = hash;
+    }
+
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
@@ -40,4 +49,5 @@ public class JoinSideExecRow {
 			return false;
 		return Bytes.compareTo(this.hash, hash) == 0;
 	}
+
 }

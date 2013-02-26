@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.utils.Puts;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -28,28 +29,29 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 
 public class SpliceOperationRegionScanner implements RegionScanner {
-	private static Logger LOG = Logger.getLogger(SpliceOperationRegionScanner.class);
-	protected GenericStorablePreparedStatement statement;
-	protected SpliceOperation topOperation;
-	protected RegionScanner regionScanner;
-	protected Iterator<ExecRow> currentRows;
-	protected List<KeyValue> currentResult;
-	protected Activation activation; // has to be passed by reference... jl
-	
-	public SpliceOperationRegionScanner(SpliceOperation topOperation,
-																			SpliceOperationContext context){
-		this.topOperation = topOperation;
-		this.statement = context.getPreparedStatement();
-		try {
-			this.regionScanner = context.getScanner();
-			LanguageConnectionContext lcc = context.getLanguageConnectionContext();
-			SpliceLogUtils.trace(LOG,"lcc=%s",lcc);
-			activation = context.getActivation();//((GenericActivationHolder) statement.getActivation(lcc, false)).ac;
-			topOperation.init(context);
-		}catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		}
-	}
+    private static Logger LOG = Logger.getLogger(SpliceOperationRegionScanner.class);
+    protected GenericStorablePreparedStatement statement;
+    protected SpliceOperation topOperation;
+    protected RegionScanner regionScanner;
+    protected Iterator<ExecRow> currentRows;
+    protected List<KeyValue> currentResult;
+    protected Activation activation; // has to be passed by reference... jl
+    private Serializer serializer = new Serializer();
+
+    public SpliceOperationRegionScanner(SpliceOperation topOperation,
+                                        SpliceOperationContext context){
+        this.topOperation = topOperation;
+        this.statement = context.getPreparedStatement();
+        try {
+            this.regionScanner = context.getScanner();
+            LanguageConnectionContext lcc = context.getLanguageConnectionContext();
+            SpliceLogUtils.trace(LOG,"lcc=%s",lcc);
+            activation = context.getActivation();//((GenericActivationHolder) statement.getActivation(lcc, false)).ac;
+            topOperation.init(context);
+        }catch (IOException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG,e);
+        }
+    }
 
 	public SpliceOperationRegionScanner(RegionScanner regionScanner, Scan scan,HRegion region) {
 		SpliceLogUtils.trace(LOG, "instantiated with "+regionScanner+", and scan "+scan);
@@ -80,7 +82,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		try {
 			ExecRow nextRow;
 			if ( (nextRow = topOperation.getNextRowCore()) != null) {
-				Put put = Puts.buildInsert(nextRow.getRowArray(), null); //todo -sf- add transaction id
+				Put put = Puts.buildInsert(nextRow.getRowArray(), null,serializer); //todo -sf- add transaction id
 				Map<byte[],List<KeyValue>> family = put.getFamilyMap();
 				for(byte[] bytes: family.keySet()){
 					results.addAll(family.get(bytes));

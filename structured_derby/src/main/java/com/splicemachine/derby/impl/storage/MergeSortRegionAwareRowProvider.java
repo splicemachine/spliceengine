@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.storage;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.Hasher;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
@@ -45,7 +46,11 @@ public class MergeSortRegionAwareRowProvider implements RowProvider {
 	protected Hasher leftHasher;
 	protected Hasher rightHasher;
     protected byte[] table;
-	
+    private final Serializer serializer;
+    private JoinSideExecRow leftSideRow;
+    private JoinSideExecRow rightSideRow;
+
+
     public MergeSortRegionAwareRowProvider(HRegion region,byte[] table,
                                            byte[] columnFamily,
                                            byte[] start, byte[] finish,
@@ -64,6 +69,28 @@ public class MergeSortRegionAwareRowProvider implements RowProvider {
         this.rightHasher = rightHasher;
         this.table = table;
         this.rowType = rowType;
+        this.serializer = new Serializer();
+    }
+
+    public MergeSortRegionAwareRowProvider(HRegion region,byte[] table,
+                                           byte[] columnFamily,
+                                           byte[] start, byte[] finish,
+                                           final Hasher leftHasher,
+                                           ExecRow leftRow,
+                                           final Hasher rightHasher,
+                                           ExecRow rightRow,
+                                           FormatableBitSet fbt, SQLInteger rowType,Serializer serializer) {
+        SpliceLogUtils.trace(LOG, "instantiated for region %s of table %s",region.getRegionInfo().toString(), Bytes.toString(table));
+        this.scanner = RegionAwareScanner.create(region,
+                new MultipleTypeHashAwareScanBoundary(rowType,columnFamily,leftRow, leftHasher,rightRow,rightHasher),table,start,finish);
+        this.leftRow = leftRow;
+        this.rightRow = rightRow;
+        this.fbt = fbt;
+        this.leftHasher = leftHasher;
+        this.rightHasher = rightHasher;
+        this.table = table;
+        this.rowType = rowType;
+        this.serializer = serializer;
     }
 
     @Override
@@ -94,15 +121,23 @@ public class MergeSortRegionAwareRowProvider implements RowProvider {
         try{
             Result result = getResult();
             if(result!=null){
-        		rowType = (SQLInteger) DerbyBytesUtil.fromBytes(result.getValue(HBaseConstants.DEFAULT_FAMILY.getBytes(), JoinUtils.JOIN_SIDE_COLUMN), rowType);
+        		rowType = (SQLInteger) serializer.deserialize(result.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN),rowType);
     			if (rowType.getInt() == JoinSide.RIGHT.ordinal()) {
-    				SpliceUtils.populate(result, fbt, rightRow.getRowArray());	
+    				SpliceUtils.populate(result, fbt, rightRow.getRowArray(),serializer);
     				currentRow = rightRow;
-    				joinSideRow = new JoinSideExecRow(rightRow,JoinSide.RIGHT,rightHasher.generateSortedHashScanKey(rightRow.getRowArray()));
+                    if(rightSideRow==null)
+                        rightSideRow = new JoinSideExecRow(rightRow,JoinSide.RIGHT,rightHasher.generateSortedHashScanKey(rightRow.getRowArray()));
+                    else
+                        rightSideRow.setHash(rightHasher.generateSortedHashScanKey(rightRow.getRowArray()));
+    				joinSideRow = rightSideRow;
     			} else {					
-    				SpliceUtils.populate(result, fbt, leftRow.getRowArray());
+    				SpliceUtils.populate(result, fbt, leftRow.getRowArray(),serializer);
     				currentRow = leftRow;
-    				joinSideRow = new JoinSideExecRow(leftRow,JoinSide.LEFT,leftHasher.generateSortedHashScanKey(leftRow.getRowArray()));
+                    if(leftSideRow==null)
+                        leftSideRow = new JoinSideExecRow(leftRow,JoinSide.LEFT,leftHasher.generateSortedHashScanKey(leftRow.getRowArray()));
+                    else
+                        leftSideRow.setHash(leftHasher.generateSortedHashScanKey(leftRow.getRowArray()));
+    				joinSideRow = leftSideRow;
     			}
                 currentRowLocation = new HBaseRowLocation(result.getRow());
                 populated = true;

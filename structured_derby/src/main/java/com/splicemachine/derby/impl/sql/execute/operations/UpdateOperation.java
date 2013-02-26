@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -56,6 +57,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
 		//Use HTable to do inserts instead of HeapConglomerateController - see Bug 188
 		HTableInterface htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(""+heapConglom));
+        Serializer serializer = new Serializer();
 		try {
 			while((nextRow = source.getNextRowCore())!=null){
 				if(colPositionMap==null){
@@ -92,7 +94,7 @@ public class UpdateOperation extends DMLWriteOperation{
 				}
 				RowLocation location= (RowLocation)nextRow.getColumn(nextRow.nColumns()).getObject(); //the location to update is always at the end
 				SpliceLogUtils.trace(LOG, "UpdateOperation sink, nextRow=%s, validCols=%s,colPositionMap=%s", nextRow, heapList, Arrays.toString(colPositionMap));
-				htable.put(Puts.buildUpdate(location, nextRow.getRowArray(), heapList, colPositionMap,this.transactionID.getBytes()));
+				htable.put(Puts.buildUpdate(location, nextRow.getRowArray(), heapList, colPositionMap,this.transactionID.getBytes(),serializer));
 				numSunk++;
 			}
 			htable.flushCommits();

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -61,10 +62,11 @@ public class InsertOperation extends DMLWriteOperation {
 		ExecRow nextRow=null;
 		//Use HTable to do inserts instead of HeapConglomerateController - see Bug 188
 		HTableInterface htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(""+heapConglom));
+        Serializer serializer = new Serializer();
 		try {
 			while((nextRow = source.getNextRowCore())!=null){
 				SpliceLogUtils.trace(LOG,"InsertOperation sink, nextRow="+nextRow);
-				htable.put(Puts.buildInsert(nextRow.getRowArray(), this.transactionID.getBytes())); // Buffered
+				htable.put(Puts.buildInsert(nextRow.getRowArray(), this.transactionID.getBytes(),serializer)); // Buffered
 				numSunk++;
 			}
 			htable.flushCommits();

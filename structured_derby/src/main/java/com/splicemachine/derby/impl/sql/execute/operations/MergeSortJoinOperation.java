@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -222,16 +223,17 @@ public class MergeSortJoinOperation extends JoinOperation {
 					resultSet = rightResultSet;
 					break;
 			}
+            Serializer serializer = new Serializer();
 			while ((row = resultSet.getNextRowCore())!=null){
 			SpliceLogUtils.trace(LOG, "sinking row %s",row);
 				byte[] rowKey = hasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors);
-				put = Puts.buildInsert(rowKey, row.getRowArray(),null, null, additionalDescriptors);
+				put = Puts.buildInsert(rowKey, row.getRowArray(),null, null,serializer, additionalDescriptors);
 				put.setWriteToWAL(false); // Seeing if this speeds stuff up a bit...
 				tempTable.put(put);
 				numSunk++;
-				if ((numSunk % 50000) == 0) {
-					SpliceLogUtils.trace(LOG, "number sunk = %d", numSunk);
-				}
+//				if ((numSunk % 50000) == 0) {
+//					SpliceLogUtils.trace(LOG, "number sunk = %d", numSunk);
+//				}
 			}
 			tempTable.flushCommits();
 			tempTable.close();
@@ -271,7 +273,8 @@ public class MergeSortJoinOperation extends JoinOperation {
 	@Override
 	public ExecRow getExecRowDefinition() {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
-		JoinUtils.getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition(),wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
+		JoinUtils.getMergedRow((this.leftResultSet).getExecRowDefinition(),(this.rightResultSet).getExecRowDefinition(),
+                wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
 	}
 	

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.utils.Puts;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -79,6 +80,7 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 		ExecRow row = null;
 		HTableInterface tempTable = null;
 		Put put = null;
+        Serializer serializer = new Serializer();
 		try{
 			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			Hasher hasher = new Hasher(((SpliceBaseOperation)source).getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
@@ -86,7 +88,7 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 			while((row = source.getNextRowCore())!=null){
 				SpliceLogUtils.trace(LOG, "row="+row);
 				byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
-				put = Puts.buildInsert(rowKey,row.getRowArray(),null);
+				put = Puts.buildInsert(rowKey,row.getRowArray(),null,serializer);
 //				put = SpliceUtils.insert(row.getRowArray(), hasher.generateSortedHashKeyWithPostfix(row.getRowArray(), scannedTableName), null);
 				tempTable.put(put);
 				numSunk++;

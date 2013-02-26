@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.utils.Puts;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -318,10 +319,11 @@ public class RowCountOperation extends SpliceBaseOperation {
 		try{
 			Put put;
 			tempTable = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
+            Serializer serializer = new Serializer();
 			while((row = getNextRowCore()) != null){
 				SpliceLogUtils.trace(LOG, "row="+row);
 				byte[] rowKey = DerbyBytesUtil.generateSortedHashKey(row.getRowArray(),sequence[0],null,null);
-				put = Puts.buildInsert(rowKey,row.getRowArray(),null);
+				put = Puts.buildInsert(rowKey,row.getRowArray(),null,serializer);
 //				put = SpliceUtils.insert(row.getRowArray(),
 //									DerbyBytesUtil.generateSortedHashKey(row.getRowArray(),
 //																	sequence[0],null,null),

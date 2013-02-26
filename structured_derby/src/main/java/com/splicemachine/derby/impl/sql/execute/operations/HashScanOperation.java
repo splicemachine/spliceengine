@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
@@ -230,11 +231,12 @@ public class HashScanOperation extends ScanOperation {
 			regionScanner.next(keyValues);
 			hasher = new Hasher(currentRow.getRowArray(),keyColumns,null,sequence[0]);
 			byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
+            Serializer serializer = new Serializer();
 			while (!keyValues.isEmpty()) {
 				SpliceLogUtils.trace(LOG, "Sinking Record ");
 				result = new Result(keyValues);
 				SpliceLogUtils.trace(LOG, "accessedColsToGrab=%s",accessedCols);
-				SpliceUtils.populate(result, currentRow.getRowArray(),accessedCols,baseColumnMap);
+				SpliceUtils.populate(result, currentRow.getRowArray(),accessedCols,baseColumnMap,serializer);
 				byte[] tempRowKey ;
 				if (eliminateDuplicates) {
 					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),scannedTableName);					
@@ -242,7 +244,7 @@ public class HashScanOperation extends ScanOperation {
 					tempRowKey = hasher.generateSortedHashKey(currentRow.getRowArray());					
 				}					
 				SpliceLogUtils.trace(LOG, "row to hash =%s, key=%s",currentRow, Arrays.toString(tempRowKey));
-				put = Puts.buildInsert(tempRowKey,currentRow.getRowArray(),null);
+				put = Puts.buildInsert(tempRowKey,currentRow.getRowArray(),null,serializer);
 				tempTable.put(put);	// TODO Buffer via list or configuration. JL			
 				numSunk++;
 				if (numSunk % 10000 ==0)

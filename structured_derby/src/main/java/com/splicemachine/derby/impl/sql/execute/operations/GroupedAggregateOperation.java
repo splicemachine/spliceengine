@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
 import com.splicemachine.derby.utils.*;
@@ -175,9 +176,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			Put put;
 			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
+            Serializer serializer = new Serializer();
 			while((row = doAggregation(false)) != null){
 				SpliceLogUtils.trace(LOG, "sinking row %s",row);
-				put = Puts.buildInsert(hasher.generateSortedHashKey(row.getRowArray()),row.getRowArray(),null);
+				put = Puts.buildInsert(hasher.generateSortedHashKey(row.getRowArray()),row.getRowArray(),null,serializer);
 				tempTable.put(put);
 				numSunk++;
 			}

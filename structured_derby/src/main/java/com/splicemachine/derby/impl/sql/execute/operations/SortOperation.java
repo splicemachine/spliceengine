@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Puts;
@@ -207,6 +208,7 @@ public class SortOperation extends SpliceBaseOperation {
 			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,descColumns,sequence[0]);
 			byte[] tempRowKey;
+            Serializer serializer  = new Serializer();
 			while((row = getNextRowCore()) != null){
 				SpliceLogUtils.trace(LOG, "row="+row);
 				if (this.distinct) {
@@ -214,7 +216,7 @@ public class SortOperation extends SpliceBaseOperation {
 				} else {
 					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),SpliceUtils.getUniqueKey());					
 				}					
-				put = Puts.buildInsert(tempRowKey,row.getRowArray(),null);
+				put = Puts.buildInsert(tempRowKey,row.getRowArray(),null,serializer);
 				tempTable.put(put);
 				numSunk++;
 			}

@@ -6,6 +6,7 @@ import java.util.*;
 
 import com.splicemachine.SpliceConfiguration;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
@@ -232,24 +233,77 @@ public class SpliceUtils {
 			SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
 		}
 	}
-	
-	public static void populate(Result currentResult, FormatableBitSet scanColumnList, DataValueDescriptor[] destRow) throws StandardException {
-		SpliceLogUtils.trace(LOG,"populate current Result %s using scanColumnList %s and destRow with size %d",currentResult,scanColumnList,destRow.length);
-		try {
-			if(scanColumnList == null) populate(currentResult,destRow);
-			else{
-				Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
-				for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
-					byte[] value = dataMap.get(Integer.toString(i).getBytes());
-					fill(value,destRow[i]);
-				}
-			}
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Error occurred during populate", e);
-		}
-	}
 
-	public static void populate(Result currentResult, DataValueDescriptor[] destRow,
+    public static void populate(Result currentResult, DataValueDescriptor[] destRow,Serializer serializer) throws StandardException {
+        SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",currentResult.raw().length,destRow.length);
+        /**
+         * We have to use dataMap here instead of using currentResult.getValue() because for some reason columns larger
+         * than 9 will go missing if you call getValue() --likely its due to the fact that we are serializing ints
+         * as strings instead of as ints themselves.
+         */
+        Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+        try{
+            for(int i=0;i<destRow.length;i++){
+                byte[] value = dataMap.get(Integer.toString(i).getBytes());
+                fill(value,destRow[i],serializer);
+            }
+        }catch(IOException ioe){
+            SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
+        }
+    }
+
+    public static void populate(Result currentResult, FormatableBitSet scanColumnList, DataValueDescriptor[] destRow,Serializer serializer) throws StandardException {
+        SpliceLogUtils.trace(LOG,"populate current Result %s using scanColumnList %s and destRow with size %d",currentResult,scanColumnList,destRow.length);
+        try {
+            if(scanColumnList == null) populate(currentResult,destRow,serializer);
+            else{
+                Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+                for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
+                    byte[] value = dataMap.get(Integer.toString(i).getBytes());
+                    fill(value,destRow[i],serializer);
+                }
+            }
+        } catch (IOException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG, "Error occurred during populate", e);
+        }
+    }
+
+    public static void populate(Result currentResult, FormatableBitSet scanColumnList, DataValueDescriptor[] destRow) throws StandardException {
+        SpliceLogUtils.trace(LOG,"populate current Result %s using scanColumnList %s and destRow with size %d",currentResult,scanColumnList,destRow.length);
+        try {
+            if(scanColumnList == null) populate(currentResult,destRow);
+            else{
+                Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+                for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
+                    byte[] value = dataMap.get(Integer.toString(i).getBytes());
+                    fill(value,destRow[i]);
+                }
+            }
+        } catch (IOException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG, "Error occurred during populate", e);
+        }
+    }
+
+    public static void populate(Result currentResult, DataValueDescriptor[] destRow,
+                                FormatableBitSet scanList,int[] bitSetToDestRowMap,Serializer serializer) throws StandardException{
+        if(scanList==null||scanList.getNumBitsSet()<=0) populate(currentResult,destRow,serializer);
+        else{
+            try{
+                Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+                for(int i=scanList.anySetBit();i!=-1;i=scanList.anySetBit(i)){
+                    byte[] value = dataMap.get(Integer.toString(i).getBytes());
+                    SpliceLogUtils.trace(LOG,"Attempting to place column[%d] into destRow %s",i,destRow[bitSetToDestRowMap[i]]);
+                    fill(value, destRow[bitSetToDestRowMap[i]],serializer);
+                }
+            }catch(IOException e){
+                SpliceLogUtils.logAndThrowRuntime(LOG,"Error occurred during populate",e);
+            }
+        }
+    }
+
+
+
+    public static void populate(Result currentResult, DataValueDescriptor[] destRow,
 															FormatableBitSet scanList,int[] bitSetToDestRowMap) throws StandardException{
 		if(scanList==null||scanList.getNumBitsSet()<=0) populate(currentResult,destRow);
 		else{
@@ -281,6 +335,12 @@ public class SpliceUtils {
 		}
 		return null;
 	}
+
+    private static void fill(byte[] value, DataValueDescriptor descriptor, Serializer serializer) throws IOException, StandardException {
+        if(value!=null&&descriptor!=null){
+           serializer.deserialize(value,descriptor);
+        }else if(descriptor!=null)descriptor.setToNull();
+    }
 
 	private static void fill(byte[] value, DataValueDescriptor dvd) throws StandardException, IOException {
 		if(value!=null&&dvd!=null){

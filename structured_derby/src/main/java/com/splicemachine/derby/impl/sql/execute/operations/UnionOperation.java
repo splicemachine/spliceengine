@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -391,6 +392,7 @@ public class UnionOperation extends SpliceBaseOperation {
 		try{
 			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			openCore();
+            Serializer serializer= new Serializer();
 			while((row = getNextRowFromSources()) != null){
 				SpliceLogUtils.trace(LOG, "UnionOperation sink, row="+row);
 				/* Need to use non-sorted non-hashed rowkey with the prefix
@@ -398,7 +400,7 @@ public class UnionOperation extends SpliceBaseOperation {
 										 DerbyBytesUtil.generateSortedHashKey(row.getRowArray(), sequence[0], keyColumns, null),
 										 null);
 										 */
-				put = Puts.buildInsert(DerbyBytesUtil.generatePrefixedRowKey(sequence[0]),row.getRowArray(),null);
+				put = Puts.buildInsert(DerbyBytesUtil.generatePrefixedRowKey(sequence[0]),row.getRowArray(),null,serializer);
 				tempTable.put(put);
 				numSunk++;
 			}

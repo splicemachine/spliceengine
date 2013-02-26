@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.storage;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.Hasher;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
@@ -25,6 +26,8 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.map.ser.StdSerializerProvider;
+
 import java.io.IOException;
 import java.util.NoSuchElementException;
 
@@ -51,6 +54,9 @@ public class MergeSortClientRowProvider implements RowProvider {
     private final byte[] tableName;
     private HTableInterface htable;
     private final Scan scan;
+    private final Serializer serializer;
+    private JoinSideExecRow leftSideRow;
+    private JoinSideExecRow rightSideRow;
 		
     public MergeSortClientRowProvider(SQLInteger rowType, byte[] table,
                                            byte[] columnFamily,
@@ -69,6 +75,7 @@ public class MergeSortClientRowProvider implements RowProvider {
         this.leftHasher = leftHasher;
         this.rightHasher = rightHasher;
         this.rowType = rowType;
+        this.serializer = new Serializer();
     }
 
     @Override
@@ -99,18 +106,29 @@ public class MergeSortClientRowProvider implements RowProvider {
         try{
             Result result = getResult();
             if(result!=null){
-            	
-        		rowType = (SQLInteger) DerbyBytesUtil.fromBytes(result.getValue(HBaseConstants.DEFAULT_FAMILY.getBytes(), JoinUtils.JOIN_SIDE_COLUMN), rowType);
+                rowType = (SQLInteger) serializer.deserialize(result.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN),rowType);
+//        		rowType = (SQLInteger) DerbyBytesUtil.fromBytes(result.getValue(HBaseConstants.DEFAULT_FAMILY.getBytes(), JoinUtils.JOIN_SIDE_COLUMN), rowType);
     			if (rowType.getInt() == JoinSide.RIGHT.ordinal()) {
-    				SpliceUtils.populate(result, fbt, rightRow.getRowArray());	
+    				SpliceUtils.populate(result, fbt, rightRow.getRowArray(),serializer);
     				currentRow = rightRow;
-    				joinSideRow = new JoinSideExecRow(rightRow,JoinSide.RIGHT,rightHasher.generateSortedHashScanKey(rightRow.getRowArray()));
+                    if(rightSideRow==null)
+                        rightSideRow = new JoinSideExecRow(rightRow,JoinSide.RIGHT,rightHasher.generateSortedHashScanKey(rightRow.getRowArray()));
+                    else
+                        rightSideRow.setHash(rightHasher.generateSortedHashScanKey(rightRow.getRowArray()));
+    				joinSideRow = rightSideRow; //new JoinSideExecRow(rightRow,JoinSide.RIGHT,rightHasher.generateSortedHashScanKey(rightRow.getRowArray()));
     			} else {					
     				SpliceUtils.populate(result, fbt, leftRow.getRowArray());
     				currentRow = leftRow;
-    				joinSideRow = new JoinSideExecRow(leftRow,JoinSide.LEFT,leftHasher.generateSortedHashScanKey(leftRow.getRowArray()));
+                    if(leftSideRow ==null)
+                        leftSideRow = new JoinSideExecRow(leftRow,JoinSide.LEFT,leftHasher.generateSortedHashScanKey(leftRow.getRowArray()));
+                    else
+                        leftSideRow.setHash(leftHasher.generateSortedHashScanKey(leftRow.getRowArray()));
+    				joinSideRow = leftSideRow;//new JoinSideExecRow(leftRow,JoinSide.LEFT,leftHasher.generateSortedHashScanKey(leftRow.getRowArray()));
     			}
-                currentRowLocation = new HBaseRowLocation(result.getRow());
+                if(currentRowLocation==null)
+                    currentRowLocation = new HBaseRowLocation(result.getRow());
+                else
+                    currentRowLocation.setValue(result.getRow());
                 populated = true;
                 return true;
             }

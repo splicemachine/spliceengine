@@ -1,6 +1,7 @@
 
 package com.splicemachine.derby.impl.store.access.btree;
 
+import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.utils.Puts;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -37,7 +38,7 @@ public class IndexController  extends SpliceController  {
 		try {
 			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
-			htable.put(Puts.buildInsert(rowKey, row, transID));
+			htable.put(Puts.buildInsert(rowKey, row, transID,new Serializer()));
 //			htable.put(SpliceUtils.insert(row,DerbyBytesUtil.generateIndexKey(row,((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo()),  transID));
 			return 0;
 		} catch (Exception e) {
@@ -54,7 +55,7 @@ public class IndexController  extends SpliceController  {
 		try {
 			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
-			Put put = Puts.buildInsert(rowKey,row,transID);
+			Put put = Puts.buildInsert(rowKey,row,transID,new Serializer());
 //			Put put = SpliceUtils.insert(row,DerbyBytesUtil.generateIndexKey(row,((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo()), transID);
 			destRowLocation.setValue(put.getRow());
 			if (LOG.isTraceEnabled())
