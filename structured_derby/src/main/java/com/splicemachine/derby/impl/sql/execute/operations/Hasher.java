@@ -32,7 +32,45 @@ public class Hasher {
 	public Hasher(DataValueDescriptor[] descriptors, int[] hashKeys, boolean[] sortOrder, DataValueDescriptor prefixString) {
 		this(descriptors,hashKeys,sortOrder,prefixString,null,null);
 	}
+	/**
+	 * 
+	 * This is the hasher implementation utilized by the broadcastJoin
+	 * 
+	 * @param descriptors
+	 * @param hashKeys
+	 * @param sortOrder
+	 */
+	public Hasher(DataValueDescriptor[] descriptors, int[] hashKeys, boolean[] sortOrder) {
+		super();
+        SpliceLogUtils.trace(LOG, "Building hasher with descriptors %s,hashKeys %s",
+        		Arrays.toString(descriptors),Arrays.toString(hashKeys));
+        this.hashKeys = hashKeys;
+        this.sortOrder = sortOrder;
+        values = new Object[hashKeys.length];
+        StructBuilder structBuilder = new StructBuilder();
+        RowKey rowKey;
+        for (int i=0;i<hashKeys.length;i++) {
+        	rowKey = DerbyBytesUtil.getRowKey(descriptors[hashKeys[i]]);
+            if (sortOrder != null && !sortOrder[hashKeys[i]])
+            	rowKey.setOrder(Order.DESCENDING);
+            structBuilder.add(rowKey);
+        }
+        structRowKey = structBuilder.toRowKey();
+    }
+
 	
+	
+	/**
+	 * 
+	 * Hasher Implementation for the temp table.
+	 * 
+	 * @param descriptors
+	 * @param hashKeys
+	 * @param sortOrder
+	 * @param prefixString
+	 * @param additional
+	 * @param additionalsortOrder
+	 */
 	public Hasher(DataValueDescriptor[] descriptors, int[] hashKeys, boolean[] sortOrder, DataValueDescriptor prefixString, DataValueDescriptor[] additional, boolean[] additionalsortOrder) {
 		super();
         try {
@@ -90,6 +128,13 @@ public class Hasher {
 			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
 		}
 		values[hashKeys.length+1] = SpliceUtils.getUniqueKey();
+		return structRowKey.serialize(values);
+	}	
+
+	public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
+		for (int i=0;i<hashKeys.length;i++) {
+			values[i] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
+		}
 		return structRowKey.serialize(values);
 	}	
 
