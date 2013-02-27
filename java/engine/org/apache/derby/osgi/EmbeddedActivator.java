@@ -19,25 +19,25 @@
 
  */
 
-package org.apache.derby.osgi;
-
-import java.sql.DriverManager;
-import java.sql.SQLException;
-
-import org.osgi.framework.BundleActivator;
-import org.osgi.framework.BundleContext;
-
-public final class EmbeddedActivator implements BundleActivator {
-
-	public void start(BundleContext context) {
-		new org.apache.derby.jdbc.EmbeddedDriver();
-	}
-
-	public void stop(BundleContext context) {
-		try {
-			DriverManager.getConnection("jdbc:derby:;shutdown=true");
-		} catch (SQLException sqle) {
-		}
-	}
-}
+//package org.apache.derby.osgi;
+//
+//import java.sql.DriverManager;
+//import java.sql.SQLException;
+//
+//import org.osgi.framework.BundleActivator;
+//import org.osgi.framework.BundleContext;
+//
+//public final class EmbeddedActivator implements BundleActivator {
+//
+//	public void start(BundleContext context) {
+//		new org.apache.derby.jdbc.EmbeddedDriver();
+//	}
+//
+//	public void stop(BundleContext context) {
+//		try {
+//			DriverManager.getConnection("jdbc:derby:;shutdown=true");
+//		} catch (SQLException sqle) {
+//		}
+//	}
+//}
 

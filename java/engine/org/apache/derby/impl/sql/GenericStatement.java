@@ -25,13 +25,8 @@ import org.apache.derby.impl.sql.compile.StatementNode;
 import org.apache.derby.impl.sql.conn.GenericLanguageConnectionContext;
 import org.apache.derby.iapi.util.ByteArray;
 import org.apache.derby.iapi.util.InterruptStatus;
-import org.apache.log4j.Logger;
-
-import com.splicemachine.derby.hbase.SpliceEngine;
-import com.splicemachine.utils.SpliceLogUtils;
 
 public class GenericStatement implements Statement {
-	private static Logger LOG = Logger.getLogger(GenericStatement.class);
 
 	// these fields define the identity of the statement
 	private final SchemaDescriptor compilationSchema;
@@ -48,7 +43,6 @@ public class GenericStatement implements Statement {
 	 */
 
 	public GenericStatement(SchemaDescriptor compilationSchema, String statementText, boolean isForReadOnly) {
-		SpliceLogUtils.trace(LOG, "Creating generic statement for sql: %s",statementText);
 		this.compilationSchema = compilationSchema;
 		this.statementText = statementText;
 		this.isForReadOnly = isForReadOnly;

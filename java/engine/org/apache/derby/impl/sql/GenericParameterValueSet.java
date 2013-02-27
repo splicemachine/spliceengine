@@ -37,6 +37,7 @@ import org.apache.derby.iapi.types.SQLChar;
 
 import java.io.*;
 import java.sql.Types;
+import java.util.Iterator;
 
 /**
  * Implementation of ParameterValueSet
@@ -58,7 +59,7 @@ final class GenericParameterValueSet implements ParameterValueSet,Externalizable
     /*
      * Constructor for serialization/deserialization, DO NOT USE
      */
-    @Deprecated
+//    @Deprecated
     public GenericParameterValueSet(){}
 
 	/**
@@ -500,7 +501,7 @@ final class GenericParameterValueSet implements ParameterValueSet,Externalizable
 		return parms[parameterIndex-1].getPrecision();
 	}
 
-    @Override
+//    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         /*
          * For the moment, we ignore the ClassInspector, because it's not
@@ -513,14 +514,15 @@ final class GenericParameterValueSet implements ParameterValueSet,Externalizable
         out.writeBoolean(hasReturnOutputParam);
     }
 
-    @Override
+//    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         parms = new GenericParameter[in.readInt()];
         ArrayUtil.readArrayItems(in,parms);
         hasReturnOutputParam = in.readBoolean();
 
         //set the value set on each parameter
-        for(GenericParameter parm:parms){
+        for(int i=0;i<parms.length;i++){
+            GenericParameter parm = parms[i];
             parm.setParameterValueSet(this);
         }
     }

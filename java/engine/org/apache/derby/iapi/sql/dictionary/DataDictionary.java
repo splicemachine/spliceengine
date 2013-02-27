@@ -439,6 +439,8 @@ public interface DataDictionary
 	public SchemaDescriptor	getSysIBMSchemaDescriptor( )
 						throws StandardException;
 
+    public SchemaDescriptor getSystemUtilSchemaDescriptor() throws StandardException;
+
 	/**
 	 * Get the descriptor for the declared global temporary table schema which is always named "SESSION".
 	 *

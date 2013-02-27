@@ -20,38 +20,21 @@ Derby - Class org.apache.derby.impl.sql.compile.HashJoinStrategy
 
 package org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.io.FormatableIntHolder;
-import org.apache.derby.iapi.sql.compile.CostEstimate;
-import org.apache.derby.iapi.sql.compile.ExpressionClassBuilderInterface;
-import org.apache.derby.iapi.sql.compile.JoinStrategy;
-import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.iapi.sql.compile.Optimizer;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.store.access.StoreCostController;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.services.compiler.MethodBuilder;
-import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
-import org.apache.derby.impl.sql.compile.ProjectRestrictNode;
-import org.apache.derby.impl.sql.compile.Predicate;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.cache.ClassSize;
+import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.compile.*;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.store.access.StoreCostController;
+import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.util.JBitSet;
-import org.apache.log4j.Logger;
-import com.splicemachine.utils.SpliceLogUtils;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Vector;
 
 public class MergeSortJoinStrategy extends BaseJoinStrategy {
-	private static Logger LOG = Logger.getLogger(MergeSortJoinStrategy.class);
 	public MergeSortJoinStrategy() {
 	}
 
@@ -62,7 +45,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	 */
 	public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList,Optimizer optimizer) throws StandardException  {
 		//commented out because it's annoying -SF-
-//		SpliceLogUtils.trace(LOG, "feasible - testing innerTable %s with predicate list=%s and optimizer=%s",innerTable,predList,optimizer);
 		int[] hashKeyColumns = null;
 		ConglomerateDescriptor cd = null;
 		
@@ -70,7 +52,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 		 * join columns in the VTI's parameters.  If so, then hash join is not feasible.
 		 */
 		if (! innerTable.isMaterializable()) {
-			SpliceLogUtils.trace(LOG, "inner Table in not materializable");
 			optimizer.trace(Optimizer.HJ_SKIP_NOT_MATERIALIZABLE, 0, 0, 0.0,null);
 			return false;
 		}
@@ -81,7 +62,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 		 * the heap and we need them for a target table.
 		 */
 		if (innerTable.isTargetTable()) {
-			SpliceLogUtils.trace(LOG, "inner Table is a target table");
 			return false;
 		}
 			
@@ -132,7 +112,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 			// hash join.
 			tNums.and(pNums);
 			if (tNums.getFirstSetBit() != -1) {
-				SpliceLogUtils.trace(LOG, "lower node reference - this should not restrict mergeSort");
 				return false;
 			}
 		}
@@ -150,12 +129,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 				optimizer.trace(Optimizer.HJ_SKIP_NO_JOIN_COLUMNS, 0, 0, 0.0, null);
 			}
 			else {
-				SpliceLogUtils.trace(LOG, "hash key columns exist with columns");
-				if (LOG.isTraceEnabled()) {
-					for (int i=0 ; i< hashKeyColumns.length;i++) {
-						SpliceLogUtils.trace(LOG, "    hash column: %d",hashKeyColumns[i]);						
-					}
-				}
 				optimizer.trace(Optimizer.HJ_HASH_KEY_COLUMNS, 0, 0, 0.0, hashKeyColumns);
 			}
 		}
@@ -168,13 +141,11 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 
 	/** @see JoinStrategy#ignoreBulkFetch */
 	public boolean ignoreBulkFetch() {
-		SpliceLogUtils.trace(LOG, "ignoreBulkFetch");
 		return true;
 	}
 
 	/** @see JoinStrategy#multiplyBaseCostByOuterRows */
 	public boolean multiplyBaseCostByOuterRows() {
-		SpliceLogUtils.trace(LOG, "multiplyBaseCostByOuterRows");
 		return false;
 	}
 
@@ -185,7 +156,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	 */
 	public OptimizablePredicateList getBasePredicates(OptimizablePredicateList predList,OptimizablePredicateList basePredicates,
 									Optimizable innerTable) throws StandardException {
-		SpliceLogUtils.trace(LOG, "getBasePredicates");
 
 		if (SanityManager.DEBUG) {
 			SanityManager.ASSERT(basePredicates.size() == 0,"The base predicate list should be empty.");
@@ -204,7 +174,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 
 	/** @see JoinStrategy#nonBasePredicateSelectivity */
 	public double nonBasePredicateSelectivity(Optimizable innerTable,OptimizablePredicateList predList) throws StandardException {
-		SpliceLogUtils.trace(LOG, "nonBasePredicateSelectivity");
 		double retval = 1.0;
 		if (predList != null) {
 			for (int i = 0; i < predList.size(); i++) {
@@ -224,7 +193,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	 * @exception StandardException		Thrown on error
 	 */
 	public void putBasePredicates(OptimizablePredicateList predList,OptimizablePredicateList basePredicates) throws StandardException {
-		SpliceLogUtils.trace(LOG, "putBasePredicates");
 		for (int i = basePredicates.size() - 1; i >= 0; i--) {
 			OptimizablePredicate pred = basePredicates.getOptPredicate(i);
 			predList.addOptPredicate(pred);
@@ -239,7 +207,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 							 CostEstimate outerCost,
 							 Optimizer optimizer,
 							 CostEstimate costEstimate) {
-		SpliceLogUtils.trace(LOG, "estimateCost");
 		/*
 		** The cost of a hash join is the cost of building the hash table.
 		** There is no extra cost per outer row, so don't do anything here.
@@ -248,7 +215,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 
 	/** @see JoinStrategy#maxCapacity */
 	public int maxCapacity( int userSpecifiedCapacity, int maxMemoryPerTable, double perRowUsage) {
-		SpliceLogUtils.trace(LOG, "maxCapacity");
         if( userSpecifiedCapacity >= 0)
             return userSpecifiedCapacity;
         perRowUsage += ClassSize.estimateHashEntrySize();
@@ -259,20 +225,17 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 
 	/** @see JoinStrategy#getName */
 	public String getName() {
-		SpliceLogUtils.trace(LOG, "getName");
 		return "SORTMERGE";
 	}
 
 	/** @see JoinStrategy#scanCostType */
 	public int scanCostType() {
-		SpliceLogUtils.trace(LOG, "scanCostType");
 		return StoreCostController.STORECOST_SCAN_SET;
 	}
 
 	/** @see JoinStrategy#resultSetMethodName */
-	@Override
+//	@Override
 	public String resultSetMethodName(boolean bulkFetch, boolean multiprobe) {
-		SpliceLogUtils.trace(LOG, "resultSetMethodName");
 		if (bulkFetch)
 			return "getBulkTableScanResultSet";
 		else if (multiprobe)
@@ -282,16 +245,14 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	}
 
 	/** @see JoinStrategy#joinResultSetMethodName */
-	@Override
+//	@Override
 	public String joinResultSetMethodName() {
-		SpliceLogUtils.trace(LOG, "joinResultSetMethodName");
 		return "getMergeSortJoinResultSet";
 	}
 
 	/** @see JoinStrategy#halfOuterJoinResultSetMethodName */
-	@Override
+//	@Override
 	public String halfOuterJoinResultSetMethodName() {
-		SpliceLogUtils.trace(LOG, "halfOuterJoinResultSetMethodName");
 		return "getMergeSortLeftOuterJoinResultSet";
 	}
 	
@@ -317,7 +278,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 							int isolationLevel,
 							int maxMemoryPerTable,
 							boolean genInListVals) throws StandardException {
-		SpliceLogUtils.trace(LOG, "getScanArgs");
 		ExpressionClassBuilder acb = (ExpressionClassBuilder) acbi;
 		int numArgs;
 		/* If we're going to generate a list of IN-values for index probing
@@ -383,7 +343,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 					OptimizablePredicateList requalificationRestrictionList,
 					DataDictionary			 dd
 					) throws StandardException {
-		SpliceLogUtils.trace(LOG, "divideUpPredicateLists");
 		/*
 		** If we are walking a non-covering index, then all predicates that
 		** get evaluated in the HashScanResultSet, whether during the building
@@ -518,7 +477,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	 * @see JoinStrategy#isHashJoin
 	 */
 	public boolean isHashJoin() {
-		SpliceLogUtils.trace(LOG, "isHashJoin");
 		return false;
 	}
 
@@ -526,7 +484,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	 * @see JoinStrategy#doesMaterialization
 	 */
 	public boolean doesMaterialization() {	
-		SpliceLogUtils.trace(LOG, "doesMaterialization");
 		return false;
 	}
 
@@ -542,7 +499,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	 * @exception StandardException		Thrown on error
 	 */
 	private int[] findHashKeyColumns(Optimizable innerTable, ConglomerateDescriptor cd, OptimizablePredicateList predList) throws StandardException {
-		SpliceLogUtils.trace(LOG, "findHashKeyColumns");
 		if (predList == null)
 			return (int[]) null;
 
@@ -594,7 +550,6 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	}
 
 	public String toString() {
-		SpliceLogUtils.trace(LOG, "toString");
 		return getName();
 	}
 	/**

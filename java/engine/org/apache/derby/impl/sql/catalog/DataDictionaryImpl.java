@@ -787,12 +787,21 @@ public final class	DataDictionaryImpl
                 
 				// create any required tables.
 				createDictionaryTables(startParams, bootingTC, ddg);
+
+                //create metadata sps statement required for network server
+                createSystemSps(bootingTC);
+
+                //create stored procedures
+                SystemProcedureGenerator procedureGenerator = (SystemProcedureGenerator) Monitor.bootServiceModule(
+                        create, this,
+                        SystemProcedureGenerator.MODULE,
+                        startParams);
+                procedureGenerator.createProcedures(bootingTC,newlyCreatedRoutines);
+
 				//create procedures for network server metadata
-				create_SYSIBM_procedures(bootingTC, newlyCreatedRoutines );
-				//create metadata sps statement required for network server
-				createSystemSps(bootingTC);
+//				create_SYSIBM_procedures(bootingTC, newlyCreatedRoutines );
                 // create the SYSCS_UTIL system procedures)
-                create_SYSCS_procedures(bootingTC, newlyCreatedRoutines );
+//                create_SYSCS_procedures(bootingTC, newlyCreatedRoutines );
                 // now grant execute permission on some of these routines
                 grantPublicAccessToSystemRoutines( newlyCreatedRoutines, bootingTC, authorizationDatabaseOwner );
 				// log the current dictionary version

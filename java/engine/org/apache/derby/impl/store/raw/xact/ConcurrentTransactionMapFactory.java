@@ -47,7 +47,7 @@ class ConcurrentTransactionMapFactory extends TransactionMapFactory {
         return map;
     }
 
-    @Override
+//    @Override
     void visitEntries(Map map, TransactionTable.EntryVisitor visitor) {
         for (Object entry : map.values()) {
             if (!visitor.visit((TransactionTableEntry) entry)) {

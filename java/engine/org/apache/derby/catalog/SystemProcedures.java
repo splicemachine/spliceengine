@@ -21,21 +21,6 @@
 
 package org.apache.derby.catalog;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.security.Policy;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.Statement;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.NoSuchElementException;
-import java.util.Random;
-import java.util.StringTokenizer;
-
-import com.splicemachine.derby.impl.load.HdfsImport;
 import org.apache.derby.iapi.db.Factory;
 import org.apache.derby.iapi.db.PropertyInfo;
 import org.apache.derby.iapi.error.PublicAPI;
@@ -47,30 +32,25 @@ import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.property.PropertyUtil;
 import org.apache.derby.iapi.sql.conn.ConnectionUtil;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.dictionary.*;
+import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.util.IdUtil;
 import org.apache.derby.iapi.util.StringUtil;
 import org.apache.derby.impl.jdbc.EmbedDatabaseMetaData;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.impl.load.Export;
 import org.apache.derby.impl.load.Import;
-import org.apache.derby.impl.sql.catalog.XPLAINTableDescriptor;
-import org.apache.derby.impl.sql.catalog.XPLAINResultSetDescriptor;
-import org.apache.derby.impl.sql.catalog.XPLAINResultSetTimingsDescriptor;
-import org.apache.derby.impl.sql.catalog.XPLAINScanPropsDescriptor;
-import org.apache.derby.impl.sql.catalog.XPLAINSortPropsDescriptor;
-import org.apache.derby.impl.sql.catalog.XPLAINStatementDescriptor;
-import org.apache.derby.impl.sql.catalog.XPLAINStatementTimingsDescriptor;
+import org.apache.derby.impl.sql.catalog.*;
 import org.apache.derby.impl.sql.execute.JarUtil;
 import org.apache.derby.jdbc.InternalDriver;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.sql.dictionary.CatalogRowFactory;
-import org.apache.derby.iapi.sql.dictionary.SystemColumn;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.DataDescriptorGenerator;
-import org.apache.derby.iapi.sql.dictionary.PasswordHasher;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.sql.dictionary.UserDescriptor;
+
+import java.security.AccessController;
+import java.security.Policy;
+import java.security.PrivilegedAction;
+import java.sql.*;
+import java.util.NoSuchElementException;
+import java.util.Random;
+import java.util.StringTokenizer;
 
 /**
 	Some system built-in procedures, and help routines.  Now used for network server.
@@ -1590,17 +1570,18 @@ public class SystemProcedures  {
 	String  fileName,
 	String  columnDelimiter,
 	String  characterDelimiter,
-			String  timestampFormat
+    String codeset,
+    short replace
 			)
         throws SQLException
     {
 		Connection conn = getDefaultConn();
 		try{
-			HdfsImport.importData(conn,schemaName,tableName,insertColumnList,fileName,columnDelimiter,characterDelimiter,timestampFormat);
-//			Import.importData(conn, schemaName , tableName ,
-//					insertColumnList, columnIndexes, fileName,
-//					columnDelimiter, characterDelimiter,
-//					codeset, replace, false);
+//			HdfsImport.importData(conn,schemaName,tableName,insertColumnList,fileName,columnDelimiter,characterDelimiter,timestampFormat);
+			Import.importData(conn, schemaName , tableName ,
+					insertColumnList, columnIndexes, fileName,
+					columnDelimiter, characterDelimiter,
+					codeset, replace, false);
 		}catch(SQLException se)
 		{
 		    rollBackAndThrowSQLException(conn, se);
