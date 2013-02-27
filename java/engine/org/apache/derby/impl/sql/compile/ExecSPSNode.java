@@ -200,10 +200,11 @@ public class ExecSPSNode extends StatementNode
 		if(ps instanceof GenericStorablePreparedStatement){
 		//ugly little hack to ensure that we can write the class file out for ExecSPSNode types
 			if(SanityManager.DEBUG && SanityManager.DEBUG_ON("DumpClassFile")){
-				String systemHome = (String)AccessController.doPrivileged(new PrivilegedAction() {
+                String systemHome = AccessController.doPrivileged(new PrivilegedAction<String>() {
 					
-					public Object run() {
-						return System.getProperty(Property.SYSTEM_HOME_PROPERTY,".");
+                    @Override
+                    public String run() {
+                        return System.getProperty(Property.SYSTEM_HOME_PROPERTY, ".");
 					}
 				});	
 				new DumpGClass((GenericStorablePreparedStatement)ps,gc.getName()).writeClassFile(systemHome,false,null);
@@ -357,34 +358,42 @@ public class ExecSPSNode extends StatementNode
             this.bytecode=ps.getByteCodeSaver();
         }
 
+        @Override
         public LocalField addField(String type, String name, int modifiers) {
             return null; //no-op
         }
 
+        @Override
         public ByteArray getClassBytecode() throws StandardException {
             return ps.getByteCodeSaver();
         }
 
+        @Override
         public void writeClassFile(String dir, boolean logMessage, Throwable t) throws StandardException {
             super.writeClassFile(dir, logMessage, t);
         }
 
+        @Override
         public String getName() {
             return ps.getObjectName();
         }
 
+        @Override
         public MethodBuilder newMethodBuilder(int modifiers, String returnType, String methodName) {
             return null;
         }
 
+        @Override
         public MethodBuilder newMethodBuilder(int modifiers, String returnType, String methodName, String[] parms) {
             return null;
         }
 
+        @Override
         public MethodBuilder newConstructorBuilder(int modifiers) {
             return null;
         }
 
+        @Override
         public void newFieldWithAccessors(String getter, String setter, int methodModifier, boolean staticField, String type) {
         }
     }

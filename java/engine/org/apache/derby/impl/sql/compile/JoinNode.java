@@ -22,6 +22,7 @@
 package	org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.CompilerContext;
@@ -46,6 +47,9 @@ import org.apache.derby.iapi.util.PropertyUtil;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -64,6 +68,7 @@ import java.util.Vector;
  */
 
 public class JoinNode extends TableOperatorNode {
+	private static Logger LOG = Logger.getLogger(JoinNode.class);
 	/* Join semantics */
 	public static final int INNERJOIN = 1;
 	public static final int CROSSJOIN = 2;
@@ -1661,35 +1666,98 @@ public class JoinNode extends TableOperatorNode {
 		mb.push(leftResultSet.resultColumns.size()); // arg 2
 		rightResultSet.generate(acb, mb); // arg 3
 		mb.push(rightResultSet.resultColumns.size()); // arg 4
-		if (((Optimizable) rightResultSet).getTrulyTheBestAccessPath().getJoinStrategy() instanceof MergeSortJoinStrategy) {
-			MergeSortJoinStrategy msjs = (MergeSortJoinStrategy) ((Optimizable) rightResultSet).getTrulyTheBestAccessPath().getJoinStrategy();
-			if (msjs.hashKeyMap != null) {
-				List leftKeys = (List)msjs.hashKeyMap.get(new Integer(leftResultSet.getReferencedTableMap().getFirstSetBit()));
-				List rightKeys = (List)msjs.hashKeyMap.get(new Integer(rightResultSet.getReferencedTableMap().getFirstSetBit()));
-				if (leftKeys != null && leftKeys.size() > 0) {
-					leftHashKeys = new int[leftKeys.size()];
-					for (int i = 0; i < leftKeys.size();i++) { 
-						leftHashKeys[i] = ((Integer)leftKeys.get(i)).intValue();
-					}
-					FormatableIntHolder[] fihArray = FormatableIntHolder.getFormatableIntHolders(leftHashKeys); 
-					FormatableArrayHolder hashKeyHolder = new FormatableArrayHolder(fihArray);
-					int hashKeyItem = acb.addItem(hashKeyHolder);
-					mb.push(hashKeyItem);
-					numArgs++;					
+
+        if(rightResultSet instanceof Optimizable){
+            Optimizable rightOptimizable = (Optimizable)rightResultSet;
+
+            /*
+             * In the event of a MergeSortJoin Strategy, we have to sort of hack the
+             * structure of the JoinNode, because it's structured fundamentally different
+             * than Derby-specific joins. In particular, it requires the hash keys for both
+             * the left and right result sets (as opposed to just the right in the case of a derby HashJoin).
+             * This block of code deals with that scenario.
+             *
+             * In particular, this will build both the left and right hash key sets by looking at the
+             * predicates which are part of the query.
+             *
+             */
+            if(rightOptimizable.getTrulyTheBestAccessPath().getJoinStrategy() instanceof MergeSortJoinStrategy){
+                FromBaseTable table = null;
+                if(rightOptimizable instanceof ProjectRestrictNode){
+                    //if the table is a ProjectRestrict, then you have to go past,
+                    // because ProjectRestricts don't necessarily have the Predicates we need
+                    table = (FromBaseTable) ((ProjectRestrictNode)rightOptimizable).getChildResult();
+                }else{
+                    table = (FromBaseTable)rightOptimizable;
+                }
+                PredicateList nonStoreRestrictionList = table.nonStoreRestrictionList;
+                FormatableBitSet leftHashBits = new FormatableBitSet(nonStoreRestrictionList.size());
+                FormatableBitSet rightHashBits = new FormatableBitSet(nonStoreRestrictionList.size());
+                for(int i=0;i<nonStoreRestrictionList.size();i++){
+                    Predicate op = (Predicate)nonStoreRestrictionList.getOptPredicate(i);
+                    BinaryRelationalOperatorNode opNode = (BinaryRelationalOperatorNode)op.getAndNode().getLeftOperand();
+                    /*
+                     * deal with the left side of the predicate operand.
+                     */
+                    if(opNode.getLeftOperand() instanceof ColumnReference){
+                        ColumnReference leftCol = (ColumnReference)opNode.getLeftOperand();
+                        /*
+                         * if this column belongs to the left table, set it on the left bits, otherwise
+                         * set it on the right bits.
+                         *
+                         * This is for situations where the right-side join column is on the left side of the
+                         * predicate (e.g. reversed from what you would normally expect).
+                         */
+                        if(leftCol.getTableNumber()==0){
+                            leftHashBits.grow(leftCol.getColumnNumber()+1);
+                            leftHashBits.set(leftCol.getColumnNumber());
+                        }else{
+                            rightHashBits.grow(leftCol.getColumnNumber()+1);
+                            rightHashBits.set(leftCol.getColumnNumber());
 				}
-				if (rightKeys != null && rightKeys.size() > 0) {
-					rightHashKeys = new int[rightKeys.size()];
-					for (int i = 0; i < rightKeys.size();i++) { 
-						rightHashKeys[i] = ((Integer)rightKeys.get(i)).intValue();
-					}
-					FormatableIntHolder[] fihArray = FormatableIntHolder.getFormatableIntHolders(rightHashKeys); 
-					FormatableArrayHolder hashKeyHolder = new FormatableArrayHolder(fihArray);
-					int hashKeyItem = acb.addItem(hashKeyHolder);
-					mb.push(hashKeyItem);
-					numArgs++;					
+                    }
+                    /*
+                     * Deal with the right side of the predicate operand.
+                     */
+                    if(opNode.getRightOperand() instanceof ColumnReference){
+                        ColumnReference rightCol = (ColumnReference)opNode.getRightOperand();
+                        if(rightCol.getTableNumber()==0){
+                            leftHashBits.grow(rightCol.getColumnNumber()+1);
+                            leftHashBits.set(rightCol.getColumnNumber());
+                        }else{
+                            rightHashBits.grow(rightCol.getColumnNumber()+1);
+                            rightHashBits.set(rightCol.getColumnNumber());
 				}				
 			}
 		}
+
+                //Build the hashKey array from the leftHashBits
+                int[] leftHash = new int[leftHashBits.getNumBitsSet()];
+                for(int pos=0, next = leftHashBits.anySetBit();next!=-1;pos++,next = leftHashBits.anySetBit(next)){
+                    leftHash[pos] = next;
+                }
+                FormatableIntHolder[] fihArray = FormatableIntHolder.getFormatableIntHolders(leftHash);
+                FormatableArrayHolder leftKeyHolder = new FormatableArrayHolder(fihArray);
+
+                //add the left hash array to the method call
+                int leftHashKeyItem = acb.addItem(leftKeyHolder);
+                mb.push(leftHashKeyItem);
+                numArgs++;
+
+                //build the hash key array from the rightHashBits
+                int[] rightHash = new int[rightHashBits.getNumBitsSet()];
+                for(int pos=0, next = rightHashBits.anySetBit();next!=-1;pos++,next = rightHashBits.anySetBit(next)){
+                    rightHash[pos] = next;
+                }
+                fihArray = FormatableIntHolder.getFormatableIntHolders(rightHash);
+                FormatableArrayHolder rightKeyHolder = new FormatableArrayHolder(fihArray);
+
+                //add the right hash array to the method call
+                int rightHashKeyItem = acb.addItem(rightKeyHolder);
+                mb.push(rightHashKeyItem);
+                numArgs++;
+            }
+        }
 		// Get our final cost estimate based on child estimates.
 		costEstimate = getFinalCostEstimate();
 

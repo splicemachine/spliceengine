@@ -21,6 +21,7 @@
 
 package org.apache.derby.impl.sql;
 
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.reference.JDBC30Translation;
 
@@ -29,6 +30,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.TypeId;
+import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -334,7 +336,8 @@ final class GenericParameter implements Externalizable
 		}
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException{
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
 		out.writeInt(this.jdbcTypeId);
 		out.writeUTF(this.declaredClassName);
 		out.writeShort(this.parameterMode);
@@ -346,9 +349,11 @@ final class GenericParameter implements Externalizable
 		out.writeBoolean(!value.isNull());
 		if(!value.isNull())
 			out.writeObject(this.value);
+
 	}
 
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		jdbcTypeId = in.readInt();
 		declaredClassName = in.readUTF();
 		parameterMode = in.readShort();

@@ -92,10 +92,11 @@ public  class SumAggregator
 	 *	@return	the formatID of this class
 	 */
 	public	int	getTypeFormatId()	{ return StoredFormatIds.AGG_SUM_V01_ID; }
+	
         public String toString()
         {
             try {
-            return "SumAggregator: " + value.getString();
+			return "SumAggregator: " + (value!= null ? value.getString() : "NULL");
             }
             catch (StandardException e)
             {

@@ -165,6 +165,7 @@ class DirectCall implements GeneratedMethod {
 		}
 	}
 
+	@Override
 	public String getMethodName() {
 		return "e"+which;
 	}

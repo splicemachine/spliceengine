@@ -20,6 +20,9 @@ Derby - Class org.apache.derby.impl.sql.compile.HashJoinStrategy
 
 package org.apache.derby.impl.sql.compile;
 
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.ExpressionClassBuilderInterface;
 import org.apache.derby.iapi.sql.compile.JoinStrategy;
@@ -40,14 +43,15 @@ import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.cache.ClassSize;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.util.JBitSet;
+import org.apache.log4j.Logger;
+import com.splicemachine.utils.SpliceLogUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Vector;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class MergeSortJoinStrategy extends BaseJoinStrategy {
-	public HashMap/*<Integer,ArrayList<Integer>>*/ hashKeyMap = new HashMap/*<Integer,ArrayList<Integer>>*/();
+	private static Logger LOG = Logger.getLogger(MergeSortJoinStrategy.class);
 	public MergeSortJoinStrategy() {
 	}
 
@@ -58,6 +62,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	 */
 	public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList,Optimizer optimizer) throws StandardException  {
 		//commented out because it's annoying -SF-
+//		SpliceLogUtils.trace(LOG, "feasible - testing innerTable %s with predicate list=%s and optimizer=%s",innerTable,predList,optimizer);
 		int[] hashKeyColumns = null;
 		ConglomerateDescriptor cd = null;
 		
@@ -65,6 +70,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 		 * join columns in the VTI's parameters.  If so, then hash join is not feasible.
 		 */
 		if (! innerTable.isMaterializable()) {
+			SpliceLogUtils.trace(LOG, "inner Table in not materializable");
 			optimizer.trace(Optimizer.HJ_SKIP_NOT_MATERIALIZABLE, 0, 0, 0.0,null);
 			return false;
 		}
@@ -75,6 +81,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 		 * the heap and we need them for a target table.
 		 */
 		if (innerTable.isTargetTable()) {
+			SpliceLogUtils.trace(LOG, "inner Table is a target table");
 			return false;
 		}
 			
@@ -125,6 +132,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 			// hash join.
 			tNums.and(pNums);
 			if (tNums.getFirstSetBit() != -1) {
+				SpliceLogUtils.trace(LOG, "lower node reference - this should not restrict mergeSort");
 				return false;
 			}
 		}
@@ -142,6 +150,12 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 				optimizer.trace(Optimizer.HJ_SKIP_NO_JOIN_COLUMNS, 0, 0, 0.0, null);
 			}
 			else {
+				SpliceLogUtils.trace(LOG, "hash key columns exist with columns");
+				if (LOG.isTraceEnabled()) {
+					for (int i=0 ; i< hashKeyColumns.length;i++) {
+						SpliceLogUtils.trace(LOG, "    hash column: %d",hashKeyColumns[i]);						
+					}
+				}
 				optimizer.trace(Optimizer.HJ_HASH_KEY_COLUMNS, 0, 0, 0.0, hashKeyColumns);
 			}
 		}
@@ -154,11 +168,13 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 
 	/** @see JoinStrategy#ignoreBulkFetch */
 	public boolean ignoreBulkFetch() {
+		SpliceLogUtils.trace(LOG, "ignoreBulkFetch");
 		return true;
 	}
 
 	/** @see JoinStrategy#multiplyBaseCostByOuterRows */
 	public boolean multiplyBaseCostByOuterRows() {
+		SpliceLogUtils.trace(LOG, "multiplyBaseCostByOuterRows");
 		return false;
 	}
 
@@ -169,6 +185,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	 */
 	public OptimizablePredicateList getBasePredicates(OptimizablePredicateList predList,OptimizablePredicateList basePredicates,
 									Optimizable innerTable) throws StandardException {
+		SpliceLogUtils.trace(LOG, "getBasePredicates");
 
 		if (SanityManager.DEBUG) {
 			SanityManager.ASSERT(basePredicates.size() == 0,"The base predicate list should be empty.");
@@ -187,6 +204,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 
 	/** @see JoinStrategy#nonBasePredicateSelectivity */
 	public double nonBasePredicateSelectivity(Optimizable innerTable,OptimizablePredicateList predList) throws StandardException {
+		SpliceLogUtils.trace(LOG, "nonBasePredicateSelectivity");
 		double retval = 1.0;
 		if (predList != null) {
 			for (int i = 0; i < predList.size(); i++) {
@@ -206,6 +224,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	 * @exception StandardException		Thrown on error
 	 */
 	public void putBasePredicates(OptimizablePredicateList predList,OptimizablePredicateList basePredicates) throws StandardException {
+		SpliceLogUtils.trace(LOG, "putBasePredicates");
 		for (int i = basePredicates.size() - 1; i >= 0; i--) {
 			OptimizablePredicate pred = basePredicates.getOptPredicate(i);
 			predList.addOptPredicate(pred);
@@ -220,6 +239,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 							 CostEstimate outerCost,
 							 Optimizer optimizer,
 							 CostEstimate costEstimate) {
+		SpliceLogUtils.trace(LOG, "estimateCost");
 		/*
 		** The cost of a hash join is the cost of building the hash table.
 		** There is no extra cost per outer row, so don't do anything here.
@@ -228,6 +248,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 
 	/** @see JoinStrategy#maxCapacity */
 	public int maxCapacity( int userSpecifiedCapacity, int maxMemoryPerTable, double perRowUsage) {
+		SpliceLogUtils.trace(LOG, "maxCapacity");
         if( userSpecifiedCapacity >= 0)
             return userSpecifiedCapacity;
         perRowUsage += ClassSize.estimateHashEntrySize();
@@ -238,16 +259,20 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 
 	/** @see JoinStrategy#getName */
 	public String getName() {
+		SpliceLogUtils.trace(LOG, "getName");
 		return "SORTMERGE";
 	}
 
 	/** @see JoinStrategy#scanCostType */
 	public int scanCostType() {
+		SpliceLogUtils.trace(LOG, "scanCostType");
 		return StoreCostController.STORECOST_SCAN_SET;
 	}
 
 	/** @see JoinStrategy#resultSetMethodName */
+	@Override
 	public String resultSetMethodName(boolean bulkFetch, boolean multiprobe) {
+		SpliceLogUtils.trace(LOG, "resultSetMethodName");
 		if (bulkFetch)
 			return "getBulkTableScanResultSet";
 		else if (multiprobe)
@@ -257,12 +282,16 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	}
 
 	/** @see JoinStrategy#joinResultSetMethodName */
+	@Override
 	public String joinResultSetMethodName() {
+		SpliceLogUtils.trace(LOG, "joinResultSetMethodName");
 		return "getMergeSortJoinResultSet";
 	}
 
 	/** @see JoinStrategy#halfOuterJoinResultSetMethodName */
+	@Override
 	public String halfOuterJoinResultSetMethodName() {
+		SpliceLogUtils.trace(LOG, "halfOuterJoinResultSetMethodName");
 		return "getMergeSortLeftOuterJoinResultSet";
 	}
 	
@@ -288,39 +317,9 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 							int isolationLevel,
 							int maxMemoryPerTable,
 							boolean genInListVals) throws StandardException {
+		SpliceLogUtils.trace(LOG, "getScanArgs");
 		ExpressionClassBuilder acb = (ExpressionClassBuilder) acbi;
 		int numArgs;
-		if (nonStoreRestrictionList != null) {
-			for (int i = 0; i < nonStoreRestrictionList.size(); i++) {
-				Predicate op = (Predicate) nonStoreRestrictionList.getOptPredicate(i);
-				BinaryRelationalOperatorNode opNode = (BinaryRelationalOperatorNode)op.getAndNode().getLeftOperand();
-				// Get left operand's name.
-				if (opNode.getLeftOperand() instanceof ColumnReference && opNode.getRightOperand() instanceof ColumnReference) {
-					ColumnReference left = (ColumnReference) opNode.getLeftOperand();
-					ColumnReference right = (ColumnReference) opNode.getRightOperand();						
-					// left
-					List/*<Integer>*/ columns = (List)hashKeyMap.get(new Integer(left.getTableNumber()));
-					if (columns == null) {
-						columns = new ArrayList/*<Integer>*/();
-						columns.add(new Integer(left.getSource().getColumnPosition() - 1));
-						hashKeyMap.put(new Integer(left.getTableNumber()), columns);
-					} else {
-						columns.add(new Integer(left.getSource().getColumnPosition() - 1));
-					}
-					// right
-					columns = (List)hashKeyMap.get(new Integer(right.getTableNumber()));
-					if (columns == null) {
-						columns = new ArrayList/*<Integer>*/();
-						columns.add(new Integer(right.getSource().getColumnPosition() - 1));
-						hashKeyMap.put(new Integer(right.getTableNumber()), columns);
-					} else {
-						columns.add(new Integer(right.getSource().getColumnPosition() - 1));
-					}
-				}
-								
-			}
-		}
-		
 		/* If we're going to generate a list of IN-values for index probing
 		 * at execution time then we push TableScanResultSet arguments plus
 		 * two additional arguments: 1) the list of IN-list values, and 2)
@@ -384,6 +383,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 					OptimizablePredicateList requalificationRestrictionList,
 					DataDictionary			 dd
 					) throws StandardException {
+		SpliceLogUtils.trace(LOG, "divideUpPredicateLists");
 		/*
 		** If we are walking a non-covering index, then all predicates that
 		** get evaluated in the HashScanResultSet, whether during the building
@@ -518,6 +518,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	 * @see JoinStrategy#isHashJoin
 	 */
 	public boolean isHashJoin() {
+		SpliceLogUtils.trace(LOG, "isHashJoin");
 		return false;
 	}
 
@@ -525,6 +526,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	 * @see JoinStrategy#doesMaterialization
 	 */
 	public boolean doesMaterialization() {	
+		SpliceLogUtils.trace(LOG, "doesMaterialization");
 		return false;
 	}
 
@@ -540,6 +542,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	 * @exception StandardException		Thrown on error
 	 */
 	private int[] findHashKeyColumns(Optimizable innerTable, ConglomerateDescriptor cd, OptimizablePredicateList predList) throws StandardException {
+		SpliceLogUtils.trace(LOG, "findHashKeyColumns");
 		if (predList == null)
 			return (int[]) null;
 
@@ -591,6 +594,7 @@ public class MergeSortJoinStrategy extends BaseJoinStrategy {
 	}
 
 	public String toString() {
+		SpliceLogUtils.trace(LOG, "toString");
 		return getName();
 	}
 	/**
