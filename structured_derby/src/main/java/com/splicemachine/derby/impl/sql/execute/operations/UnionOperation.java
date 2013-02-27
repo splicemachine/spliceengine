@@ -1,15 +1,26 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.hbase.SpliceOperationProtocol;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
+import com.splicemachine.derby.impl.storage.RowProviders.SourceRowProvider;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.stats.RegionStats;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.sql.Activation;
@@ -23,22 +34,13 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.hbase.SpliceOperationProtocol;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.storage.RowProviders.SourceRowProvider;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * In Derby world, UnionResultSet is a pass-through: work/operation is passed to the left and right sub-operations 
@@ -203,24 +205,29 @@ public class UnionOperation extends SpliceBaseOperation {
 			htable = SpliceAccessManager.getHTable(table);
 			long numberCreated = 0;
 			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,topOperation);
-			Map<byte[], Long> results = htable.coprocessorExec(SpliceOperationProtocol.class,
+            final RegionStats stats = new RegionStats();
+            stats.start();
+			htable.coprocessorExec(SpliceOperationProtocol.class,
 																scan.getStartRow(),scan.getStopRow(),
-																new Batch.Call<SpliceOperationProtocol,Long>(){
+																new Batch.Call<SpliceOperationProtocol,SinkStats>(){
 				@Override
-				public Long call(SpliceOperationProtocol instance) throws IOException {
+				public SinkStats call(SpliceOperationProtocol instance) throws IOException {
 					try{
 						return instance.run(scan,soi);
 					}catch(StandardException se){
 						SpliceLogUtils.logAndThrow(LOG, "Unexpected error executing coprocessor",new IOException(se));
-						return -1l;
+						return null; //won't happen
 					}
 				}
-			});
+			}, new Batch.Callback<SinkStats>() {
+                        @Override
+                        public void update(byte[] region, byte[] row, SinkStats result) {
+                            stats.addRegionStats(region,result);
+                        }
+                    });
 
-			for(Long returnedRow : results.values()){
-				numberCreated +=returnedRow;
-			}
-
+            stats.finish();
+            stats.recordStats(LOG);
 			SpliceLogUtils.trace(LOG,"Retrieved %d records",numberCreated);
 			executed = true;
 		} catch (IOException ioe){
@@ -382,9 +389,10 @@ public class UnionOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public long sink() {
+	public SinkStats sink() {
 		SpliceLogUtils.trace(LOG, "sink");
-		long numSunk=0l;
+        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+        stats.start();
 		ExecRow row = null;
 		HTableInterface tempTable = null;
 		Put put = null;
@@ -393,17 +401,24 @@ public class UnionOperation extends SpliceBaseOperation {
 			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			openCore();
             Serializer serializer= new Serializer();
-			while((row = getNextRowFromSources()) != null){
-				SpliceLogUtils.trace(LOG, "UnionOperation sink, row="+row);
+            do{
+                long start = System.nanoTime();
+                row = getNextRowFromSources();
+                if(row==null) continue;
+                stats.processAccumulator().tick(System.nanoTime()-start);
+
+                start = System.nanoTime();
+                SpliceLogUtils.trace(LOG, "UnionOperation sink, row="+row);
 				/* Need to use non-sorted non-hashed rowkey with the prefix
-				put = SpliceUtils.insert(row.getRowArray(), 
+				put = SpliceUtils.insert(row.getRowArray(),
 										 DerbyBytesUtil.generateSortedHashKey(row.getRowArray(), sequence[0], keyColumns, null),
 										 null);
 										 */
-				put = Puts.buildInsert(DerbyBytesUtil.generatePrefixedRowKey(sequence[0]),row.getRowArray(),null,serializer);
-				tempTable.put(put);
-				numSunk++;
-			}
+                put = Puts.buildInsert(DerbyBytesUtil.generatePrefixedRowKey(sequence[0]),row.getRowArray(),null,serializer);
+                tempTable.put(put);
+
+                stats.sinkAccumulator().tick(System.nanoTime()-start);
+            }while(row!=null);
 			tempTable.flushCommits();
 		} catch (StandardException se){
 			SpliceLogUtils.logAndThrowRuntime(LOG,se);
@@ -418,7 +433,7 @@ public class UnionOperation extends SpliceBaseOperation {
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-		return numSunk;
+        return stats.finish();
 	}
 	
 	@Override

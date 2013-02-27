@@ -1,14 +1,21 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.hbase.SpliceOperationProtocol;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.stats.RegionStats;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
+import com.splicemachine.derby.utils.*;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
@@ -30,22 +37,13 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.hbase.SpliceOperationProtocol;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.FormatableBitSetUtils;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 public class HashScanOperation extends ScanOperation {
 	private static Logger LOG = Logger.getLogger(HashScanOperation.class);
@@ -182,24 +180,29 @@ public class HashScanOperation extends ScanOperation {
 		try {
 			htable = SpliceAccessManager.getHTable(Bytes.toBytes(mapTableName));
 			SpliceLogUtils.trace(LOG, "executing coprocessor on table=" + mapTableName + ", with scan=" + mapScan);
-			long numberCreated = 0;
 			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,regionOperation);
-			Map<byte[], Long> results = htable.coprocessorExec(SpliceOperationProtocol.class,
+            final RegionStats regionStats = new RegionStats();
+            regionStats.start();
+			htable.coprocessorExec(SpliceOperationProtocol.class,
 					mapScan.getStartRow(), mapScan.getStopRow(),
-					new Batch.Call<SpliceOperationProtocol, Long>() {
+					new Batch.Call<SpliceOperationProtocol, SinkStats>() {
 						@Override
-						public Long call(SpliceOperationProtocol instance) throws IOException {
+						public SinkStats call(SpliceOperationProtocol instance) throws IOException {
 							try {
 								return instance.run(mapScan,soi);
 							} catch (StandardException e) {
 								SpliceLogUtils.logAndThrowRuntime(LOG, "Error Executing Sink", e);
 					}
-					return 0l;
+					return null;
 				}
-			});
-			for (Long returnedRow : results.values()) {
-				numberCreated = numberCreated+returnedRow;
-			}
+			},new Batch.Callback<SinkStats>() {
+                        @Override
+                        public void update(byte[] region, byte[] row, SinkStats result) {
+                            regionStats.addRegionStats(region,result);
+                        }
+                    });
+            regionStats.finish();
+            regionStats.recordStats(LOG);
 			executed = true;
 		}
 		catch (Exception e) {
@@ -220,39 +223,48 @@ public class HashScanOperation extends ScanOperation {
 	}
 
 	@Override		
-	public long sink() {
-		long numSunk=0l;
+	public SinkStats sink() {
+        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+        stats.start();
+
 		SpliceLogUtils.trace(LOG, "sink called on" + regionScanner.getRegionInfo().getTableNameAsString());
 		HTableInterface tempTable = null;
 		Put put = null;
 		try{
 			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
-			List<KeyValue> keyValues = new ArrayList<KeyValue>();
-			regionScanner.next(keyValues);
 			hasher = new Hasher(currentRow.getRowArray(),keyColumns,null,sequence[0]);
 			byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
             Serializer serializer = new Serializer();
-			while (!keyValues.isEmpty()) {
-				SpliceLogUtils.trace(LOG, "Sinking Record ");
-				result = new Result(keyValues);
-				SpliceLogUtils.trace(LOG, "accessedColsToGrab=%s",accessedCols);
-				SpliceUtils.populate(result, currentRow.getRowArray(),accessedCols,baseColumnMap,serializer);
-				byte[] tempRowKey ;
-				if (eliminateDuplicates) {
-					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),scannedTableName);					
-				} else {
-					tempRowKey = hasher.generateSortedHashKey(currentRow.getRowArray());					
-				}					
-				SpliceLogUtils.trace(LOG, "row to hash =%s, key=%s",currentRow, Arrays.toString(tempRowKey));
-				put = Puts.buildInsert(tempRowKey,currentRow.getRowArray(),null,serializer);
-				tempTable.put(put);	// TODO Buffer via list or configuration. JL			
-				numSunk++;
-				if (numSunk % 10000 ==0)
-					SpliceLogUtils.debug(LOG, "at %d records sunk in sink method",numSunk);
-				keyValues = new ArrayList<KeyValue>();
-				regionScanner.next(keyValues);
-			}
-			SpliceLogUtils.debug(LOG, "Total of %d records sunk in sink method",numSunk);
+            List<KeyValue> keyValues;
+            do{
+                long start = System.nanoTime();
+
+                //get the next row
+                keyValues = new ArrayList<KeyValue>(currentRow.nColumns());
+                regionScanner.next(keyValues);
+                if(keyValues==null) continue;
+                stats.processAccumulator().tick(System.nanoTime()-start);
+
+                //sink the row by hashing
+                start = System.nanoTime();
+                SpliceLogUtils.trace(LOG, "Sinking Record ");
+                result = new Result(keyValues);
+                SpliceLogUtils.trace(LOG, "accessedColsToGrab=%s",accessedCols);
+                SpliceUtils.populate(result, currentRow.getRowArray(),accessedCols,baseColumnMap,serializer);
+                byte[] tempRowKey ;
+                if (eliminateDuplicates) {
+                    tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),scannedTableName);
+                } else {
+                    tempRowKey = hasher.generateSortedHashKey(currentRow.getRowArray());
+                }
+                SpliceLogUtils.trace(LOG, "row to hash =%s, key=%s", currentRow, Arrays.toString(tempRowKey));
+                put = Puts.buildInsert(tempRowKey,currentRow.getRowArray(),null,serializer);
+                tempTable.put(put);	// TODO Buffer via list or configuration. JL
+
+                stats.sinkAccumulator().tick(System.nanoTime()-start);
+
+            }while(!keyValues.isEmpty());
+
 			tempTable.flushCommits();
 		}catch (StandardException se){
 			SpliceLogUtils.logAndThrowRuntime(LOG,se);
@@ -266,7 +278,7 @@ public class HashScanOperation extends ScanOperation {
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-		return numSunk;
+        return stats.finish();
 	}
 	
 	@Override

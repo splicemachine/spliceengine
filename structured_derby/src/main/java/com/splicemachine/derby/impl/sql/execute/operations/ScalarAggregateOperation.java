@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -8,6 +7,9 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stats.Accumulator;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
@@ -20,13 +22,11 @@ import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -51,8 +51,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	protected int rowsInput = 0;
 
 	protected boolean isOpen=false;
+    protected Accumulator scanAccumulator = ThroughputStats.uniformAccumulator();
 
-	public ScalarAggregateOperation () {
+    public ScalarAggregateOperation () {
 		super();
 	}
 
@@ -124,22 +125,34 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getNextRowCore");
-		return doAggregation(true);
+		return doAggregation(true,scanAccumulator);
 	}
 
-	protected ExecRow doAggregation(boolean useScan) throws StandardException{
+	protected ExecRow doAggregation(boolean useScan,Accumulator stats) throws StandardException{
 		ExecIndexRow execIndexRow;
 		ExecIndexRow aggResult = null;
 		if(useScan){
-			while ((execIndexRow = getNextRowFromScan(false))!=null){
-				SpliceLogUtils.trace(LOG,"aggResult =%s before",aggResult);
-				aggResult = aggregate(execIndexRow,aggResult,false,true);
-				SpliceLogUtils.trace(LOG,"aggResult =%s after",aggResult);
-			}
+            do{
+                long processTime = System.nanoTime();
+                execIndexRow = getNextRowFromScan(false);
+                if(execIndexRow==null)continue;
+
+                SpliceLogUtils.trace(LOG,"aggResult =%s before",aggResult);
+                aggResult = aggregate(execIndexRow,aggResult,false,true);
+                SpliceLogUtils.trace(LOG,"aggResult =%s after",aggResult);
+
+                stats.tick(System.nanoTime()-processTime);
+            }while(execIndexRow!=null);
 		}else{
-			while ((execIndexRow = getNextRowFromSource(false))!=null){
-				aggResult = aggregate(execIndexRow,aggResult,true,false);
-			}
+            do{
+                long processTime = System.nanoTime();
+                execIndexRow = getNextRowFromSource(false);
+                if(execIndexRow==null) continue;
+
+                aggResult = aggregate(execIndexRow,aggResult,true,false);
+
+                stats.tick(System.nanoTime()-processTime);
+            }while(execIndexRow!=null);
 		}
 		SpliceLogUtils.trace(LOG, "aggResult=%s",aggResult);
 		if(aggResult==null) return null; //we didn't have any rows to aggregate
@@ -234,32 +247,39 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 	
 	@Override
-	public long sink() {
-		long numSunk=0l;
+	public SinkStats sink() {
+        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+        stats.start();
+
 		SpliceLogUtils.trace(LOG, "sink");
 		ExecRow row;
 		try{
 			Put put;
 			HTableInterface tempTable = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
             Serializer serializer = new Serializer();
-			while((row = doAggregation(false)) !=null){
-				byte[] key = DerbyBytesUtil.generatePrefixedRowKey(sequence[0]);
-				SpliceLogUtils.trace(LOG,"row=%s, key.length=%d, afterPrefix?%b,beforeEnd?%b",
-														row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
-														Bytes.compareTo(key,reduceScan.getStopRow())<0);
-				put = Puts.buildInsert(key,row.getRowArray(),Bytes.toBytes(transactionID),serializer);
-				SpliceLogUtils.trace(LOG, "put=%s",put);
-				tempTable.put(put);
-			}
+            do{
+                row = doAggregation(false,stats.processAccumulator());
+                if(row==null)continue;
+
+                long pTs = System.nanoTime();
+                byte[] key = DerbyBytesUtil.generatePrefixedRowKey(sequence[0]);
+                SpliceLogUtils.trace(LOG,"row=%s, key.length=%d, afterPrefix?%b,beforeEnd?%b",
+                        row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
+                        Bytes.compareTo(key,reduceScan.getStopRow())<0);
+                put = Puts.buildInsert(key,row.getRowArray(),Bytes.toBytes(transactionID),serializer);
+                SpliceLogUtils.trace(LOG, "put=%s",put);
+                tempTable.put(put);
+
+                stats.sinkAccumulator().tick(System.nanoTime() - pTs);
+            }while(row!=null);
 			tempTable.flushCommits();
 			tempTable.close();
-			numSunk++;
 		}catch(StandardException se){
 			SpliceLogUtils.logAndThrowRuntime(LOG, se);
 		} catch (IOException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
-		return numSunk;
+        return stats.finish();
 	}
 
 	@Override

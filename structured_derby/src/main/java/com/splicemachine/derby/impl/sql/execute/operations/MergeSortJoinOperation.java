@@ -9,13 +9,12 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -34,7 +33,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -202,8 +200,9 @@ public class MergeSortJoinOperation extends JoinOperation {
 
 	
 	@Override		
-	public long sink() {
-		long numSunk=0l;
+	public SinkStats sink() {
+        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+        stats.start();
 		SpliceLogUtils.trace(LOG, "sink with joinSide= %s",joinSide);
 		ExecRow row = null;
 		HTableInterface tempTable = null;
@@ -224,17 +223,23 @@ public class MergeSortJoinOperation extends JoinOperation {
 					break;
 			}
             Serializer serializer = new Serializer();
-			while ((row = resultSet.getNextRowCore())!=null){
-			SpliceLogUtils.trace(LOG, "sinking row %s",row);
-				byte[] rowKey = hasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors);
-				put = Puts.buildInsert(rowKey, row.getRowArray(),null, null,serializer, additionalDescriptors);
-				put.setWriteToWAL(false); // Seeing if this speeds stuff up a bit...
-				tempTable.put(put);
-				numSunk++;
-//				if ((numSunk % 50000) == 0) {
-//					SpliceLogUtils.trace(LOG, "number sunk = %d", numSunk);
-//				}
-			}
+
+            do{
+                long start = System.nanoTime();
+
+                row = resultSet.getNextRowCore();
+                if(row==null)continue;
+                stats.processAccumulator().tick(System.nanoTime()-start);
+
+                start = System.nanoTime();
+                SpliceLogUtils.trace(LOG, "sinking row %s",row);
+                byte[] rowKey = hasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors);
+                put = Puts.buildInsert(rowKey, row.getRowArray(),null, null,serializer, additionalDescriptors);
+                put.setWriteToWAL(false); // Seeing if this speeds stuff up a bit...
+                tempTable.put(put);
+
+                stats.sinkAccumulator().tick(System.nanoTime()-start);
+            }while(row!=null);
 			tempTable.flushCommits();
 			tempTable.close();
 		}catch (StandardException se){
@@ -249,7 +254,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-		return numSunk;
+        return stats.finish();
 	}
 
 	private HTableInterface getBufferedTable() throws IOException {

@@ -1,5 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
@@ -10,11 +16,6 @@ import org.apache.derby.impl.sql.execute.DeleteConstantAction;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * 
@@ -45,24 +46,33 @@ public class DeleteOperation extends DMLWriteOperation{
 	}
 
 	@Override
-	public long sink() {
+	public SinkStats sink() {
 		SpliceLogUtils.trace(LOG,"sink on transactinID="+transactionID);
-		long numSunk=0l;
+        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+        stats.start();
 		ExecRow nextRow;
 		HTableInterface htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(Long.toString(heapConglom)));
 		try {
-			while((nextRow = source.getNextRowCore())!=null){
-				SpliceLogUtils.trace(LOG,"DeleteOperation sink, nextRow="+nextRow);
-				RowLocation locToDelete = (RowLocation) nextRow.getColumn(nextRow.nColumns()).getObject();
-				htable.delete(SpliceUtils.delete(locToDelete, this.transactionID.getBytes()) );
-				numSunk++;
-			}
+            do{
+                long processStart = System.nanoTime();
+                nextRow = source.getNextRowCore();
+                if(nextRow==null) continue;
+                stats.processAccumulator().tick(System.nanoTime()-processStart);
+
+                processStart = System.nanoTime();
+                //there is a row to delete, so delete it
+                SpliceLogUtils.trace(LOG, "DeleteOperation sink, nextRow=" + nextRow);
+                RowLocation locToDelete = (RowLocation) nextRow.getColumn(nextRow.nColumns()).getObject();
+                htable.delete(SpliceUtils.delete(locToDelete, this.transactionID.getBytes()) );
+
+                stats.sinkAccumulator().tick(System.nanoTime()-processStart);
+            }while(nextRow!=null);
 			htable.flushCommits();
 			htable.close();
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
-		return numSunk;
+        return stats.finish();
 	}
 
 

@@ -1,6 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
+import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -9,11 +15,6 @@ import org.apache.derby.impl.sql.execute.InsertConstantAction;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * 
@@ -47,7 +48,7 @@ public class InsertOperation extends DMLWriteOperation {
 	}
 	
 	@Override
-	public long sink() {
+	public SinkStats sink() {
 		SpliceLogUtils.trace(LOG,"sink on transactinID="+transactionID);
 		/*
 		 * write out the data to the correct location.
@@ -58,24 +59,35 @@ public class InsertOperation extends DMLWriteOperation {
 		 * to the writer. This dramatically simplifies this code, at the cost of adding conceptual complexity
 		 * in coprocessor logic
 		 */
-		long numSunk=0l;
+        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+        stats.start();
+
 		ExecRow nextRow=null;
 		//Use HTable to do inserts instead of HeapConglomerateController - see Bug 188
 		HTableInterface htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(""+heapConglom));
         Serializer serializer = new Serializer();
 		try {
-			while((nextRow = source.getNextRowCore())!=null){
-				SpliceLogUtils.trace(LOG,"InsertOperation sink, nextRow="+nextRow);
-				htable.put(Puts.buildInsert(nextRow.getRowArray(), this.transactionID.getBytes(),serializer)); // Buffered
-				numSunk++;
-			}
+            do{
+                long start =System.nanoTime();
+
+                nextRow = source.getNextRowCore();
+                if(nextRow==null)continue;
+                stats.processAccumulator().tick(System.nanoTime()-start);
+
+                start = System.nanoTime();
+                SpliceLogUtils.trace(LOG,"InsertOperation sink, nextRow="+nextRow);
+                htable.put(Puts.buildInsert(nextRow.getRowArray(), this.transactionID.getBytes(),serializer)); // Buffered
+
+                stats.sinkAccumulator().tick(System.nanoTime()-start);
+            }while(nextRow!=null);
+
 			htable.flushCommits();
 			htable.close();
 		} catch (Exception e) {
 			//TODO -sf- abort transaction
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
-		return numSunk;
+        return stats.finish();
 	}
 
 	

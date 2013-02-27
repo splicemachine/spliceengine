@@ -1,10 +1,13 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
-import java.util.List;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+
+import java.util.List;
 
 /**
  * 
@@ -50,7 +53,7 @@ public interface SpliceOperation extends NoPutResultSet {
 	 * @param keyValues
 	 * @return rows
 	 */
-	public long sink();	
+	public SinkStats sink();
 	/**
 	 * Initializes the node with the statement and the language context from the SpliceEngine.
 	 * 

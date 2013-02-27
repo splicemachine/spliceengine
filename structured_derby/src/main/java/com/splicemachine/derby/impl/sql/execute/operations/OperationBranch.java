@@ -7,6 +7,9 @@ import java.util.concurrent.CountDownLatch;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.stats.RegionStats;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -83,25 +86,29 @@ public class OperationBranch {
 		try{
             SpliceLogUtils.debug(LOG,"Exec Coprocessor against table=%s",Bytes.toString(table));
 			htable = SpliceAccessManager.getHTable(table);
-			long numberCreated = 0;
 			final SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
-			Map<byte[], Long> results = htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),new Batch.Call<SpliceOperationProtocol,Long>(){
+            final RegionStats regionStats = new RegionStats();
+            regionStats.start();
+			htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),
+                    new Batch.Call<SpliceOperationProtocol,SinkStats>(){
 				@Override
-				public Long call(
-						SpliceOperationProtocol instance)
+				public SinkStats call( SpliceOperationProtocol instance)
 								throws IOException {
 					try{
 						return instance.run(scan,instructions);
 					}catch(StandardException se){
 						SpliceLogUtils.logAndThrow(LOG, "Unexpected error executing coprocessor",new IOException(se));
-						return -1l;
 					}
+                    return null;
 				}
-			});
-			for(Long returnedRow : results.values()){
-				numberCreated += returnedRow;
-			}
-			SpliceLogUtils.trace(LOG,"Completed %d shuffle tasks",numberCreated);
+			},new Batch.Callback<SinkStats>() {
+                        @Override
+                        public void update(byte[] region, byte[] row, SinkStats result) {
+                            regionStats.addRegionStats(region,result);
+                        }
+                    });
+            regionStats.finish();
+            regionStats.recordStats(LOG);
 		}catch(IOException ioe){
 			if(ioe.getCause() instanceof StandardException)
 				SpliceLogUtils.logAndThrow(LOG, (StandardException)ioe.getCause());

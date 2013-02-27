@@ -8,6 +8,8 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -193,13 +195,14 @@ public class SortOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public long sink() {
+	public SinkStats sink() {
 		/*
 		 * We want to make use of HBase as a sorting mechanism for us.
 		 * To that end, we really just want to read all the data
 		 * out of source and write it into the TEMP Table.
 		 */
-		long numSunk=0l;
+        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+        stats.start();
 		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
 		ExecRow row;
 		HTableInterface tempTable = null;
@@ -209,17 +212,26 @@ public class SortOperation extends SpliceBaseOperation {
 			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,descColumns,sequence[0]);
 			byte[] tempRowKey;
             Serializer serializer  = new Serializer();
-			while((row = getNextRowCore()) != null){
-				SpliceLogUtils.trace(LOG, "row="+row);
-				if (this.distinct) {
-					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),null);					
-				} else {
-					tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),SpliceUtils.getUniqueKey());					
-				}					
-				put = Puts.buildInsert(tempRowKey,row.getRowArray(),null,serializer);
-				tempTable.put(put);
-				numSunk++;
-			}
+
+            do{
+                long start = System.nanoTime();
+                row = getNextRowCore();
+                if(row==null)continue;
+
+                stats.processAccumulator().tick(System.nanoTime()-start);
+
+                start = System.nanoTime();
+                SpliceLogUtils.trace(LOG, "row="+row);
+                if (this.distinct) {
+                    tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),null);
+                } else {
+                    tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),SpliceUtils.getUniqueKey());
+                }
+                put = Puts.buildInsert(tempRowKey,row.getRowArray(),null,serializer);
+                tempTable.put(put);
+
+                stats.sinkAccumulator().tick(System.nanoTime()-start);
+            }while(row!=null);
 			tempTable.flushCommits();
 			tempTable.close();
 		}catch (StandardException se){
@@ -234,8 +246,7 @@ public class SortOperation extends SpliceBaseOperation {
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-		SpliceLogUtils.trace(LOG, "sunk %d records",numSunk);
-		return numSunk;
+        return stats.finish();
 	}
 
 	@Override

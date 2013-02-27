@@ -1,14 +1,17 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -19,14 +22,13 @@ import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class RowCountOperation extends SpliceBaseOperation {
 	private static final long serialVersionUID = 11111;
@@ -311,26 +313,33 @@ public class RowCountOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public long sink() { // gd not sure I want any of this, or at least the sorted part
-		long numSunk=0l;
+	public SinkStats sink() { // gd not sure I want any of this, or at least the sorted part
+        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+        stats.start();
 		SpliceLogUtils.trace(LOG, "sink");
 		ExecRow row = null;
 		HTableInterface tempTable = null;
 		try{
 			Put put;
-			tempTable = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
+			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
             Serializer serializer = new Serializer();
-			while((row = getNextRowCore()) != null){
-				SpliceLogUtils.trace(LOG, "row="+row);
-				byte[] rowKey = DerbyBytesUtil.generateSortedHashKey(row.getRowArray(),sequence[0],null,null);
-				put = Puts.buildInsert(rowKey,row.getRowArray(),null,serializer);
-//				put = SpliceUtils.insert(row.getRowArray(),
-//									DerbyBytesUtil.generateSortedHashKey(row.getRowArray(),
-//																	sequence[0],null,null),
-//										null);
-				tempTable.put(put);
-				numSunk++;
-			}
+
+            do{
+                long start = System.nanoTime();
+                row = getNextRowCore();
+                if(row ==null)continue;
+                stats.processAccumulator().tick(System.nanoTime()-start);
+
+                start = System.nanoTime();
+                SpliceLogUtils.trace(LOG, "row="+row);
+                byte[] rowKey = DerbyBytesUtil.generateSortedHashKey(row.getRowArray(),sequence[0],null,null);
+                put = Puts.buildInsert(rowKey,row.getRowArray(),null,serializer);
+
+                tempTable.put(put);
+
+                stats.sinkAccumulator().tick(System.nanoTime()-start);
+            }while(row!=null);
+            tempTable.flushCommits();
 			tempTable.close();
 		}catch (StandardException se){
 			SpliceLogUtils.logAndThrowRuntime(LOG,se);
@@ -344,7 +353,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-		return numSunk;
+        return stats.finish();
 	}
 	
 

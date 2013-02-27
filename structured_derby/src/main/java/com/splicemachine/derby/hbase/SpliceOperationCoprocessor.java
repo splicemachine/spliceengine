@@ -1,17 +1,15 @@
 package com.splicemachine.derby.hbase;
 
-import java.io.IOException;
-import java.util.Properties;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.impl.sql.GenericActivationHolder;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
@@ -19,8 +17,9 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.utils.SpliceLogUtils;
+
+import java.io.IOException;
+import java.util.Properties;
 /**
  * 
  * HBase Endpoint coprocessor handling sink operations from the OperationTree.
@@ -64,7 +63,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	 * 
 	 */
 	@Override
-	public long run(Scan scan,SpliceObserverInstructions instructions) throws IOException,StandardException {
+	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException,StandardException {
 		threadLocalEnvironment.set(getEnvironment());
 		try {
 			SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
@@ -78,8 +77,8 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 			SpliceOperationContext context = new SpliceOperationContext(region,scan, activation, instructions.getStatement(),lcc);
 			SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
 			SpliceLogUtils.trace(LOG,"performing sink");
-			long out = spliceScanner.sink();
-			SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out);
+			SinkStats out = spliceScanner.sink();
+			SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getSinkStats().getTotalRecords());
 			spliceScanner.close();
 			return out;
 		} finally {

@@ -1,11 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
 import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -17,10 +19,10 @@ import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 
 /**
@@ -132,8 +134,9 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
     }
 	
 	@Override
-	public long sink() {
-		long numSunk=0l;
+	public SinkStats sink() {
+        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+        stats.start();
 		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
 		ExecRow row = null;
 		HTableInterface tempTable = null;
@@ -143,13 +146,22 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
 			Hasher hasher = new Hasher(((SpliceBaseOperation)source).getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
 			byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
             Serializer serializer = new Serializer();
-			while((row = source.getNextRowCore())!=null){
-				SpliceLogUtils.trace(LOG, "row="+row);
-				byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
-				put = Puts.buildInsert(rowKey,row.getRowArray(),null,serializer);
-				tempTable.put(put);
-				numSunk++;
-			}
+
+            do{
+                long pTs = System.nanoTime();
+                row = source.getNextRowCore();
+                if(row==null) continue;
+
+                stats.processAccumulator().tick(System.nanoTime()-pTs);
+
+                pTs = System.nanoTime();
+                SpliceLogUtils.trace(LOG, "row="+row);
+                byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
+                put = Puts.buildInsert(rowKey,row.getRowArray(),null,serializer);
+                tempTable.put(put);
+
+                stats.sinkAccumulator().tick(System.nanoTime()-pTs);
+            }while(row!=null);
 			tempTable.flushCommits();
 			tempTable.close();
 		}catch (StandardException se){
@@ -164,28 +176,27 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-		SpliceLogUtils.trace(LOG, "sunk %d records",numSunk);
-		return numSunk;
+        return stats.finish();
 	}
 	
-	@Override
-	protected ExecRow doAggregation(boolean useScan) throws StandardException{
-		ExecIndexRow execIndexRow = null;
-		ExecIndexRow aggResult = null;
-		while ((execIndexRow = getNextRowFromScan(false))!=null){
-			SpliceLogUtils.trace(LOG,"userscan, aggResult =%s before",aggResult);
-			aggResult = aggregate(execIndexRow,aggResult,true,true);
-			SpliceLogUtils.trace(LOG,"userscan aggResult =%s after",aggResult);
-		}
-		
-		SpliceLogUtils.trace(LOG, "aggResult=%s",aggResult);
-		if (aggResult==null) 
-			return null; 
-		if(countOfRows==0) {
-			aggResult = finishAggregation(aggResult);
-			setCurrentRow(aggResult);
-			countOfRows++;
-		}
-		return aggResult;
-	}
+//	@Override
+//	protected ExecRow doAggregation(boolean useScan) throws StandardException{
+//		ExecIndexRow execIndexRow = null;
+//		ExecIndexRow aggResult = null;
+//		while ((execIndexRow = getNextRowFromScan(false))!=null){
+//			SpliceLogUtils.trace(LOG,"userscan, aggResult =%s before",aggResult);
+//			aggResult = aggregate(execIndexRow,aggResult,true,true);
+//			SpliceLogUtils.trace(LOG,"userscan aggResult =%s after",aggResult);
+//		}
+//
+//		SpliceLogUtils.trace(LOG, "aggResult=%s",aggResult);
+//		if (aggResult==null)
+//			return null;
+//		if(countOfRows==0) {
+//			aggResult = finishAggregation(aggResult);
+//			setCurrentRow(aggResult);
+//			countOfRows++;
+//		}
+//		return aggResult;
+//	}
 }

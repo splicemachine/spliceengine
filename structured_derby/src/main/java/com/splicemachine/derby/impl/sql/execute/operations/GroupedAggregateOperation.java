@@ -1,19 +1,23 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-
+import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
-import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stats.Accumulator;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -30,12 +34,14 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.utils.SpliceLogUtils;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 
 public class GroupedAggregateOperation extends GenericAggregateOperation {	
 	private static Logger LOG = Logger.getLogger(GroupedAggregateOperation.class);
@@ -53,6 +59,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	private boolean completedExecution = false;
 
     protected RowProvider rowProvider;
+    private Accumulator scanAccumulator = ThroughputStats.uniformAccumulator();
 
     public GroupedAggregateOperation () {
     	super();
@@ -162,13 +169,15 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	}
 
 	@Override		
-	public long sink() {
+	public SinkStats sink() {
 		/*
 		 * Sorts the data by sinking into the TEMP table. From there, the 
 		 * getNextRowCore() method can be used to pull the data out in sequence and perform 
 		 * the aggregation
 		 */
-		long numSunk=0l;
+        SinkStats.SinkAccumulator statsAccumulator = SinkStats.uniformAccumulator();
+        statsAccumulator.start();
+
 		SpliceLogUtils.trace(LOG, "sink");
 		ExecRow row;
 		HTableInterface tempTable = null;
@@ -177,12 +186,19 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
             Serializer serializer = new Serializer();
-			while((row = doAggregation(false)) != null){
-				SpliceLogUtils.trace(LOG, "sinking row %s",row);
-				put = Puts.buildInsert(hasher.generateSortedHashKey(row.getRowArray()),row.getRowArray(),null,serializer);
-				tempTable.put(put);
-				numSunk++;
-			}
+            Accumulator sinkAccumulator = statsAccumulator.sinkAccumulator();
+            do{
+                row = doAggregation(false,statsAccumulator.processAccumulator());
+
+                if(row==null)continue;
+
+                long processStart = System.nanoTime();
+                SpliceLogUtils.trace(LOG, "sinking row %s",row);
+                put = Puts.buildInsert(hasher.generateSortedHashKey(row.getRowArray()),row.getRowArray(),null,serializer);
+                tempTable.put(put);
+
+                sinkAccumulator.tick(System.nanoTime() - processStart);
+            }while(row!=null);
 			tempTable.flushCommits();
 			tempTable.close();
 		}catch (StandardException se){
@@ -197,7 +213,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-		return numSunk;
+        return statsAccumulator.finish();
 	}
 	
 	@Override
@@ -206,7 +222,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getNextRowCore");
-		return doAggregation(true);
+		return doAggregation(true,scanAccumulator);
 	}
 	
 	private final RingBuffer.Merger<ExecIndexRow> merger = new RingBuffer.Merger<ExecIndexRow>() {
@@ -232,7 +248,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		}
 	};
 	
-	private ExecRow doAggregation(boolean useScan) throws StandardException {
+	private ExecRow doAggregation(boolean useScan,Accumulator stats) throws StandardException {
 		SpliceLogUtils.trace(LOG,"doAggregation start");
 		//if we already have some results finished, just use the next one of those
 		if(finishedResults.size()>0)
@@ -252,8 +268,11 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             }
         }
 		//get the next row. if it's null, we've finished reading results, so use what we already have
+        long start = System.nanoTime();
 		ExecIndexRow nextRow = useScan? getNextRowFromScan():getNextRowFromSource();
-		if(nextRow ==null) return finalizeResults();
+		if(nextRow ==null) {
+            return finalizeResults();
+        }
 		do{
 			//the next row pulled isn't empty, so have to process it
 			SpliceLogUtils.trace(LOG,"nextRow=%s",nextRow);
@@ -273,6 +292,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				}
             }
 			nextRow = useScan? getNextRowFromScan():getNextRowFromSource();
+            stats.tick(System.nanoTime()-start);
+            start = System.nanoTime();
 		}while(nextRow!=null);
 		
 		ExecRow next = finalizeResults();

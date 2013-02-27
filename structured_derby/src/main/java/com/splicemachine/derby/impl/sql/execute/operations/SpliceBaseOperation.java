@@ -11,6 +11,8 @@ import com.splicemachine.derby.impl.storage.RowProviders.SourceRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
+import com.splicemachine.derby.stats.RegionStats;
+import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -27,7 +29,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Base64;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -35,8 +36,6 @@ import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentSkipListMap;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable, NoPutResultSet {
     private static final long serialVersionUID = 4l;
@@ -504,7 +503,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	@Override		
-	public long sink() {
+	public SinkStats sink() {
 		throw new RuntimeException("Sink Not Implemented for this node " + this.getClass());					
 	}
 
@@ -558,32 +557,32 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			long numberCreated = 0;
             SpliceLogUtils.trace(LOG,"Performing coprocessorExec");
 
-			final Map<byte[], Long> resultMap = new ConcurrentSkipListMap<byte[],Long>(Bytes.BYTES_COMPARATOR);
-			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),topOperation);
+            final RegionStats regionStats = new RegionStats();
+            regionStats.start();
+			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), topOperation);
 			htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),
-													new Batch.Call<SpliceOperationProtocol,Long>(){
+													new Batch.Call<SpliceOperationProtocol,SinkStats>(){
 
 				@Override
-				public Long call(
+				public SinkStats call(
 						SpliceOperationProtocol instance)
 								throws IOException {
 					try{
 						return instance.run(scan,soi);
 					}catch(StandardException se){
 						SpliceLogUtils.logAndThrow(LOG, "Unexpected error executing coprocessor",new IOException(se));
-						return -1l;
+						return null;
 					}
 				}
-			},new Batch.Callback<Long>(){
+			},new Batch.Callback<SinkStats>(){
 
 						@Override
-						public void update(byte[] region, byte[] row, Long result) {
-							resultMap.put(region,result);
+						public void update(byte[] region, byte[] row, SinkStats result) {
+                            regionStats.addRegionStats(region,result);
 						}
 					});
-			for(Long returnedRow : resultMap.values()){
-				numberCreated += returnedRow;
-			}
+            regionStats.finish();
+            regionStats.recordStats(LOG);
 			SpliceLogUtils.trace(LOG,"Sunk %d records",numberCreated);
 			rowsSunk=numberCreated;
 		}catch(IOException ioe){

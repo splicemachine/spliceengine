@@ -1,11 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
+import com.splicemachine.derby.utils.DerbyLogUtils;
 import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -20,11 +23,9 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.DerbyLogUtils;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Sink data into temp table to sort and filter out duplicate, then do grouped aggregates when iterating the rows
@@ -74,8 +75,10 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
     }
     
     @Override
-	public long sink() {
-		long numSunk=0l;
+	public SinkStats sink() {
+        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+        stats.start();
+
 		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
 		ExecRow row = null;
 		HTableInterface tempTable = null;
@@ -85,14 +88,20 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			Hasher hasher = new Hasher(((SpliceBaseOperation)source).getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
 			byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
-			while((row = source.getNextRowCore())!=null){
-				SpliceLogUtils.trace(LOG, "row="+row);
-				byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
-				put = Puts.buildInsert(rowKey,row.getRowArray(),null,serializer);
-//				put = SpliceUtils.insert(row.getRowArray(), hasher.generateSortedHashKeyWithPostfix(row.getRowArray(), scannedTableName), null);
-				tempTable.put(put);
-				numSunk++;
-			}
+            do{
+                long processTime = System.nanoTime();
+                row = source.getNextRowCore();
+                if(row==null)continue;
+                stats.processAccumulator().tick(System.nanoTime()-processTime);
+
+                processTime = System.nanoTime();
+                SpliceLogUtils.trace(LOG, "row="+row);
+                byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
+                put = Puts.buildInsert(rowKey,row.getRowArray(),null,serializer);
+                tempTable.put(put);
+
+                stats.sinkAccumulator().tick(System.nanoTime()-processTime);
+            }while(row!=null);
 			tempTable.flushCommits();
 			tempTable.close();
 		}catch (StandardException se){
@@ -107,8 +116,7 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-		SpliceLogUtils.trace(LOG, "sunk %d records",numSunk);
-		return numSunk;
+        return stats.finish();
 	}
     
     @Override

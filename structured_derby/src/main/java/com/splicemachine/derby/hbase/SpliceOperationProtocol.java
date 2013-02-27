@@ -1,11 +1,12 @@
 package com.splicemachine.derby.hbase;
 
-import java.io.IOException;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+
+import java.io.IOException;
 /**
  * Interface for SpliceOperationCoprocessor
  * 
@@ -23,5 +24,5 @@ public interface SpliceOperationProtocol extends CoprocessorProtocol {
 	 * @throws IOException
 	 * @throws StandardException
 	 */
-	public long run(Scan scan,SpliceObserverInstructions instructions) throws IOException, StandardException;
+	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException, StandardException;
 }

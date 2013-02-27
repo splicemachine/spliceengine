@@ -24,10 +24,10 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
 	 */
 	@Override
 	public void start(CoprocessorEnvironment e) {
-		SpliceLogUtils.info(LOG, "Starting the coprocessor CoProcessor %s", SpliceDerbyCoprocessor.class);
 		super.start(e);
 		synchronized (this) {
 			if (server == null) {
+                SpliceLogUtils.info(LOG, "Starting the coprocessor CoProcessor %s", SpliceDerbyCoprocessor.class);
 				try {
 					/*we may need to use security policy to allow/disallow clients from connecting to the server.
 					  right now, I will let any clients to access. For now, turn off SSL as well - jz*/
@@ -49,14 +49,14 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
 	 */
 	@Override
 	public void stop(CoprocessorEnvironment e) {
-		SpliceLogUtils.info(LOG, "Stopping the CoProcessor %s",SpliceDerbyCoprocessor.class);
 		super.stop(e);
 		synchronized (this) {
 			if (server != null) {
+                SpliceLogUtils.info(LOG, "Stopping the CoProcessor %s",SpliceDerbyCoprocessor.class);
 				try {
 					server = null;
 				} catch (Exception exception) {
-					SpliceLogUtils.logAndThrowRuntime(LOG, "Could Not Start Derby - Catastrophic", exception);
+					SpliceLogUtils.logAndThrowRuntime(LOG, "Could Not Stop Derby - Catastrophic", exception);
 				}
 			}
 		}

@@ -4,6 +4,8 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.ThroughputStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.PublicAPI;
@@ -11,7 +13,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -179,7 +180,7 @@ public class HdfsImport extends ParallelVTI {
 	@Override public void open() throws StandardException { openCore(); }
 
 	/*no op methods*/
-	@Override public long sink() { return 0; }
+	@Override public SinkStats sink() { return null; }
 	@Override public ExecRow getExecRowDefinition() { return null; }
 	@Override public boolean next() { return false; }
 	@Override public SpliceOperation getRightOperation() { return null; } //noop
