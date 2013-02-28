@@ -22,10 +22,5 @@ public class SpliceExecutionFactory extends GenericExecutionFactory {
 			resultSetFactory = new SpliceGenericResultSetFactory();
 		return resultSetFactory;
 	}
-	@Override
-	public ResultSetStatisticsFactory getResultSetStatisticsFactory() throws StandardException {
-		SpliceLogUtils.trace(LOG,"getResultSetStatisticsFactory");
-		return super.getResultSetStatisticsFactory();
-	}
-	
+
 }

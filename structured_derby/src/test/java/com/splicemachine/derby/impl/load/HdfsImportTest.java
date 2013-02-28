@@ -44,7 +44,7 @@ public class HdfsImportTest {
 		testImport(getBaseDirectory()+"importTest.in","NAME,TITLE,AGE");
 	}
 
-	private void testImport(String location,String colList) throws SQLException {
+	private void testImport(String location,String colList) throws Exception {
 		HdfsImport.importData(rule.getConnection(), null, "T", colList, location, ",","\"");
 
 		ResultSet rs = rule.executeQuery("select * from t");

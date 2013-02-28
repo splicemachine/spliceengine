@@ -43,7 +43,7 @@ public class DerbyTestSetupTest extends SpliceDerbyTest {
     };
 
     @BeforeClass 
-	public static void startup() throws SQLException {
+	public static void startup() throws Exception {
 		startConnection();		
 	}
 

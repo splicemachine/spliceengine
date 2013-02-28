@@ -324,21 +324,14 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	public void fetchWithoutQualify(DataValueDescriptor[] destRow) throws StandardException {
 		if (LOG.isTraceEnabled()) 
 			LOG.trace("HBaseScan fetchWithoutQualify destRow = "+ destRow.toString());
-		
-		try {
-			for (int i=0;i<destRow.length;i++) {
-				if (scanColumnList != null && !scanColumnList.isSet(i)) 
-					continue;
-				byte[] value = currentResult.getValue(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes());
-				if (value != null) 
-					DerbyBytesUtil.fromBytes(value, destRow[i]);	
-				else 
-					destRow[i].setToNull();		
-			}
-			this.currentRow = destRow;
+
+        try{
+            if(destRow!=null){
+                SpliceUtils.populate(currentResult, scanColumnList, destRow);
+		    	this.currentRow = destRow;
+            }
+            this.currentRowLocation = new HBaseRowLocation(currentResult.getRow());
 		} catch (Exception e) {
-			e.printStackTrace();
-			
 			throw StandardException.newException("Error occurred during fetch", e);
 		}
 	}

@@ -24,7 +24,7 @@ public class SpliceDerbyTest {
 	private static final Logger LOG = Logger.getLogger(SpliceDerbyTest.class);
     protected static String framework = "embedded";
     protected static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
-    protected static String protocol = "jdbc:derby:splice:";
+    protected static String protocol = "jdbc:derby:splice/";
     protected static Properties props = new Properties();
 	protected static final String dbName = "wombat"; // gd for derby test compatibility
 	protected static Connection conn = null;
@@ -60,15 +60,10 @@ public class SpliceDerbyTest {
         }
     }
 
-	public static void startConnection() throws SQLException {
-		loadDriver();
-		try {
-			conn = DriverManager.getConnection(protocol + dbName + ";create=true", props);
-			System.out.println("Conn: " + conn);
-		} catch (Exception e) {
-			System.out.println("Exception: " + e + ", conn: " + conn);
-			e.printStackTrace();
-		}
+    public static void startConnection() throws Exception {
+        loadDriver();
+        conn = DriverManager.getConnection(protocol + dbName + ";create=true", props);
+        System.out.println("Conn: " + conn);
 	}
 	
 	public static void stopConnection() throws SQLException {

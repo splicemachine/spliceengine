@@ -14,7 +14,7 @@ public class HashJoinOperationTest extends SpliceDerbyTest {
 	private static Logger LOG = Logger.getLogger(HashJoinOperationTest.class);
 	
 	@BeforeClass 
-	public static void startup() throws SQLException {
+	public static void startup() throws Exception {
 		LOG.info("Connection starting");
 		startConnection();		
 		LOG.info("Connection started");

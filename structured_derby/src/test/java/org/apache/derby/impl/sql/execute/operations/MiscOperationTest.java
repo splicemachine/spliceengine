@@ -15,7 +15,7 @@ public class MiscOperationTest extends SpliceDerbyTest {
 	private static Logger LOG = Logger.getLogger(MiscOperationTest.class);
 	
 	@BeforeClass 
-	public static void startup() throws SQLException {
+	public static void startup() throws Exception {
 		startConnection();	
 	
 		Statement s = null;

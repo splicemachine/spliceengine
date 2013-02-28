@@ -89,7 +89,7 @@ public class DerbyTestRule extends TestWatchman{
 		if(manageTables){
 			try {
 				dropTables();
-			} catch (SQLException e) {
+			} catch (Exception e) {
 				LOG.error("Unable to drop table, this may cause problems: "+e.getMessage());
 			}
 		}
@@ -110,7 +110,7 @@ public class DerbyTestRule extends TestWatchman{
 		return rs;
 	}
 	
-	public void dropTables() throws SQLException{
+	public void dropTables() throws Exception{
 		java.sql.Statement s = null;
 		try{
 			s = getConnection().createStatement();
@@ -175,7 +175,7 @@ public class DerbyTestRule extends TestWatchman{
 		return ps;
 	}
 
-	public Connection getConnection() throws SQLException {
+	public Connection getConnection() throws Exception {
 		if(conn.isClosed()){
 				SpliceDerbyTest.startConnection();
 			conn = SpliceDerbyTest.conn;

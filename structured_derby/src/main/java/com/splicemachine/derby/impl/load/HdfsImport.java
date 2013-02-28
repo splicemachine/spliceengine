@@ -12,6 +12,8 @@ import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.impl.jdbc.Util;
+import org.apache.derby.jdbc.InternalDriver;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
@@ -66,16 +68,39 @@ public class HdfsImport extends ParallelVTI {
 	private final ImportContext context;
 	private HBaseAdmin admin;
 
-	public static ResultSet importData(Connection connection,
-																		 String schemaName,String tableName,
-																		 String insertColumnList,String inputFileName,
-																		 String delimiter,String charDelimiter) throws SQLException{
-		if(connection ==null)
-			throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.CONNECTION_NULL));
-		if(tableName==null)
-			throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ENTITY_NAME_MISSING));
+    public static void SYSCS_IMPORT_DATA(String schemaName,String tableName,
+                                              String insertColumnList, String columnIndexes,
+                                              String fileName,String columnDelimiter,
+                                              String characterDelimiter,
+                                              String timestampFormat) throws SQLException{
+        Connection conn = getDefaultConn();
+        try{
+            importData(conn,schemaName,tableName,
+                    insertColumnList,fileName,columnDelimiter,
+                    characterDelimiter,timestampFormat);
+        }catch(SQLException se){
+           try{
+               conn.rollback();
+           }catch(SQLException e){
+               se.setNextException(e);
+           }
+            throw se;
+        }
 
-		ImportContext.Builder builder = new ImportContext.Builder()
+        conn.commit();
+    }
+
+
+    public static ResultSet importData(Connection connection,
+                                       String schemaName,String tableName,
+                                       String insertColumnList,String inputFileName,
+                                       String delimiter,String charDelimiter) throws SQLException{
+        if(connection ==null)
+            throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.CONNECTION_NULL));
+        if(tableName==null)
+            throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ENTITY_NAME_MISSING));
+
+        ImportContext.Builder builder = new ImportContext.Builder()
 				.path(inputFileName)
 				.stripCharacters(charDelimiter)
 				.colDelimiter(delimiter);
@@ -131,8 +156,6 @@ public class HdfsImport extends ParallelVTI {
 		return importer;
 	}
 
-
-
 	public HdfsImport(ImportContext context){
 		this.context = context;
 	}
@@ -183,48 +206,59 @@ public class HdfsImport extends ParallelVTI {
 	@Override public SinkStats sink() { return null; }
 	@Override public ExecRow getExecRowDefinition() { return null; }
 	@Override public boolean next() { return false; }
-	@Override public SpliceOperation getRightOperation() { return null; } //noop
-	@Override public void generateRightOperationStack(boolean initial, List<SpliceOperation> operations) {  }
+    @Override public SpliceOperation getRightOperation() { return null; } //noop
+    @Override public void generateRightOperationStack(boolean initial, List<SpliceOperation> operations) {  }
 
-/************************************************************************************************************/
+    /************************************************************************************************************/
 
 	/*private helper functions*/
-	private static long getConglomid(Connection conn, String tableName, String schemaName) throws SQLException {
+
+    private static Connection getDefaultConn() throws SQLException {
+        InternalDriver id = InternalDriver.activeDriver();
+        if(id!=null){
+            Connection conn = id.connect("jdbc:default:connection",null);
+            if(conn!=null)
+                return conn;
+        }
+        throw Util.noCurrentConnection();
+    }
+
+    private static long getConglomid(Connection conn, String tableName, String schemaName) throws SQLException {
 		/*
 		 * gets the conglomerate id for the specified human-readable table name
 		 *
 		 * TODO -sf- make this a stored procedure?
 		 */
-		if (schemaName == null)
-			schemaName = "APP";
-		ResultSet rs = null;
-		PreparedStatement s = null;
-		try{
-			s = conn.prepareStatement(
-					"select " +
-						"conglomeratenumber " +
-					"from " +
-						"sys.sysconglomerates c, " +
-						"sys.systables t, " +
-						"sys.sysschemas s " +						
-					"where " +
-						"t.tableid = c.tableid and " +
-						"t.schemaid = s.schemaid and " +
-						"s.schemaname = ? and " +
-						"t.tablename = ?");
-			s.setString(1,schemaName.toUpperCase());
-			s.setString(2,tableName);			
-			rs = s.executeQuery();
-			if(rs.next()){
-				return rs.getLong(1);
-			}else{
-				throw new SQLException(String.format("No Conglomerate id found for table [%s] in schema [%s] ",tableName,schemaName.toUpperCase()));
-			}
-		}finally{
-			if(rs!=null) rs.close();
-			if(s!=null) s.close();
-		}
-	}
+        if (schemaName == null)
+            schemaName = "APP";
+        ResultSet rs = null;
+        PreparedStatement s = null;
+        try{
+            s = conn.prepareStatement(
+                    "select " +
+                            "conglomeratenumber " +
+                            "from " +
+                            "sys.sysconglomerates c, " +
+                            "sys.systables t, " +
+                            "sys.sysschemas s " +
+                            "where " +
+                            "t.tableid = c.tableid and " +
+                            "t.schemaid = s.schemaid and " +
+                            "s.schemaname = ? and " +
+                            "t.tablename = ?");
+            s.setString(1,schemaName.toUpperCase());
+            s.setString(2,tableName);
+            rs = s.executeQuery();
+            if(rs.next()){
+                return rs.getLong(1);
+            }else{
+                throw new SQLException(String.format("No Conglomerate id found for table [%s] in schema [%s] ",tableName,schemaName.toUpperCase()));
+            }
+        }finally{
+            if(rs!=null) rs.close();
+            if(s!=null) s.close();
+        }
+    }
 
 	private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
 																						 String insertColumnList, ImportContext.Builder builder) throws SQLException {

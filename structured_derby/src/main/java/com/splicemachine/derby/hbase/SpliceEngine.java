@@ -32,7 +32,7 @@ public class SpliceEngine {
 	protected static ModuleFactory monitor;
     protected static String framework = "embedded";
     protected static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
-    protected static String protocol = "jdbc:derby:splice:";
+    protected static String protocol = "jdbc:derby:splice/";
     protected static Properties props = new Properties();
 	protected static final String dbName = "wombat";
 	protected static EmbedConnection conn;

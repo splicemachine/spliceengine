@@ -16,7 +16,7 @@ public class DistinctGroupedAggregateOperationTest extends SpliceDerbyTest {
 	private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperationTest.class);
 	
 	@BeforeClass 
-	public static void startup() throws SQLException {
+	public static void startup() throws Exception {
 		startConnection();		
 		conn.setAutoCommit(true);
 		

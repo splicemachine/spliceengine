@@ -24,7 +24,7 @@ public class TransactionTest extends SpliceDerbyTest {
 	private static Logger LOG = Logger.getLogger(TransactionTest.class);
 
 	@BeforeClass 
-	public static void startup() throws SQLException {
+	public static void startup() throws Exception {
 		startConnection();		
 	}
 	

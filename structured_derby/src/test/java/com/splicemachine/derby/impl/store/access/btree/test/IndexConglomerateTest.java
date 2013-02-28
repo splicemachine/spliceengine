@@ -11,7 +11,7 @@ import com.splicemachine.derby.test.SpliceDerbyTest;
 
 public class IndexConglomerateTest extends SpliceDerbyTest {
 	@BeforeClass 
-	public static void startup() throws SQLException {
+	public static void startup() throws Exception {
 		startConnection();		
 	}
 

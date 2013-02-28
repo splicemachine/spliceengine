@@ -47,7 +47,7 @@
 		<maven.compiler.target>1.6</maven.compiler.target>
 		<maven.jar.plugin.version>2.3.1</maven.jar.plugin.version>
 		<log4j.version>1.2.15</log4j.version>
-		<derby.version>10.9.1.0.splice</derby.version>
+		<derby.version>10.9.1.1.splice</derby.version>
 	</properties>
 	<!-- Lets go with 1.6 compliance -->
 

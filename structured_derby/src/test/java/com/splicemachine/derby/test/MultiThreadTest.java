@@ -22,7 +22,7 @@ public class MultiThreadTest extends SpliceDerbyTest {
 	private static Logger LOG = Logger.getLogger(MultiThreadTest.class);
 
 	@BeforeClass 
-	public static void startup() throws SQLException {
+	public static void startup() throws Exception {
 		startConnection();		
 		conn.setAutoCommit(true);
 

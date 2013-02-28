@@ -15,7 +15,7 @@ import com.splicemachine.derby.test.SpliceDerbyTest;
 @Ignore
 public class IndexScanTest extends SpliceDerbyTest {
 	@BeforeClass 
-	public static void startup() throws SQLException {
+	public static void startup() throws Exception {
 		startConnection();	
 		executeStatement("create table test_jl_a (col1 int, col2 decimal(10,2), col3 varchar(25), col4 char(1), primary key (col1))");
 		executeStatement("create index ix_test_jl_a on test_jl_a (col2)");

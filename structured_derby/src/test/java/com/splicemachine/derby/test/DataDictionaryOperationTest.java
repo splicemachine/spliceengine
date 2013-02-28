@@ -22,7 +22,7 @@ public class DataDictionaryOperationTest extends SpliceDerbyTest {
 	private static Logger LOG = Logger.getLogger(DataDictionaryOperationTest.class);
 
 	@BeforeClass 
-	public static void startup() throws SQLException {
+	public static void startup() throws Exception {
 		startConnection();		
 	}
 	
