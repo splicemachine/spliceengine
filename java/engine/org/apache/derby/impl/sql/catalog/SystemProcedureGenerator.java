@@ -13,11 +13,9 @@ import java.util.HashSet;
  */
 public interface SystemProcedureGenerator {
 
-    String MODULE = "org.apache.derby.impl.sql.catalog.SystemProcedureGenerator";
+    String MODULE = SystemProcedureGenerator.class.getCanonicalName();
 
     void createProcedures(TransactionController tc, HashSet newlyCreatedRoutines) throws StandardException;
-
-
 
 
 }

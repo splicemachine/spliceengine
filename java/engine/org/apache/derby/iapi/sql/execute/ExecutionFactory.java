@@ -77,7 +77,7 @@ public interface ExecutionFactory {
 
 		@return the result set factory for this database.
 	 */
-	ResultSetFactory getResultSetFactory();
+	ResultSetFactory getResultSetFactory() throws StandardException;
     
     /**
      * Get the ResultSetStatisticsFactory from this ExecutionFactory.

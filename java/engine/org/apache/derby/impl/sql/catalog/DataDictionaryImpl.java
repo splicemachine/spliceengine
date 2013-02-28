@@ -188,7 +188,7 @@ import org.apache.derby.impl.sql.execute.JarUtil;
  * Standard database implementation of the data dictionary
  * that stores the information in the system catlogs.
  */
-public final class	DataDictionaryImpl
+public class DataDictionaryImpl
 	implements DataDictionary, CacheableFactory, ModuleControl, ModuleSupportable,java.security.PrivilegedAction
 {
 
@@ -523,7 +523,7 @@ public final class	DataDictionaryImpl
 	 *
 	 *	@exception StandardException	Thrown if the module fails to start
 	 */
-	public void boot(boolean create, Properties startParams) 
+	public final void boot(boolean create, Properties startParams)
 			throws StandardException
 	{
 		softwareVersion = new DD_Version(this, DataDictionary.DD_VERSION_DERBY_10_9);
@@ -792,10 +792,7 @@ public final class	DataDictionaryImpl
                 createSystemSps(bootingTC);
 
                 //create stored procedures
-                SystemProcedureGenerator procedureGenerator = (SystemProcedureGenerator) Monitor.bootServiceModule(
-                        create, this,
-                        SystemProcedureGenerator.MODULE,
-                        startParams);
+                SystemProcedureGenerator procedureGenerator = getSystemProcedures();
                 procedureGenerator.createProcedures(bootingTC,newlyCreatedRoutines);
 
 				//create procedures for network server metadata
@@ -929,6 +926,18 @@ public final class	DataDictionaryImpl
 		setDependencyManager();
 		booting = false;
 	}
+
+    /**
+     * Factory method for generating System Procedure information.
+     *
+     * Replace this method with a subimplementation to change which
+     * SystemProcedures are installed at boot time.
+     *
+     * @return a generator for SystemProcedures.
+     */
+    protected SystemProcedureGenerator getSystemProcedures(){
+        return new DefaultSystemProcedureGenerator(this);
+    }
 
     /**
      * Find the default message digest algorithm to use for BUILTIN
@@ -13293,7 +13302,7 @@ public final class	DataDictionaryImpl
 
 	private String spsSet;
 	private final synchronized Properties getQueryDescriptions(boolean net) {
-		spsSet = net ? "metadata_net.properties" : "/org/apache/derby/impl/jdbc/metadata.properties";
+		spsSet = net ? "/org/apache/derby/impl/sql/catalog/metadata_net.properties" : "/org/apache/derby/impl/jdbc/metadata.properties";
 		return (Properties) java.security.AccessController.doPrivileged(this);
 	}
 

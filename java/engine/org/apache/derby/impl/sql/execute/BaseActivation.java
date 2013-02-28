@@ -625,7 +625,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		Used in the execute method of activations for
 		generating the result sets that they concatenate together.
 	 */
-	public final ResultSetFactory getResultSetFactory() {
+	public final ResultSetFactory getResultSetFactory() throws StandardException {
 		return getExecutionFactory().getResultSetFactory();
 	}
 

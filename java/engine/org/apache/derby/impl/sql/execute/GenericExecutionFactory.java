@@ -127,11 +127,11 @@ public class GenericExecutionFactory
 	 * point, usually always, we will have 1 and only 1 instance
 	 * of each factory because assignment is atomic.
 	 */
-	public ResultSetFactory getResultSetFactory() 
-	{
+	public ResultSetFactory getResultSetFactory() throws StandardException {
 		if (rsFactory == null)
 		{
-			rsFactory = new GenericResultSetFactory();
+            rsFactory = (ResultSetFactory)
+                    Monitor.bootServiceModule(false,this,ResultSetFactory.MODULE,(Properties)null);
 		}
 		return rsFactory;
 	}

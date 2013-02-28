@@ -13,6 +13,7 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Procedure {
@@ -36,6 +37,18 @@ public class Procedure {
         this.isDeterministic = isDeterministic;
         this.returnType = returnType;
         this.ownerClass = ownerClass;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getOwnerClass() {
+        return ownerClass;
+    }
+
+    public Builder toBuilder(){
+        return new Builder(name,numberOutputParameters,numResultSets,routineSqlControl,isDeterministic,returnType,ownerClass,args);
     }
 
     public static Builder newBuilder(){ return new Builder();};
@@ -99,7 +112,7 @@ public class Procedure {
     }
 
     public static class Builder{
-        private List/*<Arg>*/ args = new ArrayList/*<Arg>*/();
+        private List/*<Arg>*/ args;
         private String name;
         private int numberOutputParameters;
         private int numResultSets;
@@ -107,6 +120,25 @@ public class Procedure {
         private boolean isDeterministic = true;
         private TypeDescriptor returnType = null;
         private String ownerClass;
+
+        private Builder(String name, int numberOutputParameters,
+                        int numResultSets, short routineSqlControl,
+                        boolean deterministic,
+                        TypeDescriptor returnType, String ownerClass,
+                        Arg[] args) {
+            this.name = name;
+            this.numberOutputParameters = numberOutputParameters;
+            this.numResultSets = numResultSets;
+            this.routineSqlControl = routineSqlControl;
+            this.isDeterministic = deterministic;
+            this.returnType = returnType;
+            this.ownerClass = ownerClass;
+            this.args = Arrays.asList(args);
+        }
+
+        private Builder(){
+            this.args = new ArrayList/*<Arg>*/();
+        }
 
 
         public Builder name(String name){
