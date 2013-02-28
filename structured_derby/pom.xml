@@ -14,7 +14,8 @@
 	</parent>
 
     <properties>
-        <runSuite>**/AllOperationSuite.class</runSuite>
+        <runSuite>*</runSuite>
+        <runClass>**/${runSuite}.class</runClass>
     </properties>
 
 	<dependencies>
@@ -32,7 +33,7 @@
         </dependency>
           <dependency>
         	<groupId>org.apache.derby</groupId>
-        	<artifactId>derbytesting</artifactId>
+        	<artifactId>derbyTesting</artifactId>
         	<version>${derby.version}</version>
         </dependency>
           <dependency>
@@ -177,7 +178,7 @@
      </configuration>  
     </execution>  
    </executions>  
-  </plugin>  
+  </plugin>
 
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
@@ -187,7 +188,7 @@
 					<argLine>-Xms2g -Xmx2g</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <includes>
-                        <include>${runSuite}</include>
+                        <include>${runClass}</include>
                     </includes>
 				</configuration>
 				<dependencies>
