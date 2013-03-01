@@ -756,6 +756,7 @@ public final class InsertNode extends DMLModStatementNode
 				indexSCOCIs[index] = tc.getStaticCompiledConglomInfo(indexConglomerateNumbers[index]);
 			}
 
+
 			/*
 			** If we're doing bulk insert, do table locking regardless of
 			** what the optimizer decided.  This is because bulk insert is
@@ -773,6 +774,7 @@ public final class InsertNode extends DMLModStatementNode
 				( targetTableDescriptor,
 				  heapConglomId,
 				  tc.getStaticCompiledConglomInfo(heapConglomId),
+                  pkColumns,
 				  indicesToMaintain,
 				  indexConglomerateNumbers,
 				  indexSCOCIs,
@@ -1017,6 +1019,8 @@ public final class InsertNode extends DMLModStatementNode
 		indicesToMaintain = indexLister.getDistinctIndexRowGenerators();
 		indexConglomerateNumbers = indexLister.getDistinctIndexConglomerateNumbers();
 		indexNames = indexLister.getDistinctIndexNames();
+
+
 
 		/* Add dependencies on all indexes in the list */
 		ConglomerateDescriptor[]	cds = td.getConglomerateDescriptors();

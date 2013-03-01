@@ -56,7 +56,7 @@ import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
  *
  */
 
-abstract	class WriteCursorConstantAction implements ConstantAction, Formatable
+public abstract	class WriteCursorConstantAction implements ConstantAction, Formatable
 {
 
 	/********************************************************
@@ -87,9 +87,10 @@ abstract	class WriteCursorConstantAction implements ConstantAction, Formatable
 	private int[] baseRowReadMap;
 	private int[] streamStorableHeapColIds;
 	boolean singleRowSource;
+    protected int[] pkColumns;
 
 
-	// CONSTRUCTORS
+    // CONSTRUCTORS
 
 	/**
 	 * Public niladic constructor. Needed for Formatable interface to work.
@@ -120,6 +121,7 @@ abstract	class WriteCursorConstantAction implements ConstantAction, Formatable
 	public	WriteCursorConstantAction(
 								long				conglomId,
 								StaticCompiledOpenConglomInfo heapSCOCI,
+                                int[] pkColumns,
 								IndexRowGenerator[]	irgs,
 								long[]				indexCIDS,
 								StaticCompiledOpenConglomInfo[] indexSCOCIs,
@@ -139,6 +141,7 @@ abstract	class WriteCursorConstantAction implements ConstantAction, Formatable
 	{
 		this.conglomId = conglomId;
 		this.heapSCOCI = heapSCOCI;
+        this.pkColumns = pkColumns;
 		this.irgs = irgs;
 		this.indexSCOCIs = indexSCOCIs;
 		this.indexCIDS = indexCIDS;
@@ -183,6 +186,10 @@ abstract	class WriteCursorConstantAction implements ConstantAction, Formatable
 	{
 		return fkInfo;
 	}
+
+    public int[] getPkColumns(){
+        return pkColumns;
+    }
 
 	/**
 	 * Basically, the same as getFKInfo but for triggers.
@@ -248,6 +255,13 @@ abstract	class WriteCursorConstantAction implements ConstantAction, Formatable
 		streamStorableHeapColIds = ArrayUtil.readIntArray(in); 
 		singleRowSource = in.readBoolean();
 		indexNames = ArrayUtil.readStringArray(in);
+
+        if(in.readBoolean()){
+            pkColumns = new int[in.readInt()];
+            for(int i=0;i<pkColumns.length;i++){
+                pkColumns[i] = in.readInt();
+            }
+        }
 	}
 
 	/**
@@ -289,7 +303,16 @@ abstract	class WriteCursorConstantAction implements ConstantAction, Formatable
 		
 		// Added for Mulan (Track Bug# 3322)
 		ArrayUtil.writeArray(out, indexNames);
-		
+
+        out.writeBoolean(pkColumns!=null);
+        if(pkColumns!=null){
+            out.writeInt(pkColumns.length);
+            for(int i=0;i<pkColumns.length;i++){
+                out.writeInt(pkColumns[i]);
+            }
+        }
+
+
 	}
 
 	// ACCESSORS

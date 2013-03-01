@@ -123,6 +123,7 @@ public class InsertConstantAction extends WriteCursorConstantAction
 	public	InsertConstantAction(TableDescriptor tableDescriptor,
 								long				conglomId,
 								StaticCompiledOpenConglomInfo heapSCOCI,
+                                int[] pkColumns,
 								IndexRowGenerator[]	irgs,
 								long[]				indexCIDS,
 								StaticCompiledOpenConglomInfo[] indexSCOCIs,
@@ -138,9 +139,10 @@ public class InsertConstantAction extends WriteCursorConstantAction
 								boolean				singleRowSource,
 								RowLocation[]		autoincRowLocation)
 	{
-		super(conglomId, 
-			  heapSCOCI,
-			  irgs, 
+		super(conglomId,
+                heapSCOCI,
+                pkColumns,
+                irgs,
 			  indexCIDS, 
 			  indexSCOCIs,
 			  indexNames,

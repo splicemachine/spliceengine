@@ -106,8 +106,11 @@ abstract class DMLModStatementNode extends DMLStatementNode
 	protected Hashtable graphHashTable; 
                           // Hash Table which maitains the querytreenode graph 
 	protected TableName synonymTableName;
-	
-	/**
+    /* Primary Key Column numbers */
+    protected int[] pkColumns;
+
+
+    /**
 	 * Initializer for a DMLModStatementNode -- delegate to DMLStatementNode
 	 *
 	 * @param resultSet	A ResultSetNode for the result set of the
@@ -641,6 +644,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 											targetTableDescriptor, 
 											skipCheckConstraints,
 											changedColumnIds);
+            generatePKInfo(targetTableDescriptor);
 			createConstraintDependencies(dataDictionary, relevantCdl, dependent);
 			generateFKInfo(relevantCdl, dataDictionary, targetTableDescriptor, readColsBitSet);
 
@@ -851,7 +855,18 @@ abstract class DMLModStatementNode extends DMLStatementNode
 
 		return checkTree;
 	}
-	
+
+    private void generatePKInfo(TableDescriptor td) throws StandardException {
+        ConstraintDescriptorList cdl = td.getConstraintDescriptorList();
+        for(int i=0;i<cdl.size();i++){
+            ConstraintDescriptor cd = cdl.elementAt(i);
+            if(cd.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
+                pkColumns = cd.getReferencedColumns();
+                return;
+            }
+        }
+    }
+
 	/**
 	 * Generate the FKInfo structures used during code generation.
 	 * For each constraint that isn't a check constraint, add another
@@ -974,9 +989,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 						fkColMap.add(colArray);
 					}
 				}
-			}
-			else
-			{
+			} else {
 				continue;
 			}
 

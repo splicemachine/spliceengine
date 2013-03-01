@@ -2492,6 +2492,10 @@ class InsertResultSet extends DMLWriteResultSet implements TargetResultSet
 		{
 			return row.getClone();
 		}
-	}
+
+        public String getMethodName() {
+            return "clone";
+        }
+    }
 }
 
