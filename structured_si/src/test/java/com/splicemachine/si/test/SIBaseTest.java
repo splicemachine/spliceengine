@@ -24,7 +24,7 @@ public class SIBaseTest {
 			if (admin != null)
 				admin.close();
 		}
-		
+
 	}
 
 	public static void tearDown() throws Exception {
@@ -39,7 +39,7 @@ public class SIBaseTest {
 		} finally {
 			if (admin != null)
 				admin.close();
-		}		
+		}
 	}
 	
 }

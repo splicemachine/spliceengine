@@ -5,7 +5,9 @@ import java.io.IOException;
 import junit.framework.Assert;
 
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
@@ -49,21 +51,67 @@ public class SIWrites extends SIBaseTest {
 		return put;
 	}
 
+	public void dumpData(HTableInterface siExample, String message) throws Exception {
+		System.out.println( "== " + message + "==" );
+		System.out.println( "example table" );
+		dumpTable(siExample);
+		System.out.println( "------" );
+		System.out.println( "xn table" );
+		dumpTable(pool.getTable("__TXN"));
+		System.out.println("========");
+	}
+
+	private void dumpTable(HTableInterface siExample) throws IOException {
+		Scan scan = new Scan();
+		final ResultScanner scanner = siExample.getScanner(scan);
+		for (Result r : scanner) {
+			System.out.println( "row = " + Bytes.toInt(r.getRow()));
+			for (KeyValue kv : r.list()) {
+				final String family = Bytes.toString(kv.getFamily());
+				System.out.print(family);
+				System.out.print("." + Bytes.toInt(kv.getQualifier()));
+				System.out.print("@" + kv.getTimestamp());
+				Object value = kv.getValue();
+				if (family.equals("attributes")) {
+					value = Bytes.toInt((byte[]) value);
+				} else {
+					StringBuilder stringResult = new StringBuilder();
+					for (Byte b : (byte[]) value) {
+						stringResult.append(">");
+						stringResult.append(b);
+						stringResult.append( "<" );
+					}
+					value = stringResult.toString();
+				}
+				System.out.println("=" + value);
+				//System.out.println( "value length = " + kv.getValue().length);
+			}
+		}
+	}
+
 	@Test 
 	public void singleWriteRecordTest() throws Exception {
 		Transaction earlyTransaction = tm.beginTransaction();
 		Transaction transaction = tm.beginTransaction();
 		HTableInterface siExample = pool.getTable(SI_EXAMPLE);
+		dumpData(siExample, "begin");
 		int first = incrementValue();
 		int second = incrementValue();
 		siExample.put(generatePut(transaction,Bytes.toBytes(first),Bytes.toBytes(12)));
-		siExample.put(generatePut(transaction,Bytes.toBytes(second),Bytes.toBytes(12)));	
+		dumpData(siExample, "first put");
+		siExample.put(generatePut(transaction,Bytes.toBytes(second),Bytes.toBytes(12)));
+		dumpData(siExample, "second put");
 		tm.doCommit(transaction);
+		dumpData(siExample, "commit");
 		Transaction lateTransaction = tm.beginTransaction();
+		dumpData(siExample, "another begin");
 		Result result = siExample.get(new SIGet(Bytes.toBytes(first),earlyTransaction.getStartTimestamp()));
 		Assert.assertTrue(result.isEmpty());
+		dumpData(siExample, "first get");
+
 		Result result2 = siExample.get(new SIGet(Bytes.toBytes(second),lateTransaction.getStartTimestamp()));
 		Assert.assertNotNull(result2);
+		dumpData(siExample, "second get");
 	}
 	
 	@Test 
