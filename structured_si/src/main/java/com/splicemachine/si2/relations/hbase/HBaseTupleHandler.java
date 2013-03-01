@@ -13,6 +13,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class HBaseTupleHandler implements TupleHandler {
 
@@ -66,7 +67,12 @@ public class HBaseTupleHandler implements TupleHandler {
 
 	@Override
 	public Object getKey(Object tuple) {
-		return ((Result) tuple).getRow();
+		if (tuple instanceof Result) {
+			return ((Result) tuple).getRow();
+		} else if (tuple instanceof HBaseTuplePut) {
+			return ((HBaseTuplePut) tuple).put.getRow();
+		}
+		throw new RuntimeException("Unsupported tuple class " + tuple.getClass().getName());
 	}
 
 	@Override
@@ -81,7 +87,17 @@ public class HBaseTupleHandler implements TupleHandler {
 
 	@Override
 	public List getCells(Object tuple) {
-		return ((Result) tuple).list();
+		if (tuple instanceof Result) {
+			return ((Result) tuple).list();
+		} else if (tuple instanceof HBaseTuplePut) {
+			final Map<byte[],List<KeyValue>> familyMap = ((HBaseTuplePut) tuple).put.getFamilyMap();
+			List result = new ArrayList();
+			for( List<KeyValue> subList : familyMap.values() ) {
+				result.addAll(subList);
+			}
+			return result;
+		}
+		throw new RuntimeException("Unsupported tuple class " + tuple.getClass().getName());
 	}
 
 	@Override
@@ -111,8 +127,16 @@ public class HBaseTupleHandler implements TupleHandler {
 
 	@Override
 	public Object fromValue(Object value, Class type) {
+		if (value == null) {
+			return null;
+		}
+		final byte[] bytes = (byte[]) value;
 		if (type.equals(Boolean.class)) {
-			return Bytes.toBoolean((byte[]) value);
+			return Bytes.toBoolean(bytes);
+		} else if (type.equals(Integer.class)) {
+			return Bytes.toInt(bytes);
+		} else if (type.equals(Long.class)) {
+			return Bytes.toLong(bytes);
 		}
 		throw new RuntimeException("unsupported type conversion: " + type.getName());
 	}
@@ -120,7 +144,11 @@ public class HBaseTupleHandler implements TupleHandler {
 	@Override
 	public void addCellToTuple(Object tuple, Object family, Object qualifier, Long timestamp, Object value) {
 		final Put put = ((HBaseTuplePut) tuple).put;
-		put.add((byte[]) family, (byte[]) qualifier, timestamp, (byte[]) value);
+		if(timestamp == null) {
+			put.add((byte[]) family, (byte[]) qualifier, (byte[]) value);
+		} else {
+			put.add((byte[]) family, (byte[]) qualifier, timestamp, (byte[]) value);
+		}
 	}
 
 	@Override
@@ -138,6 +166,11 @@ public class HBaseTupleHandler implements TupleHandler {
 			return ((HBaseTuplePut) tuple).put.getAttribute(attributeName);
 		}
 		throw new RuntimeException("unsupported type for attribute "  + tuple.getClass().getName());
+	}
+
+	@Override
+	public Object makeTuple(Object key, List cells) {
+		return new Result(cells);
 	}
 
 	@Override
@@ -185,6 +218,7 @@ public class HBaseTupleHandler implements TupleHandler {
 		if (effectiveTimestamp != null) {
 			get.setTimeRange(effectiveTimestamp, Long.MAX_VALUE);
 		}
+		get.setMaxVersions();
 		return get;
 	}
 
@@ -206,12 +240,16 @@ public class HBaseTupleHandler implements TupleHandler {
 		return scan;
 	}
 
-	static byte[] convertToBytes(Object qualifierIdentifier) {
-		if (qualifierIdentifier instanceof String) {
-			return Bytes.toBytes((String) qualifierIdentifier);
-		} else if (qualifierIdentifier instanceof Integer) {
-			return Bytes.toBytes((Integer) qualifierIdentifier);
+	static byte[] convertToBytes(Object value) {
+		if (value instanceof String) {
+			return Bytes.toBytes((String) value);
+		} else if (value instanceof Integer) {
+			return Bytes.toBytes((Integer) value);
+		} else if (value instanceof Long) {
+			return Bytes.toBytes((Long) value);
+		} else if (value instanceof Boolean) {
+			return Bytes.toBytes((Boolean) value);
 		}
-		throw new RuntimeException("Unsupported qualifier identifier class " + qualifierIdentifier.getClass().getName() + " for " + qualifierIdentifier);
+		throw new RuntimeException("Unsupported class " + value.getClass().getName() + " for " + value);
 	}
 }

@@ -17,8 +17,8 @@ import java.util.List;
 
 public class HBaseStoreTest {
 
-	@Test
-	public void testName() throws Exception {
+//	@Test
+//	public void testName() throws Exception {
 //		final HBaseTestingUtility testCluster = new HBaseTestingUtility();
 //		testCluster.startMiniCluster(1);
 //
@@ -45,5 +45,5 @@ public class HBaseStoreTest {
 //		Assert.assertEquals("age", Bytes.toString((byte[]) tupleHandler.getCellQualifier(outputCell)));
 //		Assert.assertEquals(21, Bytes.toInt((byte[]) tupleHandler.getCellValue(outputCell)));
 //		Assert.assertEquals(0L, tupleHandler.getCellTimestamp(outputCell));
-	}
+//	}
 }

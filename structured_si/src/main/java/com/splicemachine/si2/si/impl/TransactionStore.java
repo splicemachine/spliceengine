@@ -50,12 +50,12 @@ public class TransactionStore {
 			if( results.hasNext() ) {
 				Object resultTuple = results.next();
 				assert (!results.hasNext());
-				final Object cell = handler.getLatestCellForColumn(resultTuple, encodedSchema.siFamily, encodedSchema.statusQualifier);
-				TransactionStatus status = TransactionStatus.values()[((Integer) handler.fromValue(handler.getCellValue(cell), Integer.class))];
-				final Object commitCell = handler.getLatestCellForColumn(resultTuple, encodedSchema.siFamily, encodedSchema.commitQualifier);
+				final Object value = handler.getLatestCellForColumn(resultTuple, encodedSchema.siFamily, encodedSchema.statusQualifier);
+				TransactionStatus status = TransactionStatus.values()[((Integer) handler.fromValue(value, Integer.class))];
+				final Object commitValue = handler.getLatestCellForColumn(resultTuple, encodedSchema.siFamily, encodedSchema.commitQualifier);
 				Long commitTimestamp = null;
-				if (commitCell != null) {
-					commitTimestamp = (Long) handler.fromValue(handler.getCellValue(commitCell), Long.class);
+				if (commitValue != null) {
+					commitTimestamp = (Long) handler.fromValue(commitValue, Long.class);
 				}
 				return new Object[] {status, commitTimestamp};
 			}

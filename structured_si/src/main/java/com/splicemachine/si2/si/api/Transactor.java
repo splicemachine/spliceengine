@@ -14,5 +14,5 @@ public interface Transactor {
 	public void failTransaction(TransactionId transactionId);
 
 	List<TuplePut> processTuplePuts(TransactionId transactionId, List<TuplePut> tuples);
-	public void filterTuple(TransactionId transactionId, Object tuple);
+	public Object filterTuple(TransactionId transactionId, Object tuple);
 }

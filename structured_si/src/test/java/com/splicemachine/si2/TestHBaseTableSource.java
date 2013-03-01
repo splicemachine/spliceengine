@@ -13,10 +13,15 @@ public class TestHBaseTableSource implements HBaseTableSource {
 	private Map<String, HTable> hTables = new HashMap<String, HTable>();
 
 //	public TestHBaseTableSource(HBaseTestingUtility testCluster, String tableName, String[] families) {
+//		addTable(testCluster, tableName, families);
+//	}
+//
+//	public void addTable(HBaseTestingUtility testCluster, String tableName, String[] families) {
 //		byte[][] familyBytes = new byte[families.length][];
 //		int i = 0;
 //		for (String f : families) {
 //			familyBytes[i] = Bytes.toBytes(f);
+//			i++;
 //		}
 //		try {
 //			hTables.put(tableName, testCluster.createTable(Bytes.toBytes(tableName), familyBytes));

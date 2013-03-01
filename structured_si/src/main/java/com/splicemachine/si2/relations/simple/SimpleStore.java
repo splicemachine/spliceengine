@@ -60,7 +60,9 @@ public class SimpleStore implements RelationReader, RelationWriter {
 									List<List<Object>> columns, Long effectiveTimestamp) {
 		List<SimpleCell> newCells = new ArrayList<SimpleCell>();
 		for (SimpleCell c : t.values) {
-			if ((families == null) || (families.contains(c.family) || columnsContain(columns, c))) {
+			if ((families == null && columns == null) ||
+					((families != null) && families.contains(c.family)) ||
+					((columns != null) && columnsContain(columns, c))) {
 				if (effectiveTimestamp != null) {
 					if (c.timestamp >= effectiveTimestamp) {
 						newCells.add(c);

@@ -77,6 +77,11 @@ public class SimpleTupleHandler implements TupleHandler {
 	}
 
 	@Override
+	public Object makeTuple(Object key, List cells) {
+		return new SimpleTuple((String) key, new ArrayList<SimpleCell>(cells));
+	}
+
+	@Override
 	public TuplePut makeTuplePut(Object key, List cells) {
 		if (cells == null) {
 			cells = new ArrayList();
@@ -129,7 +134,7 @@ public class SimpleTupleHandler implements TupleHandler {
 		if (valuesForColumn.isEmpty()) {
 			return null;
 		}
-		return valuesForColumn.get(0);
+		return ((SimpleCell) valuesForColumn.get(0)).value;
 	}
 
 	@Override

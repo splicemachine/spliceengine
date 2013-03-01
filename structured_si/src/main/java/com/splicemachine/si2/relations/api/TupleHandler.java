@@ -27,6 +27,7 @@ public interface TupleHandler {
 
 	Object makeValue(Object value);
 	Object fromValue(Object value, Class type);
+	Object makeTuple(Object key, List cells);
 	TuplePut makeTuplePut(Object key, List cells);
 	TupleGet makeTupleGet(Object startTupleKey, Object endTupleKey,
 						  List<Object> families, List<List<Object>> columns,

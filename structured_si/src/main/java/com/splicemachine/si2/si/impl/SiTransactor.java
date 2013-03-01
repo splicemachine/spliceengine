@@ -16,13 +16,25 @@ public class SiTransactor implements Transactor, ClientTransactor {
 	private final TupleHandler dataTupleHandler;
 	private final TransactionStore transactionStore;
 	private final String siNeededAttributeName;
+	private final String siMetaFamily;
+	private final Object encodedSiMetaFamily;
+	private final Object siMetaQualifier;
+	private final Object encodedSiMetaQualifier;
+	private final Object siMetaNull;
+	private final Object encodedSiMetaNull;
 
 	public SiTransactor(IdSource idSource, TupleHandler dataTupleHandler, TransactionStore transactionStore,
-						String siNeededAttributeName) {
+						String siNeededAttributeName, String siMetaFamily, Object siMetaQualifier, Object siMetaNull) {
 		this.idSource = idSource;
 		this.dataTupleHandler = dataTupleHandler;
 		this.transactionStore = transactionStore;
 		this.siNeededAttributeName = siNeededAttributeName;
+		this.siMetaFamily = siMetaFamily;
+		this.encodedSiMetaFamily = dataTupleHandler.makeFamily(siMetaFamily);
+		this.siMetaQualifier = siMetaQualifier;
+		this.encodedSiMetaQualifier = dataTupleHandler.makeQualifier(siMetaQualifier);
+		this.siMetaNull = siMetaNull;
+		this.encodedSiMetaNull = dataTupleHandler.makeValue(siMetaNull);
 	}
 
 	@Override
@@ -71,6 +83,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
 							siTransactionId.id,
 							dataTupleHandler.getCellValue(cell));
 				}
+				dataTupleHandler.addCellToTuple(newPut, encodedSiMetaFamily, encodedSiMetaQualifier, siTransactionId.id, encodedSiMetaNull);
 				results.add(newPut);
 			} else {
 				results.add(t);
@@ -80,18 +93,26 @@ public class SiTransactor implements Transactor, ClientTransactor {
 	}
 
 	@Override
-	public void filterTuple(TransactionId transactionId, Object tuple) {
+	public Object filterTuple(TransactionId transactionId, Object tuple) {
+		List<Object> filteredCells = new ArrayList<Object>();
+		for( Object cell : dataTupleHandler.getCells(tuple)) {
+			if (shouldKeep(cell, transactionId)) {
+				filteredCells.add(cell);
+			}
+		}
+		return dataTupleHandler.makeTuple(dataTupleHandler.getKey(tuple), filteredCells);
 	}
 
 
-	public boolean shouldKeep(Object cell, SiTransactionId transactionId) {
-		final long snapshotTimestamp = transactionId.id;
+	public boolean shouldKeep(Object cell, TransactionId transactionId) {
+		final long snapshotTimestamp = ((SiTransactionId) transactionId).id;
 		final long cellTimestamp = dataTupleHandler.getCellTimestamp(cell);
 		final Object[] s = transactionStore.getTransactionStatus(new SiTransactionId(cellTimestamp));
 		TransactionStatus transactionStatus = (TransactionStatus) s[0];
 		Long commitTimestamp = (Long) s[1];
 		switch (transactionStatus) {
 			case ACTIVE:
+				return snapshotTimestamp == cellTimestamp;
 			case ERROR:
 			case ABORT:
 				return false;
