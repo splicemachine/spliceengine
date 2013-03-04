@@ -1,20 +1,15 @@
 package com.splicemachine.si.filters;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
-
 import junit.framework.Assert;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.filter.Filter.ReturnCode;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.zookeeper.KeeperException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
 import com.splicemachine.iapi.txn.TransactionState;
 import com.splicemachine.impl.si.txn.Transaction;
 import com.splicemachine.impl.si.txn.TransactionManagerImpl;
