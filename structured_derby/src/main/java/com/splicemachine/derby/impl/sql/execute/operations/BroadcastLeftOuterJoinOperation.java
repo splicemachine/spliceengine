@@ -69,13 +69,14 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowCore");
 		if (broadcastIterator == null)
-			broadcastIterator = new BroadcastNextRowIterator(true);
+			//broadcastIterator = new BroadcastNextRowIterator(true);
 		if (broadcastIterator.hasNext()) {
 			return broadcastIterator.next();
 		} else {
 			setCurrentRow(null);
 			return null;
 		}
+		return null;
 	}
 	
 	@Override

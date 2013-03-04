@@ -10,6 +10,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -25,7 +26,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -50,8 +50,11 @@ public class BroadcastJoinOperation extends JoinOperation {
 	protected byte[] priorHash;
 	protected List<ExecRow> rights;
 	protected byte[] rightHash;
+	protected Hasher leftHasher;
 	protected Iterator<ExecRow> rightIterator;
 	protected BroadcastNextRowIterator broadcastIterator;
+	protected Map<byte[],List<ExecRow>> rightSideMap;
+	protected Map<byte[],List<ExecRow>> rightSideList;
 	protected static Cache<String,Map<byte[],List<ExecRow>>> broadcastJoinCache; // Needs to be concurrent
 
 	
@@ -114,15 +117,22 @@ public class BroadcastJoinOperation extends JoinOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowCore");
-		if (broadcastIterator == null)
-			broadcastIterator = new BroadcastNextRowIterator(false);
-		if (broadcastIterator.hasNext()) {
-			ExecRow next = broadcastIterator.next();
-			return next;
-		} else {
-			setCurrentRow(null);
-			return null;
-		}
+		return null;
+		/*
+		try {
+			if (rightSideMap == null)
+				rightSideMap = retrieveRightSideCache();
+			
+			if (broadcastIterator == null || !broadcastIterator.hasNext()) {
+				if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
+					mergedRow = null;
+					this.setCurrentRow(mergedRow);
+					return mergedRow;
+				} else {
+					broadcastIterator = new BroadcastNextRowIterator(false,leftRow,leftHasher);	
+				}
+			}
+		*/
 	}
 
 	@Override
@@ -144,6 +154,7 @@ public class BroadcastJoinOperation extends JoinOperation {
 		rightHashKeys = generateHashKeys(rightHashKeyItem, (SpliceBaseOperation) this.rightResultSet);
 		mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
 		rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
+		leftHasher = new Hasher(leftRow.getRowArray(),leftHashKeys,null);
 		rightResultSet.init(context);
 	}
 		
@@ -191,14 +202,38 @@ public class BroadcastJoinOperation extends JoinOperation {
 	}
 	
 	protected class BroadcastNextRowIterator implements Iterator<ExecRow> {
-		protected JoinSideExecRow joinRow;
+		protected Iterator<ExecRow> rightSideIterator;
+		protected ExecRow leftRow;
+		protected ExecRow rightRow;		
 		protected boolean outerJoin;
-		public BroadcastNextRowIterator(boolean outerJoin) {
+		protected Hasher leftHasher;
+		protected boolean seenRow;
+		public BroadcastNextRowIterator(boolean outerJoin, ExecRow leftRow, Hasher leftHasher) {
+			this.leftRow = leftRow;
 			this.outerJoin = outerJoin;
+			this.leftHasher = leftHasher;
+		//	List<ExecRow> rows = rightSideMap.get(leftHasher.generateSortedHashKeyWithoutUniqueKey(leftRow.getRowArray()));
+		//	if (rows != null)
+		//		rightSideIterator = rows.iterator();
 		}
 
 		@Override
 		public boolean hasNext() {
+			if (rightSideIterator != null && rightSideIterator.hasNext()) {
+				mergedRow = JoinUtils.getMergedRow(leftRow, rightSideIterator.next(), wasRightOuterJoin, rightNumCols,leftNumCols, mergedRow);
+				setCurrentRow(mergedRow);
+				currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());					
+				SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
+				return true;
+			}
+			if (rightSideIterator == null && outerJoin) {
+				mergedRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, rightNumCols,leftNumCols, mergedRow);
+				setCurrentRow(mergedRow);
+				currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());					
+				SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
+				return true;
+			}
+				
 			return false;
 		}
 
@@ -245,6 +280,7 @@ public class BroadcastJoinOperation extends JoinOperation {
 					cache.put(hashKey, rows);
 				}
 			}
+			broadcastJoinCache.put(this.uniqueSequenceID, cache);
 		}
 	}
 	
