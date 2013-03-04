@@ -1,6 +1,5 @@
 package com.splicemachine.si2.si.impl;
 
-import com.splicemachine.si2.relations.api.TupleGet;
 import com.splicemachine.si2.relations.api.TupleHandler;
 import com.splicemachine.si2.relations.api.TuplePut;
 import com.splicemachine.si2.si.api.ClientTransactor;

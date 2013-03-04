@@ -1,12 +1,6 @@
 package com.splicemachine.si2;
 
-import com.splicemachine.si2.relations.api.Clock;
-import com.splicemachine.si2.relations.api.Relation;
-import com.splicemachine.si2.relations.api.RelationReader;
-import com.splicemachine.si2.relations.api.RelationWriter;
-import com.splicemachine.si2.relations.api.TupleGet;
-import com.splicemachine.si2.relations.api.TupleHandler;
-import com.splicemachine.si2.relations.api.TuplePut;
+import com.splicemachine.si2.relations.api.*;
 import com.splicemachine.si2.relations.hbase.HBaseStore;
 import com.splicemachine.si2.relations.hbase.HBaseTupleHandler;
 import com.splicemachine.si2.relations.simple.IncrementingClock;
@@ -16,196 +10,221 @@ import com.splicemachine.si2.relations.simple.SimpleTupleHandler;
 import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.si.impl.SiTransactionId;
-import com.splicemachine.si2.si.impl.SiTransactor;
-import com.splicemachine.si2.si.impl.SimpleIdSource;
-import com.splicemachine.si2.si.impl.TransactionSchema;
-import com.splicemachine.si2.si.impl.TransactionStore;
+import com.splicemachine.si2.si.impl.*;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.client.Increment;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListResourceBundle;
 
 public class SiTransactorTest {
-	private static HBaseStore setupHBaseStore() {
-		try {
-			final HBaseTestingUtility testCluster = new HBaseTestingUtility();
-			testCluster.startMiniCluster(1);
-			final TestHBaseTableSource tableSource = new TestHBaseTableSource(testCluster, "people", new String[]{"attributes", "_si"});
-			tableSource.addTable(testCluster, "transaction", new String[] {"siFamily"});
-			return new HBaseStore(tableSource);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
+    SimpleStore store;
+    final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "start", "end", "status");
+    Object family;
+    Object ageQualifier;
 
-//	final TupleHandler tupleHandler = new HBaseTupleHandler();
-//	final HBaseStore store = setupHBaseStore();
-//	final RelationReader reader = new RelationReader() {
-//		@Override
-//		public Relation open(String relationIdentifier) {
-//			return store.open(relationIdentifier);
-//		}
-//		@Override
-//		public void close(Relation relation) {
-//		}
-//		@Override
-//		public Iterator read(Relation relation, TupleGet get) {
-//			return store.read(relation, get);
-//		}
-//	};
+    TupleHandler tupleHandler;
+    RelationReader reader;
+    RelationWriter writer;
+    ClientTransactor clientTransactor;
+    Transactor transactor;
 
-	final TupleHandler tupleHandler = new SimpleTupleHandler();
-	final Clock clock = new IncrementingClock(1000);
-	final SimpleStore store = new SimpleStore(clock);
-	final RelationReader reader = store;
+    private static HBaseStore setupHBaseStore() {
+        try {
+            final HBaseTestingUtility testCluster = new HBaseTestingUtility();
+            testCluster.startMiniCluster(1);
+            final TestHBaseTableSource tableSource = new TestHBaseTableSource(testCluster, "people", new String[]{"attributes", "_si"});
+            tableSource.addTable(testCluster, "transaction", new String[]{"siFamily"});
+            return new HBaseStore(tableSource);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-	final RelationWriter writer = store;
-	final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "start", "end", "status");
-	final TransactionStore transactionStore = new TransactionStore(transactionSchema, tupleHandler, reader, writer);
-	SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), tupleHandler, transactionStore, "si-needed",
-			"_si", "commit", 0);
+    private void setupHBaseHarness() {
+        tupleHandler = new HBaseTupleHandler();
+        final HBaseStore store = setupHBaseStore();
+        reader = new RelationReader() {
+            @Override
+            public Relation open(String relationIdentifier) {
+                return store.open(relationIdentifier);
+            }
 
-	final ClientTransactor clientTransactor = siTransactor;
-	final Transactor transactor = siTransactor;
-	final Object family = tupleHandler.makeFamily("attributes");
-	final Object ageQualifier = tupleHandler.makeQualifier("age");
+            @Override
+            public void close(Relation relation) {
+            }
 
-	private void insertAge(TransactionId transactionId, String name, int age) {
-		Object key = tupleHandler.makeTupleKey(new Object[]{name});
-		TuplePut tuple = tupleHandler.makeTuplePut(key, null);
-		tupleHandler.addCellToTuple(tuple, family, ageQualifier, null, tupleHandler.makeValue(age));
-		List<TuplePut> tuples = Arrays.asList(tuple);
-		clientTransactor.initializeTuplePuts(tuples);
+            @Override
+            public Iterator read(Relation relation, TupleGet get) {
+                return store.read(relation, get);
+            }
+        };
+        writer = store;
+    }
 
-		Transactor transactor = siTransactor;
-		final List<TuplePut> modifiedTuples = transactor.processTuplePuts(transactionId, tuples);
-		Relation testRelation = reader.open("people");
-		try {
-			writer.write(testRelation, modifiedTuples);
-		} finally {
-			reader.close(testRelation);
-		}
-	}
+    private void setupSimpleHarness() {
+        tupleHandler = new SimpleTupleHandler();
+        Clock clock = new IncrementingClock(1000);
+        store = new SimpleStore(clock);
+        reader = store;
+        writer = store;
+    }
 
-	private String read(TransactionId transactionId, String name) {
-		Object key = tupleHandler.makeTupleKey(new Object[] {name});
-		TupleGet get = tupleHandler.makeTupleGet(key, key, Arrays.asList(family), null, null);
-		Relation testRelation = reader.open("people");
-		try {
-			Iterator results = reader.read(testRelation, get);
-			Object rawTuple = results.next();
-			Object tuple = transactor.filterTuple(transactionId, rawTuple);
-			final Object value = tupleHandler.getLatestCellForColumn(tuple, family, ageQualifier);
-			Integer age = (Integer) tupleHandler.fromValue(value, Integer.class);
-			return name + " age=" + age;
-		} finally {
-			reader.close(testRelation);
-		}
-	}
+    private void setupCore() {
+        family = tupleHandler.makeFamily("attributes");
+        ageQualifier = tupleHandler.makeQualifier("age");
 
-	@Test
-	public void test2() throws Exception {
-		long start = System.currentTimeMillis();
-		TransactionId t1 = transactor.beginTransaction();
-		insertAge(t1, "joe", 20);
-		transactor.commitTransaction(t1);
+        final TransactionStore transactionStore = new TransactionStore(transactionSchema, tupleHandler, reader, writer);
+        SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), tupleHandler, transactionStore, "si-needed",
+                "_si", "commit", 0);
+        clientTransactor = siTransactor;
+        transactor = siTransactor;
+    }
 
-		TransactionId t2 = transactor.beginTransaction();
-		System.out.println(read(t2, "joe"));
-		insertAge(t2, "joe", 30);
-		System.out.println(read(t2, "joe"));
+    final boolean useSimple = true;
 
-		TransactionId t3 = transactor.beginTransaction();
-		System.out.println(read(t3, "joe"));
+    @Before
+    public void setUp() {
+        if (useSimple) {
+            setupSimpleHarness();
+        } else {
+            setupHBaseHarness();
+        }
+        setupCore();
+    }
 
-		transactor.commitTransaction(t2);
+    private void insertAge(TransactionId transactionId, String name, int age) {
+        Object key = tupleHandler.makeTupleKey(new Object[]{name});
+        TuplePut tuple = tupleHandler.makeTuplePut(key, null);
+        tupleHandler.addCellToTuple(tuple, family, ageQualifier, null, tupleHandler.makeValue(age));
+        List<TuplePut> tuples = Arrays.asList(tuple);
+        clientTransactor.initializeTuplePuts(tuples);
 
-		TransactionId t4 = transactor.beginTransaction();
-		System.out.println(read(t4, "joe"));
-		long end = System.currentTimeMillis();
-		System.out.println("duration = " + (end - start));
+        final List<TuplePut> modifiedTuples = transactor.processTuplePuts(transactionId, tuples);
+        Relation testRelation = reader.open("people");
+        try {
+            writer.write(testRelation, modifiedTuples);
+        } finally {
+            reader.close(testRelation);
+        }
+    }
 
-		//System.out.println(store);
-	}
+    private String read(TransactionId transactionId, String name) {
+        Object key = tupleHandler.makeTupleKey(new Object[]{name});
+        TupleGet get = tupleHandler.makeTupleGet(key, key, Arrays.asList(family), null, null);
+        Relation testRelation = reader.open("people");
+        try {
+            Iterator results = reader.read(testRelation, get);
+            Object rawTuple = results.next();
+            Object tuple = transactor.filterTuple(transactionId, rawTuple);
+            final Object value = tupleHandler.getLatestCellForColumn(tuple, family, ageQualifier);
+            Integer age = (Integer) tupleHandler.fromValue(value, Integer.class);
+            return name + " age=" + age;
+        } finally {
+            reader.close(testRelation);
+        }
+    }
 
-	@Test
-	public void testName() throws Exception {
-		final TupleHandler tupleHandler = new SimpleTupleHandler();
-		final ManualClock clock = new ManualClock();
-		final SimpleStore store = new SimpleStore(clock);
-		final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "start", "end", "status");
-		final TransactionStore transactionStore = new TransactionStore(transactionSchema, tupleHandler, store, store);
+    @Test
+    public void test2() throws Exception {
+        long start = System.currentTimeMillis();
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe", 20);
+        transactor.commitTransaction(t1);
 
-		SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), tupleHandler, transactionStore, "si-needed",
-				"_si", "commit", 0);
-		ClientTransactor clientTransactor = siTransactor;
+        TransactionId t2 = transactor.beginTransaction();
+        System.out.println(read(t2, "joe"));
+        insertAge(t2, "joe", 30);
+        System.out.println(read(t2, "joe"));
 
-		clock.setTime(100);
-		final Object testKey = tupleHandler.makeTupleKey(new Object[]{"jim"});
-		TuplePut tuple = tupleHandler.makeTuplePut(testKey, null);
-		Object family = tupleHandler.makeFamily("foo");
-		Object ageQualifier = tupleHandler.makeQualifier("age");
-		tupleHandler.addCellToTuple(tuple, family, ageQualifier, null, tupleHandler.makeValue(25));
-		List<TuplePut> tuples = Arrays.asList(tuple);
-		clientTransactor.initializeTuplePuts(tuples);
-		System.out.println("tuple = " + tuple);
+        TransactionId t3 = transactor.beginTransaction();
+        System.out.println(read(t3, "joe"));
 
-		Transactor transactor = siTransactor;
-		TransactionId t = transactor.beginTransaction();
-		clock.setTime(101);
-		final List<TuplePut> modifiedTuples = transactor.processTuplePuts(t, tuples);
-		RelationReader reader = store;
-		RelationWriter writer = store;
-		Relation testRelation = reader.open("people");
-		try {
-			writer.write(testRelation, modifiedTuples);
-		} finally {
-			reader.close(testRelation);
-		}
+        transactor.commitTransaction(t2);
 
-		TransactionId t2 = transactor.beginTransaction();
-		TupleGet get = tupleHandler.makeTupleGet(testKey, testKey, null, null, null);
-		testRelation = reader.open("people");
-		try {
-			final Iterator results = reader.read(testRelation, get);
-			Object resultTuple = results.next();
-			for (Object cell : tupleHandler.getCells(resultTuple)) {
-				System.out.print(cell);
-				System.out.print( " ");
-				System.out.println(siTransactor.shouldKeep(cell, (SiTransactionId) t2));
-			}
-			transactor.filterTuple(t2, resultTuple);
-		} finally {
-			reader.close(testRelation);
-		}
+        TransactionId t4 = transactor.beginTransaction();
+        System.out.println(read(t4, "joe"));
+        long end = System.currentTimeMillis();
+        System.out.println("duration = " + (end - start));
 
-		transactor.commitTransaction(t);
+        System.out.println(store);
+    }
 
-		clock.setTime(102);
-		t = transactor.beginTransaction();
+    @Test
+    public void testName() throws Exception {
+        final TupleHandler tupleHandler = new SimpleTupleHandler();
+        final ManualClock clock = new ManualClock();
+        final SimpleStore store = new SimpleStore(clock);
+        final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "start", "end", "status");
+        final TransactionStore transactionStore = new TransactionStore(transactionSchema, tupleHandler, store, store);
 
-		TuplePut put = tupleHandler.makeTuplePut(tupleHandler.makeTupleKey(new Object[] {"joe"}), null);
+        SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), tupleHandler, transactionStore, "si-needed",
+                "_si", "commit", 0);
+        ClientTransactor clientTransactor = siTransactor;
+
+        clock.setTime(100);
+        final Object testKey = tupleHandler.makeTupleKey(new Object[]{"jim"});
+        TuplePut tuple = tupleHandler.makeTuplePut(testKey, null);
+        Object family = tupleHandler.makeFamily("foo");
+        Object ageQualifier = tupleHandler.makeQualifier("age");
+        tupleHandler.addCellToTuple(tuple, family, ageQualifier, null, tupleHandler.makeValue(25));
+        List<TuplePut> tuples = Arrays.asList(tuple);
+        clientTransactor.initializeTuplePuts(tuples);
+        System.out.println("tuple = " + tuple);
+
+        Transactor transactor = siTransactor;
+        TransactionId t = transactor.beginTransaction();
+        clock.setTime(101);
+        final List<TuplePut> modifiedTuples = transactor.processTuplePuts(t, tuples);
+        RelationReader reader = store;
+        RelationWriter writer = store;
+        Relation testRelation = reader.open("people");
+        try {
+            writer.write(testRelation, modifiedTuples);
+        } finally {
+            reader.close(testRelation);
+        }
+
+        TransactionId t2 = transactor.beginTransaction();
+        TupleGet get = tupleHandler.makeTupleGet(testKey, testKey, null, null, null);
+        testRelation = reader.open("people");
+        try {
+            final Iterator results = reader.read(testRelation, get);
+            Object resultTuple = results.next();
+            for (Object cell : tupleHandler.getCells(resultTuple)) {
+                System.out.print(cell);
+                System.out.print(" ");
+                System.out.println(siTransactor.shouldKeep(cell, (SiTransactionId) t2));
+            }
+            transactor.filterTuple(t2, resultTuple);
+        } finally {
+            reader.close(testRelation);
+        }
+
+        transactor.commitTransaction(t);
+
+        clock.setTime(102);
+        t = transactor.beginTransaction();
+
+        TuplePut put = tupleHandler.makeTuplePut(tupleHandler.makeTupleKey(new Object[]{"joe"}), null);
 
 
-		TransactionId t3 = transactor.beginTransaction();
-		TuplePut put3 = tupleHandler.makeTuplePut(testKey, null);
-		tupleHandler.addCellToTuple(put, family, ageQualifier, null, tupleHandler.makeValue(35));
-		tuples = Arrays.asList(tuple);
-		clientTransactor.initializeTuplePuts(tuples);
-		tuples = transactor.processTuplePuts(t, tuples);
-		testRelation = reader.open("people");
-		try {
-			writer.write(testRelation, tuples);
-		} finally {
-			reader.close(testRelation);
-		}
+        TransactionId t3 = transactor.beginTransaction();
+        TuplePut put3 = tupleHandler.makeTuplePut(testKey, null);
+        tupleHandler.addCellToTuple(put, family, ageQualifier, null, tupleHandler.makeValue(35));
+        tuples = Arrays.asList(tuple);
+        clientTransactor.initializeTuplePuts(tuples);
+        tuples = transactor.processTuplePuts(t, tuples);
+        testRelation = reader.open("people");
+        try {
+            writer.write(testRelation, tuples);
+        } finally {
+            reader.close(testRelation);
+        }
 
 
-		System.out.println("store2 = " + store);
-	}
+        //System.out.println("store2 = " + store);
+    }
 }
