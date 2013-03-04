@@ -110,6 +110,7 @@ public class SiTransactorTest {
 
 	@Test
 	public void test2() throws Exception {
+		long start = System.currentTimeMillis();
 		TransactionId t1 = transactor.beginTransaction();
 		insertAge(t1, "joe", 20);
 		transactor.commitTransaction(t1);
@@ -126,6 +127,8 @@ public class SiTransactorTest {
 
 		TransactionId t4 = transactor.beginTransaction();
 		System.out.println(read(t4, "joe"));
+		long end = System.currentTimeMillis();
+		System.out.println("duration = " + (end - start));
 
 		//System.out.println(store);
 	}

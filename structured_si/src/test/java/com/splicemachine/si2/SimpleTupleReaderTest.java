@@ -42,10 +42,7 @@ public class SimpleTupleReaderTest {
 		Assert.assertEquals(11, reader.getCellValue(result.get(3)));
 
 		Object latestValue = reader.getLatestCellForColumn(tuple, "foo", "age");
-		Assert.assertEquals("foo", reader.getCellFamily(latestValue));
-		Assert.assertEquals("age", reader.getCellQualifier(latestValue));
-		Assert.assertEquals(41, reader.getCellValue(latestValue));
-		Assert.assertEquals(11, reader.getCellTimestamp(latestValue));
+		Assert.assertEquals(41, latestValue);
 	}
 
 	@Test
