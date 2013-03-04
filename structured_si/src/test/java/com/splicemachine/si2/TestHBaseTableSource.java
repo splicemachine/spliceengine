@@ -1,7 +1,7 @@
 package com.splicemachine.si2;
 
 import com.splicemachine.si2.relations.hbase.HBaseTableSource;
-//import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -12,23 +12,23 @@ import java.util.Map;
 public class TestHBaseTableSource implements HBaseTableSource {
 	private Map<String, HTable> hTables = new HashMap<String, HTable>();
 
-//	public TestHBaseTableSource(HBaseTestingUtility testCluster, String tableName, String[] families) {
-//		addTable(testCluster, tableName, families);
-//	}
-//
-//	public void addTable(HBaseTestingUtility testCluster, String tableName, String[] families) {
-//		byte[][] familyBytes = new byte[families.length][];
-//		int i = 0;
-//		for (String f : families) {
-//			familyBytes[i] = Bytes.toBytes(f);
-//			i++;
-//		}
-//		try {
-//			hTables.put(tableName, testCluster.createTable(Bytes.toBytes(tableName), familyBytes));
-//		} catch (IOException e) {
-//			throw new RuntimeException(e);
-//		}
-//	}
+	public TestHBaseTableSource(HBaseTestingUtility testCluster, String tableName, String[] families) {
+		addTable(testCluster, tableName, families);
+	}
+
+	public void addTable(HBaseTestingUtility testCluster, String tableName, String[] families) {
+		byte[][] familyBytes = new byte[families.length][];
+		int i = 0;
+		for (String f : families) {
+			familyBytes[i] = Bytes.toBytes(f);
+			i++;
+		}
+		try {
+			hTables.put(tableName, testCluster.createTable(Bytes.toBytes(tableName), familyBytes));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	@Override
 	public HTable getTable(String tableName) {

@@ -21,7 +21,7 @@ import com.splicemachine.si2.si.impl.SiTransactor;
 import com.splicemachine.si2.si.impl.SimpleIdSource;
 import com.splicemachine.si2.si.impl.TransactionSchema;
 import com.splicemachine.si2.si.impl.TransactionStore;
-//import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.client.Increment;
 import org.junit.Test;
 
@@ -31,17 +31,17 @@ import java.util.List;
 import java.util.ListResourceBundle;
 
 public class SiTransactorTest {
-//	private static HBaseStore setupHBaseStore() {
-//		try {
-//			final HBaseTestingUtility testCluster = new HBaseTestingUtility();
-//			testCluster.startMiniCluster(1);
-//			final TestHBaseTableSource tableSource = new TestHBaseTableSource(testCluster, "people", new String[]{"attributes", "_si"});
-//			tableSource.addTable(testCluster, "transaction", new String[] {"siFamily"});
-//			return new HBaseStore(tableSource);
-//		} catch (Exception e) {
-//			throw new RuntimeException(e);
-//		}
-//	}
+	private static HBaseStore setupHBaseStore() {
+		try {
+			final HBaseTestingUtility testCluster = new HBaseTestingUtility();
+			testCluster.startMiniCluster(1);
+			final TestHBaseTableSource tableSource = new TestHBaseTableSource(testCluster, "people", new String[]{"attributes", "_si"});
+			tableSource.addTable(testCluster, "transaction", new String[] {"siFamily"});
+			return new HBaseStore(tableSource);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 //	final TupleHandler tupleHandler = new HBaseTupleHandler();
 //	final HBaseStore store = setupHBaseStore();
