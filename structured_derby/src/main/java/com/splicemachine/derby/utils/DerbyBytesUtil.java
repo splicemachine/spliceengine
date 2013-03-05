@@ -370,19 +370,15 @@ public class DerbyBytesUtil {
 	}
 		
 	public static byte[] generateScanKeyForIndex(DataValueDescriptor[] startKeyValue,int startSearchOperator, boolean[] sortOrder) throws IOException, StandardException {
+        if(startKeyValue==null)return null;
 		switch(startSearchOperator) { // public static final int GT = -1;
-		case ScanController.GE:
-			if (startKeyValue == null)
-				return null;
-			return generateIndexKey(startKeyValue,sortOrder);
-		case ScanController.GT:
-			if (startKeyValue == null)
-				return null;
-			return generateIncrementedScanKey(startKeyValue,sortOrder);
-		case ScanController.NA:
-			return null;		
-        default:
-        	throw new RuntimeException("Error with Key Generation");
+            case ScanController.NA:
+            case ScanController.GE:
+                return generateIndexKey(startKeyValue,sortOrder);
+            case ScanController.GT:
+                return generateIncrementedScanKey(startKeyValue,sortOrder);
+            default:
+                throw new RuntimeException("Error with Key Generation");
 		}
 	}
 

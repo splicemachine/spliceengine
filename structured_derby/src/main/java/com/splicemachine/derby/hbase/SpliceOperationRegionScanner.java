@@ -69,7 +69,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
 			statement = soi.getStatement();
 			topOperation = soi.getTopOperation();
-			LanguageConnectionContext lcc = SpliceEngine.getLanguageConnectionContext();
+			LanguageConnectionContext lcc = SpliceDriver.driver().getLanguageConnectionContext();
 			SpliceUtils.setThreadContext();
 
 			activation = soi.getActivation(lcc);

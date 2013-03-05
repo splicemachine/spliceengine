@@ -17,6 +17,7 @@ public class SpliceDatabase extends BasicDatabase {
 		//System.setProperty("derby.language.logQueryPlan", "true");
 	    SanityManager.DEBUG_SET("ByteCodeGenInstr");
 	    SanityManager.DEBUG_SET("DumpClassFile");
+        SanityManager.DEBUG_SET("DumpParseTree");
 		create = true; //  Need to figure out the create bit...
 		if (SpliceUtils.created())
 			create = false;

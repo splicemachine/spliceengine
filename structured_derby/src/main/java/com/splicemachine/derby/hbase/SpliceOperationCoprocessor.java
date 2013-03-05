@@ -37,6 +37,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	static {
 		Monitor.startMonitor(new Properties(), null);
 		Monitor.clearMonitor();
+
 	}
 	/**
 	 * Start the hbase coprocessor (empty)
@@ -70,7 +71,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 																			instructions.getStatement(),instructions.getTopOperation(), scan);
 			HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
 			SpliceLogUtils.trace(LOG,"Creating RegionScanner");
-			LanguageConnectionContext lcc = SpliceEngine.getLanguageConnectionContext();
+			LanguageConnectionContext lcc = SpliceDriver.driver().getLanguageConnectionContext();
 			SpliceUtils.setThreadContext();
 			Activation activation = instructions.getActivation(lcc);
 

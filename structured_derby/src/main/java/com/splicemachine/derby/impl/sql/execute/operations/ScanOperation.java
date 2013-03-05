@@ -20,6 +20,7 @@ import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.derby.impl.sql.execute.SelectConstantAction;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -30,7 +31,7 @@ import java.io.ObjectOutput;
 
 public abstract class ScanOperation extends SpliceBaseOperation implements CursorResultSet{
 	private static Logger LOG = Logger.getLogger(ScanOperation.class);
-	private static long serialVersionUID=5l;
+	private static long serialVersionUID=6l;
 	protected int lockMode;
 	protected int isolationLevel;
 	protected ExecRow candidate;
@@ -54,9 +55,10 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	private int colRefItem;
 	protected GeneratedMethod resultRowAllocator;
     protected ExecRow currentTemplate;
+    protected FormatableBitSet pkCols;
 
 
-	public ScanOperation () {
+    public ScanOperation () {
 		super();
 	}
 
@@ -102,6 +104,8 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		sameStartStopPosition = in.readBoolean();
 		conglomId = in.readLong();
 		colRefItem = in.readInt();
+        if(in.readBoolean())
+            pkCols = (FormatableBitSet) in.readObject();
 	}
 
 	@Override
@@ -119,6 +123,10 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		out.writeBoolean(sameStartStopPosition);
 		out.writeLong(conglomId);
 		out.writeInt(colRefItem);
+        out.writeBoolean(pkCols!=null);
+        if(pkCols!=null){
+            out.writeObject(pkCols);
+        }
 	}
 	
 	@Override
@@ -145,6 +153,16 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
             currentRow = getCompactRow(context.getLanguageConnectionContext(), candidate,
                     accessedCols, isKeyed);
             currentTemplate = currentRow.getClone();
+
+            if(activation.getConstantAction() instanceof SelectConstantAction){
+                SelectConstantAction action = (SelectConstantAction) activation.getConstantAction();
+                int[] pks = action.getKeyColumns();
+                pkCols = new FormatableBitSet(pks.length);
+                for(int pk:pks){
+                    pkCols.grow(pk+1);
+                    pkCols.set(pk-1);
+                }
+            }
         } catch (Exception e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
         }
@@ -192,7 +210,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     protected Scan getScan() throws IOException {
         return Scans.setupScan(startPosition == null ? null : startPosition.getRowArray(), startSearchOperator,
                 stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator,
-                scanQualifiers, conglomerate.getAscDescInfo(), accessedCols, Bytes.toBytes(transactionID));
+                scanQualifiers, conglomerate.getAscDescInfo(), pkCols,accessedCols, Bytes.toBytes(transactionID));
     }
 
     protected void populateQualifiers()  {
@@ -219,7 +237,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
                  * or equals to the start (e.g. leave startSearchOperator alone).
                  */
                 stopPosition = startPosition;
-                startSearchOperator= ScanController.NA; //ensure that we put in an EQUALS filter
+                startSearchOperator= ScanController.GE; //ensure that we put in an EQUALS filter
             }
         }
         if(stopKeyGetter!=null){

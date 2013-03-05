@@ -1,10 +1,17 @@
 package com.splicemachine.derby.utils;
 
-import java.io.*;
-import java.util.*;
-
+import com.google.gson.Gson;
 import com.splicemachine.SpliceConfiguration;
+import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
+import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
@@ -16,14 +23,11 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
@@ -34,16 +38,10 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
 
-import com.google.gson.Gson;
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.derby.hbase.SpliceEngine;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * Utility methods
@@ -564,7 +562,7 @@ public class SpliceUtils {
 		SpliceLogUtils.trace(LOG,"addThreadContext");
         ContextService contextService = ContextService.getFactory();
 		ContextManager mgr = contextService.newContextManager();
-		mgr.pushContext(SpliceEngine.getLanguageConnectionContext());
+		mgr.pushContext(SpliceDriver.driver().getLanguageConnectionContext());
 		contextService.setCurrentContextManager(mgr);
 	}
 

@@ -1,13 +1,16 @@
 package com.splicemachine.derby.utils;
 
 import java.io.IOException;
+import java.util.Comparator;
+import java.util.List;
 
+import com.google.common.collect.Lists;
+import com.splicemachine.constants.bytes.BytesUtil;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.Orderable;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter;
@@ -28,7 +31,21 @@ import com.splicemachine.hbase.filter.ColumnNullableFilter;
  * Created: 1/24/13 10:50 AM
  */
 public class Scans {
-	private Scans(){} //can't construct me
+    private static Comparator<? super Qualifier> qualifierComparator = new Comparator<Qualifier>() {
+        @Override
+        public int compare(Qualifier o1, Qualifier o2) {
+            if(o1==null){
+                if(o2==null) return 0;
+                return -1;
+            }
+            else if(o2==null) return 1;
+            else
+                return o1.getColumnId() - o2.getColumnId();
+
+        }
+    };
+
+    private Scans(){} //can't construct me
 
 	/**
 	 * The Default Cache size for Scans.
@@ -137,7 +154,59 @@ public class Scans {
 		attachTransactionInformation(transactionId, scan);
 		attachScanKeys(scan, startKeyValue, startSearchOperator,
 				stopKeyValue, stopSearchOperator,
-				qualifiers, scanColumnList, sortOrder);
+				qualifiers, null,scanColumnList, sortOrder);
+
+		scan.setFilter(buildKeyFilter(startKeyValue, startSearchOperator, qualifiers));
+
+		return scan;
+	}
+    /**
+	 * Builds a Scan from qualified starts and stops.
+	 *
+	 * This method does the following:
+	 *
+	 * 1. builds a basic scan with {@link #DEFAULT_CACHE_SIZE} and attaches transaction information to it.
+	 * 2. Constructs start and stop keys for the scan based on {@code startKeyValue} and {@code stopKeyValue},
+	 * according to the following rules:
+	 * 		A. if {@code startKeyValue ==null}, then set "" as the start of the scan
+	 * 	 	B. if {@code startKeyValue !=null}, then serialize the startKeyValue into a start key and set that.
+	 * 	 	C. if {@code stopKeyValue ==null}, then set "" as the end of the scan
+	 * 	 	D. if {@code stopKeyValue !=null}, then serialize the stopKeyValue into a stop key and set that.
+	 * 3. Construct startKeyFilters as necessary, according to the rules defined in
+	 * {@link #buildKeyFilter(org.apache.derby.iapi.types.DataValueDescriptor[],
+	 * 												int, org.apache.derby.iapi.store.access.Qualifier[][])}
+	 *
+	 * @param startKeyValue the start of the scan, or {@code null} if a full table scan is desired
+	 * @param startSearchOperator the operator for the start. Can be any of
+	 * {@link ScanController.GT}, {@link ScanController.GE}, {@link ScanController.NA}
+	 * @param stopKeyValue the stop of the scan, or {@code null} if a full table scan is desired.
+	 * @param stopSearchOperator the operator for the stop. Can be any of
+	 * {@link ScanController.GT}, {@link ScanController.GE}, {@link ScanController.NA}
+	 * @param qualifiers scan qualifiers to use. This is used to construct equality filters to reduce
+	 *                   the amount of data returned.
+	 * @param sortOrder a sort order to use in how data is to be searched, or {@code null} if the default sort is used.
+     * @param primaryKeys the primary keys to use in restricting the scan, or {@code null} if no primary key
+     *                    restrictions are desired.
+	 * @param scanColumnList a bitset determining which columns should be returned by the scan.
+	 * @param transactionId the transactionId to use
+	 * @return a transactionally aware scan from {@code startKeyValue} to {@code stopKeyValue}, with appropriate
+	 * filters aas specified by {@code qualifiers}
+	 * @throws IOException if {@code startKeyValue}, {@code stopKeyValue}, or {@code qualifiers} is unable to be
+	 * properly serialized into a byte[].
+	 */
+	public static Scan setupScan(DataValueDescriptor[] startKeyValue,int startSearchOperator,
+															 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
+															 Qualifier[][] qualifiers,
+															 boolean[] sortOrder,
+                                                             FormatableBitSet primaryKeys,
+															 FormatableBitSet scanColumnList,
+															 byte[] transactionId) throws IOException {
+		Scan scan = new Scan();
+		scan.setCaching(DEFAULT_CACHE_SIZE);
+		attachTransactionInformation(transactionId, scan);
+		attachScanKeys(scan, startKeyValue, startSearchOperator,
+				stopKeyValue, stopSearchOperator,
+				qualifiers, primaryKeys,scanColumnList, sortOrder);
 
 		scan.setFilter(buildKeyFilter(startKeyValue, startSearchOperator, qualifiers));
 
@@ -341,7 +410,9 @@ public class Scans {
 
 	private static void attachScanKeys(Scan scan,DataValueDescriptor[] startKeyValue,int startSearchOperator,
 																		DataValueDescriptor[] stopKeyValue,int stopSearchOperator,
-																		Qualifier[][] qualifiers,FormatableBitSet scanColumnList,
+																		Qualifier[][] qualifiers,
+                                                                        FormatableBitSet primaryKeys,
+                                                                        FormatableBitSet scanColumnList,
 																		boolean[] sortOrder) throws IOException {
 
 		if(scanColumnList!=null){
@@ -374,13 +445,92 @@ public class Scans {
 				scan.setStartRow(DerbyBytesUtil.generateScanKeyForIndex(startKeyValue,startSearchOperator,sortOrder));
 				scan.setStopRow(DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue,stopSearchOperator,sortOrder));
 
+                /*
+                 * It might happen that we'll want to do a primary key lookup (that is, we have primary keys
+                 * that can be used to restrict the search). However, because Derby doesn't like treating Primary
+                 * Keys specially, it's possible that no start or end value will be specified, but a qualifier
+                 * will be used to indicate that a primary key is matched. This is because Derby thinks
+                 * that it's doing a full table scan.
+                 *
+                 * However, we are smarter than Derby here, and can convert those qualifiers into start
+                 * and stop keys based on how we know the primary key columns are structured.
+                 *
+                 * the algorithm goes something like this:
+                 *
+                 * Take the lowest order primary key, and get all the Qualifiers for that key. There are
+                 * different states possible for the qualifiers:
+                 *
+                 * 1. pk < value
+                 * 2. pk <= value
+                 * 3. pk = value
+                 * 4. pk >= value
+                 * 5. pk > value
+                 * 6. value1 <= pk < value2
+                 * 7. value1 <= pk <= value2
+                 * 8. value1 < pk <= value2
+                 * 9. value1 < pk < value2
+                 *
+                 * If 1 or 2 is true, then we can set the qualifier into the stopKey, but we must terminate
+                 * operating on the startKey, and the same argument in reverse works for case 4 and 5, while we
+                 * can set both start and stop key values for cases 3, 6,7,8,9. We then repeat the process on
+                 * all primary key columns, until either we run out of qualifiers or we can go no further with
+                 * constructing the start and stop key.
+                 *
+                 * And then finally, we have a start and an end key, but perhaps what derby specified
+                 * is smarter than this, and has a tighter bound, so in the end we need to compare what
+                 * Derby generated with what we've got from our Qualifiers, and take the tighter bound.
+                 */
+                if(primaryKeys!=null && qualifiers!=null && qualifiers.length >0){
+
+                    List<Qualifier> pkQualifiers = Lists.newArrayListWithCapacity(3);
+                    List<byte[]> startKeyBounds = Lists.newArrayListWithCapacity(primaryKeys.getNumBitsSet());
+                    List<byte[]> endKeyBounds = Lists.newArrayListWithCapacity(primaryKeys.getNumBitsSet());
+                    boolean[] shouldContinue = new boolean[]{true,true};
+                    boolean addStart=shouldContinue[0];
+                    boolean addStop = shouldContinue[1];
+                    for(int pkCol = primaryKeys.anySetBit();pkCol!=-1&&(addStart||addStop);pkCol = primaryKeys.anySetBit(pkCol)){
+                        //empty out previous runs
+                        pkQualifiers.clear();
+                        for(Qualifier[] quals: qualifiers){
+                            for(Qualifier qual:quals){
+                                if(qual.getColumnId()==pkCol){
+                                    pkQualifiers.add(qual);
+                                }
+                            }
+                        }
+
+                        if(pkQualifiers.size()<=0){
+                            shouldContinue[0] = false;
+                            shouldContinue[1] = false;
+                            continue;
+                        }
+                        QualifierBounds qualifierBounds = QualifierBounds.getOperator(pkQualifiers);
+                        qualifierBounds.process(pkQualifiers,startKeyBounds,endKeyBounds,shouldContinue);
+                    }
+
+                    byte[] qualifiedStart = BytesUtil.concat(startKeyBounds);
+                    byte[] qualifiedStop = BytesUtil.concat(endKeyBounds);
+
+                    if(qualifiedStart!=null&&qualifiedStart.length>0){
+                        byte[] currentStart = scan.getStartRow();
+                        if(currentStart==null) scan.setStartRow(qualifiedStart);
+                        else if (Bytes.compareTo(currentStart,qualifiedStart) <0)
+                            scan.setStartRow(qualifiedStart);
+                    }
+                    if(qualifiedStop!=null&&qualifiedStop.length>0){
+                        byte[] currentStop = scan.getStopRow();
+                        if(currentStop==null) scan.setStopRow(qualifiedStop);
+                        else if (Bytes.compareTo(currentStop,qualifiedStop) <0)
+                            scan.setStopRow(qualifiedStop);
+                    }
+                }
 					/*
 					 * If we can't fill the start and end rows correctly, we assume that the scan is empty.
 					 * This causes problems later (particularly in shuffle tasks, where null start and end mean
 					 * "go over the entire table" not "go over nothing") and in those cases, this will have to be
 					 * undone.
 					 */
-				if(scan.getStartRow()==null)
+                if(scan.getStartRow()==null)
 					scan.setStartRow(HConstants.EMPTY_START_ROW);
 				if(scan.getStopRow()==null)
 					scan.setStopRow(HConstants.EMPTY_END_ROW);

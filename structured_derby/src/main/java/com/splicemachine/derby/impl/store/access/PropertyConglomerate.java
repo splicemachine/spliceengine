@@ -21,10 +21,25 @@
 
 package com.splicemachine.derby.impl.store.access;
 
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
+import com.gotometrics.orderly.StringRowKey;
+import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.filter.ColumnNullableFilter;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.reference.Attribute;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
 
+import org.apache.derby.iapi.store.access.*;
+import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
+import org.apache.derby.iapi.store.access.conglomerate.ConglomerateFactory;
+import org.apache.derby.iapi.store.access.conglomerate.MethodFactory;
+import org.apache.derby.iapi.store.raw.ContainerHandle;
+import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.UserType;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.FormatableHashtable; 
@@ -42,21 +57,21 @@ import org.apache.derby.iapi.services.io.Formatable;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.store.access.conglomerate.TransactionManager;
-import org.apache.derby.iapi.store.access.AccessFactory;
-import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
-import org.apache.derby.iapi.store.access.ConglomerateController;
 import org.apache.derby.iapi.services.property.PropertyFactory;
-import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.store.access.ScanController;
-import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.store.raw.RawStoreFactory;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
 import org.apache.derby.impl.store.access.UTF;
 import org.apache.derby.impl.store.access.UTFQualifier;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.CompareFilter;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.Serializable;
+import java.io.*;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -95,10 +110,12 @@ runs recovery. To make a small number of properties (listed in
 servicePropertyList) available during early boot, this copies
 them to services.properties.
 **/
-class PropertyConglomerate
-{
+class PropertyConglomerate {
 	private static Logger LOG = Logger.getLogger(PropertyConglomerate.class);
-	protected long propertiesConglomId;
+    private static final String PROPERTIES_TABLE_NAME = "PROPERTIES";
+    private static final byte[] PROPERTIES_TABLE_NAME_BYTES = PROPERTIES_TABLE_NAME.getBytes();
+    private static final byte[] VALUE_COLUMN = Integer.toString(1).getBytes();
+    protected String propertiesId;
 	protected Properties serviceProperties;
 	private LockFactory lf;
 	private Dictionary	cachedSet;
@@ -127,7 +144,7 @@ class PropertyConglomerate
 				create = true;
 			} else {
 				try {
-					propertiesConglomId = Long.valueOf(id).longValue();
+					propertiesId = id;
 				} catch (NumberFormatException nfe) {
 					throw Monitor.exceptionStartingModule(nfe) ;
 				}
@@ -147,18 +164,24 @@ class PropertyConglomerate
                 RawStoreFactory.PAGE_RESERVED_SPACE_PARAMETER, 
                 RawStoreFactory.PAGE_RESERVED_ZERO_SPACE_STRING);
 
-			propertiesConglomId = 
-                tc.createConglomerate(
-                    AccessFactoryGlobals.HEAP,
-                    template, 
-                    null, 
-                    (int[]) null, // use default collation for property conglom.
-                    conglomProperties, 
-                    TransactionController.IS_DEFAULT);
+
+            createConglomerate();
+//			propertiesConglomId =
+//                    createConglomerate(tc,AccessFactoryGlobals.HEAP,
+//                            template,
+//                            conglomProperties,
+//                            TransactionController.IS_DEFAULT);
+//                tc.createConglomerate(
+//                    AccessFactoryGlobals.HEAP,
+//                    template,
+//                    null,
+//                    (int[]) null, // use default collation for property conglom.
+//                    conglomProperties,
+//                    TransactionController.IS_DEFAULT);
 
 			serviceProperties.put(
-                Property.PROPERTIES_CONGLOM_ID, 
-                Long.toString(propertiesConglomId));
+                    Property.PROPERTIES_CONGLOM_ID,
+                    PROPERTIES_TABLE_NAME);
 		}
 
 		this.serviceProperties = serviceProperties;
@@ -176,6 +199,23 @@ class PropertyConglomerate
 		}
 		getCachedDbProperties(tc);
 	}
+
+    private void createConglomerate() throws StandardException {
+        SpliceLogUtils.trace(LOG,"creating Properties Conglomerate");
+        try {
+            HBaseAdmin admin = new HBaseAdmin(SpliceUtils.config);
+            if(!admin.tableExists(PROPERTIES_TABLE_NAME)){
+                HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(PROPERTIES_TABLE_NAME);
+                admin.createTable(td);
+            }
+        } catch (MasterNotRunningException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG, e);
+        } catch (ZooKeeperConnectionException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG, e);
+        } catch (IOException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG,e);
+        }
+    }
 
     /* Private/Protected methods of This class: */
 
@@ -211,55 +251,6 @@ class PropertyConglomerate
         return(template);
     }
 
-    /**
-     * Open a scan on the properties conglomerate looking for "key".
-     * <p>
-	 * Open a scan on the properties conglomerate qualified to
-	 * find the row with value key in column 0.  Both column 0
-     * and column 1 are included in the scan list.
-     *
-	 * @return an open ScanController on the PropertyConglomerate. 
-     *
-	 * @param tc        The transaction to do the Conglomerate work under.
-     * @param key       The "key" of the property that is being requested.
-     * @param open_mode Whether we are setting or getting the property.
-     *
-	 * @exception  StandardException  Standard exception policy.
-     **/
-	private ScanController openScan(
-    TransactionController tc, 
-    String                key, 
-    int                   open_mode) 
-		throws StandardException
-    {
-		if (LOG.isTraceEnabled())
-			LOG.trace("openScan transactionController " + tc + ", key " + key + ", open_mode " + open_mode);
-		Qualifier[][] qualifiers = null;
-
-		if (key != null) {
-			// Set up qualifier to look for the row with key value in column[0]
-			qualifiers = new Qualifier[1][];
-            qualifiers[0] = new Qualifier[1];
-			qualifiers[0][0] = new UTFQualifier(0, key);
-		}
-
-        // open the scan, clients will do the fetches and close.
-		ScanController scan = 
-            tc.openScan(
-                propertiesConglomId,
-                false, // don't hold over the commit
-                open_mode,
-                TransactionController.MODE_TABLE,
-                TransactionController.ISOLATION_SERIALIZABLE,
-                (FormatableBitSet) null,
-                (DataValueDescriptor[]) null,	// start key
-                ScanController.NA,
-                qualifiers,
-                (DataValueDescriptor[]) null,	// stop key
-                ScanController.NA);
-
-		return(scan);
-	}
     /* Package Methods of This class: */
 
 	/**
@@ -318,57 +309,48 @@ class PropertyConglomerate
 
 		if (saveServiceProperty(key,value)) return;
 
-        // Do a scan to see if the property already exists in the Conglomerate.
-		ScanController scan = 
-            this.openScan(tc, key, TransactionController.OPENMODE_FORUPDATE);
+        //see if the property is already there
+        HTableInterface table = null;
+        try{
+            table = SpliceAccessManager.getHTable(PROPERTIES_TABLE_NAME_BYTES);
 
-        DataValueDescriptor[] row = makeNewTemplate();
+            byte[] keyBytes = key.getBytes();
+            byte[] valColumn = Integer.toString(1).getBytes();
+            Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
+            byte[] txnId = SpliceUtils.getTransID(td);
+            if(value==null){
+                //null value means delete the property
+                Delete delete = new Delete(keyBytes);
 
-		if (scan.fetchNext(row)) 
-        {
-			if (value == null)
-            {
-				// A null input value means that we should delete the row
-                
-				scan.delete();
-			} 
-            else
-            {
-				// a value already exists, just replace the second columm
+                if(txnId!=null)
+                    delete.setAttribute(TxnConstants.TRANSACTION_ID,txnId);
 
-				row[1] = new UserType(value);
+                table.delete(delete);
+            }
 
-				scan.replace(row, (FormatableBitSet) null);
-			}
+            //set the value
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            oos.writeObject(value);
 
-			scan.close();
-		}
-        else
-        {
-            // The value does not exist in the Conglomerate.
+            Put put = new Put(keyBytes);
+            put.add(HBaseConstants.DEFAULT_FAMILY_BYTES, valColumn,baos.toByteArray());
+            if(txnId!=null)
+                put.setAttribute(TxnConstants.TRANSACTION_ID,txnId);
 
-            scan.close();
-            scan = null;
-
-            if (value != null)
-            {
-                // not a delete request, so insert the new property.
-                
-                row = makeNewTemplate(key, value);
-
-                ConglomerateController cc = 
-                    tc.openConglomerate(
-                        propertiesConglomId, 
-                        false,
-                        TransactionController.OPENMODE_FORUPDATE, 
-                        TransactionController.MODE_TABLE,
-                        TransactionController.ISOLATION_SERIALIZABLE);
-
-                cc.insert(row);
-
-                cc.close();
+            table.put(put);
+        }catch(IOException ioe){
+            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe);
+        }finally{
+            if(table!=null){
+                try {
+                    table.close();
+                } catch (IOException e) {
+                    SpliceLogUtils.error(LOG,"Unable to close property table",e);
+                }
             }
         }
+
 	}
 
 	private boolean saveServiceProperty(String key, Serializable value)
@@ -585,21 +567,35 @@ class PropertyConglomerate
 			LOG.trace("readProperty transactionController " + tc + ", key " + key);
 
 		// scan the table for a row with matching "key"
-		ScanController scan = openScan(tc, key, 0);
+        HTableInterface table = SpliceAccessManager.getHTable(PROPERTIES_TABLE_NAME_BYTES);
+        try {
+            Get get = new Get(new StringRowKey().serialize(key));
+            get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN);
 
-		DataValueDescriptor[] row = makeNewTemplate();
+            Result result = table.get(get);
 
-		// did we find at least one row?
-		boolean isThere = scan.fetchNext(row);
-		
-		scan.close();
-
-		if (!isThere) return null;
-
-		return (Serializable) (((UserType) row[1]).getObject());
+            if(result==null||result.isEmpty()) return null;
+            return getValue(result.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN));
+        } catch (IOException e) {
+            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+        } catch (ClassNotFoundException e) {
+            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+        } finally{
+            try {
+                table.close();
+            } catch (IOException e) {
+                SpliceLogUtils.error(LOG,"Unable to close properties table",e);
+            }
+        }
 	}
 
-	private Serializable getCachedProperty(TransactionController tc,
+    private Serializable getValue(byte[] value) throws IOException, ClassNotFoundException {
+        ByteArrayInputStream bais = new ByteArrayInputStream(value);
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        return (Serializable)ois.readObject();
+    }
+
+    private Serializable getCachedProperty(TransactionController tc,
 										   String key) throws StandardException
 	{
 		if (LOG.isTraceEnabled())
@@ -780,22 +776,36 @@ class PropertyConglomerate
 		Dictionary set = new Hashtable();
 
         // scan the table for a row with no matching "key"
-		ScanController scan = openScan(tc, (String) null, 0);
+        HTableInterface table = SpliceAccessManager.getHTable(PROPERTIES_TABLE_NAME_BYTES);
 
-		DataValueDescriptor[] row = makeNewTemplate();
-
-		while (scan.fetchNext(row)) {
-
-			Object key = ((UserType) row[0]).getObject();
-			Object value = ((UserType) row[1]).getObject();
-			if (SanityManager.DEBUG) {
-                if (!(key instanceof String))
-                    SanityManager.THROWASSERT(
-                        "Key is not a string " + key.getClass().getName());
-			}
-			set.put(key, value);
-		}
-		scan.close();
+        Scan scan = new Scan();
+        scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+        scan.setCaching(100);
+        scan.setFilter(new ColumnNullableFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN,
+                CompareFilter.CompareOp.GREATER_OR_EQUAL));
+        try{
+            ResultScanner scanner = table.getScanner(scan);
+            Result result;
+            while((result = scanner.next())!=null){
+                if(result.isEmpty()){
+                    break;
+                }
+                String key = Bytes.toString(result.getRow());
+                byte[] valBytes = result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN).getValue();
+                Object value = getValue(valBytes);
+                set.put(key,value);
+            }
+        } catch (IOException e) {
+            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+        } catch (ClassNotFoundException e) {
+            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+        } finally{
+            try{
+                table.close();
+            }catch(IOException e){
+                SpliceLogUtils.error(LOG,"Unable to close properties table",e);
+            }
+        }
 
 		// add the known properties from the service properties set
 		for (int i = 0; i < PropertyUtil.servicePropertyList.length; i++) {
