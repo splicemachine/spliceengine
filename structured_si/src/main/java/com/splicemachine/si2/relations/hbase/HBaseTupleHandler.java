@@ -1,5 +1,6 @@
 package com.splicemachine.si2.relations.hbase;
 
+import com.splicemachine.si2.relations.api.RowLock;
 import com.splicemachine.si2.relations.api.TupleGet;
 import com.splicemachine.si2.relations.api.TupleHandler;
 import com.splicemachine.si2.relations.api.TuplePut;
@@ -175,19 +176,29 @@ public class HBaseTupleHandler implements TupleHandler {
 
 	@Override
 	public TuplePut makeTuplePut(Object key, List cells) {
-		if (cells == null) {
-			cells = new ArrayList();
-		}
-		try {
-			Put put = new Put((byte[]) key);
-			for (Object o : cells) {
-				put.add((KeyValue) o);
-			}
-			return new HBaseTuplePut(put);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
+	    return makeTuplePut(key, null, cells);
+    }
+
+    @Override
+    public TuplePut makeTuplePut(Object key, RowLock lock, List cells) {
+        if (cells == null) {
+            cells = new ArrayList();
+        }
+        try {
+            Put put;
+            if (lock == null) {
+                put = new Put((byte[]) key);
+            } else {
+                put = new Put((byte[]) key, ((HBaseRowLock) lock).lock);
+            }
+            for (Object o : cells) {
+                put.add((KeyValue) o);
+            }
+            return new HBaseTuplePut(put);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Override
 	public TupleGet makeTupleGet(Object startTupleKey, Object endTupleKey, List<Object> families, List<List<Object>> columns, Long effectiveTimestamp) {

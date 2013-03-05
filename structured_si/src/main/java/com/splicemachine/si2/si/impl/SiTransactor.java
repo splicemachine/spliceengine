@@ -3,6 +3,7 @@ package com.splicemachine.si2.si.impl;
 import com.splicemachine.si2.relations.api.Relation;
 import com.splicemachine.si2.relations.api.RelationReader;
 import com.splicemachine.si2.relations.api.RelationWriter;
+import com.splicemachine.si2.relations.api.RowLock;
 import com.splicemachine.si2.relations.api.TupleGet;
 import com.splicemachine.si2.relations.api.TupleHandler;
 import com.splicemachine.si2.relations.api.TuplePut;
@@ -25,16 +26,14 @@ public class SiTransactor implements Transactor, ClientTransactor {
     private final String siNeededAttributeName;
     private final String siMetaFamily;
     private final Object encodedSiMetaFamily;
-    private final Object siMetaQualifier;
-    private final Object encodedSiMetaQualifier;
-    private final Object siLockQualifier;
-    private final Object encodedSiLockQualifier;
+    private final Object siCommitQualifier;
+    private final Object encodedSiCommitQualifier;
     private final Object siMetaNull;
     private final Object encodedSiMetaNull;
 
     public SiTransactor(IdSource idSource, TupleHandler dataTupleHandler, RelationReader dataReader, RelationWriter dataWriter,
                         TransactionStore transactionStore,
-                        String siNeededAttributeName, String siMetaFamily, Object siMetaQualifier, Object siLockQualifier,
+                        String siNeededAttributeName, String siMetaFamily, Object siCommitQualifier, Object siLockQualifier,
                         Object siMetaNull) {
         this.idSource = idSource;
         this.dataTupleHandler = dataTupleHandler;
@@ -44,10 +43,8 @@ public class SiTransactor implements Transactor, ClientTransactor {
         this.siNeededAttributeName = siNeededAttributeName;
         this.siMetaFamily = siMetaFamily;
         this.encodedSiMetaFamily = dataTupleHandler.makeFamily(siMetaFamily);
-        this.siMetaQualifier = siMetaQualifier;
-        this.encodedSiMetaQualifier = dataTupleHandler.makeQualifier(siMetaQualifier);
-        this.siLockQualifier = siLockQualifier;
-        this.encodedSiLockQualifier = dataTupleHandler.makeQualifier(siLockQualifier);
+        this.siCommitQualifier = siCommitQualifier;
+        this.encodedSiCommitQualifier = dataTupleHandler.makeQualifier(siCommitQualifier);
         this.siMetaNull = siMetaNull;
         this.encodedSiMetaNull = dataTupleHandler.makeValue(siMetaNull);
     }
@@ -95,16 +92,22 @@ public class SiTransactor implements Transactor, ClientTransactor {
             Object neededValue = dataTupleHandler.getAttribute(t, siNeededAttributeName);
             Boolean siNeeded = (Boolean) dataTupleHandler.fromValue(neededValue, Boolean.class);
             if (siNeeded) {
-                TuplePut newPut = dataTupleHandler.makeTuplePut(dataTupleHandler.getKey(t), null);
-                for (Object cell : dataTupleHandler.getCells(t)) {
-                    dataTupleHandler.addCellToTuple(newPut, dataTupleHandler.getCellFamily(cell),
-                            dataTupleHandler.getCellQualifier(cell),
-                            siTransactionId.id,
-                            dataTupleHandler.getCellValue(cell));
+                Object row = dataTupleHandler.getKey(t);
+                RowLock lock = dataWriter.lockRow(relation, row);
+                try {
+                    checkForConflict(transactionId, relation, lock, row);
+                    TuplePut newPut = dataTupleHandler.makeTuplePut(row, lock, null);
+                    for (Object cell : dataTupleHandler.getCells(t)) {
+                        dataTupleHandler.addCellToTuple(newPut, dataTupleHandler.getCellFamily(cell),
+                                dataTupleHandler.getCellQualifier(cell),
+                                siTransactionId.id,
+                                dataTupleHandler.getCellValue(cell));
+                    }
+                    dataTupleHandler.addCellToTuple(newPut, encodedSiMetaFamily, encodedSiCommitQualifier, siTransactionId.id, encodedSiMetaNull);
+                    dataWriter.write(relation, Arrays.asList(newPut));
+                } finally {
+                    dataWriter.unLockRow(relation, lock);
                 }
-                dataTupleHandler.addCellToTuple(newPut, encodedSiMetaFamily, encodedSiMetaQualifier, siTransactionId.id, encodedSiMetaNull);
-                results.add(newPut);
-                obtainWriteLock(transactionId, relation, t);
             } else {
                 results.add(t);
             }
@@ -112,27 +115,34 @@ public class SiTransactor implements Transactor, ClientTransactor {
         return results;
     }
 
-    private void obtainWriteLock(TransactionId transactionId, Relation relation, TuplePut t) {
-        Object key = dataTupleHandler.getKey(t);
-        TuplePut put = dataTupleHandler.makeTuplePut(key, null);
+    private void checkForConflict(TransactionId transactionId, Relation relation, RowLock lock, Object row) {
+        long id = ((SiTransactionId) transactionId).id;
         Object idValue = dataTupleHandler.makeValue(((SiTransactionId) transactionId).id);
-        dataTupleHandler.addCellToTuple(put, encodedSiMetaFamily, encodedSiLockQualifier, null, idValue);
-        if (!dataWriter.checkAndPut(relation, encodedSiMetaFamily, encodedSiLockQualifier, null, put)) {
-            List columns = Arrays.asList(Arrays.asList(encodedSiMetaFamily, encodedSiLockQualifier));
-            TupleGet get = dataTupleHandler.makeTupleGet(key, key, null, columns, null);
-            Iterator result = dataReader.read(relation, get);
-            Object lockValue = null;
-            if (result.hasNext()) {
-                lockValue = dataTupleHandler.getLatestCellForColumn(result.next(), encodedSiMetaFamily, encodedSiLockQualifier);
-                Long decodedLockValue = (Long) dataTupleHandler.fromValue(lockValue, Long.class);
-                Object[] transactionStatus = transactionStore.getTransactionStatus(new SiTransactionId(decodedLockValue));
-                if (((TransactionStatus) transactionStatus[0]).equals(TransactionStatus.ACTIVE)) {
-                    writeWriteConflict(transactionId);
+        TupleGet get = dataTupleHandler.makeTupleGet(row, row, null, Arrays.asList(Arrays.asList(encodedSiMetaFamily, encodedSiCommitQualifier)), null);
+        Iterator results = dataReader.read(relation, get);
+        if (results.hasNext()) {
+            Object tuple = results.next();
+            List cells = dataTupleHandler.getCellsForColumn(tuple, encodedSiMetaFamily, encodedSiCommitQualifier);
+            int index = 0;
+            boolean loop = true;
+            while (loop) {
+                if (index > cells.size()) {
+                    loop = false;
+                } else {
+                    Object c = cells.get(index);
+                    long cellTimestamp = dataTupleHandler.getCellTimestamp(c);
+                    if (cellTimestamp > id) {
+                        Object[] transactionStatus = transactionStore.getTransactionStatus(new SiTransactionId(cellTimestamp));
+                        TransactionStatus status = (TransactionStatus) transactionStatus[0];
+                        if (status.equals(TransactionStatus.ACTIVE) || status.equals(TransactionStatus.COMMITED) || status.equals(TransactionStatus.COMMITTING)) {
+                            writeWriteConflict(transactionId);
+                        }
+                    } else {
+                        loop = false;
+                    }
                 }
             }
-            if(!dataWriter.checkAndPut(relation, encodedSiMetaFamily, encodedSiLockQualifier, lockValue, put)) {
-                writeWriteConflict(transactionId);
-            }
+            assert !results.hasNext();
         }
     }
 

@@ -1,5 +1,6 @@
 package com.splicemachine.si2.relations.simple;
 
+import com.splicemachine.si2.relations.api.RowLock;
 import com.splicemachine.si2.relations.api.TupleGet;
 import com.splicemachine.si2.relations.api.TupleHandler;
 import com.splicemachine.si2.relations.api.TuplePut;
@@ -86,11 +87,16 @@ public class SimpleTupleHandler implements TupleHandler {
 
 	@Override
 	public TuplePut makeTuplePut(Object key, List cells) {
-		if (cells == null) {
-			cells = new ArrayList();
-		}
-		return new SimpleTuple((String) key, cells);
+        return makeTuplePut(key, null, cells);
 	}
+
+    @Override
+    public TuplePut makeTuplePut(Object key, RowLock lock, List cells) {
+        if (cells == null) {
+            cells = new ArrayList();
+        }
+        return new SimpleTuple((String) key, cells, (SimpleLock) lock);
+    }
 
     @Override
 	public TupleGet makeTupleGet(Object startTupleKey, Object endTupleKey, List<Object> families, List<List<Object>> columns, Long effectiveTimestamp) {

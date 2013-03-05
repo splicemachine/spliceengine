@@ -6,6 +6,8 @@ import java.util.List;
  * Means of writing to relations. To be used in conjunction with RelationReader.
  */
 public interface RelationWriter {
-	void write(Relation relation, List tuples);
+    void write(Relation relation, List tuples);
     boolean checkAndPut(Relation relation, Object family, Object qualifier, Object value, Object tuple);
+    RowLock lockRow(Relation relation, Object row);
+    void unLockRow(Relation relation, RowLock lock);
 }

@@ -184,7 +184,7 @@ public class SiTransactorTest {
         } catch (RuntimeException e) {
             Assert.assertEquals("write/write conflict", e.getMessage());
         }
-        Assert.assertEquals("joe age=null", read(t2, "joe"));
+        Assert.assertEquals("joe age=30", read(t2, "joe"));
         transactor.commitTransaction(t1);
         try {
             transactor.commitTransaction(t2);

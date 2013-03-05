@@ -10,20 +10,30 @@ public class SimpleTuple implements TuplePut {
 	final String key;
 	final List<SimpleCell> values;
 	final Map<String,Object> attributes;
+    final SimpleLock lock;
 
 	public SimpleTuple(String key, List<SimpleCell> values) {
 		this.key = key;
 		this.values = values;
-		this.attributes = new HashMap<String, Object>();
+        this.attributes = new HashMap<String, Object>();
+        this.lock = null;
 	}
 
 	public SimpleTuple(String key, List<SimpleCell> values, Map<String,Object> attributes) {
 		this.key = key;
 		this.values = values;
 		this.attributes = attributes;
+        this.lock = null;
 	}
 
-	@Override
+    public SimpleTuple(String key, List<SimpleCell> values, SimpleLock lock) {
+        this.key = key;
+        this.values = values;
+        this.attributes = new HashMap<String, Object>();
+        this.lock = lock;
+    }
+
+    @Override
 	public String toString() {
 		return "<" + key + " " + values + ">";
 	}

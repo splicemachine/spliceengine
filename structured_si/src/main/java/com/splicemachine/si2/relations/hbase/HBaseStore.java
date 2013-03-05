@@ -3,6 +3,7 @@ package com.splicemachine.si2.relations.hbase;
 import com.splicemachine.si2.relations.api.Relation;
 import com.splicemachine.si2.relations.api.RelationReader;
 import com.splicemachine.si2.relations.api.RelationWriter;
+import com.splicemachine.si2.relations.api.RowLock;
 import com.splicemachine.si2.relations.api.TupleGet;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTable;
@@ -68,18 +69,36 @@ public class HBaseStore implements RelationReader, RelationWriter {
 		}
 	}
 
-	@Override
-	public void write(Relation relation, List tuples) {
-		try {
-			List<Put> puts = new ArrayList<Put>();
-			for (Object p : tuples) {
-				puts.add(((HBaseTuplePut) p).put);
-			}
-			((HBaseRelation) relation).table.put(puts);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
+    @Override
+    public void write(Relation relation, List tuples) {
+        try {
+            List<Put> puts = new ArrayList<Put>();
+            for (Object p : tuples) {
+                puts.add(((HBaseTuplePut) p).put);
+            }
+            ((HBaseRelation) relation).table.put(puts);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public RowLock lockRow(Relation relation, Object row) {
+        try {
+            return new HBaseRowLock(((HBaseRelation) relation).table.lockRow((byte[]) row));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void unLockRow(Relation relation, RowLock lock) {
+        try {
+            ((HBaseRelation) relation).table.unlockRow(((HBaseRowLock) lock).lock);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Override
     public boolean checkAndPut(Relation relation, Object family, Object qualifier, Object value, Object tuple) {
