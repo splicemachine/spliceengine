@@ -6,4 +6,6 @@
 *.ipr
 *.iml
 **/target/
+*.class
+*.jad
 
