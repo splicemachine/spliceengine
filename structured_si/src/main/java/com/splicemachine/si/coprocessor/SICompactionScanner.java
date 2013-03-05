@@ -48,7 +48,6 @@ public class SICompactionScanner implements InternalScanner {
 					case COMMIT:
 	            		KeyValue keyValue = new KeyValue(kv.getRow(),kv.getFamily(),kv.getQualifier(),kv.getTimestamp(),Bytes.toBytes(transaction.getCommitTimestamp()));
 	            		result.add(keyValue);
-	            		
 						break;
 					default:
 						break;
