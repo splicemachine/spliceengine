@@ -85,7 +85,7 @@ public class SiTransactorTest {
         transactor = siTransactor;
     }
 
-    final boolean useSimple = false;
+    final boolean useSimple = true;
 
     @Before
     public void setUp() {
@@ -137,6 +137,13 @@ public class SiTransactorTest {
 
         TransactionId t2 = transactor.beginTransaction();
         Assert.assertEquals("joe age=20", read(t2, "joe"));
+        dumpStore();
+    }
+
+    private void dumpStore() {
+        if (useSimple) {
+            System.out.println("store=" + store);
+        }
     }
 
     @Test
@@ -147,6 +154,7 @@ public class SiTransactorTest {
         TransactionId t2 = transactor.beginTransaction();
         Assert.assertEquals("joe age=null", read(t2, "joe"));
         transactor.commitTransaction(t1);
+        dumpStore();
     }
 
     @Test
