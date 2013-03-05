@@ -95,7 +95,7 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
      * @param ef    ExecutionFactory
      * @param dvf   DataValueFactory
      */
-    SYSSEQUENCESRowFactory(UUIDFactory uuidf,
+    public SYSSEQUENCESRowFactory(UUIDFactory uuidf,
                            ExecutionFactory ef,
                            DataValueFactory dvf) {
         super(uuidf, ef, dvf);

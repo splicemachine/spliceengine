@@ -51,7 +51,7 @@ import java.util.Properties;
 * Used to save heapId, name pairs for non core tables.
 *
 */
-class TabInfoImpl
+public class TabInfoImpl
 {
     /**
      * ROWNOTDUPLICATE is out of range for a row
@@ -72,7 +72,7 @@ class TabInfoImpl
 	 *
 	 * @param crf				the associated CatalogRowFactory
 	 */
-	TabInfoImpl(CatalogRowFactory crf)
+	public TabInfoImpl(CatalogRowFactory crf)
 	{
 		this.heapConglomerate = -1;
 		this.crf = crf;
@@ -98,7 +98,7 @@ class TabInfoImpl
      *
      * @return long     The conglomerate for the heap.
      */
-	long getHeapConglomerate()
+	public long getHeapConglomerate()
 	{
 		return heapConglomerate;
 	}
@@ -240,7 +240,7 @@ class TabInfoImpl
      *
      * @return CatalogRowFactory    The CatalogRowFactory for this.
      */
-	CatalogRowFactory getCatalogRowFactory()
+	public CatalogRowFactory getCatalogRowFactory()
 	{
 		return crf;
 	}
@@ -411,7 +411,7 @@ class TabInfoImpl
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	int insertRow( ExecRow row, TransactionController tc)
+	public int insertRow( ExecRow row, TransactionController tc)
 		throws StandardException
 	{
 

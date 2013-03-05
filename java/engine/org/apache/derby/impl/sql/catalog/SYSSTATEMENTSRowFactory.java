@@ -118,7 +118,7 @@ public class SYSSTATEMENTSRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    SYSSTATEMENTSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSSTATEMENTSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
 	{
 		super(uuidf,ef,dvf);
 		initInfo(SYSSTATEMENTS_COLUMN_COUNT, TABLENAME_STRING, 

@@ -365,7 +365,7 @@ public class GenericExecutionFactory
 	// fields
 	//
 	private ResultSetFactory rsFactory;
-    private GenericConstantActionFactory	genericConstantActionFactory;
+    protected GenericConstantActionFactory	genericConstantActionFactory;
 
 private XPLAINFactoryIF xplainFactory; 
  

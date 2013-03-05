@@ -116,7 +116,7 @@ public class SYSSTATISTICSRowFactory extends CatalogRowFactory
 	/*
 	 *	CONSTRUCTORS
 	 */
-    SYSSTATISTICSRowFactory(UUIDFactory uuidf, 
+    public SYSSTATISTICSRowFactory(UUIDFactory uuidf,
 									ExecutionFactory ef, 
 									DataValueFactory dvf)
 	{

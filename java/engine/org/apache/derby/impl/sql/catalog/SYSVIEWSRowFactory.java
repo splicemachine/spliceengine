@@ -82,7 +82,7 @@ public class SYSVIEWSRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    SYSVIEWSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSVIEWSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
 	{
 		super(uuidf,ef,dvf);
 		initInfo(SYSVIEWS_COLUMN_COUNT, TABLENAME_STRING, 

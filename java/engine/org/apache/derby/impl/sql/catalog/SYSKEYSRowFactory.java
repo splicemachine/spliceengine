@@ -51,7 +51,7 @@ public class SYSKEYSRowFactory extends CatalogRowFactory
 	protected static final int		SYSKEYS_CONSTRAINTID = 1;
 	protected static final int		SYSKEYS_CONGLOMERATEID = 2;
 
-	protected static final int		SYSKEYS_INDEX1_ID = 0;
+	public static final int		SYSKEYS_INDEX1_ID = 0;
 
     private	static	final	boolean[]	uniqueness = null;
 
@@ -73,7 +73,7 @@ public class SYSKEYSRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    SYSKEYSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSKEYSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
 	{
 		super(uuidf,ef,dvf);
 		initInfo(SYSKEYS_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids );

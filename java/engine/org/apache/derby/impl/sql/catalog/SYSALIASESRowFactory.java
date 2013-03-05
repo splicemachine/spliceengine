@@ -66,7 +66,7 @@ import org.apache.derby.iapi.types.UserType;
  *
  */
 
-class SYSALIASESRowFactory extends CatalogRowFactory
+public class SYSALIASESRowFactory extends CatalogRowFactory
 {
 
 	private static final int		SYSALIASES_COLUMN_COUNT = 9;
@@ -112,7 +112,7 @@ class SYSALIASESRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    SYSALIASESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSALIASESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
 	{
 		super(uuidf,ef,dvf);
 		initInfo(SYSALIASES_COLUMN_COUNT, "SYSALIASES", indexColumnPositions, uniqueness, uuids);

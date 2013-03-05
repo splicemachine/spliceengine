@@ -210,7 +210,7 @@ public class DataDictionaryImpl
 	private	static final int		SYSTABLES_CORE_NUM = 1;
 	private static final int		SYSCOLUMNS_CORE_NUM = 2;
 	private	static final int		SYSSCHEMAS_CORE_NUM = 3;
-	private static final int        NUM_CORE = 4;
+	protected static final int        NUM_CORE = 4;
 	
 	/**
 	* SYSFUN functions. Table of functions that automatically appear
@@ -366,16 +366,16 @@ public class DataDictionaryImpl
 	*/
 
 	// the structure that holds all the noncore info
-	private TabInfoImpl[] noncoreInfo;
+	protected TabInfoImpl[] noncoreInfo;
 
 	// no other system tables have id's in the configuration.
 
 	public	DataDescriptorGenerator		dataDescriptorGenerator;
-	private DataValueFactory			dvf;
+	protected DataValueFactory			dvf;
 	AccessFactory               af;
 	//DataDictionaryContext				ddc;
 
-	private	ExecutionFactory	exFactory;
+	protected	ExecutionFactory	exFactory;
 	protected UUIDFactory		uuidFactory;
     /** Daemon creating and refreshing index cardinality statistics. */
     private IndexStatisticsDaemon indexRefresher;
@@ -6710,7 +6710,7 @@ public class DataDictionaryImpl
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	private void addSubKeyConstraint(KeyConstraintDescriptor descriptor,
+	protected void addSubKeyConstraint(KeyConstraintDescriptor descriptor,
 									 TransactionController tc)
 		throws StandardException
 	{
@@ -9272,7 +9272,7 @@ public class DataDictionaryImpl
 	  *	@return	the UUID converted to an DataValueDescriptor
 	 *
 	 */
-	private static SQLChar getIDValueAsCHAR(UUID uuid)
+	protected static SQLChar getIDValueAsCHAR(UUID uuid)
 	{
 		String	uuidString = uuid.toString();
 		return 	new SQLChar(uuidString);
@@ -9404,7 +9404,7 @@ public class DataDictionaryImpl
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	private final TupleDescriptor getDescriptorViaIndex(
+	public final TupleDescriptor getDescriptorViaIndex(
 						int indexId,
 						ExecIndexRow keyRow,
 						ScanQualifier [][] scanQualifiers,
@@ -9810,7 +9810,7 @@ public class DataDictionaryImpl
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	private TabInfoImpl getNonCoreTI(int catalogNumber)
+	protected TabInfoImpl getNonCoreTI(int catalogNumber)
 		throws StandardException
 	{
 		TabInfoImpl	ti = getNonCoreTIByNumber(catalogNumber);

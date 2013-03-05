@@ -89,7 +89,7 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
      * @param ef    ExecutionFactory
      * @param dvf   DataValueFactory
      */
-    SYSPERMSRowFactory(UUIDFactory uuidf,
+    public SYSPERMSRowFactory(UUIDFactory uuidf,
                        ExecutionFactory ef,
                        DataValueFactory dvf) {
         super(uuidf, ef, dvf);

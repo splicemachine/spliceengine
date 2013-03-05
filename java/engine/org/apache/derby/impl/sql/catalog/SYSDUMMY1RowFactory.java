@@ -49,7 +49,7 @@ import org.apache.derby.catalog.UUID;
  *
  */
 
-class SYSDUMMY1RowFactory extends CatalogRowFactory
+public class SYSDUMMY1RowFactory extends CatalogRowFactory
 {
 	protected static final int SYSDUMMY1_COLUMN_COUNT = 1;
 
@@ -62,7 +62,7 @@ class SYSDUMMY1RowFactory extends CatalogRowFactory
 	/*
 	 *	CONSTRUCTORS
 	 */
-    SYSDUMMY1RowFactory(UUIDFactory uuidf, 
+    public SYSDUMMY1RowFactory(UUIDFactory uuidf,
 									ExecutionFactory ef, 
 									DataValueFactory dvf)
 	{

@@ -48,7 +48,7 @@ import org.apache.derby.iapi.types.UserType;
  *
  */
 
-class SYSCHECKSRowFactory extends CatalogRowFactory
+public class SYSCHECKSRowFactory extends CatalogRowFactory
 {
 	private  static final String	TABLENAME_STRING = "SYSCHECKS";
 
@@ -82,7 +82,7 @@ class SYSCHECKSRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-	SYSCHECKSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+	public SYSCHECKSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
 	{
 		super(uuidf,ef,dvf);
 		initInfo(SYSCHECKS_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids );

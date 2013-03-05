@@ -35,7 +35,7 @@ import org.apache.derby.iapi.error.StandardException;
  * @version 0.1
  */
 
-class SystemColumnImpl implements SystemColumn
+public class SystemColumnImpl implements SystemColumn
 {
 	private	final String	name;
    
@@ -54,7 +54,7 @@ class SystemColumnImpl implements SystemColumn
      * @param nullability
      *            Whether or not column accepts nulls.
      */
-    static SystemColumn getColumn(String name, int jdbcTypeId,
+    public static SystemColumn getColumn(String name, int jdbcTypeId,
             boolean nullability) {
         return new SystemColumnImpl(name, DataTypeDescriptor
                 .getBuiltInDataTypeDescriptor(jdbcTypeId, nullability));
@@ -86,7 +86,7 @@ class SystemColumnImpl implements SystemColumn
      *            Nullability of the column.
      * @return Object representing the column.
      */
-    static SystemColumn getIdentifierColumn(String name, boolean nullability) {
+    public static SystemColumn getIdentifierColumn(String name, boolean nullability) {
         return new SystemColumnImpl(name, DataTypeDescriptor
                 .getBuiltInDataTypeDescriptor(Types.VARCHAR, nullability, 128));
     }
@@ -101,7 +101,7 @@ class SystemColumnImpl implements SystemColumn
      *            Nullability of the column.
      * @return Object representing the column.
      */
-    static SystemColumn getUUIDColumn(String name, boolean nullability) {
+    public static SystemColumn getUUIDColumn(String name, boolean nullability) {
         return new SystemColumnImpl(name, DataTypeDescriptor
                 .getBuiltInDataTypeDescriptor(Types.CHAR, nullability, 36));
     }

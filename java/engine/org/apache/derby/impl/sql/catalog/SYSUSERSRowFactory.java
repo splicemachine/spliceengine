@@ -90,7 +90,7 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    SYSUSERSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) 
+    public SYSUSERSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
 	{
 		super( uuidf, ef, dvf );
 		initInfo( SYSUSERS_COLUMN_COUNT, TABLE_NAME, indexColumnPositions, uniqueness, uuids );

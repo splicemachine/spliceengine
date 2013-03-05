@@ -303,7 +303,7 @@ public class IndexToBaseRowNode extends FromTable
 		}
 	}
 
-	/**
+    /**
 	 * Return whether or not the underlying ResultSet tree will return
 	 * a single row, at most.
 	 * This is important for join nodes where we can save the extra next

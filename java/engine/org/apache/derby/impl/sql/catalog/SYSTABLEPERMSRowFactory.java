@@ -86,7 +86,7 @@ public class SYSTABLEPERMSRowFactory extends PermissionsCatalogRowFactory
 		,"f81e0010-010c-bc85-060d-000000109ab8"	// index3
     };
 
-    SYSTABLEPERMSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSTABLEPERMSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
 	{
 		super(uuidf,ef,dvf);
 		initInfo(COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, indexUniqueness, uuids);

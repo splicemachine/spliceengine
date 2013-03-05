@@ -21,20 +21,11 @@
 
 package org.apache.derby.impl.sql.execute;
 
+import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.store.access.TransactionController;
 
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-
-import org.apache.derby.iapi.sql.dictionary.DataDescriptorGenerator;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.DefaultDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 
 import org.apache.derby.iapi.sql.depend.Provider;
 import org.apache.derby.iapi.sql.depend.ProviderInfo;
@@ -61,7 +52,7 @@ import java.util.Properties;
  *
  */
 
-class CreateTableConstantAction extends DDLConstantAction
+public class CreateTableConstantAction extends DDLConstantAction
 {
 
 	private char					lockGranularity;
@@ -71,7 +62,7 @@ class CreateTableConstantAction extends DDLConstantAction
 	private String					schemaName;
 	private int						tableType;
 	private ColumnInfo[]			columnInfo;
-	private CreateConstraintConstantAction[]	constraintActions;
+	protected CreateConstraintConstantAction[]	constraintActions;
 	private Properties				properties;
 	
 	/**
@@ -88,7 +79,7 @@ class CreateTableConstantAction extends DDLConstantAction
 	 * @param onCommitDeleteRows	If true, on commit delete rows else on commit preserve rows of temporary table.
 	 * @param onRollbackDeleteRows	If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
 	 */
-	CreateTableConstantAction(
+	public CreateTableConstantAction(
 								String			schemaName,
 								String			tableName,
 								int				tableType,
@@ -319,10 +310,8 @@ class CreateTableConstantAction extends DDLConstantAction
 		// RESOLVE: Get information from the conglomerate descriptor which
 		//          was provided. 
 		//
-		ConglomerateDescriptor cgd =
-			ddg.newConglomerateDescriptor(conglomId, null, false, null, false, null, toid,
-										  sd.getUUID());
-		if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE )
+        ConglomerateDescriptor cgd = getTableConglomerateDescriptor(td, conglomId, sd, ddg);
+        if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE )
 		{
 			dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM,
 						 false, tc);
@@ -387,6 +376,13 @@ class CreateTableConstantAction extends DDLConstantAction
 			activation.getPreparedStatement(), td, lcc.getContextManager());
 
 	}
+
+    protected ConglomerateDescriptor getTableConglomerateDescriptor(TableDescriptor td,
+                                                                    long conglomId, SchemaDescriptor sd,
+                                                                    DataDescriptorGenerator ddg) throws StandardException{
+        return ddg.newConglomerateDescriptor(conglomId, null, false, null, false, null, td.getUUID(),
+                sd.getUUID());
+    }
 
 
 }

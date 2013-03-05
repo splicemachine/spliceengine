@@ -88,6 +88,8 @@ class CreateIndexConstantAction extends IndexConstantAction
 	private UUID			conglomerateUUID;
 	private Properties		properties;
 
+    private IndexRowGenerator irg;
+
 	private ExecRow indexTemplateRow;
 
 	/** Conglomerate number for the conglomerate created by this

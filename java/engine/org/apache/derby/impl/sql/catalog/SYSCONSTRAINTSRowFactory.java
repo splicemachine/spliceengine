@@ -63,7 +63,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory
 	protected static final int		SYSCONSTRAINTS_TYPE = 4;
 	protected static final int		SYSCONSTRAINTS_SCHEMAID = 5;
 	protected static final int		SYSCONSTRAINTS_STATE = ConstraintDescriptor.SYSCONSTRAINTS_STATE_FIELD;
-	protected static final int		SYSCONSTRAINTS_REFERENCECOUNT = 7;
+	public static final int		SYSCONSTRAINTS_REFERENCECOUNT = 7;
 
 	protected static final int		SYSCONSTRAINTS_INDEX1_ID = 0;
 	protected static final int		SYSCONSTRAINTS_INDEX2_ID = 1;
@@ -97,7 +97,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    SYSCONSTRAINTSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSCONSTRAINTSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
 	{
 		super(uuidf,ef,dvf);
 		initInfo(SYSCONSTRAINTS_COLUMN_COUNT, TABLENAME_STRING, 
@@ -316,6 +316,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory
 		}
 
 		boolean typeSet = false;
+        UUID conglomUUID = ((SubKeyConstraintDescriptor)parentTupleDescriptor).getIndexId();
 		switch (constraintSType.charAt(0))
 		{
 			case 'P' : 
@@ -344,9 +345,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory
 						parentTupleDescriptor.getClass().getName());
 					}
 				}
-				conglomDesc = td.getConglomerateDescriptor( 
-										((SubKeyConstraintDescriptor) 
-											parentTupleDescriptor).getIndexId());
+				conglomDesc = td.getConglomerateDescriptor(conglomUUID);
 				/* Take care the rare case of conglomDesc being null.  The
 				 * reason is that our "td" is out of date.  Another thread
 				 * which was adding a constraint committed between the moment
@@ -368,9 +367,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory
 					if (scd != null)
 						scd.setTableDescriptor(td);
 					// try again now
-					conglomDesc = td.getConglomerateDescriptor( 
-									((SubKeyConstraintDescriptor) 
-										parentTupleDescriptor).getIndexId());
+					conglomDesc = td.getConglomerateDescriptor( conglomUUID);
 				}
 
 				if (SanityManager.DEBUG)

@@ -103,7 +103,7 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
 	 *	@param otherConstraint 	information about the constraint that this references
 	 *  @param providerInfo Information on all the Providers
 	 */
-	CreateConstraintConstantAction(
+	public CreateConstraintConstantAction(
 		               String	constraintName,
 					   int		constraintType,
                        boolean  forCreateTable,
@@ -235,50 +235,7 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
 		 */
 		UUIDFactory uuidFactory = dd.getUUIDFactory();
         
-		/* Create the index, if there's one for this constraint */
-		if (indexAction != null)
-		{
-			if ( indexAction.getIndexName() == null )
-			{
-				/* Set the index name */
-				backingIndexName =  uuidFactory.createUUID().toString();
-				indexAction.setIndexName(backingIndexName);
-			}
-			else { backingIndexName = indexAction.getIndexName(); }
-
-
-			/* Create the index */
-			indexAction.executeConstantAction(activation);
-
-			/* Get the conglomerate descriptor for the backing index */
-			conglomDescs = td.getConglomerateDescriptors();
-
-			for (int index = 0; index < conglomDescs.length; index++)
-			{
-				conglomDesc = conglomDescs[index];
-
-				/* Check for conglomerate being an index first, since
-				 * name is null for heap.
-				 */
-				if (conglomDesc.isIndex() && 
-					backingIndexName.equals(conglomDesc.getConglomerateName()))
-				{
-					break;
-				}
-			}
-
-			if (SanityManager.DEBUG)
-			{
-				SanityManager.ASSERT(conglomDesc != null,
-					"conglomDesc is expected to be non-null after search for backing index");
-				SanityManager.ASSERT(conglomDesc.isIndex(),
-					"conglomDesc is expected to be indexable after search for backing index");
-				SanityManager.ASSERT(conglomDesc.getConglomerateName().equals(backingIndexName),
-			   "conglomDesc name expected to be the same as backing index name after search for backing index");
-			}
-
-			indexId = conglomDesc.getUUID();
-		}
+        indexId = manageIndexAction(td,uuidFactory,activation);
 
 		UUID constraintId = uuidFactory.createUUID();
 
@@ -434,7 +391,61 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
 				DependencyManager.CREATE_CONSTRAINT, lcc);
 		}
 	}
-	
+
+    protected UUID manageIndexAction(TableDescriptor td,
+                                     UUIDFactory uuidFactory,
+                                     Activation activation) throws StandardException{
+
+        /* Create the index, if there's one for this constraint */
+        ConglomerateDescriptor[] conglomDescs;
+        String backingIndexName;
+        ConglomerateDescriptor conglomDesc = null;
+        if (indexAction != null)
+        {
+            if ( indexAction.getIndexName() == null )
+            {
+				/* Set the index name */
+                backingIndexName =  uuidFactory.createUUID().toString();
+                indexAction.setIndexName(backingIndexName);
+            }
+            else { backingIndexName = indexAction.getIndexName(); }
+
+
+			/* Create the index */
+            indexAction.executeConstantAction(activation);
+
+			/* Get the conglomerate descriptor for the backing index */
+            conglomDescs = td.getConglomerateDescriptors();
+
+            for (int index = 0; index < conglomDescs.length; index++)
+            {
+                conglomDesc = conglomDescs[index];
+
+				/* Check for conglomerate being an index first, since
+				 * name is null for heap.
+				 */
+                if (conglomDesc.isIndex() &&
+                        backingIndexName.equals(conglomDesc.getConglomerateName()))
+                {
+                    break;
+                }
+            }
+
+            if (SanityManager.DEBUG)
+            {
+                SanityManager.ASSERT(conglomDesc != null,
+                        "conglomDesc is expected to be non-null after search for backing index");
+                SanityManager.ASSERT(conglomDesc.isIndex(),
+                        "conglomDesc is expected to be indexable after search for backing index");
+                SanityManager.ASSERT(conglomDesc.getConglomerateName().equals(backingIndexName),
+                        "conglomDesc name expected to be the same as backing index name after search for backing index");
+            }
+
+            return conglomDesc.getUUID();
+        }
+        return null;
+    }
+
 	/**
 	 * Is the constant action for a foreign key
 	 *
@@ -454,7 +465,7 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
 	 *
 	 * @return int[]	The column positions.
 	 */
-	private int[] genColumnPositions(TableDescriptor td,
+	public int[] genColumnPositions(TableDescriptor td,
 									 boolean columnsMustBeOrderable)
 		throws StandardException
 	{

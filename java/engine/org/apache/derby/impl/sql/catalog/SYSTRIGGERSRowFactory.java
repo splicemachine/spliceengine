@@ -122,7 +122,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory
 	//	CONSTRUCTORS
 	//
 	/////////////////////////////////////////////////////////////////////////////
-	SYSTRIGGERSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+	public SYSTRIGGERSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
 	{
 		super(uuidf,ef,dvf);
 		initInfo(SYSTRIGGERS_COLUMN_COUNT, TABLENAME_STRING, 

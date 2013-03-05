@@ -92,7 +92,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
      * @param ef    ExecutionFactory
      * @param dvf   DataValueFactory
      */
-    SYSROLESRowFactory(UUIDFactory uuidf,
+    public SYSROLESRowFactory(UUIDFactory uuidf,
                        ExecutionFactory ef,
                        DataValueFactory dvf)
     {

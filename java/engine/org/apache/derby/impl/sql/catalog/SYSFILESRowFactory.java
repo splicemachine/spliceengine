@@ -60,7 +60,7 @@ import java.util.Properties;
  * @version 0.1
  */
 
-class SYSFILESRowFactory extends CatalogRowFactory
+public class SYSFILESRowFactory extends CatalogRowFactory
 {
 	private static final String	TABLENAME_STRING = "SYSFILES";
 
@@ -104,7 +104,7 @@ class SYSFILESRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    SYSFILESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) 
+    public SYSFILESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
 	{
 		super(uuidf,ef,dvf);
 		initInfo(SYSFILES_COLUMN_COUNT, TABLENAME_STRING, 

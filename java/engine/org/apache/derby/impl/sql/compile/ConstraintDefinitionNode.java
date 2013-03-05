@@ -323,7 +323,7 @@ public class ConstraintDefinitionNode extends TableElementNode
 	 *
 	 * @return boolean	Whether or not this is a unique key constraint
 	 */
-	boolean requiresBackingIndex()
+	public boolean requiresBackingIndex()
 	{
 		switch (constraintType)
 		{
@@ -341,7 +341,7 @@ public class ConstraintDefinitionNode extends TableElementNode
 	 *
 	 * @return boolean	Whether or not this is a unique key constraint
 	 */
-	boolean requiresUniqueIndex()
+	public boolean requiresUniqueIndex()
 	{
 		switch (constraintType)
 		{

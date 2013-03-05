@@ -62,8 +62,8 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 	// Column widths
 	protected static final int		SYSFOREIGNKEYS_CONSTRAINTID_WIDTH = 36;
 
-	protected static final int		SYSFOREIGNKEYS_INDEX1_ID = 0;
-	protected static final int		SYSFOREIGNKEYS_INDEX2_ID = 1;
+	public static final int		SYSFOREIGNKEYS_INDEX1_ID = 0;
+	public static final int		SYSFOREIGNKEYS_INDEX2_ID = 1;
 
 	private static final int[][] indexColumnPositions = 
 	{
@@ -90,7 +90,7 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    SYSFOREIGNKEYSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSFOREIGNKEYSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
 	{
 		super(uuidf,ef,dvf);
 		initInfo(SYSFOREIGNKEYS_COLUMN_COUNT, TABLENAME_STRING, 
