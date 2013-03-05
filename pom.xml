@@ -13,8 +13,8 @@
 		<module>structured_si</module>
 	</modules>
 	<scm>
-		<connection>scm:svn:svn+ssh://www.inciteretail.com/db/svn/repos/Leach/InciteRetail/Source/structured_hbase/trunk</connection>
-		<developerConnection>scm:svn:svn+ssh://www.inciteretail.com/db/svn/repos/Leach/InciteRetail/Source/structured_hbase/trunk</developerConnection>
+		<connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
+		<developerConnection>scm:git:git@github.com:splicemachine/spliceengine.git</developerConnection>
 	</scm>
 	
 	<distributionManagement>
