@@ -219,6 +219,7 @@ public class utilMain implements java.security.PrivilegedAction {
 			ProductVersionHolder ijVersion = 
 				ProductVersionHolder.getProductVersionHolderFromMyEnv(versionStream);
 
+			//FIXME: hard-coded for now. Need to move to a comfiguration file
 			String version = "Splice Beta";
 			/*if (ijVersion != null)
 			{
