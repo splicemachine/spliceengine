@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -11,11 +12,11 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation.NodeType;
 import com.splicemachine.utils.SpliceLogUtils;
 
-class WindowOperation extends SpliceBaseOperation {
+public class WindowOperation extends SpliceBaseOperation {
 	private static Logger LOG = Logger.getLogger(WindowOperation.class);
     private GeneratedMethod restriction = null;
     private GeneratedMethod row;
