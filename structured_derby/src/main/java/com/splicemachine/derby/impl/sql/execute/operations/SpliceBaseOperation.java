@@ -672,4 +672,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement getRootAccessedCols");
 	}
 	
+	public double getOptimizerEstimatedRowCount() {
+		return this.optimizerEstimatedRowCount;
+	}
+	
+	public double getOptimizerEstimatedCost() {
+		return this.optimizerEstimatedCost;
+	}
+	
+	public int getResultSetNumber() {
+		return this.resultSetNumber;
+	}
 }
