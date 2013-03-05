@@ -953,4 +953,8 @@ public class EmptyDictionary implements DataDictionary, ModuleSupportable {
             int formatId, byte[] columnBitMap) {
         return null;
     }
+
+   public SchemaDescriptor getSystemUtilSchemaDescriptor(){
+	return null;
+   }
 }
