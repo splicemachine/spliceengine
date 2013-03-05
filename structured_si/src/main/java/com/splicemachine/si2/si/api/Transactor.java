@@ -1,5 +1,6 @@
 package com.splicemachine.si2.si.api;
 
+import com.splicemachine.si2.relations.api.Relation;
 import com.splicemachine.si2.relations.api.TuplePut;
 
 import java.util.List;
@@ -13,6 +14,7 @@ public interface Transactor {
 	public void abortTransaction(TransactionId transactionId);
 	public void failTransaction(TransactionId transactionId);
 
-	List<TuplePut> processTuplePuts(TransactionId transactionId, List<TuplePut> tuples);
+	List<TuplePut> processTuplePuts(TransactionId transactionId, Relation relation, List<TuplePut> tuples);
 	public Object filterTuple(TransactionId transactionId, Object tuple);
+
 }

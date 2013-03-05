@@ -11,6 +11,7 @@ import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.*;
+import junit.framework.Assert;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,13 +78,14 @@ public class SiTransactorTest {
         ageQualifier = tupleHandler.makeQualifier("age");
 
         final TransactionStore transactionStore = new TransactionStore(transactionSchema, tupleHandler, reader, writer);
-        SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), tupleHandler, transactionStore, "si-needed",
-                "_si", "commit", 0);
+        SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), tupleHandler, reader, writer,
+                transactionStore, "si-needed",
+                "_si", "commit", "lock", 0);
         clientTransactor = siTransactor;
         transactor = siTransactor;
     }
 
-    final boolean useSimple = true;
+    final boolean useSimple = false;
 
     @Before
     public void setUp() {
@@ -102,8 +104,8 @@ public class SiTransactorTest {
         List<TuplePut> tuples = Arrays.asList(tuple);
         clientTransactor.initializeTuplePuts(tuples);
 
-        final List<TuplePut> modifiedTuples = transactor.processTuplePuts(transactionId, tuples);
         Relation testRelation = reader.open("people");
+        final List<TuplePut> modifiedTuples = transactor.processTuplePuts(transactionId, testRelation, tuples);
         try {
             writer.write(testRelation, modifiedTuples);
         } finally {
@@ -128,28 +130,80 @@ public class SiTransactorTest {
     }
 
     @Test
-    public void test2() throws Exception {
-        long start = System.currentTimeMillis();
+    public void writeRead() {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe", 20);
         transactor.commitTransaction(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        System.out.println(read(t2, "joe"));
+        Assert.assertEquals("joe age=20", read(t2, "joe"));
+    }
+
+    @Test
+    public void writeReadOverlap() {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe", 20);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=null", read(t2, "joe"));
+        transactor.commitTransaction(t1);
+    }
+
+    @Test
+    public void writeWrite() {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe", 20);
+        Assert.assertEquals("joe age=20", read(t1, "joe"));
+        transactor.commitTransaction(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=20", read(t2, "joe"));
         insertAge(t2, "joe", 30);
-        System.out.println(read(t2, "joe"));
+        Assert.assertEquals("joe age=30", read(t2, "joe"));
+        transactor.commitTransaction(t2);
+    }
+
+    @Test
+    public void writeWriteOverlap() {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe", 20);
+        Assert.assertEquals("joe age=20", read(t1, "joe"));
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=null", read(t2, "joe"));
+        try {
+            insertAge(t2, "joe", 30);
+        } catch (RuntimeException e) {
+            Assert.assertEquals("write/write conflict", e.getMessage());
+        }
+        Assert.assertEquals("joe age=null", read(t2, "joe"));
+        transactor.commitTransaction(t1);
+        try {
+            transactor.commitTransaction(t2);
+        } catch (RuntimeException e) {
+            Assert.assertEquals("transaction is not ACTIVE", e.getMessage());
+        }
+    }
+
+    @Test
+    public void test2() throws Exception {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe", 20);
+        transactor.commitTransaction(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=20", read(t2, "joe"));
+        insertAge(t2, "joe", 30);
+        Assert.assertEquals("joe age=30", read(t2, "joe"));
 
         TransactionId t3 = transactor.beginTransaction();
-        System.out.println(read(t3, "joe"));
+        Assert.assertEquals("joe age=20", read(t3, "joe"));
 
         transactor.commitTransaction(t2);
 
         TransactionId t4 = transactor.beginTransaction();
-        System.out.println(read(t4, "joe"));
-        long end = System.currentTimeMillis();
-        System.out.println("duration = " + (end - start));
-
-        System.out.println(store);
+        Assert.assertEquals("joe age=30", read(t4, "joe"));
+        //System.out.println(store);
     }
 
     @Test
@@ -160,8 +214,9 @@ public class SiTransactorTest {
         final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "start", "end", "status");
         final TransactionStore transactionStore = new TransactionStore(transactionSchema, tupleHandler, store, store);
 
-        SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), tupleHandler, transactionStore, "si-needed",
-                "_si", "commit", 0);
+        SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), tupleHandler, reader, writer,
+                transactionStore, "si-needed",
+                "_si", "commit", "lock", 0);
         ClientTransactor clientTransactor = siTransactor;
 
         clock.setTime(100);
@@ -177,10 +232,10 @@ public class SiTransactorTest {
         Transactor transactor = siTransactor;
         TransactionId t = transactor.beginTransaction();
         clock.setTime(101);
-        final List<TuplePut> modifiedTuples = transactor.processTuplePuts(t, tuples);
         RelationReader reader = store;
         RelationWriter writer = store;
         Relation testRelation = reader.open("people");
+        final List<TuplePut> modifiedTuples = transactor.processTuplePuts(t, testRelation, tuples);
         try {
             writer.write(testRelation, modifiedTuples);
         } finally {
@@ -216,8 +271,8 @@ public class SiTransactorTest {
         tupleHandler.addCellToTuple(put, family, ageQualifier, null, tupleHandler.makeValue(35));
         tuples = Arrays.asList(tuple);
         clientTransactor.initializeTuplePuts(tuples);
-        tuples = transactor.processTuplePuts(t, tuples);
         testRelation = reader.open("people");
+        tuples = transactor.processTuplePuts(t, testRelation, tuples);
         try {
             writer.write(testRelation, tuples);
         } finally {

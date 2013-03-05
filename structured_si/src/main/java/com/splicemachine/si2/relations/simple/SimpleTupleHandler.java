@@ -51,6 +51,9 @@ public class SimpleTupleHandler implements TupleHandler {
 
 	@Override
 	public Object fromValue(Object value, Class type) {
+        if (value == null) {
+            return value;
+        }
 		if (type.equals(value.getClass())) {
 			return value;
 		}
@@ -89,7 +92,7 @@ public class SimpleTupleHandler implements TupleHandler {
 		return new SimpleTuple((String) key, cells);
 	}
 
-	@Override
+    @Override
 	public TupleGet makeTupleGet(Object startTupleKey, Object endTupleKey, List<Object> families, List<List<Object>> columns, Long effectiveTimestamp) {
 		return new SimpleGet(startTupleKey, endTupleKey, families, columns, effectiveTimestamp);
 	}

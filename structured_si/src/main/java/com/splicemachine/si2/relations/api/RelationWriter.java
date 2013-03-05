@@ -7,4 +7,5 @@ import java.util.List;
  */
 public interface RelationWriter {
 	void write(Relation relation, List tuples);
+    boolean checkAndPut(Relation relation, Object family, Object qualifier, Object value, Object tuple);
 }

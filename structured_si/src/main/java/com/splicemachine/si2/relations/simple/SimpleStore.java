@@ -7,6 +7,7 @@ import com.splicemachine.si2.relations.api.RelationWriter;
 import com.splicemachine.si2.relations.api.TupleGet;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -46,6 +47,9 @@ public class SimpleStore implements RelationReader, RelationWriter {
 	public Iterator read(Relation relation, TupleGet get) {
 		SimpleGet simpleGet = (SimpleGet) get;
 		List<SimpleTuple> tuples = relations.get(((SimpleRelation) relation).relationIdentifier);
+        if (tuples == null) {
+            tuples = new ArrayList<SimpleTuple>();
+        }
 		List<SimpleTuple> results = new ArrayList<SimpleTuple>();
 		for (SimpleTuple t : tuples) {
 			if ((t.key.equals((String) simpleGet.startTupleKey)) ||
@@ -90,17 +94,17 @@ public class SimpleStore implements RelationReader, RelationWriter {
 
 	@Override
 	public void write(Relation relation, List tuples) {
-		synchronized (this) {
-			final String relationIdentifier = ((SimpleRelation) relation).relationIdentifier;
-			List<SimpleTuple> newTuples = relations.get(relationIdentifier);
-			if (newTuples == null) {
-				newTuples = new ArrayList<SimpleTuple>();
-			}
-			for (Object t : tuples) {
-				newTuples = writeSingle(relation, (SimpleTuple) t, newTuples);
-			}
-			relations.put(relationIdentifier, newTuples);
-		}
+        synchronized (this) {
+            final String relationIdentifier = ((SimpleRelation) relation).relationIdentifier;
+            List<SimpleTuple> newTuples = relations.get(relationIdentifier);
+            if (newTuples == null) {
+                newTuples = new ArrayList<SimpleTuple>();
+            }
+            for (Object t : tuples) {
+                newTuples = writeSingle(relation, (SimpleTuple) t, newTuples);
+            }
+            relations.put(relationIdentifier, newTuples);
+        }
 	}
 
 	private long getCurrentTimestamp() {
@@ -135,4 +139,33 @@ public class SimpleStore implements RelationReader, RelationWriter {
 		}
 		return newTuples;
 	}
+
+    @Override
+    public boolean checkAndPut(Relation relation, Object family, Object qualifier, Object value, Object tuple) {
+        synchronized (this) {
+            Object key = tupleReaderWriter.getKey(tuple);
+
+            SimpleGet get = new SimpleGet(key, key, null, Arrays.asList(Arrays.asList(family, qualifier)), null);
+            Iterator result = read(relation, get);
+            if (result.hasNext()) {
+                Object currentCellValue = tupleReaderWriter.getLatestCellForColumn(result.next(), family, qualifier);
+                if ((currentCellValue == null && value != null) ||  !currentCellValue.equals(value)) {
+                    return false;
+                }
+            } else {
+                if (value != null) {
+                    return false;
+                }
+            }
+
+            final String relationIdentifier = ((SimpleRelation) relation).relationIdentifier;
+            List<SimpleTuple> newTuples = relations.get(relationIdentifier);
+            if (newTuples == null) {
+                newTuples = new ArrayList<SimpleTuple>();
+            }
+            newTuples = writeSingle(relation, (SimpleTuple) tuple, newTuples);
+            relations.put(relationIdentifier, newTuples);
+            return true;
+        }
+    }
 }

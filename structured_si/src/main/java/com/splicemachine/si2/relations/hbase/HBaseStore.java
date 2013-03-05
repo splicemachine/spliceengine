@@ -80,4 +80,14 @@ public class HBaseStore implements RelationReader, RelationWriter {
 			throw new RuntimeException(e);
 		}
 	}
+
+    @Override
+    public boolean checkAndPut(Relation relation, Object family, Object qualifier, Object value, Object tuple) {
+        try {
+            Put put = ((HBaseTuplePut) tuple).put;
+            return ((HBaseRelation) relation).table.checkAndPut(put.getRow(), (byte[]) family, (byte[]) qualifier, (byte[]) value, put);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

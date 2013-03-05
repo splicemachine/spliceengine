@@ -189,7 +189,7 @@ public class HBaseTupleHandler implements TupleHandler {
 		}
 	}
 
-	@Override
+    @Override
 	public TupleGet makeTupleGet(Object startTupleKey, Object endTupleKey, List<Object> families, List<List<Object>> columns, Long effectiveTimestamp) {
 		try {
 			if (startTupleKey.equals(endTupleKey)) {
