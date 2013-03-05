@@ -1,5 +1,12 @@
+SpliceSQL Engine
+===
 
-Deploy Snapshots:
+#Building 
+
+mvn package -DskipTests=true 
+
+
+#Deploying Snapshots
 
 mvn -DskipTests clean javadoc:jar source:jar javadoc:test-jar source:test-jar deploy
 
