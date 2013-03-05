@@ -219,8 +219,9 @@ public class utilMain implements java.security.PrivilegedAction {
 			ProductVersionHolder ijVersion = 
 				ProductVersionHolder.getProductVersionHolderFromMyEnv(versionStream);
 
-			String version;
-			if (ijVersion != null)
+			//FIXME: hard-coded for now. Need to move to a comfiguration file
+			String version = "Splice Beta";
+			/*if (ijVersion != null)
 			{
 				version = "" + ijVersion.getMajorVersion() + "." +
 					ijVersion.getMinorVersion();
@@ -228,9 +229,9 @@ public class utilMain implements java.security.PrivilegedAction {
 			else
 			{
 				version = "?";
-			}
+			}*/
 
-   			out.println(langUtil.getTextMessage("IJ_IjVers30C199", version));
+   			out.println(version);
 			for (int i=connEnv.length-1;i>=0;i--) { // print out any initial warnings...
 				Connection c = connEnv[i].getConnection();
 				if (c!=null) {
@@ -654,7 +655,7 @@ public class utilMain implements java.security.PrivilegedAction {
 	static void doPrompt(boolean newStatement, LocalizedOutput out, String tag) 
 	 {
 		if (newStatement) {
-	  		out.print("ij"+(tag==null?"":tag)+"> ");
+	  		out.print("splice> ");
 		}
 		else {
 			out.print("> ");
