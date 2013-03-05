@@ -1,4 +1,9 @@
 *.orig
 *.rej
 *.jar
+*.idea
+*.iws
+*.ipr
+*.iml
+**/target/
 
