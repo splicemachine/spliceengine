@@ -133,6 +133,7 @@ public class UpdateConstantAction extends WriteCursorConstantAction
 		super(
 			conglomId,
 			heapSCOCI,
+                null, //TODO -sf- implement this for updates
 			irgs,
 			indexCIDS,
 			indexSCOCIs,
