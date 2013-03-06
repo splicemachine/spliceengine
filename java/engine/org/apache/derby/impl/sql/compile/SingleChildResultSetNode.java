@@ -43,6 +43,7 @@ import org.apache.derby.iapi.sql.ResultSet;
 
 import org.apache.derby.iapi.error.StandardException;
 
+import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.impl.sql.compile.ActivationClassBuilder;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
@@ -611,4 +612,9 @@ abstract class SingleChildResultSetNode extends FromTable
 			childResult = (ResultSetNode)childResult.accept(v);
 		}
 	}
+
+    public ConstantAction makeConstantAction() throws StandardException{
+        if(childResult!=null) return childResult.makeConstantAction();
+        return null;
+    }
 }

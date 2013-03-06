@@ -23,6 +23,8 @@ package	org.apache.derby.impl.sql.compile;
 
 import java.util.*;
 import org.apache.derby.catalog.IndexDescriptor;
+import org.apache.derby.iapi.sql.dictionary.*;
+import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.util.StringUtil;
 
 import org.apache.derby.iapi.reference.ClassName;
@@ -55,16 +57,6 @@ import org.apache.derby.iapi.sql.compile.RequiredRowOrdering;
 import org.apache.derby.iapi.sql.compile.RowOrdering;
 import org.apache.derby.iapi.sql.compile.Visitor;
 
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ViewDescriptor;
-
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ExecutionContext;
 
@@ -80,6 +72,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 // Temporary until user override for disposable stats has been removed.
 import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
 import org.apache.derby.impl.sql.catalog.SYSUSERSRowFactory;
+import org.apache.derby.impl.sql.execute.SelectConstantAction;
 
 /**
  * A FromBaseTable represents a table in the FROM list of a DML statement,
@@ -4782,5 +4775,19 @@ public class FromBaseTable extends FromTable
             }
         }
         return (qualifiedIndexes > 0);
+    }
+
+    public ConstantAction makeConstantAction() throws StandardException {
+        ConglomerateDescriptorList cdl = tableDescriptor.getConglomerateDescriptorList();
+        for(int index=0;index< cdl.size();index++){
+            ConglomerateDescriptor cd = (ConglomerateDescriptor) cdl.get(index);
+            IndexDescriptor indexDec = cd.getIndexDescriptor();
+            if(indexDec!=null){
+                String indexType = indexDec.indexType();
+                if(indexType!=null && indexType.contains("PRIMARY"))
+                    return new SelectConstantAction(cd.getIndexDescriptor().getIndexDescriptor().baseColumnPositions());
+            }
+        }
+        return super.makeConstantAction();    //To change body of overridden methods use File | Settings | File Templates.
     }
 }

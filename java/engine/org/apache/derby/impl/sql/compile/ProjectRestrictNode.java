@@ -39,6 +39,7 @@ import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 
+import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
@@ -1900,5 +1901,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
     void pushOffsetFetchFirst( ValueNode offset, ValueNode fetchFirst, boolean hasJDBClimitClause )
     {
         childResult.pushOffsetFetchFirst( offset, fetchFirst, hasJDBClimitClause );
+    }
+
+    public ConstantAction makeConstantAction() throws StandardException {
+        return childResult.makeConstantAction();
     }
 }

@@ -331,7 +331,7 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	/** @see IndexDescriptor#indexType */
 	public String indexType()
 	{
-		return id.indexType();
+        return id==null?null:id.indexType();
 	}
 
 	public String toString()
