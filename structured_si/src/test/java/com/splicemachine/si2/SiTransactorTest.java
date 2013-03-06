@@ -13,6 +13,7 @@ import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.*;
 import junit.framework.Assert;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,9 +35,11 @@ public class SiTransactorTest {
     ClientTransactor clientTransactor;
     Transactor transactor;
 
-    private static HBaseStore setupHBaseStore() {
+    HBaseTestingUtility testCluster;
+
+    private HBaseStore setupHBaseStore() {
         try {
-            final HBaseTestingUtility testCluster = new HBaseTestingUtility();
+            testCluster = new HBaseTestingUtility();
             testCluster.startMiniCluster(1);
             final TestHBaseTableSource tableSource = new TestHBaseTableSource(testCluster, "people", new String[]{"attributes", "_si"});
             tableSource.addTable(testCluster, "transaction", new String[]{"siFamily"});
@@ -95,6 +98,13 @@ public class SiTransactorTest {
             setupHBaseHarness();
         }
         setupCore();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        if (testCluster != null) {
+            testCluster.shutdownMiniCluster();
+        }
     }
 
     private void insertAge(TransactionId transactionId, String name, int age) {
@@ -194,7 +204,7 @@ public class SiTransactorTest {
     }
 
     @Test
-    public void test2() throws Exception {
+    public void fourTransactions() throws Exception {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe", 20);
         transactor.commitTransaction(t1);
@@ -215,10 +225,10 @@ public class SiTransactorTest {
     }
 
     @Test
-    public void testName() throws Exception {
+    public void readWriteMechanics() throws Exception {
         final Object testKey = tupleHandler.makeTupleKey(new Object[]{"jim"});
         TuplePut tuple = tupleHandler.makeTuplePut(testKey, null);
-        Object family = tupleHandler.makeFamily("foo");
+        Object family = tupleHandler.makeFamily("attributes");
         Object ageQualifier = tupleHandler.makeQualifier("age");
         tupleHandler.addCellToTuple(tuple, family, ageQualifier, null, tupleHandler.makeValue(25));
         List<TuplePut> tuples = Arrays.asList(tuple);
