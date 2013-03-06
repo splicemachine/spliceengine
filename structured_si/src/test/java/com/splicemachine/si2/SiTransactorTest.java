@@ -1,21 +1,24 @@
 package com.splicemachine.si2;
 
-import com.splicemachine.si2.relations.api.Clock;
-import com.splicemachine.si2.relations.api.Relation;
-import com.splicemachine.si2.relations.api.RelationReader;
-import com.splicemachine.si2.relations.api.RelationWriter;
-import com.splicemachine.si2.relations.api.TupleGet;
-import com.splicemachine.si2.relations.api.TupleHandler;
-import com.splicemachine.si2.relations.api.TuplePut;
-import com.splicemachine.si2.relations.hbase.HBaseStore;
-import com.splicemachine.si2.relations.hbase.HBaseTupleHandler;
-import com.splicemachine.si2.relations.simple.IncrementingClock;
-import com.splicemachine.si2.relations.simple.SimpleStore;
-import com.splicemachine.si2.relations.simple.SimpleTupleHandler;
+import com.splicemachine.si2.data.api.SScan;
+import com.splicemachine.si2.data.hbase.HDataLibAdapter;
+import com.splicemachine.si2.data.hbase.HTableReaderAdapter;
+import com.splicemachine.si2.data.hbase.HTableWriterAdapter;
+import com.splicemachine.si2.data.light.Clock;
+import com.splicemachine.si2.data.api.SDataLib;
+import com.splicemachine.si2.data.api.SGet;
+import com.splicemachine.si2.data.api.STable;
+import com.splicemachine.si2.data.api.STableReader;
+import com.splicemachine.si2.data.api.STableWriter;
+import com.splicemachine.si2.data.hbase.HDataLib;
+import com.splicemachine.si2.data.hbase.HStore;
+import com.splicemachine.si2.data.light.IncrementingClock;
+import com.splicemachine.si2.data.light.LDataLib;
+import com.splicemachine.si2.data.light.LStore;
 import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.si.impl.SiTransactionId;
+import com.splicemachine.si2.si.impl.RowMetadataStore;
 import com.splicemachine.si2.si.impl.SiTransactor;
 import com.splicemachine.si2.si.impl.SimpleIdSource;
 import com.splicemachine.si2.si.impl.TransactionSchema;
@@ -31,70 +34,76 @@ import java.util.Iterator;
 import java.util.List;
 
 public class SiTransactorTest {
-    final boolean useSimple = true;
+    final boolean useSimple = false;
 
-    SimpleStore store;
+    LStore store;
     final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "start", "end", "status");
     Object family;
     Object ageQualifier;
 
-    TupleHandler tupleHandler;
-    RelationReader reader;
-    RelationWriter writer;
+    SDataLib dataLib;
+    STableReader reader;
+    STableWriter writer;
     ClientTransactor clientTransactor;
     Transactor transactor;
 
     HBaseTestingUtility testCluster;
 
-    private HBaseStore setupHBaseStore() {
+    private HStore setupHBaseStore() {
         try {
             testCluster = new HBaseTestingUtility();
             testCluster.startMiniCluster(1);
-            final TestHBaseTableSource tableSource = new TestHBaseTableSource(testCluster, "people", new String[]{"attributes", "_si"});
+            final TestHTableSource tableSource = new TestHTableSource(testCluster, "people", new String[]{"attributes", "_si"});
             tableSource.addTable(testCluster, "transaction", new String[]{"siFamily"});
-            return new HBaseStore(tableSource);
+            return new HStore(tableSource);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     private void setupHBaseHarness() {
-        tupleHandler = new HBaseTupleHandler();
-        final HBaseStore store = setupHBaseStore();
-        reader = new RelationReader() {
+        dataLib = new HDataLibAdapter(new HDataLib());
+        final HStore store = setupHBaseStore();
+        final STableReader rawReader = new HTableReaderAdapter(store);
+        reader = new STableReader() {
             @Override
-            public Relation open(String relationIdentifier) {
-                return store.open(relationIdentifier);
+            public STable open(String relationIdentifier) {
+                return rawReader.open(relationIdentifier);
             }
 
             @Override
-            public void close(Relation relation) {
+            public void close(STable table) {
             }
 
             @Override
-            public Iterator read(Relation relation, TupleGet get) {
-                return store.read(relation, get);
+            public Object get(STable table, SGet get) {
+                return rawReader.get(table, get);
+            }
+
+            @Override
+            public Iterator scan(STable table, SScan scan) {
+                return rawReader.scan(table, scan);
             }
         };
-        writer = store;
+        writer = new HTableWriterAdapter(store);
     }
 
     private void setupSimpleHarness() {
-        tupleHandler = new SimpleTupleHandler();
+        dataLib = new LDataLib();
         Clock clock = new IncrementingClock(1000);
-        store = new SimpleStore(clock);
+        store = new LStore(clock);
         reader = store;
         writer = store;
     }
 
     private void setupCore() {
-        family = tupleHandler.makeFamily("attributes");
-        ageQualifier = tupleHandler.makeQualifier("age");
+        family = dataLib.encode("attributes");
+        ageQualifier = dataLib.encode("age");
 
-        final TransactionStore transactionStore = new TransactionStore(transactionSchema, tupleHandler, reader, writer);
-        SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), tupleHandler, reader, writer,
-                transactionStore, "si-needed",
-                "_si", "commit", "lock", 0);
+        final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
+        SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), dataLib, writer,
+                new RowMetadataStore(dataLib, reader, "si-needed", "_si", "commit", 0),
+                transactionStore );
         clientTransactor = siTransactor;
         transactor = siTransactor;
     }
@@ -117,38 +126,36 @@ public class SiTransactorTest {
     }
 
     private void insertAge(TransactionId transactionId, String name, int age) {
-        Object key = tupleHandler.makeTupleKey(new Object[]{name});
-        TuplePut tuple = tupleHandler.makeTuplePut(key, null);
-        tupleHandler.addCellToTuple(tuple, family, ageQualifier, null, tupleHandler.makeValue(age));
-        List<TuplePut> tuples = Arrays.asList(tuple);
-        clientTransactor.initializeTuplePuts(tuples);
+        Object key = dataLib.newRowKey(new Object[]{name});
+        Object put = dataLib.newPut(key);
+        dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(age));
+        List puts = Arrays.asList(put);
+        clientTransactor.initializePuts(puts);
 
-        Relation testRelation = reader.open("people");
-        final List<TuplePut> modifiedTuples = transactor.processTuplePuts(transactionId, testRelation, tuples);
+        STable testSTable = reader.open("people");
         try {
-            writer.write(testRelation, modifiedTuples);
+            transactor.processPuts(transactionId, testSTable, puts);
         } finally {
-            reader.close(testRelation);
+            reader.close(testSTable);
         }
     }
 
     private String read(TransactionId transactionId, String name) {
-        Object key = tupleHandler.makeTupleKey(new Object[]{name});
-        TupleGet get = tupleHandler.makeTupleGet(key, key, Arrays.asList(family), null, null);
-        Relation testRelation = reader.open("people");
+        Object key = dataLib.newRowKey(new Object[]{name});
+        SGet get = dataLib.newGet(key, Arrays.asList(family), null, null);
+        STable testSTable = reader.open("people");
         try {
-            Iterator results = reader.read(testRelation, get);
-            if (results.hasNext()) {
-                Object rawTuple = results.next();
-                Object tuple = transactor.filterTuple(transactionId, rawTuple);
-                final Object value = tupleHandler.getLatestCellForColumn(tuple, family, ageQualifier);
-                Integer age = (Integer) tupleHandler.fromValue(value, Integer.class);
+            Object rawTuple = reader.get(testSTable, get);
+            if (rawTuple != null) {
+                Object tuple = transactor.filterResult(transactionId, rawTuple);
+                final Object value = dataLib.getResultValue(tuple, family, ageQualifier);
+                Integer age = (Integer) dataLib.decode(value, Integer.class);
                 return name + " age=" + age;
             } else {
                 return name + " age=" + null;
             }
         } finally {
-            reader.close(testRelation);
+            reader.close(testSTable);
         }
     }
 
@@ -164,7 +171,7 @@ public class SiTransactorTest {
         Assert.assertEquals("joe age=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
         Assert.assertEquals("joe age=20", read(t1, "joe"));
-        transactor.commitTransaction(t1);
+        transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
         Assert.assertEquals("joe age=20", read(t2, "joe"));
@@ -181,7 +188,7 @@ public class SiTransactorTest {
         TransactionId t2 = transactor.beginTransaction();
         Assert.assertEquals("joe age=20", read(t1, "joe"));
         Assert.assertEquals("joe age=null", read(t2, "joe"));
-        transactor.commitTransaction(t1);
+        transactor.commit(t1);
         Assert.assertEquals("joe age=null", read(t2, "joe"));
         dumpStore();
     }
@@ -192,13 +199,13 @@ public class SiTransactorTest {
         Assert.assertEquals("joe age=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
         Assert.assertEquals("joe age=20", read(t1, "joe"));
-        transactor.commitTransaction(t1);
+        transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
         Assert.assertEquals("joe age=20", read(t2, "joe"));
         insertAge(t2, "joe", 30);
         Assert.assertEquals("joe age=30", read(t2, "joe"));
-        transactor.commitTransaction(t2);
+        transactor.commit(t2);
     }
 
     @Test
@@ -224,9 +231,23 @@ public class SiTransactorTest {
         } catch (RuntimeException e) {
             Assert.assertEquals("transaction is not ACTIVE", e.getMessage());
         }
-        transactor.commitTransaction(t1);
+        Assert.assertEquals("joe age=20", read(t1, "joe"));
+        transactor.commit(t1);
         try {
-            transactor.commitTransaction(t2);
+            transactor.commit(t2);
+            assert false;
+        } catch (RuntimeException e) {
+            Assert.assertEquals("transaction is not ACTIVE", e.getMessage());
+        }
+    }
+
+    @Test
+    public void noReadAfterCommit() {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe", 20);
+        transactor.commit(t1);
+        try {
+            read(t1, "joe");
             assert false;
         } catch (RuntimeException e) {
             Assert.assertEquals("transaction is not ACTIVE", e.getMessage());
@@ -237,7 +258,7 @@ public class SiTransactorTest {
     public void fourTransactions() throws Exception {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe", 20);
-        transactor.commitTransaction(t1);
+        transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
         Assert.assertEquals("joe age=20", read(t2, "joe"));
@@ -247,7 +268,7 @@ public class SiTransactorTest {
         TransactionId t3 = transactor.beginTransaction();
         Assert.assertEquals("joe age=20", read(t3, "joe"));
 
-        transactor.commitTransaction(t2);
+        transactor.commit(t2);
 
         TransactionId t4 = transactor.beginTransaction();
         Assert.assertEquals("joe age=30", read(t4, "joe"));
@@ -256,59 +277,50 @@ public class SiTransactorTest {
 
     @Test
     public void readWriteMechanics() throws Exception {
-        final Object testKey = tupleHandler.makeTupleKey(new Object[]{"jim"});
-        TuplePut tuple = tupleHandler.makeTuplePut(testKey, null);
-        Object family = tupleHandler.makeFamily("attributes");
-        Object ageQualifier = tupleHandler.makeQualifier("age");
-        tupleHandler.addCellToTuple(tuple, family, ageQualifier, null, tupleHandler.makeValue(25));
-        List<TuplePut> tuples = Arrays.asList(tuple);
-        clientTransactor.initializeTuplePuts(tuples);
-        System.out.println("tuple = " + tuple);
+        final Object testKey = dataLib.newRowKey(new Object[]{"jim"});
+        Object put = dataLib.newPut(testKey);
+        Object family = dataLib.encode("attributes");
+        Object ageQualifier = dataLib.encode("age");
+        dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(25));
+        List tuples = Arrays.asList(put);
+        clientTransactor.initializePuts(tuples);
+        System.out.println("tuple = " + put);
         TransactionId t = transactor.beginTransaction();
-        Relation testRelation = reader.open("people");
-        final List<TuplePut> modifiedTuples = transactor.processTuplePuts(t, testRelation, tuples);
+        STable testSTable = reader.open("people");
         try {
-            writer.write(testRelation, modifiedTuples);
+            transactor.processPuts(t, testSTable, tuples);
         } finally {
-            reader.close(testRelation);
+            reader.close(testSTable);
         }
 
         TransactionId t2 = transactor.beginTransaction();
-        TupleGet get = tupleHandler.makeTupleGet(testKey, testKey, null, null, null);
-        testRelation = reader.open("people");
+        SGet get = dataLib.newGet(testKey, null, null, null);
+        testSTable = reader.open("people");
         try {
-            final Iterator results = reader.read(testRelation, get);
-            Object resultTuple = results.next();
-            for (Object cell : tupleHandler.getCells(resultTuple)) {
+            final Object resultTuple = reader.get(testSTable, get);
+            for (Object cell : dataLib.listResult(resultTuple)) {
                 System.out.print(cell);
                 System.out.print(" ");
-                System.out.println(((SiTransactor) transactor).shouldKeep(cell, (SiTransactionId) t2));
+                System.out.println(((SiTransactor) transactor).shouldKeep(cell, t2));
             }
-            transactor.filterTuple(t2, resultTuple);
+            transactor.filterResult(t2, resultTuple);
         } finally {
-            reader.close(testRelation);
+            reader.close(testSTable);
         }
 
-        transactor.commitTransaction(t);
+        transactor.commit(t);
 
         t = transactor.beginTransaction();
 
-        TuplePut put = tupleHandler.makeTuplePut(tupleHandler.makeTupleKey(new Object[]{"joe"}), null);
-
-
-        TransactionId t3 = transactor.beginTransaction();
-        TuplePut put3 = tupleHandler.makeTuplePut(testKey, null);
-        tupleHandler.addCellToTuple(put, family, ageQualifier, null, tupleHandler.makeValue(35));
-        tuples = Arrays.asList(tuple);
-        clientTransactor.initializeTuplePuts(tuples);
-        testRelation = reader.open("people");
-        tuples = transactor.processTuplePuts(t, testRelation, tuples);
+        dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(35));
+        tuples = Arrays.asList(put);
+        clientTransactor.initializePuts(tuples);
+        testSTable = reader.open("people");
         try {
-            writer.write(testRelation, tuples);
+            transactor.processPuts(t, testSTable, tuples);
         } finally {
-            reader.close(testRelation);
+            reader.close(testSTable);
         }
-
 
         //System.out.println("store2 = " + store);
     }

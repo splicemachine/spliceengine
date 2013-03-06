@@ -1,12 +1,9 @@
 package com.splicemachine.si2.si.impl;
 
-import com.splicemachine.si2.relations.api.Relation;
-import com.splicemachine.si2.relations.api.RelationReader;
-import com.splicemachine.si2.relations.api.RelationWriter;
-import com.splicemachine.si2.relations.api.RowLock;
-import com.splicemachine.si2.relations.api.TupleGet;
-import com.splicemachine.si2.relations.api.TupleHandler;
-import com.splicemachine.si2.relations.api.TuplePut;
+import com.splicemachine.si2.data.api.SDataLib;
+import com.splicemachine.si2.data.api.SRowLock;
+import com.splicemachine.si2.data.api.STable;
+import com.splicemachine.si2.data.api.STableWriter;
 import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.IdSource;
 import com.splicemachine.si2.si.api.TransactionId;
@@ -14,39 +11,22 @@ import com.splicemachine.si2.si.api.Transactor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 public class SiTransactor implements Transactor, ClientTransactor {
     private final IdSource idSource;
-    private final TupleHandler dataTupleHandler;
-    private final RelationReader dataReader;
-    private final RelationWriter dataWriter;
+    private final SDataLib dataLib;
+    private final STableWriter dataWriter;
+    private final RowMetadataStore rowMetadataStore;
     private final TransactionStore transactionStore;
-    private final String siNeededAttributeName;
-    private final String siMetaFamily;
-    private final Object encodedSiMetaFamily;
-    private final Object siCommitQualifier;
-    private final Object encodedSiCommitQualifier;
-    private final Object siMetaNull;
-    private final Object encodedSiMetaNull;
 
-    public SiTransactor(IdSource idSource, TupleHandler dataTupleHandler, RelationReader dataReader, RelationWriter dataWriter,
-                        TransactionStore transactionStore,
-                        String siNeededAttributeName, String siMetaFamily, Object siCommitQualifier, Object siLockQualifier,
-                        Object siMetaNull) {
+    public SiTransactor(IdSource idSource, SDataLib dataLib, STableWriter dataWriter,
+                        RowMetadataStore rowMetadataStore, TransactionStore transactionStore) {
         this.idSource = idSource;
-        this.dataTupleHandler = dataTupleHandler;
-        this.dataReader = dataReader;
+        this.dataLib = dataLib;
         this.dataWriter = dataWriter;
+        this.rowMetadataStore = rowMetadataStore;
         this.transactionStore = transactionStore;
-        this.siNeededAttributeName = siNeededAttributeName;
-        this.siMetaFamily = siMetaFamily;
-        this.encodedSiMetaFamily = dataTupleHandler.makeFamily(siMetaFamily);
-        this.siCommitQualifier = siCommitQualifier;
-        this.encodedSiCommitQualifier = dataTupleHandler.makeQualifier(siCommitQualifier);
-        this.siMetaNull = siMetaNull;
-        this.encodedSiMetaNull = dataTupleHandler.makeValue(siMetaNull);
     }
 
     @Override
@@ -57,111 +37,95 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public void commitTransaction(TransactionId transactionId) {
-        Object[] transactionStatus = transactionStore.getTransactionStatus((SiTransactionId) transactionId);
-        if (!transactionStatus[0].equals(TransactionStatus.ACTIVE)) {
+    public void commit(TransactionId transactionId) {
+        TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
+        if (!transaction.status.equals(TransactionStatus.ACTIVE)) {
             throw new RuntimeException("transaction is not ACTIVE");
         }
-        transactionStore.recordTransactionStatusChange((SiTransactionId) transactionId, TransactionStatus.COMMITTING);
+        transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.COMMITTING);
         final long endId = idSource.nextId();
-        transactionStore.recordTransactionCommit((SiTransactionId) transactionId, endId, TransactionStatus.COMMITED);
+        transactionStore.recordTransactionCommit(transactionId, endId, TransactionStatus.COMMITED);
     }
 
     @Override
-    public void abortTransaction(TransactionId transactionId) {
-        transactionStore.recordTransactionStatusChange((SiTransactionId) transactionId, TransactionStatus.ABORT);
+    public void abort(TransactionId transactionId) {
+        transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ABORT);
     }
 
     @Override
-    public void failTransaction(TransactionId transactionId) {
-        transactionStore.recordTransactionStatusChange((SiTransactionId) transactionId, TransactionStatus.ERROR);
+    public void fail(TransactionId transactionId) {
+        transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ERROR);
     }
 
     @Override
-    public void initializeTuplePuts(List<TuplePut> tuples) {
-        for (Object t : tuples) {
-            dataTupleHandler.addAttributeToTuple(t, siNeededAttributeName, dataTupleHandler.makeValue(true));
+    public void initializePuts(List puts) {
+        for (Object put : puts) {
+            rowMetadataStore.setSiNeededAttribute(put);
         }
     }
 
     @Override
-    public List<TuplePut> processTuplePuts(TransactionId transactionId, Relation relation, List<TuplePut> tuples) {
-        List<TuplePut> results = new ArrayList<TuplePut>();
-        SiTransactionId siTransactionId = (SiTransactionId) transactionId;
-        for (TuplePut t : tuples) {
-            Object neededValue = dataTupleHandler.getAttribute(t, siNeededAttributeName);
-            Boolean siNeeded = (Boolean) dataTupleHandler.fromValue(neededValue, Boolean.class);
+    public void processPuts(TransactionId transactionId, STable table, List puts) {
+        List nonSiPuts = new ArrayList();
+        for (Object put : puts) {
+            Boolean siNeeded = rowMetadataStore.getSiNeededAttribute(put);
             if (siNeeded) {
-                Object row = dataTupleHandler.getKey(t);
-                RowLock lock = dataWriter.lockRow(relation, row);
+                Object row = dataLib.getPutKey(put);
+                SRowLock lock = dataWriter.lockRow(table, row);
                 try {
-                    checkForConflict(transactionId, relation, lock, row);
-                    TuplePut newPut = dataTupleHandler.makeTuplePut(row, lock, null);
-                    for (Object cell : dataTupleHandler.getCells(t)) {
-                        dataTupleHandler.addCellToTuple(newPut, dataTupleHandler.getCellFamily(cell),
-                                dataTupleHandler.getCellQualifier(cell),
-                                siTransactionId.id,
-                                dataTupleHandler.getCellValue(cell));
-                    }
-                    dataTupleHandler.addCellToTuple(newPut, encodedSiMetaFamily, encodedSiCommitQualifier, siTransactionId.id, encodedSiMetaNull);
-                    dataWriter.write(relation, Arrays.asList(newPut));
+                    checkForConflict(transactionId, table, lock, row);
+                    Object newPut = rowMetadataStore.clonePut(transactionId, put, row, lock);
+                    rowMetadataStore.addTransactionIdToPut(newPut, transactionId);
+                    dataWriter.write(table, Arrays.asList(newPut));
                 } finally {
-                    dataWriter.unLockRow(relation, lock);
+                    dataWriter.unLockRow(table, lock);
                 }
             } else {
-                results.add(t);
+                nonSiPuts.add(put);
             }
         }
-        return results;
+        dataWriter.write(table, nonSiPuts);
     }
 
-    private void checkForConflict(TransactionId transactionId, Relation relation, RowLock lock, Object row) {
-        long id = ((SiTransactionId) transactionId).id;
-        Object idValue = dataTupleHandler.makeValue(((SiTransactionId) transactionId).id);
-        TupleGet get = dataTupleHandler.makeTupleGet(row, row, null, Arrays.asList(Arrays.asList(encodedSiMetaFamily, encodedSiCommitQualifier)), null);
-        Iterator results = dataReader.read(relation, get);
-        if (results.hasNext()) {
-            Object tuple = results.next();
-            List cells = dataTupleHandler.getCellsForColumn(tuple, encodedSiMetaFamily, encodedSiCommitQualifier);
+    private void checkForConflict(TransactionId transactionId, STable table, SRowLock lock, Object row) {
+        long id = transactionId.getId();
+        List keyValues = rowMetadataStore.getCommitTimestamp(table, row);
+        if (keyValues != null) {
             int index = 0;
             boolean loop = true;
             while (loop) {
-                if (index >= cells.size()) {
+                if (index >= keyValues.size()) {
                     loop = false;
                 } else {
-                    Object c = cells.get(index);
-                    long cellTimestamp = dataTupleHandler.getCellTimestamp(c);
-                    Object[] transactionStatus = transactionStore.getTransactionStatus(new SiTransactionId(cellTimestamp));
-                    TransactionStatus status = (TransactionStatus) transactionStatus[0];
-                    Long commitTimestamp = (Long) transactionStatus[1];
-                    if (status.equals(TransactionStatus.COMMITED)) {
-                        if (commitTimestamp > id) {
+                    Object c = keyValues.get(index);
+                    long cellTimestamp = dataLib.getKeyValueTimestamp(c);
+                    TransactionStruct transaction = transactionStore.getTransactionStatus(new SiTransactionId(cellTimestamp));
+                    if (transaction.status.equals(TransactionStatus.COMMITED)) {
+                        if (transaction.commitTimestamp > id) {
                             writeWriteConflict(transactionId);
                         }
-                    } else if (status.equals(TransactionStatus.ACTIVE) || status.equals(TransactionStatus.COMMITTING)) {
+                    } else if (transaction.status.equals(TransactionStatus.ACTIVE) || transaction.status.equals(TransactionStatus.COMMITTING)) {
                         writeWriteConflict(transactionId);
                     }
                     index++;
                 }
             }
         }
-        assert !results.hasNext();
     }
 
     private void writeWriteConflict(TransactionId transactionId) {
-        failTransaction(transactionId);
+        fail(transactionId);
         throw new RuntimeException("write/write conflict");
     }
 
     @Override
-    public Object filterTuple(TransactionId transactionId, Object tuple) {
-        Object[] transactionStatus = transactionStore.getTransactionStatus((SiTransactionId) transactionId);
-        TransactionStatus status = (TransactionStatus) transactionStatus[0];
-        if (!status.equals(TransactionStatus.ACTIVE)) {
+    public Object filterResult(TransactionId transactionId, Object tuple) {
+        TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
+        if (!transaction.status.equals(TransactionStatus.ACTIVE)) {
             throw new RuntimeException("transaction is not ACTIVE");
         }
         List<Object> filteredCells = new ArrayList<Object>();
-        final List cells = dataTupleHandler.getCells(tuple);
+        final List cells = dataLib.listResult(tuple);
         if (cells != null) {
             for (Object cell : cells) {
                 if (shouldKeep(cell, transactionId)) {
@@ -169,17 +133,15 @@ public class SiTransactor implements Transactor, ClientTransactor {
                 }
             }
         }
-        return dataTupleHandler.makeTuple(dataTupleHandler.getKey(tuple), filteredCells);
+        return dataLib.newResult(dataLib.getResultKey(tuple), filteredCells);
     }
 
 
     public boolean shouldKeep(Object cell, TransactionId transactionId) {
-        final long snapshotTimestamp = ((SiTransactionId) transactionId).id;
-        final long cellTimestamp = dataTupleHandler.getCellTimestamp(cell);
-        final Object[] s = transactionStore.getTransactionStatus(new SiTransactionId(cellTimestamp));
-        TransactionStatus transactionStatus = (TransactionStatus) s[0];
-        Long commitTimestamp = (Long) s[1];
-        switch (transactionStatus) {
+        final long snapshotTimestamp = transactionId.getId();
+        final long cellTimestamp = dataLib.getKeyValueTimestamp(cell);
+        final TransactionStruct transaction = transactionStore.getTransactionStatus(new SiTransactionId(cellTimestamp));
+        switch (transaction.status) {
             case ACTIVE:
                 return snapshotTimestamp == cellTimestamp;
             case ERROR:
@@ -189,7 +151,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
                 //TODO: needs special handling
                 return false;
             case COMMITED:
-                return snapshotTimestamp >= commitTimestamp;
+                return snapshotTimestamp >= transaction.commitTimestamp;
         }
         throw new RuntimeException("unknown transaction status");
     }

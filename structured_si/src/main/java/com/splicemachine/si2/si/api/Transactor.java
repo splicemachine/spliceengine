@@ -1,7 +1,6 @@
 package com.splicemachine.si2.si.api;
 
-import com.splicemachine.si2.relations.api.Relation;
-import com.splicemachine.si2.relations.api.TuplePut;
+import com.splicemachine.si2.data.api.STable;
 
 import java.util.List;
 
@@ -9,12 +8,11 @@ import java.util.List;
  * The primary interface to the transaction module.
  */
 public interface Transactor {
-	public TransactionId beginTransaction();
-	public void commitTransaction(TransactionId transactionId);
-	public void abortTransaction(TransactionId transactionId);
-	public void failTransaction(TransactionId transactionId);
+    TransactionId beginTransaction();
+    void commit(TransactionId transactionId);
+    void abort(TransactionId transactionId);
+    void fail(TransactionId transactionId);
 
-	List<TuplePut> processTuplePuts(TransactionId transactionId, Relation relation, List<TuplePut> tuples);
-	public Object filterTuple(TransactionId transactionId, Object tuple);
-
+    void processPuts(TransactionId transactionId, STable table, List puts);
+    Object filterResult(TransactionId transactionId, Object tuple);
 }
