@@ -7,6 +7,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -52,8 +53,10 @@ public interface SpliceOperation extends NoPutResultSet {
 	 * 
 	 * @param keyValues
 	 * @return rows
+     * @throws org.apache.hadoop.hbase.DoNotRetryIOException if an error occurs that is not retriable,
+     * IOException for unexpected connectivity issues, etc.
 	 */
-	public SinkStats sink();
+	public SinkStats sink() throws IOException;
 	/**
 	 * Initializes the node with the statement and the language context from the SpliceEngine.
 	 * 

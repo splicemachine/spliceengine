@@ -64,7 +64,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	 * 
 	 */
 	@Override
-	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException,StandardException {
+	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException {
 		threadLocalEnvironment.set(getEnvironment());
 		try {
 			SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",

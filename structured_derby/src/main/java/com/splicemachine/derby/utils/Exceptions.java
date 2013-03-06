@@ -19,4 +19,5 @@ public class Exceptions {
         }
         return StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
     }
+
 }

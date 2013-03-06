@@ -139,7 +139,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		return regionScanner.isFilterDone();
 	}
 
-	public SinkStats sink() {
+	public SinkStats sink() throws IOException{
 		SpliceLogUtils.trace(LOG,"sink");
 		return topOperation.sink();
 	}

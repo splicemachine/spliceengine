@@ -18,12 +18,22 @@ public class RowSerializer {
     private FormatableBitSet cols;
     private Object[] values;
     private StructRowKey rowKey;
+    private int[] colsToRowArrayMap;
     private final boolean appendPostfix;
 
     public RowSerializer(DataValueDescriptor[] rowTemplate,
                          FormatableBitSet cols,boolean appendPostfix) throws StandardException {
+        this(rowTemplate,cols,null,appendPostfix);
+    }
+
+    public RowSerializer(DataValueDescriptor[] rowTemplate,
+                         FormatableBitSet cols,
+                         int[] colsToRowArrayMap,
+                         boolean appendPostfix) {
         this.cols = cols;
         this.appendPostfix = appendPostfix;
+        this.colsToRowArrayMap = colsToRowArrayMap;
+
         if(cols!=null &&appendPostfix)
             this.values = new Object[cols.getNumBitsSet()+1];
         else if(cols!=null)
@@ -36,7 +46,11 @@ public class RowSerializer {
         StructBuilder builder = new StructBuilder();
         if(this.cols!=null){
             for(int i= cols.anySetBit();i!=-1;i=cols.anySetBit(i)){
-                RowKey rowKey = DerbyBytesUtil.getRowKey(rowTemplate[i]);
+                RowKey rowKey;
+                if(colsToRowArrayMap!=null)
+                    rowKey = DerbyBytesUtil.getRowKey(rowTemplate[colsToRowArrayMap[i+1]]);
+                else
+                    rowKey = DerbyBytesUtil.getRowKey(rowTemplate[i]);
                 builder.add(rowKey);
             }
         }else{
@@ -54,7 +68,10 @@ public class RowSerializer {
         if(cols!=null){
             pos =0;
             for(int i=cols.anySetBit();i!=-1;pos++,i=cols.anySetBit(i)){
-                values[pos] = DerbyBytesUtil.getObject(row[i]);
+                if(colsToRowArrayMap!=null)
+                    values[pos] = DerbyBytesUtil.getObject(row[colsToRowArrayMap[i+1]]);
+                else
+                    values[pos] = DerbyBytesUtil.getObject(row[i]);
             }
         }else{
             pos=0;

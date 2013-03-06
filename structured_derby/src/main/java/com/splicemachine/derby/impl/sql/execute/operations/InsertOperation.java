@@ -52,15 +52,8 @@ public class InsertOperation extends DMLWriteOperation {
 
         if(constants instanceof InsertConstantAction){
             int[] pks = ((InsertConstantAction)constants).getPkColumns();
-            if(pks!=null){
-                pkColumns = new FormatableBitSet(pks.length);
-                for(int pk:pks){
-                    pkColumns.grow(pk);
-                    pkColumns.set(pk-1);
-                }
-            }else{
-               pkColumns=null; //no primary keys to worry about
-            }
+            if(pks!=null)
+                pkColumns = fromIntArray(pks);
         }
 	}
 	

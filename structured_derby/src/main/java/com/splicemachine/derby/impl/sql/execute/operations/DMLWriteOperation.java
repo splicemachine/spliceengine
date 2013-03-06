@@ -174,6 +174,16 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		return null;
 	}
 
+    protected FormatableBitSet fromIntArray(int[] values){
+        if(values ==null) return null;
+        FormatableBitSet fbt = new FormatableBitSet(values.length);
+        for(int value:values){
+            fbt.grow(value);
+            fbt.set(value-1);
+        }
+        return fbt;
+    }
+
 	private final RowProvider modifiedProvider = new RowProvider(){
 		private long rowsModified=0;
 		@Override public boolean hasNext() { return false; }
@@ -205,8 +215,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				} catch (Exception e) {
 					SpliceLogUtils.logAndThrowRuntime(LOG, e);
 				}
-                SinkStats stats = sink();
-                rowsModified = (int)stats.getProcessStats().getTotalRecords();
+                try{
+                    SinkStats stats = sink();
+                    rowsModified = (int)stats.getProcessStats().getTotalRecords();
+                }catch(IOException ioe){
+                    SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
+                }
 			}
 		}
 

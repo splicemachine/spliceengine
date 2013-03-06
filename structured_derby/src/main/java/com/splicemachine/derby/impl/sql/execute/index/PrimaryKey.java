@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -11,6 +12,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * @author Scott Fines
@@ -44,6 +46,17 @@ public class PrimaryKey implements Constraint{
      * @throws IOException
      */
     public boolean validate(Put put, HRegion region) throws IOException{
+        /*
+         * If the put is tagged as an update, we don't validate.
+         *
+         * This is because Updates either change Primary Keys or they do not. If
+         * they change primary keys, they must necessarily delete a row and create a
+         * new one, which will mean that this put won't be tagged as an insert, and
+         * it can be checked then. If the primary keys do not change, then this
+         * validator should allow it through anyway
+         */
+        if(Arrays.equals(put.getAttribute(Puts.PUT_TYPE),Puts.FOR_UPDATE)) return true;
+
         SpliceLogUtils.trace(logger,"Validating local put");
         Get get = new Get(put.getRow());
         get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
