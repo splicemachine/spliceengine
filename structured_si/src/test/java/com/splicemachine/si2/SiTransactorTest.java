@@ -1,16 +1,25 @@
 package com.splicemachine.si2;
 
-import com.splicemachine.si2.relations.api.*;
+import com.splicemachine.si2.relations.api.Clock;
+import com.splicemachine.si2.relations.api.Relation;
+import com.splicemachine.si2.relations.api.RelationReader;
+import com.splicemachine.si2.relations.api.RelationWriter;
+import com.splicemachine.si2.relations.api.TupleGet;
+import com.splicemachine.si2.relations.api.TupleHandler;
+import com.splicemachine.si2.relations.api.TuplePut;
 import com.splicemachine.si2.relations.hbase.HBaseStore;
 import com.splicemachine.si2.relations.hbase.HBaseTupleHandler;
 import com.splicemachine.si2.relations.simple.IncrementingClock;
-import com.splicemachine.si2.relations.simple.ManualClock;
 import com.splicemachine.si2.relations.simple.SimpleStore;
 import com.splicemachine.si2.relations.simple.SimpleTupleHandler;
 import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.si.impl.*;
+import com.splicemachine.si2.si.impl.SiTransactionId;
+import com.splicemachine.si2.si.impl.SiTransactor;
+import com.splicemachine.si2.si.impl.SimpleIdSource;
+import com.splicemachine.si2.si.impl.TransactionSchema;
+import com.splicemachine.si2.si.impl.TransactionStore;
 import junit.framework.Assert;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.junit.After;
@@ -129,11 +138,15 @@ public class SiTransactorTest {
         Relation testRelation = reader.open("people");
         try {
             Iterator results = reader.read(testRelation, get);
-            Object rawTuple = results.next();
-            Object tuple = transactor.filterTuple(transactionId, rawTuple);
-            final Object value = tupleHandler.getLatestCellForColumn(tuple, family, ageQualifier);
-            Integer age = (Integer) tupleHandler.fromValue(value, Integer.class);
-            return name + " age=" + age;
+            if (results.hasNext()) {
+                Object rawTuple = results.next();
+                Object tuple = transactor.filterTuple(transactionId, rawTuple);
+                final Object value = tupleHandler.getLatestCellForColumn(tuple, family, ageQualifier);
+                Integer age = (Integer) tupleHandler.fromValue(value, Integer.class);
+                return name + " age=" + age;
+            } else {
+                return name + " age=" + null;
+            }
         } finally {
             reader.close(testRelation);
         }
@@ -148,7 +161,9 @@ public class SiTransactorTest {
     @Test
     public void writeRead() {
         TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
+        Assert.assertEquals("joe age=20", read(t1, "joe"));
         transactor.commitTransaction(t1);
 
         TransactionId t2 = transactor.beginTransaction();
@@ -159,17 +174,22 @@ public class SiTransactorTest {
     @Test
     public void writeReadOverlap() {
         TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
+        Assert.assertEquals("joe age=20", read(t1, "joe"));
 
         TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=20", read(t1, "joe"));
         Assert.assertEquals("joe age=null", read(t2, "joe"));
         transactor.commitTransaction(t1);
+        Assert.assertEquals("joe age=null", read(t2, "joe"));
         dumpStore();
     }
 
     @Test
     public void writeWrite() {
         TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
         Assert.assertEquals("joe age=20", read(t1, "joe"));
         transactor.commitTransaction(t1);
@@ -184,17 +204,21 @@ public class SiTransactorTest {
     @Test
     public void writeWriteOverlap() {
         TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
         Assert.assertEquals("joe age=20", read(t1, "joe"));
 
         TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=20", read(t1, "joe"));
         Assert.assertEquals("joe age=null", read(t2, "joe"));
         try {
             insertAge(t2, "joe", 30);
+            assert false;
         } catch (RuntimeException e) {
             Assert.assertEquals("write/write conflict", e.getMessage());
         }
-        Assert.assertEquals("joe age=30", read(t2, "joe"));
+        Assert.assertEquals("joe age=20", read(t1, "joe"));
+        Assert.assertEquals("joe age=null", read(t2, "joe"));
         transactor.commitTransaction(t1);
         try {
             transactor.commitTransaction(t2);

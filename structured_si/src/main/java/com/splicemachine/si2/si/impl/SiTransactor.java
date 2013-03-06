@@ -59,8 +59,8 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public void commitTransaction(TransactionId transactionId) {
         Object[] transactionStatus = transactionStore.getTransactionStatus((SiTransactionId) transactionId);
-        if(!transactionStatus[0].equals(TransactionStatus.ACTIVE)) {
-            throw new RuntimeException( "transaction is not ACTIVE");
+        if (!transactionStatus[0].equals(TransactionStatus.ACTIVE)) {
+            throw new RuntimeException("transaction is not ACTIVE");
         }
         transactionStore.recordTransactionStatusChange((SiTransactionId) transactionId, TransactionStatus.COMMITTING);
         final long endId = idSource.nextId();
@@ -131,19 +131,21 @@ public class SiTransactor implements Transactor, ClientTransactor {
                 } else {
                     Object c = cells.get(index);
                     long cellTimestamp = dataTupleHandler.getCellTimestamp(c);
-                    if (cellTimestamp > id) {
-                        Object[] transactionStatus = transactionStore.getTransactionStatus(new SiTransactionId(cellTimestamp));
-                        TransactionStatus status = (TransactionStatus) transactionStatus[0];
-                        if (status.equals(TransactionStatus.ACTIVE) || status.equals(TransactionStatus.COMMITED) || status.equals(TransactionStatus.COMMITTING)) {
+                    Object[] transactionStatus = transactionStore.getTransactionStatus(new SiTransactionId(cellTimestamp));
+                    TransactionStatus status = (TransactionStatus) transactionStatus[0];
+                    Long commitTimestamp = (Long) transactionStatus[1];
+                    if (status.equals(TransactionStatus.COMMITED)) {
+                        if (commitTimestamp > id) {
                             writeWriteConflict(transactionId);
                         }
-                    } else {
-                        loop = false;
+                    } else if (status.equals(TransactionStatus.ACTIVE) || status.equals(TransactionStatus.COMMITTING)) {
+                        writeWriteConflict(transactionId);
                     }
+                    index++;
                 }
             }
-            assert !results.hasNext();
         }
+        assert !results.hasNext();
     }
 
     private void writeWriteConflict(TransactionId transactionId) {
@@ -154,9 +156,12 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public Object filterTuple(TransactionId transactionId, Object tuple) {
         List<Object> filteredCells = new ArrayList<Object>();
-        for (Object cell : dataTupleHandler.getCells(tuple)) {
-            if (shouldKeep(cell, transactionId)) {
-                filteredCells.add(cell);
+        final List cells = dataTupleHandler.getCells(tuple);
+        if (cells != null) {
+            for (Object cell : cells) {
+                if (shouldKeep(cell, transactionId)) {
+                    filteredCells.add(cell);
+                }
             }
         }
         return dataTupleHandler.makeTuple(dataTupleHandler.getKey(tuple), filteredCells);
