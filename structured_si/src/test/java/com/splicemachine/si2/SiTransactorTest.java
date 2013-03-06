@@ -34,7 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 
 public class SiTransactorTest {
-    final boolean useSimple = false;
+    final boolean useSimple = true;
 
     LStore store;
     final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "start", "end", "status");
