@@ -216,18 +216,6 @@ public class SiTransactorTest {
 
     @Test
     public void testName() throws Exception {
-        final TupleHandler tupleHandler = new SimpleTupleHandler();
-        final ManualClock clock = new ManualClock();
-        final SimpleStore store = new SimpleStore(clock);
-        final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "start", "end", "status");
-        final TransactionStore transactionStore = new TransactionStore(transactionSchema, tupleHandler, store, store);
-
-        SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), tupleHandler, reader, writer,
-                transactionStore, "si-needed",
-                "_si", "commit", "lock", 0);
-        ClientTransactor clientTransactor = siTransactor;
-
-        clock.setTime(100);
         final Object testKey = tupleHandler.makeTupleKey(new Object[]{"jim"});
         TuplePut tuple = tupleHandler.makeTuplePut(testKey, null);
         Object family = tupleHandler.makeFamily("foo");
@@ -236,12 +224,7 @@ public class SiTransactorTest {
         List<TuplePut> tuples = Arrays.asList(tuple);
         clientTransactor.initializeTuplePuts(tuples);
         System.out.println("tuple = " + tuple);
-
-        Transactor transactor = siTransactor;
         TransactionId t = transactor.beginTransaction();
-        clock.setTime(101);
-        RelationReader reader = store;
-        RelationWriter writer = store;
         Relation testRelation = reader.open("people");
         final List<TuplePut> modifiedTuples = transactor.processTuplePuts(t, testRelation, tuples);
         try {
@@ -259,7 +242,7 @@ public class SiTransactorTest {
             for (Object cell : tupleHandler.getCells(resultTuple)) {
                 System.out.print(cell);
                 System.out.print(" ");
-                System.out.println(siTransactor.shouldKeep(cell, (SiTransactionId) t2));
+                System.out.println(((SiTransactor) transactor).shouldKeep(cell, (SiTransactionId) t2));
             }
             transactor.filterTuple(t2, resultTuple);
         } finally {
@@ -268,7 +251,6 @@ public class SiTransactorTest {
 
         transactor.commitTransaction(t);
 
-        clock.setTime(102);
         t = transactor.beginTransaction();
 
         TuplePut put = tupleHandler.makeTuplePut(tupleHandler.makeTupleKey(new Object[]{"joe"}), null);
