@@ -33,6 +33,7 @@ import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 import org.apache.derby.iapi.sql.conn.Authorizer;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.impl.sql.CursorInfo;
 import org.apache.derby.impl.sql.CursorTableReference;
 
@@ -892,5 +893,10 @@ public class CursorNode extends DMLStatementNode
             statsToUpdate.clear();
             return tmp;
         }
+    }
+
+    public ConstantAction makeConstantAction() throws StandardException{
+        if(resultSet==null) return null;
+        return resultSet.makeConstantAction();
     }
 }
