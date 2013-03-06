@@ -155,6 +155,11 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     @Override
     public Object filterTuple(TransactionId transactionId, Object tuple) {
+        Object[] transactionStatus = transactionStore.getTransactionStatus((SiTransactionId) transactionId);
+        TransactionStatus status = (TransactionStatus) transactionStatus[0];
+        if (!status.equals(TransactionStatus.ACTIVE)) {
+            throw new RuntimeException("transaction is not ACTIVE");
+        }
         List<Object> filteredCells = new ArrayList<Object>();
         final List cells = dataTupleHandler.getCells(tuple);
         if (cells != null) {

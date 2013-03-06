@@ -218,10 +218,16 @@ public class SiTransactorTest {
             Assert.assertEquals("write/write conflict", e.getMessage());
         }
         Assert.assertEquals("joe age=20", read(t1, "joe"));
-        Assert.assertEquals("joe age=null", read(t2, "joe"));
+        try {
+            Assert.assertEquals("joe age=null", read(t2, "joe"));
+            assert false;
+        } catch (RuntimeException e) {
+            Assert.assertEquals("transaction is not ACTIVE", e.getMessage());
+        }
         transactor.commitTransaction(t1);
         try {
             transactor.commitTransaction(t2);
+            assert false;
         } catch (RuntimeException e) {
             Assert.assertEquals("transaction is not ACTIVE", e.getMessage());
         }
