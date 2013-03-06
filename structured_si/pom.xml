@@ -101,10 +101,10 @@
 	</dependencies>
 	<build>
 	  <resources>
-    <resource>
-      <directory>src/main/resources</directory>
-    </resource>
-  </resources>
+        <resource>
+            <directory>src/test/resources</directory>
+        </resource>
+       </resources>
 		<!-- Some plugins (javadoc for example) can be used in the normal build- 
 			and the site phase. These plugins inherit their options from the <reporting> 
 			section below. These settings can be overwritten here. -->
