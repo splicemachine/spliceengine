@@ -118,6 +118,7 @@ public class DeleteConstantAction extends WriteCursorConstantAction
 	{
 		super( conglomId, 
 			   heapSCOCI,
+                null, //TODO -sf- implement
 			   irgs, indexCIDS, indexSCOCIs, 
 			   null, // index names not needed for delete.
 			   deferred, 
