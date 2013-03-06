@@ -126,7 +126,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
             int index = 0;
             boolean loop = true;
             while (loop) {
-                if (index > cells.size()) {
+                if (index >= cells.size()) {
                     loop = false;
                 } else {
                     Object c = cells.get(index);

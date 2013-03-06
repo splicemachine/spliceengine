@@ -21,6 +21,8 @@ import java.util.Iterator;
 import java.util.List;
 
 public class SiTransactorTest {
+    final boolean useSimple = true;
+
     SimpleStore store;
     final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "start", "end", "status");
     Object family;
@@ -85,8 +87,6 @@ public class SiTransactorTest {
         transactor = siTransactor;
     }
 
-    final boolean useSimple = true;
-
     @Before
     public void setUp() {
         if (useSimple) {
@@ -129,6 +129,12 @@ public class SiTransactorTest {
         }
     }
 
+    private void dumpStore() {
+        if (useSimple) {
+            System.out.println("store=" + store);
+        }
+    }
+
     @Test
     public void writeRead() {
         TransactionId t1 = transactor.beginTransaction();
@@ -138,12 +144,6 @@ public class SiTransactorTest {
         TransactionId t2 = transactor.beginTransaction();
         Assert.assertEquals("joe age=20", read(t2, "joe"));
         dumpStore();
-    }
-
-    private void dumpStore() {
-        if (useSimple) {
-            System.out.println("store=" + store);
-        }
     }
 
     @Test
