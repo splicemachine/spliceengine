@@ -119,13 +119,13 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public Object filterResult(TransactionId transactionId, Object tuple) {
+    public Object filterResult(TransactionId transactionId, Object result) {
         TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
         if (!transaction.status.equals(TransactionStatus.ACTIVE)) {
             throw new RuntimeException("transaction is not ACTIVE");
         }
         List<Object> filteredCells = new ArrayList<Object>();
-        final List cells = dataLib.listResult(tuple);
+        final List cells = dataLib.listResult(result);
         if (cells != null) {
             for (Object cell : cells) {
                 if (shouldKeep(cell, transactionId)) {
@@ -133,7 +133,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
                 }
             }
         }
-        return dataLib.newResult(dataLib.getResultKey(tuple), filteredCells);
+        return dataLib.newResult(dataLib.getResultKey(result), filteredCells);
     }
 
 

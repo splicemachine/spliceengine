@@ -17,20 +17,18 @@ public interface SDataLib {
     List getResultColumn(Object result, Object family, Object qualifier);
     Object getResultValue(Object result, Object family, Object qualifier);
 
-    Object getKeyValueFamily(Object keyValue);
-    Object getKeyValueQualifier(Object keyValue);
-    Object getKeyValueValue(Object keyValue);
-    long getKeyValueTimestamp(Object keyValue);
-
     Object newPut(Object key);
     Object newPut(Object key, SRowLock lock);
     void addKeyValueToPut(Object put, Object family, Object qualifier, Long timestamp, Object value);
     List listPut(Object put);
     Object getPutKey(Object put);
 
-    SGet newGet(Object rowKey, List families, List columns,
-                Long effectiveTimestamp);
+    Object getKeyValueFamily(Object keyValue);
+    Object getKeyValueQualifier(Object keyValue);
+    Object getKeyValueValue(Object keyValue);
+    long getKeyValueTimestamp(Object keyValue);
 
-    SScan newScan(Object startRowKey, Object endRowKey, List families, List columns,
-                  Long effectiveTimestamp);
+    SGet newGet(Object rowKey, List families, List columns, Long effectiveTimestamp);
+
+    SScan newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp);
 }
