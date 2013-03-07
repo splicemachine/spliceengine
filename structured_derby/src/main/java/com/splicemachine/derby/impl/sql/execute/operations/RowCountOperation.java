@@ -167,6 +167,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 						SpliceLogUtils.trace(LOG, "skipping first " + offset + "(" + i + ")");
 						r = getNextRowFromSource();
 						SpliceLogUtils.trace(LOG,  "Skipping Row: " + r);
+						rowsFiltered++;
 					}
 				}
 			}
@@ -191,6 +192,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 			r = getNextRowFromSource();
 			if(r !=null){
 				rowsFetched++;
+				rowsSeen++;
 				setCurrentRow(r);
 				SpliceLogUtils.trace(LOG,  "Keeping Row: " + r);
 			}
@@ -356,7 +358,6 @@ public class RowCountOperation extends SpliceBaseOperation {
         return stats.finish();
 	}
 	
-
 	@Override
 	public void close() throws StandardException {
 		SpliceLogUtils.trace(LOG, "close");
@@ -364,4 +365,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 		rowsFetched = 0;		
 	}
 
+	public NoPutResultSet getSource() {
+		return this.source;
+	}
 }

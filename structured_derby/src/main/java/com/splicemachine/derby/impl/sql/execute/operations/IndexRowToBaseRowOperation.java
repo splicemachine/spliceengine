@@ -339,6 +339,18 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		return compactRow.getClone();
 	}
 	
+	public String getIndexName() {
+		return this.indexName;
+	}
+	
+	public  FormatableBitSet getAccessedHeapCols() {
+		return this.accessedHeapCols;
+	}
+	
+	public SpliceOperation getSource() {
+		return this.source;
+	}
+	
 	@Override
 	public String toString() {
 		return String.format("IndexRowToBaseRow {source=%s,indexName=%s,conglomId=%d,resultSetNumber=%d}",

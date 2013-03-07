@@ -50,6 +50,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	protected GeneratedMethod restriction;
 	protected GeneratedMethod projection;
 	
+	public long restrictionTime;
+	public long projectionTime;
+	
 	static {
 		nodeTypes = Collections.singletonList(NodeType.MAP);
 	}
@@ -81,7 +84,14 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		init(SpliceOperationContext.newContext(activation));
     }
     
+	public String getRestrictionMethodName() {
+		return restrictionMethodName;
+	}
  
+	public boolean doesProjection() {
+		return doesProjection;
+	}
+	
 	@Override
     public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
         if (LOG.isTraceEnabled())
@@ -238,6 +248,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		ExecRow result = null;
 		boolean restrict = false;
 		DataValueDescriptor restrictBoolean;
+		long beginRT = 0;
+
 
 		/* Return null if open was short circuited by false constant expression */
 //		if (shortCircuitOpen)
@@ -246,6 +258,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 //			return result;
 //		}
 
+		beginTime = System.currentTimeMillis();
 		do {
 			candidateRow = source.getNextRowCore();
 
@@ -260,16 +273,24 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				else {
 					setCurrentRow(candidateRow);
 					restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
+					restrictionTime += getElapsedMillis(beginRT);
 
 					// if the result is null, we make it false --
 					// so the row won't be returned.
 					restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
+					if (! restrict)
+					{
+						rowsFiltered++;
+					}
 				}
+				rowsSeen++;
 				SpliceLogUtils.trace(LOG,"restricting row %s?%b",candidateRow,restrict);
 			}
 		} while ( (candidateRow != null) && (! restrict ) );
 		if (candidateRow != null)  {
+			beginRT = getCurrentTimeMillis();
 			result = doProjection(candidateRow);
+			projectionTime += getElapsedMillis(beginRT);
 		}
 		/* Clear the current row, if null */
 		else {
@@ -308,5 +329,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 			return ((SpliceBaseOperation) source).getRootAccessedCols();
 		throw new RuntimeException("Source of merge join not a SpliceBaseOperation, it is this " + source);
 	}
-	
+	public NoPutResultSet getSource() {
+		return this.source;
+	}
 }

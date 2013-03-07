@@ -287,5 +287,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		return "ScalarAggregateOperation {source=" + source + "}";
 	}
 	
-	
+	public boolean isSingleInputRow() {
+		return this.singleInputRow;
+	}
 }

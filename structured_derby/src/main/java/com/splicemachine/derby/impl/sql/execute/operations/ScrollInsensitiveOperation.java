@@ -79,5 +79,8 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 	public ExecRow getNextRowCore() throws StandardException {
 		throw new RuntimeException("Not Implemented");
 	}
-	
+
+	public NoPutResultSet getSource() {
+		return this.source;
+	}
 }

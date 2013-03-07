@@ -458,7 +458,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) {
-        return new MultiProbeRowProvider(top,template,null,probeValues,Bytes.toBytes(mapTableName));
+        return new MultiProbeRowProvider(top,template,null,probeValues,Bytes.toBytes(tableName));
     }
 
 //    /**

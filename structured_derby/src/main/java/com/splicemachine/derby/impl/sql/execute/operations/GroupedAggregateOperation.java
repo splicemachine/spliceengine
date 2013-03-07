@@ -448,4 +448,11 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		if(source!=null)source.openCore();
 	}
 
+	public boolean isInSortedOrder() {
+		return this.isInSortedOrder;
+	}
+	
+	public boolean hasDistinctAggregate() {
+		return this.numDistinctAggs>0;
+	}
 }
