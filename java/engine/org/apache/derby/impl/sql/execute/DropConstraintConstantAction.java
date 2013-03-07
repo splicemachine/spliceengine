@@ -91,7 +91,7 @@ public class DropConstraintConstantAction extends ConstraintConstantAction
 		               String				tableName,
 					   UUID					tableId,
 					   String				tableSchemaName,
-					   IndexConstantAction indexAction,
+					   ConstantAction indexAction,
 					   int					behavior,
                        int                  verifyType)
 	{

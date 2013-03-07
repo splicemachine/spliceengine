@@ -719,6 +719,7 @@ public final class UpdateNode extends DMLModStatementNode
 			( heapConglomId,
 			  targetTableDescriptor.getTableType(),
 			  tc.getStaticCompiledConglomInfo(heapConglomId),
+                    pkColumns,
 			  indicesToMaintain,
 			  indexConglomerateNumbers,
 			  indexSCOCIs,

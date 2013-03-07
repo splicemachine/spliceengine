@@ -34,6 +34,7 @@ import org.apache.derby.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
 import org.apache.derby.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.store.access.ConglomerateController;
 import org.apache.derby.iapi.store.access.GroupFetchScanController;
 import org.apache.derby.iapi.store.access.ScanController;
@@ -55,7 +56,7 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
 	protected	String			tableName;
 	protected	String			schemaName;
 	protected	UUID			schemaId;
-	protected  IndexConstantAction indexAction;
+	protected  ConstantAction indexAction;
 
 	// CONSTRUCTORS
 	/**
@@ -76,7 +77,7 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
 		               String	tableName,
 					   UUID		tableId,
 					   String	schemaName,
-					   IndexConstantAction indexAction)
+					   ConstantAction indexAction)
 	{
 		super(tableId);
 		this.constraintName = constraintName;
@@ -115,7 +116,7 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
 	  *
 	  *	@return	the constant action for the backing index
 	  */
-    public	IndexConstantAction	getIndexAction() { return indexAction; }
+    public	ConstantAction	getIndexAction() { return indexAction; }
 
 	/**
 	 * Make sure that the foreign key constraint is valid

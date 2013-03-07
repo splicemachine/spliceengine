@@ -99,6 +99,7 @@ public class DeleteConstantAction extends WriteCursorConstantAction
 	public	DeleteConstantAction(
 								long				conglomId,
 								StaticCompiledOpenConglomInfo heapSCOCI,
+                                int[] pkColumns,
 								IndexRowGenerator[]	irgs,
 								long[]				indexCIDS,
 								StaticCompiledOpenConglomInfo[] indexSCOCIs,
@@ -118,8 +119,8 @@ public class DeleteConstantAction extends WriteCursorConstantAction
 	{
 		super( conglomId, 
 			   heapSCOCI,
-                null, //TODO -sf- implement
-			   irgs, indexCIDS, indexSCOCIs, 
+                pkColumns,
+			   irgs, indexCIDS, indexSCOCIs,
 			   null, // index names not needed for delete.
 			   deferred, 
 			   (Properties) null,

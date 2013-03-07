@@ -210,7 +210,7 @@ public class GenericConstantActionFactory
 		UUID				tableId,
 		String				schemaName,
 		String[]			columnNames,
-		IndexConstantAction indexAction,
+		ConstantAction indexAction,
 		String				constraintText,
 		boolean				enabled,
 		ConstraintInfo		otherConstraint,
@@ -246,7 +246,7 @@ public class GenericConstantActionFactory
      * @param conglomerateUUID	ID of conglomerate
      * @param properties	The optional properties list associated with the index.
      */
-	public	CreateIndexConstantAction	getCreateIndexConstantAction
+	public	ConstantAction	getCreateIndexConstantAction
 	(
         boolean forCreateTable,
 		boolean			unique,
@@ -482,6 +482,7 @@ public class GenericConstantActionFactory
 								long				conglomId,
 								int					tableType,
 								StaticCompiledOpenConglomInfo heapSCOCI,
+                                int[] pkColumns,
 								IndexRowGenerator[]	irgs,
 								long[]				indexCIDS,
 								StaticCompiledOpenConglomInfo[] indexSCOCIs,
@@ -513,6 +514,7 @@ public class GenericConstantActionFactory
 		return new DeleteConstantAction(
 										conglomId,
 										heapSCOCI,
+                                        pkColumns,
 										irgs,
 										indexCIDS,
 										indexSCOCIs,
@@ -545,14 +547,14 @@ public class GenericConstantActionFactory
 	 *	@param behavior			The drop behavior (e.g. StatementType.RESTRICT)
      *  @param verifyType       Verify that the constraint is of this type.
 	 */
-	public	ConstraintConstantAction	getDropConstraintConstantAction
+	public	ConstantAction	getDropConstraintConstantAction
 	(
 		String					constraintName,
 		String					constraintSchemaName,
 		String					tableName,
 		UUID					tableId,
 		String					tableSchemaName,
-		IndexConstantAction indexAction,
+		ConstantAction indexAction,
 		int						behavior,
         int                     verifyType
     )
@@ -891,6 +893,7 @@ public class GenericConstantActionFactory
 								long				conglomId,
 								int					tableType,
 								StaticCompiledOpenConglomInfo heapSCOCI,
+                                int[] pkColumns,
 								IndexRowGenerator[]	irgs,
 								long[]				indexCIDS,
 								StaticCompiledOpenConglomInfo[] indexSCOCIs,
@@ -917,6 +920,7 @@ public class GenericConstantActionFactory
 		return new UpdateConstantAction(
 										conglomId,
 										heapSCOCI,
+                                        pkColumns,
 										irgs,
 										indexCIDS,
 										indexSCOCIs,

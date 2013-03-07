@@ -44,6 +44,8 @@ import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 
+import org.apache.derby.iapi.sql.execute.ConstantAction;
+
 import org.apache.derby.iapi.sql.depend.DependencyManager;
 import org.apache.derby.iapi.sql.depend.ProviderInfo;
 import org.apache.derby.iapi.sql.depend.ProviderList;
@@ -1040,7 +1042,7 @@ public class TableElementList extends QueryTreeNodeVector
 	 * @exception StandardException		Thrown on failure
 	 */
 	void genConstraintActions(boolean forCreateTable,
-				ConstraintConstantAction[] conActions,
+				ConstantAction[] conActions,
 				String tableName,
 				SchemaDescriptor tableSd,
 				DataDictionary dd)
@@ -1052,7 +1054,7 @@ public class TableElementList extends QueryTreeNodeVector
 		{
 			String[]	columnNames = null;
 			TableElementNode ten = (TableElementNode) elementAt(index);
-			IndexConstantAction indexAction = null;
+			ConstantAction indexAction = null;
 
 			if (! ten.hasConstraint())
 			{
@@ -1248,7 +1250,7 @@ public class TableElementList extends QueryTreeNodeVector
      * @param constraintType
      * @param dd
      **/
-	private IndexConstantAction genIndexAction(
+	private ConstantAction genIndexAction(
     boolean                     forCreateTable,
     boolean                     isUnique,
     boolean                     isUniqueWithDuplicateNulls,

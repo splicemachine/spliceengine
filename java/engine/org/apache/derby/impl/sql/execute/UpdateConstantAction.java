@@ -112,6 +112,7 @@ public class UpdateConstantAction extends WriteCursorConstantAction
 	public	UpdateConstantAction(
 								long				conglomId,
 								StaticCompiledOpenConglomInfo heapSCOCI,
+                                int[] pkColumns,
 								IndexRowGenerator[]	irgs,
 								long[]				indexCIDS,
 								StaticCompiledOpenConglomInfo[] indexSCOCIs,
@@ -133,7 +134,7 @@ public class UpdateConstantAction extends WriteCursorConstantAction
 		super(
 			conglomId,
 			heapSCOCI,
-                null, //TODO -sf- implement this for updates
+                pkColumns,
 			irgs,
 			indexCIDS,
 			indexSCOCIs,

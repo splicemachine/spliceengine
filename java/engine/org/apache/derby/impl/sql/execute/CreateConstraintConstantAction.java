@@ -111,7 +111,7 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
 					   UUID		tableId,
 					   String	schemaName,
 					   String[]	columnNames,
-					   IndexConstantAction indexAction,
+					   ConstantAction indexAction,
 					   String	constraintText,
 					   boolean	enabled,
 				       ConstraintInfo	otherConstraint,
@@ -400,15 +400,17 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
         ConglomerateDescriptor[] conglomDescs;
         String backingIndexName;
         ConglomerateDescriptor conglomDesc = null;
-        if (indexAction != null)
+	IndexConstantAction iAction;
+        if (indexAction instanceof IndexConstantAction)
         {
-            if ( indexAction.getIndexName() == null )
+	    iAction = (IndexConstantAction)indexAction;
+            if ( iAction.getIndexName() == null )
             {
 				/* Set the index name */
                 backingIndexName =  uuidFactory.createUUID().toString();
-                indexAction.setIndexName(backingIndexName);
+                iAction.setIndexName(backingIndexName);
             }
-            else { backingIndexName = indexAction.getIndexName(); }
+            else { backingIndexName = iAction.getIndexName(); }
 
 
 			/* Create the index */

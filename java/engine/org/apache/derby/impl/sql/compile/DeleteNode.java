@@ -470,6 +470,7 @@ public class DeleteNode extends DMLModStatementNode
 				( heapConglomId,
 				  targetTableDescriptor.getTableType(),
 				  tc.getStaticCompiledConglomInfo(heapConglomId),
+                        pkColumns,
 				  indicesToMaintain,
 				  indexConglomerateNumbers,
 				  indexSCOCIs,
