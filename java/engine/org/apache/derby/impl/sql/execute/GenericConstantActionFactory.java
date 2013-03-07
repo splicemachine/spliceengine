@@ -576,7 +576,7 @@ public class GenericConstantActionFactory
 	 *  @param  tableConglomerateId	heap conglomerate ID for table
 	 *
 	 */
-	public	DropIndexConstantAction	getDropIndexConstantAction
+	public	ConstantAction	getDropIndexConstantAction
 	(
 		String				fullIndexName,
 		String				indexName,
