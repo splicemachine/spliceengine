@@ -42,8 +42,8 @@ public class LStore implements STableReader, STableWriter {
     }
 
     @Override
-    public STable open(String relationIdentifier) {
-        return new LTable(relationIdentifier);
+    public STable open(String tableName) {
+        return new LTable(tableName);
     }
 
     @Override

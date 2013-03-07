@@ -17,15 +17,15 @@ public class SiTransactor implements Transactor, ClientTransactor {
     private final IdSource idSource;
     private final SDataLib dataLib;
     private final STableWriter dataWriter;
-    private final RowMetadataStore rowMetadataStore;
+    private final RowMetadataStore dataStore;
     private final TransactionStore transactionStore;
 
     public SiTransactor(IdSource idSource, SDataLib dataLib, STableWriter dataWriter,
-                        RowMetadataStore rowMetadataStore, TransactionStore transactionStore) {
+                        RowMetadataStore dataStore, TransactionStore transactionStore) {
         this.idSource = idSource;
         this.dataLib = dataLib;
         this.dataWriter = dataWriter;
-        this.rowMetadataStore = rowMetadataStore;
+        this.dataStore = dataStore;
         this.transactionStore = transactionStore;
     }
 
@@ -60,7 +60,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public void initializePuts(List puts) {
         for (Object put : puts) {
-            rowMetadataStore.setSiNeededAttribute(put);
+            dataStore.setSiNeededAttribute(put);
         }
     }
 
@@ -68,15 +68,15 @@ public class SiTransactor implements Transactor, ClientTransactor {
     public void processPuts(TransactionId transactionId, STable table, List puts) {
         List nonSiPuts = new ArrayList();
         for (Object put : puts) {
-            Boolean siNeeded = rowMetadataStore.getSiNeededAttribute(put);
+            Boolean siNeeded = dataStore.getSiNeededAttribute(put);
             if (siNeeded) {
                 Object row = dataLib.getPutKey(put);
                 SRowLock lock = dataWriter.lockRow(table, row);
                 try {
                     checkForConflict(transactionId, table, lock, row);
-                    Object newPut = rowMetadataStore.clonePut(transactionId, put, row, lock);
-                    rowMetadataStore.addTransactionIdToPut(newPut, transactionId);
-                    dataWriter.write(table, Arrays.asList(newPut));
+                    Object newPut = dataStore.clonePut(transactionId, put, row, lock);
+                    dataStore.addTransactionIdToPut(newPut, transactionId);
+                    dataWriter.write(table, newPut);
                 } finally {
                     dataWriter.unLockRow(table, lock);
                 }
@@ -89,7 +89,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     private void checkForConflict(TransactionId transactionId, STable table, SRowLock lock, Object row) {
         long id = transactionId.getId();
-        List keyValues = rowMetadataStore.getCommitTimestamp(table, row);
+        List keyValues = dataStore.getCommitTimestamp(table, row);
         if (keyValues != null) {
             int index = 0;
             boolean loop = true;

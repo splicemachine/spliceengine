@@ -15,8 +15,8 @@ public class HTableReaderAdapter implements STableReader {
     }
 
     @Override
-    public STable open(String relationIdentifier) {
-        return new HbTable(tableReader.open(relationIdentifier));
+    public STable open(String tableName) {
+        return new HbTable(tableReader.open(tableName));
     }
 
     @Override

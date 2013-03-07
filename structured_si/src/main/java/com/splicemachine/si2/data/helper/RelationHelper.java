@@ -28,6 +28,6 @@ public class RelationHelper {
         Object tuple = dataLib.newPut(newKey);
         dataLib.addKeyValueToPut(tuple, dataLib.encode(family), dataLib.encode(qualifier),
                 timestamp, dataLib.encode(value));
-        writer.write(table, Arrays.asList(tuple));
+        writer.write(table, tuple);
     }
 }

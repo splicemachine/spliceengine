@@ -37,7 +37,7 @@ public class SiTransactorTest {
     final boolean useSimple = true;
 
     LStore store;
-    final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "start", "end", "status");
+    final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "begin", "commit", "status");
     Object family;
     Object ageQualifier;
 
@@ -67,8 +67,8 @@ public class SiTransactorTest {
         final STableReader rawReader = new HTableReaderAdapter(store);
         reader = new STableReader() {
             @Override
-            public STable open(String relationIdentifier) {
-                return rawReader.open(relationIdentifier);
+            public STable open(String tableName) {
+                return rawReader.open(tableName);
             }
 
             @Override

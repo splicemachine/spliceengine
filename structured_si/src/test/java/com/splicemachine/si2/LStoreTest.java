@@ -24,7 +24,7 @@ public class LStoreTest {
 		final Object testKey = SDataLib.newRowKey(new Object[]{"joe"});
 		Object tuple = SDataLib.newPut(testKey);
 		SDataLib.addKeyValueToPut(tuple, SDataLib.encode("foo"), SDataLib.encode("age"), 1L, SDataLib.encode(23));
-		store.write(table, Arrays.asList(tuple));
+		store.write(table, tuple);
 		SGet get = SDataLib.newGet(testKey, null, null, null);
 		final Object outputTuple = store.get(table, get);
 		Assert.assertEquals("joe", SDataLib.getResultKey(outputTuple));

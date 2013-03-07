@@ -9,9 +9,6 @@ import com.splicemachine.si2.si.api.TransactionId;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.util.Arrays;
-import java.util.Iterator;
-
 public class TransactionStore {
     private final SDataLib handler;
     private final STableReader reader;
@@ -30,15 +27,15 @@ public class TransactionStore {
     }
 
     public void recordNewTransaction(TransactionId startTransactionTimestamp, TransactionStatus status) {
-        writeTuple(makeCreateTuple(startTransactionTimestamp, status));
+        writePut(makeCreateTuple(startTransactionTimestamp, status));
     }
 
     public void recordTransactionCommit(TransactionId startTransactionTimestamp, long commitTransactionTimestamp, TransactionStatus newStatus) {
-        writeTuple(makeCommitTuple(startTransactionTimestamp, commitTransactionTimestamp, newStatus));
+        writePut(makeCommitTuple(startTransactionTimestamp, commitTransactionTimestamp, newStatus));
     }
 
     public void recordTransactionStatusChange(TransactionId startTransactionTimestamp, TransactionStatus newStatus) {
-        writeTuple(makeStatusUpdateTuple(startTransactionTimestamp, newStatus));
+        writePut(makeStatusUpdateTuple(startTransactionTimestamp, newStatus));
     }
 
     public TransactionStruct getTransactionStatus(TransactionId transactionId) {
@@ -99,10 +96,10 @@ public class TransactionStore {
         handler.addKeyValueToPut(tuple, encodedSchema.siFamily, qualifier, null, handler.encode(value));
     }
 
-    private void writeTuple(Object tuple) {
+    private void writePut(Object put) {
         final STable transactionSTable = reader.open(transactionSchema.relationIdentifier);
         try {
-            writer.write(transactionSTable, Arrays.asList(tuple));
+            writer.write(transactionSTable, put);
         } finally {
             reader.close(transactionSTable);
         }
