@@ -29,7 +29,7 @@
     <version>10</version>
   </parent>
   <artifactId>derby-project</artifactId>
-  <version>ALPHA_VERSION</version>
+  <version>10.9.1.0.splice</version>
   <packaging>pom</packaging>
   <name>Apache Derby Project</name>
   <description>Apache Derby is an open source relational database implemented entirely in Java.</description>
@@ -147,7 +147,7 @@
     <!-- Specifies whether to package the sane (debug) or insane jar.
          Valid values: sane|insane
       -->
-    <sanity>insane</sanity>
+    <sanity>sane</sanity>
   </properties>
 
 </project>

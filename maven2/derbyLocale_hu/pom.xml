@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.derby</groupId>
     <artifactId>derby-project</artifactId>
-    <version>ALPHA_VERSION</version>
+    <version>10.9.1.0.splice</version>
   </parent>
   <artifactId>derbyLocale_hu</artifactId>
   <name>Apache Derby messages: Hungarian</name>
@@ -36,7 +36,7 @@
     <dependency>
       <groupId>org.apache.derby</groupId>
       <artifactId>derby</artifactId>
-      <version>ALPHA_VERSION</version>
+      <version>10.9.1.0.splice</version>
       <optional>false</optional>
     </dependency>
   </dependencies>
