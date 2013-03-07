@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.derby</groupId>
     <artifactId>derby-project</artifactId>
-    <version>ALPHA_VERSION</version>
+    <version>10.9.1.0.splice</version>
   </parent>
   <artifactId>derby</artifactId>
   <name>Apache Derby Database Engine and Embedded JDBC Driver</name>
@@ -41,11 +41,11 @@
                     <phase>package</phase>
                     <configuration>
                         <tasks>
-
-                <copy file="${basedir}/../../jars/${sanity}/derby.jar"
-                      tofile="${basedir}/target/${project.build.finalName}.jar"
-                      overwrite="true"/>
-
+                        
+                        <jar destfile="${basedir}/target/${project.build.finalName}.jar">
+    			<zipfileset src="${basedir}/../../jars/${sanity}/derby.jar" excludes="org/apache/derby/modules.properties"/>
+			</jar>
+                        
                         </tasks>
                     </configuration>
                     <goals>
@@ -54,23 +54,6 @@
                 </execution>
             </executions>
         </plugin>
-
-        <!-- 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-gpg-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>sign-artifacts</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>sign</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      -->
-
     </plugins>
   </build>
 

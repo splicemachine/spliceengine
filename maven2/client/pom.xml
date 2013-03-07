@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.derby</groupId>
     <artifactId>derby-project</artifactId>
-    <version>ALPHA_VERSION</version>
+    <version>10.9.1.0.splice</version>
   </parent>
   <artifactId>derbyclient</artifactId>
   <name>Apache Derby Client JDBC Driver</name>
