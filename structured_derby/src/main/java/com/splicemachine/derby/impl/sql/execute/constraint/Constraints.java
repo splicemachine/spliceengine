@@ -1,9 +1,12 @@
-package com.splicemachine.derby.impl.sql.execute.index;
+package com.splicemachine.derby.impl.sql.execute.constraint;
 
 import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.derby.impl.sql.execute.index.PrimaryKey;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
 import java.util.BitSet;
@@ -17,12 +20,17 @@ import java.util.Map;
 public class Constraints {
     private static final Constraint EMPTY_CONSTRAINT = new Constraint() {
         @Override
-        public boolean validate(Put put) throws IOException {
+        public Type getType() {
+            return Type.NONE;
+        }
+
+        @Override
+        public boolean validate(Put put,RegionCoprocessorEnvironment rce) throws IOException {
             return true;
         }
 
         @Override
-        public boolean validate(Delete delete) throws IOException {
+        public boolean validate(Delete delete,RegionCoprocessorEnvironment rce) throws IOException {
             return true;
         }
     };

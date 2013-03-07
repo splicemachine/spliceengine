@@ -278,7 +278,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 					Result result = table.get(get);
 					SpliceLogUtils.trace(LOG,"<%s> rowArray=%s,accessedHeapCols=%s,heapOnlyCols=%s,baseColumnMap=%s",
 							indexName,Arrays.toString(rowArray),accessedHeapCols,heapOnlyCols,Arrays.toString(baseColumnMap));
-					rowExists = result!=null;
+					rowExists = result!=null && !result.isEmpty();
 					if(rowExists){
 						SpliceUtils.populate(result, compactRow.getRowArray(), accessedHeapCols,baseColumnMap);
 					}

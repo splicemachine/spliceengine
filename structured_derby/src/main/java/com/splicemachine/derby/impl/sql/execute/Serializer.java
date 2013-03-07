@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import com.google.gson.JsonSerializationContext;
 import com.gotometrics.orderly.*;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -27,6 +28,9 @@ public class Serializer {
     private RowKey stringRowKey;
 
     public byte[] serialize(DataValueDescriptor descriptor) throws IOException, StandardException {
+        if(descriptor instanceof HBaseRowLocation){
+            return ((HBaseRowLocation)descriptor).getBytes();
+        }
         switch(descriptor.getTypeFormatId()){
             case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
                 return getByteRowKey().serialize(Bytes.toBytes(descriptor.getBoolean()));
@@ -79,6 +83,9 @@ public class Serializer {
     }
 
     public DataValueDescriptor deserialize(byte[] bytes, DataValueDescriptor descriptor) throws StandardException,IOException{
+        if(descriptor instanceof HBaseRowLocation){
+            ((HBaseRowLocation)descriptor).setValue(bytes);
+        }
         switch (descriptor.getTypeFormatId()) {
             case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
                 descriptor.setValue(Bytes.toBoolean((byte[])getByteRowKey().deserialize(bytes)));

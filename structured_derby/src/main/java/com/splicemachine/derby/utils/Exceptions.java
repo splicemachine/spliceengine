@@ -1,6 +1,6 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.impl.sql.execute.index.ConstraintViolation;
+import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
 

@@ -1,12 +1,15 @@
-package com.splicemachine.derby.impl.sql.execute.index;
+package com.splicemachine.derby.impl.sql.execute.constraint;
 
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+
+import java.io.IOException;
 
 /**
  * @author Scott Fines
  *         Created on: 3/1/13
  */
 public class ConstraintViolation extends DoNotRetryIOException{
+
     public static enum Type{
         PRIMARY_KEY,
         FOREIGN_KEY,
@@ -43,13 +46,34 @@ public class ConstraintViolation extends DoNotRetryIOException{
                 "Index management for table "+ tableName+ " has been shutdown");
     }
 
-    public static DoNotRetryIOException duplicatePrimaryKey(){
-        return new PrimaryKeyViolation("Duplicate Primary Key");
+    public static DoNotRetryIOException create(Constraint.Type type) {
+        switch (type) {
+            case PRIMARY_KEY:
+                return new PrimaryKeyViolation("Duplicate Primary Key");
+            case UNIQUE:
+                return new UniqueConstraintViolation("Violated Unique Constraint");
+            default:
+                return null; //TODO -sf- implement foreign and check constraints
+        }
     }
 
     public static class PrimaryKeyViolation extends DoNotRetryIOException{
+        /**
+         * Used for serialization, DO NOT USE
+         */
+        @Deprecated
         public PrimaryKeyViolation() { super(); }
         public PrimaryKeyViolation(String message) { super(message); }
         public PrimaryKeyViolation(String message, Throwable cause) { super(message, cause);}
+    }
+
+    public static class UniqueConstraintViolation extends DoNotRetryIOException{
+        /**
+         * Used for serialization, DO NOT USE
+         */
+        @Deprecated
+        public UniqueConstraintViolation() {super(); }
+        public UniqueConstraintViolation(String message) { super(message); }
+        public UniqueConstraintViolation(String message, Throwable cause) { super(message, cause); }
     }
 }

@@ -1,15 +1,14 @@
-package com.splicemachine.derby.impl.sql.execute.index;
+package com.splicemachine.derby.impl.sql.execute.constraint;
 
 import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.derby.impl.sql.execute.index.TableSource;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.BitSet;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Representation of a ForeignKey Constraint.
@@ -44,7 +43,7 @@ public class ForeignKey implements Constraint{
     }
 
     @Override
-    public boolean validate(Put put) throws IOException{
+    public boolean validate(Put put,RegionCoprocessorEnvironment rce) throws IOException{
         Get get = new Get(Constraints.getReferencedRowKey(put, fkCols));
         get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
 
@@ -52,7 +51,7 @@ public class ForeignKey implements Constraint{
     }
 
     @Override
-    public boolean validate(Delete delete) throws IOException{
+    public boolean validate(Delete delete,RegionCoprocessorEnvironment rce) throws IOException{
        //foreign keys are validated on the PK side of deletes, so nothing to validate
         return true;
     }
@@ -84,4 +83,8 @@ public class ForeignKey implements Constraint{
         table.incrementColumnValue(FOREIGN_KEY_FAMILY,FOREIGN_KEY_COLUMN,referencedRowKey,-1l);
     }
 
+    @Override
+    public Type getType() {
+        return Type.FOREIGN_KEY;
+    }
 }

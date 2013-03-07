@@ -10,6 +10,7 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import com.gotometrics.orderly.*;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.store.access.Qualifier;
@@ -26,7 +27,16 @@ public class DerbyBytesUtil {
 	private static Logger LOG = Logger.getLogger(DerbyBytesUtil.class);
 
 	public static DataValueDescriptor fromBytes (byte[] bytes, DataValueDescriptor descriptor) throws StandardException, IOException {
+        //TODO -sf- move this into the Serializer abstraction
 		SpliceLogUtils.trace(LOG,"fromBytes %s",descriptor.getTypeName());
+        /*
+         * Because HBaseRowLocations are just byte[] row keys, there's no reason to re-serialize them, they've
+         * already been serialized and compacted.
+         */
+        if(descriptor instanceof HBaseRowLocation){
+            ((HBaseRowLocation)descriptor).setValue(bytes);
+            return descriptor;
+        }
 		try {
 			switch (descriptor.getTypeFormatId()) {
 		    	case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
@@ -95,6 +105,13 @@ public class DerbyBytesUtil {
     }
 		
 	public static byte[] generateBytes (DataValueDescriptor descriptor) throws StandardException, IOException {
+        //TODO -sf- move this into the Serializer abstraction
+        /*
+         * Don't bother to re-serialize HBaseRowLocations, they're already just bytes.
+         */
+        if(descriptor instanceof HBaseRowLocation){
+            return ((HBaseRowLocation)descriptor).getBytes();
+        }
 		//SpliceLogUtils.trace(LOG,"generateBytes for descriptor %s with value %s",descriptor,descriptor.getTraceString());
 		try {
 			switch (descriptor.getTypeFormatId()) {

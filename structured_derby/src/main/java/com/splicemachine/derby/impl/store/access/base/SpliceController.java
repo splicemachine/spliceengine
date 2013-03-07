@@ -155,6 +155,7 @@ public abstract class SpliceController implements ConglomerateController {
 		try {
 			Get get = SpliceUtils.createGet(loc, destRow, validColumns, transID);
 			Result result = htable.get(get);
+            if(result==null||result.isEmpty()) return false;
 			SpliceUtils.populate(result, validColumns, destRow);	
 			return true;
 		} catch (Exception e) {

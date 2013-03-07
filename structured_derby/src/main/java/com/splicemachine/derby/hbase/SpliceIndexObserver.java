@@ -1,9 +1,14 @@
 package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.sql.execute.index.*;
+import com.google.common.collect.Maps;
+import com.splicemachine.derby.impl.sql.execute.constraint.*;
+import com.splicemachine.derby.impl.sql.execute.index.CoprocessorEnvironmentTableSource;
+import com.splicemachine.derby.impl.sql.execute.index.IndexManager;
+import com.splicemachine.derby.impl.sql.execute.index.PrimaryKey;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.dictionary.*;
@@ -11,6 +16,7 @@ import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -19,15 +25,20 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
+ * Region Observer for managing indices.
+ *
  * @author Scott Fines
  * Created on: 2/28/13
  */
 public class SpliceIndexObserver extends BaseRegionObserver {
+    private static final Map<Long,SpliceIndexObserver> regionReferences = Maps.newConcurrentMap();
     private final Object initalizer = new Integer(2);
 
     private enum State{
@@ -41,14 +52,13 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
     private static final Logger LOG = Logger.getLogger(SpliceIndexObserver.class);
     private volatile long conglomId = -1l;
-    private volatile PrimaryKey pkConstraint;
-    private volatile CopyOnWriteArrayList<Constraint> fkConstraints;
-    private List<IndexManager> indices;
+    private volatile Constraint localConstraint;
+    private volatile List<Constraint> fkConstraints = Collections.emptyList();
+    private List<IndexManager> indices = Collections.emptyList();
     private AtomicReference<State> state = new AtomicReference<State>(State.WAITING_TO_START);
 
     //todo -sf- replace this with a pool pattern in some way
     private CoprocessorEnvironmentTableSource tableSource = new CoprocessorEnvironmentTableSource();
-
 
     @Override
     public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
@@ -62,6 +72,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             state.set(State.RUNNING);
             return;
         }
+        regionReferences.put(conglomId,this);
 
         SpliceDriver.Service service = new SpliceDriver.Service() {
             @Override
@@ -119,6 +130,23 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         super.prePut(e, put, edit, writeToWAL);
     }
 
+    public static SpliceIndexObserver getObserver(long conglomId){
+        return regionReferences.get(conglomId);
+    }
+
+    public void addIndex(IndexManager index){
+        indices.add(index);
+    }
+
+    public void dropIndex(long indexConglomId){
+        for(int i=0;i<indices.size();i++){
+            if(indices.get(i).getConglomId()==indexConglomId){
+                indices.remove(i);
+                break;
+            }
+        }
+    }
+
     @Override
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,
                           Delete delete, WALEdit edit, boolean writeToWAL) throws IOException {
@@ -140,12 +168,36 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     private void validatePut(RegionCoprocessorEnvironment e, Put put) throws IOException{
         //we know that we're in a good state to do this, case we catch it in the calling method
         setUpObserver(e);
-        SpliceLogUtils.trace(LOG,"Checking put for conglomerate %d",conglomId);
-        // validate Primary Key Constraints, if there are any
-        if(pkConstraint!=null&&!pkConstraint.validate(put, e.getRegion()))
-            throw ConstraintViolation.duplicatePrimaryKey();
-        else if(pkConstraint!=null){
-            SpliceLogUtils.trace(LOG,"Put validated, writing through");
+        // validate constraints, if there are any
+        if(localConstraint!=null&&!localConstraint.validate(put, e)){
+            SpliceLogUtils.trace(LOG,"Checking put for conglomerate %d",conglomId);
+            throw ConstraintViolation.create(localConstraint.getType());
+        }
+
+        //update indices
+        try{
+            for(IndexManager manager:indices){
+                manager.updateIndex(put,e);
+            }
+        }catch(IOException ioe){
+            if(!(ioe instanceof RetriesExhaustedWithDetailsException))
+                throw ioe;
+            RetriesExhaustedWithDetailsException rewde = (RetriesExhaustedWithDetailsException)ioe;
+            SpliceLogUtils.error(LOG,rewde.getMessage(),rewde);
+            /*
+             * RetriesExhaustedWithDetailsException wraps out client puts that
+             * fail because of an IOException on the other end of the RPC, including
+             * Constraint Violations and other DoNotRetry exceptions. Thus,
+             * if we find a DoNotRetryIOException somewhere, we unwrap and throw
+             * that instead of throwing a normal RetriesExhausted error.
+             */
+            List<Throwable> errors = rewde.getCauses();
+            for(Throwable t:errors){
+                if(t instanceof DoNotRetryIOException)
+                    throw (DoNotRetryIOException)t;
+            }
+
+            throw rewde;
         }
     }
 
@@ -190,59 +242,78 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
                 dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
                 TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
-            /*
-             * That's weird, there's no Table in the dictionary? Probably not good, but nothing we
-             * can do about it, so just bail.
-             */
+	            /*
+	             * That's weird, there's no Table in the dictionary? Probably not good, but nothing we
+	             * can do about it, so just bail.
+	             */
                 if(td==null) return;
+                boolean isSysConglomerate = td.getSchemaDescriptor().getSchemaName().equals("SYS");
+                if(isSysConglomerate){
+                    /*
+                     * The DataDictionary and Derby metadata code management will actually deal with
+                     * constraints internally, so we don't have anything to do
+                     */
+                    SpliceLogUtils.trace(LOG,"Index management for Sys table disabled, relying on external" +
+                            "index management");
+                    state.set(State.RUNNING);
+                    return;
+                }
 
-                //get Constraints list
+                //get primary key constraint
                 ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
-                List<Constraint> foreignKeys = Lists.newArrayListWithExpectedSize(constraintDescriptors.size());
-                List<PrimaryKey> primaryKeys = Lists.newArrayListWithExpectedSize(constraintDescriptors.size());
-                List<Constraint> uniqueConstraints = Lists.newArrayListWithExpectedSize(constraintDescriptors.size());
-                List<Constraint> checkConstraints = Lists.newArrayListWithExpectedSize(constraintDescriptors.size());
-
                 for(int i=0;i<constraintDescriptors.size();i++){
                     ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
-                    switch(cDescriptor.getConstraintType()){
-                        case DataDictionary.FOREIGNKEY_CONSTRAINT:
-                            foreignKeys.add(buildForeignKey((ForeignKeyConstraintDescriptor)cDescriptor));
-                            break;
-                        case DataDictionary.PRIMARYKEY_CONSTRAINT:
-                            primaryKeys.add(buildPrimaryKey(cDescriptor));
-                            break;
-                        case DataDictionary.UNIQUE_CONSTRAINT:
-                            uniqueConstraints.add(buildUniqueConstraint(cDescriptor,dataDictionary));
-                            break;
-                        case DataDictionary.CHECK_CONSTRAINT:
-                            checkConstraints.add(buildCheckConstraint(cDescriptor));
-                            break;
-                        default:
-                            throw new DoNotRetryIOException("Unable to determine constraint for type "+ cDescriptor.getConstraintType());
+                    if(cDescriptor.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
+                        localConstraint = buildPrimaryKey(cDescriptor);
+                    }else{
+                        LOG.warn("Unknown Constraint on table "+ conglomId+": type = "+ cDescriptor.getConstraintText());
                     }
                 }
-            /*
-             * Make sure that fkConstraints is thread safe so that we can drop the constraint whenever
-             * someone asks us to.
-             */
-                fkConstraints = new CopyOnWriteArrayList<Constraint>(foreignKeys);
 
-            /*
-             * There is at most one primary key constraint on any table at any given point in time.
-             */
-                if(primaryKeys.size()>0)
-                    pkConstraint = primaryKeys.get(0);
-                //build indices
-                IndexLister indexLister = td.getIndexLister();
+                //get Constraints list
+                ConglomerateDescriptorList congloms = td.getConglomerateDescriptorList();
+                List<Constraint> foreignKeys = Lists.newArrayListWithExpectedSize(congloms.size());
+                List<Constraint> checkConstraints = Lists.newArrayListWithExpectedSize(congloms.size());
+
+                List<IndexManager> attachedIndices = Lists.newArrayListWithExpectedSize(congloms.size());
+                for(int i=0;i<congloms.size();i++){
+                    ConglomerateDescriptor conglomDesc = (ConglomerateDescriptor) congloms.get(i);
+                    if(conglomDesc.isIndex()){
+                        if(conglomDesc.getConglomerateNumber()==conglomId){
+                            //we are an index, so just map a constraint, rather than an IndexManager
+                            localConstraint = buildIndexConstraint(conglomDesc);
+                            attachedIndices.clear(); //there are no attached indices on the index htable itself
+                            foreignKeys.clear(); //there are no foreign keys to deal with on the index htable itself
+                            break;
+                        }else
+                            attachedIndices.add(buildIndex(conglomDesc));
+                    }
+                }
+
+                /*
+                 * Make sure that fkConstraints is thread safe so that we can drop the constraint whenever
+                 * someone asks us to.
+                 */
+                fkConstraints = new CopyOnWriteArrayList<Constraint>(foreignKeys);
+                indices = new CopyOnWriteArrayList<IndexManager>(attachedIndices);
+
 
             }catch(StandardException se){
                 SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ conglomId+", aborting",se);
                 state.set(State.FAILED_SETUP);
+                return;
             }
             SpliceLogUtils.debug(LOG,"Index setup complete for table "+conglomId+", ready to run");
             state.set(State.RUNNING);
         }
+    }
+
+    private IndexManager buildIndex(ConglomerateDescriptor conglomDesc) {
+        IndexRowGenerator irg = conglomDesc.getIndexDescriptor();
+        IndexDescriptor indexDescriptor = irg.getIndexDescriptor();
+        if(indexDescriptor.isUnique()) return IndexManager.uniqueIndex(conglomDesc.getConglomerateNumber(),indexDescriptor);
+
+        return null;   //TODO -sf- deal with other index types
     }
 
     private ForeignKey buildForeignKey(ForeignKeyConstraintDescriptor fkcd) throws StandardException {
@@ -262,18 +333,11 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         return new PrimaryKey(Long.toString(conglomId),null);
     }
 
-    private UniqueConstraint buildUniqueConstraint(ConstraintDescriptor descriptor,DataDictionary dictionary) throws StandardException{
-        ReferencedKeyConstraintDescriptor rkcd = (ReferencedKeyConstraintDescriptor)descriptor;
-        ConglomerateDescriptor indexDescriptor = rkcd.getIndexConglomerateDescriptor(dictionary);
-
-        long indexConglomId = indexDescriptor.getConglomerateNumber();
-
-        BitSet checkCols = new BitSet();
-        for(int pos: rkcd.getReferencedColumns()){
-            checkCols.set(pos);
-        }
-
-        return new UniqueConstraint(Long.toString(indexConglomId),checkCols,null);
+    private Constraint buildIndexConstraint(ConglomerateDescriptor conglomerateDescriptor) throws StandardException{
+        IndexDescriptor indexDescriptor = conglomerateDescriptor.getIndexDescriptor().getIndexDescriptor();
+        if(indexDescriptor.isUnique()) return UniqueConstraint.create();
+        //TODO -sf- get other types of indexing constraints, like NOT NULL etc. here
+        return Constraints.noConstraint();
     }
 
     private Constraint buildCheckConstraint(ConstraintDescriptor descriptor) throws StandardException{
