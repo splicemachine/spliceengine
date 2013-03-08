@@ -155,4 +155,20 @@ public class IndexManager {
     public long getConglomId() {
         return indexConglomId;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof IndexManager)) return false;
+
+        IndexManager that = (IndexManager) o;
+
+        return indexConglomId == that.indexConglomId;
+
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * 17 + (int) (indexConglomId ^ (indexConglomId >>> 32));
+    }
 }

@@ -1,14 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.actions.CreateTableAction;
+import com.splicemachine.derby.impl.sql.execute.actions.DropIndexOperation;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.sql.depend.ProviderInfo;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
-import org.apache.derby.impl.sql.execute.ConstraintInfo;
-import org.apache.derby.impl.sql.execute.CreateConstraintConstantAction;
-import org.apache.derby.impl.sql.execute.GenericConstantActionFactory;
+import org.apache.derby.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.actions.CreateIndexOperation;
 
 import java.util.Properties;
@@ -66,5 +64,16 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                        UUID conglomerateUUID, Properties properties) {
         return new CreateIndexOperation(schemaName,indexName,tableName,columnNames,isAscending,tableId,
                 conglomerateUUID,unique,indexType,properties);
+    }
+
+    @Override
+    public ConstantAction getDropIndexConstantAction(String fullIndexName,
+                                                     String indexName,
+                                                     String tableName,
+                                                     String schemaName,
+                                                     UUID tableId,
+                                                     long tableConglomerateId) {
+        return new DropIndexOperation(fullIndexName,indexName,
+                tableName,schemaName,tableId,tableConglomerateId);
     }
 }

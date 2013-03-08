@@ -65,6 +65,40 @@ public class CreateIndexOperation implements ConstantAction {
         this.properties = properties;
     }
 
+    public CreateIndexOperation(ConglomerateDescriptor indexConglomDescriptor,
+                                TableDescriptor mainTableDescriptor,
+                                Properties properties) throws StandardException {
+        this.schemaName = mainTableDescriptor.getSchemaName();
+        this.indexName = indexConglomDescriptor.getConglomerateName();
+        this.tableName = mainTableDescriptor.getName();
+        this.tableId = mainTableDescriptor.getUUID();
+        this.conglomerateUUID = indexConglomDescriptor.getUUID();
+        this.indexType = indexConglomDescriptor.getIndexDescriptor().indexType();
+        this.properties = properties;
+
+        //populate column names and ascending information
+        this.columnNames = indexConglomDescriptor.getColumnNames();
+
+        IndexRowGenerator irg = indexConglomDescriptor.getIndexDescriptor();
+        this.unique = irg.isUnique();
+        this.indexType = irg.indexType();
+        this.ascending = irg.isAscending();
+
+        /*
+         * Sometimes the indexConglomDescriptor doesn't know the names of the columns
+         * it's moving, so we have to populate it from the index column map and the
+         * main table descriptor.
+         */
+        if(columnNames==null){
+            int[] baseCols = irg.baseColumnPositions();
+            columnNames = new String[baseCols.length];
+            ColumnDescriptorList cdl = mainTableDescriptor.getColumnDescriptorList();
+            for(int i=0;i<baseCols.length;i++){
+                columnNames[i] = cdl.elementAt(baseCols[i]-1).getColumnName();
+            }
+        }
+    }
+
     @Override
     public void executeConstantAction(Activation activation) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();

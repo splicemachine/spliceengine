@@ -84,6 +84,7 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
 
     @Override
     public void dropIndex(long indexConglomId,long baseConglomId) throws IOException {
-        SpliceIndexObserver.getObserver(baseConglomId).dropIndex(indexConglomId);
+        IndexManager dropManager = IndexManager.create(indexConglomId,new int[]{});
+        SpliceIndexObserver.getObserver(baseConglomId).dropIndex(dropManager);
     }
 }

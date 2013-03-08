@@ -24,11 +24,9 @@ import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -54,7 +52,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     private volatile long conglomId = -1l;
     private volatile Constraint localConstraint;
     private volatile List<Constraint> fkConstraints = Collections.emptyList();
-    private List<IndexManager> indices = Collections.emptyList();
+    private Set<IndexManager> indices = Collections.emptySet();
     private AtomicReference<State> state = new AtomicReference<State>(State.WAITING_TO_START);
 
     //todo -sf- replace this with a pool pattern in some way
@@ -135,16 +133,13 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     }
 
     public void addIndex(IndexManager index){
+        if(state.get()!=State.RUNNING) return;
         indices.add(index);
     }
 
-    public void dropIndex(long indexConglomId){
-        for(int i=0;i<indices.size();i++){
-            if(indices.get(i).getConglomId()==indexConglomId){
-                indices.remove(i);
-                break;
-            }
-        }
+    public void dropIndex(IndexManager manager){
+        if(state.get()!=State.RUNNING) return;
+        indices.remove(manager);
     }
 
     @Override
@@ -295,7 +290,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
                  * someone asks us to.
                  */
                 fkConstraints = new CopyOnWriteArrayList<Constraint>(foreignKeys);
-                indices = new CopyOnWriteArrayList<IndexManager>(attachedIndices);
+                indices = new CopyOnWriteArraySet<IndexManager>(attachedIndices);
 
 
             }catch(StandardException se){
