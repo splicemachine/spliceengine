@@ -1,0 +1,19 @@
+How to Build Derby For Splice Machine.
+
+1.  Clean the Build Directory.
+	ant clean
+2.  Build the code.
+	ant buildsource buildjars derbytestingjar
+3.  Go into maven2 directory.
+	cd maven2
+4.  Install Locally to your own Maven Repo
+	./SpliceBuild.sh
+5.  Push to nexus
+	./SpliceDeploy.sh
+
+
+
+
+
+
+
