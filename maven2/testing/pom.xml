@@ -51,7 +51,7 @@
                     <configuration>
                         <tasks>
 
-                <copy file="${basedir}/../../jars/${sanity}/derbyTesting.jar"
+                <copy file="${basedir}/../../derbyTesting.jar"
                       tofile="${basedir}/target/${project.build.finalName}.jar"
                       overwrite="true"/>                      
                         </tasks>
