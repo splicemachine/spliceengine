@@ -135,7 +135,7 @@ public class CreateIndexOperation implements ConstantAction {
         int collationPos = 0;
         for(int colPos:baseColumnPositions){
             ColumnDescriptor cd = cdl.elementAt(colPos-1);
-            rowTemplate.setColumn(colPos,cd.getType().getNull());
+            rowTemplate.setColumn(collationPos+1,cd.getType().getNull());
             collationIds[collationPos] = cd.getType().getCollationType();
             collationPos++;
         }
@@ -184,6 +184,7 @@ public class CreateIndexOperation implements ConstantAction {
          */
         SpliceLogUtils.debug(LOG,"Building the initial index");
         final long tableConglomId = td.getHeapConglomerateId();
+        final boolean isUnique = cgd.getIndexDescriptor().isUnique();
         HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
         try{
             final RegionStats regionStats = new RegionStats();
@@ -193,7 +194,7 @@ public class CreateIndexOperation implements ConstantAction {
                     new Batch.Call<SpliceIndexProtocol,SinkStats>(){
                         @Override
                         public SinkStats call(SpliceIndexProtocol instance) throws IOException {
-                            return instance.buildIndex(indexConglomId,tableConglomId,baseColumnPositions);
+                            return instance.buildIndex(indexConglomId,tableConglomId,baseColumnPositions,isUnique);
                         }
                     },new Batch.Callback<SinkStats>() {
                         @Override

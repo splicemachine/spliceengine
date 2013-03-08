@@ -24,7 +24,7 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
 
     @Override
     public SinkStats buildIndex(long indexConglomId,long baseConglomId,
-                                int[] indexColsToBaseColMap) throws IOException {
+                                int[] indexColsToBaseColMap,boolean isUnique) throws IOException {
         SinkStats.SinkAccumulator accumulator = SinkStats.uniformAccumulator();
         accumulator.start();
 
@@ -45,7 +45,7 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
         RegionScanner sourceScanner = region.getScanner(regionScan);
 
         //get an indexManager to handle our stuff
-        IndexManager indexManager = IndexManager.create(indexConglomId, indexColsToBaseColMap);
+        IndexManager indexManager = IndexManager.create(indexConglomId, indexColsToBaseColMap,isUnique);
 
         //get an HTable from the environment
         HTable table = new HTable(Long.toString(indexConglomId).getBytes());
@@ -84,7 +84,7 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
 
     @Override
     public void dropIndex(long indexConglomId,long baseConglomId) throws IOException {
-        IndexManager dropManager = IndexManager.create(indexConglomId,new int[]{});
+        IndexManager dropManager = IndexManager.create(indexConglomId,new int[]{},false);
         SpliceIndexObserver.getObserver(baseConglomId).dropIndex(dropManager);
     }
 }

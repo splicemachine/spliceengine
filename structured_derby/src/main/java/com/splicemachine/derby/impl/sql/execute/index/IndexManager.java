@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.utils.DerbyUtils;
+import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
@@ -46,16 +47,17 @@ public class IndexManager {
     private final long indexConglomId;
     private final byte[] indexConglomBytes;
 
+    /*
+     * Indicator that this index is unique. If it is not unique, then
+     * the IndexManager must append a postfix on to the end of each row it creates.
+     */
+    private final boolean isUnique;
 
-
-    private IndexManager(long indexConglomId, int[] baseColumnMap){
+    private IndexManager(long indexConglomId, int[] baseColumnMap,boolean isUnique){
         this.indexColsToMainColMap = translate(baseColumnMap);
         this.indexConglomId = indexConglomId;
         this.indexConglomBytes = Long.toString(indexConglomId).getBytes();
-    }
-
-    private IndexManager(long indexConglomId, IndexDescriptor indexDescriptor){
-        this(indexConglomId,indexDescriptor.baseColumnPositions());
+        this.isUnique = isUnique;
     }
 
     private static int[] translate(int[] ints) {
@@ -67,13 +69,22 @@ public class IndexManager {
     }
 
     public void updateIndex(Put mainPut,RegionCoprocessorEnvironment rce) throws IOException{
-        byte[][] rowKeyBuilder = new byte[indexColsToMainColMap.length][];
+        byte[][] rowKeyBuilder;
+        if(isUnique)
+            rowKeyBuilder = new byte[indexColsToMainColMap.length][];
+        else
+            rowKeyBuilder = new byte[indexColsToMainColMap.length+1][];
         int size=0;
         for(int indexPos=0;indexPos< indexColsToMainColMap.length;indexPos++){
             byte[] mainPutPos = Integer.toString(indexColsToMainColMap[indexPos]).getBytes();
             byte[] data = mainPut.get(HBaseConstants.DEFAULT_FAMILY_BYTES,mainPutPos).get(0).getValue();
             rowKeyBuilder[indexPos] = data;
             size+=data.length;
+        }
+        if(!isUnique){
+            byte[] postfix = SpliceUtils.getUniqueKey();
+            rowKeyBuilder[rowKeyBuilder.length-1] = postfix;
+            size+=postfix.length;
         }
 
         byte[] indexRowKey = new byte[size];
@@ -90,7 +101,11 @@ public class IndexManager {
         }
 
         //add the mainPut rowKey as the row location at the end of the row
-        byte[] locPos = Integer.toString(rowKeyBuilder.length).getBytes();
+        byte[] locPos;
+        if(isUnique)
+            locPos = Integer.toString(rowKeyBuilder.length).getBytes();
+        else
+            locPos = Integer.toString(rowKeyBuilder.length-1).getBytes(); //don't include the postfix as a column
         indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,locPos,mainPut.getRow());
 
         rce.getTable(indexConglomBytes).put(indexPut);
@@ -110,7 +125,11 @@ public class IndexManager {
         List<Put> indexPuts = Lists.newArrayListWithExpectedSize(putConstructors.size());
         for(byte[] mainRow: putConstructors.keySet()){
             List<KeyValue> rowData = putConstructors.get(mainRow);
-            byte[][] indexRowData = new byte[rowData.size()][];
+            byte[][] indexRowData;
+            if(isUnique)
+                indexRowData = new byte[rowData.size()][];
+            else
+                indexRowData = new byte[rowData.size()+1][];
             int rowSize=0;
             for(KeyValue kv:rowData){
                 int colPos = Integer.parseInt(Bytes.toString(kv.getQualifier()));
@@ -123,6 +142,12 @@ public class IndexManager {
                     }
                 }
             }
+            if(!isUnique){
+                byte[] postfix = SpliceUtils.getUniqueKey();
+                indexRowData[indexRowData.length-1] = postfix;
+                rowSize+=postfix.length;
+            }
+
             byte[] finalIndexRow = new byte[rowSize];
             int offset =0;
             for(byte[] indexCol:indexRowData){
@@ -136,7 +161,7 @@ public class IndexManager {
             }
 
             indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
-                    Integer.toString(indexRowData.length).getBytes(),mainRow);
+                    Integer.toString(rowData.size()).getBytes(),mainRow);
             indexPuts.add(indexPut);
         }
 
@@ -144,12 +169,12 @@ public class IndexManager {
     }
 
 
-    public static IndexManager uniqueIndex(long indexConglomId,IndexDescriptor indexDescriptor){
-        return new IndexManager(indexConglomId,indexDescriptor);
+    public static IndexManager create(long indexConglomId,IndexDescriptor indexDescriptor){
+        return new IndexManager(indexConglomId,indexDescriptor.baseColumnPositions(),indexDescriptor.isUnique());
     }
 
-    public static IndexManager create(long indexConglomId,int[] indexColsToMainColMap){
-        return new IndexManager(indexConglomId,indexColsToMainColMap);
+    public static IndexManager create(long indexConglomId,int[] indexColsToMainColMap,boolean isUnique){
+        return new IndexManager(indexConglomId,indexColsToMainColMap,isUnique);
     }
 
     public long getConglomId() {
@@ -164,7 +189,6 @@ public class IndexManager {
         IndexManager that = (IndexManager) o;
 
         return indexConglomId == that.indexConglomId;
-
     }
 
     @Override

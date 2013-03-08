@@ -26,7 +26,9 @@ public interface SpliceIndexProtocol extends CoprocessorProtocol{
      * @return Statistics information about how long this region took to update the index
      * @throws IOException if something goes wrong
      */
-    public SinkStats buildIndex(long indexConglomId,long baseConglomId,int[] indexColsToBaseColMap) throws IOException;
+    public SinkStats buildIndex(long indexConglomId,
+                                long baseConglomId,
+                                int[] indexColsToBaseColMap,boolean isUnique) throws IOException;
 
     public void dropIndex(long indexConglomId,long baseConglomId) throws IOException;
 }

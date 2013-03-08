@@ -306,9 +306,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     private IndexManager buildIndex(ConglomerateDescriptor conglomDesc) {
         IndexRowGenerator irg = conglomDesc.getIndexDescriptor();
         IndexDescriptor indexDescriptor = irg.getIndexDescriptor();
-        if(indexDescriptor.isUnique()) return IndexManager.uniqueIndex(conglomDesc.getConglomerateNumber(),indexDescriptor);
-
-        return null;   //TODO -sf- deal with other index types
+        return IndexManager.create(conglomDesc.getConglomerateNumber(),indexDescriptor);
     }
 
     private ForeignKey buildForeignKey(ForeignKeyConstraintDescriptor fkcd) throws StandardException {
