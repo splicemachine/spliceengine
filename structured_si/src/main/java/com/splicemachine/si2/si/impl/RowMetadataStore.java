@@ -44,20 +44,21 @@ public class RowMetadataStore {
         dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, transactionId.getId(), siNull);
     }
 
-    Object clonePut(TransactionId transactionId, Object put, Object rowKey, SRowLock lock) {
+    Object newLockWithPut(TransactionId transactionId, Object put, SRowLock lock) {
+        Object rowKey = dataLib.getPutKey(put);
         Object newPut = dataLib.newPut(rowKey, lock);
-        for (Object cell : dataLib.listPut(put)) {
-            dataLib.addKeyValueToPut(newPut, dataLib.getKeyValueFamily(cell),
-                    dataLib.getKeyValueQualifier(cell),
+        for (Object keyValue : dataLib.listPut(put)) {
+            dataLib.addKeyValueToPut(newPut, dataLib.getKeyValueFamily(keyValue),
+                    dataLib.getKeyValueQualifier(keyValue),
                     transactionId.getId(),
-                    dataLib.getKeyValueValue(cell));
+                    dataLib.getKeyValueValue(keyValue));
         }
         return newPut;
     }
 
-    List getCommitTimestamp(STable table, Object row) {
+    List getCommitTimestamp(STable table, Object rowKey) {
         final List<List<Object>> columns = Arrays.asList(Arrays.asList(siFamily, commitTimestampQualifier));
-        SGet get = dataLib.newGet(row, null, columns, null);
+        SGet get = dataLib.newGet(rowKey, null, columns, null);
         Object result = reader.get(table, get);
         if (result != null) {
             return dataLib.getResultColumn(result, siFamily, commitTimestampQualifier);

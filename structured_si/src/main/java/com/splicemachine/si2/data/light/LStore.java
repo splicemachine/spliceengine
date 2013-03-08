@@ -130,7 +130,7 @@ public class LStore implements STableReader, STableWriter {
     }
 
     @Override
-    public SRowLock lockRow(STable sTable, Object row) {
+    public SRowLock lockRow(STable sTable, Object rowKey) {
         synchronized (this) {
             String table = ((LTable) sTable).relationIdentifier;
             Map<String, LRowLock> lockTable = locks.get(table);
@@ -141,14 +141,14 @@ public class LStore implements STableReader, STableWriter {
                 locks.put(table, lockTable);
                 reverseLocks.put(table, reverseLockTable);
             }
-            LRowLock currentLock = lockTable.get(row);
+            LRowLock currentLock = lockTable.get(rowKey);
             if (currentLock == null) {
                 LRowLock lock = new LRowLock();
-                lockTable.put((String) row, lock);
-                reverseLockTable.put(lock, (String) row);
+                lockTable.put((String) rowKey, lock);
+                reverseLockTable.put(lock, (String) rowKey);
                 return lock;
             }
-            throw new RuntimeException("row is already locked: " + table + " " + row);
+            throw new RuntimeException("row is already locked: " + table + " " + rowKey);
         }
     }
 

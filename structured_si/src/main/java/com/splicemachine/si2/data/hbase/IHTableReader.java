@@ -7,8 +7,8 @@ import org.apache.hadoop.hbase.client.Scan;
 
 import java.util.Iterator;
 
-public interface HTableReaderI {
-    HTableInterface open(String relationIdentifier);
+public interface IHTableReader {
+    HTableInterface open(String tableName);
     void close(HTableInterface table);
 
     Result get(HTableInterface table, Get get);

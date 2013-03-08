@@ -10,7 +10,7 @@ import org.apache.hadoop.hbase.client.Scan;
 
 import java.util.List;
 
-public interface HDataLibI {
+public interface IHDataLib {
     byte[] newRowKey(Object[] args);
 
     byte[] encode(Object value);

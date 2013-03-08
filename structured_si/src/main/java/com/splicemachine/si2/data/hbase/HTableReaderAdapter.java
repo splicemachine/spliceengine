@@ -8,9 +8,9 @@ import com.splicemachine.si2.data.api.STableReader;
 import java.util.Iterator;
 
 public class HTableReaderAdapter implements STableReader {
-    private final HTableReaderI tableReader;
+    private final IHTableReader tableReader;
 
-    public HTableReaderAdapter(HTableReaderI tableReader) {
+    public HTableReaderAdapter(IHTableReader tableReader) {
         this.tableReader = tableReader;
     }
 

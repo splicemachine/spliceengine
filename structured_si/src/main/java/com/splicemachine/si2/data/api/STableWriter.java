@@ -11,6 +11,6 @@ public interface STableWriter {
 
     boolean checkAndPut(STable table, Object family, Object qualifier, Object value, Object put);
 
-    SRowLock lockRow(STable table, Object row);
+    SRowLock lockRow(STable table, Object rowKey);
     void unLockRow(STable table, SRowLock lock);
 }

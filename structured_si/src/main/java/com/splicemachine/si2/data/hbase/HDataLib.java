@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class HDataLib implements HDataLibI {
+public class HDataLib implements IHDataLib {
 
     @Override
     public byte[] newRowKey(Object... args) {

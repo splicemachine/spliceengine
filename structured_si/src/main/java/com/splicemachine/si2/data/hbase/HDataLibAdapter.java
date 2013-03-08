@@ -12,9 +12,9 @@ import org.apache.hadoop.hbase.client.Result;
 import java.util.List;
 
 public class HDataLibAdapter implements SDataLib {
-    private final HDataLibI dataLib;
+    private final IHDataLib dataLib;
 
-    public HDataLibAdapter(HDataLibI dataLib) {
+    public HDataLibAdapter(IHDataLib dataLib) {
         this.dataLib = dataLib;
     }
 

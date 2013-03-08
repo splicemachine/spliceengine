@@ -8,9 +8,9 @@ import org.apache.hadoop.hbase.client.Put;
 import java.util.List;
 
 public class HTableWriterAdapter implements STableWriter {
-    private HTableWriterI writer;
+    private IHTableWriter writer;
 
-    public HTableWriterAdapter(HTableWriterI writer) {
+    public HTableWriterAdapter(IHTableWriter writer) {
         this.writer = writer;
     }
 
@@ -30,8 +30,8 @@ public class HTableWriterAdapter implements STableWriter {
     }
 
     @Override
-    public SRowLock lockRow(STable table, Object row) {
-        return new HRowLock(writer.lockRow(((HbTable) table).table, (byte[]) row));
+    public SRowLock lockRow(STable table, Object rowKey) {
+        return new HRowLock(writer.lockRow(((HbTable) table).table, (byte[]) rowKey));
     }
 
     @Override

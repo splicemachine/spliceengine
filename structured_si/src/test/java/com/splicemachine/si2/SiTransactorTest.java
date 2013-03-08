@@ -102,7 +102,7 @@ public class SiTransactorTest {
 
         final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
         SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), dataLib, writer,
-                new RowMetadataStore(dataLib, reader, "si-needed", "_si", "commit", 0),
+                new RowMetadataStore(dataLib, reader, "si-needed", "_si", "commit", -1),
                 transactionStore );
         clientTransactor = siTransactor;
         transactor = siTransactor;
@@ -147,8 +147,8 @@ public class SiTransactorTest {
         try {
             Object rawTuple = reader.get(testSTable, get);
             if (rawTuple != null) {
-                Object tuple = transactor.filterResult(transactionId, rawTuple);
-                final Object value = dataLib.getResultValue(tuple, family, ageQualifier);
+                Object result = transactor.filterResult(transactionId, rawTuple);
+                final Object value = dataLib.getResultValue(result, family, ageQualifier);
                 Integer age = (Integer) dataLib.decode(value, Integer.class);
                 return name + " age=" + age;
             } else {
@@ -170,6 +170,7 @@ public class SiTransactorTest {
         TransactionId t1 = transactor.beginTransaction();
         Assert.assertEquals("joe age=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
+        dumpStore();
         Assert.assertEquals("joe age=20", read(t1, "joe"));
         transactor.commit(t1);
 
@@ -284,7 +285,7 @@ public class SiTransactorTest {
         dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(25));
         List tuples = Arrays.asList(put);
         clientTransactor.initializePuts(tuples);
-        System.out.println("tuple = " + put);
+        System.out.println("put = " + put);
         TransactionId t = transactor.beginTransaction();
         STable testSTable = reader.open("people");
         try {
@@ -298,10 +299,10 @@ public class SiTransactorTest {
         testSTable = reader.open("people");
         try {
             final Object resultTuple = reader.get(testSTable, get);
-            for (Object cell : dataLib.listResult(resultTuple)) {
-                System.out.print(cell);
+            for (Object keyValue : dataLib.listResult(resultTuple)) {
+                System.out.print(keyValue);
                 System.out.print(" ");
-                System.out.println(((SiTransactor) transactor).shouldKeep(cell, t2));
+                System.out.println(((SiTransactor) transactor).shouldKeep(keyValue, t2));
             }
             transactor.filterResult(t2, resultTuple);
         } finally {

@@ -19,15 +19,15 @@ public class RelationHelper {
         this.writer = writer;
     }
 
-    public void open(String relationIdentifier) {
-        table = reader.open(relationIdentifier);
+    public void open(String tableName) {
+        table = reader.open(tableName);
     }
 
     public void write(Object[] keyParts, String family, Object qualifier, Object value, Long timestamp) {
         final Object newKey = dataLib.newRowKey(keyParts);
-        Object tuple = dataLib.newPut(newKey);
-        dataLib.addKeyValueToPut(tuple, dataLib.encode(family), dataLib.encode(qualifier),
+        Object put = dataLib.newPut(newKey);
+        dataLib.addKeyValueToPut(put, dataLib.encode(family), dataLib.encode(qualifier),
                 timestamp, dataLib.encode(value));
-        writer.write(table, tuple);
+        writer.write(table, put);
     }
 }

@@ -14,5 +14,5 @@ public interface Transactor {
     void fail(TransactionId transactionId);
 
     void processPuts(TransactionId transactionId, STable table, List puts);
-    Object filterResult(TransactionId transactionId, Object tuple);
+    Object filterResult(TransactionId transactionId, Object result);
 }

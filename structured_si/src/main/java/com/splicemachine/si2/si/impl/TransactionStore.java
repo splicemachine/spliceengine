@@ -31,7 +31,7 @@ public class TransactionStore {
     }
 
     public void recordTransactionCommit(TransactionId startTransactionTimestamp, long commitTransactionTimestamp, TransactionStatus newStatus) {
-        writePut(makeCommitTuple(startTransactionTimestamp, commitTransactionTimestamp, newStatus));
+        writePut(makeCommitPut(startTransactionTimestamp, commitTransactionTimestamp, newStatus));
     }
 
     public void recordTransactionStatusChange(TransactionId startTransactionTimestamp, TransactionStatus newStatus) {
@@ -41,7 +41,7 @@ public class TransactionStore {
     public TransactionStruct getTransactionStatus(TransactionId transactionId) {
         Object tupleKey = handler.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
 
-        STable transactionSTable = reader.open(transactionSchema.relationIdentifier);
+        STable transactionSTable = reader.open(transactionSchema.tableName);
         try {
             SGet get = handler.newGet(tupleKey, null, null, null);
             Object resultTuple = reader.get(transactionSTable, get);
@@ -62,28 +62,28 @@ public class TransactionStore {
     }
 
     private Object makeStatusUpdateTuple(TransactionId transactionId, TransactionStatus newStatus) {
-        Object tuple = makeBaseTuple(transactionId);
-        addFieldToTuple(tuple, encodedSchema.statusQualifier, newStatus.ordinal());
-        return tuple;
+        Object put = makeBasePut(transactionId);
+        addFieldToPut(put, encodedSchema.statusQualifier, newStatus.ordinal());
+        return put;
     }
 
     private Object makeCreateTuple(TransactionId transactionId, TransactionStatus status) {
-        Object tuple = makeBaseTuple(transactionId);
-        addFieldToTuple(tuple, encodedSchema.startQualifier, transactionId.getId());
-        addFieldToTuple(tuple, encodedSchema.statusQualifier, status.ordinal());
-        return tuple;
+        Object put = makeBasePut(transactionId);
+        addFieldToPut(put, encodedSchema.startQualifier, transactionId.getId());
+        addFieldToPut(put, encodedSchema.statusQualifier, status.ordinal());
+        return put;
     }
 
-    private Object makeCommitTuple(TransactionId transactionId, long commitTransactionTimestamp, TransactionStatus newStatus) {
-        Object tuple = makeBaseTuple(transactionId);
-        addFieldToTuple(tuple, encodedSchema.commitQualifier, commitTransactionTimestamp);
-        addFieldToTuple(tuple, encodedSchema.statusQualifier, newStatus.ordinal());
-        return tuple;
+    private Object makeCommitPut(TransactionId transactionId, long commitTransactionTimestamp, TransactionStatus newStatus) {
+        Object put = makeBasePut(transactionId);
+        addFieldToPut(put, encodedSchema.commitQualifier, commitTransactionTimestamp);
+        addFieldToPut(put, encodedSchema.statusQualifier, newStatus.ordinal());
+        return put;
     }
 
-    private Object makeBaseTuple(TransactionId transactionId) {
-        Object tupleKey = handler.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
-        return handler.newPut(tupleKey);
+    private Object makeBasePut(TransactionId transactionId) {
+        Object rowKey = handler.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
+        return handler.newPut(rowKey);
     }
 
     private long transactionIdToRowKey(TransactionId transactionId) {
@@ -92,12 +92,12 @@ public class TransactionStore {
         return Bytes.toLong(result);
     }
 
-    private void addFieldToTuple(Object tuple, Object qualifier, Object value) {
-        handler.addKeyValueToPut(tuple, encodedSchema.siFamily, qualifier, null, handler.encode(value));
+    private void addFieldToPut(Object put, Object qualifier, Object value) {
+        handler.addKeyValueToPut(put, encodedSchema.siFamily, qualifier, null, handler.encode(value));
     }
 
     private void writePut(Object put) {
-        final STable transactionSTable = reader.open(transactionSchema.relationIdentifier);
+        final STable transactionSTable = reader.open(transactionSchema.tableName);
         try {
             writer.write(transactionSTable, put);
         } finally {

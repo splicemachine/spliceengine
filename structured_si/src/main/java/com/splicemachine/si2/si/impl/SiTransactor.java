@@ -10,7 +10,6 @@ import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class SiTransactor implements Transactor, ClientTransactor {
@@ -70,11 +69,11 @@ public class SiTransactor implements Transactor, ClientTransactor {
         for (Object put : puts) {
             Boolean siNeeded = dataStore.getSiNeededAttribute(put);
             if (siNeeded) {
-                Object row = dataLib.getPutKey(put);
-                SRowLock lock = dataWriter.lockRow(table, row);
+                Object rowKey = dataLib.getPutKey(put);
+                SRowLock lock = dataWriter.lockRow(table, rowKey);
                 try {
-                    checkForConflict(transactionId, table, lock, row);
-                    Object newPut = dataStore.clonePut(transactionId, put, row, lock);
+                    checkForConflict(transactionId, table, lock, rowKey);
+                    Object newPut = dataStore.newLockWithPut(transactionId, put, lock);
                     dataStore.addTransactionIdToPut(newPut, transactionId);
                     dataWriter.write(table, newPut);
                 } finally {
@@ -87,9 +86,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
         dataWriter.write(table, nonSiPuts);
     }
 
-    private void checkForConflict(TransactionId transactionId, STable table, SRowLock lock, Object row) {
+    private void checkForConflict(TransactionId transactionId, STable table, SRowLock lock, Object rowKey) {
         long id = transactionId.getId();
-        List keyValues = dataStore.getCommitTimestamp(table, row);
+        List keyValues = dataStore.getCommitTimestamp(table, rowKey);
         if (keyValues != null) {
             int index = 0;
             boolean loop = true;
@@ -125,11 +124,11 @@ public class SiTransactor implements Transactor, ClientTransactor {
             throw new RuntimeException("transaction is not ACTIVE");
         }
         List<Object> filteredCells = new ArrayList<Object>();
-        final List cells = dataLib.listResult(result);
-        if (cells != null) {
-            for (Object cell : cells) {
-                if (shouldKeep(cell, transactionId)) {
-                    filteredCells.add(cell);
+        final List keyValues = dataLib.listResult(result);
+        if (keyValues != null) {
+            for (Object keyValue : keyValues) {
+                if (shouldKeep(keyValue, transactionId)) {
+                    filteredCells.add(keyValue);
                 }
             }
         }
@@ -137,13 +136,13 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
 
-    public boolean shouldKeep(Object cell, TransactionId transactionId) {
+    public boolean shouldKeep(Object keyValue, TransactionId transactionId) {
         final long snapshotTimestamp = transactionId.getId();
-        final long cellTimestamp = dataLib.getKeyValueTimestamp(cell);
-        final TransactionStruct transaction = transactionStore.getTransactionStatus(new SiTransactionId(cellTimestamp));
+        final long keyValueTimestamp = dataLib.getKeyValueTimestamp(keyValue);
+        final TransactionStruct transaction = transactionStore.getTransactionStatus(new SiTransactionId(keyValueTimestamp));
         switch (transaction.status) {
             case ACTIVE:
-                return snapshotTimestamp == cellTimestamp;
+                return snapshotTimestamp == keyValueTimestamp;
             case ERROR:
             case ABORT:
                 return false;

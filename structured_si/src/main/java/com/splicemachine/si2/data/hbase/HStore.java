@@ -9,12 +9,11 @@ import org.apache.hadoop.hbase.client.RowLock;
 import org.apache.hadoop.hbase.client.Scan;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-public class HStore implements HTableReaderI, HTableWriterI {
+public class HStore implements IHTableReader, IHTableWriter {
     private final HTableSource tableSource;
 
     public HStore(HTableSource tableSource) {
@@ -22,8 +21,8 @@ public class HStore implements HTableReaderI, HTableWriterI {
     }
 
     @Override
-    public HTableInterface open(String relationIdentifier) {
-        return tableSource.getTable(relationIdentifier);
+    public HTableInterface open(String tableName) {
+        return tableSource.getTable(tableName);
     }
 
     private List toList(Object item) {
@@ -77,9 +76,9 @@ public class HStore implements HTableReaderI, HTableWriterI {
     }
 
     @Override
-    public RowLock lockRow(HTableInterface table, byte[] row) {
+    public RowLock lockRow(HTableInterface table, byte[] rowKey) {
         try {
-            return table.lockRow(row);
+            return table.lockRow(rowKey);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
