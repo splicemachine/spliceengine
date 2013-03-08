@@ -59,6 +59,11 @@ public class HDataLibAdapter implements SDataLib {
     }
 
     @Override
+    public Object getKeyValueRow(Object keyValue) {
+        return dataLib.getKeyValueRow((KeyValue) keyValue);
+    }
+
+    @Override
     public Object getKeyValueFamily(Object keyValue) {
         return dataLib.getKeyValueFamily((KeyValue) keyValue);
     }
@@ -86,6 +91,11 @@ public class HDataLibAdapter implements SDataLib {
     @Override
     public Object decode(Object value, Class type) {
         return dataLib.decode((byte[]) value, type);
+    }
+
+    @Override
+    public boolean valuesEqual(Object value1, Object value2) {
+        return dataLib.valuesEqual((byte[]) value1, (byte[]) value2);
     }
 
     @Override

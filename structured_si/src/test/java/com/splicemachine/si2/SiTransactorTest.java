@@ -1,154 +1,84 @@
 package com.splicemachine.si2;
 
-import com.splicemachine.si2.data.api.SScan;
-import com.splicemachine.si2.data.hbase.HDataLibAdapter;
-import com.splicemachine.si2.data.hbase.HTableReaderAdapter;
-import com.splicemachine.si2.data.hbase.HTableWriterAdapter;
-import com.splicemachine.si2.data.light.Clock;
 import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableReader;
-import com.splicemachine.si2.data.api.STableWriter;
-import com.splicemachine.si2.data.hbase.HDataLib;
-import com.splicemachine.si2.data.hbase.HStore;
-import com.splicemachine.si2.data.light.IncrementingClock;
-import com.splicemachine.si2.data.light.LDataLib;
-import com.splicemachine.si2.data.light.LStore;
-import com.splicemachine.si2.si.api.ClientTransactor;
+import com.splicemachine.si2.si.api.FilterState;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.si.impl.RowMetadataStore;
 import com.splicemachine.si2.si.impl.SiTransactor;
-import com.splicemachine.si2.si.impl.SimpleIdSource;
-import com.splicemachine.si2.si.impl.TransactionSchema;
-import com.splicemachine.si2.si.impl.TransactionStore;
 import junit.framework.Assert;
-import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 public class SiTransactorTest {
-    final boolean useSimple = true;
+    final boolean useSimple = false;
 
-    LStore store;
-    final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "begin", "commit", "status");
-    Object family;
-    Object ageQualifier;
-
-    SDataLib dataLib;
-    STableReader reader;
-    STableWriter writer;
-    ClientTransactor clientTransactor;
+    StoreSetup storeSetup;
+    TransactorSetup transactorSetup;
     Transactor transactor;
-
-    HBaseTestingUtility testCluster;
-
-    private HStore setupHBaseStore() {
-        try {
-            testCluster = new HBaseTestingUtility();
-            testCluster.startMiniCluster(1);
-            final TestHTableSource tableSource = new TestHTableSource(testCluster, "people", new String[]{"attributes", "_si"});
-            tableSource.addTable(testCluster, "transaction", new String[]{"siFamily"});
-            return new HStore(tableSource);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void setupHBaseHarness() {
-        dataLib = new HDataLibAdapter(new HDataLib());
-        final HStore store = setupHBaseStore();
-        final STableReader rawReader = new HTableReaderAdapter(store);
-        reader = new STableReader() {
-            @Override
-            public STable open(String tableName) {
-                return rawReader.open(tableName);
-            }
-
-            @Override
-            public void close(STable table) {
-            }
-
-            @Override
-            public Object get(STable table, SGet get) {
-                return rawReader.get(table, get);
-            }
-
-            @Override
-            public Iterator scan(STable table, SScan scan) {
-                return rawReader.scan(table, scan);
-            }
-        };
-        writer = new HTableWriterAdapter(store);
-    }
-
-    private void setupSimpleHarness() {
-        dataLib = new LDataLib();
-        Clock clock = new IncrementingClock(1000);
-        store = new LStore(clock);
-        reader = store;
-        writer = store;
-    }
-
-    private void setupCore() {
-        family = dataLib.encode("attributes");
-        ageQualifier = dataLib.encode("age");
-
-        final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
-        SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), dataLib, writer,
-                new RowMetadataStore(dataLib, reader, "si-needed", "_si", "commit", -1),
-                transactionStore );
-        clientTransactor = siTransactor;
-        transactor = siTransactor;
-    }
 
     @Before
     public void setUp() {
-        if (useSimple) {
-            setupSimpleHarness();
-        } else {
-            setupHBaseHarness();
+        storeSetup = new LStoreSetup();
+        if (!useSimple) {
+            storeSetup = new HStoreSetup();
         }
-        setupCore();
+        transactorSetup = new TransactorSetup(storeSetup);
+        transactor = transactorSetup.transactor;
     }
 
     @After
     public void tearDown() throws Exception {
-        if (testCluster != null) {
-            testCluster.shutdownMiniCluster();
+        if (storeSetup.getTestCluster() != null) {
+            storeSetup.getTestCluster().shutdownMiniCluster();
         }
     }
 
     private void insertAge(TransactionId transactionId, String name, int age) {
+        insertAgeDirect(transactorSetup, storeSetup, transactionId, name, age);
+    }
+
+    private String read(TransactionId transactionId, String name) {
+        return readAgeDirect(transactorSetup, storeSetup, transactionId, name);
+    }
+
+    static void insertAgeDirect(TransactorSetup transactorSetup, StoreSetup storeSetup, TransactionId transactionId, String name, int age) {
+        final SDataLib dataLib = storeSetup.getDataLib();
+        final STableReader reader = storeSetup.getReader();
+
         Object key = dataLib.newRowKey(new Object[]{name});
         Object put = dataLib.newPut(key);
-        dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(age));
+        dataLib.addKeyValueToPut(put, transactorSetup.family, transactorSetup.ageQualifier, null, dataLib.encode(age));
         List puts = Arrays.asList(put);
-        clientTransactor.initializePuts(puts);
+        transactorSetup.clientTransactor.initializePuts(puts);
 
         STable testSTable = reader.open("people");
         try {
-            transactor.processPuts(transactionId, testSTable, puts);
+            transactorSetup.transactor.processPuts(transactionId, testSTable, puts);
         } finally {
             reader.close(testSTable);
         }
     }
 
-    private String read(TransactionId transactionId, String name) {
+    static String readAgeDirect(TransactorSetup transactorSetup, StoreSetup storeSetup, TransactionId transactionId, String name) {
+        final SDataLib dataLib = storeSetup.getDataLib();
+        final STableReader reader = storeSetup.getReader();
+
         Object key = dataLib.newRowKey(new Object[]{name});
-        SGet get = dataLib.newGet(key, Arrays.asList(family), null, null);
+        SGet get = dataLib.newGet(key, null, null, null);
         STable testSTable = reader.open("people");
         try {
             Object rawTuple = reader.get(testSTable, get);
             if (rawTuple != null) {
-                Object result = transactor.filterResult(transactionId, rawTuple);
-                final Object value = dataLib.getResultValue(result, family, ageQualifier);
+                final FilterState filterState = transactorSetup.transactor.newFilterState(testSTable, transactionId);
+                Object result = transactorSetup.transactor.filterResult(filterState, rawTuple);
+                final Object value = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.ageQualifier);
                 Integer age = (Integer) dataLib.decode(value, Integer.class);
                 return name + " age=" + age;
             } else {
@@ -157,11 +87,12 @@ public class SiTransactorTest {
         } finally {
             reader.close(testSTable);
         }
+
     }
 
     private void dumpStore() {
         if (useSimple) {
-            System.out.println("store=" + store);
+            System.out.println("store=" + storeSetup.getStore());
         }
     }
 
@@ -278,13 +209,16 @@ public class SiTransactorTest {
 
     @Test
     public void readWriteMechanics() throws Exception {
+        final SDataLib dataLib = storeSetup.getDataLib();
+        final STableReader reader = storeSetup.getReader();
+
         final Object testKey = dataLib.newRowKey(new Object[]{"jim"});
         Object put = dataLib.newPut(testKey);
         Object family = dataLib.encode("attributes");
         Object ageQualifier = dataLib.encode("age");
         dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(25));
         List tuples = Arrays.asList(put);
-        clientTransactor.initializePuts(tuples);
+        transactorSetup.clientTransactor.initializePuts(tuples);
         System.out.println("put = " + put);
         TransactionId t = transactor.beginTransaction();
         STable testSTable = reader.open("people");
@@ -304,7 +238,8 @@ public class SiTransactorTest {
                 System.out.print(" ");
                 System.out.println(((SiTransactor) transactor).shouldKeep(keyValue, t2));
             }
-            transactor.filterResult(t2, resultTuple);
+            final FilterState filterState = transactor.newFilterState(testSTable, t2);
+            transactor.filterResult(filterState, resultTuple);
         } finally {
             reader.close(testSTable);
         }
@@ -315,7 +250,7 @@ public class SiTransactorTest {
 
         dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(35));
         tuples = Arrays.asList(put);
-        clientTransactor.initializePuts(tuples);
+        transactorSetup.clientTransactor.initializePuts(tuples);
         testSTable = reader.open("people");
         try {
             transactor.processPuts(t, testSTable, tuples);

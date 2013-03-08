@@ -115,6 +115,11 @@ public class LStore implements STableReader, STableWriter {
     }
 
     @Override
+    public void write(STable table, Object put, boolean durable) {
+        write(table, Arrays.asList(put));
+    }
+
+    @Override
     public void write(STable table, List puts) {
         synchronized (this) {
             final String relationIdentifier = ((LTable) table).relationIdentifier;
@@ -178,7 +183,7 @@ public class LStore implements STableReader, STableWriter {
         List<LKeyValue> newValues = new ArrayList<LKeyValue>();
         for (LKeyValue c : newTuple.values) {
             if (c.timestamp == null) {
-                newValues.add(new LKeyValue(c.family, c.qualifier, getCurrentTimestamp(), c.value));
+                newValues.add(new LKeyValue(newTuple.key, c.family, c.qualifier, getCurrentTimestamp(), c.value));
             } else {
                 newValues.add(c);
             }

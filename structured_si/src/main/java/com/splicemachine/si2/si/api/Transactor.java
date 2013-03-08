@@ -1,6 +1,7 @@
 package com.splicemachine.si2.si.api;
 
 import com.splicemachine.si2.data.api.STable;
+import org.apache.hadoop.hbase.filter.Filter;
 
 import java.util.List;
 
@@ -14,5 +15,8 @@ public interface Transactor {
     void fail(TransactionId transactionId);
 
     void processPuts(TransactionId transactionId, STable table, List puts);
-    Object filterResult(TransactionId transactionId, Object result);
+    Object filterResult(FilterState filterState, Object result);
+
+    FilterState newFilterState(STable table, TransactionId transactionId);
+    Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue);
 }

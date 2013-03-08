@@ -15,7 +15,7 @@ public class LDataLibTest {
 
 	@Test
 	public void testSingleVal() throws Exception {
-		List<LKeyValue> values = Arrays.asList(new LKeyValue("foo", "age", 5L, 21));
+		List<LKeyValue> values = Arrays.asList(new LKeyValue("fred", "foo", "age", 5L, 21));
 		LTuple tuple = new LTuple("fred", values);
 		SDataLib reader = new LDataLib();
 		Assert.assertEquals("key is wrong", "fred", reader.getResultKey(tuple));
@@ -27,10 +27,10 @@ public class LDataLibTest {
 	@Test
 	public void testMultiValuesForOneColumn() throws Exception {
 		List<LKeyValue> values = Arrays.asList(
-				new LKeyValue("foo", "age", 5L, 21),
-				new LKeyValue("foo", "age", 3L, 11),
-				new LKeyValue("foo", "age", 11L, 41),
-				new LKeyValue("foo", "age", 8L, 31));
+				new LKeyValue("fred", "foo", "age", 5L, 21),
+				new LKeyValue("fred", "foo", "age", 3L, 11),
+				new LKeyValue("fred", "foo", "age", 11L, 41),
+				new LKeyValue("fred", "foo", "age", 8L, 31));
 		LTuple tuple = new LTuple("fred", values);
 		SDataLib reader = new LDataLib();
 		Assert.assertEquals("key is wrong", "fred", reader.getResultKey(tuple));
@@ -48,10 +48,10 @@ public class LDataLibTest {
 	@Test
 	public void testMultiValuesManyColumns() throws Exception {
 		List<LKeyValue> values = Arrays.asList(
-				new LKeyValue("foo", "age", 5L, 21),
-				new LKeyValue("foo", "age", 3L, 11),
-				new LKeyValue("foo", "job", 11L, "baker"),
-				new LKeyValue("foo", "alias", 8L, "joey"));
+				new LKeyValue("fred", "foo", "age", 5L, 21),
+				new LKeyValue("fred", "foo", "age", 3L, 11),
+				new LKeyValue("fred", "foo", "job", 11L, "baker"),
+				new LKeyValue("fred", "foo", "alias", 8L, "joey"));
 		LTuple tuple = new LTuple("fred", values);
 		SDataLib reader = new LDataLib();
 
@@ -61,10 +61,10 @@ public class LDataLibTest {
 			results.add(kv.toString());
 		}
 		Assert.assertArrayEquals(new Object[]{
-				new LKeyValue("foo", "age", 5L, 21).toString(),
-				new LKeyValue("foo", "age", 3L, 11).toString(),
-				new LKeyValue("foo", "job", 11L, "baker").toString(),
-				new LKeyValue("foo", "alias", 8L, "joey").toString()},
+				new LKeyValue("fred", "foo", "age", 5L, 21).toString(),
+				new LKeyValue("fred", "foo", "age", 3L, 11).toString(),
+				new LKeyValue("fred", "foo", "job", 11L, "baker").toString(),
+				new LKeyValue("fred", "foo", "alias", 8L, "joey").toString()},
 				results.toArray());
 	}
 }

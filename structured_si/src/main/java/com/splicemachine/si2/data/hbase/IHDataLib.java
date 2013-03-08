@@ -15,6 +15,7 @@ public interface IHDataLib {
 
     byte[] encode(Object value);
     Object decode(byte[] value, Class type);
+    boolean valuesEqual(byte[] value1, byte[] value2);
 
     void addAttribute(OperationWithAttributes operation, String attributeName, byte[] value);
     byte[] getAttribute(OperationWithAttributes operation, String attributeName);
@@ -25,6 +26,7 @@ public interface IHDataLib {
     List getResultColumn(Result result, byte[] family, byte[] qualifier);
     byte[] getResultValue(Result result, byte[] family, byte[] qualifier);
 
+    byte[] getKeyValueRow(KeyValue keyValue);
     byte[] getKeyValueFamily(KeyValue keyValue);
     byte[] getKeyValueQualifier(KeyValue keyValue);
     byte[] getKeyValueValue(KeyValue keyValue);

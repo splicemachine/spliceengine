@@ -3,11 +3,13 @@ package com.splicemachine.si2.data.hbase;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.RowLock;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import java.util.List;
 
 public interface IHTableWriter {
     void write(HTableInterface table, Put put);
+    void write(Object table, Put put, boolean durable);
     void write(HTableInterface table, List puts);
 
     boolean checkAndPut(HTableInterface table, byte[] family, byte[] qualifier, byte[] value, Put put);

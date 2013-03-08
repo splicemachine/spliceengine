@@ -7,6 +7,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.RowLock;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -23,10 +24,6 @@ public class HStore implements IHTableReader, IHTableWriter {
     @Override
     public HTableInterface open(String tableName) {
         return tableSource.getTable(tableName);
-    }
-
-    private List toList(Object item) {
-        return Arrays.asList(item);
     }
 
     @Override
@@ -61,6 +58,19 @@ public class HStore implements IHTableReader, IHTableWriter {
     public void write(HTableInterface table, Put put) {
         try {
             table.put(put);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void write(Object table, Put put, boolean durable) {
+        try {
+            if (table instanceof HTableInterface) {
+                ((HTableInterface) table).put(put);
+            } else if (table instanceof HRegion) {
+                ((HRegion) table).put(put, durable);
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

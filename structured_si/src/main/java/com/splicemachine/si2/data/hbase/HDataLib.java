@@ -12,6 +12,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -62,6 +63,11 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
+    public byte[] getKeyValueRow(KeyValue keyValue) {
+        return keyValue.getRow();
+    }
+
+    @Override
     public byte[] getKeyValueFamily(KeyValue keyValue) {
         return keyValue.getFamily();
     }
@@ -100,6 +106,11 @@ public class HDataLib implements IHDataLib {
             return Bytes.toLong(bytes);
         }
         throw new RuntimeException("unsupported type conversion: " + type.getName());
+    }
+
+    @Override
+    public boolean valuesEqual(byte[] value1, byte[] value2) {
+        return Arrays.equals(value1, value2);
     }
 
     @Override

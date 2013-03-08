@@ -38,6 +38,10 @@ public class TransactionStore {
         writePut(makeStatusUpdateTuple(startTransactionTimestamp, newStatus));
     }
 
+    public TransactionStruct getTransactionStatus(long beginTimestamp) {
+        return getTransactionStatus(new SiTransactionId(beginTimestamp));
+    }
+
     public TransactionStruct getTransactionStatus(TransactionId transactionId) {
         Object tupleKey = handler.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
 
@@ -104,5 +108,4 @@ public class TransactionStore {
             reader.close(transactionSTable);
         }
     }
-
 }

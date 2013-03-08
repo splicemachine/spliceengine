@@ -5,6 +5,7 @@ import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.SRowLock;
 import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableReader;
+import com.splicemachine.si2.data.api.STableWriter;
 import com.splicemachine.si2.si.api.TransactionId;
 
 import java.util.Arrays;
@@ -14,6 +15,7 @@ import java.util.List;
 public class RowMetadataStore {
     private final SDataLib dataLib;
     private final STableReader reader;
+    private final STableWriter writer;
 
     private final String siNeededAttribute;
 
@@ -21,14 +23,19 @@ public class RowMetadataStore {
     private final Object commitTimestampQualifier;
     private final Object siNull;
 
-    public RowMetadataStore(SDataLib dataLib, STableReader reader, String siNeededAttribute,
-                            String siMetaFamily, Object siCommitQualifier, Object siMetaNull) {
+    private final Object userColumnFamily;
+
+    public RowMetadataStore(SDataLib dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
+                            String siMetaFamily, Object siCommitQualifier, Object siMetaNull,
+                            Object userColumnFamily) {
         this.dataLib = dataLib;
         this.reader = reader;
+        this.writer = writer;
         this.siNeededAttribute = siNeededAttribute;
         this.siFamily = dataLib.encode(siMetaFamily);
         this.commitTimestampQualifier = dataLib.encode(siCommitQualifier);
         this.siNull = dataLib.encode(siMetaNull);
+        this.userColumnFamily = dataLib.encode(userColumnFamily);
     }
 
     void setSiNeededAttribute(Object put) {
@@ -66,4 +73,22 @@ public class RowMetadataStore {
         return null;
     }
 
+    public boolean isCommitTimestampKeyValue(Object keyValue) {
+        return dataLib.valuesEqual(dataLib.getKeyValueFamily(keyValue), siFamily) &&
+                dataLib.valuesEqual(dataLib.getKeyValueQualifier(keyValue), commitTimestampQualifier);
+    }
+
+    public boolean isSiNull(Object value) {
+        return dataLib.valuesEqual(value, siNull);
+    }
+
+    public boolean isDataKeyValue(Object keyValue) {
+        return dataLib.valuesEqual(dataLib.getKeyValueFamily(keyValue), userColumnFamily);
+    }
+
+    public void setCommitTimestamp(STable table, Object keyValue, long beginTimestamp, long commitTimestamp) {
+        Object put = dataLib.newPut(dataLib.getKeyValueRow(keyValue));
+        dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, beginTimestamp, dataLib.encode(commitTimestamp));
+        writer.write(table, put, false);
+    }
 }

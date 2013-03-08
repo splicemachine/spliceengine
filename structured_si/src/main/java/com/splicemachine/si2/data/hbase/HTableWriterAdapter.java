@@ -20,6 +20,11 @@ public class HTableWriterAdapter implements STableWriter {
     }
 
     @Override
+    public void write(STable table, Object put, boolean durable) {
+        writer.write(table, (Put) put, durable);
+    }
+
+    @Override
     public void write(STable table, List puts) {
         writer.write(((HbTable) table).table, puts);
     }

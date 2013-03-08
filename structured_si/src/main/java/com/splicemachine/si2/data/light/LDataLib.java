@@ -46,9 +46,14 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
+    public boolean valuesEqual(Object value1, Object value2) {
+        return value1.equals(value2);
+    }
+
+    @Override
     public void addKeyValueToPut(Object put, Object family, Object qualifier, Long timestamp, Object value) {
         LTuple lTuple = (LTuple) put;
-        final LKeyValue newCell = new LKeyValue((String) family, (String) qualifier, timestamp, value);
+        final LKeyValue newCell = new LKeyValue(lTuple.key, (String) family, (String) qualifier, timestamp, value);
         lTuple.values.add(newCell);
     }
 
@@ -128,7 +133,24 @@ public class LDataLib implements SDataLib {
         Collections.sort(results, new Comparator<Object>() {
             @Override
             public int compare(Object simpleCell, Object simpleCell2) {
-                return Long.valueOf(((LKeyValue) simpleCell2).timestamp).compareTo(((LKeyValue) simpleCell).timestamp);
+                final LKeyValue v2 = (LKeyValue) simpleCell2;
+                final LKeyValue v1 = (LKeyValue) simpleCell;
+                if (v1.family.equals(v2.family)) {
+                    if (v1.qualifier.equals(v2.qualifier)) {
+                        Long t1 = v1.timestamp;
+                        if (t1 == null) {
+                            t1 = 0L;
+                        }
+                        Long t2 = v2.timestamp;
+                        if (t2 == null) {
+                            t2 = 0L;
+                        }
+                        return t2.compareTo(t1);
+                    } else {
+                        return v1.qualifier.compareTo(v2.qualifier);
+                    }
+                }
+                return v1.family.compareTo(v2.family);
             }
         });
     }
@@ -149,7 +171,14 @@ public class LDataLib implements SDataLib {
 
     @Override
     public List listPut(Object put) {
-        return ((LTuple) put).values;
+        final List<LKeyValue> values = ((LTuple) put).values;
+        sort(values);
+        return values;
+    }
+
+    @Override
+    public Object getKeyValueRow(Object keyValue) {
+        return ((LKeyValue) keyValue).rowKey;
     }
 
     @Override

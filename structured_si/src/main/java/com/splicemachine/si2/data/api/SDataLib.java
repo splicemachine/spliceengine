@@ -7,6 +7,7 @@ public interface SDataLib {
 
     Object encode(Object value);
     Object decode(Object value, Class type);
+    boolean valuesEqual(Object value1, Object value2);
 
     void addAttribute(Object operation, String attributeName, Object value);
     Object getAttribute(Object operation, String attributeName);
@@ -23,6 +24,7 @@ public interface SDataLib {
     List listPut(Object put);
     Object getPutKey(Object put);
 
+    Object getKeyValueRow(Object keyValue);
     Object getKeyValueFamily(Object keyValue);
     Object getKeyValueQualifier(Object keyValue);
     Object getKeyValueValue(Object keyValue);
