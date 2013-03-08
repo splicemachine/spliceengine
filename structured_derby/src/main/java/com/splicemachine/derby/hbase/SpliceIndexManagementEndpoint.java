@@ -3,11 +3,15 @@ package com.splicemachine.derby.hbase;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexManager;
+import com.splicemachine.derby.impl.sql.execute.index.IndexUtils;
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
 import com.splicemachine.derby.stats.SinkStats;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -18,7 +22,7 @@ import java.util.List;
 
 /**
  * @author Scott Fines
- *         Created on: 3/7/13
+ *         Created on: 3/11/13
  */
 public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor implements SpliceIndexProtocol{
 
@@ -32,7 +36,6 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
         HRegion region = ((RegionCoprocessorEnvironment) this.getEnvironment()).getRegion();
         Scan regionScan = new Scan();
         regionScan.setCaching(100);
-        regionScan.setBatch(100);
         //we want to scan the entire region in order to update the index correctly
         regionScan.setStartRow(region.getStartKey());
         regionScan.setStopRow(region.getEndKey());
@@ -56,6 +59,7 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
         boolean shouldContinue = true;
         try{
             while(shouldContinue){
+                nextRow.clear();
                 long start = System.nanoTime();
                 shouldContinue = sourceScanner.next(nextRow);
                 List<Put> indexPuts = indexManager.translateResult(nextRow);
@@ -78,13 +82,13 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
         }
 
         //add this to the index observer for this part of the table
-        SpliceIndexObserver.getObserver(baseConglomId).addIndex(indexManager);
+        IndexUtils.getIndex(baseConglomId).addIndex(indexManager);
         return accumulator.finish();
     }
 
     @Override
     public void dropIndex(long indexConglomId,long baseConglomId) throws IOException {
-        IndexManager dropManager = IndexManager.create(indexConglomId,new int[]{},false);
-        SpliceIndexObserver.getObserver(baseConglomId).dropIndex(dropManager);
+        IndexManager dropManager = IndexManager.emptyTable(indexConglomId, new int[]{}, false);
+        IndexUtils.getIndex(baseConglomId).dropIndex(dropManager);
     }
 }

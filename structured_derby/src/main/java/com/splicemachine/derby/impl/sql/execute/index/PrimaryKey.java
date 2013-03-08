@@ -6,10 +6,7 @@ import com.splicemachine.derby.impl.sql.execute.constraint.ForeignKey;
 import com.splicemachine.derby.impl.sql.execute.constraint.UniqueConstraint;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -17,6 +14,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 
 /**
  * @author Scott Fines
@@ -24,29 +22,18 @@ import java.util.Arrays;
  */
 public class PrimaryKey extends UniqueConstraint {
     private static final Logger logger = Logger.getLogger(PrimaryKey.class);
-    private final TableSource tableSource;
-    private final byte[] tableBytes;
 
-    public PrimaryKey(String tableName,TableSource tableSource ) {
-        this.tableSource = tableSource;
-        this.tableBytes = Bytes.toBytes(tableName);
-    }
+    public PrimaryKey(){}
 
     @Override
     public Type getType() {
         return Type.PRIMARY_KEY;
     }
 
+    //TODO -sf- validate Foreign Key Constraints here?
+
     @Override
-    public boolean validate(Delete delete,RegionCoprocessorEnvironment rce) throws IOException {
-        Get get = new Get(delete.getRow());
-        get.addColumn(ForeignKey.FOREIGN_KEY_FAMILY, ForeignKey.FOREIGN_KEY_COLUMN);
-
-        Result result  = tableSource.getTable(tableBytes).get(get);
-        if(result==null||result.isEmpty()) return true;
-
-        byte[] value = result.getValue(ForeignKey.FOREIGN_KEY_FAMILY, ForeignKey.FOREIGN_KEY_COLUMN);
-        return value == null || Bytes.toLong(value) <= 0;
+    public String toString() {
+        return "PrimaryKey";
     }
-
 }

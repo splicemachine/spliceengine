@@ -5,11 +5,13 @@ import com.splicemachine.derby.impl.sql.execute.index.PrimaryKey;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -25,12 +27,12 @@ public class Constraints {
         }
 
         @Override
-        public boolean validate(Put put,RegionCoprocessorEnvironment rce) throws IOException {
+        public boolean validate(Mutation mutation, RegionCoprocessorEnvironment rce) throws IOException {
             return true;
         }
 
         @Override
-        public boolean validate(Delete delete,RegionCoprocessorEnvironment rce) throws IOException {
+        public boolean validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
             return true;
         }
     };

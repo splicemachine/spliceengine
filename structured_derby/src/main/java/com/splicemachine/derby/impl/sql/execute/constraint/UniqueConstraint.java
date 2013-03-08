@@ -1,21 +1,24 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.impl.sql.execute.index.TableSource;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collection;
 
 /**
  * @author Scott Fines
@@ -23,25 +26,35 @@ import java.util.BitSet;
  */
 public class UniqueConstraint implements Constraint {
     private static final Logger logger = Logger.getLogger(UniqueConstraint.class);
+    private static final Predicate<? super Mutation> stripDeletes = new Predicate<Mutation>() {
+        @Override
+        public boolean apply(@Nullable Mutation input) {
+            if (!(input instanceof Put)) return false;
+            return !Arrays.equals(input.getAttribute(Puts.PUT_TYPE), Puts.FOR_UPDATE);
+        }
+    };
+    private static final Function<? super Mutation, Get> validator = new Function<Mutation, Get>() {
+        @Override
+        public Get apply(@Nullable Mutation input) {
+            Put put = (Put)input;
+            @SuppressWarnings("ConstantConditions") Get get = new Get(put.getRow());
+            get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+
+            return get;
+        }
+    };
+
+    public Type getType(){
+        return Type.UNIQUE;
+    }
 
     @Override
-    public boolean validate(Put put,RegionCoprocessorEnvironment rce) throws IOException {
-         /*
-         * If the put is tagged as an update, we don't validate.
-         *
-         * This is because updates either change the row key or they do not.
-         *
-         * If the row key is changed, the caller must delete the old row and insert the new,
-         * which will pass back through this as an Insert Put type. If the row key is not
-         * changed, then we have nothing to worry about, so just ignore the validation.
-         */
-        if(Arrays.equals(put.getAttribute(Puts.PUT_TYPE),Puts.FOR_UPDATE)) return true;
+    public boolean validate(Mutation mutation, RegionCoprocessorEnvironment rce) throws IOException {
+        if(!stripDeletes.apply(mutation)) return true; //no need to validate this mutation
+        Get get = validator.apply(mutation);
 
-        SpliceLogUtils.trace(logger, "Validating local put");
-        Get get = new Get(put.getRow());
-        get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
-
-        Result result = rce.getRegion().get(get,null);
+        HRegion region = rce.getRegion();
+        Result result = region.get(get,null);
 
         boolean rowPresent = result!=null && !result.isEmpty();
         SpliceLogUtils.trace(logger,rowPresent? "row exists!": "row not yet present");
@@ -51,13 +64,16 @@ public class UniqueConstraint implements Constraint {
     }
 
     @Override
-    public boolean validate(Delete delete,RegionCoprocessorEnvironment rce) throws IOException {
-        //no need to check anything
-        return true;
-    }
+    public boolean validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
+        Collection<Get> putsToValidate = Collections2.transform(Collections2.filter(mutations,stripDeletes),validator);
 
-    public Type getType(){
-        return Type.UNIQUE;
+        HRegion region = rce.getRegion();
+        for(Get get:putsToValidate){
+            Result result = region.get(get,null);
+            boolean rowPresent =result!=null && ! result.isEmpty();
+            if(!rowPresent) return false;
+        }
+        return true;
     }
 
     public static Constraint create() {

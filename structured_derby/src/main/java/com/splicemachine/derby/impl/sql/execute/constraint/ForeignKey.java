@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.BitSet;
+import java.util.Collection;
 
 /**
  * Representation of a ForeignKey Constraint.
@@ -42,7 +43,7 @@ public class ForeignKey implements Constraint{
         this.mainTableBytes = Bytes.toBytes(mainTable);
     }
 
-    @Override
+//    @Override
     public boolean validate(Put put,RegionCoprocessorEnvironment rce) throws IOException{
         Get get = new Get(Constraints.getReferencedRowKey(put, fkCols));
         get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
@@ -50,7 +51,7 @@ public class ForeignKey implements Constraint{
         return tableSource.getTable(refTableBytes).exists(get);
     }
 
-    @Override
+//    @Override
     public boolean validate(Delete delete,RegionCoprocessorEnvironment rce) throws IOException{
        //foreign keys are validated on the PK side of deletes, so nothing to validate
         return true;
@@ -86,5 +87,15 @@ public class ForeignKey implements Constraint{
     @Override
     public Type getType() {
         return Type.FOREIGN_KEY;
+    }
+
+    @Override
+    public boolean validate(Mutation mutation, RegionCoprocessorEnvironment rce) throws IOException {
+        return false;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public boolean validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
+        return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 }

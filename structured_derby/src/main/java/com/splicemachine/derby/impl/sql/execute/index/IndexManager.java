@@ -3,43 +3,35 @@ package com.splicemachine.derby.impl.sql.execute.index;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.derby.utils.DerbyUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.BatchTable;
+import com.splicemachine.hbase.SpliceTable;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.znerd.xmlenc.XMLEventListenerState;
-import sun.nio.ch.LinuxAsynchronousChannelProvider;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 /**
  * @author Scott Fines
- *         Created on: 2/28/13
+ * Created on: 2/28/13
  */
 public class IndexManager {
+    private static final Logger LOG = Logger.getLogger(IndexManager.class);
     /*
      * Maps the columns in the index to the columns in the main table.
      * e.g. if indexColsToMainColMap[0] = 1, then the first entry
      * in the index is the second column in the main table, and so on.
      */
     private final int[] indexColsToMainColMap;
-
-    /*
-     * Reverse mapping from main column values to index column values
-     * e.g. mainColToIndexColMap[0] = 1 => indexColsToMainColMap[1] = 0
-     *
-     * We construct this lazily since it isn't used for normal index maintenance,
-     * only for bulk index updates.
-     */
-    private int[] mainColToIndexColMap;
 
     /*
      * The id for the index table
@@ -68,7 +60,33 @@ public class IndexManager {
         return zeroBased;
     }
 
-    public void updateIndex(Put mainPut,RegionCoprocessorEnvironment rce) throws IOException{
+    public void update(Mutation mutation, RegionCoprocessorEnvironment rce) throws IOException{
+        update(mutation,rce.getTable(indexConglomBytes));
+    }
+
+    public void update(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException{
+        //get the table ahead of time for better batch putting
+
+        SpliceTable table = BatchTable.create(rce.getConfiguration(),indexConglomBytes);
+        for(Mutation mutation:mutations){
+            update(mutation,table);
+        }
+        table.flushCommits();
+        table.close();
+    }
+
+    private void update(Mutation mutation, HTableInterface table) throws IOException{
+        if(mutation instanceof Put)
+            updateIndex((Put)mutation,table);
+        else
+            update((Delete)mutation,table);
+    }
+
+    private void update(Delete delete, HTableInterface table) throws IOException{
+        throw new UnsupportedOperationException("Implement!");
+    }
+
+    private void updateIndex(Put mainPut,HTableInterface table) throws IOException{
         byte[][] rowKeyBuilder;
         if(isUnique)
             rowKeyBuilder = new byte[indexColsToMainColMap.length][];
@@ -108,7 +126,32 @@ public class IndexManager {
             locPos = Integer.toString(rowKeyBuilder.length-1).getBytes(); //don't include the postfix as a column
         indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,locPos,mainPut.getRow());
 
-        rce.getTable(indexConglomBytes).put(indexPut);
+        doPut(indexPut,table) ;
+    }
+
+    private void doPut(Put put, HTableInterface table) throws IOException{
+        try {
+            table.put(put);
+        } catch (IOException ioe) {
+            if(!(ioe instanceof RetriesExhaustedWithDetailsException))
+                throw ioe;
+            RetriesExhaustedWithDetailsException rewde = (RetriesExhaustedWithDetailsException)ioe;
+            SpliceLogUtils.error(LOG, rewde.getMessage(), rewde);
+            /*
+             * RetriesExhaustedWithDetailsException wraps out client puts that
+             * fail because of an IOException on the other end of the RPC, including
+             * Constraint Violations and other DoNotRetry exceptions. Thus,
+             * if we find a DoNotRetryIOException somewhere, we unwrap and throw
+             * that instead of throwing a normal RetriesExhausted error.
+             */
+            List<Throwable> errors = rewde.getCauses();
+            for(Throwable t:errors){
+                if(t instanceof DoNotRetryIOException)
+                    throw (DoNotRetryIOException)t;
+            }
+
+            throw rewde;
+        }
     }
 
     public List<Put> translateResult(List<KeyValue> result) throws IOException{
@@ -169,17 +212,7 @@ public class IndexManager {
     }
 
 
-    public static IndexManager create(long indexConglomId,IndexDescriptor indexDescriptor){
-        return new IndexManager(indexConglomId,indexDescriptor.baseColumnPositions(),indexDescriptor.isUnique());
-    }
 
-    public static IndexManager create(long indexConglomId,int[] indexColsToMainColMap,boolean isUnique){
-        return new IndexManager(indexConglomId,indexColsToMainColMap,isUnique);
-    }
-
-    public long getConglomId() {
-        return indexConglomId;
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -195,4 +228,47 @@ public class IndexManager {
     public int hashCode() {
         return 31 * 17 + (int) (indexConglomId ^ (indexConglomId >>> 32));
     }
+
+    /**
+     * Creates a new IndexManager from the specified IndexDescriptor
+     *
+     * @param indexConglomId the conglomerate of the destination index
+     * @param indexDescriptor an Index descriptor for the index.
+     * @return a new IndexManager with an underlying table from the default SpliceTablePool
+     * @throws IOException if something goes wrong allocating the underlying table pool.
+     */
+    public static IndexManager create(long indexConglomId,IndexDescriptor indexDescriptor) throws IOException {
+        return new IndexManager(indexConglomId,indexDescriptor.baseColumnPositions(),indexDescriptor.isUnique());
+    }
+
+    public static IndexManager create(long indexConglomId,int[] indexColsToMainColMap,boolean isUnique) throws IOException {
+        return new IndexManager(indexConglomId,indexColsToMainColMap,isUnique);
+    }
+
+    /**
+     * Creates a read-only IndexManager, which does not allocate an underlying Table entry.
+     *
+     * This is primarily useful for deleting entries out of the index sets and other operational stuff
+     * that doesn't affect the index directly, or for translating KeyValues into index puts but not
+     * actually performing the put
+     *
+     * @param indexConglomId the conglomerate of the index
+     * @param indexColsToMainColMap the mapping from index column entries to main column entries.
+     * @param isUnique if this index is unique
+     * @return a read-only IndexManager
+     */
+    public static IndexManager emptyTable(long indexConglomId, int[] indexColsToMainColMap, boolean isUnique) {
+        return new IndexManager(indexConglomId,indexColsToMainColMap,isUnique){
+            @Override
+            public void update(Mutation mutation, RegionCoprocessorEnvironment rce) throws IOException {
+                throw new UnsupportedOperationException("Cannot write Index with a read-only IndexManager");
+            }
+
+            @Override
+            public void update(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
+                throw new UnsupportedOperationException("Cannot write Index with a read-only IndexManager");
+            }
+        };
+    }
+
 }

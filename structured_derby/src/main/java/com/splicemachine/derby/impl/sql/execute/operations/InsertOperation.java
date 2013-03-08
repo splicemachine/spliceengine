@@ -7,6 +7,8 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.stats.ThroughputStats;
 import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.BatchTable;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -18,6 +20,8 @@ import org.apache.derby.impl.sql.execute.InsertConstantAction;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 
 /**
  * 
@@ -58,7 +62,7 @@ public class InsertOperation extends DMLWriteOperation {
 	}
 	
 	@Override
-	public SinkStats sink() {
+	public SinkStats sink() throws IOException {
 		SpliceLogUtils.trace(LOG,"sink on transactinID="+transactionID);
 		/*
 		 * write out the data to the correct location.
@@ -74,9 +78,10 @@ public class InsertOperation extends DMLWriteOperation {
 
 		ExecRow nextRow=null;
 		//Use HTable to do inserts instead of HeapConglomerateController - see Bug 188
-		HTableInterface htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(""+heapConglom));
         Serializer serializer = new Serializer();
+        HTableInterface htable = null;
 		try {
+            htable = BatchTable.create(SpliceUtils.config,Long.toString(heapConglom).getBytes());
             DataValueDescriptor[] template = ((SpliceOperation)source).getExecRowDefinition().getRowArray();
             RowSerializer rowKeySerializer =
                     new RowSerializer(template,pkColumns,pkColumns==null);
@@ -101,7 +106,9 @@ public class InsertOperation extends DMLWriteOperation {
 		} catch (Exception e) {
 			//TODO -sf- abort transaction
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		}
+		}finally{
+            if(htable!=null)htable.close();
+        }
         return stats.finish();
 	}
 
