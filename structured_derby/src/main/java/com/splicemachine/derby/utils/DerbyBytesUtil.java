@@ -112,61 +112,18 @@ public class DerbyBytesUtil {
         if(descriptor instanceof HBaseRowLocation){
             return ((HBaseRowLocation)descriptor).getBytes();
         }
+        return getRowKey(descriptor).serialize(getObject(descriptor));
 		//SpliceLogUtils.trace(LOG,"generateBytes for descriptor %s with value %s",descriptor,descriptor.getTraceString());
-		try {
-			switch (descriptor.getTypeFormatId()) {
-		    	case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
-		    		return getRowKey(descriptor).serialize(Bytes.toBytes(descriptor.getBoolean()));
-		    	case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
-		    		return getRowKey(descriptor).serialize(descriptor.getTimestamp(null).getTime());
-		    	case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
-		    		return getRowKey(descriptor).serialize(BigDecimal.valueOf(descriptor.getDouble()));
-				case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
-		    	case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
-		    		return getRowKey(descriptor).serialize(descriptor.getInt());
-		    	case StoredFormatIds.SQL_LONGINT_ID: //return new SQLLongint();
-		    		return getRowKey(descriptor).serialize(descriptor.getLong());
-		    	case StoredFormatIds.SQL_REAL_ID: //return new SQLReal();
-		    		return getRowKey(descriptor).serialize(descriptor.getFloat());
-		    	case StoredFormatIds.SQL_REF_ID: //return new SQLRef();
-		    	case StoredFormatIds.SQL_USERTYPE_ID_V3: //return new UserType();
-		    		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		    		ObjectOutputStream oos = new ObjectOutputStream(bos);
-		    		oos.writeObject(descriptor.getObject());
-		    		byte[] out = bos.toByteArray();
-		    		oos.flush();
-		    		bos.flush();
-		    		oos.close();
-		    		bos.close();
-		    		return out;
-//		    		return getRowKey(descriptor).serialize(Bytes.toBytes(descriptor.getShort()));
-		    	case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
-		    		return getRowKey(descriptor).serialize(descriptor.getTime(null).getTime());
-		    	case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
-		    		return getRowKey(descriptor).serialize(descriptor.getTimestamp(null).getTime());
-		    	case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
-		    		return getRowKey(descriptor).serialize(Bytes.toBytes(descriptor.getByte()));
-		    	case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
-		    	case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
-		    	case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
-		    	case StoredFormatIds.XML_ID: //return new XML();
-		    	case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
-		    		return getRowKey(descriptor).serialize(descriptor.getString());
-		    	case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
-		    	case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit();
-		    	case StoredFormatIds.SQL_BLOB_ID: //return new SQLBlob();
-		    	case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
-		    	case StoredFormatIds.SQL_BIT_ID: //return new SQLBit();
-		    		return getRowKey(descriptor).serialize(descriptor.getBytes());
-		    	case StoredFormatIds.SQL_DECIMAL_ID:
-		    		return getRowKey(descriptor).serialize((BigDecimal) descriptor.getObject());
-		        default:
-		        	throw new RuntimeException("Attempt to serialize an unimplemented serializable object " + descriptor.getClass());
-			}
-		} catch (Exception e) {
-				SpliceLogUtils.logAndThrowRuntime(LOG,"Byte array generation failed ",e);
-				return null;
-		}
+//		try {
+////		    	case StoredFormatIds.SQL_DECIMAL_ID:
+////		    		return getRowKey(descriptor).serialize((BigDecimal) descriptor.getObject());
+////		        default:
+////		        	throw new RuntimeException("Attempt to serialize an unimplemented serializable object " + descriptor.getClass());
+////			}
+//		} catch (Exception e) {
+//				SpliceLogUtils.logAndThrowRuntime(LOG,"Byte array generation failed ",e);
+//				return null;
+//		}
 	}
 
 	
@@ -444,10 +401,48 @@ public class DerbyBytesUtil {
             case StoredFormatIds.SQL_TIME_ID:
                 return descriptor.getTime(null).getTime();
 			case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
+            case StoredFormatIds.SQL_INTEGER_ID:
                 return descriptor.getInt();
+            case StoredFormatIds.SQL_LONGINT_ID:
+                return descriptor.getLong();
 			case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
                 return BigDecimal.valueOf(descriptor.getDouble());
-	        default:
+            case StoredFormatIds.SQL_BOOLEAN_ID:
+                return Bytes.toBytes(descriptor.getBoolean());
+            case StoredFormatIds.SQL_REAL_ID:
+                return descriptor.getFloat();
+            case StoredFormatIds.SQL_REF_ID: //return new SQLRef();
+            case StoredFormatIds.SQL_USERTYPE_ID_V3: //return new UserType();
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                try {
+                    ObjectOutputStream oos = new ObjectOutputStream(bos);
+                    oos.writeObject(descriptor.getObject());
+                    byte[] out = bos.toByteArray();
+                    oos.flush();
+                    bos.flush();
+                    oos.close();
+                    bos.close();
+                    return out;
+                } catch (IOException e) {
+                    //will never happen,
+                    throw new AssertionError("Unexpected serialization error!",e);
+                }
+            case StoredFormatIds.SQL_TINYINT_ID:
+                return Bytes.toBytes(descriptor.getByte());
+            case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
+            case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
+            case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
+            case StoredFormatIds.XML_ID: //return new XML();
+            case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
+                return descriptor.getString();
+            case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
+            case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit();
+            case StoredFormatIds.SQL_BLOB_ID: //return new SQLBlob();
+            case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
+            case StoredFormatIds.SQL_BIT_ID: //return new SQLBit();
+                return descriptor.getBytes();
+            case StoredFormatIds.SQL_DECIMAL_ID:
+            default:
                 return descriptor.getObject();
         }
     }

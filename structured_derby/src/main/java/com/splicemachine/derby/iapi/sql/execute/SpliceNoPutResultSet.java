@@ -299,7 +299,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	public void openCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"opening rowProvider %s",rowProvider);
         try{
-		rowProvider.open();
+		    rowProvider.open();
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -309,8 +309,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	@Override
 	public void reopenCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "reopening rowProvider %s",rowProvider);
-		rowProvider.open();
-		closed=false;
+        openCore();
 	}
 
 	@Override
