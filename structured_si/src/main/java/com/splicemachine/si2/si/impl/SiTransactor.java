@@ -201,15 +201,22 @@ public class SiTransactor implements Transactor, ClientTransactor {
             } else {
                 long dataTimestamp = dataLib.getKeyValueTimestamp(keyValue);
                 Long commitTimestamp = siFilterState.committedTransactions.get(dataTimestamp);
-                if (commitTimestamp != null && commitTimestamp < siFilterState.transactionId.getId()) {
+                if (isCommittedBeforeThisTransaction(siFilterState, commitTimestamp)
+                        || isThisTransactionsData(siFilterState, dataTimestamp, commitTimestamp)) {
                     siFilterState.lastValidQualifier = dataLib.getKeyValueQualifier(keyValue);
-                    return Filter.ReturnCode.INCLUDE;
-                } else if (commitTimestamp == null && dataTimestamp == siFilterState.transactionId.getId()) {
                     return Filter.ReturnCode.INCLUDE;
                 }
             }
         }
         return Filter.ReturnCode.SKIP;
+    }
+
+    private boolean isCommittedBeforeThisTransaction(SiFilterState siFilterState, Long commitTimestamp) {
+        return (commitTimestamp != null && commitTimestamp < siFilterState.transactionId.getId());
+    }
+
+    private boolean isThisTransactionsData(SiFilterState siFilterState, long dataTimestamp, Long commitTimestamp) {
+        return (commitTimestamp == null && dataTimestamp == siFilterState.transactionId.getId());
     }
 
     private void filterProcessCommitTimestamp(Object keyValue, SiFilterState siFilterState) {
