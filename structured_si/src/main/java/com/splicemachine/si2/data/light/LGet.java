@@ -3,14 +3,17 @@ package com.splicemachine.si2.data.light;
 import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.SScan;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class LGet implements SGet, SScan {
     final Object startTupleKey;
     final Object endTupleKey;
     final java.util.List families;
     final List<List> columns;
-    final Long effectiveTimestamp;
+    Long effectiveTimestamp;
+    final Map<String, Object> attributes;
 
     public LGet(Object startTupleKey, Object endTupleKey, List families, List<List> columns,
                 Long effectiveTimestamp) {
@@ -19,5 +22,6 @@ public class LGet implements SGet, SScan {
         this.families = families;
         this.columns = columns;
         this.effectiveTimestamp = effectiveTimestamp;
+        this.attributes = new HashMap<String, Object>();
     }
 }

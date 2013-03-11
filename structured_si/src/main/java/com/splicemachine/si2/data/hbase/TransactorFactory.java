@@ -10,16 +10,25 @@ import com.splicemachine.si2.si.impl.TransactionSchema;
 import com.splicemachine.si2.si.impl.TransactionStore;
 
 public class TransactorFactory {
+    private static Transactor transactor;
 
-    public static Transactor newTransactorForFiltering() {
-        HStore store = new HStore(null);
-        SDataLib dataLib = new HDataLibAdapter(new HDataLib());
-        final STableReader reader = new HTableReaderAdapter(store);
-        final STableWriter writer = new HTableWriterAdapter(store);
-        final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "begin", "commit", "status");
-        final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
+   public static void setTransactor(Transactor transactorToUse) {
+        transactor = transactorToUse;
+    }
 
-        final RowMetadataStore rowStore = new RowMetadataStore(dataLib, reader, writer, "si-needed", "_si", "commit", -1, "attributes");
-        return new SiTransactor(null, dataLib, writer, rowStore, transactionStore);
+    public static Transactor getTransactor() {
+        if (transactor == null) {
+            HStore store = new HStore(null);
+            SDataLib dataLib = new HDataLibAdapter(new HDataLib());
+            final STableReader reader = new HTableReaderAdapter(store);
+            final STableWriter writer = new HTableWriterAdapter(store);
+            final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "begin", "commit", "status");
+            final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
+
+            final RowMetadataStore rowStore = new RowMetadataStore(dataLib, reader, writer, "si-needed", "_si", "commit", -1, "attributes");
+            return new SiTransactor(null, dataLib, writer, rowStore, transactionStore);
+        } else {
+            return transactor;
+        }
     }
 }

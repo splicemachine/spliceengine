@@ -4,20 +4,26 @@ import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableReader;
+import com.splicemachine.si2.data.hbase.HGet;
+import com.splicemachine.si2.data.hbase.TransactorFactory;
+import com.splicemachine.si2.filters.SIFilter;
 import com.splicemachine.si2.si.api.FilterState;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.SiTransactor;
 import junit.framework.Assert;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.client.Get;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 public class SiTransactorTest {
-    final boolean useSimple = true;
+    final boolean useSimple = false;
 
     StoreSetup storeSetup;
     TransactorSetup transactorSetup;
@@ -31,6 +37,9 @@ public class SiTransactorTest {
         }
         transactorSetup = new TransactorSetup(storeSetup);
         transactor = transactorSetup.transactor;
+        if (!useSimple) {
+            TransactorFactory.setTransactor(transactor);
+        }
     }
 
     @After
@@ -44,8 +53,8 @@ public class SiTransactorTest {
         insertAgeDirect(transactorSetup, storeSetup, transactionId, name, age);
     }
 
-    private String read(TransactionId transactionId, String name) {
-        return readAgeDirect(transactorSetup, storeSetup, transactionId, name);
+    private String read(TransactionId transactionId, String name) throws IOException {
+        return readAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
     }
 
     static void insertAgeDirect(TransactorSetup transactorSetup, StoreSetup storeSetup, TransactionId transactionId, String name, int age) {
@@ -66,18 +75,28 @@ public class SiTransactorTest {
         }
     }
 
-    static String readAgeDirect(TransactorSetup transactorSetup, StoreSetup storeSetup, TransactionId transactionId, String name) {
+    static String readAgeDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+                                TransactionId transactionId, String name) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{name});
         SGet get = dataLib.newGet(key, null, null, null);
+        transactorSetup.clientTransactor.initializeGet(transactionId, get);
         STable testSTable = reader.open("people");
         try {
             Object rawTuple = reader.get(testSTable, get);
             if (rawTuple != null) {
-                final FilterState filterState = transactorSetup.transactor.newFilterState(testSTable, transactionId);
-                Object result = transactorSetup.transactor.filterResult(filterState, rawTuple);
+                Object result = rawTuple;
+                if (useSimple) {
+                    final FilterState filterState;
+                    try {
+                        filterState = transactorSetup.transactor.newFilterState(testSTable, transactionId);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    result = transactorSetup.transactor.filterResult(filterState, rawTuple);
+                }
                 final Object value = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.ageQualifier);
                 Integer age = (Integer) dataLib.decode(value, Integer.class);
                 return name + " age=" + age;
@@ -87,7 +106,6 @@ public class SiTransactorTest {
         } finally {
             reader.close(testSTable);
         }
-
     }
 
     private void dumpStore() {
@@ -97,7 +115,7 @@ public class SiTransactorTest {
     }
 
     @Test
-    public void writeRead() {
+    public void writeRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         Assert.assertEquals("joe age=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
@@ -111,7 +129,7 @@ public class SiTransactorTest {
     }
 
     @Test
-    public void writeReadOverlap() {
+    public void writeReadOverlap() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         Assert.assertEquals("joe age=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
@@ -126,7 +144,7 @@ public class SiTransactorTest {
     }
 
     @Test
-    public void writeWrite() {
+    public void writeWrite() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         Assert.assertEquals("joe age=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
@@ -141,7 +159,7 @@ public class SiTransactorTest {
     }
 
     @Test
-    public void writeWriteOverlap() {
+    public void writeWriteOverlap() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         Assert.assertEquals("joe age=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
@@ -161,20 +179,21 @@ public class SiTransactorTest {
             Assert.assertEquals("joe age=null", read(t2, "joe"));
             assert false;
         } catch (RuntimeException e) {
-            Assert.assertEquals("transaction is not ACTIVE", e.getMessage());
+            DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
+            Assert.assertTrue(dnrio.getMessage().indexOf("transaction is not ACTIVE") >= 0);
         }
         Assert.assertEquals("joe age=20", read(t1, "joe"));
         transactor.commit(t1);
         try {
             transactor.commit(t2);
             assert false;
-        } catch (RuntimeException e) {
-            Assert.assertEquals("transaction is not ACTIVE", e.getMessage());
+        } catch (DoNotRetryIOException dnrio) {
+            Assert.assertEquals("transaction is not ACTIVE", dnrio.getMessage());
         }
     }
 
     @Test
-    public void noReadAfterCommit() {
+    public void noReadAfterCommit() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe", 20);
         transactor.commit(t1);
@@ -182,7 +201,8 @@ public class SiTransactorTest {
             read(t1, "joe");
             assert false;
         } catch (RuntimeException e) {
-            Assert.assertEquals("transaction is not ACTIVE", e.getMessage());
+            DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
+            Assert.assertTrue(dnrio.getMessage().indexOf("transaction is not ACTIVE") >= 0);
         }
     }
 

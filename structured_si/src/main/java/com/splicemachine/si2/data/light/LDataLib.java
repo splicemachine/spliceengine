@@ -59,8 +59,12 @@ public class LDataLib implements SDataLib {
 
     @Override
     public void addAttribute(Object operation, String attributeName, Object value) {
-        LTuple lTuple = (LTuple) operation;
-        lTuple.attributes.put(attributeName, value);
+        if (operation instanceof LGet) {
+            ((LGet) operation).attributes.put(attributeName, value);
+        } else {
+            LTuple lTuple = (LTuple) operation;
+            lTuple.attributes.put(attributeName, value);
+        }
     }
 
     @Override
@@ -91,8 +95,20 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
+    public void setGetTimeRange(SGet get, long minTimestamp, long maxTimestamp) {
+        assert minTimestamp == 0L;
+        ((LGet) get).effectiveTimestamp = maxTimestamp - 1;
+    }
+
+    @Override
     public SScan newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp) {
         return new LGet(startRowKey, endRowKey, families, columns, effectiveTimestamp);
+    }
+
+    @Override
+    public void setScanTimeRange(SScan get, long minTimestamp, long maxTimestamp) {
+        assert minTimestamp == 0L;
+        ((LGet) get).effectiveTimestamp = maxTimestamp - 1;
     }
 
     @Override

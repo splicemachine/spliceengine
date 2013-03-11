@@ -1,6 +1,7 @@
 package com.splicemachine.si2.filters;
 
 import com.splicemachine.si2.data.api.SDataLib;
+import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableReader;
 import com.splicemachine.si2.data.api.STableWriter;
 import com.splicemachine.si2.data.hbase.HDataLib;
@@ -30,47 +31,48 @@ import java.io.IOException;
 
 public class SIFilter extends FilterBase {
     private static Logger LOG = Logger.getLogger(SIFilter.class);
+    private Transactor transactor = null;
     protected long startTimestamp;
-    protected HRegion region;
+    protected STable region;
 
     private FilterState filterState = null;
-    private Transactor transactor = null;
 
     public SIFilter() {
     }
 
-    /**
-     * Server side filter wrapped into other filters on the coprocessor side.
-     *
-     * @param startTimestamp
-     * @param region
-     */
-    public SIFilter(long startTimestamp, HRegion region) {
+    public SIFilter(Transactor transactor, long startTimestamp, STable region) throws IOException {
+        this.transactor = transactor;
         this.startTimestamp = startTimestamp;
         this.region = region;
+        transactor.newFilterState(region, new SiTransactionId(startTimestamp));
     }
 
     @Override
     public ReturnCode filterKeyValue(KeyValue keyValue) {
         SpliceLogUtils.trace(LOG, "filterKeyValue %s", keyValue);
-        initFilterStateIfNeeded();
+        try {
+            initFilterStateIfNeeded();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         return transactor.filterKeyValue(filterState, keyValue);
     }
 
-    private void initFilterStateIfNeeded() {
+    private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
-            transactor = TransactorFactory.newTransactorForFiltering();
-            filterState = transactor.newFilterState(new HbRegion(region), new SiTransactionId(startTimestamp));
+            filterState = transactor.newFilterState(region, new SiTransactionId(startTimestamp));
         }
     }
 
     @Override
     public void readFields(DataInput in) throws IOException {
+        Thread.dumpStack();
         startTimestamp = in.readLong();
     }
 
     @Override
     public void write(DataOutput out) throws IOException {
+        Thread.dumpStack();
         out.writeLong(startTimestamp);
     }
 }

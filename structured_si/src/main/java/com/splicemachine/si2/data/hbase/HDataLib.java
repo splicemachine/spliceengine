@@ -172,6 +172,15 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
+    public void setGetTimeRange(Get get, long minTimestamp, long maxTimestamp) {
+        try {
+            get.setTimeRange(minTimestamp, maxTimestamp);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public Scan newScan(byte[] startRowKey, byte[] endRowKey, List families, List columns, Long effectiveTimestamp) {
         Scan scan = new Scan();
         scan.setStartRow(startRowKey);
@@ -190,6 +199,15 @@ public class HDataLib implements IHDataLib {
             }
         }
         return scan;
+    }
+
+    @Override
+    public void setGetTimeRange(Scan scan, long minTimestamp, long maxTimestamp) {
+        try {
+            scan.setTimeRange(minTimestamp, maxTimestamp);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     static byte[] convertToBytes(Object value) {

@@ -85,7 +85,7 @@ public class LStore implements STableReader, STableWriter {
                     ((families != null) && families.contains(c.family)) ||
                     ((columns != null) && columnsContain(columns, c))) {
                 if (effectiveTimestamp != null) {
-                    if (c.timestamp >= effectiveTimestamp) {
+                    if (c.timestamp <= effectiveTimestamp) {
                         newCells.add(c);
                     }
                 } else {

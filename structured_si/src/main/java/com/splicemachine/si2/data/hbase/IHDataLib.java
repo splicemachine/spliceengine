@@ -38,9 +38,10 @@ public interface IHDataLib {
     List listPut(Put put);
     byte[] getPutKey(Put put);
 
-    Get newGet(byte[] rowKey, List families, List<List> columns,
-               Long effectiveTimestamp);
+    Get newGet(byte[] rowKey, List families, List<List> columns, Long effectiveTimestamp);
+    void setGetTimeRange(Get get, long minTimestamp, long maxTimestamp);
 
     Scan newScan(byte[] startRowKey, byte[] endRowKey, List families, List<List> columns,
                  Long effectiveTimestamp);
+    void setGetTimeRange(Scan get, long minTimestamp, long maxTimestamp);
 }

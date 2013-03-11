@@ -1,5 +1,6 @@
 package com.splicemachine.si2;
 
+import com.splicemachine.si2.coprocessors.SIObserver;
 import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.SScan;
@@ -12,6 +13,7 @@ import com.splicemachine.si2.data.hbase.HStore;
 import com.splicemachine.si2.data.hbase.HTableReaderAdapter;
 import com.splicemachine.si2.data.hbase.HTableWriterAdapter;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 
 import java.util.Iterator;
 
@@ -29,6 +31,8 @@ public class HStoreSetup implements StoreSetup {
     private HStore setupHBaseStore() {
         try {
             testCluster = new HBaseTestingUtility();
+            testCluster.getConfiguration().setStrings(CoprocessorHost.USER_REGION_COPROCESSOR_CONF_KEY, SIObserver.class.getName());
+
             testCluster.startMiniCluster(1);
             final TestHTableSource tableSource = new TestHTableSource(testCluster, "people", new String[]{"attributes", "_si"});
             tableSource.addTable(testCluster, "transaction", new String[]{"siFamily"});

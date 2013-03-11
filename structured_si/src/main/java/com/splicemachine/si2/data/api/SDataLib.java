@@ -31,6 +31,8 @@ public interface SDataLib {
     long getKeyValueTimestamp(Object keyValue);
 
     SGet newGet(Object rowKey, List families, List columns, Long effectiveTimestamp);
+    void setGetTimeRange(SGet get, long minTimestamp, long maxTimestamp);
 
     SScan newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp);
+    void setScanTimeRange(SScan get, long minTimestamp, long maxTimestamp);
 }

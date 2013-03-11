@@ -105,12 +105,24 @@ public class HDataLibAdapter implements SDataLib {
 
     @Override
     public void addAttribute(Object operation, String attributeName, Object value) {
-        dataLib.addAttribute((OperationWithAttributes) operation, attributeName, (byte[]) value);
+        OperationWithAttributes hOperation;
+        if (operation instanceof Put) {
+            hOperation = (OperationWithAttributes) operation;
+        } else {
+            hOperation = ((IOperation) operation).getOperation();
+        }
+        dataLib.addAttribute(hOperation, attributeName, (byte[]) value);
     }
 
     @Override
     public Object getAttribute(Object operation, String attributeName) {
-        return dataLib.getAttribute((OperationWithAttributes) operation, attributeName);
+        OperationWithAttributes hOperation;
+        if (operation instanceof Put) {
+            hOperation = (OperationWithAttributes) operation;
+        } else {
+            hOperation = ((IOperation) operation).getOperation();
+        }
+        return dataLib.getAttribute(hOperation, attributeName);
     }
 
     @Override
@@ -129,8 +141,18 @@ public class HDataLibAdapter implements SDataLib {
     }
 
     @Override
+    public void setGetTimeRange(SGet get, long minTimestamp, long maxTimestamp) {
+        dataLib.setGetTimeRange(((HGet) get).get, minTimestamp, maxTimestamp);
+    }
+
+    @Override
     public SScan newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp) {
         return new HScan(dataLib.newScan((byte[]) startRowKey, (byte[]) endRowKey, families, columns, effectiveTimestamp));
+    }
+
+    @Override
+    public void setScanTimeRange(SScan scan, long minTimestamp, long maxTimestamp) {
+        dataLib.setGetTimeRange(((HScan) scan).scan, minTimestamp, maxTimestamp);
     }
 
     public static byte[] convertToBytes(Object value) {

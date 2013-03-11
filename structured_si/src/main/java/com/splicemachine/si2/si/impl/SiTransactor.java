@@ -1,7 +1,9 @@
 package com.splicemachine.si2.si.impl;
 
 import com.splicemachine.si2.data.api.SDataLib;
+import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.SRowLock;
+import com.splicemachine.si2.data.api.SScan;
 import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableWriter;
 import com.splicemachine.si2.si.api.ClientTransactor;
@@ -9,8 +11,10 @@ import com.splicemachine.si2.si.api.FilterState;
 import com.splicemachine.si2.si.api.IdSource;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.filter.Filter;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,11 +43,8 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public void commit(TransactionId transactionId) {
-        TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
-        if (!transaction.status.equals(TransactionStatus.ACTIVE)) {
-            throw new RuntimeException("transaction is not ACTIVE");
-        }
+    public void commit(TransactionId transactionId) throws IOException {
+        ensureTransactionActive(transactionId);
         transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.COMMITTING);
         final long endId = idSource.nextId();
         transactionStore.recordTransactionCommit(transactionId, endId, TransactionStatus.COMMITED);
@@ -57,6 +58,26 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public void fail(TransactionId transactionId) {
         transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ERROR);
+    }
+
+    @Override
+    public void initializeGet(TransactionId transactionId, SGet get) {
+        dataStore.setSiNeededAttribute(get);
+        dataLib.setGetTimeRange(get, 0, transactionId.getId() + 1);
+    }
+
+    @Override
+    public void initializeGets(TransactionId transactionId, List gets) {
+        for (Object get : gets) {
+            dataStore.setSiNeededAttribute(get);
+            dataLib.setGetTimeRange((SGet) get, 0L, transactionId.getId() + 1);
+        }
+    }
+
+    @Override
+    public void initializeScan(TransactionId transactionId, SScan scan) {
+        dataStore.setSiNeededAttribute(scan);
+        dataLib.setScanTimeRange(scan, 0L, transactionId.getId() + 1);
     }
 
     @Override
@@ -121,12 +142,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public Object filterResult(FilterState filterState, Object result) {
+    public Object filterResult(FilterState filterState, Object result) throws IOException {
         SiFilterState siFilterState = (SiFilterState) filterState;
-        TransactionStruct transaction = transactionStore.getTransactionStatus(siFilterState.transactionId);
-        if (!transaction.status.equals(TransactionStatus.ACTIVE)) {
-            throw new RuntimeException("transaction is not ACTIVE");
-        }
+        ensureTransactionActive(siFilterState.transactionId);
 
         List<Object> filteredCells = new ArrayList<Object>();
         final List keyValues = dataLib.listResult(result);
@@ -160,6 +178,13 @@ public class SiTransactor implements Transactor, ClientTransactor {
         return dataLib.newResult(dataLib.getResultKey(result), filteredCells);
     }
 
+    private void ensureTransactionActive(TransactionId transactionId) throws IOException {
+        TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
+        if (!transaction.status.equals(TransactionStatus.ACTIVE)) {
+            throw new DoNotRetryIOException("transaction is not ACTIVE");
+        }
+    }
+
     public boolean shouldKeep(Object keyValue, TransactionId transactionId) {
         final long snapshotTimestamp = transactionId.getId();
         final long keyValueTimestamp = dataLib.getKeyValueTimestamp(keyValue);
@@ -180,7 +205,17 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public FilterState newFilterState(STable table, TransactionId transactionId) {
+    public boolean isFilterNeeded(Object operation) {
+        Boolean result = dataStore.getSiNeededAttribute(operation);
+        if (result == null) {
+            return false;
+        }
+        return result;
+    }
+
+    @Override
+    public FilterState newFilterState(STable table, TransactionId transactionId) throws IOException {
+        ensureTransactionActive(transactionId);
         return new SiFilterState(table, transactionId);
     }
 

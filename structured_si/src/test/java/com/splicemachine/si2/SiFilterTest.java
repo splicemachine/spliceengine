@@ -10,6 +10,7 @@ import com.splicemachine.si2.si.api.Transactor;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -34,8 +35,8 @@ public class SiFilterTest {
         SiTransactorTest.insertAgeDirect(transactorSetup, storeSetup, transactionId, name, age);
     }
 
-    private String read(TransactionId transactionId, String name) {
-        return SiTransactorTest.readAgeDirect(transactorSetup, storeSetup, transactionId, name);
+    private String read(TransactionId transactionId, String name) throws IOException {
+        return SiTransactorTest.readAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
     }
 
     Object readEntireTuple(String name) {
