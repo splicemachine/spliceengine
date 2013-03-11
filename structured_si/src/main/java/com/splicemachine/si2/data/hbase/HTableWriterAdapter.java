@@ -16,7 +16,11 @@ public class HTableWriterAdapter implements STableWriter {
 
     @Override
     public void write(STable table, Object put) {
-        writer.write(((HbTable) table).table, (Put) put);
+        if (table instanceof  HbTable) {
+            writer.write(((HbTable) table).table, (Put) put);
+        } else {
+            writer.write(((HbRegion) table).region, (Put) put);
+        }
     }
 
     @Override

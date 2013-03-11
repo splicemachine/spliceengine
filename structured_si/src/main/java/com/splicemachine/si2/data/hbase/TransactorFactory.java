@@ -25,7 +25,8 @@ public class TransactorFactory {
             final TransactionSchema transactionSchema = new TransactionSchema("transaction", "siFamily", "begin", "commit", "status");
             final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
 
-            final RowMetadataStore rowStore = new RowMetadataStore(dataLib, reader, writer, "si-needed", "_si", "commit", -1, "attributes");
+            final RowMetadataStore rowStore = new RowMetadataStore(dataLib, reader, writer, "si-needed",
+                    "si-transaction-id", "_si", "commit", -1, "attributes");
             return new SiTransactor(null, dataLib, writer, rowStore, transactionStore);
         } else {
             return transactor;

@@ -64,6 +64,15 @@ public class HStore implements IHTableReader, IHTableWriter {
     }
 
     @Override
+    public void write(HRegion region, Put put) {
+        try {
+            region.put(put);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public void write(Object table, Put put, boolean durable) {
         try {
             if (table instanceof HTableInterface) {

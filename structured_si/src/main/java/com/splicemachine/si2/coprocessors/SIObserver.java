@@ -2,6 +2,7 @@ package com.splicemachine.si2.coprocessors;
 
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.si.utils.SIUtils;
+import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.hbase.HGet;
 import com.splicemachine.si2.data.hbase.HScan;
 import com.splicemachine.si2.data.hbase.HbRegion;
@@ -12,8 +13,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.client.RetriesExhaustedException;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
@@ -23,11 +23,10 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.io.TimeRange;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
-import sun.reflect.generics.tree.ArrayTypeSignature;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 public class SIObserver extends BaseRegionObserver {
@@ -95,4 +94,16 @@ public class SIObserver extends BaseRegionObserver {
         }
         return newFilter;
     }
+
+    @Override
+    public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
+        Transactor transactor = TransactorFactory.getTransactor();
+        STable region = new HbRegion(e.getEnvironment().getRegion());
+        boolean processed = transactor.processPut(region, put);
+        if (processed) {
+            e.bypass();
+            e.complete();
+        }
+    }
+
 }

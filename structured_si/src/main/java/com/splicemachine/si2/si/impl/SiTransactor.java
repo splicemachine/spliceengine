@@ -81,33 +81,30 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public void initializePuts(List puts) {
-        for (Object put : puts) {
-            dataStore.setSiNeededAttribute(put);
-        }
+    public void initializePut(TransactionId transactionId, Object put) {
+        dataStore.setSiNeededAttribute(put);
+        dataStore.setTransactionId((SiTransactionId) transactionId, put);
     }
 
     @Override
-    public void processPuts(TransactionId transactionId, STable table, List puts) {
-        List nonSiPuts = new ArrayList();
-        for (Object put : puts) {
-            Boolean siNeeded = dataStore.getSiNeededAttribute(put);
-            if (siNeeded) {
-                Object rowKey = dataLib.getPutKey(put);
-                SRowLock lock = dataWriter.lockRow(table, rowKey);
-                try {
-                    checkForConflict(transactionId, table, lock, rowKey);
-                    Object newPut = dataStore.newLockWithPut(transactionId, put, lock);
-                    dataStore.addTransactionIdToPut(newPut, transactionId);
-                    dataWriter.write(table, newPut);
-                } finally {
-                    dataWriter.unLockRow(table, lock);
-                }
-            } else {
-                nonSiPuts.add(put);
+    public boolean processPut(STable table, Object put) {
+        Boolean siNeeded = dataStore.getSiNeededAttribute(put);
+        if (siNeeded != null && siNeeded) {
+            Object rowKey = dataLib.getPutKey(put);
+            SRowLock lock = dataWriter.lockRow(table, rowKey);
+            try {
+                SiTransactionId transactionId = dataStore.getTransactionIdFromPut(put);
+                checkForConflict(transactionId, table, lock, rowKey);
+                Object newPut = dataStore.newLockWithPut(transactionId, put, lock);
+                dataStore.addTransactionIdToPut(newPut, transactionId);
+                dataWriter.write(table, newPut);
+            } finally {
+                dataWriter.unLockRow(table, lock);
             }
+            return true;
+        } else {
+            return false;
         }
-        dataWriter.write(table, nonSiPuts);
     }
 
     private void checkForConflict(TransactionId transactionId, STable table, SRowLock lock, Object rowKey) {

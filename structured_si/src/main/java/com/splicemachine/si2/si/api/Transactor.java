@@ -16,7 +16,7 @@ public interface Transactor {
     void abort(TransactionId transactionId);
     void fail(TransactionId transactionId);
 
-    void processPuts(TransactionId transactionId, STable table, List puts);
+    boolean processPut(STable table, Object put);
     boolean isFilterNeeded(Object operation);
     Object filterResult(FilterState filterState, Object result) throws IOException;
 

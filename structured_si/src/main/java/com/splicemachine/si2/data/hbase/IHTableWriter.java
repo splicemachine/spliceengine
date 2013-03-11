@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface IHTableWriter {
     void write(HTableInterface table, Put put);
+    void write(HRegion table, Put put);
     void write(Object table, Put put, boolean durable);
     void write(HTableInterface table, List puts);
 

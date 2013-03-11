@@ -4,16 +4,13 @@ import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableReader;
-import com.splicemachine.si2.data.hbase.HGet;
 import com.splicemachine.si2.data.hbase.TransactorFactory;
-import com.splicemachine.si2.filters.SIFilter;
 import com.splicemachine.si2.si.api.FilterState;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.SiTransactor;
 import junit.framework.Assert;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.client.Get;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,12 +61,11 @@ public class SiTransactorTest {
         Object key = dataLib.newRowKey(new Object[]{name});
         Object put = dataLib.newPut(key);
         dataLib.addKeyValueToPut(put, transactorSetup.family, transactorSetup.ageQualifier, null, dataLib.encode(age));
-        List puts = Arrays.asList(put);
-        transactorSetup.clientTransactor.initializePuts(puts);
+        transactorSetup.clientTransactor.initializePut(transactionId, put);
 
         STable testSTable = reader.open("people");
         try {
-            transactorSetup.transactor.processPuts(transactionId, testSTable, puts);
+            assert transactorSetup.transactor.processPut(testSTable, put);
         } finally {
             reader.close(testSTable);
         }
@@ -237,13 +233,12 @@ public class SiTransactorTest {
         Object family = dataLib.encode("attributes");
         Object ageQualifier = dataLib.encode("age");
         dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(25));
-        List tuples = Arrays.asList(put);
-        transactorSetup.clientTransactor.initializePuts(tuples);
-        System.out.println("put = " + put);
         TransactionId t = transactor.beginTransaction();
+        transactorSetup.clientTransactor.initializePut(t, put);
+        System.out.println("put = " + put);
         STable testSTable = reader.open("people");
         try {
-            transactor.processPuts(t, testSTable, tuples);
+            assert transactor.processPut(testSTable, put);
         } finally {
             reader.close(testSTable);
         }
@@ -269,11 +264,10 @@ public class SiTransactorTest {
         t = transactor.beginTransaction();
 
         dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(35));
-        tuples = Arrays.asList(put);
-        transactorSetup.clientTransactor.initializePuts(tuples);
+        transactorSetup.clientTransactor.initializePut(t, put);
         testSTable = reader.open("people");
         try {
-            transactor.processPuts(t, testSTable, tuples);
+            assert transactor.processPut(testSTable, put);
         } finally {
             reader.close(testSTable);
         }

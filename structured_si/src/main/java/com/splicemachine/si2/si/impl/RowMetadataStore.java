@@ -18,6 +18,7 @@ public class RowMetadataStore {
     private final STableWriter writer;
 
     private final String siNeededAttribute;
+    private final String transactionIdAttribute;
 
     private final Object siFamily;
     private final Object commitTimestampQualifier;
@@ -26,12 +27,14 @@ public class RowMetadataStore {
     private final Object userColumnFamily;
 
     public RowMetadataStore(SDataLib dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
+                            String transactionIdAttribute,
                             String siMetaFamily, Object siCommitQualifier, Object siMetaNull,
                             Object userColumnFamily) {
         this.dataLib = dataLib;
         this.reader = reader;
         this.writer = writer;
         this.siNeededAttribute = siNeededAttribute;
+        this.transactionIdAttribute = transactionIdAttribute;
         this.siFamily = dataLib.encode(siMetaFamily);
         this.commitTimestampQualifier = dataLib.encode(siCommitQualifier);
         this.siNull = dataLib.encode(siMetaNull);
@@ -49,6 +52,19 @@ public class RowMetadataStore {
 
     void addTransactionIdToPut(Object put, TransactionId transactionId) {
         dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, transactionId.getId(), siNull);
+    }
+
+    void setTransactionId(SiTransactionId transactionId, Object put) {
+        dataLib.addAttribute(put, transactionIdAttribute, dataLib.encode(transactionId.getId()));
+    }
+
+    SiTransactionId getTransactionIdFromPut(Object put) {
+        Object value = dataLib.getAttribute(put, transactionIdAttribute);
+        Long transactionId = (Long) dataLib.decode(value, Long.class);
+        if (transactionId != null) {
+            return new SiTransactionId(transactionId);
+        }
+        return null;
     }
 
     Object newLockWithPut(TransactionId transactionId, Object put, SRowLock lock) {
