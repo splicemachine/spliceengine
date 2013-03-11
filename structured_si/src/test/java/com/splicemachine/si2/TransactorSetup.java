@@ -7,7 +7,7 @@ import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.RowMetadataStore;
 import com.splicemachine.si2.si.impl.SiTransactor;
-import com.splicemachine.si2.si.impl.SimpleIdSource;
+import com.splicemachine.si2.si.impl.SimpleTimestampSource;
 import com.splicemachine.si2.si.impl.TransactionSchema;
 import com.splicemachine.si2.si.impl.TransactionStore;
 
@@ -17,7 +17,8 @@ public class TransactorSetup {
     Object ageQualifier;
 
     ClientTransactor clientTransactor;
-    Transactor transactor;
+    public Transactor transactor;
+    public final TransactionStore transactionStore;
 
     public TransactorSetup(StoreSetup storeSetup) {
         final SDataLib dataLib = storeSetup.getDataLib();
@@ -28,10 +29,10 @@ public class TransactorSetup {
         family = dataLib.encode(userColumnsFamilyName);
         ageQualifier = dataLib.encode("age");
 
-        final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
-        SiTransactor siTransactor = new SiTransactor(new SimpleIdSource(), dataLib, writer,
+        transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
+        SiTransactor siTransactor = new SiTransactor(new SimpleTimestampSource(), dataLib, writer,
                 new RowMetadataStore(dataLib, reader, writer, "si-needed", "_si", "commit", -1, userColumnsFamilyName),
-                transactionStore );
+                transactionStore);
         clientTransactor = siTransactor;
         transactor = siTransactor;
     }

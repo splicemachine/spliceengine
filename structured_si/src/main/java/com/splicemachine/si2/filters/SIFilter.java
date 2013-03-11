@@ -1,28 +1,12 @@
 package com.splicemachine.si2.filters;
 
-import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.STable;
-import com.splicemachine.si2.data.api.STableReader;
-import com.splicemachine.si2.data.api.STableWriter;
-import com.splicemachine.si2.data.hbase.HDataLib;
-import com.splicemachine.si2.data.hbase.HDataLibAdapter;
-import com.splicemachine.si2.data.hbase.HStore;
-import com.splicemachine.si2.data.hbase.HTableReaderAdapter;
-import com.splicemachine.si2.data.hbase.HTableWriterAdapter;
-import com.splicemachine.si2.data.hbase.HbRegion;
-import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.si.api.FilterState;
-import com.splicemachine.si2.si.api.IdSource;
 import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.si.impl.RowMetadataStore;
 import com.splicemachine.si2.si.impl.SiTransactionId;
-import com.splicemachine.si2.si.impl.SiTransactor;
-import com.splicemachine.si2.si.impl.TransactionSchema;
-import com.splicemachine.si2.si.impl.TransactionStore;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
 import java.io.DataInput;

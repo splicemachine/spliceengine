@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class SiTransactorTest {
-    final boolean useSimple = false;
+    final boolean useSimple = true;
 
     StoreSetup storeSetup;
     TransactorSetup transactorSetup;

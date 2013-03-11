@@ -8,7 +8,7 @@ import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableWriter;
 import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.FilterState;
-import com.splicemachine.si2.si.api.IdSource;
+import com.splicemachine.si2.si.api.TimestampSource;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -20,15 +20,15 @@ import java.util.HashMap;
 import java.util.List;
 
 public class SiTransactor implements Transactor, ClientTransactor {
-    private final IdSource idSource;
+    private final TimestampSource timestampSource;
     private final SDataLib dataLib;
     private final STableWriter dataWriter;
     private final RowMetadataStore dataStore;
     private final TransactionStore transactionStore;
 
-    public SiTransactor(IdSource idSource, SDataLib dataLib, STableWriter dataWriter,
+    public SiTransactor(TimestampSource timestampSource, SDataLib dataLib, STableWriter dataWriter,
                         RowMetadataStore dataStore, TransactionStore transactionStore) {
-        this.idSource = idSource;
+        this.timestampSource = timestampSource;
         this.dataLib = dataLib;
         this.dataWriter = dataWriter;
         this.dataStore = dataStore;
@@ -37,7 +37,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     @Override
     public TransactionId beginTransaction() {
-        final SiTransactionId transactionId = new SiTransactionId(idSource.nextId());
+        final SiTransactionId transactionId = new SiTransactionId(timestampSource.nextTimestamp());
         transactionStore.recordNewTransaction(transactionId, TransactionStatus.ACTIVE);
         return transactionId;
     }
@@ -46,7 +46,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     public void commit(TransactionId transactionId) throws IOException {
         ensureTransactionActive(transactionId);
         transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.COMMITTING);
-        final long endId = idSource.nextId();
+        final long endId = timestampSource.nextTimestamp();
         transactionStore.recordTransactionCommit(transactionId, endId, TransactionStatus.COMMITED);
     }
 
