@@ -104,24 +104,15 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
             ,
             Procedure.newBuilder().name("SYSCS_CHECKPOINT_DATABASE").numOutputParams(0).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.CONTAINS_SQL).returnType(null).isDeterministic(false)
-                    .ownerClass(SYSTEM_PROCEDURES)
-                    .catalog("SCHEMANAME")
-                    .catalog("TABLENAME")
-                    .catalog("SEQUENTIAL").build()
+                    .ownerClass(SYSTEM_PROCEDURES).build()
             ,
             Procedure.newBuilder().name("SYSCS_FREEZE_DATABASE").numOutputParams(0).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.CONTAINS_SQL).returnType(null).isDeterministic(false)
-                    .ownerClass(SYSTEM_PROCEDURES)
-                    .catalog("SCHEMANAME")
-                    .catalog("TABLENAME")
-                    .catalog("SEQUENTIAL").build()
+                    .ownerClass(SYSTEM_PROCEDURES).build()
             ,
             Procedure.newBuilder().name("SYSCS_UNFREEZE_DATABASE").numOutputParams(0).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.CONTAINS_SQL).returnType(null).isDeterministic(false)
-                    .ownerClass(SYSTEM_PROCEDURES)
-                    .catalog("SCHEMANAME")
-                    .catalog("TABLENAME")
-                    .catalog("SEQUENTIAL").build()
+                    .ownerClass(SYSTEM_PROCEDURES).build()
             ,
             Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE").numOutputParams(0).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
@@ -155,8 +146,15 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                     .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR,Limits.DB2_VARCHAR_MAXWIDTH))
                     .isDeterministic(false)
                     .ownerClass(SYSTEM_PROCEDURES)
-                    .catalog("SCHEMANAME")
-                    .catalog("TABLENAME").build()
+                    .catalog("KEY").build()
+            ,
+            Procedure.newBuilder().name("SYSCS_CHECK_TABLE").numOutputParams(0).numResultSets(0)
+            	.sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+            	.returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR,Limits.DB2_VARCHAR_MAXWIDTH))
+            	.isDeterministic(false)
+            	.ownerClass(SYSTEM_PROCEDURES)
+            	.catalog("SCHEMA")
+            	.catalog("TABLENAME").build()
             ,
             Procedure.newBuilder().name("SYSCS_GET_RUNTIMESTATISTICS").numOutputParams(0).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.CONTAINS_SQL)
@@ -224,6 +222,10 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .smallint("DEFRAGMENT_ROWS")
                 .smallint("TRUNCATE_END").build()
             ,
+            Procedure.newBuilder().name("SYSCS_RELOAD_SECURITY_POLICY").numOutputParams(0).numResultSets(0)
+            	.sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+            	.ownerClass(SYSTEM_PROCEDURES).build()
+            ,
             Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE_NOWAIT").numOutputParams(0).numResultSets(0)
                 .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
                 .ownerClass(SYSTEM_PROCEDURES)
@@ -234,15 +236,15 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
                 .ownerClass(SYSTEM_PROCEDURES)
                 .varchar("BACKUPDIR", Limits.DB2_VARCHAR_MAXWIDTH)
-                .smallint("DELETE_ARCHIVED_LOG_FILES").build()
+                .smallint("DELETEONLINEARCHIVEDLOGFILES").build()
             ,
             Procedure.newBuilder().name("SYSCS_UPDATE_STATISTICS")
                 .numOutputParams(0).numResultSets(0)
                 .modifiesSql().returnType(null).isDeterministic(false)
                 .ownerClass(SYSTEM_PROCEDURES)
-                .catalog("schemaname")
-                .catalog("tablename")
-                .catalog("indexname")
+                .catalog("SCHEMANAME")
+                .catalog("TABLENAME")
+                .catalog("INDEXNAME")
             .build()
             ,
             Procedure.newBuilder().name("SYSCS_SET_XPLAIN_MODE")
@@ -402,6 +404,12 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     });
 
     private static final List/*<Procedure>*/ sqlJProcedures = Arrays.asList(new Procedure[]{
+    		Procedure.newBuilder().name("INSTALL_JAR").numOutputParams(0).numResultSets(0)
+            	.sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+            	.ownerClass(SYSTEM_PROCEDURES)
+            	.varchar("URL",256)
+            	.catalog("JAR").build()
+            ,
             Procedure.newBuilder().name("REPLACE_JAR").numOutputParams(0).numResultSets(0)
                 .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
                 .ownerClass(SYSTEM_PROCEDURES)
@@ -420,7 +428,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                     .sqlControl(RoutineAliasInfo.READS_SQL_DATA).returnType(null).isDeterministic(false)
                     .ownerClass(SYSTEM_PROCEDURES)
                     .integer("SQLCODE")
-                    .smallint("SQLERRML")
+                    .smallint("ERRMCLEN")
                     .varchar("SQLERRMC", Limits.DB2_JCC_MAX_EXCEPTION_PARAM_LENGTH)
                     .charType("SQLERRP", 8)
                     .integer("SQLERRD0")
@@ -541,7 +549,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                     .catalog("SCHEMANAME")
                     .catalog("TABLENAME")
                     .smallint("UNIQUE")
-                    .smallint("RESERVED")
+                    .smallint("APPROXIMATE")
                     .varchar("OPTIONS",4000).build()
             ,
             Procedure.newBuilder().name("METADATA").numOutputParams(0).numResultSets(1)
