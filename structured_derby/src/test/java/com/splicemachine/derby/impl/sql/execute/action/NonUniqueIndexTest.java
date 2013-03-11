@@ -144,4 +144,53 @@ public class NonUniqueIndexTest {
         Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
     }
 
+    @Test
+    public void testCanAddDuplicate() throws Exception{
+
+        testCanUseIndex();
+
+        String name = "sfines";
+        int value = 3;
+        rule.getStatement().execute("insert into t (name,val) values ('"+name+"',"+value+")");
+
+        ResultSet resultSet = rule.executeQuery("select * from t where name = '"+name+"'");
+        List<String> results = Lists.newArrayListWithExpectedSize(1);
+        while(resultSet.next()){
+            String retName = resultSet.getString(1);
+            int val = resultSet.getInt(2);
+            Assert.assertEquals("Incorrect name returned!", name, retName);
+            results.add(String.format("name:%s,value:%d",retName,val));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+        Assert.assertEquals("Incorrect number of rows returned!",2,results.size());
+    }
+
+    @Test
+    public void testCanDeleteEntry() throws Exception{
+        testCanAddDuplicate();
+
+        String name = "sfines";
+        int value = 2;
+        rule.getStatement().execute("delete from t where name = '"+name+"' and val = "+value);
+
+        assertSelectCorrect("sfines",1);
+
+    }
+
+    private void assertSelectCorrect(String name, int size) throws Exception{
+        ResultSet resultSet = rule.executeQuery("select * from t where name = '"+name+"'");
+        List<String> results = Lists.newArrayListWithExpectedSize(1);
+        while(resultSet.next()){
+            String retName = resultSet.getString(1);
+            int val = resultSet.getInt(2);
+            Assert.assertEquals("Incorrect name returned!", name, retName);
+            results.add(String.format("name:%s,value:%d",retName,val));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+        Assert.assertEquals("Incorrect number of rows returned!",size,results.size());
+    }
 }

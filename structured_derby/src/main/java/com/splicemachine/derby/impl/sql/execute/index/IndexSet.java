@@ -28,6 +28,9 @@ import java.util.concurrent.atomic.AtomicReference;
 public class IndexSet {
     private static final Logger LOG = Logger.getLogger(IndexSet.class);
 
+    public static final String INDEX_UPDATED = "iu";
+    public static final byte[] INDEX_ALREADY_UPDATED="iau".getBytes();
+
     @SuppressWarnings("UnnecessaryBoxing")
     private final Object initializer = new Integer(1); //lock object for synchronous initialization
 

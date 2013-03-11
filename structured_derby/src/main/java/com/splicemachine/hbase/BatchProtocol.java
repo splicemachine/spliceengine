@@ -15,4 +15,14 @@ import java.util.Collection;
 public interface BatchProtocol extends CoprocessorProtocol {
 
     public void batchMutate(Collection<Mutation> mutationsToApply) throws IOException;
+
+    /**
+     * Delete the first row that appears after the specified rowKey, but *only* if it
+     * falls before the limit key. If {@code null} is specified for the limit key,
+     * then the first row found at or after the specified rowKey will be deleted.
+     *
+     * @param rowKey the start to search
+     * @throws IOException if something goes wrong
+     */
+    public void deleteFirstAfter(byte[] rowKey,byte[] limit) throws IOException;
 }

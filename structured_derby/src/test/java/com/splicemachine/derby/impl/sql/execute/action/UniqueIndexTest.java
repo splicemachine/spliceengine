@@ -3,12 +3,10 @@ package com.splicemachine.derby.impl.sql.execute.action;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.DerbyTestRule;
+import com.splicemachine.utils.SpliceLogUtils;
 import junit.framework.Assert;
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,6 +37,14 @@ public class UniqueIndexTest {
         DerbyTestRule.shutdown();
     }
 
+    @After
+    public void testDone() throws Exception{
+        try{
+            rule.getStatement().execute("drop index t_name");
+        }catch(SQLException sqle){
+            SpliceLogUtils.debug(LOG,sqle.getMessage(),sqle);
+        }
+    }
     @Test
     public void testCanUseUniqueIndex() throws Exception{
         /*
@@ -205,6 +211,26 @@ public class UniqueIndexTest {
             LOG.info(result);
         }
         Assert.assertEquals("Incorrect number of rows returned!",2,results.size());
+    }
+
+    @Test
+    public void testCanDeleteEntry() throws Exception{
+        /*
+         * Tests that we can safely delete a record, and have it
+         * percolate through to the index.
+         *
+         * Basically, create an index, add some data, check if its
+         * present, then delete some data and check that it's not
+         * there anymore
+         */
+        testCanUseUniqueIndex();
+
+        String name = "sfines";
+        int value = 2;
+        rule.getStatement().execute("delete from t where name = '"+name+"'");
+
+        ResultSet rs = rule.executeQuery("select * from t where name = '"+name+"'");
+        Assert.assertTrue("Rows are returned incorrectly",!rs.next());
     }
 
 

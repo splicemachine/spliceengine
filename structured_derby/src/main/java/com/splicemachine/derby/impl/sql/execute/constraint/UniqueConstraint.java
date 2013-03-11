@@ -36,8 +36,7 @@ public class UniqueConstraint implements Constraint {
     private static final Function<? super Mutation, Get> validator = new Function<Mutation, Get>() {
         @Override
         public Get apply(@Nullable Mutation input) {
-            Put put = (Put)input;
-            @SuppressWarnings("ConstantConditions") Get get = new Get(put.getRow());
+            @SuppressWarnings("ConstantConditions") Get get = new Get(input.getRow());
             get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
 
             return get;
@@ -71,7 +70,7 @@ public class UniqueConstraint implements Constraint {
         for(Get get:putsToValidate){
             Result result = region.get(get,null);
             boolean rowPresent =result!=null && ! result.isEmpty();
-            if(!rowPresent) return false;
+            if(rowPresent) return false;
         }
         return true;
     }

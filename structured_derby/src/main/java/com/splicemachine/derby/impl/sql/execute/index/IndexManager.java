@@ -3,7 +3,9 @@ package com.splicemachine.derby.impl.sql.execute.index;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.BatchTable;
 import com.splicemachine.hbase.SpliceTable;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -11,14 +13,13 @@ import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -33,11 +34,14 @@ public class IndexManager {
      */
     private final int[] indexColsToMainColMap;
 
+    private final byte[][] mainColPos;
+
     /*
      * The id for the index table
      */
     private final long indexConglomId;
     private final byte[] indexConglomBytes;
+
 
     /*
      * Indicator that this index is unique. If it is not unique, then
@@ -50,6 +54,11 @@ public class IndexManager {
         this.indexConglomId = indexConglomId;
         this.indexConglomBytes = Long.toString(indexConglomId).getBytes();
         this.isUnique = isUnique;
+
+        mainColPos = new byte[baseColumnMap.length][];
+        for(int i=0;i<baseColumnMap.length;i++){
+            mainColPos[i] = Integer.toString(baseColumnMap[i]-1).getBytes();
+        }
     }
 
     private static int[] translate(int[] ints) {
@@ -76,6 +85,8 @@ public class IndexManager {
     }
 
     private void update(Mutation mutation, HTableInterface table) throws IOException{
+        if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null) return; //index already managed for this
+
         if(mutation instanceof Put)
             updateIndex((Put)mutation,table);
         else
@@ -83,18 +94,77 @@ public class IndexManager {
     }
 
     private void update(Delete delete, HTableInterface table) throws IOException{
-        throw new UnsupportedOperationException("Implement!");
+        /*
+         * To delete an entry, we'll need to first get the row, then construct
+         * the index row key from the row, then delete it
+         */
+
+        Get get = new Get(delete.getRow());
+        for(byte[] mainColumn:mainColPos){
+            get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColumn);
+        }
+        Result result = table.get(get);
+        if(result==null||result.isEmpty()) return; //already deleted? weird, but oh well, we're good
+
+        NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+        byte[][] rowKeyBuilder = getDataArray();
+        int size = 0;
+        for(int indexPos=0;indexPos<indexColsToMainColMap.length;indexPos++){
+            byte[] mainPutPos = mainColPos[indexPos];
+            byte[] data = familyMap.get(mainPutPos);
+            rowKeyBuilder[indexPos] = data;
+            size+=data.length;
+        }
+
+
+        final byte[] indexRowKey = convert(rowKeyBuilder,size);
+
+        if(isUnique){
+            Delete indexDelete = new Delete(indexRowKey);
+            indexDelete.deleteFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+
+            table.delete(indexDelete);
+        }else{
+            /*
+             * Because index keys in non-null indices have a postfix appended to them,
+             * we don't know exactly which row to delete, so we need to scan over the range
+             * until we find the first row, then delete it. We can do this locally by pushing
+             * to the BatchProtocol endpoint
+             */
+            final byte[] indexStop = BytesUtil.copyAndIncrement(indexRowKey);
+            try {
+                table.coprocessorExec(BatchProtocol.class,indexRowKey,indexStop,new Batch.Call<BatchProtocol, Void>() {
+                    @Override
+                    public Void call(BatchProtocol instance) throws IOException {
+                        instance.deleteFirstAfter(indexRowKey,indexStop);
+                        return null;
+                    }
+                });
+            } catch (Throwable throwable) {
+                if(throwable instanceof IOException) throw (IOException)throwable;
+                throw new IOException(throwable);
+            }
+        }
     }
 
+    private byte[] convert(byte[][] rowKeyBuilder, int size) {
+        byte[] indexRowKey = new byte[size];
+        int offset = 0;
+        for(byte[] nextKey:rowKeyBuilder){
+            if(nextKey==null) break;
+            System.arraycopy(nextKey,0,indexRowKey,offset,nextKey.length);
+            offset+=nextKey.length;
+        }
+        return indexRowKey;
+    }
+
+
     private void updateIndex(Put mainPut,HTableInterface table) throws IOException{
-        byte[][] rowKeyBuilder;
-        if(isUnique)
-            rowKeyBuilder = new byte[indexColsToMainColMap.length][];
-        else
-            rowKeyBuilder = new byte[indexColsToMainColMap.length+1][];
+        byte[][] rowKeyBuilder = getDataArray();
         int size=0;
+
         for(int indexPos=0;indexPos< indexColsToMainColMap.length;indexPos++){
-            byte[] mainPutPos = Integer.toString(indexColsToMainColMap[indexPos]).getBytes();
+            byte[] mainPutPos = mainColPos[indexPos];
             byte[] data = mainPut.get(HBaseConstants.DEFAULT_FAMILY_BYTES,mainPutPos).get(0).getValue();
             rowKeyBuilder[indexPos] = data;
             size+=data.length;
@@ -105,28 +175,28 @@ public class IndexManager {
             size+=postfix.length;
         }
 
-        byte[] indexRowKey = new byte[size];
-        int offset = 0;
-        for(byte[] nextKey:rowKeyBuilder){
-            System.arraycopy(nextKey,0,indexRowKey,offset,nextKey.length);
-            offset+=nextKey.length;
-        }
+        byte[] indexRowKey = convert(rowKeyBuilder,size);
 
         Put indexPut = new Put(indexRowKey);
-        for(int dataPos=0;dataPos<rowKeyBuilder.length;dataPos++){
-            byte[] putPos = Integer.toString(dataPos).getBytes();
-            indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,putPos,rowKeyBuilder[dataPos]);
+        for(int dataPos=0;dataPos<mainColPos.length;dataPos++){
+            indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColPos[dataPos],rowKeyBuilder[dataPos]);
         }
 
         //add the mainPut rowKey as the row location at the end of the row
-        byte[] locPos;
-        if(isUnique)
-            locPos = Integer.toString(rowKeyBuilder.length).getBytes();
-        else
-            locPos = Integer.toString(rowKeyBuilder.length-1).getBytes(); //don't include the postfix as a column
+        byte[] locPos = Integer.toString(mainColPos.length).getBytes();
+
         indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,locPos,mainPut.getRow());
 
-        doPut(indexPut,table) ;
+        doPut(indexPut, table) ;
+    }
+
+    private byte[][] getDataArray() {
+        byte[][] rowKeyBuilder;
+        if(isUnique)
+            rowKeyBuilder = new byte[indexColsToMainColMap.length][];
+        else
+            rowKeyBuilder = new byte[indexColsToMainColMap.length+1][];
+        return rowKeyBuilder;
     }
 
     private void doPut(Put put, HTableInterface table) throws IOException{
