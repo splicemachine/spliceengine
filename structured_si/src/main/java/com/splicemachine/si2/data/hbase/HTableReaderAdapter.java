@@ -26,7 +26,11 @@ public class HTableReaderAdapter implements STableReader {
 
     @Override
     public Object get(STable table, SGet get) {
-        return tableReader.get(((HbTable) table).table, ((HGet) get).get);
+        if (table instanceof HbTable) {
+            return tableReader.get(((HbTable) table).table, ((HGet) get).get);
+        } else {
+            return tableReader.get(((HbRegion) table).region, ((HGet) get).get);
+        }
     }
 
     @Override

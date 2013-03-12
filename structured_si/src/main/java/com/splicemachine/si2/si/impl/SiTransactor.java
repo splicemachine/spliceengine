@@ -87,7 +87,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public boolean processPut(STable table, Object put) {
+    public boolean processPut(STable table, Object put) throws IOException {
         Boolean siNeeded = dataStore.getSiNeededAttribute(put);
         if (siNeeded != null && siNeeded) {
             Object rowKey = dataLib.getPutKey(put);
@@ -97,7 +97,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
                 checkForConflict(transactionId, table, lock, rowKey);
                 Object newPut = dataStore.newLockWithPut(transactionId, put, lock);
                 dataStore.addTransactionIdToPut(newPut, transactionId);
-                dataWriter.write(table, newPut);
+                dataWriter.write(table, newPut, lock);
             } finally {
                 dataWriter.unLockRow(table, lock);
             }
@@ -107,7 +107,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         }
     }
 
-    private void checkForConflict(TransactionId transactionId, STable table, SRowLock lock, Object rowKey) {
+    private void checkForConflict(TransactionId transactionId, STable table, SRowLock lock, Object rowKey) throws DoNotRetryIOException {
         long id = transactionId.getId();
         List keyValues = dataStore.getCommitTimestamp(table, rowKey);
         if (keyValues != null) {
@@ -133,9 +133,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
         }
     }
 
-    private void writeWriteConflict(TransactionId transactionId) {
+    private void writeWriteConflict(TransactionId transactionId) throws DoNotRetryIOException {
         fail(transactionId);
-        throw new RuntimeException("write/write conflict");
+        throw new DoNotRetryIOException("write/write conflict");
     }
 
     @Override

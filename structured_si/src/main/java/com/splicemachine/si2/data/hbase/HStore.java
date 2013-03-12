@@ -36,6 +36,15 @@ public class HStore implements IHTableReader, IHTableWriter {
     }
 
     @Override
+    public Result get(HRegion region, Get get) {
+        try {
+            return region.get(get, null);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public Iterator scan(HTableInterface table, Scan scan) {
         try {
             final ResultScanner scanner = table.getScanner(scan);
@@ -73,6 +82,15 @@ public class HStore implements IHTableReader, IHTableWriter {
     }
 
     @Override
+    public void write(HRegion region, Put put, Integer lock) {
+        try {
+            region.put(put, lock);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public void write(Object table, Put put, boolean durable) {
         try {
             if (table instanceof HTableInterface) {
@@ -104,12 +122,26 @@ public class HStore implements IHTableReader, IHTableWriter {
     }
 
     @Override
+    public Integer lockRow(HRegion region, byte[] rowKey) {
+        try {
+            return region.obtainRowLock(rowKey);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public void unLockRow(HTableInterface table, RowLock lock) {
         try {
             table.unlockRow(lock);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void unLockRow(HRegion region, Integer lock) {
+        region.releaseRowLock(lock);
     }
 
     @Override

@@ -16,10 +16,19 @@ public class HTableWriterAdapter implements STableWriter {
 
     @Override
     public void write(STable table, Object put) {
-        if (table instanceof  HbTable) {
+        if (table instanceof HbTable) {
             writer.write(((HbTable) table).table, (Put) put);
         } else {
             writer.write(((HbRegion) table).region, (Put) put);
+        }
+    }
+
+    @Override
+    public void write(STable table, Object put, SRowLock rowLock) {
+        if (table instanceof HbTable) {
+            writer.write(((HbTable) table).table, (Put) put);
+        } else {
+            writer.write(((HbRegion) table).region, (Put) put, ((HRowLock) rowLock).regionRowLock);
         }
     }
 
@@ -40,11 +49,19 @@ public class HTableWriterAdapter implements STableWriter {
 
     @Override
     public SRowLock lockRow(STable table, Object rowKey) {
-        return new HRowLock(writer.lockRow(((HbTable) table).table, (byte[]) rowKey));
+        if (table instanceof HbTable) {
+            return new HRowLock(writer.lockRow(((HbTable) table).table, (byte[]) rowKey));
+        } else {
+            return new HRowLock(writer.lockRow(((HbRegion) table).region, (byte[]) rowKey));
+        }
     }
 
     @Override
     public void unLockRow(STable table, SRowLock lock) {
-        writer.unLockRow(((HbTable) table).table, ((HRowLock) lock).lock);
+        if (table instanceof HbTable) {
+            writer.unLockRow(((HbTable) table).table, ((HRowLock) lock).lock);
+        } else {
+            writer.unLockRow(((HbRegion) table).region, ((HRowLock) lock).regionRowLock);
+        }
     }
 }

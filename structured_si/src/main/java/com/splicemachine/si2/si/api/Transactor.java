@@ -1,11 +1,9 @@
 package com.splicemachine.si2.si.api;
 
 import com.splicemachine.si2.data.api.STable;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * The primary interface to the transaction module.
@@ -16,7 +14,7 @@ public interface Transactor {
     void abort(TransactionId transactionId);
     void fail(TransactionId transactionId);
 
-    boolean processPut(STable table, Object put);
+    boolean processPut(STable table, Object put) throws IOException;
     boolean isFilterNeeded(Object operation);
     Object filterResult(FilterState filterState, Object result) throws IOException;
 

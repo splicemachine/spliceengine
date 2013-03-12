@@ -120,6 +120,11 @@ public class LStore implements STableReader, STableWriter {
     }
 
     @Override
+    public void write(STable table, Object put, SRowLock rowLock) {
+        write(table, put);
+    }
+
+    @Override
     public void write(STable table, List puts) {
         synchronized (this) {
             final String relationIdentifier = ((LTable) table).relationIdentifier;

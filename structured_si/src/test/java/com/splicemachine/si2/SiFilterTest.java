@@ -4,6 +4,7 @@ import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableReader;
+import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.si.api.FilterState;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
@@ -29,10 +30,14 @@ public class SiFilterTest {
         }
         transactorSetup = new TransactorSetup(storeSetup);
         transactor = transactorSetup.transactor;
+        if (!useSimple) {
+            TransactorFactory.setTransactor(transactor);
+        }
+
     }
 
-    private void insertAge(TransactionId transactionId, String name, int age) {
-        SiTransactorTest.insertAgeDirect(transactorSetup, storeSetup, transactionId, name, age);
+    private void insertAge(TransactionId transactionId, String name, int age) throws IOException {
+        SiTransactorTest.insertAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, age);
     }
 
     private String read(TransactionId transactionId, String name) throws IOException {
