@@ -12,5 +12,5 @@ public interface ClientTransactor {
     void initializeGet(TransactionId transactionId, SGet get);
     void initializeGets(TransactionId transactionId, List gets);
     void initializeScan(TransactionId transactionId, SScan scan);
-    void initializePut(TransactionId transactionId, Object puts);
+    void initializePut(TransactionId transactionId, Object put);
 }
