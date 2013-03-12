@@ -52,7 +52,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 				properties.put(RawStoreFactory.MINIMUM_RECORD_SIZE_PARAMETER,Integer.toString(RawStoreFactory.MINIMUM_RECORD_SIZE_DEFAULT));
 			}
 		}
-		containerId = input_containerid;		
+		containerId = input_containerid;
 		id = new ContainerKey(segmentId, containerId);
 		if ((template == null) || (template.length == 0)) {
 			throw StandardException.newException(SQLState.HEAP_COULD_NOT_CREATE_CONGLOMERATE);

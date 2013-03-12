@@ -58,24 +58,24 @@ public class HBaseConglomerate extends SpliceConglomerate {
 
     }
 
-	protected void create(
-    Transaction             rawtran,
-    int                     segmentId,
-    long                    input_containerid,
-    DataValueDescriptor[]   template,
-    ColumnOrdering[]        columnOrder,
-    int[]                   collationIds,
-    Properties              properties,
-    int                     conglom_format_id,
-	int                     tmpFlag) throws StandardException {
-		super.create(rawtran, segmentId, input_containerid, template, columnOrder, collationIds, properties, conglom_format_id, tmpFlag); 
+    protected void create(
+            Transaction             rawtran,
+            int                     segmentId,
+            long                    input_containerid,
+            DataValueDescriptor[]   template,
+            ColumnOrdering[]        columnOrder,
+            int[]                   collationIds,
+            Properties              properties,
+            int                     conglom_format_id,
+            int                     tmpFlag) throws StandardException {
+        super.create(rawtran, segmentId, input_containerid, template, columnOrder, collationIds, properties, conglom_format_id, tmpFlag);
         try {
-					ConglomerateUtils.createConglomerate(containerId,this);
+            ConglomerateUtils.createConglomerate(containerId,this);
         } catch (Exception e) {
-        	LOG.error(e.getMessage(), e);
+            LOG.error(e.getMessage(), e);
         }
         this.getContainerid();
-	}
+    }
 
 	/*
 	** Methods of Conglomerate

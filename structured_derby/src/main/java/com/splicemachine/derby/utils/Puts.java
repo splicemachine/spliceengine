@@ -22,6 +22,8 @@ import java.io.IOException;
 public class Puts {
 
     private static final byte[] NULL_COLUMN_MARKER = Integer.toString(-Integer.MAX_VALUE).getBytes();
+    public static final byte[] FOR_UPDATE = "U".getBytes();
+    public static final String PUT_TYPE = "t";
 
     private Puts(){}
 
@@ -47,6 +49,7 @@ public class Puts {
         try {
             Put put = new Put(location.getBytes());
             attachTransactionInformation(put,transactionID);
+            put.setAttribute(PUT_TYPE,FOR_UPDATE);
             if(validColumns!=null){
                 for(int pos = validColumns.anySetBit();pos!=-1;pos=validColumns.anySetBit(pos)){
                     int rowPos = validColPositionMap[pos];

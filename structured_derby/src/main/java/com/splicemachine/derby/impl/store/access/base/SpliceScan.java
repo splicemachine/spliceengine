@@ -153,54 +153,31 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	protected void setupScan() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("setup Scan");
-		scan = new Scan();
-		scan.setCaching(100);		
-		if (transID != null) {
-			scan.setAttribute(TxnConstants.TRANSACTION_ID, transID);
-			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL, 
-					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
-		} else {
-			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL, 
-					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_COMMITTED.toString()));
-		}
-		
-		FormatableBitSet tempScanColumnList = scanColumnList;
-		if (scanColumnList != null && qualifier != null && qualifier.length > 0) {      
-			for (int and_idx = 0; and_idx < qualifier.length; and_idx++) {
-				for (int or_idx = 0; or_idx < qualifier[and_idx].length; or_idx++) {
-					if (!scanColumnList.isSet(qualifier[and_idx][or_idx].getColumnId()))
-						scanColumnList.set(qualifier[and_idx][or_idx].getColumnId());
-				}
-			}
-		} 
-		if (tempScanColumnList != null) {
-			for (int i = 0; i < tempScanColumnList.size(); i++) {
-				if (tempScanColumnList.isSet(i))
-					scan.addColumn(HBaseConstants.DEFAULT_FAMILY.getBytes(), Integer.toString(i).getBytes());
-			}
-		}
 		try {
-			boolean generateKey = true;
-			if (startKeyValue != null && stopKeyValue != null) {
-				for (int i =0; i<startKeyValue.length; i++) {
-					if (startKeyValue[i].isNull())
-						generateKey = false;
-				}
-			}
-			if (generateKey) {
-				boolean[] sortOrder = null;
-				if (spliceConglomerate != null)
-					sortOrder = ((SpliceConglomerate) this.spliceConglomerate.getConglomerate()).getAscDescInfo();
-				scan.setStartRow(DerbyBytesUtil.generateScanKeyForIndex(startKeyValue,startSearchOperator,sortOrder));
-				scan.setStopRow(DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue,stopSearchOperator,sortOrder));
-				if (scan.getStartRow() != null && scan.getStopRow() != null && Bytes.compareTo(scan.getStartRow(), scan.getStopRow())>=0) {				
-					LOG.warn("Scan begin key is greater than the end key");
-				}
-				if (scan.getStartRow() == null)
-					scan.setStartRow(HConstants.EMPTY_START_ROW);
-				if (scan.getStopRow() == null)
-					scan.setStopRow(HConstants.EMPTY_END_ROW);
-			}
+            boolean[] sortOrder = spliceConglomerate==null?null:
+                    ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).getAscDescInfo();
+            scan = Scans.setupScan(startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator,qualifier,sortOrder,scanColumnList,transID);
+//			boolean generateKey = true;
+//			if (startKeyValue != null && stopKeyValue != null) {
+//				for (int i =0; i<startKeyValue.length; i++) {
+//					if (startKeyValue[i].isNull())
+//						generateKey = false;
+//				}
+//			}
+//			if (generateKey) {
+//				boolean[] sortOrder = null;
+//				if (spliceConglomerate != null)
+//					sortOrder = ((SpliceConglomerate) this.spliceConglomerate.getConglomerate()).getAscDescInfo();
+//				scan.setStartRow(DerbyBytesUtil.generateScanKeyForIndex(startKeyValue,startSearchOperator,sortOrder));
+//				scan.setStopRow(DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue,stopSearchOperator,sortOrder));
+//				if (scan.getStartRow() != null && scan.getStopRow() != null && Bytes.compareTo(scan.getStartRow(), scan.getStopRow())>=0) {
+//					LOG.warn("Scan begin key is greater than the end key");
+//				}
+//				if (scan.getStartRow() == null)
+//					scan.setStartRow(HConstants.EMPTY_START_ROW);
+//				if (scan.getStopRow() == null)
+//					scan.setStopRow(HConstants.EMPTY_END_ROW);
+//			}
 		} catch (Exception e) {
 			LOG.error("Exception creating start key");
 			throw new RuntimeException(e);

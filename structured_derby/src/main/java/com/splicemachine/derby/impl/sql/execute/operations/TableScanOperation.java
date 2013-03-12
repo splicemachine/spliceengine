@@ -14,6 +14,7 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -33,7 +34,7 @@ public class TableScanOperation extends ScanOperation {
 	 * Don't forget to change this every time you make a change that could affect serialization
 	 * and/or major class behavior!
 	 */
-	private static final long serialVersionUID = 2l;
+	private static final long serialVersionUID = 3l;
 
 	private static Logger LOG = Logger.getLogger(TableScanOperation.class);
 	protected static List<NodeType> nodeTypes;
@@ -95,6 +96,8 @@ public class TableScanOperation extends ScanOperation {
         super.readExternal(in);
 		tableName = in.readUTF();
 		indexColItem = in.readInt();
+        if(in.readBoolean())
+            indexName = in.readUTF();
 	}
 
 	@Override
@@ -103,6 +106,9 @@ public class TableScanOperation extends ScanOperation {
 		super.writeExternal(out);
 		out.writeUTF(tableName);
 		out.writeInt(indexColItem);
+        out.writeBoolean(indexName!=null);
+        if(indexName!=null)
+            out.writeUTF(indexName);
 	}
 
 	@Override
@@ -154,7 +160,16 @@ public class TableScanOperation extends ScanOperation {
 			} else {
 				result = new Result(keyValues);
 				SpliceUtils.populate(result, currentRow.getRowArray(), accessedCols,baseColumnMap);
-				currentRowLocation = new HBaseRowLocation(result.getRow());
+
+                if(indexName!=null && currentRow.getColumn(currentRow.nColumns()) instanceof RowLocation){
+                    /*
+                     * If indexName !=null, then we are currently scanning an index,
+                     *so our RowLocation should point to the main table, and not to the
+                     * index (that we're actually scanning)
+                     */
+                    currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
+                }else
+                    currentRowLocation = new HBaseRowLocation(result.getRow());
 			}
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrow(LOG, tableName+":Error during getNextRowCore",

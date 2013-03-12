@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.stats.ThroughputStats;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.BatchTable;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -16,6 +17,8 @@ import org.apache.derby.impl.sql.execute.DeleteConstantAction;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 
 /**
  * 
@@ -46,12 +49,12 @@ public class DeleteOperation extends DMLWriteOperation{
 	}
 
 	@Override
-	public SinkStats sink() {
+	public SinkStats sink() throws IOException {
 		SpliceLogUtils.trace(LOG,"sink on transactinID="+transactionID);
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
 		ExecRow nextRow;
-		HTableInterface htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(Long.toString(heapConglom)));
+		HTableInterface htable = BatchTable.create(SpliceUtils.config,Long.toString(heapConglom).getBytes());
 		try {
             do{
                 long processStart = System.nanoTime();

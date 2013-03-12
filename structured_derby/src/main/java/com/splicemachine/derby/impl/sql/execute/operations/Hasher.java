@@ -59,7 +59,6 @@ public class Hasher {
     }
 
 	
-	
 	/**
 	 * 
 	 * Hasher Implementation for the temp table.

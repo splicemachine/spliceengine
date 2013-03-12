@@ -37,6 +37,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	static {
 		Monitor.startMonitor(new Properties(), null);
 		Monitor.clearMonitor();
+
 	}
 	/**
 	 * Start the hbase coprocessor (empty)
@@ -63,14 +64,14 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	 * 
 	 */
 	@Override
-	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException,StandardException {
+	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException {
 		threadLocalEnvironment.set(getEnvironment());
 		try {
 			SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
 																			instructions.getStatement(),instructions.getTopOperation(), scan);
 			HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
 			SpliceLogUtils.trace(LOG,"Creating RegionScanner");
-			LanguageConnectionContext lcc = SpliceEngine.getLanguageConnectionContext();
+			LanguageConnectionContext lcc = SpliceDriver.driver().getLanguageConnectionContext();
 			SpliceUtils.setThreadContext();
 			Activation activation = instructions.getActivation(lcc);
 

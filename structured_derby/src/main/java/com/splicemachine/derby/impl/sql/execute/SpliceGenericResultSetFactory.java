@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -76,8 +77,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             operationTree.traverse(op);
             return (NoPutResultSet) operationTree.execute();
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -111,8 +111,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -133,8 +132,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -207,8 +205,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -263,8 +260,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             operationTree.traverse((SpliceOperation) top);
             return (NoPutResultSet) operationTree.execute();
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -312,8 +308,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -363,8 +358,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -391,8 +385,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedCost,
                     userSuppliedOptimizerOverrides);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -408,8 +401,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     rowAllocator, maxRowSize, resultSetNumber, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, isRollup);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
 	}
 
@@ -471,8 +463,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
 	}
 
@@ -498,8 +489,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             return new NormalizeOperation(source,source.getActivation(),resultSetNumber,erdNumber,
                     optimizerEstimatedRowCount,optimizerEstimatedCost,forUpdate);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
 	}
 	
@@ -541,8 +531,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -571,8 +560,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -604,8 +592,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     vtiRestrictionNumber
             );
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -655,8 +642,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -727,8 +713,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 				optimizerEstimatedRowCount,
 				optimizerEstimatedCost);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
 	}
 
@@ -750,8 +735,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     rowAllocator, maxRowSize, resultSetNumber, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, isRollup);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
 	}
 
@@ -779,8 +763,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedCost,
                     userSuppliedOptimizerOverrides);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
 	}
 
@@ -799,8 +782,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 				oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
 				optimizerEstimatedCost, userSuppliedOptimizerOverrides);
        }catch(Exception e){
-           if(e instanceof StandardException) throw (StandardException)e;
-           throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+           throw Exceptions.parseException(e);
        }
 	}
 
@@ -820,8 +802,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
 	}
 
@@ -832,8 +813,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         try{
             return getMiscResultSet(activation);
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
 	}
 
@@ -847,8 +827,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             opTree.traverse(top);
             return (NoPutResultSet)opTree.execute();
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -862,8 +841,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             opTree.traverse(top);
             return (NoPutResultSet)opTree.execute();
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
 	}
 
@@ -877,8 +855,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             opTree.traverse(top);
             return (NoPutResultSet)opTree.execute();
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
 	}
 
@@ -892,8 +869,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             opTree.traverse(top);
             return (NoPutResultSet)opTree.execute();
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
 	}
 	
@@ -906,8 +882,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             opTree.traverse(top);
             return (NoPutResultSet)opTree.execute();
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
 	}
 	
@@ -920,8 +895,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             opTree.traverse(top);
             return (NoPutResultSet)opTree.execute();
         }catch(Exception e){
-            if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw Exceptions.parseException(e);
         }
     }
 	

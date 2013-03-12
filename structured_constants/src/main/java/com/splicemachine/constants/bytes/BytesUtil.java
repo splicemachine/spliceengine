@@ -217,6 +217,8 @@ public class BytesUtil {
 	}
 
     public static byte[] copyAndIncrement(byte[] start) {
+        if(start.length==0) return new byte[]{1};
+
         byte[] other = new byte[start.length];
         System.arraycopy(start,0,other,0,start.length);
         incrementAtIndex(other,other.length-1);

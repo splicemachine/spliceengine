@@ -35,10 +35,8 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.stats.ThroughputStats;
+import com.splicemachine.derby.utils.*;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -194,7 +192,11 @@ public class UnionOperation extends SpliceBaseOperation {
 	    if(scan==null||table==null) {
 	    	if (provider.getClass().equals(SourceRowProvider.class)) {
 	    		topOperation.init(SpliceOperationContext.newContext(activation));
-	    		topOperation.sink();
+                try{
+    	    		topOperation.sink();
+                }catch(IOException ioe){
+                    throw Exceptions.parseException(ioe);
+                }
 	    		return;
 	    	} else
 	    		throw new AssertionError("Cannot perform shuffle, either scan or table is null");

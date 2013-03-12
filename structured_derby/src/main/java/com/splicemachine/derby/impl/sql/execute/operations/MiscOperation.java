@@ -104,4 +104,9 @@ public class MiscOperation extends NoRowsOperation
 			return "MiscRowProvider";
 		}
 	};
+
+    @Override
+    public String toString() {
+        return "ConstantActionOperation";
+    }
 }

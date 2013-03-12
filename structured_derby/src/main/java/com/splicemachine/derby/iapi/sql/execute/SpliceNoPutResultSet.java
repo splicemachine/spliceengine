@@ -4,6 +4,7 @@ import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -297,15 +298,18 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	@Override
 	public void openCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"opening rowProvider %s",rowProvider);
-		rowProvider.open();
+        try{
+		    rowProvider.open();
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
 		closed=false;
 	}
 
 	@Override
 	public void reopenCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "reopening rowProvider %s",rowProvider);
-		rowProvider.open();
-		closed=false;
+        openCore();
 	}
 
 	@Override
@@ -320,7 +324,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
                 return null;
             }
         }catch(Throwable t){
-            throw StandardException.newException(SQLState.RAWSTORE_UNEXPECTED_EXCEPTION,t);
+            throw Exceptions.parseException(t);
         }
 	}
 

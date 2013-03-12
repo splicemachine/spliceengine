@@ -341,7 +341,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 	 *
 	 * @exception  StandardException  Standard exception policy.
 	 **/
-	/* package */ void conglomCacheAddEntry(
+	public void conglomCacheAddEntry(
 			long            conglomid,
 			Conglomerate    conglom)
 			throws StandardException

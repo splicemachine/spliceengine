@@ -15,6 +15,8 @@ import java.sql.Timestamp;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.splicemachine.derby.utils.Exceptions;
+import org.apache.commons.httpclient.util.ExceptionUtil;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -552,7 +554,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	@Override		
-	public SinkStats sink() {
+	public SinkStats sink() throws IOException {
 		throw new RuntimeException("Sink Not Implemented for this node " + this.getClass());					
 	}
 
@@ -595,7 +597,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		if(scan==null||table==null){ 
 			if (SourceRowProvider.class.equals(rowProvider.getClass())) {
 	    		topOperation.init(SpliceOperationContext.newContext(activation));
-	    		topOperation.sink();
+                try{
+    	    		topOperation.sink();
+                }catch(IOException ioe){
+                    throw Exceptions.parseException(ioe);
+                }
 	    		return;
 	    	} else
 	    		throw new AssertionError("Cannot perform shuffle, either scan or table is null: scan="+scan+",table="+table);
@@ -638,16 +644,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			if(ioe.getCause() instanceof StandardException)
 				SpliceLogUtils.logAndThrow(LOG, (StandardException)ioe.getCause());
 			else
-				SpliceLogUtils.logAndThrow(LOG,StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION, ioe));
+                SpliceLogUtils.logAndThrow(LOG,Exceptions.parseException(ioe));
 		}catch(Throwable t){
-			SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,t));
+            SpliceLogUtils.logAndThrow(LOG,Exceptions.parseException(t));
 		}finally{
 			if(htable !=null ){
 				try{
 					htable.close();
 				}catch(IOException e){
-					SpliceLogUtils.logAndThrow(LOG,"Unable to close Hbase table",
-							StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
+                    SpliceLogUtils.logAndThrow(LOG,Exceptions.parseException(e));
 				}
 			}
 		}

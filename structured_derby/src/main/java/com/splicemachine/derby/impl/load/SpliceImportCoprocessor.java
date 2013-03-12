@@ -1,15 +1,25 @@
 package com.splicemachine.derby.impl.load;
 
+import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVReader;
 import com.google.common.io.Closeables;
 import com.google.common.primitives.Longs;
 import com.gotometrics.orderly.*;
 import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StringUtils;
+import com.splicemachine.hbase.BatchTable;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.catalog.TypeDescriptor;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -26,11 +36,7 @@ import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.util.LineReader;
 import org.apache.log4j.Logger;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
+import java.io.*;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -74,13 +80,15 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		Path path =  context.getFilePath();
 		FSDataInputStream is = null;
 		//get a bulk-insert table for our table to insert
-		HTableInterface table = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(context.getTableName()));
+		HTableInterface table = BatchTable.create(SpliceUtils.config,Bytes.toBytes(context.getTableName()));
 
 		LineReader reader = null;
 		//open a serializer to serialize our data
-		Serializer serializer = new Serializer(context.getStripString(),context.getTimestampFormat());
+        Serializer serializer = new Serializer();
+        CSVParser csvParser = new CSVParser(context.getColumnDelimiter().charAt(0),context.getStripString().charAt(0));
 		try{
 			CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
+            ExecRow row = getExecRow(context);
 			CompressionCodec codec = codecFactory.getCodec(path);
 			is = fs.open(path);
 			for(BlockLocation location:locations){
@@ -110,9 +118,8 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 					long newSize = reader.readLine(text);
 					SpliceLogUtils.trace(LOG,"inserting line %s",text);
 					pos+=newSize;
-
-					importRow(context.getColumnTypes(), context.getActiveCols(),
-							context.getColumnDelimiter(), table, serializer, text.toString());
+                    String[] cols = csvParser.parseLine(text.toString());
+                    doImportRow(cols, context.getActiveCols(), row, table,serializer);
 					numImported++;
 				}
 			}
@@ -135,21 +142,26 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 	public long importFile(ImportContext context) throws IOException{
 		Path path =  context.getFilePath();
 
-		HTableInterface table = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(context.getTableName()));
-		Serializer serializer = new Serializer(context.getStripString(),context.getTimestampFormat());
+		HTableInterface table = BatchTable.create(SpliceUtils.config, Bytes.toBytes(context.getTableName()));
+        ExecRow row = getExecRow(context);
 		InputStream is;
-		BufferedReader reader = null;
+		Reader reader = null;
 		long numImported=0l;
+        Serializer serializer = new Serializer();
 		try{
 			CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
 			CompressionCodec codec = codecFactory.getCodec(path);
 			is = codec!=null?codec.createInputStream(fs.open(path)):fs.open(path);
-			reader = new BufferedReader(new InputStreamReader(is));
-			String line;
-			while((line = reader.readLine())!=null){
+            reader = new InputStreamReader(is);
+            CSVReader csvReader = new CSVReader(reader,context.getColumnDelimiter().charAt(0),context.getStripString().charAt(0));
+            String[] line;
+			while((line = csvReader.readNext())!=null){
+                doImportRow(line,context.getActiveCols(), row,table,serializer);
 
-				importRow(context.getColumnTypes(),context.getActiveCols(), context.getColumnDelimiter(),table,serializer,line);
 				numImported++;
+                if(numImported%100==0){
+                    SpliceLogUtils.trace(LOG,"imported %d records",numImported);
+                }
 			}
 		}catch (Exception e){
 			SpliceLogUtils.logAndThrow(LOG,new IOException(e));
@@ -161,179 +173,56 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		return numImported;
 	}
 
-/*****************************************************************************************************************/
-	/*private helper stuff*/
+    private void doImportRow(String[] line,FormatableBitSet activeCols, ExecRow row,HTableInterface table,Serializer serializer) throws IOException {
+        try{
+            if(activeCols!=null){
+                for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
+                    row.getColumn(activePos+1).setValue(line[pos]);
+                }
+            }else{
+                for(int pos=0;pos<line.length;pos++){
+                    row.getColumn(pos+1).setValue(line[pos]);
+                }
+            }
+        }catch(StandardException se){
+            throw new DoNotRetryIOException(se.getMessageId());
+        }
+        //TODO -sf- primary keys?
+        Put put = Puts.buildInsert(row.getRowArray(), null,serializer); //TODO -sf- add transaction stuff
+        table.put(put);
+    }
 
-	private void importRow(int[] columnTypes, FormatableBitSet activeCols,
-												 String columnDelimiter, HTableInterface table,
-												 Serializer serializer, String line ) throws IOException {
-		/*
-		 * Constructs the put and executes it onto the table.
-		 */
-		Put put = new Put(SpliceUtils.getUniqueKey());
-		int colPos = 0;
-		for(String col:parseCsvLine(columnDelimiter, line)){
-			if(colPos >= columnTypes.length||colPos<0){
-				//we've exhausted all the known columns, so skip all remaining entries on the line
-				break;
-			}
-			try{
-				put.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
-					Integer.toString(colPos).getBytes(),serializer.serialize(col,columnTypes[colPos]));
-			}catch(Exception e){
-				e.printStackTrace();
-				String errorMessage=String.format("Unable to parse line %s, " +
-						"column %d did not serialize correctly: expected type %s for column string %s",
-						line,colPos,getTypeString(columnTypes[colPos]),col);
-				SpliceLogUtils.error(LOG,new DoNotRetryIOException(errorMessage));
-			}
-			colPos = activeCols!=null?activeCols.anySetBit(colPos):colPos+1;
-		}
-		//do the insert
-		table.put(put);
-	}
+    private ExecRow getExecRow(ImportContext context) throws DoNotRetryIOException {
+        int[] columnTypes = context.getColumnTypes();
+        FormatableBitSet activeCols = context.getActiveCols();
+        ExecRow row = new ValueRow(columnTypes.length);
+        if(activeCols!=null){
+            for(int i=activeCols.anySetBit();i!=-1;i=activeCols.anySetBit(i)){
+                row.setColumn(i+1,getDataValueDescriptor(columnTypes[i]));
+            }
+        }else{
+            for(int i=0;i<columnTypes.length;i++){
+                row.setColumn(i+1,getDataValueDescriptor(columnTypes[i]));
+            }
+        }
+        return row;
+    }
+
+    private DataValueDescriptor getDataValueDescriptor(int columnType) throws DoNotRetryIOException {
+        DataTypeDescriptor td = DataTypeDescriptor.getBuiltInDataTypeDescriptor(columnType);
+        try {
+            return td.getNull();
+        } catch (StandardException e) {
+            throw new DoNotRetryIOException(e.getMessageId());
+        }
+    }
+
+    /*****************************************************************************************************************/
+	/*private helper stuff*/
 
 	public static String[] parseCsvLine(String columnDelimiter, String line) throws IOException {
 		final CSVReader csvReader = new CSVReader(new StringReader(line), columnDelimiter.charAt(0));
 		return csvReader.readNext();
 	}
 
-	private String getTypeString(int columnType) {
-		switch(columnType){
-			case Types.BIT: return "Bit";
-			case Types.TINYINT: return "TinyInt";
-			case Types.SMALLINT: return "SmallInt";
-			case Types.INTEGER: return "Integer";
-			case Types.BIGINT: return "BigInt";
-			case Types.FLOAT: return "Float";
-			case Types.REAL: return "Real";
-			case Types.DOUBLE: return "Double";
-			case Types.NUMERIC: return "Numeric";
-			case Types.DECIMAL: return "Decimal";
-			case Types.CHAR: return "Char";
-			case Types.VARCHAR: return "Varchar";
-			case Types.LONGNVARCHAR: return "LongVarChar";
-			case Types.DATE: return "Date";
-			case Types.TIME :  return "Time";
-			case Types.TIMESTAMP: return "Timestamp";
-			case Types.BINARY: return "Binary";
-			case Types.VARBINARY: return "VarBinary";
-			case Types.LONGVARBINARY: return "LongVarBinary";
-			case Types.NULL: return "Null";
-			default:
-				return "Other";
-		}
-	}
-
-
-	/*
-	 * Convenience object to perform serializations without relying on DataValueDescriptors
-	 */
-	private static class Serializer{
-		private RowKey varBinRowKey;
-		private RowKey longKey;
-		private RowKey intKey;
-		private RowKey stringKey;
-		private RowKey decimalRowKey;
-
-		private final String charDelimiter;
-		private final SimpleDateFormat timestampFormat;
-
-		private Serializer(String charDelimiter) {
-			this(charDelimiter,null);
-		}
-
-		public Serializer(String stripString, String timestampFormat) {
-			this.charDelimiter = stripString;
-			if(timestampFormat==null)
-				timestampFormat ="yyyy-mm-dd hh:mm:ss";
-			this.timestampFormat = new SimpleDateFormat(timestampFormat);
-		}
-
-		byte[] serialize(String column,int columnType) throws IOException {
-			String col = preProcessColumn(column);
-			switch(columnType){
-				case Types.BOOLEAN:
-				//TODO -sf- boolean serializer?
-				case Types.SMALLINT:
-				case Types.TINYINT:
-				case Types.REF:
-				case Types.OTHER:
-				case Types.VARBINARY:
-				case Types.BLOB:
-				case Types.BINARY:
-				case Types.BIT:
-					if(varBinRowKey==null)
-						varBinRowKey = new VariableLengthByteArrayRowKey();
-					return varBinRowKey.serialize(Bytes.toBytes(col));
-				case Types.DATE:
-					Date date = getDate(col);
-					if(longKey==null)longKey = new LongRowKey();
-					return longKey.serialize(date.getTime());
-				case Types.TIMESTAMP:
-					Timestamp ts = getTimestamp(col);
-					if(longKey==null)longKey = new LongRowKey();
-					return longKey.serialize(ts.getTime());
-				case Types.TIME:
-					Time time = getTime(col);
-					if(longKey==null)longKey = new LongRowKey();
-					return longKey.serialize(time.getTime());
-				case Types.BIGINT:
-					if(longKey==null)
-						longKey = new LongRowKey();
-					return longKey.serialize(Long.parseLong(col));
-				case Types.DOUBLE:
-					if(decimalRowKey==null) decimalRowKey = new BigDecimalRowKey();
-					return decimalRowKey.serialize(new BigDecimal(col));
-				case Types.INTEGER:
-					if(intKey ==null)
-						intKey = new IntegerRowKey();
-					return intKey.serialize(Integer.parseInt(col.trim()));
-				case Types.VARCHAR:
-				case Types.LONGNVARCHAR:
-				case Types.CLOB:
-				case Types.SQLXML:
-					if(stringKey == null)
-						stringKey = new StringRowKey();
-					return stringKey.serialize(col);
-				case Types.DECIMAL:
-					if(decimalRowKey==null)
-						decimalRowKey = new BigDecimalRowKey();
-					return decimalRowKey.serialize(new BigDecimal(col));
-				default:
-					throw new IOException("Attempted to serialize unimplemented " +
-											"serializable entity "+col+" with col type number "+columnType);
-			}
-		}
-
-		private Date getDate(String col) throws IOException {
-			if(timestampFormat==null) return Date.valueOf(col);
-			try {
-				return new Date(timestampFormat.parse(col).getTime());
-			} catch (ParseException e) {
-				throw new IOException(e);
-			}
-		}
-
-		private Timestamp getTimestamp(String col) throws IOException{
-			try {
-				return timestampFormat==null? Timestamp.valueOf(col): new Timestamp(timestampFormat.parse(col).getTime());
-			} catch (ParseException e) {
-				throw new IOException(e);
-			}
-		}
-
-		private Time getTime(String col) throws IOException{
-			try {
-				return timestampFormat==null? Time.valueOf(col): new Time(timestampFormat.parse(col).getTime());
-			} catch (ParseException e) {
-				throw new IOException(e);
-			}
-		}
-
-		private String preProcessColumn(String column) {
-			return column;
-			// Commented Out - John Leach - CSVParser already handles this...
-		}
-	}
 }
