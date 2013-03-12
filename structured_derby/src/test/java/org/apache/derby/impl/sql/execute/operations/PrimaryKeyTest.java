@@ -1,5 +1,6 @@
 package org.apache.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.DerbyTestRule;
 import junit.framework.Assert;
@@ -12,6 +13,7 @@ import org.junit.Test;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -202,4 +204,29 @@ public class PrimaryKeyTest {
         if(rs.next());
     }
 
+    @Test
+    public void testCanRetrievePrimaryKeysFromMetadata() throws Exception{
+        ResultSet rs = rule.getConnection().getMetaData().getPrimaryKeys(null,null,"t");
+        List<String> results = Lists.newArrayList();
+        while(rs.next()){
+            String tableCat = rs.getString(1);
+            String tableSchem = rs.getString(2);
+            String tableName = rs.getString(3);
+            String colName = rs.getString(4);
+            short keySeq = rs.getShort(5);
+            String pkName = rs.getString(6);
+
+            Assert.assertNotNull("No Table name returned",tableName);
+            Assert.assertNotNull("No Column name returned",colName);
+            Assert.assertNotNull("No Pk Name returned",pkName);
+
+            results.add(String.format("cat:%s,schema:%s,table:%s,column:%s,pk:%s,seqNum:%d",
+                    tableCat,tableSchem,tableName,colName,pkName,keySeq));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+
+        Assert.assertTrue("No Pks returned!",results.size()>0);
+    }
 }

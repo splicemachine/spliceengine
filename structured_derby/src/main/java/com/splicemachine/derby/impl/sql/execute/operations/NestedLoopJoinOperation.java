@@ -103,7 +103,6 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	
 	@Override
 	public ExecRow getExecRowDefinition() {
-		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 		JoinUtils.getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition(),false,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
 	}
