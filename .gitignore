@@ -8,4 +8,6 @@
 **/target/
 *.class
 *.jad
-
+*.project
+*.classpath
+*.prefs
