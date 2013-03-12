@@ -39,6 +39,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	protected ExecRow mergedRow;
 	protected int leftResultSetNumber;
 	
+	public long restrictionTime;
+	public int rowsReturned;
+	
 	public JoinOperation() {
 		super();
 	}
@@ -161,6 +164,22 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		return rightResultSet;
 	}
 
+	public int getLeftNumCols() {
+		return this.leftNumCols;
+	}
+	
+	public int getRightNumCols() {
+		return this.rightNumCols;
+	}
+	
+	public boolean isOneRowRightSide() {
+		return this.oneRowRightSide;
+	}
+	
+	public String getUserSuppliedOptimizerOverrides() {
+		return this.userSuppliedOptimizerOverrides;
+	}
+	
 	@Override
 	public String toString() {
 		return String.format("JoinOperation {resultSetNumber=%d,left=%s,right=%s}",resultSetNumber,leftResultSet,rightResultSet);

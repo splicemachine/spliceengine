@@ -36,6 +36,7 @@ import java.util.List;
 public abstract class DMLWriteOperation extends SpliceBaseOperation {
 	private static final Logger LOG = Logger.getLogger(DMLWriteOperation.class);
 	protected NoPutResultSet source;
+	public NoPutResultSet savedSource;
 	ConstantAction constants;
 	protected long heapConglom;
 	
@@ -177,6 +178,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 			SpliceLogUtils.trace(LOG, "open");
 			try {
 				source.openCore();
+				/* Cache query plan text for source, before it gets blown away */
+				if (activation.getLanguageConnectionContext().getRunTimeStatisticsMode())
+				{
+					/* savedSource nulled after run time statistics generation */
+					savedSource = source;
+				}
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
@@ -224,4 +231,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		}
 	};
 	
+	public int getModifiedRowCount() {
+		if (modifiedProvider != null)
+			return modifiedProvider.getModifiedRowCount();
+		else
+			return (int)rowsSunk;
+	}
+	
+	public NoPutResultSet getSource() {
+		return this.source;
+	}
 }

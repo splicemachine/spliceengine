@@ -1,20 +1,23 @@
 package com.splicemachine.si2.si.api;
 
-import com.splicemachine.si2.relations.api.Relation;
-import com.splicemachine.si2.relations.api.TuplePut;
+import com.splicemachine.si2.data.api.STable;
+import org.apache.hadoop.hbase.filter.Filter;
 
-import java.util.List;
+import java.io.IOException;
 
 /**
  * The primary interface to the transaction module.
  */
 public interface Transactor {
-	public TransactionId beginTransaction();
-	public void commitTransaction(TransactionId transactionId);
-	public void abortTransaction(TransactionId transactionId);
-	public void failTransaction(TransactionId transactionId);
+    TransactionId beginTransaction();
+    void commit(TransactionId transactionId) throws IOException;
+    void abort(TransactionId transactionId);
+    void fail(TransactionId transactionId);
 
-	List<TuplePut> processTuplePuts(TransactionId transactionId, Relation relation, List<TuplePut> tuples);
-	public Object filterTuple(TransactionId transactionId, Object tuple);
+    boolean processPut(STable table, Object put) throws IOException;
+    boolean isFilterNeeded(Object operation);
+    Object filterResult(FilterState filterState, Object result) throws IOException;
 
+    FilterState newFilterState(STable table, TransactionId transactionId) throws IOException;
+    Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue);
 }

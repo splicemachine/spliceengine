@@ -218,4 +218,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Error closing Temp Table",e);
 		}
 	}
+	public NoPutResultSet getSource() {
+		return this.source;
+	}
 }

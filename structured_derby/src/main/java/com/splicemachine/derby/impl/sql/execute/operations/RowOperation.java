@@ -215,6 +215,10 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 		}
 	}
 	
+	public int getRowsReturned() {
+		return this.rowsReturned;
+	}
+	
 	@Override
 	public void	close() throws StandardException
 	{

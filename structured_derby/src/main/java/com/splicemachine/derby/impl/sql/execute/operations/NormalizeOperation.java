@@ -246,4 +246,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		if(source!=null) source.openCore();
 	}
 
+	public NoPutResultSet getSource() {
+		return this.source;
+	}
 }

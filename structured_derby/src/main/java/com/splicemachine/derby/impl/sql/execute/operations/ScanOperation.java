@@ -9,6 +9,8 @@ import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -31,8 +33,8 @@ import java.io.ObjectOutput;
 public abstract class ScanOperation extends SpliceBaseOperation implements CursorResultSet{
 	private static Logger LOG = Logger.getLogger(ScanOperation.class);
 	private static long serialVersionUID=5l;
-	protected int lockMode;
-	protected int isolationLevel;
+	public int lockMode;
+	public int isolationLevel;
 	protected ExecRow candidate;
 	protected FormatableBitSet accessedCols;
 	protected String resultRowAllocatorMethodName;
@@ -50,12 +52,15 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	protected boolean isKeyed;
 	protected GeneratedMethod startKeyGetter;
 	protected GeneratedMethod stopKeyGetter;
-
+	protected String tableName;
+	protected String indexName;
+	public boolean isConstraint;
+	public boolean forUpdate;
+	
 	private int colRefItem;
 	protected GeneratedMethod resultRowAllocator;
     protected ExecRow currentTemplate;
-
-
+    
 	public ScanOperation () {
 		super();
 	}
@@ -231,4 +236,126 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	public int[] getRootAccessedCols() {
         return baseColumnMap;
 	}
+    
+    public FormatableBitSet getAccessedCols() {
+    	return this.accessedCols;
+    }
+    
+    public Qualifier[][] getScanQualifiers() {
+    	return this.scanQualifiers;
+    }
+    
+    public String getTableName(){
+    	return this.tableName;
+    }
+    
+    public String getIndexName() {
+    	return this.indexName;
+    }
+    
+    public String printStartPosition()
+   	{
+   		return printPosition(startSearchOperator, startKeyGetter, startPosition);
+   	}
+
+   	public String printStopPosition()
+   	{
+   		if (sameStartStopPosition)
+   		{
+   			return printPosition(stopSearchOperator, startKeyGetter, startPosition);
+   		}
+   		else
+   		{
+   			return printPosition(stopSearchOperator, stopKeyGetter, stopPosition);
+   		}
+   	}
+
+   	/**
+   	 * Return a start or stop positioner as a String.
+   	 *
+   	 * If we already generated the information, then use
+   	 * that.  Otherwise, invoke the activation to get it.
+   	 */
+   	private String printPosition(int searchOperator,
+   								 GeneratedMethod positionGetter,
+   								 ExecIndexRow positioner)
+   	{
+   		String output = "";
+   		if (positionGetter == null)
+   		{
+   			return "\t" +
+   					MessageService.getTextMessage(SQLState.LANG_NONE) +
+   					"\n";
+   		}
+   		
+   		if (positioner == null)
+   		{
+   			if (numOpens == 0)
+   				return "\t" + MessageService.getTextMessage(
+   					SQLState.LANG_POSITION_NOT_AVAIL) +
+                                       "\n";
+   			try
+   			{
+   				positioner = (ExecIndexRow)positionGetter.invoke(activation);
+   			}
+   			catch (StandardException e)
+   			{
+   				return "\t" + MessageService.getTextMessage(
+   						SQLState.LANG_UNEXPECTED_EXC_GETTING_POSITIONER,
+   						e.toString());
+   			}
+   		}
+   		if (positioner == null)
+   		{
+   			return "\t" +
+   					MessageService.getTextMessage(SQLState.LANG_NONE) +
+   					"\n";
+   		}
+   		String searchOp = null;
+
+   		switch (searchOperator)
+   		{
+   			case ScanController.GE:
+   				searchOp = ">=";
+   				break;
+
+   			case ScanController.GT:
+   				searchOp = ">";
+   				break;
+
+   			default:
+
+   				// NOTE: This does not have to be internationalized because
+   				// this code should never be reached.
+   				searchOp = "unknown value (" + searchOperator + ")";
+   				break;
+   		}
+
+   		output = output + "\t" +
+   						MessageService.getTextMessage(
+   							SQLState.LANG_POSITIONER,
+   							searchOp,
+   							String.valueOf(positioner.nColumns())) +
+   						"\n";
+
+   		output = output + "\t" +
+   					MessageService.getTextMessage(
+   						SQLState.LANG_ORDERED_NULL_SEMANTICS) +
+   					"\n";
+   		boolean colSeen = false;
+   		for (int position = 0; position < positioner.nColumns(); position++)
+   		{
+   			if (positioner.areNullsOrdered(position))
+   			{
+   				output = output + position + " ";
+   				colSeen = true;
+   			}
+
+   			if (colSeen && position == positioner.nColumns() - 1) {
+   				output = output +  "\n";
+   			}
+   		}
+
+   		return output;
+   	}
 }

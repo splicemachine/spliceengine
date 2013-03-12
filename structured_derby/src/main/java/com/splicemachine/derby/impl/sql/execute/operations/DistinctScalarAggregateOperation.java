@@ -178,7 +178,7 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
 		}
         return stats.finish();
 	}
-	
+
 //	@Override
 //	protected ExecRow doAggregation(boolean useScan) throws StandardException{
 //		ExecIndexRow execIndexRow = null;

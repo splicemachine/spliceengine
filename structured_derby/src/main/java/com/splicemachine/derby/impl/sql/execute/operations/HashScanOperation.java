@@ -48,7 +48,6 @@ import java.util.Map;
 public class HashScanOperation extends ScanOperation {
 	private static Logger LOG = Logger.getLogger(HashScanOperation.class);
 	protected Scan mapScan;
-	protected String mapTableName;
 	protected Boolean isKeyed;
 	protected ExecRow currentRow;
 	protected int hashKeyItem;
@@ -61,7 +60,7 @@ public class HashScanOperation extends ScanOperation {
 	public static final	int	DEFAULT_INITIAL_CAPACITY = -1;
 	public static final float DEFAULT_LOADFACTOR = (float) -1.0;
 	public static final	int	DEFAULT_MAX_CAPACITY = -1;
-
+	
 	protected Hasher hasher;
 	
 	static {
@@ -104,9 +103,10 @@ public class HashScanOperation extends ScanOperation {
     	super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,sameStartStopPosition,scanQualifiersField,
     			resultRowAllocator,lockMode,tableLocked,isolationLevel,colRefItem,optimizerEstimatedRowCount,optimizerEstimatedCost);
 		SpliceLogUtils.trace(LOG, "scan operation instantiated for " + tableName);
-		this.mapTableName = "" + conglomId;
+		this.tableName = "" + conglomId;
 		this.hashKeyItem = hashKeyItem;
 		this.nextQualifierField = nextQualifierField;
+		this.indexName = indexName;
         init(SpliceOperationContext.newContext(activation));
 	}
 	
@@ -114,7 +114,7 @@ public class HashScanOperation extends ScanOperation {
 	public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
 		SpliceLogUtils.trace(LOG, "readExternal");
 		super.readExternal(in);
-		mapTableName = in.readUTF();
+		tableName = in.readUTF();
 		hashKeyItem = in.readInt();
 		nextQualifierField = readNullableString(in);
 		eliminateDuplicates = in.readBoolean();
@@ -124,7 +124,7 @@ public class HashScanOperation extends ScanOperation {
 	public void writeExternal(ObjectOutput out) throws IOException {
 		SpliceLogUtils.trace(LOG, "writeExternal");
 		super.writeExternal(out);
-		out.writeUTF(mapTableName);
+		out.writeUTF(tableName);
 		out.writeInt(hashKeyItem);
 		writeNullableString(nextQualifierField, out);
 		out.writeBoolean(eliminateDuplicates);
@@ -178,10 +178,10 @@ public class HashScanOperation extends ScanOperation {
 		final SpliceOperation regionOperation = operationStack.get(0);
 		HTableInterface htable = null;
 		try {
-			htable = SpliceAccessManager.getHTable(Bytes.toBytes(mapTableName));
-			SpliceLogUtils.trace(LOG, "executing coprocessor on table=" + mapTableName + ", with scan=" + mapScan);
+			htable = SpliceAccessManager.getHTable(Bytes.toBytes(tableName));
+			SpliceLogUtils.trace(LOG, "executing coprocessor on table=" + tableName + ", with scan=" + mapScan);
 			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,regionOperation);
-            final RegionStats regionStats = new RegionStats();
+            regionStats = new RegionStats();
             regionStats.start();
 			htable.coprocessorExec(SpliceOperationProtocol.class,
 					mapScan.getStartRow(), mapScan.getStopRow(),
@@ -289,7 +289,7 @@ public class HashScanOperation extends ScanOperation {
 	@Override
 	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow template){
 		SpliceUtils.setInstructions(mapScan,getActivation(),top);
-		return new ClientScanProvider(Bytes.toBytes(mapTableName),mapScan,template,null);
+		return new ClientScanProvider(Bytes.toBytes(tableName),mapScan,template,null);
 	}
 	
 	@Override
@@ -347,5 +347,13 @@ public class HashScanOperation extends ScanOperation {
 	    currentRow = null;
 	    this.setCurrentRow(currentRow);
 		return currentRow;		  
+	}
+	
+	public int[] getKeyColumns() {
+		return this.keyColumns;
+	}
+	
+	public Qualifier[][] getNextQualifier() {
+		return this.nextQualifier;
 	}
 }

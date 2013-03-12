@@ -22,6 +22,8 @@ public class RegionStats {
 
     private long start;
     private long totalTimeTaken;
+    private long totalProcessedRecords = 0l;
+    private long totalSunkRecords = 0l;
 
 
     public void addRegionStats(byte[] region, SinkStats stats){
@@ -39,6 +41,18 @@ public class RegionStats {
 
     public long getTotalTimeTaken(){
         return totalTimeTaken;
+    }
+    
+    public long getTotalSunkRecords(){
+        return totalSunkRecords;
+    }
+    
+    public long getTotalProcessedRecords(){
+        return totalProcessedRecords;
+    }
+    
+    public long getTotalRegions() {
+    	return processStats.size(); //do processStats and sinkStats have the same # of regions? 
     }
 
     public void recordStats(Logger log) {
@@ -62,9 +76,9 @@ public class RegionStats {
                 .append("Coprocessor Time: ").append(toSeconds(totalTimeTaken))
                 .append("\t Number of Regions: ").append(processStats.size())
                 .append("\nProcess Summary:\n")
-                .append(writeSummaryStats(processStats))
+                .append(writeSummaryStats(processStats, false))
                 .append("\nSink Summary:\n")
-                .append(writeSummaryStats(sinkStats)).toString();
+                .append(writeSummaryStats(sinkStats, true)).toString();
         log.debug(sb);
 
         if(!showDetail) return; //no more to log
@@ -83,7 +97,7 @@ public class RegionStats {
 
     }
 
-    private static String writeSummaryStats(Map<byte[], Stats> statsMap) {
+    private String writeSummaryStats(Map<byte[], Stats> statsMap, boolean isSunk) {
         long[] times = new long[statsMap.size()];
         long[] records = new long[statsMap.size()];
 
@@ -95,9 +109,8 @@ public class RegionStats {
         long maxTime = 0l;
         long minRecords = Long.MAX_VALUE;
         long maxRecords = 0l;
-
-        long totalTime = 0l;
         long totalRecords = 0l;
+        long totalTime = 0l;
         int pos=0;
         for(byte[] region:statsMap.keySet()){
             Stats stats = statsMap.get(region);
@@ -122,15 +135,21 @@ public class RegionStats {
             }
 
             totalTime+=regionTotalTime;
-            totalRecords+=regionTotalRecords;
+            totalRecords += regionTotalRecords;
             times[pos] = regionTotalTime;
             records[pos] = regionTotalRecords;
         }
+        
+        if (isSunk)
+        	totalSunkRecords=totalRecords;
+        else
+        	totalProcessedRecords=totalRecords;
+        
         Arrays.sort(times);
         Arrays.sort(records);
 
         return new StringBuilder("Total Time: ").append(toSeconds(totalTime))
-                .append("\t").append("Number of Records: ").append(totalRecords)
+                .append("\t").append("Number of Records: ").append(totalSunkRecords)
                 .append("\nTiming Stats")
                 .append("\tmin: ").append(toSeconds(minTime))
                 .append(" |max: ").append(toSeconds(maxTime))
