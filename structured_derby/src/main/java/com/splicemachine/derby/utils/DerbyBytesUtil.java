@@ -425,7 +425,7 @@ public class DerbyBytesUtil {
                     return out;
                 } catch (IOException e) {
                     //will never happen,
-                    throw new AssertionError("Unexpected serialization error!",e);
+                    throw new RuntimeException("Unexpected serialization error!",e);
                 }
             case StoredFormatIds.SQL_TINYINT_ID:
                 return Bytes.toBytes(descriptor.getByte());
