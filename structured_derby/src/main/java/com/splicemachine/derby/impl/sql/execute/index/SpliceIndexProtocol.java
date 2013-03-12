@@ -30,5 +30,12 @@ public interface SpliceIndexProtocol extends CoprocessorProtocol{
                                 long baseConglomId,
                                 int[] indexColsToBaseColMap,boolean isUnique) throws IOException;
 
+    /**
+     * Drop the specified index from the specified table.
+     *
+     * @param indexConglomId the conglomerate id of the index to drop
+     * @param baseConglomId the conglomerate id of the table to drop the index off of
+     * @throws IOException if something goes wrong dropping the index.
+     */
     public void dropIndex(long indexConglomId,long baseConglomId) throws IOException;
 }

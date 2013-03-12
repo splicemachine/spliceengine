@@ -3,7 +3,7 @@ package com.splicemachine.derby.hbase;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
-import com.splicemachine.derby.impl.sql.execute.index.IndexUtils;
+import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
 import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -47,7 +47,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             return;
         }
 
-        indexSet = IndexUtils.getIndex(conglomId);
+        indexSet = IndexSetPool.getIndex(conglomId);
         SpliceDriver.Service service = new SpliceDriver.Service(){
 
             @Override

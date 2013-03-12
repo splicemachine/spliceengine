@@ -7,7 +7,6 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchProtocol;
-import com.splicemachine.hbase.BatchTable;
 import com.splicemachine.hbase.SafeTable;
 import com.splicemachine.hbase.SpliceTable;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -22,9 +21,14 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
 
 /**
+ * Manages Index updates to keep it in sync with main table lookups.
+ *
  * @author Scott Fines
  * Created on: 2/28/13
  */
@@ -37,10 +41,18 @@ public class IndexManager {
      */
     private final int[] indexColsToMainColMap;
 
+    /*
+     * A cache of column positions in the main table puts. This speeds
+     * access and transformation of Puts and Deletes into Index Puts and
+     * Deletes.
+     */
     private final byte[][] mainColPos;
 
     /*
      * The id for the index table
+     *
+     * indexConglomBytes is a cached byte[] representation of the indexConglomId
+     * to speed up transformations.
      */
     private final long indexConglomId;
     private final byte[] indexConglomBytes;
@@ -64,19 +76,29 @@ public class IndexManager {
         }
     }
 
-    private static int[] translate(int[] ints) {
-        int[] zeroBased = new int[ints.length];
-        for(int pos=0;pos<ints.length;pos++){
-            zeroBased[pos] = ints[pos]-1;
-        }
-        return zeroBased;
-    }
-
+    /**
+     * Update the index to remain in sync with the specified main table mutation.
+     *
+     * @param mutation the main table mutation
+     * @param rce the region environment
+     * @throws IOException if something goes wrong updating the index
+     */
     public void update(Mutation mutation, RegionCoprocessorEnvironment rce) throws IOException{
+        /*
+         * It turns out that rce.getTable(indexConglomBytes) is a really expensive call,
+         * so it's best to avoid it whenever the mutation has already been managed externally.
+         */
         if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null) return; //index already managed for this
         update(mutation,rce.getTable(indexConglomBytes),rce.getRegion());
     }
 
+    /**
+     * Update the index to remain in sync with <em> all</em> the specified main table mutations.
+     *
+     * @param mutations the mutations to the main table to sync
+     * @param rce the region environment
+     * @throws IOException if something goes wrong syncing the index with <em>any</em> mutation in {@code mutations}
+     */
     public void update(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException{
         //get the table ahead of time for better batch putting
 
@@ -88,20 +110,97 @@ public class IndexManager {
         table.close();
     }
 
-    private void update(Mutation mutation, HTableInterface table,HRegion region) throws IOException{
+    /**
+     * Translate a list of KeyValue objects into a List of insert puts.
+     *
+     * @param result the keyvalues to translate
+     * @return a list of puts, one for each distinct row in {@code result}
+     * @throws IOException if something goes wrong during the translation
+     */
+    public List<Put> translateResult(List<KeyValue> result) throws IOException{
+        Map<byte[],List<KeyValue>> putConstructors = Maps.newHashMapWithExpectedSize(1);
+        for(KeyValue keyValue:result){
+            List<KeyValue> cols = putConstructors.get(keyValue.getRow());
+            if(cols==null){
+                cols = Lists.newArrayListWithExpectedSize(indexColsToMainColMap.length);
+                putConstructors.put(keyValue.getRow(),cols);
+            }
+            cols.add(keyValue);
+        }
+        //build Puts for each row
+        List<Put> indexPuts = Lists.newArrayListWithExpectedSize(putConstructors.size());
+        for(byte[] mainRow: putConstructors.keySet()){
+            List<KeyValue> rowData = putConstructors.get(mainRow);
+            byte[][] indexRowData = getDataArray();
+            int rowSize=0;
+            for(KeyValue kv:rowData){
+                int colPos = Integer.parseInt(Bytes.toString(kv.getQualifier()));
+                for(int indexPos=0;indexPos<indexColsToMainColMap.length;indexPos++){
+                    if(colPos == indexColsToMainColMap[indexPos]){
+                        byte[] val = kv.getValue();
+                        indexRowData[indexPos] = val;
+                        rowSize+=val.length;
+                        break;
+                    }
+                }
+            }
+            if(!isUnique){
+                byte[] postfix = SpliceUtils.getUniqueKey();
+                indexRowData[indexRowData.length-1] = postfix;
+                rowSize+=postfix.length;
+            }
 
+            byte[] finalIndexRow = new byte[rowSize];
+            int offset =0;
+            for(byte[] indexCol:indexRowData){
+                System.arraycopy(indexCol,0,finalIndexRow,offset,indexCol.length);
+                offset+=indexCol.length;
+            }
+            Put indexPut = new Put(finalIndexRow);
+            for(int dataPos=0;dataPos<indexRowData.length;dataPos++){
+                byte[] putPos = Integer.toString(dataPos).getBytes();
+                indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
+            }
+
+            indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
+                    Integer.toString(rowData.size()).getBytes(),mainRow);
+            indexPuts.add(indexPut);
+        }
+
+        return indexPuts;
+    }
+/*********************************************************************************************************************/
+    /*private helper methods*/
+
+    /*
+     * Convenience wrapper around type casting of the mutation.
+     */
+    private void update(Mutation mutation, HTableInterface table,HRegion region) throws IOException{
         if(mutation instanceof Put)
             updateIndex((Put)mutation,table,region);
         else
             update((Delete) mutation, table);
     }
 
+    /*
+     * convert a one-based int[] into a zero-based. In essence, shift all values in the array down by one
+     */
+    private static int[] translate(int[] ints) {
+        int[] zeroBased = new int[ints.length];
+        for(int pos=0;pos<ints.length;pos++){
+            zeroBased[pos] = ints[pos]-1;
+        }
+        return zeroBased;
+    }
+
+    /*
+     * Update the index to delete records that are no longer in the main table.
+     */
     private void update(Delete delete, HTableInterface table) throws IOException{
         /*
          * To delete an entry, we'll need to first get the row, then construct
          * the index row key from the row, then delete it
          */
-
         Get get = new Get(delete.getRow());
         for(byte[] mainColumn:mainColPos){
             get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColumn);
@@ -118,7 +217,6 @@ public class IndexManager {
             rowKeyBuilder[indexPos] = data;
             size+=data.length;
         }
-
 
         final byte[] indexRowKey = convert(rowKeyBuilder,size);
 
@@ -150,6 +248,9 @@ public class IndexManager {
         }
     }
 
+    /*
+     * concatenate all the entries in rowKeyBuilder into a single byte[] for keying off of
+     */
     private byte[] convert(byte[][] rowKeyBuilder, int size) {
         byte[] indexRowKey = new byte[size];
         int offset = 0;
@@ -161,7 +262,9 @@ public class IndexManager {
         return indexRowKey;
     }
 
-
+    /*
+     * Update the index to manage inserts and updates.
+     */
     private void updateIndex(Put mainPut,HTableInterface table,HRegion region) throws IOException{
         Put put = doUpdate(mainPut,table,region);
         if(put==null) return; //this was an update, but it doesn't affect our index, whoo!
@@ -196,6 +299,16 @@ public class IndexManager {
         doPut(indexPut, table) ;
     }
 
+    /*
+     * Deal with Puts which are logged as Update-types.
+     *
+     * In HBase, Updates and Inserts are the same thing, but in Splice they are not. Thus, update operations
+     * tag puts with an update tag, which this notices and performs the update to the index if necessary.
+     *
+     * If the update doesn't touch any of the indexed columns, then this is a no-op. Otherwise, a local get
+     * is performed to get the old values of the index row, which is then deleted from the index. Then
+     * this Put is treated as if it were an insert.
+     */
     private Put doUpdate(Put mainPut, HTableInterface table,HRegion region) throws IOException {
         if(!Bytes.equals(mainPut.getAttribute(Puts.PUT_TYPE),Puts.FOR_UPDATE))
             return mainPut; //it's an insert
@@ -249,6 +362,9 @@ public class IndexManager {
         return newPut;
     }
 
+    /*
+     * Convenience wrapper around constructing a proper index row array.
+     */
     private byte[][] getDataArray() {
         byte[][] rowKeyBuilder;
         if(isUnique)
@@ -258,6 +374,9 @@ public class IndexManager {
         return rowKeyBuilder;
     }
 
+    /*
+     * Actually perform the put. Convenience around error management.
+     */
     private void doPut(Put put, HTableInterface table) throws IOException{
         try {
             table.put(put);
@@ -283,62 +402,6 @@ public class IndexManager {
         }
     }
 
-    public List<Put> translateResult(List<KeyValue> result) throws IOException{
-        Map<byte[],List<KeyValue>> putConstructors = Maps.newHashMapWithExpectedSize(1);
-        for(KeyValue keyValue:result){
-            List<KeyValue> cols = putConstructors.get(keyValue.getRow());
-            if(cols==null){
-                cols = Lists.newArrayListWithExpectedSize(indexColsToMainColMap.length);
-                putConstructors.put(keyValue.getRow(),cols);
-            }
-            cols.add(keyValue);
-        }
-        //build Puts for each row
-        List<Put> indexPuts = Lists.newArrayListWithExpectedSize(putConstructors.size());
-        for(byte[] mainRow: putConstructors.keySet()){
-            List<KeyValue> rowData = putConstructors.get(mainRow);
-            byte[][] indexRowData;
-            if(isUnique)
-                indexRowData = new byte[rowData.size()][];
-            else
-                indexRowData = new byte[rowData.size()+1][];
-            int rowSize=0;
-            for(KeyValue kv:rowData){
-                int colPos = Integer.parseInt(Bytes.toString(kv.getQualifier()));
-                for(int indexPos=0;indexPos<indexColsToMainColMap.length;indexPos++){
-                    if(colPos == indexColsToMainColMap[indexPos]){
-                        byte[] val = kv.getValue();
-                        indexRowData[indexPos] = val;
-                        rowSize+=val.length;
-                        break;
-                    }
-                }
-            }
-            if(!isUnique){
-                byte[] postfix = SpliceUtils.getUniqueKey();
-                indexRowData[indexRowData.length-1] = postfix;
-                rowSize+=postfix.length;
-            }
-
-            byte[] finalIndexRow = new byte[rowSize];
-            int offset =0;
-            for(byte[] indexCol:indexRowData){
-                System.arraycopy(indexCol,0,finalIndexRow,offset,indexCol.length);
-                offset+=indexCol.length;
-            }
-            Put indexPut = new Put(finalIndexRow);
-            for(int dataPos=0;dataPos<indexRowData.length;dataPos++){
-                byte[] putPos = Integer.toString(dataPos).getBytes();
-                indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
-            }
-
-            indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
-                    Integer.toString(rowData.size()).getBytes(),mainRow);
-            indexPuts.add(indexPut);
-        }
-
-        return indexPuts;
-    }
 
 
 
@@ -363,7 +426,6 @@ public class IndexManager {
      *
      * @param indexConglomId the conglomerate of the destination index
      * @param indexDescriptor an Index descriptor for the index.
-     * @return a new IndexManager with an underlying table from the default SpliceTablePool
      * @throws IOException if something goes wrong allocating the underlying table pool.
      */
     public static IndexManager create(long indexConglomId,IndexDescriptor indexDescriptor) throws IOException {

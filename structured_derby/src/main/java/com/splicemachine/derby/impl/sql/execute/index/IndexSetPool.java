@@ -4,14 +4,16 @@ import com.splicemachine.tools.ResourcePool;
 import com.splicemachine.tools.ThreadSafeResourcePool;
 
 /**
- * Utilities for dealing with Index stuff.
+ * Pool implementation for IndexSets.
  *
  * @author Scott Fines
  * Created on: 3/11/13
  */
-public class IndexUtils {
+public class IndexSetPool {
 
-
+    /*
+     * Key implementation for obtaining a shared IndexSet.
+     */
     private static class IndexKey implements ResourcePool.Key{
         private final long mainTableConglomId;
 

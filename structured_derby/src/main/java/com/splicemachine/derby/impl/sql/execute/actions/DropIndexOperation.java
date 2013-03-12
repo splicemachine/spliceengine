@@ -23,8 +23,10 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
+ * Drops an index from a table.
+ *
  * @author Scott Fines
- *         Created on: 3/7/13
+ * Created on: 3/7/13
  */
 public class DropIndexOperation implements ConstantAction {
 

@@ -12,8 +12,10 @@ import org.apache.derby.impl.sql.execute.CreateTableConstantAction;
 import java.util.Properties;
 
 /**
+ * A Constant Action for creating a table in a Splice-efficient fashion
+ *
  * @author Scott Fines
- *         Created on: 3/5/13
+ * Created on: 3/5/13
  */
 public class CreateTableAction extends CreateTableConstantAction {
     /**

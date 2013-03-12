@@ -1,9 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.derby.impl.sql.execute.index.TableSource;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -31,24 +30,22 @@ public class ForeignKey implements Constraint{
     private final String refTableName;
     //for performance efficiency
     private final byte[] refTableBytes;
-    private final TableSource tableSource;
 
     private final byte[] mainTableBytes;
 
-    public ForeignKey(String refTableName,String mainTable,BitSet fkCols,TableSource tableSource)  {
+    public ForeignKey(String refTableName,String mainTable,BitSet fkCols)  {
         this.fkCols = fkCols;
         this.refTableName = refTableName;
         this.refTableBytes = Bytes.toBytes(refTableName);
-        this.tableSource = tableSource;
         this.mainTableBytes = Bytes.toBytes(mainTable);
     }
 
 //    @Override
     public boolean validate(Put put,RegionCoprocessorEnvironment rce) throws IOException{
-        Get get = new Get(Constraints.getReferencedRowKey(put, fkCols));
-        get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+//        Get get = new Get(Constraints.getReferencedRowKey(put, fkCols));
+//        get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
 
-        return tableSource.getTable(refTableBytes).exists(get);
+        return true;// TODO -sf- implement
     }
 
 //    @Override
@@ -58,30 +55,30 @@ public class ForeignKey implements Constraint{
     }
 
     public void updateForeignKey(Put put) throws IOException{
-        byte[] referencedRowKey = Constraints.getReferencedRowKey(put, fkCols);
-        if(referencedRowKey==null)
-            throw new DoNotRetryIOException("Foreign Key Constraint Violation");
+//        byte[] referencedRowKey = Constraints.getReferencedRowKey(put, fkCols);
+//        if(referencedRowKey==null)
+//            throw new DoNotRetryIOException("Foreign Key Constraint Violation");
 
-        tableSource.getTable(refTableBytes).incrementColumnValue(referencedRowKey,
-                FOREIGN_KEY_FAMILY,FOREIGN_KEY_COLUMN,1l);
+//        tableSource.getTable(refTableBytes).incrementColumnValue(referencedRowKey,
+//                FOREIGN_KEY_FAMILY,FOREIGN_KEY_COLUMN,1l);
     }
 
     public void updateForeignKey(Delete delete) throws IOException{
-        Get get = new Get(delete.getRow());
-        for(int fk = fkCols.nextSetBit(0);fk!=-1;fk=fkCols.nextSetBit(fk+1)){
-            get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(fk).getBytes());
-        }
-        HTableInterface table = tableSource.getTable(mainTableBytes);
-        Result result = table.get(get);
-        if(result==null){
+//        Get get = new Get(delete.getRow());
+//        for(int fk = fkCols.nextSetBit(0);fk!=-1;fk=fkCols.nextSetBit(fk+1)){
+//            get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(fk).getBytes());
+//        }
+//        HTableInterface table = tableSource.getTable(mainTableBytes);
+//        Result result = table.get(get);
+//        if(result==null){
             //don't know why this would be, we're about to delete it!
             //oh well, guess we don't have to do anything
-            return;
-        }
-        byte[] referencedRowKey = Constraints.getReferencedRowKey(
-                result.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES), fkCols);
-        if(referencedRowKey==null) return; //nothing to update!
-        table.incrementColumnValue(FOREIGN_KEY_FAMILY,FOREIGN_KEY_COLUMN,referencedRowKey,-1l);
+//            return;
+//        }
+//        byte[] referencedRowKey = Constraints.getReferencedRowKey(
+//                result.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES), fkCols);
+//        if(referencedRowKey==null) return; //nothing to update!
+//        table.incrementColumnValue(FOREIGN_KEY_FAMILY,FOREIGN_KEY_COLUMN,referencedRowKey,-1l);
     }
 
     @Override

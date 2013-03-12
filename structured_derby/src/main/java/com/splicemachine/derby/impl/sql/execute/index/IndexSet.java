@@ -22,38 +22,75 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Represents all Indices and Constraints on a Table.
  *
+ * While this instance <em>can</em> be created on its own, it is recommended that
+ * instances be obtained through an IndexSetPool implementation.
+ *
+ * An IndexSet can be in one of several states(denoted by the State enum):
+ *
+ * WAITING_TO_START: all Mutations will issue a warning that IndexManagement hasn't yet started,
+ * but will be allowed through. This is required to prevent deadlocks during Splice startup due to
+ * derby's need to update indexed tables before the data dictionary can be fully loaded, but
+ * we have to have a fully loaded data dictionary to populate index information.
+ *
+ * READY_TO_START: We have successfully loaded a data dictionary, and can load up index information at any
+ * time. In practice, the most likely time is on the first mutation call to the table. Mutations which
+ * encounter the READY_TO_START state will initialize the index set before proceeding.
+ *
+ * STARTING: The IndexSet is in the process of initializing state. Mutations which encounter the STARTING
+ * state will block until the IndexSet has completed initialization
+ *
+ * RUNNING: Index Management is online, Mutations which encounter this state will update indices in a non-blocking
+ * fashion
+ *
+ * SETUP_FAILED: Setting up Derby failed in some way. Mutations encountering this state will throw a
+ * DoNotRetryIOException indicating that index management can't be performed until the problem is fixed.
+ *
+ * SHUTDOWN: Index Management has been terminated. Mutations will fail as they can't manage indices.
+ *
+ * NOT_MANAGED: Index management is disabled for this table. This is so that things which are managed through,
+ * e.g. Derby, are not also indexed through an IndexSet. Typically, this applies to System tables, which
+ * don't need external management and might break if they are.
+ *
  * @author Scott Fines
  * Created on: 3/11/13
  */
 public class IndexSet {
     private static final Logger LOG = Logger.getLogger(IndexSet.class);
 
+    /*
+     * Special tags to denote that a mutation was updated externally to the set,
+     * and that it does not need index management internally. This is because it's possible
+     * for indices to be managed externally, and thus we don't want to manage it here for
+     * performance reasons.
+     *
+     * To bypass index updates, attach INDEX_UPDATED as an attribute key on a Mutation.
+     */
     public static final String INDEX_UPDATED = "iu";
-    public static final byte[] INDEX_ALREADY_UPDATED="iau".getBytes();
+    //it doesn't need to have any content, because we only key off of the Attribute key
+    public static final byte[] INDEX_ALREADY_UPDATED=new byte[]{};
 
+    /*
+     * Synchronizer object for use during initialization.
+     */
     @SuppressWarnings("UnnecessaryBoxing")
-    private final Object initializer = new Integer(1); //lock object for synchronous initialization
+    private final Object initializeSync = new Integer(1); //lock object for synchronous initialization
 
+    /*
+     * The conglomerate id of the main table that we are indexing.
+     */
     private final long conglomId;
 
-    public void prepare() {
-        state.compareAndSet(State.WAITING_TO_START,State.READY_TO_START);
-    }
-
-    private enum State{
-        WAITING_TO_START,
-        READY_TO_START,
-        STARTING,
-        RUNNING,
-        FAILED_SETUP,
-        SHUTDOWN,
-        NOT_MANAGED
-    }
+    //The local constraint to apply (if any).
     private volatile Constraint localConstraint = Constraints.noConstraint();
+    //any Foreign Key Constraints to apply.
     private volatile List<Constraint> fkConstraints = Collections.emptyList();
+
+    //indices to manage
     private volatile Set<IndexManager> indices = Collections.emptySet();
+    //the state of the IndexSet
     private AtomicReference<State> state = new AtomicReference<State>(State.WAITING_TO_START);
 
+    //don't build me through this--this is to allow one to construct wrapper IndexSets for dropping tables etc.
     private IndexSet(State initialState){
         this.state.set(initialState);
         this.conglomId = -1l;
@@ -63,18 +100,47 @@ public class IndexSet {
         this.conglomId = conglomId;
     }
 
+    /**
+     * Construct an IndexSet which does not manage indices. Useful for dropping indices and other
+     * management stuff that doesn't need to maintain indices.
+     *
+     * @return an IndexSet permanently set to the NOT_MANAGED state.
+     */
     public static IndexSet noIndex(){
         return new IndexSet(State.NOT_MANAGED);
     }
 
+    /**
+     * Construct an IndexSet for the specified main table.
+     *
+     * @param conglomId the conglomerate id for the main table
+     * @return an IndexSet for the specified table.
+     */
     public static IndexSet create(long conglomId) {
         return new IndexSet(conglomId);
     }
 
+    /**
+     * Inform the Index Set that it is safe to start index management at any time.
+     */
+    public void prepare() {
+        state.compareAndSet(State.WAITING_TO_START,State.READY_TO_START);
+    }
+
+    /**
+     * @return the conglomerate id of the main table
+     */
     public long getMainTableConglomerateId(){
         return conglomId;
     }
 
+    /**
+     * Validate and update a single mutation.
+     *
+     * @param mutation the mutation to validate/manage
+     * @param rce the RegionCoprocessorEnvironment of the region
+     * @throws IOException if something goes wrong (Constraint violation, index issue, etc.)
+     */
     public void update(Mutation mutation,RegionCoprocessorEnvironment rce) throws IOException{
         checkState();
 
@@ -94,6 +160,13 @@ public class IndexSet {
         }
     }
 
+    /**
+     * Update a block of Mutations in bulk.
+     *
+     * @param mutations the mutations to validate/manage
+     * @param rce the region environment.
+     * @throws IOException if something goes wrong with <em>any</em> of the mutations.
+     */
     public void update(Collection<Mutation> mutations,
                               RegionCoprocessorEnvironment rce) throws IOException{
         checkState();
@@ -144,22 +217,33 @@ public class IndexSet {
         }
     }
 
+    /**
+     * Add an index to this table.
+     *
+     * @param index the index to add
+     */
     public void addIndex(IndexManager index){
         if(state.get()!=State.RUNNING) return;
         indices.add(index);
     }
 
+    /**
+     * Drop an index from this table.
+     *
+     * @param index the index to drop
+     */
     public void dropIndex(IndexManager index){
         if(state.get()!=State.RUNNING) return;
         indices.remove(index);
     }
 
-    public void shutdown() throws IOException{
-        state.set(State.SHUTDOWN);
-        //do other stuff to clean up
-    }
+/*********************************************************************************************************************/
+    /*private helper methods*/
 
-    public void start(){
+    /*
+     * initialize the table management.
+     */
+    private void start(){
         /*
          * The following code exercises a bit of fancy Double-checked locking, which goes as follows:
          *
@@ -177,7 +261,7 @@ public class IndexSet {
             if(state.get()!=State.STARTING) return;
         }
 
-        synchronized (initializer){
+        synchronized (initializeSync){
             //someone else may have initialized this. If so, we don't need to repeat it, so return
             if(state.get()!=State.STARTING) return;
 
@@ -258,14 +342,23 @@ public class IndexSet {
             SpliceLogUtils.debug(LOG,"Index setup complete for table "+conglomId+", ready to run");
             state.set(State.RUNNING);
         }
+    }    public void shutdown() throws IOException{
+        state.set(State.SHUTDOWN);
+        //do other stuff to clean up
     }
 
+    /*
+     * Build an index from a Conglomerate Descriptor
+     */
     private IndexManager buildIndex(ConglomerateDescriptor conglomDesc) throws IOException {
         IndexRowGenerator irg = conglomDesc.getIndexDescriptor();
         IndexDescriptor indexDescriptor = irg.getIndexDescriptor();
         return IndexManager.create(conglomDesc.getConglomerateNumber(),indexDescriptor);
     }
 
+    /*
+     * Build a Foreign Key constraint
+     */
     private ForeignKey buildForeignKey(ForeignKeyConstraintDescriptor fkcd) throws StandardException {
         int[] fkCols = fkcd.getReferencedColumns();
         BitSet fkColBits = new BitSet();
@@ -276,13 +369,19 @@ public class IndexSet {
         ReferencedKeyConstraintDescriptor rkcd = fkcd.getReferencedConstraint();
         long refTableId = rkcd.getTableDescriptor().getHeapConglomerateId();
 
-        return new ForeignKey(Long.toString(refTableId),Long.toString(conglomId),fkColBits,null);
+        return new ForeignKey(Long.toString(refTableId),Long.toString(conglomId),fkColBits);
     }
 
+    /*
+     * Build a primary Key constraint
+     */
     private PrimaryKey buildPrimaryKey(ConstraintDescriptor columnDescriptor) throws StandardException{
         return new PrimaryKey();
     }
 
+    /*
+     * Build an index constraint (Unique, Non-null, etc)
+     */
     private Constraint buildIndexConstraint(ConglomerateDescriptor conglomerateDescriptor) throws StandardException{
         IndexDescriptor indexDescriptor = conglomerateDescriptor.getIndexDescriptor().getIndexDescriptor();
         if(indexDescriptor.isUnique()) return UniqueConstraint.create();
@@ -290,9 +389,53 @@ public class IndexSet {
         return Constraints.noConstraint();
     }
 
+    /*
+     * Build a Check constraint
+     */
     private Constraint buildCheckConstraint(ConstraintDescriptor descriptor) throws StandardException{
         //todo -sf- implement!
         return Constraints.noConstraint();
+    }
+
+    /*
+     * State management indicator
+     */
+    private enum State{
+        /*
+         * Mutations which see this state will emit a warning, but will still be allowed through.
+         * Allowing mutations through during this phase prevents deadlocks when initialized the Database
+         * for the first time. After the Derby DataDictionary is properly instantiated, no index set should
+         * remain in this state for long.
+         */
+        WAITING_TO_START,
+        /*
+         * Indicates that the Index Set is able to start whenever it feels like it (typically before the
+         * first mutation to the main table). IndexSets in this state believe that the Derby DataDictionary
+         * has properly instantiated.
+         */
+        READY_TO_START,
+        /*
+         * Indicates that this set is currently in the process of intantiating all the indices, constraints, and
+         * so forth, and that all mutations should block until set up is complete.
+         */
+        STARTING,
+        /*
+         * Indicates that initialization failed in some fatal way. Mutations encountering this state
+         * will blow back on the caller with a DoNotRetryIOException
+         */
+        FAILED_SETUP,
+        /*
+         * The IndexSet is running, and index management is going smoothly
+         */
+        RUNNING,
+        /*
+         * the IndexSet is shutdown. Mutations will explode upon encountering this.
+         */
+        SHUTDOWN,
+        /*
+         * This IndexSet does not manage Mutations.
+         */
+        NOT_MANAGED
     }
 
 }

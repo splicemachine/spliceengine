@@ -3,7 +3,7 @@ package com.splicemachine.derby.hbase;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexManager;
-import com.splicemachine.derby.impl.sql.execute.index.IndexUtils;
+import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
 import com.splicemachine.derby.stats.SinkStats;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -82,13 +82,13 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
         }
 
         //add this to the index observer for this part of the table
-        IndexUtils.getIndex(baseConglomId).addIndex(indexManager);
+        IndexSetPool.getIndex(baseConglomId).addIndex(indexManager);
         return accumulator.finish();
     }
 
     @Override
     public void dropIndex(long indexConglomId,long baseConglomId) throws IOException {
         IndexManager dropManager = IndexManager.emptyTable(indexConglomId, new int[]{}, false);
-        IndexUtils.getIndex(baseConglomId).dropIndex(dropManager);
+        IndexSetPool.getIndex(baseConglomId).dropIndex(dropManager);
     }
 }

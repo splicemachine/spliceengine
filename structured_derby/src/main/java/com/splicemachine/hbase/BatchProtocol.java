@@ -14,6 +14,12 @@ import java.util.Collection;
  */
 public interface BatchProtocol extends CoprocessorProtocol {
 
+    /**
+     * Apply all the Mutations in a single, synchronous, bulk operation.
+     *
+     * @param mutationsToApply the mutations to apply
+     * @throws IOException if something goes wrong applying the mutation
+     */
     public void batchMutate(Collection<Mutation> mutationsToApply) throws IOException;
 
     /**

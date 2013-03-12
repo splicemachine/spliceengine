@@ -5,8 +5,11 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 import java.io.IOException;
 
 /**
+ * Indicates a Constraint Violation
+ *
+ * TODO -sf- this isn't a very clean implementation
  * @author Scott Fines
- *         Created on: 3/1/13
+ * Created on: 3/1/13
  */
 public class ConstraintViolation extends DoNotRetryIOException{
 

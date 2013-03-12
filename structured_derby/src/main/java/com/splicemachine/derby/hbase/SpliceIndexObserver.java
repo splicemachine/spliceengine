@@ -1,7 +1,7 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
-import com.splicemachine.derby.impl.sql.execute.index.IndexUtils;
+import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
@@ -38,7 +38,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             return;
         }
 
-        indexSet = IndexUtils.getIndex(conglomId);
+        indexSet = IndexSetPool.getIndex(conglomId);
         SpliceDriver.Service service = new SpliceDriver.Service() {
             @Override
             public boolean start() {
@@ -64,7 +64,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
     @Override
     public void postClose(ObserverContext<RegionCoprocessorEnvironment> e, boolean abortRequested) {
-        IndexUtils.releaseIndex(indexSet);
+        IndexSetPool.releaseIndex(indexSet);
     }
 
     @Override
