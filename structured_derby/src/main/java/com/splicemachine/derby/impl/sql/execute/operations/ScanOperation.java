@@ -34,8 +34,9 @@ import java.io.ObjectOutput;
 public abstract class ScanOperation extends SpliceBaseOperation implements CursorResultSet{
 	private static Logger LOG = Logger.getLogger(ScanOperation.class);
 	private static long serialVersionUID=6l;
-	protected int lockMode;
-	protected int isolationLevel;
+
+	public int lockMode;
+	public int isolationLevel;
 	protected ExecRow candidate;
 	protected FormatableBitSet accessedCols;
 	protected String resultRowAllocatorMethodName;
