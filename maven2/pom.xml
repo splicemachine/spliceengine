@@ -83,11 +83,30 @@
     <url>http://svn.apache.org/viewcvs.cgi/db/derby/code/trunk/?root=Apache-SVN</url>
   </scm>
 
+	<distributionManagement>
+	<repository>
+	<uniqueVersion>false</uniqueVersion>
+	<id>structured-hbase-release</id>
+	<name>Structured HBase Release</name>
+	<url>scp://www.inciteretail.com/usr/local/sonatype-work/nexus/storage/releases/</url>
+	</repository>
+	
+	<snapshotRepository>
+	<uniqueVersion>true</uniqueVersion>
+	<id>structured-hbase-snapshot</id>
+	<name>Structured HBase Snapshot</name>
+	<url>scp://www.inciteretail.com/usr/local/sonatype-work/nexus/storage/snapshots/</url>
+	</snapshotRepository>
+	</distributionManagement>
+
+
   <modules>
     <module>engine</module>
     <module>net</module>
     <module>client</module>
     <module>tools</module>
+    <module>run</module>
+    <module>testing</module>
     <module>war</module>
     <module>derbyLocale_cs</module>
     <module>derbyLocale_de_DE</module>
@@ -105,6 +124,14 @@
   </modules>
 
   <build>
+     <extensions>
+      <!-- Enabling the use of FTP -->
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+         <artifactId>wagon-ssh</artifactId>
+         <version>1.0-beta-6</version>
+      </extension>
+    </extensions>
     <plugins>
       <!-- Generate signatures for the artifacts using GnuPG.
            This requires that you have GnuPG installed and in the search path.
@@ -124,8 +151,21 @@
       </plugin>
 
   </plugins>
+  
   </build>
 
+	<repositories>
+			<repository>
+			<id>inciteretail</id>
+			<url>http://www.inciteretail.com/nexus/content/repositories/releases/</url>
+						<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</repository>
+		</repositories>
   <!-- Properties used throughout the build / install. -->
   <properties>
     <!-- RELEASE_DATA: How to specify your signing key passphrase.

@@ -31,9 +31,17 @@
   <artifactId>derby</artifactId>
   <name>Apache Derby Database Engine and Embedded JDBC Driver</name>
   <description>Contains the core Apache Derby database engine, which also includes the embedded JDBC driver.</description>
-
   <build>
     <plugins>
+     <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.9</version>
+        <configuration>        
+          <source>1.5</source>
+        </configuration>
+      </plugin>
+      
         <plugin>
             <artifactId>maven-antrun-plugin</artifactId>
             <executions>
@@ -45,7 +53,10 @@
                         <jar destfile="${basedir}/target/${project.build.finalName}.jar">
     			<zipfileset src="${basedir}/../../jars/${sanity}/derby.jar" excludes="org/apache/derby/modules.properties"/>
 			</jar>
-                        
+                        <jar destfile="${basedir}/target/${project.build.finalName}-sources.jar">
+                         <fileset dir="${basedir}/../../java/engine"/>   
+                         <fileset dir="${basedir}/../../generated/java"/>                         
+			</jar>
                         </tasks>
                     </configuration>
                     <goals>
@@ -56,5 +67,4 @@
         </plugin>
     </plugins>
   </build>
-
 </project>

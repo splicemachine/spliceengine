@@ -16,7 +16,7 @@
   limitations under the License.
 -->
 
-<project default="buildsource" basedir=".">
+<project name="splice_derby" default="buildsource" basedir=".">
 
 <!-- Set Properties -->
 
@@ -315,6 +315,8 @@
     <property file="${properties.dir}/compilepath.properties"/>
     <!-- Release and version info -->
     <property file="${properties.dir}/release.properties"/>
+    
+    <property file="${properties.dir}/deploy.properties"/>
 
     <!-- 
             If the user hasn't already set this property, point it at our stub
@@ -344,6 +346,7 @@
     <property file="${properties.dir}/compilepath.properties"/>
     <!-- Release and version info -->
     <property file="${properties.dir}/release.properties"/>
+    <property file="${properties.dir}/deploy.properties"/>
 
   </target>
 
@@ -378,6 +381,7 @@
       <entry key="derby.product.external.version" value="${eversion}"/>
       <entry key="derby.version.beta" value="${beta}"/>
       <entry key="derby.product.vendor" value="${vendor}"/>
+      <entry key="splice.derby.version" value="${splice.derby.version}"/>
       <entry key="derby.product.file" value="${info.productfile}"/>
     </propertyfile>
   </target>  
@@ -1419,7 +1423,27 @@
 <!-- =================================================================== -->
 
   <target name="buildjarsclean" depends="cleanjars,buildjars"/>
+  
+  <target name="deployjarsclean" depends="cleanjars,buildjars">
+  	<!--<copy todir="${hbase.lib.dir}">
+  		<fileset dir="${derby.jar.dir}/lists"/>
+    	<globmapper from="*.jar" to="*-${splice.derby.version}.jar"/>
+    </copy>-->
+    <copy file="${derby.jar.dir}/derby.jar" tofile="${hbase.lib.dir}/derby-${splice.derby.version}.jar" overwrite="true"/>
+    <copy file="${derby.jar.dir}/derbyclient.jar" tofile="${hbase.lib.dir}/derbyclient-${splice.derby.version}.jar" overwrite="true"/>
+    <copy file="${derby.jar.dir}/derbynet.jar" tofile="${hbase.lib.dir}/derbynet-${splice.derby.version}.jar" overwrite="true"/>
+    <copy file="${derby.jar.dir}/derbyrun.jar" tofile="${hbase.lib.dir}/derbyrun-${splice.derby.version}.jar" overwrite="true"/>
+    <copy file="${derby.jar.dir}/derbytools.jar" tofile="${hbase.lib.dir}/derbytools-${splice.derby.version}.jar" overwrite="true"/>
+  </target>
 
+  <target name="deployjars" depends="initjars,derbyjar,derbytoolsjar,derbynetjar,derbyclientjar,derbyrunjar">
+    <copy file="${derby.jar.dir}/derby.jar" tofile="${hbase.lib.dir}/derby-${splice.derby.version}.jar" overwrite="true"/>
+    <copy file="${derby.jar.dir}/derbyclient.jar" tofile="${hbase.lib.dir}/derbyclient-${splice.derby.version}.jar" overwrite="true"/>
+    <copy file="${derby.jar.dir}/derbynet.jar" tofile="${hbase.lib.dir}/derbynet-${splice.derby.version}.jar" overwrite="true"/>
+    <copy file="${derby.jar.dir}/derbyrun.jar" tofile="${hbase.lib.dir}/derbyrun-${splice.derby.version}.jar" overwrite="true"/>
+    <copy file="${derby.jar.dir}/derbytools.jar" tofile="${hbase.lib.dir}/derbytools-${splice.derby.version}.jar" overwrite="true"/>
+  </target>
+  
   <target
       name="buildjars"
       depends="initjars,derbyjar,derbytoolsjar,derbynetjar,derbyclientjar,derbyrunjar,derbywar,derbylocalejars,derbytestingjar"
