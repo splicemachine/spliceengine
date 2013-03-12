@@ -91,6 +91,41 @@ public class BatchTable implements SpliceTable{
                 writeBufferSizeBytes,maxWriteBufferEntries);
     }
 
+    public static BatchTable create(Configuration conf, ExecutorService threadPool,byte[] tableName) throws IOException{
+        Preconditions.checkNotNull(conf,"No Configuration specified");
+        Preconditions.checkNotNull(tableName,"No Table name specified");
+        HConnection connection;
+
+        connection = HConnectionManager.getConnection(conf);
+
+        long writeBufferSize = conf.getLong("hbase.client.write.buffer",2097152);
+        int scannerCaching = conf.getInt("hbase.client.scanner.caching",1);
+        long maxScannerResultSize = conf.getLong(
+                HConstants.HBASE_CLIENT_SCANNER_MAX_RESULT_SIZE_KEY,
+                HConstants.DEFAULT_HBASE_CLIENT_SCANNER_MAX_RESULT_SIZE);
+        int maxKeyValueSize = conf.getInt("hbase.client.keyvalue.maxsize",-1);
+
+        int maxBufferEntries = conf.getInt("hbase.client.write.buffer.maxentries",-1);
+        long scannerTimeout = conf.getLong(
+                HConstants.HBASE_REGIONSERVER_LEASE_PERIOD_KEY,
+                HConstants.DEFAULT_HBASE_REGIONSERVER_LEASE_PERIOD);
+
+        int operationTimeout =
+                HTableDescriptor.isMetaTable(tableName)? HConstants.DEFAULT_HBASE_CLIENT_OPERATION_TIMEOUT
+                        :conf.getInt(HConstants.HBASE_CLIENT_OPERATION_TIMEOUT,
+                        HConstants.DEFAULT_HBASE_CLIENT_OPERATION_TIMEOUT);
+
+        int batchRetryCount = conf.getInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER,
+                HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
+
+        connection.locateRegion(tableName,HConstants.EMPTY_START_ROW);
+        return new BatchTable(connection,conf,threadPool,
+                tableName,maxScannerResultSize,
+                scannerCaching,scannerTimeout,maxKeyValueSize,
+                operationTimeout,false,
+                writeBufferSize,maxBufferEntries,batchRetryCount);
+    }
+
    public static BatchTable create(Configuration conf, byte[] tableName) throws IOException{
        Preconditions.checkNotNull(conf,"No Configuration specified");
        Preconditions.checkNotNull(tableName,"No Table name specified");
@@ -135,7 +170,7 @@ public class BatchTable implements SpliceTable{
        return new BatchTable(connection,conf,pool,
                tableName,maxScannerResultSize,
                scannerCaching,scannerTimeout,maxKeyValueSize,
-               operationTimeout,false,
+               operationTimeout,true,
                writeBufferSize,maxBufferEntries,batchRetryCount);
    }
 
@@ -382,7 +417,9 @@ public class BatchTable implements SpliceTable{
     public void close() throws IOException {
         if(closed) return; //already closed, do nothing
         flushCommits();
+        LOG.trace("Shutting down Batch table");
         if(cleanupOnClose){
+            LOG.trace("Shutting down thread pool");
             this.multiPool.shutdown();
             synchronized (this){
                 if(this.connection!=null){

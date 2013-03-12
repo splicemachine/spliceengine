@@ -245,17 +245,18 @@ class ClientScanner implements ResultScanner {
 
     @Override
     public void close() {
-        if(callable!=null)
+        if(callable!=null){
             callable.setClose();
-        try{
-            connection.getRegionServerWithRetries(callable);
-        } catch (IOException e) {
+            try{
+                connection.getRegionServerWithRetries(callable);
+            } catch (IOException e) {
                 /*
                  * We don't really want the close method to throw an error, it's a
                  * bit annoying, and probably isn't a big deal anyway. Debug it though,
                  * just in case
                  */
-            CLIENT_LOG.debug("Unexpected error closing client scanner",e);
+                CLIENT_LOG.debug("Unexpected error closing client scanner",e);
+            }
         }
         closed= true;
     }

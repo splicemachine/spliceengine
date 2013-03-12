@@ -4,9 +4,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.BatchTable;
+import com.splicemachine.hbase.SafeTable;
 import com.splicemachine.hbase.SpliceTable;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
@@ -15,6 +17,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -70,27 +73,27 @@ public class IndexManager {
     }
 
     public void update(Mutation mutation, RegionCoprocessorEnvironment rce) throws IOException{
-        update(mutation,rce.getTable(indexConglomBytes));
+        if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null) return; //index already managed for this
+        update(mutation,rce.getTable(indexConglomBytes),rce.getRegion());
     }
 
     public void update(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException{
         //get the table ahead of time for better batch putting
 
-        SpliceTable table = BatchTable.create(rce.getConfiguration(),indexConglomBytes);
+        SpliceTable table = SafeTable.create(rce.getConfiguration(), indexConglomBytes);
         for(Mutation mutation:mutations){
-            update(mutation,table);
+            update(mutation,table,rce.getRegion());
         }
         table.flushCommits();
         table.close();
     }
 
-    private void update(Mutation mutation, HTableInterface table) throws IOException{
-        if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null) return; //index already managed for this
+    private void update(Mutation mutation, HTableInterface table,HRegion region) throws IOException{
 
         if(mutation instanceof Put)
-            updateIndex((Put)mutation,table);
+            updateIndex((Put)mutation,table,region);
         else
-            update((Delete)mutation,table);
+            update((Delete) mutation, table);
     }
 
     private void update(Delete delete, HTableInterface table) throws IOException{
@@ -152,20 +155,22 @@ public class IndexManager {
         int offset = 0;
         for(byte[] nextKey:rowKeyBuilder){
             if(nextKey==null) break;
-            System.arraycopy(nextKey,0,indexRowKey,offset,nextKey.length);
+            System.arraycopy(nextKey, 0, indexRowKey, offset, nextKey.length);
             offset+=nextKey.length;
         }
         return indexRowKey;
     }
 
 
-    private void updateIndex(Put mainPut,HTableInterface table) throws IOException{
+    private void updateIndex(Put mainPut,HTableInterface table,HRegion region) throws IOException{
+        Put put = doUpdate(mainPut,table,region);
+        if(put==null) return; //this was an update, but it doesn't affect our index, whoo!
         byte[][] rowKeyBuilder = getDataArray();
         int size=0;
 
         for(int indexPos=0;indexPos< indexColsToMainColMap.length;indexPos++){
-            byte[] mainPutPos = mainColPos[indexPos];
-            byte[] data = mainPut.get(HBaseConstants.DEFAULT_FAMILY_BYTES,mainPutPos).get(0).getValue();
+            byte[] putPos = mainColPos[indexPos];
+            byte[] data = put.get(HBaseConstants.DEFAULT_FAMILY_BYTES,putPos).get(0).getValue();
             rowKeyBuilder[indexPos] = data;
             size+=data.length;
         }
@@ -178,16 +183,70 @@ public class IndexManager {
         byte[] indexRowKey = convert(rowKeyBuilder,size);
 
         Put indexPut = new Put(indexRowKey);
-        for(int dataPos=0;dataPos<mainColPos.length;dataPos++){
-            indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColPos[dataPos],rowKeyBuilder[dataPos]);
+        for(int i=0;i<indexColsToMainColMap.length;i++){
+            byte[] indexPos = Integer.toString(i).getBytes();
+            indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos,rowKeyBuilder[i]);
         }
 
-        //add the mainPut rowKey as the row location at the end of the row
-        byte[] locPos = Integer.toString(mainColPos.length).getBytes();
+        //add the put rowKey as the row location at the end of the row
+        byte[] locPos = Integer.toString(indexColsToMainColMap.length).getBytes();
 
-        indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,locPos,mainPut.getRow());
+        indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,locPos,put.getRow());
 
         doPut(indexPut, table) ;
+    }
+
+    private Put doUpdate(Put mainPut, HTableInterface table,HRegion region) throws IOException {
+        if(!Bytes.equals(mainPut.getAttribute(Puts.PUT_TYPE),Puts.FOR_UPDATE))
+            return mainPut; //it's an insert
+        //check if we changed anything in the index
+        boolean indexNeedsUpdating = false;
+        for(byte[] indexColPo:mainColPos){
+            if(mainPut.has(HBaseConstants.DEFAULT_FAMILY_BYTES,indexColPo)){
+                indexNeedsUpdating = true;
+                break;
+            }
+        }
+
+        if(!indexNeedsUpdating) return null; //nothing changed that we indexed, whoo!
+
+        //bummer, have to update the index
+        Get oldGet = new Get(mainPut.getRow());
+        for(byte[] indexColPos:mainColPos){
+            oldGet.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,indexColPos);
+        }
+
+
+        Result r = region.get(oldGet,null);
+        if(r==null||r.isEmpty()) return mainPut; //no row to change, so this is really an insert!
+
+        byte[][] rowToDelete = getDataArray();
+        int size =0;
+        for(int indexPos = 0;indexPos<mainColPos.length;indexPos++){
+            byte[] data = r.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColPos[indexPos]);
+            rowToDelete[indexPos] = data;
+            size+=data.length;
+        }
+
+        byte[] indexRowKey = convert(rowToDelete,size);
+        Delete delete = new Delete(indexRowKey);
+        delete.deleteFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+
+        table.delete(delete);
+
+        //merge the old row with the new row to form the new index put
+        Put newPut = new Put(mainPut.getRow());
+        for(byte[] indexPos:mainColPos){
+            byte[] data;
+            if(mainPut.has(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos))
+                data = mainPut.get(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos).get(0).getValue();
+            else
+                data = r.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos);
+
+            newPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos,data);
+        }
+
+        return newPut;
     }
 
     private byte[][] getDataArray() {

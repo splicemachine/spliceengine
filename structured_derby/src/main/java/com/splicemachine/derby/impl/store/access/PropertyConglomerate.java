@@ -28,6 +28,7 @@ import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.SafeTable;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.reference.Attribute;
@@ -781,8 +782,9 @@ class PropertyConglomerate {
         Scan scan = new Scan();
         scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
         scan.setCaching(100);
-        scan.setFilter(new ColumnNullableFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN,
-                CompareFilter.CompareOp.GREATER_OR_EQUAL));
+        scan.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN);
+//        scan.setFilter(new ColumnNullableFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN,
+//                CompareFilter.CompareOp.GREATER_OR_EQUAL));
         try{
             ResultScanner scanner = table.getScanner(scan);
             Result result;
@@ -801,7 +803,7 @@ class PropertyConglomerate {
             throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
         } finally{
             try{
-                table.close();
+                if(table!=null) table.close();
             }catch(IOException e){
                 SpliceLogUtils.error(LOG,"Unable to close properties table",e);
             }

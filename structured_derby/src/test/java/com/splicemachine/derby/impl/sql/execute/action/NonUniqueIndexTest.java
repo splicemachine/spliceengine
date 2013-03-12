@@ -179,6 +179,20 @@ public class NonUniqueIndexTest {
 
     }
 
+    @Test
+    public void testCanUpdateEntryIndexChanges() throws Exception{
+        testCanUseIndex();
+
+        String oldName = "sfines";
+        String newName = "jzhang";
+        rule.getStatement().execute("update t set name = '"+newName+"' where name = '"+oldName+"'");
+
+        ResultSet rs = rule.executeQuery("select * from t where name = '"+ oldName +"'");
+        Assert.assertTrue("Rows returned incorrectly",!rs.next());
+
+        assertSelectCorrect(newName,1);
+    }
+
     private void assertSelectCorrect(String name, int size) throws Exception{
         ResultSet resultSet = rule.executeQuery("select * from t where name = '"+name+"'");
         List<String> results = Lists.newArrayListWithExpectedSize(1);

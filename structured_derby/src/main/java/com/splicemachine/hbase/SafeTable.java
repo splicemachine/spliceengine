@@ -124,7 +124,7 @@ public class SafeTable implements SpliceTable{
         long keepAliveTime = conf.getLong("hbase.htable.threads.keepalivetime",60);
 
         ThreadFactory factory = new ThreadFactoryBuilder()
-                .setNameFormat("safetable-pool-%d-thread-%d")
+                .setNameFormat("safetable-poolthread-%d")
                 .setDaemon(true)
                 .setPriority(Thread.NORM_PRIORITY).build();
         ExecutorService pool = new ThreadPoolExecutor(1,maxThreads,keepAliveTime,

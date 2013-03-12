@@ -4,6 +4,7 @@ import com.google.common.base.Throwables;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.sql.execute.index.IndexManager;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.Puts;
@@ -131,7 +132,9 @@ public class UpdateOperation extends DMLWriteOperation{
                  */
                 if(!modifiedPrimaryKeys){
                     SpliceLogUtils.trace(LOG, "UpdateOperation sink, nextRow=%s, validCols=%s,colPositionMap=%s", nextRow, heapList, Arrays.toString(colPositionMap));
-                    htable.put(Puts.buildUpdate(location, nextRow.getRowArray(), heapList, colPositionMap,this.transactionID.getBytes(),serializer));
+                    Put put = Puts.buildUpdate(location, nextRow.getRowArray(), heapList, colPositionMap, this.transactionID.getBytes(), serializer);
+                    put.setAttribute(Puts.PUT_TYPE,Puts.FOR_UPDATE);
+                    htable.put(put);
                 }else{
                     if(rowInsertSerializer==null)
                         rowInsertSerializer = new RowSerializer(nextRow.getRowArray(),pkColumns,colPositionMap,false);

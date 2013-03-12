@@ -140,22 +140,22 @@ public class SpliceDriver {
             @Override
             public Void call() throws Exception {
                 try{
-                SpliceLogUtils.info(LOG,"Shutting down connections");
-                server.shutdown();
+                    SpliceLogUtils.info(LOG,"Shutting down connections");
+                    if(server!=null) server.shutdown();
 
-                SpliceLogUtils.info(LOG,"Shutting down services");
-                for(Service service:services){
-                    service.shutdown();
-                }
+                    SpliceLogUtils.info(LOG,"Shutting down services");
+                    for(Service service:services){
+                        service.shutdown();
+                    }
 
-                SpliceLogUtils.info(LOG,"Destroying internal Engine");
-                try{
-                    if(conn!=null)
-                        conn.close();
-                    conn = null;
-                }finally{
-                    stateHolder.set(State.SHUTDOWN);
-                }
+                    SpliceLogUtils.info(LOG,"Destroying internal Engine");
+                    try{
+                        if(conn!=null)
+                            conn.close();
+                        conn = null;
+                    }finally{
+                        stateHolder.set(State.SHUTDOWN);
+                    }
                 }catch(Exception e){
                     SpliceLogUtils.error(LOG,
                             "Unable to shut down properly, this may affect the next time the service is started",e);

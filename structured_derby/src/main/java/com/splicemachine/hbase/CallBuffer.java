@@ -156,7 +156,9 @@ public class CallBuffer<E>{
      */
     public void flushBuffer()  throws Exception{
         List<E> entries = new ArrayList<E>(queue.size());
+        long currentHeap = currentHeapSize.get();
         queue.drainTo(entries);
+        currentHeapSize.addAndGet(-1l*currentHeap);
         if(entries.size()<=0) return; //no worries, someone else is doing the drain
         listener.bufferFlushed(entries);
     }

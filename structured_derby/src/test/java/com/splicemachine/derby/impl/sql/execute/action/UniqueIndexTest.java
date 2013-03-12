@@ -37,14 +37,6 @@ public class UniqueIndexTest {
         DerbyTestRule.shutdown();
     }
 
-    @After
-    public void testDone() throws Exception{
-        try{
-            rule.getStatement().execute("drop index t_name");
-        }catch(SQLException sqle){
-            SpliceLogUtils.debug(LOG,sqle.getMessage(),sqle);
-        }
-    }
     @Test
     public void testCanUseUniqueIndex() throws Exception{
         /*
@@ -231,6 +223,33 @@ public class UniqueIndexTest {
 
         ResultSet rs = rule.executeQuery("select * from t where name = '"+name+"'");
         Assert.assertTrue("Rows are returned incorrectly",!rs.next());
+    }
+
+    @Test
+    public void testCanUpdateEntryIndexChanges() throws Exception{
+        testCanUseUniqueIndex();
+
+        String name = "sfines";
+        int value = 2;
+        String newName = "jzhang";
+        rule.getStatement().execute("update t set name = '"+newName+"' where name = '"+name+"'");
+
+        ResultSet rs = rule.executeQuery("select * from t where name = '"+ name +"'");
+        Assert.assertTrue("Rows are returned incorrectly",!rs.next());
+
+        ResultSet resultSet = rule.executeQuery("select * from t where name = '"+newName+"'");
+        List<String> results = Lists.newArrayListWithExpectedSize(1);
+        while(resultSet.next()){
+            String retName = resultSet.getString(1);
+            int val = resultSet.getInt(2);
+            Assert.assertEquals("Incorrect name returned!",newName,retName);
+            results.add(String.format("name:%s,value:%d",retName,val));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+        Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
+
     }
 
 
