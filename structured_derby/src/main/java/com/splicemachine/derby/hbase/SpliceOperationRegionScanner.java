@@ -71,7 +71,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
 			statement = soi.getStatement();
 			topOperation = soi.getTopOperation();
-			LanguageConnectionContext lcc = SpliceEngine.getLanguageConnectionContext();
+			LanguageConnectionContext lcc = SpliceDriver.driver().getLanguageConnectionContext();
 			SpliceUtils.setThreadContext();
 
 			activation = soi.getActivation(lcc);
@@ -80,6 +80,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
 			topOperation.generateLeftOperationStack(opStack);
 			SpliceLogUtils.trace(LOG,"Ready to execute stack %s",opStack);
+
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
 		}
@@ -141,7 +142,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		return regionScanner.isFilterDone();
 	}
 
-	public SinkStats sink() {
+	public SinkStats sink() throws IOException{
 		SpliceLogUtils.trace(LOG,"sink");
 		return topOperation.sink();
 	}

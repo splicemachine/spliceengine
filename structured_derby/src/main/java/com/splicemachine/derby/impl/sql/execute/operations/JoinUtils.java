@@ -12,7 +12,7 @@ public class JoinUtils {
 	public static final byte[] JOIN_SIDE_COLUMN = (new Integer(-1)).toString().getBytes();
 	
 	public static ExecRow getMergedRow(ExecRow leftRow, ExecRow rightRow, boolean wasRightOuterJoin,int rightNumCols, int leftNumCols, ExecRow mergedRow) {
-		SpliceLogUtils.trace(LOG, "getMergedRow with leftRow %s,right row %s, rightOuterJoin?%b" , leftRow , rightRow,wasRightOuterJoin);
+//		SpliceLogUtils.trace(LOG, "getMergedRow with leftRow %s,right row %s, rightOuterJoin?%b" , leftRow , rightRow,wasRightOuterJoin);
 		int colInCtr;
 		int colOutCtr;
 		/* Reverse left and right for return of row if this was originally
@@ -33,7 +33,7 @@ public class JoinUtils {
 		 */
 		try {
 			for (colInCtr = 1, colOutCtr = 1; colInCtr <= leftNumCols;colInCtr++, colOutCtr++) {
-				SpliceLogUtils.trace(LOG,"colInCtr=%d,colOutCtr=%d",colInCtr,colOutCtr);
+//				SpliceLogUtils.trace(LOG,"colInCtr=%d,colOutCtr=%d",colInCtr,colOutCtr);
 				DataValueDescriptor src_col = leftRow.getColumn(colInCtr);
 				// Clone the value if it is represented by a stream (DERBY-3650).
 				if (src_col != null && src_col.hasStream()) {
@@ -41,7 +41,7 @@ public class JoinUtils {
 				}
 				mergedRow.setColumn(colOutCtr, src_col);
 			}
-			SpliceLogUtils.trace(LOG,"colOutCtr=%d",colOutCtr);
+//			SpliceLogUtils.trace(LOG,"colOutCtr=%d",colOutCtr);
 			for (colInCtr = 1; colInCtr <= rightNumCols;colInCtr++, colOutCtr++) {
 				DataValueDescriptor src_col = rightRow.getColumn(colInCtr);
 				// Clone the value if it is represented by a stream (DERBY-3650).
@@ -53,8 +53,7 @@ public class JoinUtils {
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Error merging rows", e);
 		}
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "final mergedRow " + mergedRow);
+        SpliceLogUtils.trace(LOG, "final mergedRow " + mergedRow);
 		return mergedRow;
 	}
 

@@ -41,14 +41,14 @@ public abstract class SpliceController implements ConglomerateController {
 		}
 		this.trans = trans;
 		this.transID = SpliceUtils.getTransID(trans);
-		if (LOG.isTraceEnabled())
-			LOG.trace("instantiate HBaseControl with openHBase: " + openSpliceConglomerate);
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("instantiate HBaseControl with openHBase: " + openSpliceConglomerate);
 		htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 	}
 	
 	public void close() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("close:");	
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("close:");
 		try {
 			htable.close();
 			if ((openSpliceConglomerate != null) && (openSpliceConglomerate.getTransactionManager() != null))
@@ -84,8 +84,8 @@ public abstract class SpliceController implements ConglomerateController {
 	
 	
 	public boolean delete(RowLocation loc) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("delete row location " + loc.getBytes());
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("delete row location " + loc.getBytes());
 		try {
 			Delete delete = new Delete(loc.getBytes());
 			if (transID != null)
@@ -123,15 +123,15 @@ public abstract class SpliceController implements ConglomerateController {
 
 	
 	public RowLocation newRowLocationTemplate() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("newRowLocationTemplate");	
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("newRowLocationTemplate");
 		return new HBaseRowLocation();
 	}
 	
 	
 	public SpaceInfo getSpaceInfo() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getSpaceInfo: (Not Enabled)");	
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("getSpaceInfo: (Not Enabled)");
 		return new SpaceInformation(0l,0l,0l);
 	}
 
@@ -150,11 +150,12 @@ public abstract class SpliceController implements ConglomerateController {
 
 	
 	public boolean fetch(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, boolean waitForLock) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("fetch rowlocation " + loc + ", destRow " + destRow + ", validColumns " + validColumns + ", waitForLock " + waitForLock);			
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("fetch rowlocation " + loc + ", destRow " + destRow + ", validColumns " + validColumns + ", waitForLock " + waitForLock);
 		try {
 			Get get = SpliceUtils.createGet(loc, destRow, validColumns, transID);
 			Result result = htable.get(get);
+            if(result==null||result.isEmpty()) return false;
 			SpliceUtils.populate(result, validColumns, destRow);	
 			return true;
 		} catch (Exception e) {

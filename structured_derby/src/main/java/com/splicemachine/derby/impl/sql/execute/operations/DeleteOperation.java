@@ -15,6 +15,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.BatchTable;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**

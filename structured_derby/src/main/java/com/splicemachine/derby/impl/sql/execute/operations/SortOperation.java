@@ -71,8 +71,8 @@ public class SortOperation extends SpliceBaseOperation {
 						 double optimizerEstimatedRowCount,
 						 double optimizerEstimatedCost) throws StandardException{
 		super(a,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-		SpliceLogUtils.trace(LOG,"instantiated with parameters");
-		SpliceLogUtils.trace(LOG,"source="+s);
+//		SpliceLogUtils.trace(LOG,"instantiated with parameters");
+//		SpliceLogUtils.trace(LOG,"source="+s);
 		this.source = s;
 		this.distinct = distinct;
 		this.orderingItem = orderingItem;
@@ -84,7 +84,7 @@ public class SortOperation extends SpliceBaseOperation {
 	@Override
 	public void readExternal(ObjectInput in) throws IOException,
 			ClassNotFoundException {
-		SpliceLogUtils.trace(LOG, "readExternal");
+//		SpliceLogUtils.trace(LOG, "readExternal");
 		super.readExternal(in);
 		source = (SpliceOperation)in.readObject();
 		distinct = in.readBoolean();
@@ -165,7 +165,7 @@ public class SortOperation extends SpliceBaseOperation {
 
 	@Override
 	public SpliceOperation getLeftOperation() {
-		SpliceLogUtils.trace(LOG,"getLeftOperation");
+//		SpliceLogUtils.trace(LOG,"getLeftOperation");
 		return (SpliceOperation) this.source;
 	}
 	

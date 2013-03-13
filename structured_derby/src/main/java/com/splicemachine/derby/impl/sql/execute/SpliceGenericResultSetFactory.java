@@ -47,6 +47,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.UnionOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceGenericResultSetFactory extends GenericResultSetFactory {

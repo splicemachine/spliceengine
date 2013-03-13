@@ -60,27 +60,27 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	
 	@Override
 	public List<NodeType> getNodeTypes() {
-		SpliceLogUtils.trace(LOG, "getNodeTypes");
+//		SpliceLogUtils.trace(LOG, "getNodeTypes");
 		return nodeTypes;
 	}
 	
 	@Override
 	public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-		SpliceLogUtils.trace(LOG,"readExternal");
+//		SpliceLogUtils.trace(LOG,"readExternal");
 		super.readExternal(in);
 		isHash = in.readBoolean();
 	}
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		SpliceLogUtils.trace(LOG,"writeExternal");
+//		SpliceLogUtils.trace(LOG,"writeExternal");
 		super.writeExternal(out);
 		out.writeBoolean(isHash);
 	}
 
 	@Override
 	public void init(SpliceOperationContext context){
-		SpliceLogUtils.trace(LOG,"init called");
+//		SpliceLogUtils.trace(LOG,"init called");
 		super.init(context);
 		mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
 		rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
@@ -104,7 +104,6 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	
 	@Override
 	public ExecRow getExecRowDefinition() {
-		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 		JoinUtils.getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition(),false,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
 	}
@@ -116,7 +115,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG, "getNextRowCore");
+//		SpliceLogUtils.trace(LOG, "getNextRowCore");
 		if (nestedLoopIterator == null) {
 			if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
 				mergedRow = null;

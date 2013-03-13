@@ -7,26 +7,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.utils.SpliceUtils;
+
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ResultColumnDescriptor;
-import org.apache.derby.iapi.sql.ResultDescription;
-import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.iapi.storage.RowProvider;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {
@@ -95,8 +91,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	
 	@Override
     public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-        if (LOG.isTraceEnabled())
-            LOG.trace("readExternal");
+//        if (LOG.isTraceEnabled())
+//            LOG.trace("readExternal");
         super.readExternal(in);
         restrictionMethodName = readNullableString(in);
         projectionMethodName = readNullableString(in);
@@ -112,8 +108,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        if (LOG.isTraceEnabled())
-            LOG.trace("writeExternal");
+//        if (LOG.isTraceEnabled())
+//            LOG.trace("writeExternal");
         super.writeExternal(out);
         writeNullableString(restrictionMethodName, out);
         writeNullableString(projectionMethodName, out);
@@ -129,7 +125,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 	@Override
 	public void init(SpliceOperationContext context){
-		SpliceLogUtils.trace(LOG,"init called");
+//		SpliceLogUtils.trace(LOG,"init called");
 		super.init(context);
 		source.init(context);
 		try {
@@ -159,28 +155,28 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 	@Override
 	public List<SpliceOperation> getSubOperations() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getSubOperations");
+//		if (LOG.isTraceEnabled()) LOG.trace("getSubOperations");
 		return Arrays.asList(source);
 	}
 
 
 	@Override
 	public SpliceOperation getLeftOperation() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getLeftOperation " + (this.source).getClass());
+//        SpliceLogUtils.trace(LOG,"getLeftOperation "+ (this.source).getClass());
+////		if (LOG.isTraceEnabled())
+//			LOG.trace("getLeftOperation " + (this.source).getClass());
 		return this.source;
 	}
 	
 	@Override
 	public List<NodeType> getNodeTypes() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getNodeTypes");
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("getNodeTypes");
 		return nodeTypes;
 	}
 
 	private ExecRow doProjection(ExecRow sourceRow) {
-		SpliceLogUtils.trace(LOG, "doProjection for %s utilizing projection method %s",sourceRow,projectionMethodName);
+//		SpliceLogUtils.trace(LOG, "doProjection for %s utilizing projection method %s",sourceRow,projectionMethodName);
 		ExecRow result;
 		try {
 			if (projection != null) {
@@ -251,8 +247,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
     @Override
 	public ExecRow getNextRowCore() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getNextRowCore");
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("getNextRowCore");
 		ExecRow candidateRow = null;
 		ExecRow result = null;
 		boolean restrict = false;
@@ -322,7 +318,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 	@Override
 	public ExecRow getExecRowDefinition() {
-		SpliceLogUtils.trace(LOG, "getExecRowDefinition with source %s",source);
+//		SpliceLogUtils.trace(LOG, "getExecRowDefinition with source %s",source);
 		ExecRow def = source.getExecRowDefinition();
         try {
             SpliceUtils.populateDefaultValues(def.getRowArray());

@@ -6,4 +6,8 @@
 *.ipr
 *.iml
 **/target/
-
+*.class
+*.jad
+*.project
+*.classpath
+*.prefs

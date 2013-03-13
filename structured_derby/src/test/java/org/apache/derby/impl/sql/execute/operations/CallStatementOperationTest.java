@@ -21,7 +21,6 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
 		startConnection();	
 	}
 
-
     @Test
     public void testCallIndexInfo() throws SQLException {
         ResultSet resultSet = null;

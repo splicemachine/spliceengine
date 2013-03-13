@@ -15,8 +15,6 @@ import java.sql.Timestamp;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.splicemachine.derby.utils.Exceptions;
-import org.apache.commons.httpclient.util.ExceptionUtil;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -57,9 +55,9 @@ import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.storage.RowProviders.SourceRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 

@@ -1,11 +1,8 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.stats.ThroughputStats;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
+import java.io.IOException;
+import java.util.Properties;
+
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.Activation;
@@ -18,8 +15,10 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.util.Properties;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 /**
  * 
  * HBase Endpoint coprocessor handling sink operations from the OperationTree.
@@ -37,6 +36,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	static {
 		Monitor.startMonitor(new Properties(), null);
 		Monitor.clearMonitor();
+
 	}
 	/**
 	 * Start the hbase coprocessor (empty)
@@ -63,14 +63,14 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	 * 
 	 */
 	@Override
-	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException,StandardException {
+	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException {
 		threadLocalEnvironment.set(getEnvironment());
 		try {
 			SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
 																			instructions.getStatement(),instructions.getTopOperation(), scan);
 			HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
 			SpliceLogUtils.trace(LOG,"Creating RegionScanner");
-			LanguageConnectionContext lcc = SpliceEngine.getLanguageConnectionContext();
+			LanguageConnectionContext lcc = SpliceDriver.driver().getLanguageConnectionContext();
 			SpliceUtils.setThreadContext();
 			Activation activation = instructions.getActivation(lcc);
 

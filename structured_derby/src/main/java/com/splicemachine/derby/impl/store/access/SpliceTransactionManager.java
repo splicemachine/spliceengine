@@ -823,7 +823,9 @@ public class SpliceTransactionManager implements XATransactionController, Transa
 		}
 
 		// call the factory to actually create the conglomerate.
-		Conglomerate conglom =cfactory.createConglomerate(this, segment, conglomid, template, columnOrder, collationIds, properties, temporaryFlag);
+		Conglomerate conglom =cfactory.createConglomerate(this,
+                segment, conglomid, template,
+                columnOrder, collationIds, properties, temporaryFlag);
 		long conglomId = conglom.getContainerid();
 		if ((temporaryFlag & TransactionController.IS_TEMPORARY) == TransactionController.IS_TEMPORARY) {
 			if (tempCongloms == null)
@@ -1988,6 +1990,10 @@ public class SpliceTransactionManager implements XATransactionController, Transa
 		return sc;
 	}
 
+
+    public Transaction getRawTransaction(){
+        return rawtran;
+    }
 
 	public void commit() throws StandardException{
 		if (LOG.isTraceEnabled())
