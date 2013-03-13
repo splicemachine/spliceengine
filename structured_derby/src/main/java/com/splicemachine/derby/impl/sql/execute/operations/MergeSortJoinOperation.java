@@ -169,6 +169,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 	@Override
 	public void executeShuffle() throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeShuffle");
+		long start = System.currentTimeMillis();
 		joinSide = JoinSide.LEFT;
 		OperationBranch operationBranch = new OperationBranch(getActivation(),getOperationStack(),leftResultSet.getExecRowDefinition());
 		SpliceLogUtils.trace(LOG, "merge sort shuffling left");
@@ -176,8 +177,9 @@ public class MergeSortJoinOperation extends JoinOperation {
 		joinSide = JoinSide.RIGHT;
 		SpliceLogUtils.trace(LOG, "merge sort shuffling right");
 		operationBranch = new OperationBranch(getActivation(),getRightOperationStack(),rightResultSet.getExecRowDefinition());
-		operationBranch.execCoprocessor(this.getClass().getName());	
-		SpliceLogUtils.trace(LOG, "shuffle finished");		
+		operationBranch.execCoprocessor(this.getClass().getName());
+		nextTime += System.currentTimeMillis() - start;
+		SpliceLogUtils.trace(LOG, "shuffle finished");	
 	}
 	
 	@Override

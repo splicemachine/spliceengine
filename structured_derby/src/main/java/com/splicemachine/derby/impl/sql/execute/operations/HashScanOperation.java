@@ -188,11 +188,12 @@ public class HashScanOperation extends ScanOperation {
 		final SpliceOperation regionOperation = operationStack.get(0);
 		HTableInterface htable = null;
 		try {
+			regionStats = new RegionStats(this.getClass().getName());
+            regionStats.start();
+            
 			htable = SpliceAccessManager.getHTable(Bytes.toBytes(tableName));
 			SpliceLogUtils.trace(LOG, "executing coprocessor on table=" + tableName + ", with scan=" + mapScan);
 			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,regionOperation);
-            regionStats = new RegionStats(this.getClass().getName());
-            regionStats.start();
 			htable.coprocessorExec(SpliceOperationProtocol.class,
 					mapScan.getStartRow(), mapScan.getStopRow(),
 					new Batch.Call<SpliceOperationProtocol, SinkStats>() {
@@ -214,8 +215,8 @@ public class HashScanOperation extends ScanOperation {
             regionStats.finish();
             regionStats.recordStats(LOG);
 			executed = true;
-		}
-		catch (Exception e) {
+            nextTime += regionStats.getTotalTimeTaken();
+		} catch (Exception e) {
 			LOG.error("Problem Running Coprocessor " + e.getMessage());
 			throw new RuntimeException(e);
 		} catch (Throwable e) {

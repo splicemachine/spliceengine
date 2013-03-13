@@ -22,6 +22,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.stats.TimeUtils;
 import com.splicemachine.derby.utils.Puts;
@@ -61,12 +62,10 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 	public SpliceOperationRegionScanner(RegionScanner regionScanner, Scan scan,HRegion region) {
 		SpliceLogUtils.trace(LOG, "instantiated with "+regionScanner+", and scan "+scan);
-		
 		stats.start();
 		SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
 		this.regionScanner = regionScanner;
-		//Putting this here to prevent some kind of weird NullPointer situation
-		//where the LanguageConnectionContext doesn't get initialized properly
+		
 		try {
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
 			statement = soi.getStatement();
@@ -76,11 +75,10 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 			activation = soi.getActivation(lcc);
 
-			topOperation.init(new SpliceOperationContext(regionScanner,region,scan, activation, statement, lcc));
+			topOperation.init(new SpliceOperationContext(regionScanner,region,scan, activation, statement, lcc));			
 			List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
 			topOperation.generateLeftOperationStack(opStack);
 			SpliceLogUtils.trace(LOG,"Ready to execute stack %s",opStack);
-
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
 		}
@@ -127,6 +125,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		if (regionScanner != null)
 			regionScanner.close();
         finalStats = stats.finish();
+        ((SpliceBaseOperation)topOperation).nextTime +=finalStats.getTotalTime();
         SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SpliceOperationRegionScanner at "+stats.getFinishTime());
 	}
 

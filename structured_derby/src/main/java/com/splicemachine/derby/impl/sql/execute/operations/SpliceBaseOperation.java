@@ -121,6 +121,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	public SpliceBaseOperation(Activation activation, int resultSetNumber, double optimizerEstimatedRowCount,double optimizerEstimatedCost) throws StandardException {
 //		SpliceLogUtils.trace(LOG,"instantiated for resultSetNumber %d", resultSetNumber);
+		if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming())
+		    beginTime = startExecutionTime = getCurrentTimeMillis();
+		SpliceLogUtils.trace(LOG, "statisticsTimingOn="+statisticsTimingOn);
+		
 		this.optimizerEstimatedCost = optimizerEstimatedCost;
 		this.optimizerEstimatedRowCount = optimizerEstimatedRowCount;
 		this.activation = activation;
@@ -129,21 +133,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		//SpliceLogUtils.trace(LOG,"before seting active, transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
 		//		+",transactionId="+transactionID);
 		this.transactionID = (trans == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
-//		SpliceLogUtils.trace(LOG,"transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
-//				+",transactionId="+transactionID);
+		//SpliceLogUtils.trace(LOG,"transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
+		//		+",transactionId="+transactionID);
 		this.uniqueSequenceID = SpliceUtils.generateQueryNodeSequence();
 		sequence = new DataValueDescriptor[1];
 		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
 		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
 
 		operationParams = activation.getParameterValueSet().getClone();
-		if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming())
-		    beginTime = startExecutionTime = getCurrentTimeMillis();
-		
-		//statisticsTimingOn = true;
-		//beginTime = startExecutionTime = getCurrentTimeMillis();
-		
-		SpliceLogUtils.trace(LOG, "statisticsTimingOn="+statisticsTimingOn);
 		if (subqueryTrackingArray == null)
 			subqueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();
 	}
@@ -624,6 +621,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	
 	@Override
 	public void executeShuffle() throws StandardException {
+		long start = System.currentTimeMillis();
 		SpliceLogUtils.trace(LOG,"shuffling %s",toString());
 		List<SpliceOperation> opStack = getOperationStack();
 		SpliceLogUtils.trace(LOG, "operationStack=%s",opStack);
@@ -643,9 +641,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			table = rowProvider.getTableName();
 		}
 		scan = rowProvider.toScan();
+		nextTime += System.currentTimeMillis() - start;
 		if(scan==null||table==null){ 
 			if (SourceRowProvider.class.equals(rowProvider.getClass())) {
+				start = System.currentTimeMillis();
 	    		topOperation.init(SpliceOperationContext.newContext(activation));
+	    		((SpliceBaseOperation)topOperation).constructorTime += System.currentTimeMillis() - start;
                 try{
     	    		topOperation.sink();
                 }catch(IOException ioe){
@@ -657,12 +658,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		}
 		HTableInterface htable = null;
 		try{
+			regionStats = new RegionStats(this.getClass().getName());
+            regionStats.start();
+            
 			htable = SpliceAccessManager.getHTable(table);
 			long numberCreated = 0;
             SpliceLogUtils.trace(LOG,"Performing coprocessorExec");
-
-            regionStats = new RegionStats(this.getClass().getName());
-            regionStats.start();
+         
 			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), topOperation);
 			htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),
 													new Batch.Call<SpliceOperationProtocol,SinkStats>(){
@@ -687,7 +689,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 					});
             regionStats.finish();
             regionStats.recordStats(LOG);
-            nextTime = regionStats.getMaxRegionTime();
+            nextTime += regionStats.getTotalTimeTaken();
 			SpliceLogUtils.trace(LOG,"Sunk %d records",numberCreated);
 			rowsSunk=numberCreated;
 		}catch(IOException ioe){

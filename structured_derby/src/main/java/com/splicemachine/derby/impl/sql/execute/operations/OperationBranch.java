@@ -85,10 +85,10 @@ public class OperationBranch {
 		HTableInterface htable = null;
 		try{
             SpliceLogUtils.debug(LOG,"Exec Coprocessor against table=%s",Bytes.toString(table));
-			htable = SpliceAccessManager.getHTable(table);
-			final SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
             final RegionStats regionStats = new RegionStats(opName);
             regionStats.start();
+			htable = SpliceAccessManager.getHTable(table);
+			final SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
 			htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),
                     new Batch.Call<SpliceOperationProtocol,SinkStats>(){
 				@Override

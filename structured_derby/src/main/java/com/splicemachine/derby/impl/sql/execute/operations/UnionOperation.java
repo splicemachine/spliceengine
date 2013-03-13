@@ -174,7 +174,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	@Override
 	public void executeShuffle() throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeShuffle");
-		
+		long start = System.currentTimeMillis();
 		final List<SpliceOperation> opStack = getOperations();
 		final SpliceOperation topOperation = getOperations().get(opStack.size()-1);
 		
@@ -183,19 +183,24 @@ public class UnionOperation extends SpliceBaseOperation {
 		
 		whichSource = 2;
 		executeShuffle((SpliceOperation) source2, topOperation);
-		
+		nextTime += System.currentTimeMillis() - start;
 		//whichSource = 1;
 	}
 	
 	protected void executeShuffle(SpliceOperation regionOperation, final SpliceOperation topOperation) throws StandardException {
 		SpliceLogUtils.trace(LOG,"regionOperation="+regionOperation);
+		long start = System.currentTimeMillis();
 		RowProvider provider = regionOperation.getMapRowProvider(topOperation,regionOperation.getExecRowDefinition());
 		final byte[] table = provider.getTableName();
 		final Scan scan = provider.toScan();
+		nextTime += System.currentTimeMillis() - start;
+		
 		SpliceLogUtils.trace(LOG,"executeSink, map table="+table+",map scan="+scan);
 	    if(scan==null||table==null) {
 	    	if (provider.getClass().equals(SourceRowProvider.class)) {
+	    		start = System.currentTimeMillis();
 	    		topOperation.init(SpliceOperationContext.newContext(activation));
+	    		((SpliceBaseOperation)topOperation).constructorTime += System.currentTimeMillis() - start;
                 try{
     	    		topOperation.sink();
                 }catch(IOException ioe){
@@ -207,11 +212,12 @@ public class UnionOperation extends SpliceBaseOperation {
 	    }
 		HTableInterface htable = null;
 		try{
+			final RegionStats stats = new RegionStats("UnionOperation's "+regionOperation.getClass().getName());
+            stats.start();
+            
 			htable = SpliceAccessManager.getHTable(table);
 			long numberCreated = 0;
 			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,topOperation);
-            final RegionStats stats = new RegionStats("UnionOperation's "+regionOperation.getClass().getName());
-            stats.start();
 			htable.coprocessorExec(SpliceOperationProtocol.class,
 																scan.getStartRow(),scan.getStopRow(),
 																new Batch.Call<SpliceOperationProtocol,SinkStats>(){
@@ -233,7 +239,6 @@ public class UnionOperation extends SpliceBaseOperation {
 
             stats.finish();
             stats.recordStats(LOG);
-            nextTime += stats.getMaxRegionTime();
 			SpliceLogUtils.trace(LOG,"Retrieved %d records",numberCreated);
 			executed = true;
 		} catch (IOException ioe){
