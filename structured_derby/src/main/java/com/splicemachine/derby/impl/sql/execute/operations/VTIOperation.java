@@ -315,19 +315,6 @@ public class VTIOperation extends SpliceBaseOperation
 		throw new RuntimeException("Not Implemented Yet");
 	}
 
-	/**
-	 * Return the total amount of time spent in this ResultSet
-	 *
-	 * @param type	CURRENT_RESULTSET_ONLY - time spent only in this ResultSet
-	 *				ENTIRE_RESULTSET_TREE  - time spent in this ResultSet and below.
-	 *
-	 * @return long		The total amount of time spent (in milliseconds).
-	 */
-	public long getTimeSpent(int type)
-	{
-		throw new RuntimeException("Not Implemented Yet");
-	}
-
 	//
 	// CursorResultSet interface
 	//
@@ -642,4 +629,9 @@ public class VTIOperation extends SpliceBaseOperation
 		throw new RuntimeException("Not Implemented Yet");
 	}
     
+	@Override
+	public long getTimeSpent(int type)
+	{
+		return constructorTime + openTime + nextTime + closeTime;
+	}
 }

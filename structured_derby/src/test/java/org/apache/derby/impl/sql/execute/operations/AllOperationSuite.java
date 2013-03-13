@@ -12,6 +12,6 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
         AggregationSuite.class,
         MutationSuite.class,
-        ScanSuite.class,
+        //ScanSuite.class,
 })
 public class AllOperationSuite { }

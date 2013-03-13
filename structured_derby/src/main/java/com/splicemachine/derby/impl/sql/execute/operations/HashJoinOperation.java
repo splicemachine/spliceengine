@@ -46,6 +46,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 		if (LOG.isTraceEnabled())
 			LOG.trace("instantiate");
         init(SpliceOperationContext.newContext(activation));
+        recordConstructorTime();
 	}
 	
 	@Override

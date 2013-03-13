@@ -72,8 +72,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("readExternal");
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("readExternal");
 		super.readExternal(in);
 		leftResultSetNumber = in.readInt();
 		leftNumCols = in.readInt();
@@ -88,8 +88,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("writeExternal");
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("writeExternal");
 		super.writeExternal(out);
 		out.writeInt(leftResultSetNumber);
 		out.writeInt(leftNumCols);
@@ -154,13 +154,13 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	
 	@Override
 	public SpliceOperation getLeftOperation() {
-		SpliceLogUtils.trace(LOG,"getLeftOperation");
+//		SpliceLogUtils.trace(LOG,"getLeftOperation");
 		return leftResultSet;
 	}
 
 	@Override
 	public SpliceOperation getRightOperation() {
-		SpliceLogUtils.trace(LOG,"getRightOperation");
+//		SpliceLogUtils.trace(LOG,"getRightOperation");
 		return rightResultSet;
 	}
 
@@ -183,5 +183,19 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	@Override
 	public String toString() {
 		return String.format("JoinOperation {resultSetNumber=%d,left=%s,right=%s}",resultSetNumber,leftResultSet,rightResultSet);
+	}
+	@Override
+	public void	close() throws StandardException
+	{
+		if ( isOpen )
+	    {
+	        leftResultSet.close();
+	        rightResultSet.close();
+			super.close();
+	    }
+		
+		leftRow = null;
+		rightRow = null;
+		mergedRow = null;
 	}
 }

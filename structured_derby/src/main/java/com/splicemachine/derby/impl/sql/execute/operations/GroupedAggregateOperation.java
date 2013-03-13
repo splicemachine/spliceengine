@@ -1,5 +1,31 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecIndexRow;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.store.access.ColumnOrdering;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
@@ -18,30 +44,6 @@ import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecIndexRow;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
-import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
 
 public class GroupedAggregateOperation extends GenericAggregateOperation {	
 	private static Logger LOG = Logger.getLogger(GroupedAggregateOperation.class);
@@ -85,6 +87,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
  
     	//get reduce scan
     	init(SpliceOperationContext.newContext(a));
+    	recordConstructorTime();
     }
     
 	@Override
@@ -177,7 +180,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		 */
         SinkStats.SinkAccumulator statsAccumulator = SinkStats.uniformAccumulator();
         statsAccumulator.start();
-
+        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for GroupedAggregation at "+statsAccumulator.getStartTime());
 		SpliceLogUtils.trace(LOG, "sink");
 		ExecRow row;
 		HTableInterface tempTable = null;
@@ -213,7 +216,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-        return statsAccumulator.finish();
+		
+		SinkStats ss = statsAccumulator.finish();
+		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for GroupedAggregation at "+statsAccumulator.getFinishTime());
+        return ss;
 	}
 	
 	@Override
@@ -250,12 +256,15 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	
 	private ExecRow doAggregation(boolean useScan,Accumulator stats) throws StandardException {
 		SpliceLogUtils.trace(LOG,"doAggregation start");
+		
 		//if we already have some results finished, just use the next one of those
 		if(finishedResults.size()>0)
 			return makeCurrent(finishedResults.remove(0));
 		else if (completedExecution)
 			return null; //we're finished, don't waste effort
 
+		long start = System.nanoTime();
+		
         /*
          * Lazily create the rollup result rows array to make sure that it's sized
          * appropriately on both sides of the MR boundary.
@@ -268,7 +277,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             }
         }
 		//get the next row. if it's null, we've finished reading results, so use what we already have
-        long start = System.nanoTime();
 		ExecIndexRow nextRow = useScan? getNextRowFromScan():getNextRowFromSource();
 		if(nextRow ==null) {
             return finalizeResults();
@@ -454,5 +462,43 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	
 	public boolean hasDistinctAggregate() {
 		return this.numDistinctAggs>0;
+	}
+	
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
+
+		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
+	}
+	@Override
+	public void	close() throws StandardException
+	{
+		beginTime = getCurrentTimeMillis();
+		if ( isOpen )
+	    {
+			// we don't want to keep around a pointer to the
+			// row ... so it can be thrown away.
+			// REVISIT: does this need to be in a finally
+			// block, to ensure that it is executed?
+		    clearCurrentRow();
+			sourceExecIndexRow = null;
+			source.close();
+
+			super.close();
+		}
+		closeTime += getElapsedMillis(beginTime);
+
+		isOpen = false;
+	}
+	
+	public Properties getSortProperties() {
+		Properties sortProperties = new Properties();
+		sortProperties.setProperty("numRowsInput", ""+getRowsInput());
+		sortProperties.setProperty("numRowsOutput", ""+getRowsOutput());
+		return sortProperties;
 	}
 }

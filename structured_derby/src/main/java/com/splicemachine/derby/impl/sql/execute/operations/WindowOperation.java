@@ -53,7 +53,7 @@ public class WindowOperation extends SpliceBaseOperation {
      * @throws StandardException 
      */
 
-    WindowOperation(Activation activation,
+    public WindowOperation(Activation activation,
         NoPutResultSet         source,
         GeneratedMethod        rowAllocator,
         int                    resultSetNumber,
@@ -70,6 +70,7 @@ public class WindowOperation extends SpliceBaseOperation {
         if (erdNumber != -1) {
             this.referencedColumns = (FormatableBitSet)(activation.getPreparedStatement().getSavedObject(erdNumber));
         }
+        recordConstructorTime(); 
     }
 
 
@@ -156,9 +157,16 @@ public class WindowOperation extends SpliceBaseOperation {
      * @exception StandardException thrown on error
      */
     public void close() throws StandardException {
-            clearCurrentRow();
-            source.close();
-            super.close();
+    	beginTime = getCurrentTimeMillis();
+
+    	if (isOpen) {
+    		clearCurrentRow();
+    		source.close();
+    		super.close();
+
+    	} 
+
+    	closeTime += getElapsedMillis(beginTime);
     }
 
     /**
@@ -221,5 +229,16 @@ public class WindowOperation extends SpliceBaseOperation {
 		List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
 		operations.add(source);
 		return operations;
+	}
+	
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
+
+		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
 	}
 }

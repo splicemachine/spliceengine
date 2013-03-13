@@ -12,8 +12,6 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.splicemachine.derby.test.SpliceDerbyTest;
-
 //public class CallStatementOperationTest extends SpliceDerbyTest {
 public class CallStatementOperationTest extends SpliceNetDerbyTest {
 	private static Logger LOG = Logger.getLogger(CallStatementOperationTest.class);
@@ -21,8 +19,26 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
 	@BeforeClass 
 	public static void startup() throws Exception {
 		startConnection();	
-	} 
+	}
 
+
+    @Test
+    public void testCallIndexInfo() throws SQLException {
+        ResultSet resultSet = null;
+        DatabaseMetaData dmd;
+        conn.setAutoCommit(false);
+        try{
+            conn.setAutoCommit(false);
+            dmd = conn.getMetaData();
+            resultSet = dmd.getIndexInfo(null,"SYS","SYSSCHEMAS",false,true);
+            while(resultSet.next()){
+                SpliceLogUtils.info(LOG,"c1=%s,c2=%s,c3=%s",resultSet.getString(1),resultSet.getString(2),resultSet.getString(3));
+            }
+            conn.commit();
+        }finally{
+            if(resultSet!=null)resultSet.close();
+        }
+    }
 
 	@Test
 	public void testCallSqlProcedures() throws SQLException {
@@ -57,7 +73,7 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
         }
     }
 
-//    @Ignore
+    @Test
 	public void testCallSysSchemas() throws SQLException {
     	conn.setAutoCommit(true);
 		LOG.info("start testCallStatement");

@@ -52,6 +52,7 @@ public class AnyOperation extends SpliceBaseOperation {
 		this.emptyRowFun = emptyRowFun;
 		this.subqueryNumber = subqueryNumber;
 		this.pointOfAttachment = pointOfAttachment;
+		recordConstructorTime(); 
     }
 
 	//
@@ -118,9 +119,11 @@ public class AnyOperation extends SpliceBaseOperation {
 	 * @exception StandardException thrown on error
 	 */
 	public void	close() throws StandardException {
-		  clearCurrentRow();
-	      source.close();
-	      super.close();
+		beginTime = getCurrentTimeMillis();
+		clearCurrentRow();
+		source.close();
+		super.close();
+		closeTime += getElapsedMillis(beginTime);
 	}
 
 	/**
@@ -144,4 +147,14 @@ public class AnyOperation extends SpliceBaseOperation {
 		return operations;
 	}
 
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
+
+		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
+	}
 }

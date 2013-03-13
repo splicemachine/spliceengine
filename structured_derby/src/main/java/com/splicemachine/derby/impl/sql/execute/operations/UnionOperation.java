@@ -98,6 +98,7 @@ public class UnionOperation extends SpliceBaseOperation {
     	} catch (IOException e) {
     		SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to create reduce scan",e);
     	}
+    	recordConstructorTime();
     }
     
 	@Override
@@ -194,7 +195,11 @@ public class UnionOperation extends SpliceBaseOperation {
 	    if(scan==null||table==null) {
 	    	if (provider.getClass().equals(SourceRowProvider.class)) {
 	    		topOperation.init(SpliceOperationContext.newContext(activation));
-	    		topOperation.sink();
+                try{
+    	    		topOperation.sink();
+                }catch(IOException ioe){
+                    throw Exceptions.parseException(ioe);
+                }
 	    		return;
 	    	} else
 	    		throw new AssertionError("Cannot perform shuffle, either scan or table is null");
@@ -204,7 +209,7 @@ public class UnionOperation extends SpliceBaseOperation {
 			htable = SpliceAccessManager.getHTable(table);
 			long numberCreated = 0;
 			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,topOperation);
-            final RegionStats stats = new RegionStats();
+            final RegionStats stats = new RegionStats("UnionOperation's "+regionOperation.getClass().getName());
             stats.start();
 			htable.coprocessorExec(SpliceOperationProtocol.class,
 																scan.getStartRow(),scan.getStopRow(),
@@ -227,6 +232,7 @@ public class UnionOperation extends SpliceBaseOperation {
 
             stats.finish();
             stats.recordStats(LOG);
+            nextTime += stats.getMaxRegionTime();
 			SpliceLogUtils.trace(LOG,"Retrieved %d records",numberCreated);
 			executed = true;
 		} catch (IOException ioe){
@@ -250,6 +256,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	@Override
 	public void close() throws StandardException {
 		SpliceLogUtils.trace(LOG, "close, whichSource="+whichSource);
+		beginTime = getCurrentTimeMillis();
 		clearCurrentRow();
 
 		switch (whichSource) {
@@ -262,6 +269,7 @@ public class UnionOperation extends SpliceBaseOperation {
 					break;
 		}
 		super.close();
+		closeTime += getElapsedMillis(beginTime);
 	}
 	
 	@Override
@@ -392,6 +400,7 @@ public class UnionOperation extends SpliceBaseOperation {
 		SpliceLogUtils.trace(LOG, "sink");
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
+        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for UnionOperation at "+stats.getStartTime());
 		ExecRow row = null;
 		HTableInterface tempTable = null;
 		Put put = null;
@@ -432,7 +441,10 @@ public class UnionOperation extends SpliceBaseOperation {
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-        return stats.finish();
+        //return stats.finish();
+		SinkStats ss = stats.finish();
+		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for UnionOperation at "+stats.getFinishTime());
+        return ss;
 	}
 	
 	@Override
@@ -484,6 +496,18 @@ public class UnionOperation extends SpliceBaseOperation {
 		return this.currentRow;														
 	}
 
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
+
+		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+			return	totTime - source1.getTimeSpent(ENTIRE_RESULTSET_TREE) 
+							- source2.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
+	}
+	
 	@Override
 	public String toString() {
 		return "UnionOp {left="+source1+",right="+source2+"}";

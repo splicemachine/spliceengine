@@ -1,13 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.stats.ThroughputStats;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -20,9 +16,13 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.utils.SpliceLogUtils;
 
 
 /**
@@ -89,6 +89,7 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
 			  optimizerEstimatedCost);
 		this.orderingItem = orderingItem;
 		this.maxRowSize = maxRowSize; 
+		recordConstructorTime();
     }
 	
 	@Override
@@ -179,6 +180,13 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
         return stats.finish();
 	}
 
+	@Override
+	public void close() throws StandardException
+    {
+        super.close();
+        source.close();
+    }
+	
 //	@Override
 //	protected ExecRow doAggregation(boolean useScan) throws StandardException{
 //		ExecIndexRow execIndexRow = null;

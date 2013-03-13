@@ -1,13 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;
@@ -22,17 +18,24 @@ import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.derby.impl.sql.execute.SelectConstantAction;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class ScanOperation extends SpliceBaseOperation implements CursorResultSet{
 	private static Logger LOG = Logger.getLogger(ScanOperation.class);
-	private static long serialVersionUID=5l;
+	private static long serialVersionUID=6l;
+
 	public int lockMode;
 	public int isolationLevel;
 	protected ExecRow candidate;
@@ -60,8 +63,10 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	private int colRefItem;
 	protected GeneratedMethod resultRowAllocator;
     protected ExecRow currentTemplate;
+    protected FormatableBitSet pkCols;
     
-	public ScanOperation () {
+
+    public ScanOperation () {
 		super();
 	}
 
@@ -94,7 +99,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		SpliceLogUtils.trace(LOG, "readExternal");
+//		SpliceLogUtils.trace(LOG, "readExternal");
 		super.readExternal(in);
 		lockMode = in.readInt();
 		isolationLevel = in.readInt();
@@ -107,11 +112,13 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		sameStartStopPosition = in.readBoolean();
 		conglomId = in.readLong();
 		colRefItem = in.readInt();
+        if(in.readBoolean())
+            pkCols = (FormatableBitSet) in.readObject();
 	}
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		SpliceLogUtils.trace(LOG, "writeExternal");
+//		SpliceLogUtils.trace(LOG, "writeExternal");
 		super.writeExternal(out);
 		out.writeInt(lockMode);
 		out.writeInt(isolationLevel);
@@ -124,6 +131,10 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		out.writeBoolean(sameStartStopPosition);
 		out.writeLong(conglomId);
 		out.writeInt(colRefItem);
+        out.writeBoolean(pkCols!=null);
+        if(pkCols!=null){
+            out.writeObject(pkCols);
+        }
 	}
 	
 	@Override
@@ -150,6 +161,16 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
             currentRow = getCompactRow(context.getLanguageConnectionContext(), candidate,
                     accessedCols, isKeyed);
             currentTemplate = currentRow.getClone();
+
+            if(activation.getConstantAction() instanceof SelectConstantAction){
+                SelectConstantAction action = (SelectConstantAction) activation.getConstantAction();
+                int[] pks = action.getKeyColumns();
+                pkCols = new FormatableBitSet(pks.length);
+                for(int pk:pks){
+                    pkCols.grow(pk+1);
+                    pkCols.set(pk-1);
+                }
+            }
         } catch (Exception e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
         }
@@ -162,7 +183,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     }
 	@Override
 	public SpliceOperation getLeftOperation() {
-		SpliceLogUtils.trace(LOG, "getLeftOperation");
+//		SpliceLogUtils.trace(LOG, "getLeftOperation");
 		return null;
 	}
 	@Override
@@ -197,7 +218,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     protected Scan getScan() throws IOException {
         return Scans.setupScan(startPosition == null ? null : startPosition.getRowArray(), startSearchOperator,
                 stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator,
-                scanQualifiers, conglomerate.getAscDescInfo(), accessedCols, Bytes.toBytes(transactionID));
+                scanQualifiers, conglomerate.getAscDescInfo(), pkCols,accessedCols, Bytes.toBytes(transactionID));
     }
 
     protected void populateQualifiers()  {
@@ -224,7 +245,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
                  * or equals to the start (e.g. leave startSearchOperator alone).
                  */
                 stopPosition = startPosition;
-                startSearchOperator= ScanController.NA; //ensure that we put in an EQUALS filter
+                startSearchOperator= ScanController.GE; //ensure that we put in an EQUALS filter
             }
         }
         if(stopKeyGetter!=null){
@@ -253,6 +274,12 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     	return this.indexName;
     }
     
+    @Override
+    public void close() throws StandardException {
+        SpliceLogUtils.trace(LOG, "closing");
+        super.close();
+    }
+    
     public String printStartPosition()
    	{
    		return printPosition(startSearchOperator, startKeyGetter, startPosition);
@@ -261,13 +288,9 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
    	public String printStopPosition()
    	{
    		if (sameStartStopPosition)
-   		{
    			return printPosition(stopSearchOperator, startKeyGetter, startPosition);
-   		}
    		else
-   		{
    			return printPosition(stopSearchOperator, stopKeyGetter, stopPosition);
-   		}
    	}
 
    	/**
@@ -282,11 +305,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
    	{
    		String output = "";
    		if (positionGetter == null)
-   		{
-   			return "\t" +
-   					MessageService.getTextMessage(SQLState.LANG_NONE) +
-   					"\n";
-   		}
+   			return "\t" + MessageService.getTextMessage(SQLState.LANG_NONE) + "\n";
    		
    		if (positioner == null)
    		{
@@ -294,23 +313,16 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
    				return "\t" + MessageService.getTextMessage(
    					SQLState.LANG_POSITION_NOT_AVAIL) +
                                        "\n";
-   			try
-   			{
+   			try {
    				positioner = (ExecIndexRow)positionGetter.invoke(activation);
-   			}
-   			catch (StandardException e)
-   			{
+   			} catch (StandardException e) {
    				return "\t" + MessageService.getTextMessage(
    						SQLState.LANG_UNEXPECTED_EXC_GETTING_POSITIONER,
    						e.toString());
    			}
    		}
    		if (positioner == null)
-   		{
-   			return "\t" +
-   					MessageService.getTextMessage(SQLState.LANG_NONE) +
-   					"\n";
-   		}
+   			return "\t" + MessageService.getTextMessage(SQLState.LANG_NONE) + "\n";
    		String searchOp = null;
 
    		switch (searchOperator)
@@ -351,9 +363,8 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
    				colSeen = true;
    			}
 
-   			if (colSeen && position == positioner.nColumns() - 1) {
+   			if (colSeen && position == positioner.nColumns() - 1)
    				output = output +  "\n";
-   			}
    		}
 
    		return output;

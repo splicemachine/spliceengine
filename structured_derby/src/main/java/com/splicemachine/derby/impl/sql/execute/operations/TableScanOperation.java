@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -43,6 +44,10 @@ public class TableScanOperation extends ScanOperation {
 	public String userSuppliedOptimizerOverrides;
 	public int rowsPerRead;
 	
+	protected boolean runTimeStatisticsOn;
+	private Properties scanProperties;
+	public String startPositionString;
+	public String stopPositionString;
 	
 	static {
 		nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN);
@@ -86,7 +91,9 @@ public class TableScanOperation extends ScanOperation {
         this.tableName = Long.toString(conglomId);
         this.indexColItem = indexColItem;
         this.indexName = indexName;
+        runTimeStatisticsOn = (activation != null && activation.getLanguageConnectionContext().getRunTimeStatisticsMode());
         init(SpliceOperationContext.newContext(activation));
+        recordConstructorTime(); 
     }
 
     @Override
@@ -119,9 +126,12 @@ public class TableScanOperation extends ScanOperation {
 	@Override
 	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow template){
 		SpliceLogUtils.trace(LOG, "getMapRowProvider");
+		beginTime = System.currentTimeMillis();
 		Scan scan = buildScan();
 		SpliceUtils.setInstructions(scan, activation, top);
-		return new ClientScanProvider(Bytes.toBytes(tableName),scan,template,null);
+		ClientScanProvider provider = new ClientScanProvider(Bytes.toBytes(tableName),scan,template,null);
+		nextTime += System.currentTimeMillis() - beginTime;
+		return provider;
 	}
 
 	@Override
@@ -144,6 +154,7 @@ public class TableScanOperation extends ScanOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"%s:getNextRowCore",tableName);
+		beginTime = getCurrentTimeMillis();
 		List<KeyValue> keyValues = new ArrayList<KeyValue>();
 		try {
 			regionScanner.next(keyValues);
@@ -162,6 +173,7 @@ public class TableScanOperation extends ScanOperation {
 		}
 		setCurrentRow(currentRow);
 		SpliceLogUtils.trace(LOG,"<%s> emitting %s",tableName,currentRow);
+		nextTime += getElapsedMillis(beginTime);
 		return currentRow;
 	}
 
@@ -169,10 +181,54 @@ public class TableScanOperation extends ScanOperation {
 	public String toString() {
 		return String.format("TableScanOperation {tableName=%s,isKeyed=%b,resultSetNumber=%s}",tableName,isKeyed,resultSetNumber);
 	}
+	
+	@Override
+	public void	close() throws StandardException
+	{
+		beginTime = getCurrentTimeMillis();
+		if ( isOpen )
+	    {
+		    clearCurrentRow();
 
-    @Override
-    public void close() throws StandardException {
-        SpliceLogUtils.trace(LOG, "closing");
-        super.close();
-    }
+			if (runTimeStatisticsOn)
+				{
+					// This is where we get the scan properties for a subquery
+					scanProperties = getScanProperties();
+					startPositionString = printStartPosition();
+					stopPositionString = printStopPosition();
+				}
+	        	
+                if (forUpdate && isKeyed) {
+                    activation.clearIndexScanInfo();
+                }
+
+			startPosition = null;
+			stopPosition = null;
+
+			super.close();
+
+			if (indexCols != null)
+			{
+				//TODO on index
+			}
+	    }
+		
+		closeTime += getElapsedMillis(beginTime);
+	}
+	
+	public Properties getScanProperties()
+	{
+		//TODO: need to get ScanInfo to store in runtime statistics
+		if (scanProperties == null) 
+			scanProperties = new Properties();
+
+		scanProperties.setProperty("numPagesVisited", "0");
+		scanProperties.setProperty("numRowsVisited", "0");
+		scanProperties.setProperty("numRowsQualified", "0"); 
+		scanProperties.setProperty("numColumnsFetched", "0");//FIXME: need to loop through accessedCols to figure out
+		scanProperties.setProperty("columnsFetchedBitSet", ""+getAccessedCols());
+		//treeHeight
+		
+		return scanProperties;
+	}
 }
