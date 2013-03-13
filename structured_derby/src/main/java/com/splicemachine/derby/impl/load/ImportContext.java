@@ -176,7 +176,7 @@ public class ImportContext implements Externalizable{
 		Map<Integer,Integer> indexToTypeMap = new HashMap<Integer, Integer>();
 		private FormatableBitSet activeCols;
 		private String timestampFormat;
-		private int numCols;
+		private int numCols = -1;
         private FormatableBitSet pkCols;
 
         public Builder path(Path filePath) {
@@ -234,11 +234,10 @@ public class ImportContext implements Externalizable{
 			Preconditions.checkNotNull(filePath,"No File specified!");
 			Preconditions.checkNotNull(tableId,"No destination table specified!");
 			Preconditions.checkNotNull(columnDelimiter,"No column Delimiter specified");
-			Preconditions.checkArgument(numCols>0, "No Columns to import specified!");
 
-			int[] colTypes = new int[numCols];
+			int[] colTypes = numCols>0?new int[numCols]:new int[indexToTypeMap.size()];
 
-			FormatableBitSet setBits = new FormatableBitSet(numCols);
+			FormatableBitSet setBits = new FormatableBitSet(colTypes.length);
 			boolean isSparse = false;
 			for(int i=0;i<colTypes.length;i++){
 				Integer next = indexToTypeMap.get(i);
