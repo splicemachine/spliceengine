@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.stats.ThroughputStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.PublicAPI;
@@ -109,8 +110,9 @@ public class HdfsImport extends ParallelVTI {
 
 		long conglomId = getConglomid(connection,tableName,schemaName);
 		builder = builder.destinationTable(conglomId);
-		HdfsImport importer = new HdfsImport(builder.build());
+        HdfsImport importer;
 		try {
+            importer = new HdfsImport(builder.build());
 			importer.open();
 			importer.executeShuffle();
 		} catch (StandardException e) {
@@ -145,11 +147,14 @@ public class HdfsImport extends ParallelVTI {
 
 		long conglomId = getConglomid(connection,tableName,schemaName);
 		builder = builder.destinationTable(conglomId);
-		HdfsImport importer = new HdfsImport(builder.build());
+        HdfsImport importer = null;
 		try {
+            importer = new HdfsImport(builder.build());
 			importer.open();
 			importer.executeShuffle();
-		} catch (StandardException e) {
+		} catch(AssertionError ae){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(ae));
+        } catch(StandardException e) {
 			throw PublicAPI.wrapStandardException(e);
 		}
 
@@ -260,35 +265,57 @@ public class HdfsImport extends ParallelVTI {
         }
     }
 
-	private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
-																						 String insertColumnList, ImportContext.Builder builder) throws SQLException {
-		DatabaseMetaData dmd = connection.getMetaData();		
-		ResultSet rs = dmd.getColumns(null,(schemaName==null?"APP":schemaName.toUpperCase()),tableName,null);
-		if(insertColumnList!=null){
-			List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
-			int numCols = 0;
-			while(rs.next()){
-				numCols++;
-				String colName = rs.getString(COLNAME_POSITION);
-				Iterator<String> colIterator = insertCols.iterator();
-				while(colIterator.hasNext()){
-					String insertCol = colIterator.next();
-					if(insertCol.equalsIgnoreCase(colName)){
-						builder = builder.column(rs.getInt(COLNUM_POSITION)-1,rs.getInt(COLTYPE_POSITION));
-						colIterator.remove();
-						break;
-					}
-				}
-			}
-			builder = builder.numColumns(numCols);
-		}else{
-			int numCols = 0;
-			while(rs.next()){
-				numCols++;
-				builder = builder.column(rs.getInt(COLNUM_POSITION)-1,rs.getInt(COLTYPE_POSITION));
-			}
-			builder.numColumns(numCols);
-		}
+    private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
+                                               String insertColumnList, ImportContext.Builder builder) throws SQLException {
+        DatabaseMetaData dmd = connection.getMetaData();
+        ResultSet rs = null;
+        int numCols = 0;
+        try{
+            rs = dmd.getColumns(null,(schemaName==null?"APP":schemaName.toUpperCase()),tableName,null);
+            if(insertColumnList!=null){
+                List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
+                while(rs.next()){
+                    numCols++;
+                    String colName = rs.getString(COLNAME_POSITION);
+                    Iterator<String> colIterator = insertCols.iterator();
+                    while(colIterator.hasNext()){
+                        String insertCol = colIterator.next();
+                        if(insertCol.equalsIgnoreCase(colName)){
+                            builder = builder.column(rs.getInt(COLNUM_POSITION)-1,rs.getInt(COLTYPE_POSITION));
+                            colIterator.remove();
+                            break;
+                        }
+                    }
+                }
+                builder = builder.numColumns(numCols);
+            }else{
+                while(rs.next()){
+                    numCols++;
+                    builder = builder.column(rs.getInt(COLNUM_POSITION)-1,rs.getInt(COLTYPE_POSITION));
+                }
+                builder.numColumns(numCols);
+            }
+        }finally{
+            if(rs!=null)rs.close();
+        }
+
+        //get primary key information
+        try{
+            rs = dmd.getPrimaryKeys(null,schemaName,tableName.toUpperCase());
+            FormatableBitSet pkCols = new FormatableBitSet(numCols);
+            while(rs.next()){
+                /*
+                 * The column number of use is the KEY_SEQ field in the returned result,
+                 * which is one-indexed. For convenience, we adjust it to be zero-indexed here.
+                 */
+                pkCols.set(rs.getShort(5)-1);
+            }
+            if(pkCols.getNumBitsSet()>0){
+                builder.primaryKeys(pkCols);
+            }
+        }finally{
+            if(rs!=null)rs.close();
+        }
 	}
 
 	private static int[] pushColumnInformation(Connection connection,

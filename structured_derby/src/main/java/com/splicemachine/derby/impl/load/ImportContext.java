@@ -1,7 +1,10 @@
 package com.splicemachine.derby.impl.load;
 
 import com.google.common.base.Preconditions;
+import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
 import com.splicemachine.derby.utils.StringUtils;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.hadoop.fs.Path;
 
@@ -20,7 +23,7 @@ import java.util.Map;
  * Created: 2/1/13 11:08 AM
  */
 public class ImportContext implements Externalizable{
-	private static final long serialVersionUID = 2l;
+	private static final long serialVersionUID = 3l;
 	//the path to the file to import
 	private Path filePath;
 	//the delimiter which separates columns
@@ -52,16 +55,18 @@ public class ImportContext implements Externalizable{
 	 * there are no timestamps in the file to be imported.
 	 */
 	private String timestampFormat;
+    private FormatableBitSet pkCols;
 
-	public ImportContext(){}
+    public ImportContext(){}
 
-	private ImportContext(Path filePath,
-												long destTableId,
-												String columnDelimiter,
-												String stripString,
-												int [] columnTypes,
-												FormatableBitSet activeCols,
-												String timestampFormat){
+    private ImportContext(Path filePath,
+                          long destTableId,
+                          String columnDelimiter,
+                          String stripString,
+                          int [] columnTypes,
+                          FormatableBitSet activeCols,
+                          FormatableBitSet pkCols,
+                          String timestampFormat){
 		this.filePath = filePath;
 		this.columnDelimiter = columnDelimiter;
 		this.stripString = stripString;
@@ -69,6 +74,7 @@ public class ImportContext implements Externalizable{
 		this.tableId = destTableId;
 		this.activeCols = activeCols;
 		this.timestampFormat = timestampFormat;
+        this.pkCols = pkCols;
 	}
 
 	public Path getFilePath() {
@@ -118,6 +124,9 @@ public class ImportContext implements Externalizable{
 		out.writeBoolean(activeCols!=null);
 		if(activeCols!=null)
 			out.writeObject(activeCols);
+        out.writeBoolean(pkCols!=null);
+        if(pkCols!=null)
+            out.writeObject(pkCols);
 		out.writeBoolean(timestampFormat!=null);
 		if(timestampFormat!=null)
 			out.writeUTF(timestampFormat);
@@ -136,6 +145,8 @@ public class ImportContext implements Externalizable{
 		}
 		if(in.readBoolean())
 			activeCols = (FormatableBitSet) in.readObject();
+        if(in.readBoolean())
+            pkCols = (FormatableBitSet)in.readObject();
 		if(in.readBoolean())
 			timestampFormat = in.readUTF();
 	}
@@ -153,7 +164,11 @@ public class ImportContext implements Externalizable{
 				'}';
 	}
 
-	public static class Builder{
+    public FormatableBitSet getPrimaryKeys() {
+        return pkCols;
+    }
+
+    public static class Builder{
 		private Path filePath;
 		private Long tableId;
 		private String columnDelimiter;
@@ -162,8 +177,9 @@ public class ImportContext implements Externalizable{
 		private FormatableBitSet activeCols;
 		private String timestampFormat;
 		private int numCols;
+        private FormatableBitSet pkCols;
 
-		public Builder path(Path filePath) {
+        public Builder path(Path filePath) {
 			this.filePath = filePath;
 			return this;
 		}
@@ -209,7 +225,12 @@ public class ImportContext implements Externalizable{
 			return this;
 		}
 
-		public ImportContext build(){
+        public Builder primaryKeys(FormatableBitSet pkCols) {
+            this.pkCols = pkCols;
+            return this;
+        }
+
+		public ImportContext build() throws StandardException {
 			Preconditions.checkNotNull(filePath,"No File specified!");
 			Preconditions.checkNotNull(tableId,"No destination table specified!");
 			Preconditions.checkNotNull(columnDelimiter,"No column Delimiter specified");
@@ -232,10 +253,20 @@ public class ImportContext implements Externalizable{
 				activeCols = setBits;
 			}
 
-			return new ImportContext(filePath,tableId,
-																columnDelimiter,stripString,
-																colTypes,activeCols,
-																timestampFormat);
-		}
-	}
+            //validate that active cols contains at least the pkCols
+            //otherwise, we won't be able to import the data
+            if(activeCols!=null&&pkCols!=null){
+                for(int pkCol=pkCols.anySetBit();pkCol!=-1;pkCol = pkCols.anySetBit(pkCol)){
+                    if(!activeCols.isSet(pkCol))
+                        throw StandardException.newException(SQLState.LANG_ADD_PRIMARY_KEY_FAILED1,
+                                "Missing primary key in import");
+                }
+            }
+
+            return new ImportContext(filePath,tableId,
+                    columnDelimiter,stripString,
+                    colTypes,activeCols,pkCols,
+                    timestampFormat);
+        }
+    }
 }

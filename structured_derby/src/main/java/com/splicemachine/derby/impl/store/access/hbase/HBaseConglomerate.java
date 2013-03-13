@@ -6,6 +6,7 @@ import java.io.ObjectOutput;
 import java.util.Properties;
 
 import com.splicemachine.derby.utils.ConglomerateUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.cache.ClassSize;
@@ -53,9 +54,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
 
 	public HBaseConglomerate() {
     	super();
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("instantiate");
-
+//        SpliceLogUtils.trace(LOG,"instantiate");
     }
 
     protected void create(
@@ -457,10 +456,8 @@ public class HBaseConglomerate extends SpliceConglomerate {
      * @see java.io.Externalizable#readExternal
      **/
 	private final void localReadExternal(ObjectInput in)
-		throws IOException, ClassNotFoundException
-	{
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("localReadExternal: ");
+		throws IOException, ClassNotFoundException {
+//        SpliceLogUtils.trace(LOG,"localReadExternal");
         // read the format id of this conglomerate.
         FormatIdUtil.readFormatIdInteger(in);
 		int segmentid = in.readInt();
@@ -475,8 +472,8 @@ public class HBaseConglomerate extends SpliceConglomerate {
     }
 
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("readExternal: ");
+//    	if (LOG.isTraceEnabled())
+//    		LOG.trace("readExternal: ");
         localReadExternal(in);
     }
 

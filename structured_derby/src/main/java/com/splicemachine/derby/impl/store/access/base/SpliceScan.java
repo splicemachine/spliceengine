@@ -79,8 +79,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 			e.printStackTrace();
 		}
 		this.transID = SpliceUtils.getTransID(trans);
-		if (LOG.isTraceEnabled())
-			logIndexKeys();
+//		if (LOG.isTraceEnabled())
+//			logIndexKeys();
 		setupScan();
 		attachFilter();
 		tableName = Bytes.toString(SpliceOperationCoprocessor.TEMP_TABLE);
@@ -107,8 +107,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		this.stopSearchOperator = stopSearchOperator;
 		this.trans = trans;
 		this.transID = SpliceUtils.getTransID(trans);
-		if (LOG.isTraceEnabled())
-			logIndexKeys();
+//		if (LOG.isTraceEnabled())
+//			logIndexKeys();
 		setupScan();
 		attachFilter();
 		tableName = spliceConglomerate.getConglomerate().getContainerid() + "";
@@ -117,7 +117,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	
 	public void close() throws StandardException {
 		if (LOG.isTraceEnabled())
-			LOG.trace("Close");
+//			LOG.trace("Close");
 		try {
 			if (scanner != null)
 				scanner.close();
@@ -128,7 +128,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 
 	protected void attachFilter() {
-        SpliceLogUtils.trace(LOG,"attaching filter");
+//        SpliceLogUtils.trace(LOG,"attaching filter");
 		try {
 				scan.setFilter(Scans.buildKeyFilter(startKeyValue,2,qualifier));
 //            SpliceUtils.attachFilterToScan(scan,qualifier,startKeyValue,2,stopKeyValue,2);
@@ -151,8 +151,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	
 	protected void setupScan() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("setup Scan");
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("setup Scan");
 		try {
             boolean[] sortOrder = spliceConglomerate==null?null:
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).getAscDescInfo();
@@ -189,12 +189,12 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	
 	public boolean delete() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("delete");
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("delete");
 		if (currentResult == null)
 			throw StandardException.newException("Attempting to delete with a null current result");
-		if (LOG.isTraceEnabled())
-			LOG.trace("HBaseScan delete " + currentResult.getRow());
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("HBaseScan delete " + currentResult.getRow());
 		try {
 			Delete delete = new Delete(this.currentResult.getRow());
 			if (transID != null)
@@ -209,8 +209,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 		
 	public boolean next() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("next ");
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("next ");
 		if (!scannerInitialized)
 			initialize();
 		currentRowDeleted = false;
@@ -227,14 +227,14 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	public void fetch(DataValueDescriptor[] destRow) throws StandardException {
 		if (this.currentResult == null)
 			return;
-		if (LOG.isTraceEnabled())
-			LOG.trace("HBaseScan fetch "+ currentResult.toString());
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("HBaseScan fetch "+ currentResult.toString());
 		fetchWithoutQualify(destRow);
 	}
 	
 	public void didNotQualify() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("HBaseScan didNotQualify");
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("HBaseScan didNotQualify");
 	}
 	
 	public boolean doesCurrentPositionQualify() throws StandardException {
@@ -251,8 +251,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 
 	public boolean fetchNext(DataValueDescriptor[] destRow) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("FetchNext " + destRow+" with "+destRow.length);
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("FetchNext " + destRow+" with "+destRow.length);
 		
 		next();
 		if (currentResult != null) {
@@ -299,8 +299,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 
 	public void fetchWithoutQualify(DataValueDescriptor[] destRow) throws StandardException {
-		if (LOG.isTraceEnabled()) 
-			LOG.trace("HBaseScan fetchWithoutQualify destRow = "+ destRow.toString());
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("HBaseScan fetchWithoutQualify destRow = "+ destRow.toString());
 
         try{
             if(destRow!=null){
@@ -377,8 +377,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	
 	public void reopenScan(DataValueDescriptor[] startKeyValue,int startSearchOperator, Qualifier[][] qualifier,DataValueDescriptor[] stopKeyValue, int stopSearchOperator) throws StandardException {
-		if (LOG.isTraceEnabled()) 
-			LOG.trace("reopenScan startKeyValue " +startKeyValue + ", startSearchOperator " + startSearchOperator + ", qualifier " + qualifier + ", stopKeyValue " + stopKeyValue + ", stopSearchOperator " + stopSearchOperator);
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("reopenScan startKeyValue " +startKeyValue + ", startSearchOperator " + startSearchOperator + ", qualifier " + qualifier + ", stopKeyValue " + stopKeyValue + ", stopSearchOperator " + stopSearchOperator);
 		this.startKeyValue = startKeyValue;
 		this.startSearchOperator = startSearchOperator;
 		this.qualifier = qualifier;
@@ -417,8 +417,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	
 	public int fetchNextGroup(DataValueDescriptor[][] row_array, RowLocation[] rowloc_array) throws StandardException {
-		if (LOG.isTraceEnabled()) 
-			LOG.trace("HBaseScan fetchNextGroup " +row_array + " for conglomerate " + this.spliceConglomerate.getConglomerate().getId());
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("HBaseScan fetchNextGroup " +row_array + " for conglomerate " + this.spliceConglomerate.getConglomerate().getId());
 		try {
 			if (!scannerInitialized)
 				initialize();
@@ -465,13 +465,13 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	private void logIndexKeys() {
 		try {
-			LOG.trace("Instantiate Splice Scan for conglomerate " + spliceConglomerate + ", scanColumnList " + scanColumnList);
-			LOG.trace("startSearchOperator " + startSearchOperator);
+//			LOG.trace("Instantiate Splice Scan for conglomerate " + spliceConglomerate + ", scanColumnList " + scanColumnList);
+//			LOG.trace("startSearchOperator " + startSearchOperator);
 			if (startKeyValue != null) {
 				for (int i =0;i<startKeyValue.length;i++)
 					LOG.trace("startkey - "+startKeyValue[i].getTypeName() + " : " + startKeyValue[i].getTraceString());
 			}
-			LOG.trace("stopSearchOperator " + stopSearchOperator);
+//			LOG.trace("stopSearchOperator " + stopSearchOperator);
 			if (stopKeyValue != null) {
 				for (int i =0;i<stopKeyValue.length;i++)
 					LOG.trace("stopKey - "+stopKeyValue[i].getTypeName() + " : " + stopKeyValue[i].getTraceString());
@@ -494,8 +494,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 
 	@Override
 	public void initialize() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("initialize on the LazyScan interface");
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("initialize on the LazyScan interface");
 		try {
 			scanner = table.getScanner(scan);
 			this.scannerInitialized = true;

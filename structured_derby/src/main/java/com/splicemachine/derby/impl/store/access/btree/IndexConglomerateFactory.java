@@ -111,9 +111,9 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
     ContainerKey            container_key)
 		throws StandardException
     {
-    	if (LOG.isTraceEnabled()) {
-    		LOG.trace("readConglomerate container_key " + container_key.getContainerId());
-    	}
+//    	if (LOG.isTraceEnabled()) {
+//    		LOG.trace("readConglomerate container_key " + container_key.getContainerId());
+//    	}
     	return ConglomerateUtils.readConglomerate(container_key.getContainerId(), IndexConglomerate.class);
     }
 	

@@ -85,7 +85,7 @@ public class TableScanOperation extends ScanOperation {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-        SpliceLogUtils.trace(LOG,"readExternal");
+//        SpliceLogUtils.trace(LOG,"readExternal");
         super.readExternal(in);
 		mapTableName = in.readUTF();
 		indexColItem = in.readInt();
@@ -95,7 +95,7 @@ public class TableScanOperation extends ScanOperation {
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		SpliceLogUtils.trace(LOG,"writeExternal");
+//		SpliceLogUtils.trace(LOG,"writeExternal");
 		super.writeExternal(out);
 		out.writeUTF(mapTableName);
 		out.writeInt(indexColItem);
@@ -106,7 +106,7 @@ public class TableScanOperation extends ScanOperation {
 
 	@Override
 	public void init(SpliceOperationContext context){
-		SpliceLogUtils.trace(LOG,"init called for tableName %s",mapTableName);
+//		SpliceLogUtils.trace(LOG,"init called for tableName %s",mapTableName);
 		super.init(context);
 	}
 
@@ -125,7 +125,7 @@ public class TableScanOperation extends ScanOperation {
 
 	@Override
 	public List<NodeType> getNodeTypes() {
-		SpliceLogUtils.trace(LOG,"getNodeTypes");
+//		SpliceLogUtils.trace(LOG,"getNodeTypes");
 		return nodeTypes;
 	}
 
@@ -136,7 +136,7 @@ public class TableScanOperation extends ScanOperation {
 
 	@Override
 	public ExecRow getExecRowDefinition() {
-		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
+//		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
 		return currentTemplate;
 	}
 

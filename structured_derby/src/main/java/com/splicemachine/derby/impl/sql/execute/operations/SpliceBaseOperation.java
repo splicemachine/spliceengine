@@ -94,12 +94,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     public SpliceBaseOperation() {
 		super();
-		if (LOG.isTraceEnabled())
-			LOG.trace("instantiated");
+//        SpliceLogUtils.trace(LOG,"instantiated");
 	}
 
 	public SpliceBaseOperation(Activation activation, int resultSetNumber, double optimizerEstimatedRowCount,double optimizerEstimatedCost) throws StandardException {
-		SpliceLogUtils.trace(LOG,"instantiated for resultSetNumber %d", resultSetNumber);
+//		SpliceLogUtils.trace(LOG,"instantiated for resultSetNumber %d", resultSetNumber);
 		this.optimizerEstimatedCost = optimizerEstimatedCost;
 		this.optimizerEstimatedRowCount = optimizerEstimatedRowCount;
 		this.activation = activation;
@@ -108,8 +107,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		//SpliceLogUtils.trace(LOG,"before seting active, transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
 		//		+",transactionId="+transactionID);
 		this.transactionID = (trans == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
-		SpliceLogUtils.trace(LOG,"transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
-				+",transactionId="+transactionID);
+//		SpliceLogUtils.trace(LOG,"transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
+//				+",transactionId="+transactionID);
 		this.uniqueSequenceID = SpliceUtils.generateQueryNodeSequence();
 		sequence = new DataValueDescriptor[1];
 		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
@@ -132,7 +131,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		SpliceLogUtils.trace(LOG, "readExternal");
+//		SpliceLogUtils.trace(LOG, "readExternal");
 		optimizerEstimatedCost = in.readDouble();
 		optimizerEstimatedRowCount = in.readDouble();
 		resultSetNumber = in.readInt();
@@ -498,7 +497,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void init(SpliceOperationContext context){
-		SpliceLogUtils.trace(LOG,"init called");
+//		SpliceLogUtils.trace(LOG,"init called");
 		this.activation = context.getActivation();
 		//set the parameter value set back on the activation
 //		if(operationParams!=null){
@@ -654,7 +653,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void generateLeftOperationStack(List<SpliceOperation> operations) {
-		SpliceLogUtils.trace(LOG, "generateLeftOperationStack");
+//		SpliceLogUtils.trace(LOG, "generateLeftOperationStack");
 		OperationUtils.generateLeftOperationStack(this, operations);
 	}
 

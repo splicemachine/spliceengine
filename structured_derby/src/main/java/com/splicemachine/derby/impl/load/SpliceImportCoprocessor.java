@@ -8,6 +8,7 @@ import com.gotometrics.orderly.*;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -86,9 +87,13 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		//open a serializer to serialize our data
         Serializer serializer = new Serializer();
         CSVParser csvParser = new CSVParser(context.getColumnDelimiter().charAt(0),context.getStripString().charAt(0));
-		try{
-			CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
+        try{
+
             ExecRow row = getExecRow(context);
+            FormatableBitSet pkCols = context.getPrimaryKeys();
+            RowSerializer rowSerializer = new RowSerializer(row.getRowArray(),pkCols,pkCols==null);
+
+			CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
 			CompressionCodec codec = codecFactory.getCodec(path);
 			is = fs.open(path);
 			for(BlockLocation location:locations){
@@ -119,7 +124,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 					SpliceLogUtils.trace(LOG,"inserting line %s",text);
 					pos+=newSize;
                     String[] cols = csvParser.parseLine(text.toString());
-                    doImportRow(cols, context.getActiveCols(), row, table,serializer);
+                    doImportRow(cols, context.getActiveCols(), row, table,rowSerializer,serializer);
 					numImported++;
 				}
 			}
@@ -148,7 +153,9 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		Reader reader = null;
 		long numImported=0l;
         Serializer serializer = new Serializer();
+        FormatableBitSet pkCols = context.getPrimaryKeys();
 		try{
+            RowSerializer rowSerializer = new RowSerializer(row.getRowArray(),pkCols,pkCols==null);
 			CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
 			CompressionCodec codec = codecFactory.getCodec(path);
 			is = codec!=null?codec.createInputStream(fs.open(path)):fs.open(path);
@@ -156,7 +163,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
             CSVReader csvReader = new CSVReader(reader,context.getColumnDelimiter().charAt(0),context.getStripString().charAt(0));
             String[] line;
 			while((line = csvReader.readNext())!=null){
-                doImportRow(line,context.getActiveCols(), row,table,serializer);
+                doImportRow(line,context.getActiveCols(), row,table,rowSerializer,serializer);
 
 				numImported++;
                 if(numImported%100==0){
@@ -173,7 +180,8 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		return numImported;
 	}
 
-    private void doImportRow(String[] line,FormatableBitSet activeCols, ExecRow row,HTableInterface table,Serializer serializer) throws IOException {
+    private void doImportRow(String[] line,FormatableBitSet activeCols, ExecRow row,
+                             HTableInterface table,RowSerializer rowSerializer,Serializer serializer) throws IOException {
         try{
             if(activeCols!=null){
                 for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
@@ -184,12 +192,11 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
                     row.getColumn(pos+1).setValue(line[pos]);
                 }
             }
+            Put put = Puts.buildInsert(rowSerializer.serialize(row.getRowArray()),row.getRowArray(), null,serializer); //TODO -sf- add transaction stuff
+            table.put(put);
         }catch(StandardException se){
             throw new DoNotRetryIOException(se.getMessageId());
         }
-        //TODO -sf- primary keys?
-        Put put = Puts.buildInsert(row.getRowArray(), null,serializer); //TODO -sf- add transaction stuff
-        table.put(put);
     }
 
     private ExecRow getExecRow(ImportContext context) throws DoNotRetryIOException {

@@ -19,6 +19,7 @@ public class HdfsImportTest {
 	static final Map<String,String> tableSchemaMap = Maps.newHashMap();
 	static{
 		tableSchemaMap.put("t","name varchar(40), title varchar(40), age int");
+        tableSchemaMap.put("pk_t","name varchar(40), title varchar(40), age int,PRIMARY KEY(name)");
 		tableSchemaMap.put("order_detail","order_id VARCHAR(50), item_id INT, order_amt INT,order_date TIMESTAMP, emp_id INT, " +
 				"promotion_id INT, qty_sold INT, unit_price FLOAT, unit_cost FLOAT, discount FLOAT, customer_id INT");
 		tableSchemaMap.put("lu_cust_city","cust_city_id int, cust_city_name varchar(64), cust_state_id int");
@@ -41,13 +42,18 @@ public class HdfsImportTest {
 //    @Ignore
 	public void testHdfsImport() throws Exception{
 		String baseDir = System.getProperty("user.dir");
-		testImport(getBaseDirectory()+"importTest.in","NAME,TITLE,AGE");
+		testImport("t",getBaseDirectory()+"importTest.in","NAME,TITLE,AGE");
 	}
 
-	private void testImport(String location,String colList) throws Exception {
-		HdfsImport.importData(rule.getConnection(), null, "T", colList, location, ",","\"");
+    @Test
+    public void testImportWithPrimaryKeys() throws Exception{
+        testImport("pk_t",getBaseDirectory()+"importTest.in","NAME,TITLE,AGE");
+    }
 
-		ResultSet rs = rule.executeQuery("select * from t");
+	private void testImport(String tableName,String location,String colList) throws Exception {
+		HdfsImport.importData(rule.getConnection(), null, tableName.toUpperCase(), colList, location, ",","\"");
+
+		ResultSet rs = rule.executeQuery("select * from "+tableName);
 		List<String> results = Lists.newArrayList();
 		while(rs.next()){
 			String name = rs.getString(1);
@@ -98,8 +104,9 @@ public class HdfsImportTest {
 
     @Test
 	public void testHdfsImportGzipFile() throws Exception{
-		testImport(getBaseDirectory()+"importTest.in.gz","NAME,TITLE,AGE");
+		testImport("t",getBaseDirectory()+"importTest.in.gz","NAME,TITLE,AGE");
 	}
+
 
 	@Test
 	public void testImportFromSQL() throws Exception{
@@ -145,7 +152,7 @@ public class HdfsImportTest {
 
 	@Test
 	public void testHdfsImportNullColList() throws Exception{
-		testImport(getBaseDirectory()+"importTest.in",null);
+		testImport("t",getBaseDirectory()+"importTest.in",null);
 	}
 
     @Test

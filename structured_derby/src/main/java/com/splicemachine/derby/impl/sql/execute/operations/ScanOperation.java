@@ -91,7 +91,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		SpliceLogUtils.trace(LOG, "readExternal");
+//		SpliceLogUtils.trace(LOG, "readExternal");
 		super.readExternal(in);
 		lockMode = in.readInt();
 		isolationLevel = in.readInt();
@@ -110,7 +110,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		SpliceLogUtils.trace(LOG, "writeExternal");
+//		SpliceLogUtils.trace(LOG, "writeExternal");
 		super.writeExternal(out);
 		out.writeInt(lockMode);
 		out.writeInt(isolationLevel);
@@ -175,7 +175,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     }
 	@Override
 	public SpliceOperation getLeftOperation() {
-		SpliceLogUtils.trace(LOG, "getLeftOperation");
+//		SpliceLogUtils.trace(LOG, "getLeftOperation");
 		return null;
 	}
 	@Override

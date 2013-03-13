@@ -75,9 +75,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			activation = soi.getActivation(lcc);
 
 			topOperation.init(new SpliceOperationContext(regionScanner,region,scan, activation, statement, lcc));
-			List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
-			topOperation.generateLeftOperationStack(opStack);
-			SpliceLogUtils.trace(LOG,"Ready to execute stack %s",opStack);
+			SpliceLogUtils.trace(LOG,"Ready to execute stack %s",topOperation);
             stats.start();
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);

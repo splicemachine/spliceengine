@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Properties;
+
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.cache.ClassSize;
@@ -30,8 +32,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 	protected long nextContainerId = System.currentTimeMillis();
 	protected long containerId;
 	public SpliceConglomerate() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("instantiate");
+//        SpliceLogUtils.trace(LOG,"instantiate");
 	}
 	protected void create(
 			Transaction             rawtran,
@@ -43,8 +44,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 			Properties              properties,
 			int                     conglom_format_id,
 			int                     tmpFlag) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("create segmentId " + segmentId + ", input_containerid " +  input_containerid);
+        SpliceLogUtils.trace(LOG,"create segmentId "+ segmentId + ", input_containerid "+ input_containerid);
 		if (properties != null) {
 			String value = properties.getProperty(RawStoreFactory.MINIMUM_RECORD_SIZE_PARAMETER);
 			int minimumRecordSize = (value == null) ? RawStoreFactory.MINIMUM_RECORD_SIZE_DEFAULT : Integer.parseInt(value);
@@ -71,8 +71,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 	}
 
 	public void boot_create(long containerid,DataValueDescriptor[]   template) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("boot_create containerid " + containerid);
+//        SpliceLogUtils.trace(LOG,"boot_create containerid " + containerid);
 		id = new ContainerKey(0, containerid);
 		this.format_ids = ConglomerateUtil.createFormatIds(template);
 	}
@@ -107,8 +106,8 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 	}
 
 	public final long getContainerid() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getContainerid " + id.getContainerId());
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("getContainerid " + id.getContainerId());
 		return(id.getContainerId());
 	}
 
