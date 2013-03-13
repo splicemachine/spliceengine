@@ -11,7 +11,7 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 
 /**
@@ -40,7 +40,7 @@ public class OpenSpliceConglomerate  {
 		this.transactionManager = transactionManager;
 		this.transaction = transaction;
 		try {
-			((ZookeeperTransaction)transaction).setActiveState();
+			((SpliceTransaction)transaction).setActiveState();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

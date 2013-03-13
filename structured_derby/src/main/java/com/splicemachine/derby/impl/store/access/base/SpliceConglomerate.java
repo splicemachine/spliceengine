@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Properties;
+
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.cache.ClassSize;
@@ -17,8 +19,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
 import org.apache.derby.impl.store.access.conglomerate.GenericConglomerate;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
 
 public abstract class SpliceConglomerate extends GenericConglomerate implements Conglomerate, StaticCompiledOpenConglomInfo {
 	protected static Logger LOG = Logger.getLogger(SpliceConglomerate.class);
@@ -64,7 +64,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 		hasCollatedTypes = hasCollatedColumns(collation_ids);		   
 		
 		try {
-			((ZookeeperTransaction)rawtran).setActiveState();
+			((SpliceTransaction)rawtran).setActiveState();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

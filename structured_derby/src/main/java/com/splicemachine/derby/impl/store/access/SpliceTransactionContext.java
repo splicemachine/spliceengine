@@ -7,13 +7,13 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.error.ExceptionSeverity;
 import org.apache.log4j.Logger;
 
-public class ZookeeperTransactionContext extends ContextImpl {
-	private static Logger LOG = Logger.getLogger(ZookeeperTransactionContext.class);
-	private		ZookeeperTransaction	transaction;
+public class SpliceTransactionContext extends ContextImpl {
+	private static Logger LOG = Logger.getLogger(SpliceTransactionContext.class);
+	private SpliceTransaction transaction;
 	private     HBaseStore factory;
 	private		boolean   abortAll; // true if any exception causes this transaction to be aborted.
 
-	ZookeeperTransactionContext(ContextManager cm, String name, ZookeeperTransaction transaction, boolean abortAll, HBaseStore factory) {
+	SpliceTransactionContext(ContextManager cm, String name, SpliceTransaction transaction, boolean abortAll, HBaseStore factory) {
 		super(cm, name);
 
 		this.transaction = transaction;
@@ -98,7 +98,7 @@ public class ZookeeperTransactionContext extends ContextImpl {
 
 	}
 
-	ZookeeperTransaction getTransaction() {
+	SpliceTransaction getTransaction() {
 		return transaction;
 	}
 
@@ -106,7 +106,7 @@ public class ZookeeperTransactionContext extends ContextImpl {
 		return factory;
 	}
 
-	void substituteTransaction(ZookeeperTransaction newTran)
+	void substituteTransaction(SpliceTransaction newTran)
 	{
 		LOG.debug("substituteTransaction the old trans=(context="+transaction.getContextId()+",transName="+transaction.getTransactionName()
 				+",status="+transaction.getTransactionStatus()+",id="+transaction.toString()+")");
@@ -115,13 +115,13 @@ public class ZookeeperTransactionContext extends ContextImpl {
 				+",status="+newTran.getTransactionStatus()+",id="+newTran.toString()+")");
 		
 		// disengage old tran from this xact context
-		ZookeeperTransaction oldTran = (ZookeeperTransaction)transaction;
+		SpliceTransaction oldTran = (SpliceTransaction)transaction;
 		if (oldTran.transContext == this)
 			oldTran.transContext = null;
 
 		// set up double link between new transaction and myself
 		transaction = newTran;
-		((ZookeeperTransaction)transaction).transContext = this;
+		((SpliceTransaction)transaction).transContext = this;
 	}
 
 }

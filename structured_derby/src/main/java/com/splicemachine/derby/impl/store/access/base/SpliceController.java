@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.store.access.base;
 
 import java.util.Properties;
 
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.ConglomerateController;
@@ -19,7 +20,6 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
 
@@ -35,7 +35,7 @@ public abstract class SpliceController implements ConglomerateController {
 	public SpliceController(OpenSpliceConglomerate openSpliceConglomerate, Transaction trans) {
 		this.openSpliceConglomerate = openSpliceConglomerate;
 		try {
-			((ZookeeperTransaction)trans).setActiveState();
+			((SpliceTransaction)trans).setActiveState();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

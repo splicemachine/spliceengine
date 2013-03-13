@@ -16,7 +16,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.splicemachine.derby.utils.Exceptions;
-import org.apache.commons.httpclient.util.ExceptionUtil;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -54,7 +53,7 @@ import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.storage.RowProviders.SourceRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -124,10 +123,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		this.activation = activation;
 		this.resultSetNumber = resultSetNumber;
 		this.trans = (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
-		//SpliceLogUtils.trace(LOG,"before seting active, transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
+		//SpliceLogUtils.trace(LOG,"before seting active, transaction="+trans+",state="+((SpliceTransaction)trans).getTransactionStatus()
 		//		+",transactionId="+transactionID);
 		this.transactionID = (trans == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
-		SpliceLogUtils.trace(LOG,"transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
+		SpliceLogUtils.trace(LOG,"transaction="+trans+",state="+((SpliceTransaction)trans).getTransactionStatus()
 				+",transactionId="+transactionID);
 		this.uniqueSequenceID = SpliceUtils.generateQueryNodeSequence();
 		sequence = new DataValueDescriptor[1];
