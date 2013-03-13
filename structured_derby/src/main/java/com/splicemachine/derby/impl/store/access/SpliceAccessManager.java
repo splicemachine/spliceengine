@@ -1022,20 +1022,20 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 	}
 
 	public static HTableInterface getHTable(Long id) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("Getting HTable " + id);
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("Getting HTable " + id);
 		return getHTableRPCPool().getTable(Long.toString(id));
 	}
 
 	public static HTableInterface getHTable(byte[] tableName) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("Getting HTable " + Bytes.toString(tableName));
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("Getting HTable " + Bytes.toString(tableName));
 		return getHTableRPCPool().getTable(tableName);
 	}
 
 	public static HTableInterface getFlushableHTable(byte[] tableName) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("Getting HTable " + Bytes.toString(tableName));
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("Getting HTable " + Bytes.toString(tableName));
 		return getHTableFlushablePool().getTable(tableName);
 	}
 	

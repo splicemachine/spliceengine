@@ -1,5 +1,6 @@
 package org.apache.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.DerbyTestRule;
 import junit.framework.Assert;
@@ -12,6 +13,7 @@ import org.junit.Test;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -202,4 +204,78 @@ public class PrimaryKeyTest {
         if(rs.next());
     }
 
+    @Test
+    public void testCanRetrievePrimaryKeysFromMetadata() throws Exception{
+        ResultSet rs = rule.getConnection().getMetaData().getPrimaryKeys(null,null,"T");
+        List<String> results = Lists.newArrayList();
+        while(rs.next()){
+            String tableCat = rs.getString(1);
+            String tableSchem = rs.getString(2);
+            String tableName = rs.getString(3);
+            String colName = rs.getString(4);
+            short keySeq = rs.getShort(5);
+            String pkName = rs.getString(6);
+
+            Assert.assertNotNull("No Table name returned",tableName);
+            Assert.assertNotNull("No Column name returned",colName);
+            Assert.assertNotNull("No Pk Name returned",pkName);
+
+            results.add(String.format("cat:%s,schema:%s,table:%s,column:%s,pk:%s,seqNum:%d",
+                    tableCat,tableSchem,tableName,colName,pkName,keySeq));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+
+        Assert.assertTrue("No Pks returned!",results.size()>0);
+    }
+
+    @Test
+    public void testCall() throws Exception{
+        PreparedStatement ps = rule.prepareStatement("SELECT CAST ('' AS VARCHAR(128)) AS TABLE_CAT, " +
+                "                   S.SCHEMANAME AS TABLE_SCHEM, T.TABLENAME AS TABLE_NAME, " +
+                "                   COLS.COLUMNNAME AS COLUMN_NAME, " +
+//                "                   CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) AS KEY_SEQ, " +
+                "                   CONS.CONSTRAINTNAME AS PK_NAME " +
+                "        FROM --DERBY-PROPERTIES joinOrder=FIXED \n " +
+                "                        SYS.SYSTABLES T --DERBY-PROPERTIES index='SYSTABLES_INDEX1' \n" +
+                "                        , SYS.SYSSCHEMAS S --DERBY-PROPERTIES joinStrategy=NESTEDLOOP, index ='SYSSCHEMAS_INDEX1'  \n" +
+                "                        , SYS.SYSCONSTRAINTS CONS --DERBY-PROPERTIES joinStrategy=NESTEDLOOP, index ='SYSCONSTRAINTS_INDEX3'  \n" +
+                "                        , SYS.SYSPRIMARYKEYS KEYS \n" +
+                "                        , SYS.SYSCONGLOMERATES CONGLOMS --DERBY-PROPERTIES joinStrategy=NESTEDLOOP, index = 'SYSCONGLOMERATES_INDEX1' \n" +
+                "                        , SYS.SYSCOLUMNS COLS --DERBY-PROPERTIES joinStrategy=NESTEDLOOP, index ='SYSCOLUMNS_INDEX1' \n" +
+                "        WHERE ((1=1) OR ? IS NOT NULL) AND S.SCHEMANAME LIKE ? AND T.TABLENAME=? AND " +
+                "                  T.SCHEMAID = S.SCHEMAID AND   " +
+                "                  T.TABLEID = COLS.REFERENCEID AND T.TABLEID = CONGLOMS.TABLEID AND " +
+                "                  CONS.TABLEID = T.TABLEID AND CONS.TYPE = 'P' AND " +
+                "                  CONS.CONSTRAINTID = KEYS.CONSTRAINTID AND " +
+//                "                  (CASE WHEN CONGLOMS.DESCRIPTOR IS NOT NULL THEN " +
+//                "                                CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) ELSE " +
+//                "                                0 END) <> 0 AND " +
+                "                  KEYS.CONGLOMERATEID = CONGLOMS.CONGLOMERATEID ");
+        ps.setString(1,"%");
+        ps.setString(2,"%");
+        ps.setString(3,"T");
+        ResultSet rs = ps.executeQuery();
+        List<String> results = Lists.newArrayList();
+        while(rs.next()){
+            String tableCat = rs.getString(1);
+            String tableSchem = rs.getString(2);
+            String tableName = rs.getString(3);
+            String colName = rs.getString(4);
+            String pkName = rs.getString(5);
+
+            Assert.assertNotNull("No Table name returned",tableName);
+            Assert.assertNotNull("No Column name returned",colName);
+            Assert.assertNotNull("No Pk Name returned",pkName);
+
+            results.add(String.format("cat:%s,schema:%s,table:%s,column:%s,pk:%s",
+                    tableCat,tableSchem,tableName,colName,pkName));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+
+        Assert.assertTrue("No Pks returned!",results.size()>0);
+    }
 }

@@ -32,6 +32,7 @@ public class Exceptions {
                 if(t instanceof DoNotRetryIOException) return parseException(t);
             }
         }
+
         return StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,rootCause);
     }
 

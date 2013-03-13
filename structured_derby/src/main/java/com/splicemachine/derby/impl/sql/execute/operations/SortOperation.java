@@ -50,9 +50,13 @@ public class SortOperation extends SpliceBaseOperation {
 	static{
 		nodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SCAN);
 	}
-	
+
+    /*
+     * Used for serialization. DO NOT USE
+     */
+    @Deprecated
 	public SortOperation(){
-		SpliceLogUtils.trace(LOG, "instantiated without parameters");
+//		SpliceLogUtils.trace(LOG, "instantiated without parameters");
 	}
 	
 	public SortOperation(NoPutResultSet s,
@@ -65,8 +69,8 @@ public class SortOperation extends SpliceBaseOperation {
 						 double optimizerEstimatedRowCount,
 						 double optimizerEstimatedCost) throws StandardException{
 		super(a,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-		SpliceLogUtils.trace(LOG,"instantiated with parameters");
-		SpliceLogUtils.trace(LOG,"source="+s);
+//		SpliceLogUtils.trace(LOG,"instantiated with parameters");
+//		SpliceLogUtils.trace(LOG,"source="+s);
 		this.source = s;
 		this.distinct = distinct;
 		this.orderingItem = orderingItem;
@@ -77,7 +81,7 @@ public class SortOperation extends SpliceBaseOperation {
 	@Override
 	public void readExternal(ObjectInput in) throws IOException,
 			ClassNotFoundException {
-		SpliceLogUtils.trace(LOG, "readExternal");
+//		SpliceLogUtils.trace(LOG, "readExternal");
 		super.readExternal(in);
 		source = (SpliceOperation)in.readObject();
 		distinct = in.readBoolean();
@@ -158,13 +162,13 @@ public class SortOperation extends SpliceBaseOperation {
 
 	@Override
 	public SpliceOperation getLeftOperation() {
-		SpliceLogUtils.trace(LOG,"getLeftOperation");
+//		SpliceLogUtils.trace(LOG,"getLeftOperation");
 		return (SpliceOperation) this.source;
 	}
 	
 	@Override
 	public ExecRow getExecRowDefinition() {
-		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
+//		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 		ExecRow def = ((SpliceOperation)source).getExecRowDefinition();
 		source.setCurrentRow(def);
 		return def;

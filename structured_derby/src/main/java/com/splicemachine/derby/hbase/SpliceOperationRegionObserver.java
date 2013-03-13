@@ -49,7 +49,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
 			SpliceLogUtils.trace(LOG, "postScannerOpen called, wrapping SpliceOperationRegionScanner");
 			return super.postScannerOpen(e, scan, new SpliceOperationRegionScanner(s,scan,e.getEnvironment().getRegion()));
 		}
-		SpliceLogUtils.trace(LOG, "postScannerOpen called, but no instructions specified");
+//		SpliceLogUtils.trace(LOG, "postScannerOpen called, but no instructions specified");
 		return super.postScannerOpen(e, scan, s);
 	}
 

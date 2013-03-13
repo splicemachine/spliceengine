@@ -109,7 +109,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		SpliceLogUtils.trace(LOG,"readExternal");
+//		SpliceLogUtils.trace(LOG,"readExternal");
 		super.readExternal(in);
 		scociItem = in.readInt();
 		conglomId = in.readLong();
@@ -126,7 +126,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		SpliceLogUtils.trace(LOG,"writeExternal");
+//		SpliceLogUtils.trace(LOG,"writeExternal");
 		super.writeExternal(out);
 		out.writeInt(scociItem);
 		out.writeLong(conglomId);
@@ -143,7 +143,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 	@Override
 	public void init(SpliceOperationContext context){
-		SpliceLogUtils.trace(LOG,"init called");
+//		SpliceLogUtils.trace(LOG,"init called");
 		super.init(context);
 		source.init(context);
 		try {
@@ -233,7 +233,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 	@Override
 	public SpliceOperation getLeftOperation() {
-		SpliceLogUtils.trace(LOG,"getLeftOperation ",source);
+//		SpliceLogUtils.trace(LOG,"getLeftOperation ",source);
 		return this.source;
 	}
 	

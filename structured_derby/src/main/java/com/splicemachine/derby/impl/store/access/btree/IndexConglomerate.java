@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 import com.splicemachine.derby.utils.ConglomerateUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.ArrayInputStream;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -74,8 +75,8 @@ public class IndexConglomerate extends SpliceConglomerate {
     
     public IndexConglomerate() {
     	super();
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("instantiate");
+//    	if (LOG.isTraceEnabled())
+//    		LOG.trace("instantiate");
     }
 
     @Override
@@ -89,9 +90,9 @@ public class IndexConglomerate extends SpliceConglomerate {
 		    Properties              properties,
 		    int                     conglom_format_id,
 			int                     tmpFlag) throws StandardException {
-    	if (LOG.isTraceEnabled()) {
-    		LOG.trace("Create index ");
-    	}
+//    	if (LOG.isTraceEnabled()) {
+//    		LOG.trace("Create index ");
+//    	}
     	super.create(rawtran, segmentId, input_containerid, template, columnOrder, collationIds, properties, conglom_format_id, tmpFlag);
     	if (properties == null)
     		throw(StandardException.newException(SQLState.BTREE_PROPERTY_NOT_FOUND, PROPERTY_BASECONGLOMID));
@@ -324,8 +325,8 @@ public class IndexConglomerate extends SpliceConglomerate {
     DynamicCompiledOpenConglomInfo  dynamic_info)
 		throws StandardException
 	{
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("open scan: " + Long.toString(id.getContainerId()));
+//    	if (LOG.isTraceEnabled())
+//    		LOG.trace("open scan: " + Long.toString(id.getContainerId()));
         OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,hold,open_mode,lock_level, locking_policy, static_info, dynamic_info,this);
 		SpliceScan indexScan = new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,qualifier,stopKeyValue,stopSearchOperator,rawtran,true);
 		return(indexScan);
@@ -534,8 +535,7 @@ public class IndexConglomerate extends SpliceConglomerate {
      * @see java.io.Externalizable#readExternal
      **/
 	private final void localReadExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("localReadExternal");
+//        SpliceLogUtils.trace(LOG,"localReadExternal");
 		btreeReadExternal(in);
 		baseConglomerateId = in.readLong();
 		rowLocationColumn  = in.readInt();
@@ -658,8 +658,8 @@ public class IndexConglomerate extends SpliceConglomerate {
 		}
 	
 	public void btreeReadExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("btreeReadExternal");
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("btreeReadExternal");
 	        conglom_format_id = FormatIdUtil.readFormatIdInteger(in);
 			long containerid         = in.readLong();
 			int segmentid			= in.readInt();
