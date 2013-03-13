@@ -1996,14 +1996,15 @@ public class SpliceTransactionManager implements XATransactionController, Transa
     }
 
 	public void commit() throws StandardException{
+        LOG.debug("commit transaction contextId==" + ((SpliceTransaction) rawtran).getContextId());
 		if (LOG.isTraceEnabled())
-			LOG.trace("commit transaction contextId=="+((ZookeeperTransaction)rawtran).getContextId());
+			LOG.trace("commit transaction contextId=="+((SpliceTransaction)rawtran).getContextId());
 		this.closeControllers(false /* don't close held controllers */ );
 
 		rawtran.commit();
 
 		//for user transaction, set trans=null;
-		//if (SpliceTransactionFactory.USER_CONTEXT_ID.equals(((ZookeeperTransaction)rawtran).getContext().getIdName()))
+		//if (SpliceTransactionFactory.USER_CONTEXT_ID.equals(((SpliceTransaction)rawtran).getContext().getIdName()))
 		//	abort();
 
 		alterTableCallMade = false;
@@ -2012,6 +2013,7 @@ public class SpliceTransactionManager implements XATransactionController, Transa
 	}
 
 	public DatabaseInstant commitNoSync(int commitflag) throws StandardException {
+        LOG.debug("commitNoSync ");
 		if (LOG.isTraceEnabled())
 			LOG.trace("commitNoSync ");
 		this.closeControllers(false /* don't close held controllers */ );
@@ -2514,7 +2516,7 @@ public class SpliceTransactionManager implements XATransactionController, Transa
 		if (LOG.isTraceEnabled())
 			LOG.trace("getActiveStateTxIdString with the new transID");
 		try {
-			((ZookeeperTransaction)rawtran).setActiveState(newTransID);
+			((SpliceTransaction)rawtran).setActiveState(newTransID);
 			return newTransID;
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);

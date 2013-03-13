@@ -1,8 +1,9 @@
 package com.splicemachine.derby.impl.store.access;
 
-import java.util.Properties;
-
+import com.splicemachine.constants.ITransactionManager;
+import com.splicemachine.constants.ITransactionState;
 import com.splicemachine.derby.utils.ZkUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.daemon.Serviceable;
@@ -19,22 +20,16 @@ import org.apache.derby.iapi.store.raw.StreamContainerHandle;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.store.raw.log.LogInstant;
 import org.apache.derby.iapi.types.DataValueFactory;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.constants.TransactionStatus;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.txn.TransactionState;
-import com.splicemachine.hbase.txn.ZkTransactionManager;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.util.Properties;
 
-public class ZookeeperTransaction implements Transaction {
-	private static Logger LOG = Logger.getLogger(ZookeeperTransaction.class);
+public class SpliceTransaction implements Transaction {
+	private static Logger LOG = Logger.getLogger(SpliceTransaction.class);
 	protected CompatibilitySpace compatibilitySpace;
 	protected DataValueFactory dataValueFactory;
-	//protected SpliceTransactionFactory transFactory;
-	protected ZookeeperTransactionContext transContext;
-	private TransactionState ts;
+	protected SpliceTransactionContext transContext;
+	private ITransactionState ts;
 	private String transName;
 	
 	protected volatile int	state;
@@ -44,34 +39,24 @@ public class ZookeeperTransaction implements Transaction {
 	protected static final int	ACTIVE		    = 2;
 	protected static final int	UPDATE		    = 3;
 	protected static final int	PREPARED	    = 4;
-	
-	//private boolean justCreated = true;
-	
+
 	//FIXME: this is a temp workaround to integrate our existing transaction code. We need to implement the function here eventually.
-	protected ZkTransactionManager zkTransaction;
+	protected ITransactionManager iTransactionManager;
 		
-	public ZookeeperTransaction(CompatibilitySpace compatibilitySpace, 
-			DataValueFactory dataValueFactory, ZkTransactionManager zkTransaction, String transName) {
-		SpliceLogUtils.trace(LOG,"Instantiating Zookeeper transaction");
+	public SpliceTransaction(CompatibilitySpace compatibilitySpace,
+                             DataValueFactory dataValueFactory, ITransactionManager iTransactionManager, String transName) {
+		SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
 		//this.transFactory = transFactory;
 		this.compatibilitySpace = compatibilitySpace;
 		this.dataValueFactory = dataValueFactory;
-		this.zkTransaction = zkTransaction;
+		this.iTransactionManager = iTransactionManager;
 		this.transName = transName;
 		this.state = IDLE;
 	}
-	
-	/*public boolean isJustCreated() {
-		return this.justCreated;
-	}
-	
-	public void setJustCreated(boolean b) {
-		this.justCreated = b;
-	}*/
-	
-	public ZkTransactionManager getZkTransaction() {
-		SpliceLogUtils.trace(LOG,"getZkTransaction");
-		return zkTransaction;
+
+	public ITransactionManager getiTransactionManager() {
+		SpliceLogUtils.trace(LOG,"getiTransactionManager");
+		return iTransactionManager;
 	}
 	
 	public ContextManager getContextManager() {
@@ -79,7 +64,7 @@ public class ZookeeperTransaction implements Transaction {
 		return transContext.getContextManager();
 	}
 	
-	public ZookeeperTransactionContext getContext() {
+	public SpliceTransactionContext getContext() {
 		SpliceLogUtils.debug(LOG,"getContext");
 		return transContext;
 	}
@@ -89,24 +74,20 @@ public class ZookeeperTransaction implements Transaction {
 		return compatibilitySpace;
 	}
 	
-	public TransactionState getTransactionState()
-	{
+	public ITransactionState getTransactionState() {
 		return this.ts;
 	}
 	
-	public void setTransactionState(TransactionState ts)
-	{
+	public void setTransactionState(ITransactionState ts) {
 		this.ts = ts;
 		this.state = ACTIVE;
 	}
 
-	public void setTransactionName(String s)
-	{
+	public void setTransactionName(String s) {
 		this.transName = s;
 	}
 	
-	public String getTransactionName()
-	{
+	public String getTransactionName() {
 		return this.transName;
 	}
 	
@@ -152,8 +133,8 @@ public class ZookeeperTransaction implements Transaction {
         }
 			
 		try {
-			zkTransaction.prepareCommit(this.ts);
-			zkTransaction.doCommit(this.ts);
+			iTransactionManager.prepareCommit(this.ts);
+			iTransactionManager.doCommit(this.ts);
 			state = IDLE;
 		} catch (Exception e) {
 			throw StandardException.newException(e.getMessage(), e);
@@ -171,7 +152,7 @@ public class ZookeeperTransaction implements Transaction {
 		try {
 			if (state == CLOSED)
 				return;
-			zkTransaction.abort(this.ts);
+			iTransactionManager.abort(this.ts);
 			state = IDLE;
 		} catch (Exception e) {
 			throw StandardException.newException(e.getMessage(), e);
@@ -181,11 +162,11 @@ public class ZookeeperTransaction implements Transaction {
 	
 	public void close() throws StandardException {
 		SpliceLogUtils.debug(LOG,"close");	
-		
+
 		transContext.popMe();
 		transContext = null;
 		ts = null;
-		zkTransaction = null;
+		iTransactionManager = null;
 		state = CLOSED;
 	}
 
@@ -299,8 +280,7 @@ public class ZookeeperTransaction implements Transaction {
 		SpliceLogUtils.debug(LOG,"xa_prepare");
 		
 		try {
-			//zkTransaction.prepareCommit(this.ts);
-			ZkUtils.getRecoverableZooKeeper().setData(ts.getTransactionID(), Bytes.toBytes(TransactionStatus.PREPARE_COMMIT.toString()), -1);
+			iTransactionManager.prepareCommit2(ZkUtils.getRecoverableZooKeeper(), this.ts);
 		} catch (Exception e) {
 			throw StandardException.newException(e.getMessage(), e);
 		}
@@ -327,7 +307,7 @@ public class ZookeeperTransaction implements Transaction {
 	}
 
 	public final String getContextId() {
-        ZookeeperTransactionContext tempxc = transContext;
+        SpliceTransactionContext tempxc = transContext;
         return (tempxc == null) ? null : tempxc.getIdName();
     }	
 	
@@ -337,7 +317,7 @@ public class ZookeeperTransaction implements Transaction {
 			try {
 				synchronized(this)
 				{
-					this.setTransactionState(this.getZkTransaction().beginTransaction());
+					this.setTransactionState(this.getiTransactionManager().beginTransaction());
 					state = ACTIVE;
 					//justCreated = false;
 				}
@@ -353,7 +333,7 @@ public class ZookeeperTransaction implements Transaction {
 			try {
 				synchronized(this)
 				{
-					//this.setTransactionState(this.getZkTransaction().beginTransaction());
+					//this.setTransactionState(this.getiTransactionManager().beginTransaction());
 					ts = new TransactionState(newTransID);
 					state = ACTIVE;
 					//justCreated = false;

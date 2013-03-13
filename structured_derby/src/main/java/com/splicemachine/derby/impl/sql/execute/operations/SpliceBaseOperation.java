@@ -16,7 +16,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.splicemachine.derby.utils.Exceptions;
-import org.apache.commons.httpclient.util.ExceptionUtil;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -126,7 +125,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		//SpliceLogUtils.trace(LOG,"before seting active, transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
 		//		+",transactionId="+transactionID);
 		this.transactionID = (trans == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
-//		SpliceLogUtils.trace(LOG,"transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
+//		SpliceLogUtils.trace(LOG,"transaction="+trans+",state="+((SpliceTransaction)trans).getTransactionStatus()
 //				+",transactionId="+transactionID);
 		this.uniqueSequenceID = SpliceUtils.generateQueryNodeSequence();
 		sequence = new DataValueDescriptor[1];
@@ -156,7 +155,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-//		SpliceLogUtils.trace(LOG, "readExternal");
+		SpliceLogUtils.trace(LOG, "readExternal");
 		optimizerEstimatedCost = in.readDouble();
 		optimizerEstimatedRowCount = in.readDouble();
 		resultSetNumber = in.readInt();
@@ -528,7 +527,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void init(SpliceOperationContext context){
-//		SpliceLogUtils.trace(LOG,"init called");
+		SpliceLogUtils.trace(LOG,"init called");
 		this.activation = context.getActivation();
 		//set the parameter value set back on the activation
 //		if(operationParams!=null){

@@ -2,6 +2,9 @@ package com.splicemachine.hbase.txn;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
+
+import com.splicemachine.constants.ITransactionState;
+import com.splicemachine.constants.TransactionStatus;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -13,6 +16,7 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import com.splicemachine.hbase.txn.TransactionState;
@@ -48,25 +52,35 @@ public class TerminalTransactionManager extends TransactionManager {
     	return new TransactionState(transactionTable.get(new Get(INITIALIZE_TRANSACTION_ID_BYTES)).getRow());
     }
    
-    public int prepareCommit(final TransactionState transactionState) throws KeeperException, InterruptedException, IOException {
+    public int prepareCommit(final ITransactionState iTransactionState) throws KeeperException, InterruptedException, IOException {
+        TransactionState transactionState = (TransactionState) iTransactionState;
     	SpliceLogUtils.debug(LOG,"Do prepareCommit on " + transactionState.getTransactionID());
     	transactionTable.put(getPrepareCommit(transactionState));
     	return 0;
      }
 
-    public void doCommit(final TransactionState transactionState) throws KeeperException, InterruptedException, IOException  {
-    	if (LOG.isDebugEnabled()) 
+    @Override
+    public void prepareCommit2(Object bonus, ITransactionState transactionState) throws KeeperException, InterruptedException, IOException {
+        RecoverableZooKeeper recoverableZooKeeper = (RecoverableZooKeeper) bonus;
+        recoverableZooKeeper.setData(transactionState.getTransactionID(), Bytes.toBytes(TransactionStatus.PREPARE_COMMIT.toString()), -1);
+    }
+
+    public void doCommit(final ITransactionState iTransactionState) throws KeeperException, InterruptedException, IOException  {
+        TransactionState transactionState = (TransactionState) iTransactionState;
+    	if (LOG.isDebugEnabled())
     		LOG.debug("Do commit on " + transactionState.getTransactionID());
     	transactionTable.put(getDoCommit(transactionState));
     }
 
-    public void tryCommit(final TransactionState transactionState) throws IOException, KeeperException, InterruptedException {
+    public void tryCommit(final ITransactionState iTransactionState) throws IOException, KeeperException, InterruptedException {
+        TransactionState transactionState = (TransactionState) iTransactionState;
     	SpliceLogUtils.debug(LOG,"Try commit on " +transactionState.getTransactionID());
        	prepareCommit(transactionState);
        	doCommit(transactionState);
     }
     
-    public void abort(final TransactionState transactionState) throws IOException, KeeperException, InterruptedException {
+    public void abort(final ITransactionState iTransactionState) throws IOException, KeeperException, InterruptedException {
+        TransactionState transactionState = (TransactionState) iTransactionState;
     	SpliceLogUtils.debug(LOG,"Abort on " +transactionState.getTransactionID());
     	transactionTable.put(getAbortCommit(transactionState));
      }
