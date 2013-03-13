@@ -6,6 +6,7 @@ import java.io.ObjectOutput;
 import java.util.Properties;
 
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.cache.ClassSize;
@@ -43,7 +44,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 			Properties              properties,
 			int                     conglom_format_id,
 			int                     tmpFlag) throws StandardException {
-        SpliceLogUtils.trace(LOG,"create segmentId "+ segmentId + ", input_containerid "+ input_containerid);
+        SpliceLogUtils.trace(LOG, "create segmentId " + segmentId + ", input_containerid " + input_containerid);
 		if (properties != null) {
 			String value = properties.getProperty(RawStoreFactory.MINIMUM_RECORD_SIZE_PARAMETER);
 			int minimumRecordSize = (value == null) ? RawStoreFactory.MINIMUM_RECORD_SIZE_DEFAULT : Integer.parseInt(value);

@@ -53,7 +53,6 @@ import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.storage.RowProviders.SourceRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -155,7 +154,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		SpliceLogUtils.trace(LOG, "readExternal");
+//		SpliceLogUtils.trace(LOG, "readExternal");
 		optimizerEstimatedCost = in.readDouble();
 		optimizerEstimatedRowCount = in.readDouble();
 		resultSetNumber = in.readInt();
@@ -527,7 +526,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void init(SpliceOperationContext context){
-		SpliceLogUtils.trace(LOG,"init called");
+//		SpliceLogUtils.trace(LOG,"init called");
 		this.activation = context.getActivation();
 		//set the parameter value set back on the activation
 //		if(operationParams!=null){
