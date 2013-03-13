@@ -11,5 +11,5 @@ public interface ITransactionManager {
     int prepareCommit(final ITransactionState transactionState) throws KeeperException, InterruptedException, IOException;
     void doCommit(final ITransactionState transactionState) throws KeeperException, InterruptedException, IOException;
     void abort(final ITransactionState transactionState) throws IOException, KeeperException, InterruptedException;
-    void prepareCommit2(Object bonus, ITransactionState ts) throws KeeperException, InterruptedException, IOException;
+    void prepareCommit2(Object bonus, ITransactionState transactionState) throws KeeperException, InterruptedException, IOException;
 }

@@ -1,5 +1,7 @@
 package com.splicemachine.si2.txn;
 
+import com.splicemachine.constants.ITransactionManager;
+import com.splicemachine.constants.ITransactionState;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -9,7 +11,7 @@ import org.apache.zookeeper.KeeperException;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
-public class TransactionManager {
+public class TransactionManager implements ITransactionManager {
     static final Logger LOG = Logger.getLogger(TransactionManager.class);
     protected JtaXAResource xAResource;
     private final Transactor transactor;
@@ -23,25 +25,30 @@ public class TransactionManager {
         return transactor.beginTransaction();
     }
 
-    public int prepareCommit(final TransactionId transaction) throws KeeperException, InterruptedException, IOException {
+    public int prepareCommit(final ITransactionState transaction) throws KeeperException, InterruptedException, IOException {
         SpliceLogUtils.trace(LOG, "prepareCommit %s", transaction);
         return 0;
     }
 
-    public void doCommit(final TransactionId transaction) throws KeeperException, InterruptedException, IOException {
-        SpliceLogUtils.trace(LOG, "doCommit %s", transaction);
-        transactor.commit(transaction);
+    @Override
+    public void prepareCommit2(Object bonus, ITransactionState transaction) throws KeeperException, InterruptedException, IOException {
+        prepareCommit(transaction);
     }
 
-    public void tryCommit(final TransactionId transaction) throws IOException, KeeperException, InterruptedException {
+    public void doCommit(final ITransactionState transaction) throws KeeperException, InterruptedException, IOException {
+        SpliceLogUtils.trace(LOG, "doCommit %s", transaction);
+        transactor.commit((TransactionId) transaction);
+    }
+
+    public void tryCommit(final ITransactionState transaction) throws IOException, KeeperException, InterruptedException {
         SpliceLogUtils.trace(LOG, "tryCommit %s", transaction);
         prepareCommit(transaction);
         doCommit(transaction);
     }
 
-    public void abort(final TransactionId transaction) throws IOException, KeeperException, InterruptedException {
+    public void abort(final ITransactionState transaction) throws IOException, KeeperException, InterruptedException {
         SpliceLogUtils.trace(LOG, "abort %s", transaction);
-        transactor.abort(transaction);
+        transactor.abort((TransactionId) transaction);
     }
 
     public synchronized JtaXAResource getXAResource() {
