@@ -48,6 +48,13 @@ public class BatchTable implements SpliceTable{
         }
     };
 
+    private static final Function<? super Mutation, ? extends byte[]> rowFetcher = new Function<Mutation, byte[]>() {
+        @Override
+        public byte[] apply(@Nullable Mutation input) {
+            return input.getRow();
+        }
+    };
+
     private final HConnection connection;
     private final Configuration configuration;
     private final ExecutorService multiPool;
@@ -506,85 +513,34 @@ public class BatchTable implements SpliceTable{
             throw new IOException("Unable to perform all mutations, some regions were offline and the " +
                     "number of retries was exhausted before they came back online");
         }
-        List<HRegionInfo> onlineRegions = getRegions();
+        List<List<Mutation>> bucketedMutations = Lists.partition(mutations,10);
 
-        /*
-         * Partition the mutations into a bucket for each HRegionInfo
-         */
-        Multimap<HRegionInfo,Mutation> mutationMap = ArrayListMultimap.create(onlineRegions.size(),
-                mutations.size()/onlineRegions.size());
-        /*
-         * If there are regions which are offline, we won't be able to go to them
-         * directly, so we'll have to retry with them after we finish what we can do
-         */
-        List<Mutation> failedMutations = Lists.newArrayListWithExpectedSize(0);
 
-        for(Mutation mutation:mutations){
-            byte[] row = mutation.getRow();
-            boolean found=false;
-            for(HRegionInfo region:onlineRegions){
-                byte[] start = region.getStartKey();
-                byte[] end = region.getEndKey();
-                if(Bytes.equals(start,HConstants.EMPTY_START_ROW)){
-                    if(Bytes.equals(end,HConstants.EMPTY_END_ROW)){
-                        //this region contains everything! add it all in
-                        mutationMap.put(region,mutation);
-                        found=true;
-                        break;
-                    }else if(Bytes.compareTo(row,end)<0){
-                        //we're in the start region
-                        mutationMap.put(region,mutation);
-                        found=true;
-                        break;
-                    }
-                }else if(Bytes.equals(end,HConstants.EMPTY_END_ROW)&&Bytes.compareTo(start,row)<=0){
-                    mutationMap.put(region,mutation);
-                    found=true;
-                    break;
-                }else  if(Bytes.compareTo(start,row)<=0 && Bytes.compareTo(row,end)<0){
-                    mutationMap.put(region,mutation);
-                    found=true;
-                    break;
-                }
-            }
-            if(!found)
-                failedMutations.add(mutation);
-        }
         //asynchronously push all the mutations
-        final CountDownLatch latch = new CountDownLatch(mutationMap.keySet().size());
+        final CountDownLatch latch = new CountDownLatch(bucketedMutations.size());
+
         try{
-            for(HRegionInfo info: mutationMap.keySet()){
-                final Collection<Mutation> regionMutations = mutationMap.get(info);
-                final List<byte[]> rows = Lists.newArrayList(Collections2.transform(regionMutations,new Function<Mutation,byte[]>() {
-                    @Override
-                    public byte[] apply(@Nullable Mutation input) {
-                        return input.getRow();
-                    }
-                }));
+            for(final List<Mutation> mutationsToPut:bucketedMutations){
+                final List<byte[]> rows = Lists.transform(mutationsToPut,rowFetcher);
                 connection.processExecs(BatchProtocol.class,
-                        rows,tableName,multiPool,new Batch.Call<BatchProtocol,Void>(){
-                            @Override
-                            public Void call(BatchProtocol instance) throws IOException {
-                                instance.batchMutate(regionMutations);
-                                return null;
-                            }
-                        }, new Batch.Callback<Void>() {
+                        rows,tableName,multiPool,new Batch.Call<BatchProtocol, Void>(){
+
+                    @Override
+                    public Void call(BatchProtocol instance) throws IOException {
+                        instance.batchMutate(mutationsToPut);
+                        return null;
+                    }
+                },new Batch.Callback<Void>() {
                             @Override
                             public void update(byte[] region, byte[] row, Void result) {
                                 latch.countDown();
                             }
-                        }
-                );
+                        });
             }
             latch.await();
         }catch(Throwable t){
             if(t instanceof IOException) throw (IOException)t;
             throw new IOException(t);
-        }
-
-        //retry mutations that couldn't be applied because the region wasn't available
-        if(failedMutations.size()>0){
-            flush(failedMutations,numRetries-1);
         }
     }
 
