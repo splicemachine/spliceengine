@@ -573,9 +573,12 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 
         @Override
         public void close() {
+        	if (!isOpen) 
+        		return;
             if(currentScanner!=null)currentScanner.close();
             try {
                 table.close();
+                isOpen = false;
             } catch (IOException e) {
                 SpliceLogUtils.logAndThrowRuntime(LOG,e);
             }
