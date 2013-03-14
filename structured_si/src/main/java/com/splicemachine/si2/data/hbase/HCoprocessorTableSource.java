@@ -11,15 +11,14 @@ import java.io.IOException;
  */
 public class HCoprocessorTableSource implements HTableSource {
     private final CoprocessorEnvironment environment;
-    private final SDataLib dataLib;
+    private final HDataLib dataLib = new HDataLib();
 
-    public HCoprocessorTableSource(SDataLib dataLib, CoprocessorEnvironment environment) {
-        this.dataLib = dataLib;
+    public HCoprocessorTableSource(CoprocessorEnvironment environment) {
         this.environment = environment;
     }
 
     @Override
     public HTableInterface getTable(String tableName) throws IOException {
-        return environment.getTable((byte[]) dataLib.encode(tableName));
+        return environment.getTable(dataLib.encode(tableName));
     }
 }

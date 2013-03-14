@@ -8,17 +8,31 @@ import com.splicemachine.si2.si.impl.RowMetadataStore;
 import com.splicemachine.si2.si.impl.SiTransactor;
 import com.splicemachine.si2.si.impl.TransactionSchema;
 import com.splicemachine.si2.si.impl.TransactionStore;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.client.HTablePool;
 
 public class TransactorFactory {
     private static Transactor transactor;
 
-   public static void setTransactor(Transactor transactorToUse) {
+    public static void setTransactor(Transactor transactorToUse) {
         transactor = transactorToUse;
     }
 
     public static Transactor getTransactor() {
+        return getTransactorDirect(null);
+    }
+
+    public static Transactor getTransactor(HTablePool pool) {
+        return getTransactorDirect(new HPoolTableSource(pool));
+    }
+
+    public static Transactor getTransactor(CoprocessorEnvironment environment) {
+        return getTransactorDirect(new HCoprocessorTableSource(environment));
+    }
+
+    public static Transactor getTransactorDirect(HTableSource tableSource) {
         if (transactor == null) {
-            HStore store = new HStore(null);
+            HStore store = new HStore(tableSource);
             SDataLib dataLib = new HDataLibAdapter(new HDataLib());
             final STableReader reader = new HTableReaderAdapter(store);
             final STableWriter writer = new HTableWriterAdapter(store);
