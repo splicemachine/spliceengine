@@ -9,6 +9,8 @@ import com.splicemachine.si2.si.api.TransactionId;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import java.io.IOException;
+
 public class TransactionStore {
     private final SDataLib handler;
     private final STableReader reader;
@@ -26,23 +28,26 @@ public class TransactionStore {
         this.writer = writer;
     }
 
-    public void recordNewTransaction(TransactionId startTransactionTimestamp, TransactionStatus status) {
+    public void recordNewTransaction(TransactionId startTransactionTimestamp, TransactionStatus status)
+            throws IOException {
         writePut(makeCreateTuple(startTransactionTimestamp, status));
     }
 
-    public void recordTransactionCommit(TransactionId startTransactionTimestamp, long commitTransactionTimestamp, TransactionStatus newStatus) {
+    public void recordTransactionCommit(TransactionId startTransactionTimestamp, long commitTransactionTimestamp,
+                                        TransactionStatus newStatus) throws IOException {
         writePut(makeCommitPut(startTransactionTimestamp, commitTransactionTimestamp, newStatus));
     }
 
-    public void recordTransactionStatusChange(TransactionId startTransactionTimestamp, TransactionStatus newStatus) {
+    public void recordTransactionStatusChange(TransactionId startTransactionTimestamp, TransactionStatus newStatus)
+            throws IOException {
         writePut(makeStatusUpdateTuple(startTransactionTimestamp, newStatus));
     }
 
-    public TransactionStruct getTransactionStatus(long beginTimestamp) {
+    public TransactionStruct getTransactionStatus(long beginTimestamp) throws IOException {
         return getTransactionStatus(new SiTransactionId(beginTimestamp));
     }
 
-    public TransactionStruct getTransactionStatus(TransactionId transactionId) {
+    public TransactionStruct getTransactionStatus(TransactionId transactionId) throws IOException {
         Object tupleKey = handler.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
 
         STable transactionSTable = reader.open(transactionSchema.tableName);
@@ -100,7 +105,7 @@ public class TransactionStore {
         handler.addKeyValueToPut(put, encodedSchema.siFamily, qualifier, null, handler.encode(value));
     }
 
-    private void writePut(Object put) {
+    private void writePut(Object put) throws IOException {
         final STable transactionSTable = reader.open(transactionSchema.tableName);
         try {
             writer.write(transactionSTable, put);

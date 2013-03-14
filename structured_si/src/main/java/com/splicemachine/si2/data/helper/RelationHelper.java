@@ -5,6 +5,7 @@ import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableReader;
 import com.splicemachine.si2.data.api.STableWriter;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 public class RelationHelper {
@@ -19,7 +20,7 @@ public class RelationHelper {
         this.writer = writer;
     }
 
-    public void open(String tableName) {
+    public void open(String tableName) throws IOException {
         table = reader.open(tableName);
     }
 

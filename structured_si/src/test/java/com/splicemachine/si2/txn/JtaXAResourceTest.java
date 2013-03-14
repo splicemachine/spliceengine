@@ -53,7 +53,7 @@ public class JtaXAResourceTest {
     }
 
     @Test
-    public void startTest() throws XAException {
+    public void startTest() throws XAException, IOException {
         JtaXAResource resource = new JtaXAResource(tm);
         SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
         resource.start(xid, 0);
@@ -65,7 +65,7 @@ public class JtaXAResourceTest {
     }
 
     @Test
-    public void commitTest() throws XAException {
+    public void commitTest() throws XAException, IOException {
         JtaXAResource resource = new JtaXAResource(tm);
         SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
         resource.start(xid, 0);
@@ -89,7 +89,7 @@ public class JtaXAResourceTest {
     }
 
     @Test
-    public void forgetTest() throws XAException {
+    public void forgetTest() throws XAException, IOException {
         JtaXAResource resource = new JtaXAResource(tm);
         SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
         resource.start(xid, 0);
@@ -125,7 +125,7 @@ public class JtaXAResourceTest {
     }
 
     @Test
-    public void prepareTest() throws XAException {
+    public void prepareTest() throws XAException, IOException {
         JtaXAResource resource = new JtaXAResource(tm);
         SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
         resource.start(xid, 0);
@@ -146,7 +146,7 @@ public class JtaXAResourceTest {
     }
 
     @Test
-    public void rollbackTest() throws XAException {
+    public void rollbackTest() throws XAException, IOException {
         JtaXAResource resource = new JtaXAResource(tm);
         SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
         resource.start(xid, 0);

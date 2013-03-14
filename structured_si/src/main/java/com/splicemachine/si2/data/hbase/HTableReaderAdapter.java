@@ -5,6 +5,7 @@ import com.splicemachine.si2.data.api.SScan;
 import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableReader;
 
+import java.io.IOException;
 import java.util.Iterator;
 
 public class HTableReaderAdapter implements STableReader {
@@ -15,7 +16,7 @@ public class HTableReaderAdapter implements STableReader {
     }
 
     @Override
-    public STable open(String tableName) {
+    public STable open(String tableName) throws IOException {
         return new HbTable(tableReader.open(tableName));
     }
 

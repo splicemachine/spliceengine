@@ -9,15 +9,15 @@ import java.io.IOException;
  * The primary interface to the transaction module.
  */
 public interface Transactor {
-    TransactionId beginTransaction();
+    TransactionId beginTransaction() throws IOException;
     void commit(TransactionId transactionId) throws IOException;
-    void abort(TransactionId transactionId);
-    void fail(TransactionId transactionId);
+    void abort(TransactionId transactionId) throws IOException;
+    void fail(TransactionId transactionId) throws IOException;
 
     boolean processPut(STable table, Object put) throws IOException;
     boolean isFilterNeeded(Object operation);
-    Object filterResult(FilterState filterState, Object result) throws IOException;
 
     FilterState newFilterState(STable table, TransactionId transactionId) throws IOException;
-    Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue);
+    Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
+    Object filterResult(FilterState filterState, Object result) throws IOException;
 }

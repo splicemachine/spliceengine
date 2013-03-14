@@ -36,10 +36,10 @@ public class SIFilter extends FilterBase {
         SpliceLogUtils.trace(LOG, "filterKeyValue %s", keyValue);
         try {
             initFilterStateIfNeeded();
+            return transactor.filterKeyValue(filterState, keyValue);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return transactor.filterKeyValue(filterState, keyValue);
     }
 
     private void initFilterStateIfNeeded() throws IOException {
@@ -50,13 +50,11 @@ public class SIFilter extends FilterBase {
 
     @Override
     public void readFields(DataInput in) throws IOException {
-        Thread.dumpStack();
         startTimestamp = in.readLong();
     }
 
     @Override
     public void write(DataOutput out) throws IOException {
-        Thread.dumpStack();
         out.writeLong(startTimestamp);
     }
 }

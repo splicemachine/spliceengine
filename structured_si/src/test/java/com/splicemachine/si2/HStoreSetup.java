@@ -15,6 +15,7 @@ import com.splicemachine.si2.data.hbase.HTableWriterAdapter;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 
+import java.io.IOException;
 import java.util.Iterator;
 
 public class HStoreSetup implements StoreSetup {
@@ -49,7 +50,11 @@ public class HStoreSetup implements StoreSetup {
         reader = new STableReader() {
             @Override
             public STable open(String tableName) {
-                return rawReader.open(tableName);
+                try {
+                    return rawReader.open(tableName);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
 
             @Override

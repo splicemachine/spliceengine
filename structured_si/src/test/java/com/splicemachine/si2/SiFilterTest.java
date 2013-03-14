@@ -44,7 +44,7 @@ public class SiFilterTest {
         return SiTransactorTest.readAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
     }
 
-    Object readEntireTuple(String name) {
+    Object readEntireTuple(String name) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 

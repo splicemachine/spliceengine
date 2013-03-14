@@ -36,7 +36,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public TransactionId beginTransaction() {
+    public TransactionId beginTransaction() throws IOException {
         final SiTransactionId transactionId = new SiTransactionId(timestampSource.nextTimestamp());
         transactionStore.recordNewTransaction(transactionId, TransactionStatus.ACTIVE);
         return transactionId;
@@ -51,12 +51,12 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public void abort(TransactionId transactionId) {
+    public void abort(TransactionId transactionId) throws IOException {
         transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ABORT);
     }
 
     @Override
-    public void fail(TransactionId transactionId) {
+    public void fail(TransactionId transactionId) throws IOException {
         transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ERROR);
     }
 
@@ -107,7 +107,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         }
     }
 
-    private void checkForConflict(TransactionId transactionId, STable table, SRowLock lock, Object rowKey) throws DoNotRetryIOException {
+    private void checkForConflict(TransactionId transactionId, STable table, SRowLock lock, Object rowKey) throws IOException {
         long id = transactionId.getId();
         List keyValues = dataStore.getCommitTimestamp(table, rowKey);
         if (keyValues != null) {
@@ -133,7 +133,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         }
     }
 
-    private void writeWriteConflict(TransactionId transactionId) throws DoNotRetryIOException {
+    private void writeWriteConflict(TransactionId transactionId) throws IOException {
         fail(transactionId);
         throw new DoNotRetryIOException("write/write conflict");
     }
@@ -182,7 +182,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         }
     }
 
-    public boolean shouldKeep(Object keyValue, TransactionId transactionId) {
+    public boolean shouldKeep(Object keyValue, TransactionId transactionId) throws IOException {
         final long snapshotTimestamp = transactionId.getId();
         final long keyValueTimestamp = dataLib.getKeyValueTimestamp(keyValue);
         final TransactionStruct transaction = transactionStore.getTransactionStatus(keyValueTimestamp);
@@ -217,7 +217,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) {
+    public Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException {
         SiFilterState siFilterState = (SiFilterState) filterState;
         Object rowKey = dataLib.getKeyValueRow(keyValue);
         if (siFilterState.currentRowKey == null || !dataLib.valuesEqual(siFilterState.currentRowKey, rowKey)) {
@@ -251,7 +251,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         return (commitTimestamp == null && dataTimestamp == siFilterState.transactionId.getId());
     }
 
-    private void filterProcessCommitTimestamp(Object keyValue, SiFilterState siFilterState) {
+    private void filterProcessCommitTimestamp(Object keyValue, SiFilterState siFilterState) throws IOException {
         long beginTimestamp = dataLib.getKeyValueTimestamp(keyValue);
         Object commitTimestampValue = dataLib.getKeyValueValue(keyValue);
         Long commitTimestamp = null;
@@ -266,7 +266,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     private Long filterHandleUnknownTransactionStatus(SiFilterState siFilterState, Object keyValue,
-                                                      long beginTimestamp, Long commitTimestamp) {
+                                                      long beginTimestamp, Long commitTimestamp) throws IOException {
         TransactionStruct transactionStruct = transactionStore.getTransactionStatus(beginTimestamp);
         switch (transactionStruct.status) {
             case ACTIVE:

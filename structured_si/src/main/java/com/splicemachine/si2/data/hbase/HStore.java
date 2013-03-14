@@ -22,7 +22,7 @@ public class HStore implements IHTableReader, IHTableWriter {
     }
 
     @Override
-    public HTableInterface open(String tableName) {
+    public HTableInterface open(String tableName) throws IOException {
         return tableSource.getTable(tableName);
     }
 
