@@ -75,6 +75,8 @@ public class SequentialImporter implements Importer {
 						}
 					});
 		} catch (Throwable throwable) {
+            if(throwable instanceof IOException)throw (IOException)throwable;
+
 			throw new IOException(throwable);
 		}
 		try{

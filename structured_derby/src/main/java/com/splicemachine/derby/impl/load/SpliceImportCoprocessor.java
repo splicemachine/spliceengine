@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StringUtils;
@@ -17,6 +18,7 @@ import com.splicemachine.hbase.BatchTable;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.TypeDescriptor;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -194,8 +196,9 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
             }
             Put put = Puts.buildInsert(rowSerializer.serialize(row.getRowArray()),row.getRowArray(), null,serializer); //TODO -sf- add transaction stuff
             table.put(put);
-        }catch(StandardException se){
-            throw new DoNotRetryIOException(se.getMessageId());
+        }catch(StandardException e){
+            SpliceLogUtils.error(LOG,"Error importing line %s",Arrays.toString(line));
+            throw Exceptions.getIOException(e);
         }
     }
 
@@ -231,5 +234,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		final CSVReader csvReader = new CSVReader(new StringReader(line), columnDelimiter.charAt(0));
 		return csvReader.readNext();
 	}
+
+
 
 }
