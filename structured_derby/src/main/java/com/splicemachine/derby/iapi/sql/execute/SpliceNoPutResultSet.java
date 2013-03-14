@@ -197,10 +197,6 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 		SpliceLogUtils.trace(LOG, "close="+closed);
 		if(closed) return; //nothing to do;
 
-		/*
-		 ** If run time statistics tracing is turned on, then now is the
-		 ** time to dump out the information.
-		 */
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 
 		// only if statistics is switched on, collect & derive them

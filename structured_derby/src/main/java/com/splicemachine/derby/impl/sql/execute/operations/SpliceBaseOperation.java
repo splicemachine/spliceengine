@@ -123,7 +123,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 //		SpliceLogUtils.trace(LOG,"instantiated for resultSetNumber %d", resultSetNumber);
 		if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming())
 		    beginTime = startExecutionTime = getCurrentTimeMillis();
-		SpliceLogUtils.trace(LOG, "statisticsTimingOn="+statisticsTimingOn);
+		SpliceLogUtils.trace(LOG, "statisticsTimingOn="+statisticsTimingOn+",isTopResultSet="+isTopResultSet);
 		
 		this.optimizerEstimatedCost = optimizerEstimatedCost;
 		this.optimizerEstimatedRowCount = optimizerEstimatedRowCount;
