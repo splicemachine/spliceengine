@@ -233,11 +233,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
 		@Override
 		public void close() {
+			if (!isOpen)
+				return;
 			if (isTopResultSet && activation.getLanguageConnectionContext().getRunTimeStatisticsMode() &&
                     !activation.getLanguageConnectionContext().getStatementContext().getStatementWasInvalidated())
 				endExecutionTime = getCurrentTimeMillis();
 			try {
 				source.close();
+				isOpen = false;
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
