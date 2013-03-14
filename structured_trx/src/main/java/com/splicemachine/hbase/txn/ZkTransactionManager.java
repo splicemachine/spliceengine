@@ -2,7 +2,11 @@ package com.splicemachine.hbase.txn;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
+
+import com.splicemachine.constants.ITransactionState;
+import com.splicemachine.constants.TransactionStatus;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
@@ -43,24 +47,34 @@ public class ZkTransactionManager extends TransactionManager {
     	return new TransactionState(TxnUtils.beginTransaction(transactionPath, zkw));
     }
    
-    public int prepareCommit(final TransactionState transactionState) throws KeeperException, InterruptedException, IOException {
+    public int prepareCommit(final ITransactionState iTransactionState) throws KeeperException, InterruptedException, IOException {
+        TransactionState transactionState = (TransactionState) iTransactionState;
     	SpliceLogUtils.trace(LOG, "Do prepareCommit on " + transactionState.getTransactionID());
     	TxnUtils.prepareCommit(transactionState.getTransactionID(), rzk);
     	return 0;
      }
 
-    public void doCommit(final TransactionState transactionState) throws KeeperException, InterruptedException, IOException  {
+    @Override
+    public void prepareCommit2(Object bonus, ITransactionState transactionState) throws KeeperException, InterruptedException, IOException {
+        RecoverableZooKeeper recoverableZooKeeper = (RecoverableZooKeeper) bonus;
+        recoverableZooKeeper.setData(transactionState.getTransactionID(), Bytes.toBytes(TransactionStatus.PREPARE_COMMIT.toString()), -1);
+    }
+
+    public void doCommit(final ITransactionState iTransactionState) throws KeeperException, InterruptedException, IOException  {
+        TransactionState transactionState = (TransactionState) iTransactionState;
     	SpliceLogUtils.trace(LOG, "Do commit on " + transactionState.getTransactionID());
     	TxnUtils.doCommit(transactionState.getTransactionID(), rzk);
     }
 
-    public void tryCommit(final TransactionState transactionState) throws IOException, KeeperException, InterruptedException {
+    public void tryCommit(final ITransactionState iTransactionState) throws IOException, KeeperException, InterruptedException {
+        TransactionState transactionState = (TransactionState) iTransactionState;
     	SpliceLogUtils.trace(LOG, "Try commit on " +transactionState.getTransactionID());
        	prepareCommit(transactionState);
        	doCommit(transactionState);
     }
     
-    public void abort(final TransactionState transactionState) throws IOException, KeeperException, InterruptedException {
+    public void abort(final ITransactionState iTransactionState) throws IOException, KeeperException, InterruptedException {
+        TransactionState transactionState = (TransactionState) iTransactionState;
     	SpliceLogUtils.trace(LOG, "Abort on " +transactionState.getTransactionID());
     	TxnUtils.abort(transactionState.getTransactionID(), rzk);
      }

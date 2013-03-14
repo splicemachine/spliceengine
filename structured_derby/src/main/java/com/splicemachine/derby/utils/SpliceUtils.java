@@ -10,7 +10,7 @@ import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -513,10 +513,10 @@ public class SpliceUtils {
 			return null;
 		
 		//for debugging purpose right now
-		if (!(trans instanceof ZookeeperTransaction))
-			LOG.error("We should only support ZookeeperTransaction!");
+		if (!(trans instanceof SpliceTransaction))
+			LOG.error("We should only support SpliceTransaction!");
 		
-		ZookeeperTransaction zt = (ZookeeperTransaction)trans;
+		SpliceTransaction zt = (SpliceTransaction)trans;
 		if (zt.getTransactionState() != null && zt.getTransactionState().getTransactionID() != null)
 			return zt.getTransactionState().getTransactionID();
 		

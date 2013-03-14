@@ -188,7 +188,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
                     row.getColumn(activePos+1).setValue(line[pos]);
                 }
             }else{
-                for(int pos=0;pos<line.length;pos++){
+                for(int pos=0;pos<line.length-1;pos++){
                     row.getColumn(pos+1).setValue(line[pos]);
                 }
             }

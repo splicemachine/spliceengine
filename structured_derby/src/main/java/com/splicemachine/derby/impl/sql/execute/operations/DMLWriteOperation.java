@@ -24,7 +24,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -216,7 +216,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				//Bug 185 - jz
 				try {
 					if (trans.isIdle()) {
-						((ZookeeperTransaction)trans).setActiveState();
+						((SpliceTransaction)trans).setActiveState();
 						transactionID = SpliceUtils.getTransIDString(trans);
 					}
 				} catch (Exception e) {

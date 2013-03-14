@@ -1,9 +1,8 @@
 package com.splicemachine.derby.impl.store.access;
 
-import java.io.IOException;
-import java.util.Properties;
-
-import com.splicemachine.derby.utils.ZkUtils;
+import com.splicemachine.constants.ITransactionManager;
+import com.splicemachine.constants.ITransactionManagerFactory;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
@@ -18,21 +17,9 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.store.raw.log.LogInstant;
 import org.apache.derby.iapi.store.raw.xact.TransactionId;
 import org.apache.derby.iapi.types.J2SEDataValueFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.MasterNotRunningException;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.txn.ZkTransactionManager;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.util.Properties;
 
 public class SpliceTransactionFactory implements ModuleControl, ModuleSupportable{
 	private static Logger LOG = Logger.getLogger(SpliceTransactionFactory.class);
@@ -47,11 +34,13 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 	protected J2SEDataValueFactory dataValueFactory;
 	protected ContextService contextFactory;
 	protected HBaseStore hbaseStore;
-	//protected ZooKeeperWatcher zkw;
-    //protected RecoverableZooKeeper rzk;
-	//private String transPath;
-	
-	public StandardException markCorrupt(StandardException originalError) {
+    private ITransactionManagerFactory iTransactionManagerFactory;
+
+    public SpliceTransactionFactory(ITransactionManagerFactory iTransactionManagerFactory) {
+        this.iTransactionManagerFactory = iTransactionManagerFactory;
+    }
+
+    public StandardException markCorrupt(StandardException originalError) {
 		return null;
 	}
 
@@ -105,7 +94,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		if (this.hbaseStore == hbaseStore) {
 			LOG.error("findUserTransaction, passed in context mgr not the same as current context mgr");
 		}
-		ZookeeperTransactionContext tc = (ZookeeperTransactionContext)contextMgr.getContext(USER_CONTEXT_ID);
+		SpliceTransactionContext tc = (SpliceTransactionContext)contextMgr.getContext(USER_CONTEXT_ID);
 		if (tc == null) {
 			SpliceLogUtils.debug(LOG, "findUserTransaction, transaction controller is null for UserTransaction");
 			return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, transName, false, USER_CONTEXT_ID);
@@ -133,18 +122,17 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, null, true, INTERNAL_CONTEXT_ID);
 	}
 
-	private ZookeeperTransaction startCommonTransaction(HBaseStore hbaseStore, 
+	private SpliceTransaction startCommonTransaction(HBaseStore hbaseStore,
 			ContextManager contextMgr, SpliceLockFactory lockFactory, J2SEDataValueFactory dataValueFactory,
 			boolean readOnly, String transName, boolean abortAll, String contextName) {
 		try {
 			//String transPath = config.get(TxnConstants.TRANSACTION_PATH_NAME,TxnConstants.DEFAULT_TRANSACTION_PATH);	
 			//ZkTransactionManager zkTrans = new ZkTransactionManager(transPath, zkw, rzk);
-			ZkTransactionManager zkTrans = new ZkTransactionManager(SpliceUtils.getTransactionPath(), ZkUtils.getZooKeeperWatcher(),
-					ZkUtils.getRecoverableZooKeeper());
-			ZookeeperTransaction trans = new ZookeeperTransaction(new SpliceLockSpace(),dataValueFactory,zkTrans, transName);
+            ITransactionManager transactionManager = iTransactionManagerFactory.newTransactionManager();
+			SpliceTransaction trans = new SpliceTransaction(new SpliceLockSpace(), dataValueFactory, transactionManager, transName);
 			trans.setTransactionName(transName);
 			
-			ZookeeperTransactionContext context = new ZookeeperTransactionContext(contextMgr, contextName, trans, abortAll, hbaseStore);
+			SpliceTransactionContext context = new SpliceTransactionContext(contextMgr, contextName, trans, abortAll, hbaseStore);
 			
 			trans.setActiveState();
 			
@@ -247,7 +235,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		lockFactory = new SpliceLockFactory();
 		lockFactory.boot(create, properties);
 		if (create)
-			initZookeeper();
+            iTransactionManagerFactory.init();
 	}
 
 	/*@SuppressWarnings(value = "deprecation")
@@ -300,50 +288,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 			e.printStackTrace();
 		}
 	}*/
-	
-	private void initZookeeper() {
-		if (LOG.isDebugEnabled())
-			LOG.debug("SpliceTransactionFactory initZookeeper");
-		HBaseAdmin admin = null;
-		try {
-			@SuppressWarnings("resource")
-			Configuration config = HBaseConfiguration.create();
-			admin = new HBaseAdmin(config);
-			if (!admin.tableExists(TxnConstants.TRANSACTION_LOG_TABLE_BYTES)) {
-				HTableDescriptor desc = new HTableDescriptor(TxnConstants.TRANSACTION_LOG_TABLE_BYTES);
-				desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-						HBaseConstants.DEFAULT_VERSIONS,
-						HBaseConstants.DEFAULT_COMPRESSION,
-//						config.get(HBaseConstants.TABLE_COMPRESSION,HBaseConstants.DEFAULT_COMPRESSION),
-						HBaseConstants.DEFAULT_IN_MEMORY,
-						HBaseConstants.DEFAULT_BLOCKCACHE,
-						HBaseConstants.DEFAULT_TTL,
-						HBaseConstants.DEFAULT_BLOOMFILTER));
-				desc.addFamily(new HColumnDescriptor(TxnConstants.DEFAULT_FAMILY));
-				admin.createTable(desc);
-			}
-			if (!admin.tableExists(TxnConstants.TEMP_TABLE)) {
-				HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(TxnConstants.TEMP_TABLE);
-				admin.createTable(td);
-				SpliceLogUtils.info(LOG, TxnConstants.TEMP_TABLE + " created");
-			}
-		} catch (MasterNotRunningException e) {
-			SpliceLogUtils.error(LOG,e);
-		} catch (ZooKeeperConnectionException e) {
-			SpliceLogUtils.error(LOG,e);
-		} catch (IOException e) {
-			SpliceLogUtils.error(LOG,e);
-		} finally {
-			if (admin != null) {
-				try {
-					admin.close();
-				} catch (Exception e) {
-					SpliceLogUtils.error(LOG,e);
-				}
-			}
-		}
-	}
-	
+
 	public void stop() {
 		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -stop");
 	}

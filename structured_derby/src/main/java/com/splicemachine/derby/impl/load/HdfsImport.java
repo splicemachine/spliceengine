@@ -293,6 +293,7 @@ public class HdfsImport extends ParallelVTI {
                     numCols++;
                     builder = builder.column(rs.getInt(COLNUM_POSITION)-1,rs.getInt(COLTYPE_POSITION));
                 }
+
             }
         }finally{
             if(rs!=null)rs.close();

@@ -34,20 +34,15 @@
 	</distributionManagement>
 	
 	<properties>
-  		<hbase.version>0.92.1-cdh4.0.1</hbase.version>
-  		<hadoop.version>2.0.0-cdh4.0.1</hadoop.version>
-  		<hive.version>0.8.1-cdh4.0.1</hive.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<junit.version>4.8.1</junit.version>
-		<zookeeper.version>3.4.1-cdh4b1</zookeeper.version>
 		<surefire.junit4.version>2.6</surefire.junit4.version>
-		<jetty.version>7.2.0.v20101020</jetty.version>
 		<gson.version>1.6</gson.version>
 		<maven.compiler.source>1.6</maven.compiler.source>
 		<maven.compiler.target>1.6</maven.compiler.target>
 		<maven.jar.plugin.version>2.3.1</maven.jar.plugin.version>
 		<log4j.version>1.2.15</log4j.version>
-		<derby.version>10.9.1.1.splice</derby.version>
+		<derby.version>10.9.1.0.splice</derby.version>
 	</properties>
 	<!-- Lets go with 1.6 compliance -->
 
@@ -122,10 +117,7 @@
 		</pluginRepository>
 	</pluginRepositories>
 	<repositories>
-		<repository>
-			<id>cloudera</id>
-			<url>https://repository.cloudera.com/content/repositories/releases/</url>
-		</repository>
+
 		<repository>
 			<id>protostuff-repo</id>
 			<name>protostuff-repo</name>
@@ -152,15 +144,6 @@
                 <enabled>true</enabled>
             </releases>
         </repository>
-
-        <!-- 	<repository>
-                <id>apache</id>
-                <url>https://repository.apache.org/content/repositories/snapshots</url>
-            </repository>
-            <repository>
-                <id>apache-release</id>
-                <url>https://repository.apache.org/content/repositories/releases</url>
-            </repository> -->
 		<repository>
 			<id>gson-repo</id>
 			<url>http://google-gson.googlecode.com/svn/mavenrepo</url>
@@ -172,4 +155,57 @@
 			</releases>
 		</repository>
 	</repositories>
+	<profiles>
+		<profile>
+			<id>cloudera-cdh4.2.0</id>
+			<properties>
+				<zookeeper.version>3.4.5-cdh4.2.0</zookeeper.version>
+			  	<hbase.version>0.94.2-cdh4.2.0</hbase.version>
+  				<hadoop.version>2.0.0-cdh4.2.0</hadoop.version>
+			</properties>
+			<repositories>
+				<repository>
+					<id>cloudera</id>
+					<url>https://repository.cloudera.com/content/repositories/releases/</url>
+				</repository>
+			</repositories>
+			<dependencies>
+			</dependencies>
+		</profile>
+
+			<profile>
+			<id>cloudera-cdh4.0.1</id>
+		 <activation>
+      		<activeByDefault>true</activeByDefault>
+    	</activation>
+			<properties>
+				<zookeeper.version>3.4.3-cdh4.0.1</zookeeper.version>
+			  	<hbase.version>0.92.1-cdh4.0.1</hbase.version>
+  				<hadoop.version>2.0.0-cdh4.0.1</hadoop.version>
+			</properties>
+			<repositories>
+				<repository>
+					<id>cloudera</id>
+					<url>https://repository.cloudera.com/content/repositories/releases/</url>
+				</repository>
+			</repositories>
+			<dependencies>
+			</dependencies>
+		</profile>
+
+		<profile>
+			<id>hortonworks-hdp-1.2.1</id>
+			<properties>
+				<zookeeper.version>3.4.1-cdh4b1</zookeeper.version>
+			  	<hbase.version>0.94.2.21</hbase.version>
+  				<hadoop.version>3.4.5.21</hadoop.version>
+			</properties>
+			<repositories>
+			</repositories>
+			<dependencies>
+			</dependencies>
+		</profile>
+
+		
+		</profiles>
 </project>

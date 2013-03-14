@@ -133,8 +133,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		//SpliceLogUtils.trace(LOG,"before seting active, transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
 		//		+",transactionId="+transactionID);
 		this.transactionID = (trans == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
-		//SpliceLogUtils.trace(LOG,"transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
-		//		+",transactionId="+transactionID);
 		this.uniqueSequenceID = SpliceUtils.generateQueryNodeSequence();
 		sequence = new DataValueDescriptor[1];
 		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
