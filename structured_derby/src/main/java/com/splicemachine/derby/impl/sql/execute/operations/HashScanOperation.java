@@ -159,9 +159,9 @@ public class HashScanOperation extends ScanOperation {
 			LOG.info("activation.getClass()="+activation.getClass()+",aactivation="+activation);
 			if (scanQualifiersField != null)
 				scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
-			this.mapScan = Scans.setupScan(startPosition==null?null:startPosition.getRowArray(),startSearchOperator,
-					stopPosition==null?null:stopPosition.getRowArray(),stopSearchOperator,
-					scanQualifiers,null,accessedCols,Bytes.toBytes(transactionID));
+			this.mapScan = Scans.setupScan(startPosition==null?null:startPosition.getRowArray(), startSearchOperator,
+					stopPosition==null?null:stopPosition.getRowArray(), stopSearchOperator,
+					scanQualifiers, null, accessedCols, transactionID);
 //			this.mapScan = SpliceUtils.setupScan(Bytes.toBytes(transactionID), accessedCols,scanQualifiers, startPosition == null ? null : startPosition.getRowArray(), startSearchOperator, stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator, null);
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);

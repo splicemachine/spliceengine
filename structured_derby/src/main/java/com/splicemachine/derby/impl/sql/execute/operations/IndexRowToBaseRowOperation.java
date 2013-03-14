@@ -273,8 +273,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 			SpliceLogUtils.trace(LOG,"<%s> retrieved index row %s",indexName,sourceRow);
 			if(sourceRow!=null){
 				baseRowLocation = (RowLocation)sourceRow.getColumn(sourceRow.nColumns());
-				Get get =  SpliceUtils.createGet(baseRowLocation, rowArray,
-																				heapOnlyCols, Bytes.toBytes(transactionID));
+				Get get =  SpliceUtils.createGet(baseRowLocation, rowArray, heapOnlyCols, transactionID);
 				boolean rowExists = false;
 				try{
 					Result result = table.get(get);

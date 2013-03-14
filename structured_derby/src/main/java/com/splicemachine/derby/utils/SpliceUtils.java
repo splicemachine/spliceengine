@@ -145,7 +145,7 @@ public class SpliceUtils {
 		return gson.fromJson(json, instanceClass);
 	}
 
-	public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, byte[] transID) throws StandardException {
+	public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
 		SpliceLogUtils.trace(LOG,"createGet %s",loc.getBytes());
 		try {
 			Get get = new Get(loc.getBytes());
@@ -161,7 +161,7 @@ public class SpliceUtils {
 
 			//FIXME: need to get the isolation level
 			if (transID != null) {
-				get.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+				get.setAttribute(TxnConstants.TRANSACTION_ID, transID.getBytes());
 				get.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
 													Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
 			}
@@ -333,7 +333,7 @@ public class SpliceUtils {
 	}
 
 	public static boolean update(RowLocation loc, DataValueDescriptor[] row,
-			FormatableBitSet validColumns, HTableInterface htable, byte[] transID) throws StandardException {
+			FormatableBitSet validColumns, HTableInterface htable, String transID) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("update row " + row);
 
@@ -344,7 +344,7 @@ public class SpliceUtils {
 			
 			//FIXME: need to get the isolation level
 			if (transID != null) {
-				get.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+				get.setAttribute(TxnConstants.TRANSACTION_ID, transID.getBytes());
 				get.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL, 
 		    			Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
 			}
@@ -523,12 +523,12 @@ public class SpliceUtils {
 		return null;
 	}
 	
-	public static byte[] getTransID(Transaction trans) {
+	public static String getTransID(Transaction trans) {
 		String transID = getTransIDString(trans);
 		if (transID == null)
 			return null;
 		
-		return transID.getBytes();
+		return transID;
 	}
 
 	public static byte[] getUniqueKey(){

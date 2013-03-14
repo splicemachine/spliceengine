@@ -28,7 +28,7 @@ public abstract class SpliceController implements ConglomerateController {
 	protected OpenSpliceConglomerate openSpliceConglomerate;
 	protected HTableInterface htable;
 	protected Transaction trans;
-	protected byte[] transID;
+	protected String transID;
 	
 	public SpliceController() {}
 
@@ -89,7 +89,7 @@ public abstract class SpliceController implements ConglomerateController {
 		try {
 			Delete delete = new Delete(loc.getBytes());
 			if (transID != null)
-				delete.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+				delete.setAttribute(TxnConstants.TRANSACTION_ID, transID.getBytes());
 			htable.delete(delete);
 			return true;
 		} catch (Exception e) {

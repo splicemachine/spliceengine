@@ -218,7 +218,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     protected Scan getScan() throws IOException {
         return Scans.setupScan(startPosition == null ? null : startPosition.getRowArray(), startSearchOperator,
                 stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator,
-                scanQualifiers, conglomerate.getAscDescInfo(), pkCols,accessedCols, Bytes.toBytes(transactionID));
+                scanQualifiers, conglomerate.getAscDescInfo(), pkCols,accessedCols, transactionID);
     }
 
     protected void populateQualifiers()  {

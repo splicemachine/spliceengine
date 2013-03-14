@@ -139,7 +139,7 @@ public class UpdateOperation extends DMLWriteOperation{
                  */
                 if(!modifiedPrimaryKeys){
                     SpliceLogUtils.trace(LOG, "UpdateOperation sink, nextRow=%s, validCols=%s,colPositionMap=%s", nextRow, heapList, Arrays.toString(colPositionMap));
-                    Put put = Puts.buildUpdate(location, nextRow.getRowArray(), heapList, colPositionMap, this.transactionID.getBytes(), serializer);
+                    Put put = Puts.buildUpdate(location, nextRow.getRowArray(), heapList, colPositionMap, this.transactionID, serializer);
                     put.setAttribute(Puts.PUT_TYPE,Puts.FOR_UPDATE);
                     htable.put(put);
                 }else{

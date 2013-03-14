@@ -26,7 +26,7 @@ public class SpliceDatabase extends BasicDatabase {
 		else {  
 			SpliceLogUtils.info(LOG,"Booting the Splice Machine");
 		}
-		super.boot(create, startParams);	
+		super.boot(create, startParams);
 	}
 		@Override
 		protected void bootValidation(boolean create, Properties startParams) throws StandardException {

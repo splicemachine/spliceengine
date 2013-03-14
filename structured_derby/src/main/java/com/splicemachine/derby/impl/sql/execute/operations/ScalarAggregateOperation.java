@@ -267,7 +267,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                 SpliceLogUtils.trace(LOG,"row=%s, key.length=%d, afterPrefix?%b,beforeEnd?%b",
                         row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
                         Bytes.compareTo(key,reduceScan.getStopRow())<0);
-                put = Puts.buildInsert(key,row.getRowArray(),Bytes.toBytes(transactionID),serializer);
+                put = Puts.buildInsert(key,row.getRowArray(), transactionID,serializer);
                 SpliceLogUtils.trace(LOG, "put=%s",put);
                 tempTable.put(put);
 

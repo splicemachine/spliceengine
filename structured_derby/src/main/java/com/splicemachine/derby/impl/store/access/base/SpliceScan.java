@@ -31,7 +31,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	protected static Logger LOG = Logger.getLogger(SpliceScan.class);
 	protected OpenSpliceConglomerate spliceConglomerate;
 	protected Transaction trans;
-	protected byte[] transID;
+	protected String transID;
 	protected Scan scan;
 	protected FormatableBitSet scanColumnList;
 	protected DataValueDescriptor[] startKeyValue;
@@ -153,7 +153,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		try {
             boolean[] sortOrder = spliceConglomerate==null?null:
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).getAscDescInfo();
-            scan = Scans.setupScan(startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator,qualifier,sortOrder,scanColumnList,transID);
+            scan = Scans.setupScan(startKeyValue, startSearchOperator, stopKeyValue, stopSearchOperator, qualifier,
+                    sortOrder, scanColumnList, transID);
 //			boolean generateKey = true;
 //			if (startKeyValue != null && stopKeyValue != null) {
 //				for (int i =0; i<startKeyValue.length; i++) {
@@ -195,7 +196,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		try {
 			Delete delete = new Delete(this.currentResult.getRow());
 			if (transID != null)
-				delete.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+				delete.setAttribute(TxnConstants.TRANSACTION_ID, transID.getBytes());
 			table.delete(delete);
 			currentRowDeleted = true;
 			return true;
@@ -454,7 +455,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		try {
 			table.put(Puts.buildInsert(currentRowLocation.getBytes(), row, validColumns, transID));
 			if (validColumns != null)
-				table.delete(SpliceUtils.cleanupNullsDelete(new HBaseRowLocation(currentResult.getRow()), row, validColumns, transID)); // Might be faster to cycle through the result
+				table.delete(SpliceUtils.cleanupNullsDelete(new HBaseRowLocation(currentResult.getRow()), row, validColumns, transID.getBytes())); // Might be faster to cycle through the result
 			return true;			
 		} catch (Exception e) {
 			throw StandardException.newException("Error during replace " + e);
