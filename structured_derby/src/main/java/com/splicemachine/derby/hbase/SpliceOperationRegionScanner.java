@@ -1,15 +1,11 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.stats.Accumulator;
-import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.stats.ThroughputStats;
-import com.splicemachine.derby.stats.TimeUtils;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -23,11 +19,15 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TimeUtils;
+import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 
 
 public class SpliceOperationRegionScanner implements RegionScanner {
@@ -45,6 +45,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
     public SpliceOperationRegionScanner(SpliceOperation topOperation,
                                         SpliceOperationContext context){
+    	stats.start();
+    	SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
         this.topOperation = topOperation;
         this.statement = context.getPreparedStatement();
         try {
@@ -53,8 +55,6 @@ public class SpliceOperationRegionScanner implements RegionScanner {
             SpliceLogUtils.trace(LOG,"lcc=%s",lcc);
             activation = context.getActivation();//((GenericActivationHolder) statement.getActivation(lcc, false)).ac;
             topOperation.init(context);
-
-            stats.start();
         }catch (IOException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
         }
@@ -62,9 +62,10 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 	public SpliceOperationRegionScanner(RegionScanner regionScanner, Scan scan,HRegion region) {
 		SpliceLogUtils.trace(LOG, "instantiated with "+regionScanner+", and scan "+scan);
+		stats.start();
+		SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
 		this.regionScanner = regionScanner;
-		//Putting this here to prevent some kind of weird NullPointer situation
-		//where the LanguageConnectionContext doesn't get initialized properly
+		
 		try {
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
 			statement = soi.getStatement();
@@ -74,9 +75,10 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 			activation = soi.getActivation(lcc);
 
-			topOperation.init(new SpliceOperationContext(regionScanner,region,scan, activation, statement, lcc));
-			SpliceLogUtils.trace(LOG,"Ready to execute stack %s",topOperation);
-            stats.start();
+			topOperation.init(new SpliceOperationContext(regionScanner,region,scan, activation, statement, lcc));			
+			List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
+			topOperation.generateLeftOperationStack(opStack);
+			SpliceLogUtils.trace(LOG,"Ready to execute stack %s",opStack);
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
 		}
@@ -123,6 +125,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		if (regionScanner != null)
 			regionScanner.close();
         finalStats = stats.finish();
+        ((SpliceBaseOperation)topOperation).nextTime +=finalStats.getTotalTime();
+        SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SpliceOperationRegionScanner at "+stats.getFinishTime());
 	}
 
 	@Override

@@ -46,6 +46,7 @@ public class InsertOperation extends DMLWriteOperation {
 							GeneratedMethod generationClauses, 
 							GeneratedMethod checkGM) throws StandardException{
 		super(source, generationClauses, checkGM, source.getActivation());
+		recordConstructorTime(); 
 	}
 
 	@Override
@@ -75,7 +76,7 @@ public class InsertOperation extends DMLWriteOperation {
 		 */
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
-
+        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for InsertOperation at "+stats.getStartTime());
 		ExecRow nextRow=null;
 		//Use HTable to do inserts instead of HeapConglomerateController - see Bug 188
         Serializer serializer = new Serializer();
@@ -109,7 +110,10 @@ public class InsertOperation extends DMLWriteOperation {
 		}finally{
             if(htable!=null)htable.close();
         }
-        return stats.finish();
+        //return stats.finish();
+		SinkStats ss = stats.finish();
+		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for InsertOperation at "+stats.getFinishTime());
+        return ss;
 	}
 
 	

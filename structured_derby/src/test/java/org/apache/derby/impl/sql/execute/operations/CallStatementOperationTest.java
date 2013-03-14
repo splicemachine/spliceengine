@@ -12,8 +12,6 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.splicemachine.derby.test.SpliceDerbyTest;
-
 //public class CallStatementOperationTest extends SpliceDerbyTest {
 public class CallStatementOperationTest extends SpliceNetDerbyTest {
 	private static Logger LOG = Logger.getLogger(CallStatementOperationTest.class);
@@ -22,7 +20,6 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
 	public static void startup() throws Exception {
 		startConnection();	
 	}
-
 
     @Test
     public void testCallIndexInfo() throws SQLException {
@@ -75,7 +72,7 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
         }
     }
 
-//    @Ignore
+    @Test
 	public void testCallSysSchemas() throws SQLException {
     	conn.setAutoCommit(true);
 		LOG.info("start testCallStatement");

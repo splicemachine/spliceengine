@@ -51,6 +51,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
 		this.wasRightOuterJoin = wasRightOuterJoin;
 		init(SpliceOperationContext.newContext(activation));
+		recordConstructorTime(); 
 	}
 
 	@Override
@@ -191,8 +192,11 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 			SpliceLogUtils.trace(LOG, "remove");
 		}
 		public void close() throws StandardException {
+			if (!isOpen)
+				return;
 			SpliceLogUtils.trace(LOG, "close, closing probe result set");
 			probeResultSet.close();
+			isOpen = false;
 		}
 	}
 

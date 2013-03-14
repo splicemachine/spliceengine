@@ -404,9 +404,6 @@ public class SpliceRealResultSetStatisticsFactory
 		else if (rs instanceof SortOperation)
 		{
 			SortOperation srs = (SortOperation) rs;
-			Properties sortProperties = new Properties();
-			sortProperties.setProperty("numRowsInput", ""+srs.getRegionStats().getTotalProcessedRecords());
-			sortProperties.setProperty("numRowsOutput", ""+srs.getRegionStats().getTotalSunkRecords());
 			
 			return new RealSortStatistics(
 											srs.numOpens,
@@ -417,11 +414,11 @@ public class SpliceRealResultSetStatisticsFactory
 											srs.nextTime,
 											srs.closeTime,
 											srs.getResultSetNumber(),
-											(int)srs.getRegionStats().getTotalProcessedRecords(),
-											(int)srs.getRegionStats().getTotalSunkRecords(),
+											(int)srs.getRowsInput(),
+											(int)srs.getRowsOutput(),
 											srs.needsDistinct(),
 											false,//srs.isInSortedOrder,
-											sortProperties,
+											srs.getSortProperties(),
 											srs.getOptimizerEstimatedRowCount(),
 											srs.getOptimizerEstimatedCost(),
 											getResultSetStatistics(srs.getSource())
@@ -440,7 +437,7 @@ public class SpliceRealResultSetStatisticsFactory
 											dsars.nextTime,
 											dsars.closeTime,
 											dsars.getResultSetNumber(),
-											(int)dsars.getRegionStats().getTotalProcessedRecords(),
+											(int)dsars.getRowsInput(),
 											dsars.getOptimizerEstimatedRowCount(),
 											dsars.getOptimizerEstimatedCost(),
 											getResultSetStatistics(dsars.getSource())
@@ -460,7 +457,7 @@ public class SpliceRealResultSetStatisticsFactory
 											sars.closeTime,
 											sars.getResultSetNumber(),
 											sars.isSingleInputRow(),
-											(int)sars.getRegionStats().getTotalProcessedRecords(),
+											(int)sars.getRowsInput(),
 											sars.getOptimizerEstimatedRowCount(),
 											sars.getOptimizerEstimatedCost(),
 											getResultSetStatistics(sars.getSource())
@@ -469,9 +466,7 @@ public class SpliceRealResultSetStatisticsFactory
 		else if (rs instanceof GroupedAggregateOperation)
 		{
 			GroupedAggregateOperation gars = (GroupedAggregateOperation) rs;
-			Properties sortProperties = new Properties();
-			sortProperties.setProperty("numRowsInput", ""+gars.getRegionStats().getTotalProcessedRecords());
-			sortProperties.setProperty("numRowsOutput", ""+gars.getRegionStats().getTotalSunkRecords());
+			
 			return new RealGroupedAggregateStatistics(
 											gars.numOpens,
 											gars.rowsSeen,
@@ -481,10 +476,10 @@ public class SpliceRealResultSetStatisticsFactory
 											gars.nextTime,
 											gars.closeTime,
 											gars.getResultSetNumber(),
-											(int)gars.getRegionStats().getTotalProcessedRecords(),
+											(int)gars.getRowsInput(),
 											gars.hasDistinctAggregate(),
 											gars.isInSortedOrder(),
-											sortProperties,
+											gars.getSortProperties(),
 											gars.getOptimizerEstimatedRowCount(),
 											gars.getOptimizerEstimatedCost(),
 											getResultSetStatistics(gars.getSource())
@@ -499,14 +494,6 @@ public class SpliceRealResultSetStatisticsFactory
 			String isolationLevel =  null;
 			String lockString = null;
 			String lockRequestString = null;
-			
-			Properties scanProperties = new Properties();
-			scanProperties.setProperty("numPagesVisited", ""+tsrs.getRegionStats().getTotalRegions());
-			scanProperties.setProperty("numRowsVisited", ""+tsrs.getRegionStats().getTotalProcessedRecords());
-			scanProperties.setProperty("numRowsQualified", ""); //FIXME: need to figure out the number
-			scanProperties.setProperty("numColumnsFetched", "");//FIXME: need to loop through accessedCols to figure out
-			scanProperties.setProperty("columnsFetchedBitSet", ""+tsrs.getAccessedCols());
-			//treeHeight
 			
 			switch (tsrs.isolationLevel)
 			{
@@ -602,7 +589,7 @@ public class SpliceRealResultSetStatisticsFactory
                     tsrs.getIndexName(),
                     tsrs.isConstraint,
                     SpliceBaseOperation.printQualifiers(tsrs.getScanQualifiers()),
-                    scanProperties,
+                    tsrs.getScanProperties(),
                     startPosition,
                     stopPosition,
                     isolationLevel,
@@ -1067,13 +1054,6 @@ public class SpliceRealResultSetStatisticsFactory
 				stopPosition = hsrs.printStopPosition();
 			}
 			
-			Properties scanProperties = new Properties();
-			scanProperties.setProperty("numPagesVisited", ""+hsrs.getRegionStats().getTotalRegions());
-			scanProperties.setProperty("numRowsVisited", ""+hsrs.getRegionStats().getTotalProcessedRecords());
-			scanProperties.setProperty("numRowsQualified", ""); //FIXME: need to figure out the number
-			scanProperties.setProperty("numColumnsFetched", "");//FIXME: need to loop through accessedCols to figure out
-			scanProperties.setProperty("columnsFetchedBitSet", ""+hsrs.getAccessedCols());
-
 			// DistinctScanResultSet is simple sub-class of
 			// HashScanResultSet
 			if (rs instanceof DistinctScanOperation)
@@ -1094,7 +1074,7 @@ public class SpliceRealResultSetStatisticsFactory
 											hsrs.getKeyColumns(),
 											SpliceBaseOperation.printQualifiers(hsrs.getScanQualifiers()),
 											SpliceBaseOperation.printQualifiers(hsrs.getNextQualifier()),
-											scanProperties,
+											hsrs.getScanProperties(),
 											startPosition,
 											stopPosition,
 											isolationLevel,
@@ -1121,7 +1101,7 @@ public class SpliceRealResultSetStatisticsFactory
 											hsrs.getKeyColumns(),
 											SpliceBaseOperation.printQualifiers(hsrs.getScanQualifiers()),
 											SpliceBaseOperation.printQualifiers(hsrs.getNextQualifier()),
-											scanProperties,
+											hsrs.getScanProperties(),
 											startPosition,
 											stopPosition,
 											isolationLevel,

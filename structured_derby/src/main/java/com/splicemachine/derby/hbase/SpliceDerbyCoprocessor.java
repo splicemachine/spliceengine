@@ -1,9 +1,9 @@
 package com.splicemachine.derby.hbase;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
-
-import java.util.concurrent.atomic.AtomicLong;
 /**
  * Derby Days?
  * 

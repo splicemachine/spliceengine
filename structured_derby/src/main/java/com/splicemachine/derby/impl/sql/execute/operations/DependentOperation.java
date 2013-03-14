@@ -189,6 +189,7 @@ public class DependentOperation extends ScanOperation implements CursorResultSet
 										 getSavedObject(rltItem));
 		numFkColumns = fkColArray.length;
 		indexQualifierRow = new IndexRow(numFkColumns);
+		recordConstructorTime(); 
 	}
 
 
@@ -669,6 +670,12 @@ public class DependentOperation extends ScanOperation implements CursorResultSet
 	@Override
 	public List<SpliceOperation> getSubOperations() {
 		throw new RuntimeException("Not Implemented Yet");
+	}
+	
+	@Override
+	public long getTimeSpent(int type)
+	{
+		return constructorTime + openTime + nextTime + closeTime;
 	}
 }
 

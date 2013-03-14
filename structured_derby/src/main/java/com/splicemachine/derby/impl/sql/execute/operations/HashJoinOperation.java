@@ -46,6 +46,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 		if (LOG.isTraceEnabled())
 			LOG.trace("instantiate");
         init(SpliceOperationContext.newContext(activation));
+        recordConstructorTime();
 	}
 	
 	@Override
@@ -201,8 +202,11 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 			SpliceLogUtils.trace(LOG, "remove");
 		}
 		public void close() throws StandardException {
+			if (!isOpen)
+				return;
 			SpliceLogUtils.trace(LOG, "close, closing probe result set");
 			probeResultSet.close();
+			isOpen = false;
 		}
 	}
 

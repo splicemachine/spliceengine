@@ -4,13 +4,10 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.utils.FormatableBitSetUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -18,7 +15,9 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class JoinOperation extends SpliceBaseOperation {
@@ -112,7 +111,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 	@Override
 	public void init(SpliceOperationContext context){
-//		SpliceLogUtils.trace(LOG, "init called");
+		SpliceLogUtils.trace(LOG, "init called");
 		super.init(context);
 		try {
             GenericStorablePreparedStatement statement = context.getPreparedStatement();
@@ -183,5 +182,19 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	@Override
 	public String toString() {
 		return String.format("JoinOperation {resultSetNumber=%d,left=%s,right=%s}",resultSetNumber,leftResultSet,rightResultSet);
+	}
+	@Override
+	public void	close() throws StandardException
+	{
+		if ( isOpen )
+	    {
+	        leftResultSet.close();
+	        rightResultSet.close();
+			super.close();
+	    }
+		
+		leftRow = null;
+		rightRow = null;
+		mergedRow = null;
 	}
 }
