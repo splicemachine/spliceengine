@@ -197,7 +197,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 		SpliceLogUtils.trace(LOG, "close="+closed);
 		if(closed) return; //nothing to do;
 
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+		/*LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 
 		// only if statistics is switched on, collect & derive them
 		if (lcc.getRunTimeStatisticsMode() &&
@@ -228,7 +228,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 			if (subqueryTrackingArray[index] == null || subqueryTrackingArray[index].isClosed())
 				continue;
 			subqueryTrackingArray[index].close();
-		}
+		}*/
 
 		rowProvider.close();
 		topOperation.close();
