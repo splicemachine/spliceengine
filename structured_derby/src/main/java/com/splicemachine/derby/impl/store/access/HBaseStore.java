@@ -6,6 +6,9 @@ import java.util.Properties;
 
 import com.splicemachine.constants.ITransactionManager;
 import com.splicemachine.constants.ITransactionManagerFactory;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.si2.data.hbase.TransactorFactory;
+import com.splicemachine.si2.txn.TransactionManagerFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.locks.CompatibilitySpace;
@@ -154,8 +157,14 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 	@Override
 	public void boot(boolean create, Properties properties) throws StandardException {
 		if (LOG.isTraceEnabled())
-			LOG.trace("boot with properties " + properties);	
-		transactionFactory = new SpliceTransactionFactory( new ZkTransactionManagerFactory());
+			LOG.trace("boot with properties " + properties);
+        ITransactionManagerFactory iTransactionManagerFactory;
+        if (SpliceUtils.useSi) {
+            iTransactionManagerFactory = new TransactionManagerFactory();
+        } else {
+            iTransactionManagerFactory = new ZkTransactionManagerFactory();
+        }
+        transactionFactory = new SpliceTransactionFactory(iTransactionManagerFactory);
 		transactionFactory.boot(create, properties);
 	}
 	@Override

@@ -13,6 +13,8 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.hbase.txn.ZkTransactionGetsPuts;
+import com.splicemachine.si2.data.hbase.TransactorFactory;
+import com.splicemachine.si2.txn.SiGetsPuts;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -535,8 +537,14 @@ public class SpliceUtils {
 		return transID;
 	}
 
+    public static final boolean useSi = false;
+
     public static ITransactionGetsPuts getTransactionGetsPuts() {
-        return new ZkTransactionGetsPuts();
+        if (useSi) {
+            return new SiGetsPuts(TransactorFactory.getClientTransactor());
+        } else {
+            return new ZkTransactionGetsPuts();
+        }
     }
 
 	public static byte[] getUniqueKey(){

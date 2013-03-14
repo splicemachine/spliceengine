@@ -3,6 +3,7 @@ package com.splicemachine.si2.data.hbase;
 import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.STableReader;
 import com.splicemachine.si2.data.api.STableWriter;
+import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.RowMetadataStore;
 import com.splicemachine.si2.si.impl.SiTransactor;
@@ -20,6 +21,10 @@ public class TransactorFactory {
 
     public static Transactor getTransactor() {
         return getTransactorDirect(null);
+    }
+
+    public static ClientTransactor getClientTransactor() {
+        return (ClientTransactor) getTransactorDirect(null);
     }
 
     public static Transactor getTransactor(HTablePool pool) {

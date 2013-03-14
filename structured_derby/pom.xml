@@ -82,13 +82,20 @@
         			<type>jar</type>
         			<scope>compile</scope>
         		</dependency>
-        		<dependency>
-        			<groupId>com.splicemachine</groupId>
-        			<artifactId>structured_trx</artifactId>
-        			<version>1.0.1-SNAPSHOT</version>
-        			<type>jar</type>
-        			<scope>compile</scope>
-        		</dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>structured_trx</artifactId>
+                    <version>1.0.1-SNAPSHOT</version>
+                    <type>jar</type>
+                    <scope>compile</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>structured_si</artifactId>
+                    <version>1.0.1-SNAPSHOT</version>
+                    <type>jar</type>
+                    <scope>compile</scope>
+                </dependency>
         <dependency>
 			<groupId>org.apache.hbase</groupId>
 			<artifactId>hbase</artifactId>
