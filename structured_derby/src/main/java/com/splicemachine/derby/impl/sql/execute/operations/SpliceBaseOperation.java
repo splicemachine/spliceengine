@@ -321,7 +321,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 			
                 // only if statistics is switched on, collect & derive them
-                if (statisticsTimingOn && !lcc.getStatementContext().getStatementWasInvalidated())
+				//TODO: need to get statement context, clearly cannot get from the lcc 
+                //if (statisticsTimingOn && !lcc.getStatementContext().getStatementWasInvalidated())
+                if (statisticsTimingOn)
 				{   
                     endExecutionTime = getCurrentTimeMillis();
 
