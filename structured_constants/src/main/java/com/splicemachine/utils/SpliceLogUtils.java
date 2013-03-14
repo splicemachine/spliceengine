@@ -38,6 +38,10 @@ public class SpliceLogUtils {
 	public static void error(Logger logger, String message, Throwable error){
 		logger.error(message,error);
 	}
+
+    public static void error(Logger logger, String message, Object...args){
+        logger.error(String.format(message,args));
+    }
 	
 	public static <T extends Throwable> void logAndThrow(Logger logger, String message,T t) throws T{
 		logger.error(message,t);
