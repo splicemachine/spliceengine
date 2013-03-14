@@ -195,8 +195,9 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 //			LOG.trace("HBaseScan delete " + currentResult.getRow());
 		try {
 			Delete delete = new Delete(this.currentResult.getRow());
-			if (transID != null)
-				delete.setAttribute(TxnConstants.TRANSACTION_ID, transID.getBytes());
+			if (transID != null) {
+                SpliceUtils.getTransactionGetsPuts().prepDelete(transID, delete);
+            }
 			table.delete(delete);
 			currentRowDeleted = true;
 			return true;
@@ -455,7 +456,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		try {
 			table.put(Puts.buildInsert(currentRowLocation.getBytes(), row, validColumns, transID));
 			if (validColumns != null)
-				table.delete(SpliceUtils.cleanupNullsDelete(new HBaseRowLocation(currentResult.getRow()), row, validColumns, transID.getBytes())); // Might be faster to cycle through the result
+				table.delete(SpliceUtils.cleanupNullsDelete(new HBaseRowLocation(currentResult.getRow()), row, validColumns, transID)); // Might be faster to cycle through the result
 			return true;			
 		} catch (Exception e) {
 			throw StandardException.newException("Error during replace " + e);

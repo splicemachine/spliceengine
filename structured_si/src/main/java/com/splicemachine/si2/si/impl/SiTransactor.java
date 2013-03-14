@@ -43,6 +43,11 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
+    public TransactionId transactionIdFromString(String transactionId) {
+        return new SiTransactionId(Long.valueOf(transactionId));
+    }
+
+    @Override
     public void commit(TransactionId transactionId) throws IOException {
         ensureTransactionActive(transactionId);
         transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.COMMITTING);
@@ -87,6 +92,14 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
+    public void initializePut(Object put1, Object put2) {
+        if (dataStore.getSiNeededAttribute(put1)) {
+            final SiTransactionId transactionId = dataStore.getTransactionIdFromPut(put1);
+            initializePut(transactionId, put2);
+        }
+    }
+
+    @Override
     public boolean processPut(STable table, Object put) throws IOException {
         Boolean siNeeded = dataStore.getSiNeededAttribute(put);
         if (siNeeded != null && siNeeded) {
@@ -125,7 +138,10 @@ public class SiTransactor implements Transactor, ClientTransactor {
                             writeWriteConflict(transactionId);
                         }
                     } else if (transaction.status.equals(TransactionStatus.ACTIVE) || transaction.status.equals(TransactionStatus.COMMITTING)) {
-                        writeWriteConflict(transactionId);
+                        // if the KeyValue was written by the current running transaction then it is not a conflict
+                        if (transaction.beginTimestamp != id) {
+                            writeWriteConflict(transactionId);
+                        }
                     }
                     index++;
                 }
@@ -163,6 +179,8 @@ public class SiTransactor implements Transactor, ClientTransactor {
                             break;
                         case INCLUDE:
                             filteredCells.add(keyValue);
+                            qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
+                            familyToSkip = dataLib.getKeyValueFamily(keyValue);
                             break;
                         case NEXT_COL:
                             qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);

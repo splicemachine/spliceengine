@@ -200,7 +200,8 @@ public class LStore implements STableReader, STableWriter {
         for (LTuple t : currentTuples) {
             if (newTuple.key.equals(t.key)) {
                 matched = true;
-                List<LKeyValue> values = new ArrayList<LKeyValue>(t.values);
+                List<LKeyValue> values = new ArrayList<LKeyValue>();
+                filterOutKeyValuesBeingReplaced(values, t, newValues);
                 values.addAll(newValues);
                 newTuples.add(new LTuple(newTuple.key, values));
             } else {
@@ -211,6 +212,25 @@ public class LStore implements STableReader, STableWriter {
             newTuples.add(modifiedNewTuple);
         }
         return newTuples;
+    }
+
+    /**
+     * Only carry over KeyValues that are not being replaced by incoming KeyValues.
+     */
+    private void filterOutKeyValuesBeingReplaced(List<LKeyValue> values, LTuple t, List<LKeyValue> newValues) {
+        for (LKeyValue currentKv : t.values) {
+            boolean collides = false;
+            for (LKeyValue newKv : newValues) {
+                if (currentKv.family.equals(newKv.family) &&
+                        currentKv.qualifier.equals(newKv.qualifier) &&
+                        currentKv.timestamp.equals(newKv.timestamp)) {
+                    collides = true;
+                }
+            }
+            if (!collides) {
+                values.add(currentKv);
+            }
+        }
     }
 
     @Override

@@ -214,7 +214,7 @@ public class Puts {
 
 	private static void attachTransactionInformation(Put put, String transactionID) {
 		if(transactionID!=null){
-			put.setAttribute(TxnConstants.TRANSACTION_ID, transactionID.getBytes());
+			SpliceUtils.getTransactionGetsPuts().prepPut(transactionID, put);
 		}
 	}
 

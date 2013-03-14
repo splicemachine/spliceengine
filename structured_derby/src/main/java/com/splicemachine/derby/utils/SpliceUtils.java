@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.google.gson.Gson;
 import com.splicemachine.SpliceConfiguration;
 import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.ITransactionGetsPuts;
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -11,6 +12,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.hbase.txn.ZkTransactionGetsPuts;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -161,7 +163,7 @@ public class SpliceUtils {
 
 			//FIXME: need to get the isolation level
 			if (transID != null) {
-				get.setAttribute(TxnConstants.TRANSACTION_ID, transID.getBytes());
+                SpliceUtils.getTransactionGetsPuts().prepGet(transID,  get);
 				get.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
 													Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
 			}
@@ -172,21 +174,23 @@ public class SpliceUtils {
 		}
 	}
 
-	public static Delete delete(RowLocation loc, byte[] transID) throws StandardException {
+	public static Delete delete(RowLocation loc, String transID) throws StandardException {
 		SpliceLogUtils.trace(LOG,"delete row at location %s",loc);
 		Delete delete = new Delete(loc.getBytes());
-		if (transID != null)
-			delete.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+		if (transID != null) {
+            SpliceUtils.getTransactionGetsPuts().prepDelete(transID,  delete);
+        }
 		return delete;
 	}
 	
-	public static Delete cleanupNullsDelete(RowLocation loc,DataValueDescriptor[] destRow, FormatableBitSet validColumns, byte[] transID) throws StandardException {
+	public static Delete cleanupNullsDelete(RowLocation loc,DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("cleanupNullsDelete row ");
 		try {
 			Delete delete = new Delete(loc.getBytes());
-			if (transID != null)
-				delete.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+            if (transID != null) {
+                SpliceUtils.getTransactionGetsPuts().prepDelete(transID,  delete);
+            }
 			int numrows = (validColumns != null ? validColumns.getLength() : destRow.length);  // bug 118
 			for (int i = 0; i < numrows; i++) {
 				if (validColumns.isSet(i) && destRow[i] != null && destRow[i].isNull())
@@ -344,8 +348,8 @@ public class SpliceUtils {
 			
 			//FIXME: need to get the isolation level
 			if (transID != null) {
-				get.setAttribute(TxnConstants.TRANSACTION_ID, transID.getBytes());
-				get.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL, 
+                SpliceUtils.getTransactionGetsPuts().prepGet(transID, get);
+				get.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
 		    			Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
 			}
 			Result result = htable.get(get);
@@ -530,6 +534,10 @@ public class SpliceUtils {
 		
 		return transID;
 	}
+
+    public static ITransactionGetsPuts getTransactionGetsPuts() {
+        return new ZkTransactionGetsPuts();
+    }
 
 	public static byte[] getUniqueKey(){
 		return gen.next().toString().getBytes();			

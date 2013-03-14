@@ -323,8 +323,9 @@ class PropertyConglomerate {
                 //null value means delete the property
                 Delete delete = new Delete(keyBytes);
 
-                if(txnId!=null)
-                    delete.setAttribute(TxnConstants.TRANSACTION_ID, txnId.getBytes());
+                if(txnId!=null) {
+                    SpliceUtils.getTransactionGetsPuts().prepDelete(txnId, delete);
+                }
 
                 table.delete(delete);
             }
@@ -336,8 +337,9 @@ class PropertyConglomerate {
 
             Put put = new Put(keyBytes);
             put.add(HBaseConstants.DEFAULT_FAMILY_BYTES, valColumn,baos.toByteArray());
-            if(txnId!=null)
-                put.setAttribute(TxnConstants.TRANSACTION_ID, txnId.getBytes());
+            if(txnId!=null) {
+                SpliceUtils.getTransactionGetsPuts().prepPut(txnId, put);
+            }
 
             table.put(put);
         }catch(IOException ioe){

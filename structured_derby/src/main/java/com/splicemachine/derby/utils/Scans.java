@@ -266,8 +266,8 @@ public class Scans {
 		/*
 		 * This attaches the TransactionInformation as an attribute on scan.
 		 */
-		if(transactionId!=null){
-			scan.setAttribute(TxnConstants.TRANSACTION_ID, transactionId.getBytes());
+		if(transactionId!=null) {
+            SpliceUtils.getTransactionGetsPuts().prepScan(transactionId, scan);
 			//TODO -sf- change this to use the Ordinal of the TransactionIsolationLevel
 			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
 					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));

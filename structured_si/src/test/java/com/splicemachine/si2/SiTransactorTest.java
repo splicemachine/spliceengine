@@ -246,10 +246,21 @@ public class SiTransactorTest {
         dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(25));
         TransactionId t = transactor.beginTransaction();
         transactorSetup.clientTransactor.initializePut(t, put);
+        Object put2 = dataLib.newPut(testKey);
+        dataLib.addKeyValueToPut(put2, family, ageQualifier, null, dataLib.encode(27));
+        transactorSetup.clientTransactor.initializePut(put, put2);
+        Assert.assertTrue(dataLib.valuesEqual(dataLib.encode(true), dataLib.getAttribute(put2, "si-needed")));
         System.out.println("put = " + put);
         STable testSTable = reader.open("people");
         try {
             assert transactor.processPut(testSTable, put);
+            assert transactor.processPut(testSTable, put2);
+            SGet get1 = dataLib.newGet(testKey, null, null, null);
+            transactorSetup.clientTransactor.initializeGet(t, get1);
+            Object result = reader.get(testSTable, get1);
+            result = transactor.filterResult(transactor.newFilterState(testSTable, t), result);
+            final int ageRead = (Integer) dataLib.decode(dataLib.getResultValue(result, family, ageQualifier), Integer.class);
+            Assert.assertEquals(27, ageRead);
         } finally {
             reader.close(testSTable);
         }
