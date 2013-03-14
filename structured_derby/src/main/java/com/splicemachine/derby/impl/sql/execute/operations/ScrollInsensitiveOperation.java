@@ -36,6 +36,8 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 		this.sourceRowWidth = sourceRowWidth;
 		this.source = source;
 		this.scrollable = scrollable;
+		this.isTopResultSet = true;
+		recordConstructorTime(); 
 	}
 
 	@Override
@@ -82,5 +84,15 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 
 	public NoPutResultSet getSource() {
 		return this.source;
+	}
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
+
+		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
 	}
 }

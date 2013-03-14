@@ -160,6 +160,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         this.sortRequired = sortRequired;
         if(this.sortRequired!=RowOrdering.DONTCARE)
             sortProbeValues();
+        recordConstructorTime(); 
     }
 
     private void sortProbeValues() {

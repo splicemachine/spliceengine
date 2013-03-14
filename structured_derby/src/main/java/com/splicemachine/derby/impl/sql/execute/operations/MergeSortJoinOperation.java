@@ -93,6 +93,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 				this.rightHashKeyItem = rightHashKeyItem;
 				this.joinSide = JoinSide.LEFT;
                 init(SpliceOperationContext.newContext(activation));
+                recordConstructorTime(); 
 	}
 	
 	@Override
@@ -168,15 +169,17 @@ public class MergeSortJoinOperation extends JoinOperation {
 	@Override
 	public void executeShuffle() throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeShuffle");
+		long start = System.currentTimeMillis();
 		joinSide = JoinSide.LEFT;
 		OperationBranch operationBranch = new OperationBranch(getActivation(),getOperationStack(),leftResultSet.getExecRowDefinition());
 		SpliceLogUtils.trace(LOG, "merge sort shuffling left");
-		operationBranch.execCoprocessor();
+		operationBranch.execCoprocessor(this.getClass().getName());
 		joinSide = JoinSide.RIGHT;
 		SpliceLogUtils.trace(LOG, "merge sort shuffling right");
 		operationBranch = new OperationBranch(getActivation(),getRightOperationStack(),rightResultSet.getExecRowDefinition());
-		operationBranch.execCoprocessor();	
-		SpliceLogUtils.trace(LOG, "shuffle finished");		
+		operationBranch.execCoprocessor(this.getClass().getName());
+		nextTime += System.currentTimeMillis() - start;
+		SpliceLogUtils.trace(LOG, "shuffle finished");	
 	}
 	
 	@Override
@@ -203,6 +206,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 	public SinkStats sink() {
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
+        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for MergeSortJoin at "+stats.getStartTime());
 		SpliceLogUtils.trace(LOG, "sink with joinSide= %s",joinSide);
 		ExecRow row = null;
 		HTableInterface tempTable = null;
@@ -254,7 +258,10 @@ public class MergeSortJoinOperation extends JoinOperation {
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-        return stats.finish();
+        //return stats.finish();
+		SinkStats ss = stats.finish();
+		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for MergeSortJoin at "+stats.getFinishTime());
+        return ss;
 	}
 
 	private HTableInterface getBufferedTable() throws IOException {
@@ -400,5 +407,18 @@ public class MergeSortJoinOperation extends JoinOperation {
 	}
 	protected ExecRow getEmptyRow () {
 		throw new RuntimeException("Should only be called on outer joins");
+	}
+	@Override
+	public void	close() throws StandardException
+	{
+		beginTime = getCurrentTimeMillis();
+
+		if ( isOpen )
+		{
+			clearCurrentRow();
+			super.close();
+		}
+
+		closeTime += getElapsedMillis(beginTime);
 	}
 }

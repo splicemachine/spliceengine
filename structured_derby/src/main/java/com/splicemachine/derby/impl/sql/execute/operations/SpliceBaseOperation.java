@@ -15,7 +15,6 @@ import java.sql.Timestamp;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -28,8 +27,11 @@ import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.sql.execute.ResultSetStatisticsFactory;
 import org.apache.derby.iapi.sql.execute.RowChanger;
+import org.apache.derby.iapi.sql.execute.RunTimeStatistics;
 import org.apache.derby.iapi.sql.execute.TargetResultSet;
+import org.apache.derby.iapi.sql.execute.xplain.XPLAINVisitor;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -55,6 +57,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -72,10 +75,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	public long openTime;
 	public long nextTime;
 	public long closeTime;
-	private boolean statisticsTimingOn;
+	protected boolean statisticsTimingOn;
 	
 	protected double optimizerEstimatedRowCount;
 	protected double optimizerEstimatedCost;
+	
 	protected Activation activation;
 	protected int resultSetNumber;
 	protected String transactionID;
@@ -92,6 +96,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	protected RegionScanner regionScanner;
 	protected long rowsSunk;
 	
+	protected boolean isOpen = true;
 	RegionStats regionStats;
 	public NoPutResultSet[]	subqueryTrackingArray;
 
@@ -116,6 +121,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	public SpliceBaseOperation(Activation activation, int resultSetNumber, double optimizerEstimatedRowCount,double optimizerEstimatedCost) throws StandardException {
 //		SpliceLogUtils.trace(LOG,"instantiated for resultSetNumber %d", resultSetNumber);
+		if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming())
+		    beginTime = startExecutionTime = getCurrentTimeMillis();
+		SpliceLogUtils.trace(LOG, "statisticsTimingOn="+statisticsTimingOn+",isTopResultSet="+isTopResultSet);
+		
 		this.optimizerEstimatedCost = optimizerEstimatedCost;
 		this.optimizerEstimatedRowCount = optimizerEstimatedRowCount;
 		this.activation = activation;
@@ -124,20 +133,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		//SpliceLogUtils.trace(LOG,"before seting active, transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
 		//		+",transactionId="+transactionID);
 		this.transactionID = (trans == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
-//		SpliceLogUtils.trace(LOG,"transaction="+trans+",state="+((SpliceTransaction)trans).getTransactionStatus()
-//				+",transactionId="+transactionID);
 		this.uniqueSequenceID = SpliceUtils.generateQueryNodeSequence();
 		sequence = new DataValueDescriptor[1];
 		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
 		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
 
 		operationParams = activation.getParameterValueSet().getClone();
-		if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming())
-		    beginTime = startExecutionTime = getCurrentTimeMillis();
 		if (subqueryTrackingArray == null)
-		{
 			subqueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();
-		}
 	}
 	
 	public String getTransactioID() {
@@ -162,7 +165,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		isTopResultSet = in.readBoolean();
 		uniqueSequenceID = in.readUTF();
 		statisticsTimingOn = in.readBoolean();
-
+		constructorTime = in.readLong();
+		openTime = in.readLong();
+		nextTime = in.readLong();
+		closeTime = in.readLong();
+		startExecutionTime = in.readLong();
+		endExecutionTime = in.readLong();
+		rowsSeen = in.readInt();
+		rowsFiltered = in.readInt();
 //        if(in.readBoolean()){
 //            operationParams = (ParameterValueSet)in.readObject();
 //        }
@@ -178,7 +188,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		out.writeBoolean(isTopResultSet);
 		out.writeUTF(uniqueSequenceID);
 		out.writeBoolean(statisticsTimingOn);
-
+		out.writeLong(constructorTime);
+		out.writeLong(openTime);
+		out.writeLong(nextTime);
+		out.writeLong(closeTime);
+		out.writeLong(startExecutionTime);
+		out.writeLong(endExecutionTime);
+		out.writeInt(rowsSeen);
+		out.writeInt(rowsFiltered);
 //		out.writeBoolean(operationParams!=null);
 //		if(operationParams!=null){
 //			out.writeObject(operationParams);
@@ -285,10 +302,59 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		return 0;
 	}
 	@Override
-	public void close() throws StandardException {
-		// TODO Auto-generated method stub
-		
+	public void close() throws StandardException
+	{
+		SpliceLogUtils.trace(LOG, "super close: isOpern="+isOpen+",isTopResultSet="+isTopResultSet+",statisticsTimingOn="+statisticsTimingOn
+				+",activation.getLanguageConnectionContext()="+activation.getLanguageConnectionContext());
+		if (!isOpen)
+			return;
+
+		/* If this is the top ResultSet then we must  close all of the open subqueries for the
+		 * entire query.
+		 */
+		if (isTopResultSet)
+		{
+			/*
+			** If run time statistics tracing is turned on, then now is the
+			** time to dump out the information.
+			*/
+			LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+			
+                // only if statistics is switched on, collect & derive them
+                if (statisticsTimingOn && !lcc.getStatementContext().getStatementWasInvalidated())
+				{   
+                    endExecutionTime = getCurrentTimeMillis();
+
+                    // get the ResultSetStatisticsFactory, which gathers RuntimeStatistics
+                    ExecutionFactory ef = lcc.getLanguageConnectionFactory().getExecutionFactory();
+                    ResultSetStatisticsFactory rssf = ef.getResultSetStatisticsFactory();
+  
+                    // get the RuntimeStatisticsImpl object which is the wrapper for all 
+                    // gathered statistics about all the different resultsets
+                    RunTimeStatistics rsImpl = rssf.getRunTimeStatistics(activation, this, subqueryTrackingArray); 
+  
+                    // save the RTW (wrapper)object in the lcc
+                    lcc.setRunTimeStatisticsObject(rsImpl);
+                    
+                    // now explain gathered statistics, using an appropriate visitor
+                    XPLAINVisitor visitor = ef.getXPLAINFactory().getXPLAINVisitor();
+                    visitor.doXPLAIN(rsImpl,activation);
+  				}
+
+			int staLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
+
+			for (int index = 0; index < staLength; index++)
+			{
+				if (subqueryTrackingArray[index] == null || subqueryTrackingArray[index].isClosed())
+					continue;
+				subqueryTrackingArray[index].close();
+			}
+		}
+
+		isOpen = false;
+
 	}
+	
 	@Override
 	public void cleanUp() throws StandardException {
 		// TODO Auto-generated method stub
@@ -303,26 +369,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		// TODO Auto-generated method stub
 		
 	}
-	@Override
-	public long getExecuteTime() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	@Override
-	public Timestamp getBeginExecutionTimestamp() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public Timestamp getEndExecutionTimestamp() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public long getTimeSpent(int type) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
+	
 	@Override
 	public NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries) {
 
@@ -572,6 +619,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	
 	@Override
 	public void executeShuffle() throws StandardException {
+		long start = System.currentTimeMillis();
 		SpliceLogUtils.trace(LOG,"shuffling %s",toString());
 		List<SpliceOperation> opStack = getOperationStack();
 		SpliceLogUtils.trace(LOG, "operationStack=%s",opStack);
@@ -591,9 +639,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			table = rowProvider.getTableName();
 		}
 		scan = rowProvider.toScan();
+		nextTime += System.currentTimeMillis() - start;
 		if(scan==null||table==null){ 
 			if (SourceRowProvider.class.equals(rowProvider.getClass())) {
+				start = System.currentTimeMillis();
 	    		topOperation.init(SpliceOperationContext.newContext(activation));
+	    		((SpliceBaseOperation)topOperation).constructorTime += System.currentTimeMillis() - start;
                 try{
     	    		topOperation.sink();
                 }catch(IOException ioe){
@@ -605,12 +656,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		}
 		HTableInterface htable = null;
 		try{
+			regionStats = new RegionStats(this.getClass().getName());
+            regionStats.start();
+            
 			htable = SpliceAccessManager.getHTable(table);
 			long numberCreated = 0;
             SpliceLogUtils.trace(LOG,"Performing coprocessorExec");
-
-            regionStats = new RegionStats();
-            regionStats.start();
+         
 			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), topOperation);
 			htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),
 													new Batch.Call<SpliceOperationProtocol,SinkStats>(){
@@ -635,6 +687,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 					});
             regionStats.finish();
             regionStats.recordStats(LOG);
+            nextTime += regionStats.getTotalTimeTaken();
 			SpliceLogUtils.trace(LOG,"Sunk %d records",numberCreated);
 			rowsSunk=numberCreated;
 		}catch(IOException ioe){
@@ -735,28 +788,51 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		return this.resultSetNumber;
 	}
 	
+	public long getExecuteTime()
+	{
+		return getTimeSpent(ResultSet.ENTIRE_RESULTSET_TREE);
+	}
+
+	/**
+	 * Get the Timestamp for the beginning of execution.
+	 *
+	 * @return Timestamp		The Timestamp for the beginning of execution.
+	 */
+	public Timestamp getBeginExecutionTimestamp()
+	{
+		if (startExecutionTime == 0)
+			return null;
+		else
+			return new Timestamp(startExecutionTime);
+	}
+
+	/**
+	 * Get the Timestamp for the end of execution.
+	 *
+	 * @return Timestamp		The Timestamp for the end of execution.
+	 */
+	public Timestamp getEndExecutionTimestamp()
+	{
+		if (endExecutionTime == 0)
+			return null;
+		else
+			return new Timestamp(endExecutionTime);
+	}
+	
 	protected final long getCurrentTimeMillis()
 	{
 		if (statisticsTimingOn)
-		{
 			return System.currentTimeMillis();
-		}
 		else
-		{
 			return 0;
-		}
 	}
 	
 	protected final long getElapsedMillis(long beginTime)
 	{
 		if (statisticsTimingOn)
-		{
 			return (System.currentTimeMillis() - beginTime);
-		}
 		else
-		{
 			return 0;
-		}
 	}
 	
 	public RegionStats getRegionStats() {
@@ -828,4 +904,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		return output;
 	}
 
+	protected final void recordConstructorTime()
+	{
+		if (statisticsTimingOn)
+		    constructorTime = getElapsedMillis(beginTime);
+	}
+	
+	public long getTimeSpent(int type)
+	{
+		return constructorTime + openTime + nextTime + closeTime;
+	}
 }

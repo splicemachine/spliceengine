@@ -110,6 +110,7 @@ public class HashTableOperation extends SpliceBaseOperation implements CursorRes
 		{
 			mappedResultRow = activation.getExecutionFactory().getValueRow(projectMapping.length);
 		}
+		recordConstructorTime(); 
     }
 
 	@Override
@@ -137,4 +138,14 @@ public class HashTableOperation extends SpliceBaseOperation implements CursorRes
 		throw new RuntimeException("Not Implemented Yet");
 	}
 
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
+
+		if (type == CURRENT_RESULTSET_ONLY)
+			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
+	}
 }

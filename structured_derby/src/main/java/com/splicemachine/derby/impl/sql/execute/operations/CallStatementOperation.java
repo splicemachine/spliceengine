@@ -10,8 +10,13 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.ConnectionContext;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.sql.execute.ResultSetStatisticsFactory;
+import org.apache.derby.iapi.sql.execute.RunTimeStatistics;
+import org.apache.derby.iapi.sql.execute.xplain.XPLAINVisitor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
@@ -34,6 +39,7 @@ public class CallStatementOperation extends NoRowsOperation {
 	public CallStatementOperation(GeneratedMethod methodCall,Activation a) throws StandardException  {
 		super(a);
 		this.methodCall = methodCall;
+		recordConstructorTime(); 
 	}
 
 	@Override
@@ -75,11 +81,17 @@ public class CallStatementOperation extends NoRowsOperation {
 
 		@Override
 		public void close() {
+
 			if (!isOpen)
 				return;
+			
+			if (isTopResultSet && activation.getLanguageConnectionContext().getRunTimeStatisticsMode() &&
+	                    !activation.getLanguageConnectionContext().getStatementContext().getStatementWasInvalidated())
+				endExecutionTime = getCurrentTimeMillis();
+
 			ResultSet[][] dynamicResults = activation.getDynamicResults();
 			if (dynamicResults != null) {
-				
+
 				ConnectionContext jdbcContext = null;
 
 				for (int i = 0; i < dynamicResults.length; i++)
@@ -111,26 +123,25 @@ public class CallStatementOperation extends NoRowsOperation {
 					}
 				}
 			} 
+
 			try {
-//				int staLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
-//
-//				for (int index = 0; index < staLength; index++)
-//				{
-//					if (subqueryTrackingArray[index] == null || subqueryTrackingArray[index].isClosed())
-//						continue;
-//			
-//					subqueryTrackingArray[index].close();
-//				}
+				int staLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
+
+				for (int index = 0; index < staLength; index++)
+				{
+					if (subqueryTrackingArray[index] == null || subqueryTrackingArray[index].isClosed())
+						continue;
+
+					subqueryTrackingArray[index].close();
+				}
 
 				isOpen = false;
-				
+
 				if (activation.isSingleExecution())
 					activation.close();
 			} catch (Exception e) {
 				SpliceLogUtils.error(LOG, e);
 			}
-			
-			
 		}
 
 		@Override public RowLocation getCurrentRowLocation() { return null; }

@@ -1,13 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;
@@ -27,9 +23,14 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class ScanOperation extends SpliceBaseOperation implements CursorResultSet{
 	private static Logger LOG = Logger.getLogger(ScanOperation.class);
@@ -273,6 +274,12 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     	return this.indexName;
     }
     
+    @Override
+    public void close() throws StandardException {
+        SpliceLogUtils.trace(LOG, "closing");
+        super.close();
+    }
+    
     public String printStartPosition()
    	{
    		return printPosition(startSearchOperator, startKeyGetter, startPosition);
@@ -281,13 +288,9 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
    	public String printStopPosition()
    	{
    		if (sameStartStopPosition)
-   		{
    			return printPosition(stopSearchOperator, startKeyGetter, startPosition);
-   		}
    		else
-   		{
    			return printPosition(stopSearchOperator, stopKeyGetter, stopPosition);
-   		}
    	}
 
    	/**
@@ -302,11 +305,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
    	{
    		String output = "";
    		if (positionGetter == null)
-   		{
-   			return "\t" +
-   					MessageService.getTextMessage(SQLState.LANG_NONE) +
-   					"\n";
-   		}
+   			return "\t" + MessageService.getTextMessage(SQLState.LANG_NONE) + "\n";
    		
    		if (positioner == null)
    		{
@@ -314,23 +313,16 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
    				return "\t" + MessageService.getTextMessage(
    					SQLState.LANG_POSITION_NOT_AVAIL) +
                                        "\n";
-   			try
-   			{
+   			try {
    				positioner = (ExecIndexRow)positionGetter.invoke(activation);
-   			}
-   			catch (StandardException e)
-   			{
+   			} catch (StandardException e) {
    				return "\t" + MessageService.getTextMessage(
    						SQLState.LANG_UNEXPECTED_EXC_GETTING_POSITIONER,
    						e.toString());
    			}
    		}
    		if (positioner == null)
-   		{
-   			return "\t" +
-   					MessageService.getTextMessage(SQLState.LANG_NONE) +
-   					"\n";
-   		}
+   			return "\t" + MessageService.getTextMessage(SQLState.LANG_NONE) + "\n";
    		String searchOp = null;
 
    		switch (searchOperator)
@@ -371,9 +363,8 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
    				colSeen = true;
    			}
 
-   			if (colSeen && position == positioner.nColumns() - 1) {
+   			if (colSeen && position == positioner.nColumns() - 1)
    				output = output +  "\n";
-   			}
    		}
 
    		return output;

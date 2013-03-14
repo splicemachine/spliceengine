@@ -51,6 +51,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
 		this.wasRightOuterJoin = wasRightOuterJoin;
 		init(SpliceOperationContext.newContext(activation));
+		recordConstructorTime(); 
 	}
 
 	@Override

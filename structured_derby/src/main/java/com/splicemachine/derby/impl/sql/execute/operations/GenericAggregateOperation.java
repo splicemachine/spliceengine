@@ -43,6 +43,8 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 	protected static List<NodeType> nodeTypes; 
 	protected Scan reduceScan;
 	
+	protected long rowsInput;
+	
 	static {
 		nodeTypes = new ArrayList<NodeType>();
 //		nodeTypes.add(NodeType.MAP);
@@ -220,5 +222,13 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 	}
 	public NoPutResultSet getSource() {
 		return this.source;
+	}
+	
+	public long getRowsInput() {
+		return getRegionStats() == null ? 0l : getRegionStats().getTotalProcessedRecords();
+	}
+	
+	public long getRowsOutput() {
+		return getRegionStats() == null ? 0l : getRegionStats().getTotalSunkRecords();
 	}
 }

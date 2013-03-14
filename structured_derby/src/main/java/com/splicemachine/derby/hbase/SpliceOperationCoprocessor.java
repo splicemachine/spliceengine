@@ -1,11 +1,8 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.stats.ThroughputStats;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
+import java.io.IOException;
+import java.util.Properties;
+
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.Activation;
@@ -18,8 +15,10 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.util.Properties;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 /**
  * 
  * HBase Endpoint coprocessor handling sink operations from the OperationTree.

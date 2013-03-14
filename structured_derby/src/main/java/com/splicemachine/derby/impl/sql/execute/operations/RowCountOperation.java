@@ -88,7 +88,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 		this.source = s;
 		firstTime = true;
 		rowsFetched = 0;
-
+		recordConstructorTime(); 
 	}
 	
 	@Override
@@ -318,6 +318,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 	public SinkStats sink() { // gd not sure I want any of this, or at least the sorted part
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
+        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for RowCountOperation at "+stats.getStartTime());
 		SpliceLogUtils.trace(LOG, "sink");
 		ExecRow row = null;
 		HTableInterface tempTable = null;
@@ -355,17 +356,45 @@ public class RowCountOperation extends SpliceBaseOperation {
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-        return stats.finish();
+        //return stats.finish();
+		SinkStats ss = stats.finish();
+		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for RowCountOperation at "+stats.getFinishTime());
+        return ss;
 	}
 	
 	@Override
 	public void close() throws StandardException {
-		SpliceLogUtils.trace(LOG, "close");
-		firstTime = false;
-		rowsFetched = 0;		
+		SpliceLogUtils.trace(LOG, "close");	
+		beginTime = getCurrentTimeMillis();
+        if ( isOpen ) {
+
+            // we don't want to keep around a pointer to the
+            // row ... so it can be thrown away.
+            // REVISIT: does this need to be in a finally
+            // block, to ensure that it is executed?
+            clearCurrentRow();
+            source.close();
+
+            super.close();
+        } 
+        
+        firstTime = false;
+		rowsFetched = 0;
+
+        closeTime += getElapsedMillis(beginTime);
 	}
 
 	public NoPutResultSet getSource() {
 		return this.source;
 	}
+	
+	@Override
+	public long getTimeSpent(int type) {
+        long totTime = constructorTime + openTime + nextTime + closeTime;
+
+        if (type == CURRENT_RESULTSET_ONLY) 
+            return  totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+        else 
+            return totTime;
+    }
 }

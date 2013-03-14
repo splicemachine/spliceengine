@@ -32,6 +32,7 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 		super(activation,-1,0d,0d);
 		this.activation = activation;
 		init(SpliceOperationContext.newContext(activation));
+		recordConstructorTime(); 
 	}
 	
 	@Override
@@ -114,27 +115,23 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 		return !isOpen;
 	}
 	
-//	@Override
-//	public void close() {
-//		if (!isOpen)
-//			return;
-//		try {
-//			int staLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
-//
-//			for (int index = 0; index < staLength; index++) {
-//				if (subqueryTrackingArray[index] == null || subqueryTrackingArray[index].isClosed())
-//					continue;
-//				
-//				subqueryTrackingArray[index].close();
-//			}
-//			
-//			isOpen = false;
-//
-//			if (activation.isSingleExecution())
-//				activation.close();
-//	
-//		} catch (Exception e) {
-//			SpliceLogUtils.error(LOG, e);
-//		}
-//	}
+	@Override
+	public long getTimeSpent(int type)
+	{
+		return 0;
+	}
+	
+	@Override
+	public void close() {
+		if (!isOpen)
+			return;
+		try {
+			super.close();
+			if (activation.isSingleExecution())
+				activation.close();
+	
+		} catch (Exception e) {
+			SpliceLogUtils.error(LOG, e);
+		}
+	}
 }

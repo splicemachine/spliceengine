@@ -39,6 +39,7 @@ public class MiscOperation extends NoRowsOperation
 	public MiscOperation(Activation activation) throws StandardException 
     {
 		super(activation);
+		recordConstructorTime(); 
 	}
 	
 	@Override
@@ -71,15 +72,14 @@ public class MiscOperation extends NoRowsOperation
 			if (!isOpen)
 				return;
 			try {
-//				int staLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
-//
-//				for (int index = 0; index < staLength; index++) {
-//					LOG.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>ever come here");
-//					if (subqueryTrackingArray[index] == null || subqueryTrackingArray[index].isClosed())
-//						continue;
-//					
-//					subqueryTrackingArray[index].close();
-//				}
+				int staLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
+
+				for (int index = 0; index < staLength; index++) {
+					if (subqueryTrackingArray[index] == null || subqueryTrackingArray[index].isClosed())
+						continue;
+					
+					subqueryTrackingArray[index].close();
+				}
 
 				isOpen = false;
 				
