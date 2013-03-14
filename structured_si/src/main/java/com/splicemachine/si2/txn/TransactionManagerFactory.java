@@ -12,6 +12,6 @@ public class TransactionManagerFactory implements ITransactionManagerFactory {
 
     @Override
     public ITransactionManager newTransactionManager() throws IOException {
-        return new TransactionManager();
+        return new TransactionManager(null);
     }
 }
