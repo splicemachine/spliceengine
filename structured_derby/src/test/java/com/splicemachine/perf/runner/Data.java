@@ -1,5 +1,6 @@
 package com.splicemachine.perf.runner;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.Stats;
@@ -24,18 +25,20 @@ import java.util.concurrent.*;
 public class Data {
     private static final Logger LOG = Logger.getLogger(Data.class);
     private final String server;
-    private final int insertThreads;
     private final int concurrentQueries;
     private final List<Table> tables;
     private final List<Query> queries;
+    private final List<Index> indices;
     private Connection conn;
 
-    public Data(String server, int insertThreads, int concurrentQueries, List<Table> tables, List<Query> queries) {
-        this.insertThreads = insertThreads;
+    public Data(String server,
+                int concurrentQueries, List<Table> tables,
+                List<Query> queries, List<Index> indices) {
         this.concurrentQueries = concurrentQueries;
         this.tables = tables;
         this.server = server;
         this.queries = queries;
+        this.indices = indices;
     }
 
     public void connect() throws SQLException{
@@ -50,50 +53,20 @@ public class Data {
         }
     }
 
-    public void loadData() throws Exception  {
+    public void createIndices() throws Exception {
+        SpliceLogUtils.info(LOG,"Creating indices");
+        for(Index index:indices){
+            index.create(conn);
+        }
+    }
 
+    public void loadData() throws Exception  {
         //load data into each table
         SpliceLogUtils.info(LOG,"Loading data");
-        ExecutorService dataLoader = Executors.newFixedThreadPool(insertThreads);
-
-        final Map<Table,Accumulator> runningInsertsMap = Maps.newConcurrentMap();
-        CompletionService<Void> completionService = new ExecutorCompletionService<Void>(dataLoader);
-        try{
-            int numTasks=0;
-            for(final Table table:tables){
-                final int numToInsert = table.getNumRows()/insertThreads;
-                final Accumulator accumulator = TimingStats.uniformSafeAccumulator();
-                accumulator.start();
-                runningInsertsMap.put(table, accumulator);
-                for(int i=0;i<insertThreads;i++){
-                    numTasks++;
-                    completionService.submit(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            PreparedStatement ps = table.getInsertDataStatement(conn);
-                            for(int count=0;count<numToInsert;count++){
-                                table.fillStatement(ps);
-                                long start = System.nanoTime();
-                                ps.execute();
-                                accumulator.tick(System.nanoTime()-start);
-                            }
-                            return null;
-                        }
-                    });
-                }
-            }
-
-            while(numTasks>0){
-                Future<Void> take = completionService.take();
-                //check for errors, and bail if one is encountered
-                take.get();
-                numTasks--;
-            }
-            printInsertStatistics(runningInsertsMap);
-            SpliceLogUtils.info(LOG,"Data loading, ready to perform queries");
-        }finally{
-            dataLoader.shutdown();
+        for(Table table:tables){
+            table.insertData(conn).write(System.out);
         }
+        SpliceLogUtils.info(LOG,"Data loading, ready to perform queries");
     }
 
     public void runQueries() throws Exception {
@@ -139,23 +112,7 @@ public class Data {
         for(Table table:statsMap.keySet()){
             Stats stats = statsMap.get(table).finish();
 
-            //log the table stats to stdout
-            System.out.printf("Insertion stats:%n");
-            System.out.printf("\t%-25s\t%15d records%n","Total records inserted", stats.getTotalRecords());
-            System.out.printf("\t%-25s\t%20.4f ms%n","Total time spent", TimeUtils.toMillis(stats.getTotalTime()));
-            System.out.printf("---------------------TIME DISTRIBUTION----------------------------%n");
-            System.out.printf("%-20s\t%20.4f ms%n","min",TimeUtils.toMillis(stats.getMinTime()));
-            System.out.printf("%-20s\t%20.4f ms%n","median(p50)",TimeUtils.toMillis(stats.getMedian()));
-            System.out.printf("%-20s\t%20.4f ms%n","p75",TimeUtils.toMillis(stats.get75P()));
-            System.out.printf("%-20s\t%20.4f ms%n","p95",TimeUtils.toMillis(stats.get95P()));
-            System.out.printf("%-20s\t%20.4f ms%n","p98",TimeUtils.toMillis(stats.get98P()));
-            System.out.printf("%-20s\t%20.4f ms%n","p99",TimeUtils.toMillis(stats.get99P()));
-            System.out.printf("%-20s\t%20.4f ms%n","p999",TimeUtils.toMillis(stats.get999P()));
-            System.out.printf("%-20s\t%20.4f ms%n","max",TimeUtils.toMillis(stats.getMaxTime()));
-            System.out.printf("%n");
-            System.out.printf("%-20s\t%20.4f ms%n","avg",TimeUtils.toMillis(stats.getAvgTime()));
-            System.out.printf("%-20s\t%20.4f ms%n","std. dev",TimeUtils.toMillis(stats.getTimeStandardDeviation()));
-            System.out.println();
+
         }
     }
 

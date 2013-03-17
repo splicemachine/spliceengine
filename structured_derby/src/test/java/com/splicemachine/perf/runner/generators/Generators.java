@@ -23,6 +23,8 @@ public class Generators {
             return StringValuesGenerator.getAdapter();
         }else if(IpGenerator.class.getSimpleName().equalsIgnoreCase(typeString)){
             return IpGenerator.getAdapter();
+        }else if(RandomUniqueIntGenerator.class.getSimpleName().equalsIgnoreCase(typeString)){
+            return RandomUniqueIntGenerator.getAdapter();
         }
 
         throw new AssertionError("Unable to determine type adapter for generator type "+ typeString);

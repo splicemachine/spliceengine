@@ -5,12 +5,13 @@
 */
 {
     "server": "localhost:1527", /*The server to connect to*/
-    "insertThreads": 20, /*Number of Insertions to run simultaneously */
     "concurrentQueries":1, /*Number of queries to run simultaneously*/
     "tables": [
     {
         "name": "pk_test",
-        "numRows": 1000,
+        "numRows": 10000,
+        "insertBatch": 200, /*The number of records to insert with each Prepared Statement*/
+        "insertThreads": 10, /*Number of Insertions to run simultaneously */
         "columns": [
             {
                 "name":"cookie_id",
@@ -67,12 +68,21 @@
     }
     ],
     "indices":[
-
+    /*
+        {
+            "name":"cookie_id_unq_idx",
+            "table": "pk_test",
+            "unique": true,
+            "columns":[
+                "cookie_id"
+            ]
+        }
+        */
     ],
     "queries":[
         {
             "query":"select * from pk_test where cookie_id = ?",
-            "samples":1000,
+            "samples":100,
             "threads":1,
             "qualifiers": [
                 {

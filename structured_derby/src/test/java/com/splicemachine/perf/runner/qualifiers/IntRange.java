@@ -18,6 +18,7 @@ public class IntRange implements Qualifier{
 
     private final Random random = new Random();
 
+
     public IntRange(int start, int stop) {
         this.start = start;
         this.stop = stop;
@@ -46,8 +47,13 @@ public class IntRange implements Qualifier{
     }
 
     public static Qualifier create(Map<String, Object> qualifierConfig) {
-        int start =((Double)qualifierConfig.get("start")).intValue();
-        int stop = ((Double)qualifierConfig.get("stop")).intValue();
+        int start = 0;
+        int stop = Integer.MAX_VALUE;
+        if(qualifierConfig.containsKey("start"))
+            start =((Double)qualifierConfig.get("start")).intValue();
+
+        if(qualifierConfig.containsKey("stop"))
+            stop = ((Double)qualifierConfig.get("stop")).intValue();
         return new IntRange(start,stop);
     }
 

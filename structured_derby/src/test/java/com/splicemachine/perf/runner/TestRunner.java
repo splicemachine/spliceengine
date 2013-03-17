@@ -19,15 +19,19 @@ public class TestRunner {
     public static void main(String...args) throws Exception{
         String dataFile = null;
         int pos=0;
-        boolean dropTablesAfterCompletion=false;
+        boolean skipTableDrop =false;
+        boolean skipTableCreation=false;
         while(pos<args.length){
             if(args[pos].equals("-t")){
                 pos++;
                 dataFile = args[pos];
                 pos++;
-            }else if(args[pos].equals("-d")){
+            }else if("--skip-drop".equalsIgnoreCase(args[pos])){
                 pos++;
-                dropTablesAfterCompletion = true;
+                skipTableDrop = true;
+            }else if("--skip-create".equalsIgnoreCase(args[pos])){
+                pos++;
+                skipTableCreation=true;
             }
         }
 
@@ -52,12 +56,15 @@ public class TestRunner {
 
         data.connect();
         try{
-            data.createTables();
+            if(!skipTableCreation){
+                data.createTables();
+                data.createIndices();
+            }
             try{
                 data.loadData();
                 data.runQueries();
             }finally{
-                if(dropTablesAfterCompletion)
+                if(!skipTableDrop)
                     data.dropTables();
             }
         }finally{
