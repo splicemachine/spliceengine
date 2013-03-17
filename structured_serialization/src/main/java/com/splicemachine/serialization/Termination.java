@@ -1,4 +1,4 @@
-package com.gotometrics.orderly;
+package com.splicemachine.serialization;
 
 /**
  * <h1> Termination </h1>
