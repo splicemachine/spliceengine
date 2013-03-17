@@ -9,7 +9,6 @@ import com.splicemachine.perf.runner.qualifiers.Result;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -47,9 +46,7 @@ public class Data {
         //create Tables
         SpliceLogUtils.info(LOG,"Creating tables");
         for(Table table:tables){
-            SpliceLogUtils.trace(LOG, "Creating table %s with statement %s", table.getName(),table.getCreateTableString());
-            PreparedStatement ps = table.getCreateTableStatement(conn);
-            ps.execute();
+            table.create(conn);
         }
     }
 

@@ -19,16 +19,21 @@ public class TestRunner {
     public static void main(String...args) throws Exception{
         String dataFile = null;
         int pos=0;
-        while(pos<args.length-1){
+        boolean dropTablesAfterCompletion=false;
+        while(pos<args.length){
             if(args[pos].equals("-t")){
                 pos++;
                 dataFile = args[pos];
                 pos++;
+            }else if(args[pos].equals("-d")){
+                pos++;
+                dropTablesAfterCompletion = true;
             }
         }
 
         Preconditions.checkNotNull(dataFile,"No Data file specified");
 
+        //noinspection ConstantConditions
         if(!dataFile.startsWith("/")){
             dataFile = System.getProperty("user.dir")+"/"+dataFile;
         }
@@ -52,7 +57,8 @@ public class TestRunner {
                 data.loadData();
                 data.runQueries();
             }finally{
-                data.dropTables();
+                if(dropTablesAfterCompletion)
+                    data.dropTables();
             }
         }finally{
             data.shutdown();

@@ -10,7 +10,7 @@
     "tables": [
     {
         "name": "pk_test",
-        "numRows": 10000,
+        "numRows": 1000,
         "columns": [
             {
                 "name":"cookie_id",

@@ -30,7 +30,7 @@ public class RandomIntGenerator implements ColumnDataGenerator{
     }
 
     private int nextValue(){
-        return ((stop-start)/stop)*random.nextInt(stop)+start;
+        return (((stop-start)*random.nextInt(stop))/stop)+start;
     }
 
     public static TypeAdapter<? extends ColumnDataGenerator> getTypeAdapter(){

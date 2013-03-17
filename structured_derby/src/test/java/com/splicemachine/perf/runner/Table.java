@@ -1,6 +1,8 @@
 package com.splicemachine.perf.runner;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,6 +14,7 @@ import java.util.List;
  *Created on: 3/15/13
  */
 public class Table {
+    private static final Logger LOG = Logger.getLogger(Table.class);
     private final String name;
     private final List<Column> columns;
     private final int numRows;
@@ -26,8 +29,10 @@ public class Table {
         return conn.prepareStatement(getCreateTableString());
     }
 
-    public void loadData(Connection conn) throws SQLException{
-        PreparedStatement ps = conn.prepareStatement(getInsertDataString());
+    public void create(Connection conn) throws SQLException{
+        SpliceLogUtils.trace(LOG, "Creating table %s",name);
+        PreparedStatement ps = conn.prepareStatement(getCreateTableString());
+        ps.execute();
     }
 
     public String getInsertDataString(){

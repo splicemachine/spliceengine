@@ -42,7 +42,7 @@ public class IntRange implements Qualifier{
          * val is in range [0,stop). We need to transform it to fit within the range
          * [start,stop).
          */
-        return ((stop-start)/stop)*val+start;
+        return (((stop-start)*val)/stop)+start;
     }
 
     public static Qualifier create(Map<String, Object> qualifierConfig) {
