@@ -1,6 +1,5 @@
 package com.splicemachine.perf.runner;
 
-import java.sql.PreparedStatement;
 import java.sql.Types;
 
 /**
@@ -11,7 +10,8 @@ public enum ColumnType {
     INTEGER("int",Types.INTEGER),
     VARCHAR("varchar",Types.VARCHAR){
         @Override public boolean requiresWidth() { return true; }
-    };
+    },
+    TIMESTAMP("timestamp",Types.TIMESTAMP);
 
     private final int jdbcTypeCode;
     private final String typeName;

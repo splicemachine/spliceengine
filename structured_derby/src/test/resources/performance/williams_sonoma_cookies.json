@@ -1,0 +1,88 @@
+/*
+  Performance Test for the "dealing with cookie lookups" use-case.
+  Useful for comparing indices vs. primary keys, seeing how single-row
+  selects perform as a function of data size, etc.
+*/
+{
+    "server": "localhost:1527", /*The server to connect to*/
+    "insertThreads": 20, /*Number of Insertions to run simultaneously */
+    "concurrentQueries":1, /*Number of queries to run simultaneously*/
+    "tables": [
+    {
+        "name": "pk_test",
+        "numRows": 10000,
+        "columns": [
+            {
+                "name":"cookie_id",
+                "type":"int",
+                "primaryKey":true,
+                "generatorType":"sequentialIntGenerator",
+                "generatorConfig":{
+                    "start":0
+                }
+            },
+            {
+                "name":"profile_id",
+                 "type":"int",
+                 "generatorType":"randomIntGenerator",
+                 "generatorConfig":{
+                    "start": 10,
+                    "stop": 100
+                 }
+            },
+            {
+                "name": "last_visited",
+                 "type":"timestamp",
+                 "generatorType": "systemTimeGenerator",
+                 "generatorConfig":{}
+            },
+            {
+                "name":"created_on",
+                "type":"timestamp",
+                "generatorType": "systemTimeGenerator",
+                "generatorConfig":{}
+            },
+            {
+                "name":"user_agent",
+                "type":"varchar",
+                "width": 200,
+                "generatorType": "stringValuesGenerator",
+                "generatorConfig":{
+                    "values":[
+                        "Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv: 1.9b5) Gecko/2008032620",
+                        "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11",
+                        "Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; Win64; x64; Trident/6.0)",
+                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/534.57.2 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2"
+                    ]
+                }
+            },
+            {
+                "name":"last_ip_address",
+                "type":"varchar",
+                "width": 15,
+                "generatorType": "ipGenerator",
+                "generatorConfig":{}
+            }
+        ]
+    }
+    ],
+    "indices":[
+
+    ],
+    "queries":[
+        {
+            "query":"select * from pk_test where cookie_id = ?",
+            "samples":1000,
+            "threads":1,
+            "qualifiers": [
+                {
+                    "qualifierType": "intRange",
+                    "qualifierConfig": {
+                        "start": 0,
+                        "stop": 1000
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -15,6 +15,14 @@ public class Generators {
             return SequentialIntGenerator.getTypeAdapter();
         }else if(RandomVarcharGenerator.class.getSimpleName().equalsIgnoreCase(typeString)){
             return RandomVarcharGenerator.getAdapter();
+        }else if(RandomIntGenerator.class.getSimpleName().equalsIgnoreCase(typeString)){
+            return RandomIntGenerator.getTypeAdapter();
+        }else if(SystemTimeGenerator.class.getSimpleName().equalsIgnoreCase(typeString)){
+            return SystemTimeGenerator.getAdapter();
+        }else if(StringValuesGenerator.class.getSimpleName().equalsIgnoreCase(typeString)){
+            return StringValuesGenerator.getAdapter();
+        }else if(IpGenerator.class.getSimpleName().equalsIgnoreCase(typeString)){
+            return IpGenerator.getAdapter();
         }
 
         throw new AssertionError("Unable to determine type adapter for generator type "+ typeString);

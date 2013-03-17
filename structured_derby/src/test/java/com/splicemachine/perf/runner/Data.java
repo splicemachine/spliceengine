@@ -5,9 +5,11 @@ import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.Stats;
 import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.derby.stats.TimeUtils;
+import com.splicemachine.perf.runner.qualifiers.Result;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
+import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -24,12 +26,14 @@ public class Data {
     private static final Logger LOG = Logger.getLogger(Data.class);
     private final String server;
     private final int insertThreads;
+    private final int concurrentQueries;
     private final List<Table> tables;
     private final List<Query> queries;
     private Connection conn;
 
-    public Data(String server, int insertThreads, List<Table> tables, List<Query> queries) {
+    public Data(String server, int insertThreads, int concurrentQueries, List<Table> tables, List<Query> queries) {
         this.insertThreads = insertThreads;
+        this.concurrentQueries = concurrentQueries;
         this.tables = tables;
         this.server = server;
         this.queries = queries;
@@ -96,9 +100,27 @@ public class Data {
     }
 
     public void runQueries() throws Exception {
-        for(Query query:queries){
-            SpliceLogUtils.trace(LOG,"Executing query '%s'",query);
-            query.run(conn);
+        ExecutorService queryRunner = Executors.newFixedThreadPool(concurrentQueries);
+        try{
+            CompletionService<Result> runningQueries = new ExecutorCompletionService<Result>(queryRunner);
+            for(final Query query:queries){
+                runningQueries.submit(new Callable<Result>() {
+                    @Override
+                    public Result call() throws Exception {
+                        SpliceLogUtils.trace(LOG,"Executing query '%s'",query);
+                        return query.run(conn);
+                    }
+                });
+            }
+            int numTasks = queries.size();
+            while(numTasks>0){
+                Future<Result> result = runningQueries.take();
+                Result r = result.get();
+                r.write(System.out);
+                numTasks--;
+            }
+        }finally{
+            queryRunner.shutdown();
         }
     }
 

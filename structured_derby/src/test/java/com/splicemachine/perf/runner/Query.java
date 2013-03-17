@@ -5,7 +5,9 @@ import com.splicemachine.derby.stats.Stats;
 import com.splicemachine.derby.stats.TimeUtils;
 import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.perf.runner.qualifiers.Qualifier;
+import com.splicemachine.perf.runner.qualifiers.Result;
 
+import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -31,7 +33,7 @@ public class Query {
         this.threads = threads;
     }
 
-    public void run(final Connection conn) throws Exception{
+    public Result run(final Connection conn) throws Exception{
         ExecutorService testRunner = Executors.newFixedThreadPool(threads);
         final int samplesPerThread = samples/threads;
         try{
@@ -63,54 +65,65 @@ public class Query {
             }
 
             accumulator.finish();
-            reportQueryStats(accumulator);
+            return new QueryResult(accumulator);
         }finally{
             testRunner.shutdown();
         }
     }
 
+    private class QueryResult implements Result{
+        private final QueryAccumulator accumulator;
+        private QueryResult(QueryAccumulator accumulator) {
+            this.accumulator = accumulator;
+        }
+
+        @Override
+        public void write(PrintStream stream) throws Exception {
+            stream.printf("--------------------QUERY STATISTICS--------------------%n");
+            stream.printf("SQL query: %s%n",Query.this.query);
+            stream.printf("%n");
+            stream.printf("\tNum threads: %d%n",Query.this.threads);
+            stream.printf("\tNum samples: %d%n",Query.this.samples);
+            stream.printf("\t%-25s\t%15d queries%n","Total queries executed",
+                    accumulator.recordStats.getTotalRecords());
+            stream.printf("\t%-25s\t%15d records%n","Total records retrieved",
+                    accumulator.timeStats.getTotalRecords());
+            stream.printf("\t%-25s\t%20.4f ms%n","Total time spent",
+                    TimeUtils.toMillis(accumulator.timeStats.getTotalTime()));
+
+            stream.printf("--------------------TIME DISTRIBUTION--------------------%n");
+            Stats timeStats = accumulator.timeStats;
+            stream.printf("%-20s\t%20.4f ms%n","min",TimeUtils.toMillis(timeStats.getMinTime()));
+            stream.printf("%-20s\t%20.4f ms%n","median(p50)",TimeUtils.toMillis(timeStats.getMedian()));
+            stream.printf("%-20s\t%20.4f ms%n","p75",TimeUtils.toMillis(timeStats.get75P()));
+            stream.printf("%-20s\t%20.4f ms%n","p95",TimeUtils.toMillis(timeStats.get95P()));
+            stream.printf("%-20s\t%20.4f ms%n","p98",TimeUtils.toMillis(timeStats.get98P()));
+            stream.printf("%-20s\t%20.4f ms%n","p99",TimeUtils.toMillis(timeStats.get99P()));
+            stream.printf("%-20s\t%20.4f ms%n","p999",TimeUtils.toMillis(timeStats.get999P()));
+            stream.printf("%-20s\t%20.4f ms%n","max",TimeUtils.toMillis(timeStats.getMaxTime()));
+            stream.printf("%n");
+            stream.printf("%-20s\t%20.4f ms%n","avg",TimeUtils.toMillis(timeStats.getAvgTime()));
+            stream.printf("%-20s\t%20.4f ms%n","std. dev",TimeUtils.toMillis(timeStats.getTimeStandardDeviation()));
+            stream.println();
+            stream.printf("--------------------RECORD DISTRIBUTION--------------------%n");
+            Stats recordStats = accumulator.recordStats;
+            stream.printf("%-20s\t%20d records%n","min",recordStats.getMinTime());
+            stream.printf("%-20s\t%20.4f records%n","median(p50)",recordStats.getMedian());
+            stream.printf("%-20s\t%20.4f records%n","p75",recordStats.get75P());
+            stream.printf("%-20s\t%20.4f records%n","p95",recordStats.get95P());
+            stream.printf("%-20s\t%20.4f records%n","p98",recordStats.get98P());
+            stream.printf("%-20s\t%20.4f records%n","p99",recordStats.get99P());
+            stream.printf("%-20s\t%20.4f records%n","p999",recordStats.get999P());
+            stream.printf("%-20s\t%20d records%n","max",recordStats.getMaxTime());
+            stream.printf("%n");
+            stream.printf("%-20s\t%20.4f records%n","avg",recordStats.getAvgTime());
+            stream.printf("%-20s\t%20.4f records%n","std. dev",recordStats.getTimeStandardDeviation());
+            stream.println();
+        }
+    }
     private void reportQueryStats(QueryAccumulator accumulator) {
         //print query stats  to stdout
-        System.out.printf("--------------------QUERY STATISTICS--------------------%n");
-        System.out.printf("SQL query: %s%n",query);
-        System.out.printf("%n");
-        System.out.printf("\tNum threads: %d%n",threads);
-        System.out.printf("\tNum samples: %d%n",samples);
-        System.out.printf("\t%-25s\t%15d queries%n","Total queries executed",
-                accumulator.recordStats.getTotalRecords());
-        System.out.printf("\t%-25s\t%15d records%n","Total records retrieved",
-                accumulator.timeStats.getTotalRecords());
-        System.out.printf("\t%-25s\t%20.4f ms%n","Total time spent",
-                TimeUtils.toMillis(accumulator.timeStats.getTotalTime()));
 
-        System.out.printf("--------------------TIME DISTRIBUTION--------------------%n");
-        Stats timeStats = accumulator.timeStats;
-        System.out.printf("%-20s\t%20.4f ms%n","min",TimeUtils.toMillis(timeStats.getMinTime()));
-        System.out.printf("%-20s\t%20.4f ms%n","median(p50)",TimeUtils.toMillis(timeStats.getMedian()));
-        System.out.printf("%-20s\t%20.4f ms%n","p75",TimeUtils.toMillis(timeStats.get75P()));
-        System.out.printf("%-20s\t%20.4f ms%n","p95",TimeUtils.toMillis(timeStats.get95P()));
-        System.out.printf("%-20s\t%20.4f ms%n","p98",TimeUtils.toMillis(timeStats.get98P()));
-        System.out.printf("%-20s\t%20.4f ms%n","p99",TimeUtils.toMillis(timeStats.get99P()));
-        System.out.printf("%-20s\t%20.4f ms%n","p999",TimeUtils.toMillis(timeStats.get999P()));
-        System.out.printf("%-20s\t%20.4f ms%n","max",TimeUtils.toMillis(timeStats.getMaxTime()));
-        System.out.printf("%n");
-        System.out.printf("%-20s\t%20.4f ms%n","avg",TimeUtils.toMillis(timeStats.getAvgTime()));
-        System.out.printf("%-20s\t%20.4f ms%n","std. dev",TimeUtils.toMillis(timeStats.getTimeStandardDeviation()));
-        System.out.println();
-        System.out.printf("--------------------RECORD DISTRIBUTION--------------------%n");
-        Stats recordStats = accumulator.recordStats;
-        System.out.printf("%-20s\t%20d records%n","min",recordStats.getMinTime());
-        System.out.printf("%-20s\t%20.4f records%n","median(p50)",recordStats.getMedian());
-        System.out.printf("%-20s\t%20.4f records%n","p75",recordStats.get75P());
-        System.out.printf("%-20s\t%20.4f records%n","p95",recordStats.get95P());
-        System.out.printf("%-20s\t%20.4f records%n","p98",recordStats.get98P());
-        System.out.printf("%-20s\t%20.4f records%n","p99",recordStats.get99P());
-        System.out.printf("%-20s\t%20.4f records%n","p999",recordStats.get999P());
-        System.out.printf("%-20s\t%20d records%n","max",recordStats.getMaxTime());
-        System.out.printf("%n");
-        System.out.printf("%-20s\t%20.4f records%n","avg",recordStats.getAvgTime());
-        System.out.printf("%-20s\t%20.4f records%n","std. dev",recordStats.getTimeStandardDeviation());
-        System.out.println();
 
     }
 
