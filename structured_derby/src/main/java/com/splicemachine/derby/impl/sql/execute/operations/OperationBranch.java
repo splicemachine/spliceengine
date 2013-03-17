@@ -2,18 +2,15 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.stats.ThroughputStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;

@@ -10,7 +10,8 @@ public class TimeUtils {
 
     private TimeUtils(){}
 
-    private static final double NANOS_TO_SECONDS = 1000*1000*1000d;
+    private static final double NANOS_TO_MILLIS = 1000*1000d;
+    private static final double NANOS_TO_SECONDS = 1000*NANOS_TO_MILLIS;
 
     /**
      * Converts nanoTime into a decimal seconds representation.
@@ -30,5 +31,13 @@ public class TimeUtils {
      */
     public static double toSeconds(double nanoTime){
         return nanoTime/NANOS_TO_SECONDS;
+    }
+
+    public static double toMillis(long nanoTime){
+        return nanoTime/NANOS_TO_MILLIS;
+    }
+
+    public static double toMillis(double nanoTime){
+        return nanoTime/NANOS_TO_MILLIS;
     }
 }

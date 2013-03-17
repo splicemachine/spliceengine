@@ -1,9 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.stats.ThroughputStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchTable;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -15,7 +13,6 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.execute.DeleteConstantAction;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;

@@ -1,7 +1,6 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.stats.ThroughputStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;

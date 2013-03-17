@@ -9,7 +9,7 @@ import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.stats.ThroughputStats;
+import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
@@ -51,7 +51,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	protected int rowsInput = 0;
 
 	protected boolean isOpen=false;
-    protected Accumulator scanAccumulator = ThroughputStats.uniformAccumulator();
+    protected Accumulator scanAccumulator = TimingStats.uniformAccumulator();
 
     public ScalarAggregateOperation () {
 		super();

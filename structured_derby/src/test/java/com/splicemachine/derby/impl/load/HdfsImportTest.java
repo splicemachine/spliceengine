@@ -58,7 +58,8 @@ public class HdfsImportTest {
 		while(rs.next()){
 			String name = rs.getString(1);
 			String title = rs.getString(2);
-			Integer age = rs.getInt(3);
+			int age = rs.getInt(3);
+            Assert.assertTrue("age was null!",!rs.wasNull());
 			Assert.assertNotNull("Name is null!", name);
 			Assert.assertNotNull("Title is null!", title);
 			Assert.assertNotNull("Age is null!",age);
