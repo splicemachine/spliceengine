@@ -16,7 +16,21 @@
 		<connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
 		<developerConnection>scm:git:git@github.com:splicemachine/spliceengine.git</developerConnection>
 	</scm>
-
+			<distributionManagement>
+	<repository>
+	<uniqueVersion>false</uniqueVersion>
+	<id>structured-hbase-release</id>
+	<name>Structured HBase Release</name>
+	<url>scp://www.inciteretail.com/usr/local/sonatype-work/nexus/storage/releases/</url>
+	</repository>
+	
+	<snapshotRepository>
+	<uniqueVersion>true</uniqueVersion>
+	<id>structured-hbase-snapshot</id>
+	<name>Structured HBase Snapshot</name>
+	<url>scp://www.inciteretail.com/usr/local/sonatype-work/nexus/storage/snapshots/</url>
+	</snapshotRepository>
+	</distributionManagement>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<junit.version>4.8.1</junit.version>
@@ -149,24 +163,6 @@
 	</repositories>
 	<profiles>
 	
-		<profile>
-		<id>release</id>
-			<distributionManagement>
-	<repository>
-	<uniqueVersion>false</uniqueVersion>
-	<id>structured-hbase-release</id>
-	<name>Structured HBase Release</name>
-	<url>scp://www.inciteretail.com/usr/local/sonatype-work/nexus/storage/releases/</url>
-	</repository>
-	
-	<snapshotRepository>
-	<uniqueVersion>true</uniqueVersion>
-	<id>structured-hbase-snapshot</id>
-	<name>Structured HBase Snapshot</name>
-	<url>scp://www.inciteretail.com/usr/local/sonatype-work/nexus/storage/snapshots/</url>
-	</snapshotRepository>
-	</distributionManagement>
-		</profile>
 		<profile>
 			<id>cloudera-cdh4.2.0</id>
 			<properties>
