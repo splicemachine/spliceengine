@@ -5,12 +5,10 @@ import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.SScan;
 import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableReader;
-import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.si.api.FilterState;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.SiTransactor;
-import com.splicemachine.si2.txn.TransactionManagerFactory;
 import junit.framework.Assert;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.junit.After;
@@ -21,31 +19,25 @@ import java.io.IOException;
 import java.util.Iterator;
 
 public class SiTransactorTest {
-    final boolean useSimple = true;
+    boolean useSimple = true;
 
     StoreSetup storeSetup;
     TransactorSetup transactorSetup;
     Transactor transactor;
 
+    void baseSetUp() {
+        transactor = transactorSetup.transactor;
+    }
+
     @Before
     public void setUp() {
         storeSetup = new LStoreSetup();
-        if (!useSimple) {
-            storeSetup = new HStoreSetup();
-        }
         transactorSetup = new TransactorSetup(storeSetup);
-        transactor = transactorSetup.transactor;
-        if (!useSimple) {
-            TransactorFactory.setDefaultTransactor(transactor);
-            TransactionManagerFactory.setTransactor(transactor);
-        }
+        baseSetUp();
     }
 
     @After
     public void tearDown() throws Exception {
-        if (storeSetup.getTestCluster() != null) {
-            storeSetup.getTestCluster().shutdownMiniCluster();
-        }
     }
 
     private void insertAge(TransactionId transactionId, String name, int age) throws IOException {
@@ -169,29 +161,29 @@ public class SiTransactorTest {
     @Test
     public void writeRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=null job=null", read(t1, "joe"));
-        insertAge(t1, "joe", 20);
+        Assert.assertEquals("joe9 age=null job=null", read(t1, "joe9"));
+        insertAge(t1, "joe9", 20);
         dumpStore();
-        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
+        Assert.assertEquals("joe9 age=20 job=null", read(t1, "joe9"));
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20 job=null", read(t2, "joe"));
+        Assert.assertEquals("joe9 age=20 job=null", read(t2, "joe9"));
         dumpStore();
     }
 
     @Test
     public void writeReadOverlap() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=null job=null", read(t1, "joe"));
-        insertAge(t1, "joe", 20);
-        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
+        Assert.assertEquals("joe8 age=null job=null", read(t1, "joe8"));
+        insertAge(t1, "joe8", 20);
+        Assert.assertEquals("joe8 age=20 job=null", read(t1, "joe8"));
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
-        Assert.assertEquals("joe age=null job=null", read(t2, "joe"));
+        Assert.assertEquals("joe8 age=20 job=null", read(t1, "joe8"));
+        Assert.assertEquals("joe8 age=null job=null", read(t2, "joe8"));
         transactor.commit(t1);
-        Assert.assertEquals("joe age=null job=null", read(t2, "joe"));
+        Assert.assertEquals("joe8 age=null job=null", read(t2, "joe8"));
         dumpStore();
     }
 
@@ -213,30 +205,30 @@ public class SiTransactorTest {
     @Test
     public void writeWriteOverlap() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=null job=null", read(t1, "joe"));
-        insertAge(t1, "joe", 20);
-        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
+        Assert.assertEquals("joe2 age=null job=null", read(t1, "joe2"));
+        insertAge(t1, "joe2", 20);
+        Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
-        Assert.assertEquals("joe age=null job=null", read(t2, "joe"));
+        Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
+        Assert.assertEquals("joe2 age=null job=null", read(t2, "joe2"));
         try {
-            insertAge(t2, "joe", 30);
+            insertAge(t2, "joe2", 30);
             assert false;
         } catch (RuntimeException e) {
             // TODO: expected write/write conflict
             //DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
             //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
         }
-        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
+        Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
         try {
-            Assert.assertEquals("joe age=null job=null", read(t2, "joe"));
+            Assert.assertEquals("joe2 age=null job=null", read(t2, "joe2"));
             assert false;
         } catch (RuntimeException e) {
             DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
             Assert.assertTrue(dnrio.getMessage().indexOf("transaction is not ACTIVE") >= 0);
         }
-        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
+        Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
         transactor.commit(t1);
         try {
             transactor.commit(t2);
@@ -249,10 +241,10 @@ public class SiTransactorTest {
     @Test
     public void noReadAfterCommit() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        insertAge(t1, "joe", 20);
+        insertAge(t1, "joe3", 20);
         transactor.commit(t1);
         try {
-            read(t1, "joe");
+            read(t1, "joe3");
             assert false;
         } catch (RuntimeException e) {
             DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
@@ -263,107 +255,106 @@ public class SiTransactorTest {
     @Test
     public void writeScan() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=null job=null", read(t1, "joe"));
-        insertAge(t1, "joe", 20);
+        Assert.assertEquals("joe4 age=null job=null", read(t1, "joe4"));
+        insertAge(t1, "joe4", 20);
         dumpStore();
-        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
+        Assert.assertEquals("joe4 age=20 job=null", read(t1, "joe4"));
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20 job=null", scan(t2, "joe"));
+        Assert.assertEquals("joe4 age=20 job=null", scan(t2, "joe4"));
 
-        Assert.assertEquals("joe age=20 job=null", read(t2, "joe"));
+        Assert.assertEquals("joe4 age=20 job=null", read(t2, "joe4"));
         dumpStore();
     }
 
     @Test
     public void writeWriteRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=null job=null", read(t1, "joe"));
-        insertAge(t1, "joe", 20);
+        Assert.assertEquals("joe5 age=null job=null", read(t1, "joe5"));
+        insertAge(t1, "joe5", 20);
         dumpStore();
-        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
+        Assert.assertEquals("joe5 age=20 job=null", read(t1, "joe5"));
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20 job=null", read(t2, "joe"));
-        insertJob(t2, "joe", "baker");
+        Assert.assertEquals("joe5 age=20 job=null", read(t2, "joe5"));
+        insertJob(t2, "joe5", "baker");
         dumpStore();
-        Assert.assertEquals("joe age=20 job=baker", read(t2, "joe"));
+        Assert.assertEquals("joe5 age=20 job=baker", read(t2, "joe5"));
         transactor.commit(t2);
 
         TransactionId t3 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20 job=baker", read(t3, "joe"));
+        Assert.assertEquals("joe5 age=20 job=baker", read(t3, "joe5"));
         dumpStore();
     }
 
     @Test
     public void manyWritesManyRollbacksRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        insertAge(t1, "joe", 20);
+        insertAge(t1, "joe6", 20);
         dumpStore();
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        insertJob(t2, "joe", "baker");
+        insertJob(t2, "joe6", "baker");
         transactor.commit(t2);
 
         TransactionId t3 = transactor.beginTransaction();
-        insertJob(t3, "joe", "butcher");
+        insertJob(t3, "joe6", "butcher");
         transactor.commit(t3);
 
         TransactionId t4 = transactor.beginTransaction();
-        insertJob(t4, "joe", "blacksmith");
+        insertJob(t4, "joe6", "blacksmith");
         transactor.commit(t4);
 
         TransactionId t5 = transactor.beginTransaction();
-        insertJob(t5, "joe", "carter");
+        insertJob(t5, "joe6", "carter");
         transactor.commit(t5);
 
         TransactionId t6 = transactor.beginTransaction();
-        insertJob(t6, "joe", "farrier");
+        insertJob(t6, "joe6", "farrier");
         transactor.commit(t6);
 
         TransactionId t7 = transactor.beginTransaction();
-        insertAge(t7, "joe", 27);
+        insertAge(t7, "joe6", 27);
         transactor.abort(t7);
 
         TransactionId t8 = transactor.beginTransaction();
-        insertAge(t8, "joe", 28);
+        insertAge(t8, "joe6", 28);
         transactor.abort(t8);
 
         TransactionId t9 = transactor.beginTransaction();
-        insertAge(t9, "joe", 29);
+        insertAge(t9, "joe6", 29);
         transactor.abort(t9);
 
         TransactionId t10 = transactor.beginTransaction();
-        insertAge(t10, "joe", 30);
+        insertAge(t10, "joe6", 30);
         transactor.abort(t10);
 
         TransactionId t11 = transactor.beginTransaction();
-        System.out.println("xxxxxxxxxxxxx starting read **************");
-        Assert.assertEquals("joe age=20 job=farrier", read(t11, "joe"));
+        Assert.assertEquals("joe6 age=20 job=farrier", read(t11, "joe6"));
         dumpStore();
     }
 
     @Test
     public void fourTransactions() throws Exception {
         TransactionId t1 = transactor.beginTransaction();
-        insertAge(t1, "joe", 20);
+        insertAge(t1, "joe7", 20);
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20 job=null", read(t2, "joe"));
-        insertAge(t2, "joe", 30);
-        Assert.assertEquals("joe age=30 job=null", read(t2, "joe"));
+        Assert.assertEquals("joe7 age=20 job=null", read(t2, "joe7"));
+        insertAge(t2, "joe7", 30);
+        Assert.assertEquals("joe7 age=30 job=null", read(t2, "joe7"));
 
         TransactionId t3 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20 job=null", read(t3, "joe"));
+        Assert.assertEquals("joe7 age=20 job=null", read(t3, "joe7"));
 
         transactor.commit(t2);
 
         TransactionId t4 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=30 job=null", read(t4, "joe"));
+        Assert.assertEquals("joe7 age=30 job=null", read(t4, "joe7"));
         //System.out.println(store);
     }
 

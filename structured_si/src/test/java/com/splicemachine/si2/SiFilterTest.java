@@ -9,6 +9,7 @@ import com.splicemachine.si2.si.api.FilterState;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.txn.TransactionManagerFactory;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -16,7 +17,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class SiFilterTest {
-    final boolean useSimple = true;
+    boolean useSimple = true;
 
     StoreSetup storeSetup;
     TransactorSetup transactorSetup;
@@ -25,24 +26,16 @@ public class SiFilterTest {
     @Before
     public void setUp() {
         storeSetup = new LStoreSetup();
-        if (!useSimple) {
-            storeSetup = new HStoreSetup();
-        }
         transactorSetup = new TransactorSetup(storeSetup);
         transactor = transactorSetup.transactor;
-        if (!useSimple) {
-            TransactorFactory.setDefaultTransactor(transactor);
-            TransactionManagerFactory.setTransactor(transactor);
-        }
+    }
 
+    @After
+    public void tearDown() throws Exception {
     }
 
     private void insertAge(TransactionId transactionId, String name, int age) throws IOException {
         SiTransactorTest.insertAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, age);
-    }
-
-    private String read(TransactionId transactionId, String name) throws IOException {
-        return SiTransactorTest.readAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
     }
 
     Object readEntireTuple(String name) throws IOException {
@@ -66,13 +59,13 @@ public class SiFilterTest {
         final TransactionId t1 = transactor.beginTransaction();
         STable table = storeSetup.getReader().open(storeSetup.getPersonTableName());
         final FilterState filterState = transactor.newFilterState(table, t1);
-        insertAge(t1, "joe", 20);
+        insertAge(t1, "bill", 20);
         transactor.commit(t1);
 
         final TransactionId t2 = transactor.beginTransaction();
-        insertAge(t2, "joe", 30);
+        insertAge(t2, "bill", 30);
 
-        Object row = readEntireTuple("joe");
+        Object row = readEntireTuple("bill");
         final List keyValues = dataLib.getResultColumn(row, dataLib.encode("_si"), dataLib.encode("commit"));
         for (Object kv : keyValues) {
             transactor.filterKeyValue(filterState, kv);

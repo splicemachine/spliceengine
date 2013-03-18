@@ -18,24 +18,13 @@ import java.io.IOException;
 
 public class TransactionManagerTest {
     protected static TransactionManager tm;
-    static final boolean useSimple = true;
 
     static StoreSetup storeSetup;
     static TransactorSetup transactorSetup;
     static Transactor transactor;
 
-    @BeforeClass
-    public static void setUp() {
-        storeSetup = new LStoreSetup();
-        if (!useSimple) {
-            storeSetup = new HStoreSetup();
-        }
-        transactorSetup = new TransactorSetup(storeSetup);
+    static void baseSetUp() {
         transactor = transactorSetup.transactor;
-        if (!useSimple) {
-            TransactorFactory.setDefaultTransactor(transactor);
-            TransactionManagerFactory.setTransactor(transactor);
-        }
         try {
             tm = new TransactionManager(transactor);
         } catch (IOException e) {
@@ -43,11 +32,15 @@ public class TransactionManagerTest {
         }
     }
 
+    @BeforeClass
+    public static void setUp() {
+        storeSetup = new LStoreSetup();
+        transactorSetup = new TransactorSetup(storeSetup);
+        baseSetUp();
+    }
+
     @AfterClass
     public static void tearDown() throws Exception {
-        if (storeSetup.getTestCluster() != null) {
-            storeSetup.getTestCluster().shutdownMiniCluster();
-        }
     }
 
     @Test
