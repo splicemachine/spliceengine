@@ -16,6 +16,12 @@
 			<artifactId>hbase</artifactId>
 			<version>${hbase.version}</version>
 		</dependency>
+				<dependency>
+			<groupId>org.apache.hbase</groupId>
+			<artifactId>hbase</artifactId>
+			<version>${hbase.version}</version>
+			<classifier>tests</classifier>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.hadoop</groupId>
 			<artifactId>hadoop-common</artifactId>
