@@ -13,6 +13,7 @@ import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,6 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 
 public class SiTransactor implements Transactor, ClientTransactor {
+    static final Logger LOG = Logger.getLogger(SiTransactor.class);
+
     private final TimestampSource timestampSource;
     private final SDataLib dataLib;
     private final STableWriter dataWriter;
@@ -57,11 +60,15 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     @Override
     public void abort(TransactionId transactionId) throws IOException {
-        transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ABORT);
+        TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
+        if (transaction.status.equals(TransactionStatus.ACTIVE)) {
+            transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ABORT);
+        }
     }
 
     @Override
     public void fail(TransactionId transactionId) throws IOException {
+        ensureTransactionActive(transactionId);
         transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ERROR);
     }
 
@@ -251,6 +258,13 @@ public class SiTransactor implements Transactor, ClientTransactor {
             } else {
                 long dataTimestamp = dataLib.getKeyValueTimestamp(keyValue);
                 Long commitTimestamp = siFilterState.committedTransactions.get(dataTimestamp);
+                for (long k : siFilterState.committedTransactions.keySet()) {
+                    long value = siFilterState.committedTransactions.get(k);
+                }
+                if (commitTimestamp == null) {
+                    final TransactionStruct transactionStatus = transactionStore.getTransactionStatus(dataTimestamp);
+                    commitTimestamp = transactionStatus.commitTimestamp;
+                }
                 if (isCommittedBeforeThisTransaction(siFilterState, commitTimestamp)
                         || isThisTransactionsData(siFilterState, dataTimestamp, commitTimestamp)) {
                     siFilterState.lastValidQualifier = dataLib.getKeyValueQualifier(keyValue);
@@ -286,6 +300,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     private Long filterHandleUnknownTransactionStatus(SiFilterState siFilterState, Object keyValue,
                                                       long beginTimestamp, Long commitTimestamp) throws IOException {
         TransactionStruct transactionStruct = transactionStore.getTransactionStatus(beginTimestamp);
+
         switch (transactionStruct.status) {
             case ACTIVE:
                 break;

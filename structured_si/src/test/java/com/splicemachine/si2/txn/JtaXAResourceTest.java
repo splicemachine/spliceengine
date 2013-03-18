@@ -36,7 +36,8 @@ public class JtaXAResourceTest {
         transactorSetup = new TransactorSetup(storeSetup);
         transactor = transactorSetup.transactor;
         if (!useSimple) {
-            TransactorFactory.setTransactor(transactor);
+            TransactorFactory.setDefaultTransactor(transactor);
+            TransactionManagerFactory.setTransactor(transactor);
         }
         try {
             tm = new TransactionManager(transactor);

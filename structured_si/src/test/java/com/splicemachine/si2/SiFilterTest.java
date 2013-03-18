@@ -8,11 +8,11 @@ import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.si.api.FilterState;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
+import com.splicemachine.si2.txn.TransactionManagerFactory;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 public class SiFilterTest {
@@ -31,7 +31,8 @@ public class SiFilterTest {
         transactorSetup = new TransactorSetup(storeSetup);
         transactor = transactorSetup.transactor;
         if (!useSimple) {
-            TransactorFactory.setTransactor(transactor);
+            TransactorFactory.setDefaultTransactor(transactor);
+            TransactionManagerFactory.setTransactor(transactor);
         }
 
     }
@@ -50,7 +51,7 @@ public class SiFilterTest {
 
         Object key = dataLib.newRowKey(new Object[]{name});
         SGet get = dataLib.newGet(key, null, null, null);
-        STable testSTable = reader.open("people");
+        STable testSTable = reader.open("999");
         try {
             return reader.get(testSTable, get);
         } finally {
@@ -63,7 +64,7 @@ public class SiFilterTest {
         final SDataLib dataLib = storeSetup.getDataLib();
         final Transactor transactor = transactorSetup.transactor;
         final TransactionId t1 = transactor.beginTransaction();
-        STable table = storeSetup.getReader().open("people");
+        STable table = storeSetup.getReader().open("999");
         final FilterState filterState = transactor.newFilterState(table, t1);
         insertAge(t1, "joe", 20);
         transactor.commit(t1);

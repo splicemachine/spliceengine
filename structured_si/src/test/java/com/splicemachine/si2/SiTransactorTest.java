@@ -2,6 +2,7 @@ package com.splicemachine.si2;
 
 import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.SGet;
+import com.splicemachine.si2.data.api.SScan;
 import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableReader;
 import com.splicemachine.si2.data.hbase.TransactorFactory;
@@ -9,6 +10,7 @@ import com.splicemachine.si2.si.api.FilterState;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.SiTransactor;
+import com.splicemachine.si2.txn.TransactionManagerFactory;
 import junit.framework.Assert;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.junit.After;
@@ -16,8 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Iterator;
 
 public class SiTransactorTest {
     final boolean useSimple = true;
@@ -35,7 +36,8 @@ public class SiTransactorTest {
         transactorSetup = new TransactorSetup(storeSetup);
         transactor = transactorSetup.transactor;
         if (!useSimple) {
-            TransactorFactory.setTransactor(transactor);
+            TransactorFactory.setDefaultTransactor(transactor);
+            TransactionManagerFactory.setTransactor(transactor);
         }
     }
 
@@ -54,6 +56,10 @@ public class SiTransactorTest {
         return readAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
     }
 
+    private String scan(TransactionId transactionId, String name) throws IOException {
+        return scanAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
+    }
+
     static void insertAgeDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
                                 TransactionId transactionId, String name, int age) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
@@ -64,7 +70,7 @@ public class SiTransactorTest {
         dataLib.addKeyValueToPut(put, transactorSetup.family, transactorSetup.ageQualifier, null, dataLib.encode(age));
         transactorSetup.clientTransactor.initializePut(transactionId, put);
 
-        STable testSTable = reader.open("people");
+        STable testSTable = reader.open("999");
         try {
             if (useSimple) {
                 try {
@@ -88,9 +94,45 @@ public class SiTransactorTest {
         Object key = dataLib.newRowKey(new Object[]{name});
         SGet get = dataLib.newGet(key, null, null, null);
         transactorSetup.clientTransactor.initializeGet(transactionId, get);
-        STable testSTable = reader.open("people");
+        STable testSTable = reader.open("999");
         try {
             Object rawTuple = reader.get(testSTable, get);
+            if (rawTuple != null) {
+                Object result = rawTuple;
+                if (useSimple) {
+                    final FilterState filterState;
+                    try {
+                        filterState = transactorSetup.transactor.newFilterState(testSTable, transactionId);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    result = transactorSetup.transactor.filterResult(filterState, rawTuple);
+                }
+                final Object value = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.ageQualifier);
+                Integer age = (Integer) dataLib.decode(value, Integer.class);
+                return name + " age=" + age;
+            } else {
+                return name + " age=" + null;
+            }
+        } finally {
+            reader.close(testSTable);
+        }
+    }
+
+    static String scanAgeDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+                                TransactionId transactionId, String name) throws IOException {
+        final SDataLib dataLib = storeSetup.getDataLib();
+        final STableReader reader = storeSetup.getReader();
+
+        Object key = dataLib.newRowKey(new Object[]{name});
+        SScan get = dataLib.newScan(key, key, null, null, null);
+        transactorSetup.clientTransactor.initializeScan(transactionId, get);
+        STable testSTable = reader.open("999");
+        try {
+            Iterator results = reader.scan(testSTable, get);
+            assert results.hasNext();
+            Object rawTuple = results.next();
+            assert !results.hasNext();
             if (rawTuple != null) {
                 Object result = rawTuple;
                 if (useSimple) {
@@ -214,6 +256,22 @@ public class SiTransactorTest {
     }
 
     @Test
+    public void writeScan() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=null", read(t1, "joe"));
+        insertAge(t1, "joe", 20);
+        dumpStore();
+        Assert.assertEquals("joe age=20", read(t1, "joe"));
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=20", scan(t2, "joe"));
+
+        Assert.assertEquals("joe age=20", read(t2, "joe"));
+        dumpStore();
+    }
+
+    @Test
     public void fourTransactions() throws Exception {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe", 20);
@@ -251,7 +309,7 @@ public class SiTransactorTest {
         transactorSetup.clientTransactor.initializePut(put, put2);
         Assert.assertTrue(dataLib.valuesEqual(dataLib.encode(true), dataLib.getAttribute(put2, "si-needed")));
         System.out.println("put = " + put);
-        STable testSTable = reader.open("people");
+        STable testSTable = reader.open("999");
         try {
             assert transactor.processPut(testSTable, put);
             assert transactor.processPut(testSTable, put2);
@@ -267,7 +325,7 @@ public class SiTransactorTest {
 
         TransactionId t2 = transactor.beginTransaction();
         SGet get = dataLib.newGet(testKey, null, null, null);
-        testSTable = reader.open("people");
+        testSTable = reader.open("999");
         try {
             final Object resultTuple = reader.get(testSTable, get);
             for (Object keyValue : dataLib.listResult(resultTuple)) {
@@ -287,7 +345,7 @@ public class SiTransactorTest {
 
         dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(35));
         transactorSetup.clientTransactor.initializePut(t, put);
-        testSTable = reader.open("people");
+        testSTable = reader.open("999");
         try {
             assert transactor.processPut(testSTable, put);
         } finally {
