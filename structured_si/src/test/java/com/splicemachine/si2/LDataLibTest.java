@@ -63,8 +63,8 @@ public class LDataLibTest {
 		Assert.assertArrayEquals(new Object[]{
 				new LKeyValue("fred", "foo", "age", 5L, 21).toString(),
 				new LKeyValue("fred", "foo", "age", 3L, 11).toString(),
-				new LKeyValue("fred", "foo", "job", 11L, "baker").toString(),
-				new LKeyValue("fred", "foo", "alias", 8L, "joey").toString()},
+				new LKeyValue("fred", "foo", "alias", 8L, "joey").toString(),
+                new LKeyValue("fred", "foo", "job", 11L, "baker").toString()},
 				results.toArray());
 	}
 }
