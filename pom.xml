@@ -9,30 +9,14 @@
 	<modules>
 		<module>structured_constants</module>
 		<module>structured_trx</module>
-		<module>structured_derby</module>
 		<module>structured_si</module>
+		<module>structured_derby</module>
 	</modules>
 	<scm>
 		<connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
 		<developerConnection>scm:git:git@github.com:splicemachine/spliceengine.git</developerConnection>
 	</scm>
-	
-	<distributionManagement>
-	<repository>
-	<uniqueVersion>false</uniqueVersion>
-	<id>structured-hbase-release</id>
-	<name>Structured HBase Release</name>
-	<url>scp://www.inciteretail.com/usr/local/sonatype-work/nexus/storage/releases/</url>
-	</repository>
-	
-	<snapshotRepository>
-	<uniqueVersion>true</uniqueVersion>
-	<id>structured-hbase-snapshot</id>
-	<name>Structured HBase Snapshot</name>
-	<url>scp://www.inciteretail.com/usr/local/sonatype-work/nexus/storage/snapshots/</url>
-	</snapshotRepository>
-	</distributionManagement>
-	
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<junit.version>4.8.1</junit.version>
@@ -117,7 +101,10 @@
 		</pluginRepository>
 	</pluginRepositories>
 	<repositories>
-
+				<repository>
+					<id>cloudera</id>
+					<url>https://repository.cloudera.com/content/repositories/releases/</url>
+				</repository>
 		<repository>
 			<id>protostuff-repo</id>
 			<name>protostuff-repo</name>
@@ -156,6 +143,25 @@
 		</repository>
 	</repositories>
 	<profiles>
+	
+		<profile>
+		<id>release</id>
+			<distributionManagement>
+	<repository>
+	<uniqueVersion>false</uniqueVersion>
+	<id>structured-hbase-release</id>
+	<name>Structured HBase Release</name>
+	<url>scp://www.inciteretail.com/usr/local/sonatype-work/nexus/storage/releases/</url>
+	</repository>
+	
+	<snapshotRepository>
+	<uniqueVersion>true</uniqueVersion>
+	<id>structured-hbase-snapshot</id>
+	<name>Structured HBase Snapshot</name>
+	<url>scp://www.inciteretail.com/usr/local/sonatype-work/nexus/storage/snapshots/</url>
+	</snapshotRepository>
+	</distributionManagement>
+		</profile>
 		<profile>
 			<id>cloudera-cdh4.2.0</id>
 			<properties>
@@ -163,12 +169,6 @@
 			  	<hbase.version>0.94.2-cdh4.2.0</hbase.version>
   				<hadoop.version>2.0.0-cdh4.2.0</hadoop.version>
 			</properties>
-			<repositories>
-				<repository>
-					<id>cloudera</id>
-					<url>https://repository.cloudera.com/content/repositories/releases/</url>
-				</repository>
-			</repositories>
 			<dependencies>
 			</dependencies>
 		</profile>
@@ -194,6 +194,7 @@
 		</profile>
 
 		<profile>
+		<!--  Not Working Yet -->
 			<id>hortonworks-hdp-1.2.1</id>
 			<properties>
 				<zookeeper.version>3.4.1-cdh4b1</zookeeper.version>
@@ -206,6 +207,16 @@
 			</dependencies>
 		</profile>
 
-		
+		<profile>
+    <id>downloadSources</id>
+        <activation>
+      		<activeByDefault>true</activeByDefault>
+    	</activation>
+    <properties>
+        <downloadSources>true</downloadSources>
+        <downloadJavadocs>true</downloadJavadocs>           
+    </properties>
+</profile>
 		</profiles>
+						
 </project>
