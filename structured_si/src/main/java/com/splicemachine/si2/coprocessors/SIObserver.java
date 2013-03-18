@@ -9,6 +9,7 @@ import com.splicemachine.si2.data.hbase.HbRegion;
 import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.filters.SIFilter;
 import com.splicemachine.si2.si.api.Transactor;
+import com.splicemachine.si2.txn.TransactionManagerFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
@@ -69,7 +70,7 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     private boolean shouldUseSI(Object operation) {
-        Transactor transactor = TransactorFactory.getTransactor();
+        Transactor transactor = TransactionManagerFactory.getTransactor();
         return transactor.isFilterNeeded(operation);
     }
 
@@ -84,7 +85,7 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     private Filter makeSiFilter(ObserverContext<RegionCoprocessorEnvironment> e, TimeRange timeRange, Filter currentFilter) throws IOException {
-        Transactor transactor = TransactorFactory.getTransactor();
+        Transactor transactor = TransactionManagerFactory.getTransactor();
         SIFilter siFilter = new SIFilter(transactor, timeRange.getMax() - 1, new HbRegion(e.getEnvironment().getRegion()));
         Filter newFilter;
         if (currentFilter != null) {
@@ -97,13 +98,14 @@ public class SIObserver extends BaseRegionObserver {
 
     @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
-        Transactor transactor = TransactorFactory.getTransactor();
-        STable region = new HbRegion(e.getEnvironment().getRegion());
-        boolean processed = transactor.processPut(region, put);
-        if (processed) {
-            e.bypass();
-            e.complete();
+        if (tableEnvMatch) {
+            Transactor transactor = TransactionManagerFactory.getTransactor();
+            STable region = new HbRegion(e.getEnvironment().getRegion());
+            boolean processed = transactor.processPut(region, put);
+            if (processed) {
+                e.bypass();
+                e.complete();
+            }
         }
     }
-
 }
