@@ -23,14 +23,12 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
      */
     @Override
     public void start(CoprocessorEnvironment e) {
-        Logger.getLogger(SpliceDerbyCoprocessor.class).warn("xxx start called");
         tableEnvMatch = SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.USER_TABLE)
                 || SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.USER_INDEX_TABLE)
                 || SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.DERBY_SYS_TABLE)
                 || SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.META_TABLE);
 
         if (tableEnvMatch) {
-            Logger.getLogger(SpliceDerbyCoprocessor.class).warn("xxx starting driver");
             SpliceDriver.driver().start();
             runningCoprocessors.incrementAndGet();
         }

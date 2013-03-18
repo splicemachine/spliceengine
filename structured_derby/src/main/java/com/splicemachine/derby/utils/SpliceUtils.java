@@ -16,6 +16,7 @@ import com.splicemachine.hbase.txn.ZkTransactionGetsPuts;
 import com.splicemachine.si.utils.SIConstants;
 import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.txn.SiGetsPuts;
+import com.splicemachine.si2.txn.TransactionTableCreator;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -513,10 +514,7 @@ public class SpliceUtils {
 				HBaseConstants.DEFAULT_TTL,
 				HBaseConstants.DEFAULT_BLOOMFILTER));
         if (useSi) {
-            final HColumnDescriptor siFamily = new HColumnDescriptor(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES);
-            siFamily.setMaxVersions(Integer.MAX_VALUE);
-            siFamily.setTimeToLive(Integer.MAX_VALUE);
-            desc.addFamily(siFamily);
+            desc.addFamily(TransactionTableCreator.createTransactionFamily());
         }
         return desc;
 	}
