@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.store.access;
 
+import com.splicemachine.SpliceConfiguration;
+import com.splicemachine.constants.IHbaseConfigurationSource;
 import com.splicemachine.constants.ITransactionManager;
 import com.splicemachine.constants.ITransactionManagerFactory;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -17,7 +19,9 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.store.raw.log.LogInstant;
 import org.apache.derby.iapi.store.raw.xact.TransactionId;
 import org.apache.derby.iapi.types.J2SEDataValueFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
+import org.mortbay.log.Log;
 
 import java.util.Properties;
 
@@ -125,23 +129,28 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 	private SpliceTransaction startCommonTransaction(HBaseStore hbaseStore,
 			ContextManager contextMgr, SpliceLockFactory lockFactory, J2SEDataValueFactory dataValueFactory,
 			boolean readOnly, String transName, boolean abortAll, String contextName) {
-		try {
+        try {
 			//String transPath = config.get(TxnConstants.TRANSACTION_PATH_NAME,TxnConstants.DEFAULT_TRANSACTION_PATH);	
 			//ZkTransactionManager zkTrans = new ZkTransactionManager(transPath, zkw, rzk);
-            ITransactionManager transactionManager = iTransactionManagerFactory.newTransactionManager();
+            IHbaseConfigurationSource configSource = new IHbaseConfigurationSource() {
+                @Override
+                public Configuration getConfiguration() {
+                    return SpliceConfiguration.create();
+                }
+            };
+            ITransactionManager transactionManager = iTransactionManagerFactory.newTransactionManager(configSource);
 			SpliceTransaction trans = new SpliceTransaction(new SpliceLockSpace(), dataValueFactory, transactionManager, transName);
 			trans.setTransactionName(transName);
 			
 			SpliceTransactionContext context = new SpliceTransactionContext(contextMgr, contextName, trans, abortAll, hbaseStore);
 			
 			trans.setActiveState();
-			
-			SpliceLogUtils.debug(LOG, "transaction type="+context.getIdName()+",transactionID="+trans.getTransactionState().getTransactionID());			
+			SpliceLogUtils.debug(LOG, "transaction type="+context.getIdName()+",transactionID="+trans.getTransactionState().getTransactionID());
 			return trans;
 		} catch (Exception e) {
 			LOG.error(e.getMessage(), e);
 		}
-		return null;	
+        return null;
 	}
 	
 	public boolean findTransaction(TransactionId id, Transaction tran) {

@@ -4,5 +4,5 @@ import java.io.IOException;
 
 public interface ITransactionManagerFactory {
     void init();
-    ITransactionManager newTransactionManager() throws IOException;
+    ITransactionManager newTransactionManager(IHbaseConfigurationSource configSource) throws IOException;
 }
