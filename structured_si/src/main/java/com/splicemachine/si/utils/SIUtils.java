@@ -96,23 +96,24 @@ public class SIUtils extends SIConstants {
 		return pool.getTable(TRANSACTION_TABLE_BYTES);
 	}
 	public static TableEnv getTableEnv(RegionCoprocessorEnvironment e) {
-		return EnvUtils.getTableEnv(e.getRegion().getTableDesc().getNameAsString());
+        return EnvUtils.getTableEnv(e.getRegion().getTableDesc().getNameAsString());
 	}
+
 	public static KeyValue createTombstone(byte[] row, long timestamp) {
-		return new KeyValue(row,SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN,timestamp,SIConstants.ZERO_BYTE_ARRAY);
+		return new KeyValue(row,SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,timestamp,SIConstants.ZERO_BYTE_ARRAY);
 	}
 
 	public static KeyValue createEmptyCommitTimestamp(byte[] row, long beginTimestamp) {
-		return new KeyValue(row,SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,beginTimestamp,SIConstants.ZERO_BYTE_ARRAY);
+		return new KeyValue(row,SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,beginTimestamp,SIConstants.ZERO_BYTE_ARRAY);
 	}
 
 	public static KeyValue createActualCommitTimestamp(byte[] row, long beginTimestamp, long commitTimestamp) {
-		return new KeyValue(row,SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,beginTimestamp,Bytes.toBytes(commitTimestamp));
+		return new KeyValue(row,SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,beginTimestamp,Bytes.toBytes(commitTimestamp));
 	}
 
 	public static boolean isEmptyCommitTimestamp(KeyValue keyValue) {
 		return Arrays.equals(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) && 
-				Arrays.equals(keyValue.getQualifier(),SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN) &&
+				Arrays.equals(keyValue.getQualifier(),SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES) &&
 				Arrays.equals(keyValue.getValue(),SIConstants.ZERO_BYTE_ARRAY);			
 	}
 	

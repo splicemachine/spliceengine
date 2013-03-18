@@ -81,7 +81,7 @@ public class SITransactionEndpoint extends BaseEndpointCoprocessor implements SI
 			case COMMIT:
 				for (byte[] row: rowsInvolved) {
 					Put put = new Put(row,transactionResponse.getStartTimestamp());
-					put.add(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN, Bytes.toBytes(transactionResponse.getCommitTimestamp()));
+					put.add(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, Bytes.toBytes(transactionResponse.getCommitTimestamp()));
 					try {
 						region.put(put,false);
 					} catch (Exception e) {
