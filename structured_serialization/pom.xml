@@ -70,6 +70,17 @@
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
+        		<dependency>
+        	<groupId>org.apache.derby</groupId>
+        	<artifactId>derby</artifactId>
+        	<version>${derby.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
