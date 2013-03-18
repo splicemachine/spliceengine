@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.hbase.txn.ZkTransactionGetsPuts;
+import com.splicemachine.si.utils.SIConstants;
 import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.txn.SiGetsPuts;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -100,7 +101,7 @@ public class SpliceUtils {
 	protected static String quorum;
 	protected static String transPath;
 	protected static String derbyPropertyPath = "/derbyPropertyPath";
-	protected static String queryNodePath = "/queryNodePath";	
+	protected static String queryNodePath = "/queryNodePath";
 	protected static RecoverableZooKeeper rzk = null;
 	protected static ZooKeeperWatcher zkw = null;
 
@@ -139,7 +140,7 @@ public class SpliceUtils {
 	public static String getTransactionPath() {
 		return transPath;
 	}
-	
+
 
 	public static String toJSON(Object object) {
 		return gson.toJson(object);
@@ -184,7 +185,7 @@ public class SpliceUtils {
         }
 		return delete;
 	}
-	
+
 	public static Delete cleanupNullsDelete(RowLocation loc,DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("cleanupNullsDelete row ");
@@ -196,7 +197,7 @@ public class SpliceUtils {
 			int numrows = (validColumns != null ? validColumns.getLength() : destRow.length);  // bug 118
 			for (int i = 0; i < numrows; i++) {
 				if (validColumns.isSet(i) && destRow[i] != null && destRow[i].isNull())
-					delete.deleteColumn(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes()); 
+					delete.deleteColumn(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes());
 			}
 			return delete;
 		} catch (Exception e) {
@@ -347,7 +348,7 @@ public class SpliceUtils {
 			//FIXME: Check if the record exists. Not using htable.checkAndPut because it's one column at a time
 			//May need to read more HTableInteface's checkAndPut
 			Get get = new Get(loc.getBytes());
-			
+
 			//FIXME: need to get the isolation level
 			if (transID != null) {
                 SpliceUtils.getTransactionGetsPuts().prepGet(transID, get);
@@ -366,7 +367,7 @@ public class SpliceUtils {
 			return true;
 		} catch (IOException ie) {
 			LOG.error(ie.getMessage(), ie);
-		} 
+		}
 		return false;
 	}
 
@@ -387,7 +388,7 @@ public class SpliceUtils {
 
 	public static String generateQueryNodeSequence() {
 		SpliceLogUtils.trace(LOG,"generateQueryNodeSequence");
-		try {			
+		try {
 			String node = rzk.create(queryNodePath + "/", Bytes.toBytes(OperationTreeStatus.CREATED.toString()), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
 			if (LOG.isTraceEnabled())
 				LOG.trace("generate Query Node Sequence " +node);
@@ -398,7 +399,7 @@ public class SpliceUtils {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
 		return null;
-	}	
+	}
 
 	public static void setQueryWaitNode(String uniqueSequenceID, Watcher watcher) {
 		if (LOG.isTraceEnabled())
@@ -412,10 +413,10 @@ public class SpliceUtils {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}	
+	}
 
-	
-	
+
+
 	public static boolean created() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("started ");
@@ -501,7 +502,7 @@ public class SpliceUtils {
 		}
 		return properties;
 	}
-	
+
 	public static HTableDescriptor generateDefaultDescriptor(String tableName) {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
 		desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
@@ -511,29 +512,35 @@ public class SpliceUtils {
 				HBaseConstants.DEFAULT_BLOCKCACHE,
 				HBaseConstants.DEFAULT_TTL,
 				HBaseConstants.DEFAULT_BLOOMFILTER));
-		return desc;		
+        if (useSi) {
+            final HColumnDescriptor siFamily = new HColumnDescriptor(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES);
+            siFamily.setMaxVersions(Integer.MAX_VALUE);
+            siFamily.setTimeToLive(Integer.MAX_VALUE);
+            desc.addFamily(siFamily);
+        }
+        return desc;
 	}
 
 	public static String getTransIDString(Transaction trans) {
 		if (trans == null)
 			return null;
-		
+
 		//for debugging purpose right now
 		if (!(trans instanceof SpliceTransaction))
 			LOG.error("We should only support SpliceTransaction!");
-		
+
 		SpliceTransaction zt = (SpliceTransaction)trans;
 		if (zt.getTransactionState() != null && zt.getTransactionState().getTransactionID() != null)
 			return zt.getTransactionState().getTransactionID();
-		
+
 		return null;
 	}
-	
+
 	public static String getTransID(Transaction trans) {
 		String transID = getTransIDString(trans);
 		if (transID == null)
 			return null;
-		
+
 		return transID;
 	}
 
@@ -541,14 +548,14 @@ public class SpliceUtils {
 
     public static ITransactionGetsPuts getTransactionGetsPuts() {
         if (useSi) {
-            return new SiGetsPuts(TransactorFactory.getClientTransactor());
+            return new SiGetsPuts(TransactorFactory.getDefaultClientTransactor());
         } else {
             return new ZkTransactionGetsPuts();
         }
     }
 
 	public static byte[] getUniqueKey(){
-		return gen.next().toString().getBytes();			
+		return gen.next().toString().getBytes();
 	}
 
     public static String getUniqueKeyString() {
