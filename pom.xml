@@ -194,20 +194,6 @@
 		</profile>
 
 		<profile>
-		<!--  Not Working Yet -->
-			<id>hortonworks-hdp-1.2.1</id>
-			<properties>
-				<zookeeper.version>3.4.1-cdh4b1</zookeeper.version>
-			  	<hbase.version>0.94.2.21</hbase.version>
-  				<hadoop.version>3.4.5.21</hadoop.version>
-			</properties>
-			<repositories>
-			</repositories>
-			<dependencies>
-			</dependencies>
-		</profile>
-
-		<profile>
     <id>downloadSources</id>
         <activation>
       		<activeByDefault>true</activeByDefault>
