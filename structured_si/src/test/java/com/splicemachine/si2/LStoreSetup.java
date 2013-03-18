@@ -47,4 +47,9 @@ public class LStoreSetup implements StoreSetup {
     public Object getStore() {
         return store;
     }
+
+    @Override
+    public String getPersonTableName() {
+        return "person";
+    }
 }

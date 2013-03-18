@@ -51,7 +51,7 @@ public class SiFilterTest {
 
         Object key = dataLib.newRowKey(new Object[]{name});
         SGet get = dataLib.newGet(key, null, null, null);
-        STable testSTable = reader.open("999");
+        STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             return reader.get(testSTable, get);
         } finally {
@@ -64,7 +64,7 @@ public class SiFilterTest {
         final SDataLib dataLib = storeSetup.getDataLib();
         final Transactor transactor = transactorSetup.transactor;
         final TransactionId t1 = transactor.beginTransaction();
-        STable table = storeSetup.getReader().open("999");
+        STable table = storeSetup.getReader().open(storeSetup.getPersonTableName());
         final FilterState filterState = transactor.newFilterState(table, t1);
         insertAge(t1, "joe", 20);
         transactor.commit(t1);

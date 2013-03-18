@@ -70,7 +70,7 @@ public class SiTransactorTest {
         dataLib.addKeyValueToPut(put, transactorSetup.family, transactorSetup.ageQualifier, null, dataLib.encode(age));
         transactorSetup.clientTransactor.initializePut(transactionId, put);
 
-        STable testSTable = reader.open("999");
+        STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             if (useSimple) {
                 try {
@@ -94,7 +94,7 @@ public class SiTransactorTest {
         Object key = dataLib.newRowKey(new Object[]{name});
         SGet get = dataLib.newGet(key, null, null, null);
         transactorSetup.clientTransactor.initializeGet(transactionId, get);
-        STable testSTable = reader.open("999");
+        STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Object rawTuple = reader.get(testSTable, get);
             if (rawTuple != null) {
@@ -127,7 +127,7 @@ public class SiTransactorTest {
         Object key = dataLib.newRowKey(new Object[]{name});
         SScan get = dataLib.newScan(key, key, null, null, null);
         transactorSetup.clientTransactor.initializeScan(transactionId, get);
-        STable testSTable = reader.open("999");
+        STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Iterator results = reader.scan(testSTable, get);
             assert results.hasNext();
@@ -309,7 +309,7 @@ public class SiTransactorTest {
         transactorSetup.clientTransactor.initializePut(put, put2);
         Assert.assertTrue(dataLib.valuesEqual(dataLib.encode(true), dataLib.getAttribute(put2, "si-needed")));
         System.out.println("put = " + put);
-        STable testSTable = reader.open("999");
+        STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             assert transactor.processPut(testSTable, put);
             assert transactor.processPut(testSTable, put2);
@@ -325,7 +325,7 @@ public class SiTransactorTest {
 
         TransactionId t2 = transactor.beginTransaction();
         SGet get = dataLib.newGet(testKey, null, null, null);
-        testSTable = reader.open("999");
+        testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             final Object resultTuple = reader.get(testSTable, get);
             for (Object keyValue : dataLib.listResult(resultTuple)) {
@@ -345,7 +345,7 @@ public class SiTransactorTest {
 
         dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(35));
         transactorSetup.clientTransactor.initializePut(t, put);
-        testSTable = reader.open("999");
+        testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             assert transactor.processPut(testSTable, put);
         } finally {

@@ -36,7 +36,7 @@ public class HStoreSetup implements StoreSetup {
             testCluster.getConfiguration().setStrings(CoprocessorHost.USER_REGION_COPROCESSOR_CONF_KEY, SIObserver.class.getName());
 
             testCluster.startMiniCluster(1);
-            final TestHTableSource tableSource = new TestHTableSource(testCluster, "999", new String[]{"attributes", "_si"});
+            final TestHTableSource tableSource = new TestHTableSource(testCluster, getPersonTableName(), new String[]{"attributes", "_si"});
             tableSource.addTable(testCluster, SIConstants.TRANSACTION_TABLE, new String[]{"siFamily"});
             return new HStore(tableSource);
         } catch (Exception e) {
@@ -98,5 +98,10 @@ public class HStoreSetup implements StoreSetup {
     @Override
     public Object getStore() {
         return null;
+    }
+
+    @Override
+    public String getPersonTableName() {
+        return "999";
     }
 }

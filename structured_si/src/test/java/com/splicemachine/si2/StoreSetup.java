@@ -11,4 +11,5 @@ public interface StoreSetup {
     STableWriter getWriter();
     HBaseTestingUtility getTestCluster();
     Object getStore();
+    String getPersonTableName();
 }
