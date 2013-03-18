@@ -143,6 +143,8 @@ public class IndexSet {
      */
     public void update(Mutation mutation,RegionCoprocessorEnvironment rce) throws IOException{
         checkState();
+        //If the Index was updated already, then bypass this, since we don't need to check it
+        if(mutation.getAttribute(INDEX_UPDATED)!=null) return;
 
         //check local constraints
         if(!localConstraint.validate(mutation,rce))

@@ -11,7 +11,7 @@
         "name": "pk_test",
         "numRows": 10000,
         "insertBatch": 200, /*The number of records to insert with each Prepared Statement*/
-        "insertThreads": 10, /*Number of Insertions to run simultaneously */
+        "insertThreads":25, /*Number of Insertions to run simultaneously */
         "columns": [
             {
                 "name":"cookie_id",
@@ -89,7 +89,7 @@
                     "qualifierType": "intRange",
                     "qualifierConfig": {
                         "start": 0,
-                        "stop": 1000
+                        "stop": 100
                     }
                 }
             ]

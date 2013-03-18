@@ -1,12 +1,16 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchTable;
+import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.hbase.SafeTable;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -15,6 +19,7 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.InsertConstantAction;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -46,7 +51,6 @@ public class InsertOperation extends DMLWriteOperation {
 
 	@Override
 	public void init(SpliceOperationContext context){
-		SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
 		super.init(context);
 		heapConglom = ((InsertConstantAction)constants).getConglomerateId();
 
@@ -59,7 +63,7 @@ public class InsertOperation extends DMLWriteOperation {
 	
 	@Override
 	public SinkStats sink() throws IOException {
-		SpliceLogUtils.trace(LOG,"sink on transactinID="+transactionID);
+//		SpliceLogUtils.trace(LOG,"sink on transactinID="+transactionID);
 		/*
 		 * write out the data to the correct location.
 		 * 
@@ -75,9 +79,9 @@ public class InsertOperation extends DMLWriteOperation {
 		ExecRow nextRow=null;
 		//Use HTable to do inserts instead of HeapConglomerateController - see Bug 188
         Serializer serializer = new Serializer();
-        HTableInterface htable = null;
 		try {
-            htable = BatchTable.create(SpliceUtils.config,Long.toString(heapConglom).getBytes());
+            CallBuffer<Mutation> writer = SpliceDriver.driver().getTableWriter()
+                    .writeBuffer(Long.toString(heapConglom).getBytes());
             DataValueDescriptor[] template = ((SpliceOperation)source).getExecRowDefinition().getRowArray();
             RowSerializer rowKeySerializer =
                     new RowSerializer(template,pkColumns,pkColumns==null);
@@ -89,22 +93,19 @@ public class InsertOperation extends DMLWriteOperation {
                 stats.processAccumulator().tick(System.nanoTime()-start);
 
                 start = System.nanoTime();
-                SpliceLogUtils.trace(LOG,"InsertOperation sink, nextRow="+nextRow);
+//                SpliceLogUtils.trace(LOG,"InsertOperation sink, nextRow="+nextRow);
 
                 byte[] rowKey = rowKeySerializer.serialize(nextRow.getRowArray());
-                htable.put(Puts.buildInsert(rowKey,nextRow.getRowArray(), this.transactionID.getBytes(),serializer)); // Buffered
+                writer.add(Puts.buildInsert(rowKey,nextRow.getRowArray(), this.transactionID.getBytes(),serializer)); // Buffered
 
                 stats.sinkAccumulator().tick(System.nanoTime()-start);
             }while(nextRow!=null);
-
-			htable.flushCommits();
-			htable.close();
+            writer.flushBuffer();
+            writer.close();
 		} catch (Exception e) {
 			//TODO -sf- abort transaction
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		}finally{
-            if(htable!=null)htable.close();
-        }
+		}
         return stats.finish();
 	}
 

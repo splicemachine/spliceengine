@@ -88,6 +88,10 @@ public class SpliceUtils {
         }
     }
 
+    public static HConnection getHConnection() {
+        return connection;
+    }
+
 
     public enum SpliceConglomerate {HEAP,BTREE}
 	public static Configuration config = SpliceConfiguration.create();
@@ -100,6 +104,7 @@ public class SpliceUtils {
 	protected static RecoverableZooKeeper rzk = null;
 	protected static ZooKeeperWatcher zkw = null;
 
+    protected static HConnection connection;
 	static {
 		quorum = generateQuorum();
 //		conglomeratePath = config.get(SchemaConstants.CONGLOMERATE_PATH_NAME,SchemaConstants.DEFAULT_CONGLOMERATE_SCHEMA_PATH);
@@ -115,6 +120,8 @@ public class SpliceUtils {
 				rzk.create(derbyPropertyPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 			if (rzk.exists(transPath, false) == null)
 				rzk.create(transPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
+            connection = HConnectionManager.getConnection(config);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		} finally {

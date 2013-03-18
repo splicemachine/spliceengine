@@ -1,15 +1,14 @@
 package com.splicemachine.hbase;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 import org.apache.hadoop.hbase.ipc.ExecRPCInvoker;
-import org.apache.hadoop.hbase.regionserver.RegionServerStoppedException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.util.Writables;
@@ -35,7 +34,7 @@ public class SafeTable implements SpliceTable{
      * putWriter is the Buffer manager entity for the Put buffer, while
      * deleteWriter manages the Delete Buffer
      */
-    private final CallBuffer.Listener<Put> putWriter = new CallBuffer.Listener<Put>() {
+    private final ThreadSafeCallBuffer.Listener<Put> putWriter = new ThreadSafeCallBuffer.Listener<Put>() {
         @Override
         public long heapSize(Put element) {
             validatePut(element);
@@ -47,7 +46,7 @@ public class SafeTable implements SpliceTable{
             flush(entries);
         }
     };
-    private final CallBuffer.Listener<Delete> deleteWriter = new CallBuffer.Listener<Delete>() {
+    private final ThreadSafeCallBuffer.Listener<Delete> deleteWriter = new ThreadSafeCallBuffer.Listener<Delete>() {
         @Override
         public long heapSize(Delete element) {
             return 1l; // "heap" actually means number of rows--we're going to ignore it anyway
@@ -100,8 +99,8 @@ public class SafeTable implements SpliceTable{
         this.operationTimeout = operationTimeout;
         this.cleanupOnClose = true;
 
-        putBuffer = new CallBuffer<Put>(putWriter,writeBufferSizeBytes,maxWriteBufferEntries);
-        deleteBuffer = new CallBuffer<Delete>(deleteWriter,-1l,maxWriteBufferEntries);
+        putBuffer = new ThreadSafeCallBuffer<Put>(putWriter,writeBufferSizeBytes,maxWriteBufferEntries);
+        deleteBuffer = new ThreadSafeCallBuffer<Delete>(deleteWriter,-1l,maxWriteBufferEntries);
     }
 
     public static SafeTable create(Configuration conf, byte[] tableName) throws IOException{
@@ -116,7 +115,7 @@ public class SafeTable implements SpliceTable{
         Preconditions.checkNotNull(tableName,"No Table name specified");
         HConnection connection;
 
-        connection = HConnectionManager.getConnection(conf);
+        connection = SpliceUtils.getHConnection();
         int maxThreads = conf.getInt("hbase.htable.threads.max",Integer.MAX_VALUE);
         if(maxThreads==0){
             maxThreads = 1;
@@ -401,11 +400,11 @@ public class SafeTable implements SpliceTable{
         flushCommits();
         if(cleanupOnClose){
             this.multiPool.shutdown();
-            synchronized (this){
-                if(this.connection!=null){
-                    this.connection.close();
-                }
-            }
+//            synchronized (this){
+//                if(this.connection!=null){
+//                    this.connection.close();
+//                }
+//            }
         }
         this.closed= true;
     }

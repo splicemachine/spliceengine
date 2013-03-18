@@ -35,7 +35,7 @@ import java.util.concurrent.*;
 public class BatchTable implements SpliceTable{
     private static final Logger LOG = Logger.getLogger(BatchTable.class);
 
-    private final CallBuffer.Listener<Mutation> mutationWriter = new CallBuffer.Listener<Mutation>(){
+    private final ThreadSafeCallBuffer.Listener<Mutation> mutationWriter = new ThreadSafeCallBuffer.Listener<Mutation>(){
 
         @Override
         public long heapSize(Mutation element) {
@@ -87,7 +87,7 @@ public class BatchTable implements SpliceTable{
         this.cleanupOnClose = cleanupOnClose;
         this.batchRetryCount = batchRetryCount;
 
-        this.mutationBuffer = new CallBuffer<Mutation>(mutationWriter,
+        this.mutationBuffer = new ThreadSafeCallBuffer<Mutation>(mutationWriter,
                 writeBufferSizeBytes,maxWriteBufferEntries);
     }
 

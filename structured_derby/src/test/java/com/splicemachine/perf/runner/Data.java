@@ -43,6 +43,7 @@ public class Data {
 
     public void connect() throws SQLException{
         conn = DriverManager.getConnection("jdbc:derby://"+server+"/wombat;create=true");
+        conn.setAutoCommit(false);
     }
 
     public void createTables() throws SQLException {
@@ -51,6 +52,7 @@ public class Data {
         for(Table table:tables){
             table.create(conn);
         }
+        conn.commit();
     }
 
     public void createIndices() throws Exception {
@@ -58,6 +60,7 @@ public class Data {
         for(Index index:indices){
             index.create(conn);
         }
+        conn.commit();
     }
 
     public void loadData() throws Exception  {
@@ -67,6 +70,7 @@ public class Data {
             table.insertData(conn).write(System.out);
         }
         SpliceLogUtils.info(LOG,"Data loading, ready to perform queries");
+        conn.commit();
     }
 
     public void runQueries() throws Exception {
@@ -101,6 +105,7 @@ public class Data {
             dropStatement = conn.prepareStatement("drop table "+ table.getName());
             dropStatement.execute();
         }
+        conn.commit();
     }
 
     public void shutdown() throws SQLException{

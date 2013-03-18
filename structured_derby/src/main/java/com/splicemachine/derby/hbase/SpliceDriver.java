@@ -4,6 +4,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -12,6 +14,7 @@ import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.jdbc.EmbeddedDriver;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -33,6 +36,7 @@ public class SpliceDriver {
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     private static final int DEFAULT_PORT = 1527;
     private static final String DEFAULT_SERVER_ADDRESS = "0.0.0.0";
+
 
     public static enum State{
         NOT_STARTED,
@@ -59,12 +63,18 @@ public class SpliceDriver {
 
     private volatile NetworkServerControl server;
 
+    private volatile TableWriter writerPool;
+
     private ExecutorService executor;
 
     private SpliceDriver(){
         ThreadFactory factory = new ThreadFactoryBuilder()
                 .setNameFormat("splice-lifecycle-manager").build();
         executor = Executors.newSingleThreadExecutor(factory);
+    }
+
+    public TableWriter getTableWriter() {
+        return writerPool;
     }
 
     public LanguageConnectionContext getLanguageConnectionContext(){
@@ -106,6 +116,9 @@ public class SpliceDriver {
             executor.submit(new Callable<Void>(){
                 @Override
                 public Void call() throws Exception {
+                    //TODO -sf- create a separate pool for writing to TEMP
+                    writerPool = TableWriter.create(SpliceUtils.config);
+                    writerPool.start();
 
                     boolean setRunning = true;
                     setRunning = enableDriver();
