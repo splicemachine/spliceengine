@@ -389,6 +389,12 @@
 		
 			<profile>
 			<id>cloudera-cdh4.0.1</id>
+						<properties>
+				<zookeeper.version>3.4.3-cdh4.0.1</zookeeper.version>
+			  	<hbase.version>0.92.1-cdh4.0.1</hbase.version>
+  				<hadoop.version>2.0.0-cdh4.0.1</hadoop.version>
+			</properties>
+			
 		 <activation>
       		<activeByDefault>true</activeByDefault>
     	</activation>
@@ -427,11 +433,139 @@
 			<version>${hadoop.version}</version>
 		</dependency>
     	</dependencies>
-			<properties>
-				<zookeeper.version>3.4.3-cdh4.0.1</zookeeper.version>
-			  	<hbase.version>0.92.1-cdh4.0.1</hbase.version>
-  				<hadoop.version>2.0.0-cdh4.0.1</hadoop.version>
+		</profile>
+<profile>
+			<id>apache-hbase-0.94.5</id>
+						<properties>
+				<zookeeper.version>3.4.5</zookeeper.version>
+			  	<hbase.version>0.94.5</hbase.version>
+  				<hadoop.version>0.23.6</hadoop.version>
 			</properties>
+			
+    	<dependencies>
+    		<dependency>
+			<groupId>org.apache.hbase</groupId>
+			<artifactId>hbase</artifactId>
+			<version>${hbase.version}</version>
+		</dependency>
+				<dependency>
+			<groupId>org.apache.hbase</groupId>
+			<artifactId>hbase</artifactId>
+			<version>${hbase.version}</version>
+			<classifier>tests</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-common</artifactId>
+			<version>${hadoop.version}</version>
+		</dependency>
+				<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-common</artifactId>
+			<version>${hadoop.version}</version>
+			<classifier>tests</classifier>
+		</dependency>
+				<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-hdfs</artifactId>
+			<version>${hadoop.version}</version>
+			<classifier>tests</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-hdfs</artifactId>
+			<version>${hadoop.version}</version>
+		</dependency>
+    	</dependencies>
+		</profile>
+	<profile>
+	<id>apache-hbase-0.94.4</id>
+						<properties>
+				<zookeeper.version>3.4.5</zookeeper.version>
+			  	<hbase.version>0.94.4</hbase.version>
+  				<hadoop.version>0.23.6</hadoop.version>
+			</properties>
+			
+    	<dependencies>
+    		<dependency>
+			<groupId>org.apache.hbase</groupId>
+			<artifactId>hbase</artifactId>
+			<version>${hbase.version}</version>
+		</dependency>
+				<dependency>
+			<groupId>org.apache.hbase</groupId>
+			<artifactId>hbase</artifactId>
+			<version>${hbase.version}</version>
+			<classifier>tests</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-common</artifactId>
+			<version>${hadoop.version}</version>
+		</dependency>
+				<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-common</artifactId>
+			<version>${hadoop.version}</version>
+			<classifier>tests</classifier>
+		</dependency>
+				<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-hdfs</artifactId>
+			<version>${hadoop.version}</version>
+			<classifier>tests</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-hdfs</artifactId>
+			<version>${hadoop.version}</version>
+		</dependency>
+    	</dependencies>
+		</profile>
+
+	<profile>
+	<id>apache-hbase-0.94.3</id>
+						<properties>
+				<zookeeper.version>3.4.5</zookeeper.version>
+			  	<hbase.version>0.94.3</hbase.version>
+  				<hadoop.version>0.23.6</hadoop.version>
+			</properties>
+			
+    	<dependencies>
+    		<dependency>
+			<groupId>org.apache.hbase</groupId>
+			<artifactId>hbase</artifactId>
+			<version>${hbase.version}</version>
+		</dependency>
+				<dependency>
+			<groupId>org.apache.hbase</groupId>
+			<artifactId>hbase</artifactId>
+			<version>${hbase.version}</version>
+			<classifier>tests</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-common</artifactId>
+			<version>${hadoop.version}</version>
+		</dependency>
+				<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-common</artifactId>
+			<version>${hadoop.version}</version>
+			<classifier>tests</classifier>
+		</dependency>
+				<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-hdfs</artifactId>
+			<version>${hadoop.version}</version>
+			<classifier>tests</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-hdfs</artifactId>
+			<version>${hadoop.version}</version>
+		</dependency>
+    	</dependencies>
 		</profile>
 
 		<profile>
