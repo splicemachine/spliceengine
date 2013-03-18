@@ -1,6 +1,9 @@
 package com.splicemachine.si2.txn;
 
 import com.splicemachine.constants.ITransactionGetsPuts;
+import com.splicemachine.si2.data.api.SGet;
+import com.splicemachine.si2.data.hbase.HGet;
+import com.splicemachine.si2.data.hbase.HScan;
 import com.splicemachine.si2.si.api.ClientTransactor;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -29,12 +32,14 @@ public class SiGetsPuts implements ITransactionGetsPuts {
 
     @Override
     public void prepGet(String transactionId, Get get) {
-        transactor.initializePut(transactor.transactionIdFromString(transactionId), get);
+        HGet sGet = new HGet(get);
+        transactor.initializeGet(transactor.transactionIdFromString(transactionId), sGet);
     }
 
     @Override
     public void prepScan(String transactionId, Scan scan) {
-        transactor.initializePut(transactor.transactionIdFromString(transactionId), scan);
+        HScan hScan = new HScan(scan);
+        transactor.initializeScan(transactor.transactionIdFromString(transactionId), hScan);
     }
 
 }

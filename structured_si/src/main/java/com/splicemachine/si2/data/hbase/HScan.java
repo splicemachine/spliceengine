@@ -15,4 +15,8 @@ public class HScan implements SScan, IOperation {
     public OperationWithAttributes getOperation() {
         return scan;
     }
+
+    public Scan getScan() {
+        return scan;
+    }
 }

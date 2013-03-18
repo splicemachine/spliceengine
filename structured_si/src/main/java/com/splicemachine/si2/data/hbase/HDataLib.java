@@ -185,11 +185,15 @@ public class HDataLib implements IHDataLib {
         Scan scan = new Scan();
         scan.setStartRow(startRowKey);
         scan.setStopRow(endRowKey);
-        for (Object f : families) {
-            scan.addFamily((byte[]) f);
+        if (families != null) {
+            for (Object f : families) {
+                scan.addFamily((byte[]) f);
+            }
         }
-        for (List c : (List<List>) columns) {
-            scan.addColumn((byte[]) c.get(0), (byte[]) c.get(1));
+        if (columns != null) {
+            for (List c : (List<List>) columns) {
+                scan.addColumn((byte[]) c.get(0), (byte[]) c.get(1));
+            }
         }
         if (effectiveTimestamp != null) {
             try {
@@ -219,6 +223,8 @@ public class HDataLib implements IHDataLib {
             return Bytes.toBytes((Long) value);
         } else if (value instanceof Boolean) {
             return Bytes.toBytes((Boolean) value);
+        } else if (value instanceof byte[]) {
+            return (byte[]) value;
         }
         throw new RuntimeException("Unsupported class " + value.getClass().getName() + " for " + value);
     }
