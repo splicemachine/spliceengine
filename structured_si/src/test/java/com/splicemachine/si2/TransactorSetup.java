@@ -16,6 +16,7 @@ public class TransactorSetup {
     final TransactionSchema transactionSchema = new TransactionSchema(SIConstants.TRANSACTION_TABLE, "siFamily", "begin", "commit", "status");
     Object family;
     Object ageQualifier;
+    Object jobQualifier;
 
     ClientTransactor clientTransactor;
     public Transactor transactor;
@@ -29,6 +30,7 @@ public class TransactorSetup {
         final String userColumnsFamilyName = "attributes";
         family = dataLib.encode(userColumnsFamilyName);
         ageQualifier = dataLib.encode("age");
+        jobQualifier = dataLib.encode("job");
 
         transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
         SiTransactor siTransactor = new SiTransactor(new SimpleTimestampSource(), dataLib, writer,

@@ -52,6 +52,10 @@ public class SiTransactorTest {
         insertAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, age);
     }
 
+    private void insertJob(TransactionId transactionId, String name, String job) throws IOException {
+        insertJobDirect(useSimple, transactorSetup, storeSetup, transactionId, name, job);
+    }
+
     private String read(TransactionId transactionId, String name) throws IOException {
         return readAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
     }
@@ -62,12 +66,23 @@ public class SiTransactorTest {
 
     static void insertAgeDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
                                 TransactionId transactionId, String name, int age) throws IOException {
+        insertField(useSimple, transactorSetup, storeSetup, transactionId, name, transactorSetup.ageQualifier, age);
+    }
+
+    static void insertJobDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+                                TransactionId transactionId, String name, String job) throws IOException {
+        insertField(useSimple, transactorSetup, storeSetup, transactionId, name, transactorSetup.jobQualifier, job);
+    }
+
+    private static void insertField(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+                                    TransactionId transactionId, String name, Object qualifier, Object fieldValue)
+            throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{name});
         Object put = dataLib.newPut(key);
-        dataLib.addKeyValueToPut(put, transactorSetup.family, transactorSetup.ageQualifier, null, dataLib.encode(age));
+        dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
         transactorSetup.clientTransactor.initializePut(transactionId, put);
 
         STable testSTable = reader.open(storeSetup.getPersonTableName());
@@ -97,23 +112,7 @@ public class SiTransactorTest {
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Object rawTuple = reader.get(testSTable, get);
-            if (rawTuple != null) {
-                Object result = rawTuple;
-                if (useSimple) {
-                    final FilterState filterState;
-                    try {
-                        filterState = transactorSetup.transactor.newFilterState(testSTable, transactionId);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    result = transactorSetup.transactor.filterResult(filterState, rawTuple);
-                }
-                final Object value = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.ageQualifier);
-                Integer age = (Integer) dataLib.decode(value, Integer.class);
-                return name + " age=" + age;
-            } else {
-                return name + " age=" + null;
-            }
+            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, testSTable, rawTuple);
         } finally {
             reader.close(testSTable);
         }
@@ -133,25 +132,31 @@ public class SiTransactorTest {
             assert results.hasNext();
             Object rawTuple = results.next();
             assert !results.hasNext();
-            if (rawTuple != null) {
-                Object result = rawTuple;
-                if (useSimple) {
-                    final FilterState filterState;
-                    try {
-                        filterState = transactorSetup.transactor.newFilterState(testSTable, transactionId);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    result = transactorSetup.transactor.filterResult(filterState, rawTuple);
-                }
-                final Object value = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.ageQualifier);
-                Integer age = (Integer) dataLib.decode(value, Integer.class);
-                return name + " age=" + age;
-            } else {
-                return name + " age=" + null;
-            }
+            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, testSTable, rawTuple);
         } finally {
             reader.close(testSTable);
+        }
+    }
+
+    private static String readRawTuple(boolean useSimple, TransactorSetup transactorSetup, TransactionId transactionId, String name, SDataLib dataLib, STable testSTable, Object rawTuple) throws IOException {
+        if (rawTuple != null) {
+            Object result = rawTuple;
+            if (useSimple) {
+                final FilterState filterState;
+                try {
+                    filterState = transactorSetup.transactor.newFilterState(testSTable, transactionId);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                result = transactorSetup.transactor.filterResult(filterState, rawTuple);
+            }
+            final Object ageValue = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.ageQualifier);
+            Integer age = (Integer) dataLib.decode(ageValue, Integer.class);
+            final Object jobValue = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.jobQualifier);
+            String job = (String) dataLib.decode(jobValue, String.class);
+            return name + " age=" + age + " job=" + job;
+        } else {
+            return name + " age=" + null + " job=" + null;
         }
     }
 
@@ -164,57 +169,57 @@ public class SiTransactorTest {
     @Test
     public void writeRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=null", read(t1, "joe"));
+        Assert.assertEquals("joe age=null job=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
         dumpStore();
-        Assert.assertEquals("joe age=20", read(t1, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20", read(t2, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t2, "joe"));
         dumpStore();
     }
 
     @Test
     public void writeReadOverlap() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=null", read(t1, "joe"));
+        Assert.assertEquals("joe age=null job=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
-        Assert.assertEquals("joe age=20", read(t1, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20", read(t1, "joe"));
-        Assert.assertEquals("joe age=null", read(t2, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
+        Assert.assertEquals("joe age=null job=null", read(t2, "joe"));
         transactor.commit(t1);
-        Assert.assertEquals("joe age=null", read(t2, "joe"));
+        Assert.assertEquals("joe age=null job=null", read(t2, "joe"));
         dumpStore();
     }
 
     @Test
     public void writeWrite() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=null", read(t1, "joe"));
+        Assert.assertEquals("joe age=null job=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
-        Assert.assertEquals("joe age=20", read(t1, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20", read(t2, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t2, "joe"));
         insertAge(t2, "joe", 30);
-        Assert.assertEquals("joe age=30", read(t2, "joe"));
+        Assert.assertEquals("joe age=30 job=null", read(t2, "joe"));
         transactor.commit(t2);
     }
 
     @Test
     public void writeWriteOverlap() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=null", read(t1, "joe"));
+        Assert.assertEquals("joe age=null job=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
-        Assert.assertEquals("joe age=20", read(t1, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20", read(t1, "joe"));
-        Assert.assertEquals("joe age=null", read(t2, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
+        Assert.assertEquals("joe age=null job=null", read(t2, "joe"));
         try {
             insertAge(t2, "joe", 30);
             assert false;
@@ -223,15 +228,15 @@ public class SiTransactorTest {
             //DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
             //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
         }
-        Assert.assertEquals("joe age=20", read(t1, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
         try {
-            Assert.assertEquals("joe age=null", read(t2, "joe"));
+            Assert.assertEquals("joe age=null job=null", read(t2, "joe"));
             assert false;
         } catch (RuntimeException e) {
             DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
             Assert.assertTrue(dnrio.getMessage().indexOf("transaction is not ACTIVE") >= 0);
         }
-        Assert.assertEquals("joe age=20", read(t1, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
         transactor.commit(t1);
         try {
             transactor.commit(t2);
@@ -258,16 +263,86 @@ public class SiTransactorTest {
     @Test
     public void writeScan() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=null", read(t1, "joe"));
+        Assert.assertEquals("joe age=null job=null", read(t1, "joe"));
         insertAge(t1, "joe", 20);
         dumpStore();
-        Assert.assertEquals("joe age=20", read(t1, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20", scan(t2, "joe"));
+        Assert.assertEquals("joe age=20 job=null", scan(t2, "joe"));
 
-        Assert.assertEquals("joe age=20", read(t2, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t2, "joe"));
+        dumpStore();
+    }
+
+    @Test
+    public void writeWriteRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=null job=null", read(t1, "joe"));
+        insertAge(t1, "joe", 20);
+        dumpStore();
+        Assert.assertEquals("joe age=20 job=null", read(t1, "joe"));
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=20 job=null", read(t2, "joe"));
+        insertJob(t2, "joe", "baker");
+        dumpStore();
+        Assert.assertEquals("joe age=20 job=baker", read(t2, "joe"));
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction();
+        Assert.assertEquals("joe age=20 job=baker", read(t3, "joe"));
+        dumpStore();
+    }
+
+    @Test
+    public void manyWritesManyRollbacksRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe", 20);
+        dumpStore();
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        insertJob(t2, "joe", "baker");
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction();
+        insertJob(t3, "joe", "butcher");
+        transactor.commit(t3);
+
+        TransactionId t4 = transactor.beginTransaction();
+        insertJob(t4, "joe", "blacksmith");
+        transactor.commit(t4);
+
+        TransactionId t5 = transactor.beginTransaction();
+        insertJob(t5, "joe", "carter");
+        transactor.commit(t5);
+
+        TransactionId t6 = transactor.beginTransaction();
+        insertJob(t6, "joe", "farrier");
+        transactor.commit(t6);
+
+        TransactionId t7 = transactor.beginTransaction();
+        insertAge(t7, "joe", 27);
+        transactor.abort(t7);
+
+        TransactionId t8 = transactor.beginTransaction();
+        insertAge(t8, "joe", 28);
+        transactor.abort(t8);
+
+        TransactionId t9 = transactor.beginTransaction();
+        insertAge(t9, "joe", 29);
+        transactor.abort(t9);
+
+        TransactionId t10 = transactor.beginTransaction();
+        insertAge(t10, "joe", 30);
+        transactor.abort(t10);
+
+        TransactionId t11 = transactor.beginTransaction();
+        System.out.println("xxxxxxxxxxxxx starting read **************");
+        Assert.assertEquals("joe age=20 job=farrier", read(t11, "joe"));
         dumpStore();
     }
 
@@ -278,17 +353,17 @@ public class SiTransactorTest {
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20", read(t2, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t2, "joe"));
         insertAge(t2, "joe", 30);
-        Assert.assertEquals("joe age=30", read(t2, "joe"));
+        Assert.assertEquals("joe age=30 job=null", read(t2, "joe"));
 
         TransactionId t3 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=20", read(t3, "joe"));
+        Assert.assertEquals("joe age=20 job=null", read(t3, "joe"));
 
         transactor.commit(t2);
 
         TransactionId t4 = transactor.beginTransaction();
-        Assert.assertEquals("joe age=30", read(t4, "joe"));
+        Assert.assertEquals("joe age=30 job=null", read(t4, "joe"));
         //System.out.println(store);
     }
 

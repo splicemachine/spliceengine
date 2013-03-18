@@ -76,6 +76,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     public void initializeGet(TransactionId transactionId, SGet get) {
         dataStore.setSiNeededAttribute(get);
         dataLib.setGetTimeRange(get, 0, transactionId.getId() + 1);
+        dataLib.setGetMaxVersions(get);
     }
 
     @Override
@@ -90,6 +91,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     public void initializeScan(TransactionId transactionId, SScan scan) {
         dataStore.setSiNeededAttribute(scan);
         dataLib.setScanTimeRange(scan, 0L, transactionId.getId() + 1);
+        dataLib.setScanMaxVersions(scan);
     }
 
     @Override
@@ -258,12 +260,12 @@ public class SiTransactor implements Transactor, ClientTransactor {
             } else {
                 long dataTimestamp = dataLib.getKeyValueTimestamp(keyValue);
                 Long commitTimestamp = siFilterState.committedTransactions.get(dataTimestamp);
-                for (long k : siFilterState.committedTransactions.keySet()) {
-                    long value = siFilterState.committedTransactions.get(k);
-                }
                 if (commitTimestamp == null) {
+                    // debugging code
                     final TransactionStruct transactionStatus = transactionStore.getTransactionStatus(dataTimestamp);
                     commitTimestamp = transactionStatus.commitTimestamp;
+                    // If the transaction was committed it should have been included in the committedTransactions map
+                    assert( commitTimestamp == null );
                 }
                 if (isCommittedBeforeThisTransaction(siFilterState, commitTimestamp)
                         || isThisTransactionsData(siFilterState, dataTimestamp, commitTimestamp)) {

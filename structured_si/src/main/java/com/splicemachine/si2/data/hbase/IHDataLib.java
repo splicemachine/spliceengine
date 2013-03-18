@@ -40,8 +40,10 @@ public interface IHDataLib {
 
     Get newGet(byte[] rowKey, List families, List<List> columns, Long effectiveTimestamp);
     void setGetTimeRange(Get get, long minTimestamp, long maxTimestamp);
+    void setGetMaxVersions(Get get);
 
     Scan newScan(byte[] startRowKey, byte[] endRowKey, List families, List<List> columns,
                  Long effectiveTimestamp);
-    void setGetTimeRange(Scan get, long minTimestamp, long maxTimestamp);
+    void setScanTimeRange(Scan get, long minTimestamp, long maxTimestamp);
+    void setScanMaxVersions(Scan scan);
 }

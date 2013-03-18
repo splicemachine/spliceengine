@@ -21,11 +21,11 @@ public class TransactionTableCreator {
             if (!admin.tableExists(SIUtils.TRANSACTION_TABLE_BYTES)) {
                 HTableDescriptor desc = new HTableDescriptor(SIUtils.TRANSACTION_TABLE_BYTES);
                 desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-                        HBaseConstants.DEFAULT_VERSIONS,
+                        Integer.MAX_VALUE,
                         admin.getConfiguration().get(HBaseConstants.TABLE_COMPRESSION, HBaseConstants.DEFAULT_COMPRESSION),
                         HBaseConstants.DEFAULT_IN_MEMORY,
                         HBaseConstants.DEFAULT_BLOCKCACHE,
-                        HBaseConstants.DEFAULT_TTL,
+                        Integer.MAX_VALUE,
                         HBaseConstants.DEFAULT_BLOOMFILTER));
                 desc.addFamily(new HColumnDescriptor(TxnConstants.DEFAULT_FAMILY));
                 admin.createTable(desc);

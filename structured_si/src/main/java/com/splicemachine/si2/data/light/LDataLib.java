@@ -101,6 +101,10 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
+    public void setGetMaxVersions(SGet get) {
+    }
+
+    @Override
     public SScan newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp) {
         return new LGet(startRowKey, endRowKey, families, columns, effectiveTimestamp);
     }
@@ -109,6 +113,10 @@ public class LDataLib implements SDataLib {
     public void setScanTimeRange(SScan get, long minTimestamp, long maxTimestamp) {
         assert minTimestamp == 0L;
         ((LGet) get).effectiveTimestamp = maxTimestamp - 1;
+    }
+
+    @Override
+    public void setScanMaxVersions(SScan scan) {
     }
 
     @Override

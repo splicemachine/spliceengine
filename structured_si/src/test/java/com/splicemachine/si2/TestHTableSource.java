@@ -24,7 +24,7 @@ public class TestHTableSource implements HTableSource {
 			i++;
 		}
 		try {
-			hTables.put(tableName, testCluster.createTable(Bytes.toBytes(tableName), familyBytes));
+			hTables.put(tableName, testCluster.createTable(Bytes.toBytes(tableName), familyBytes, Integer.MAX_VALUE));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

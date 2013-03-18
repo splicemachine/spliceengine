@@ -104,6 +104,8 @@ public class HDataLib implements IHDataLib {
             return Bytes.toInt(bytes);
         } else if (type.equals(Long.class)) {
             return Bytes.toLong(bytes);
+        } else if (type.equals(String.class)) {
+            return Bytes.toString(bytes);
         }
         throw new RuntimeException("unsupported type conversion: " + type.getName());
     }
@@ -167,7 +169,6 @@ public class HDataLib implements IHDataLib {
                 throw new RuntimeException(e);
             }
         }
-        get.setMaxVersions();
         return get;
     }
 
@@ -206,12 +207,22 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
-    public void setGetTimeRange(Scan scan, long minTimestamp, long maxTimestamp) {
+    public void setScanTimeRange(Scan scan, long minTimestamp, long maxTimestamp) {
         try {
             scan.setTimeRange(minTimestamp, maxTimestamp);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void setScanMaxVersions(Scan scan) {
+        scan.setMaxVersions();
+    }
+
+    @Override
+    public void setGetMaxVersions(Get get) {
+        get.setMaxVersions();
     }
 
     static byte[] convertToBytes(Object value) {

@@ -55,6 +55,7 @@ public class SIObserver extends BaseRegionObserver {
     public void preGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get, List<KeyValue> results) throws IOException {
         SpliceLogUtils.trace(LOG, "preGet %s", get);
         if (tableEnvMatch && shouldUseSI(new HGet(get))) {
+            assert(get.getMaxVersions() == Integer.MAX_VALUE);
             addSiFilterToGet(e, get);
         }
         super.preGet(e, get, results);
@@ -64,6 +65,7 @@ public class SIObserver extends BaseRegionObserver {
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan, RegionScanner s) throws IOException {
         SpliceLogUtils.trace(LOG, "preScannerOpen %s", scan);
         if (tableEnvMatch && shouldUseSI(new HScan(scan))) {
+            assert(scan.getMaxVersions() == Integer.MAX_VALUE);
             addSiFilterToScan(e, scan);
         }
         return super.preScannerOpen(e, scan, s);

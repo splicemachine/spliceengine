@@ -146,13 +146,23 @@ public class HDataLibAdapter implements SDataLib {
     }
 
     @Override
+    public void setGetMaxVersions(SGet get) {
+        dataLib.setGetMaxVersions(((HGet) get).getGet());
+    }
+
+    @Override
     public SScan newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp) {
         return new HScan(dataLib.newScan((byte[]) startRowKey, (byte[]) endRowKey, families, columns, effectiveTimestamp));
     }
 
     @Override
     public void setScanTimeRange(SScan scan, long minTimestamp, long maxTimestamp) {
-        dataLib.setGetTimeRange(((HScan) scan).scan, minTimestamp, maxTimestamp);
+        dataLib.setScanTimeRange(((HScan) scan).scan, minTimestamp, maxTimestamp);
+    }
+
+    @Override
+    public void setScanMaxVersions(SScan scan) {
+        dataLib.setScanMaxVersions(((HScan) scan).getScan());
     }
 
     public static byte[] convertToBytes(Object value) {
