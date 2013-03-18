@@ -13,10 +13,10 @@ import org.apache.log4j.Logger;
 public class TransactionTableCreator {
     static final Logger LOG = Logger.getLogger(TransactionTableCreator.class);
 
-    public static void createTransactionTable() {
+    public static void createTransactionTableIfNeeded(Configuration configuration) {
         try {
             @SuppressWarnings("resource")
-            HBaseAdmin admin = new HBaseAdmin(new Configuration());
+            HBaseAdmin admin = new HBaseAdmin(configuration);
             if (!admin.tableExists(SIUtils.TRANSACTION_TABLE_BYTES)) {
                 HTableDescriptor desc = new HTableDescriptor(SIUtils.TRANSACTION_TABLE_BYTES);
                 desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),

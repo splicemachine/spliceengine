@@ -8,22 +8,25 @@ import com.splicemachine.si2.data.api.STableWriter;
 import com.splicemachine.si2.si.api.TransactionId;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
 public class TransactionStore {
-    private final SDataLib handler;
+    static final Logger LOG = Logger.getLogger(TransactionStore.class);
+
+    private final SDataLib dataLib;
     private final STableReader reader;
     private final STableWriter writer;
 
     private final TransactionSchema transactionSchema;
     private final TransactionSchema encodedSchema;
 
-    public TransactionStore(TransactionSchema transactionSchema, SDataLib handler,
+    public TransactionStore(TransactionSchema transactionSchema, SDataLib dataLib,
                             STableReader reader, STableWriter writer) {
         this.transactionSchema = transactionSchema;
-        this.encodedSchema = transactionSchema.encodedSchema(handler);
-        this.handler = handler;
+        this.encodedSchema = transactionSchema.encodedSchema(dataLib);
+        this.dataLib = dataLib;
         this.reader = reader;
         this.writer = writer;
     }
@@ -48,19 +51,19 @@ public class TransactionStore {
     }
 
     public TransactionStruct getTransactionStatus(TransactionId transactionId) throws IOException {
-        Object tupleKey = handler.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
+        Object tupleKey = dataLib.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
 
         STable transactionSTable = reader.open(transactionSchema.tableName);
         try {
-            SGet get = handler.newGet(tupleKey, null, null, null);
+            SGet get = dataLib.newGet(tupleKey, null, null, null);
             Object resultTuple = reader.get(transactionSTable, get);
             if (resultTuple != null) {
-                final Object value = handler.getResultValue(resultTuple, encodedSchema.siFamily, encodedSchema.statusQualifier);
-                TransactionStatus status = TransactionStatus.values()[((Integer) handler.decode(value, Integer.class))];
-                final Object commitValue = handler.getResultValue(resultTuple, encodedSchema.siFamily, encodedSchema.commitQualifier);
+                final Object value = dataLib.getResultValue(resultTuple, encodedSchema.siFamily, encodedSchema.statusQualifier);
+                TransactionStatus status = TransactionStatus.values()[((Integer) dataLib.decode(value, Integer.class))];
+                final Object commitValue = dataLib.getResultValue(resultTuple, encodedSchema.siFamily, encodedSchema.commitQualifier);
                 Long commitTimestamp = null;
                 if (commitValue != null) {
-                    commitTimestamp = (Long) handler.decode(commitValue, Long.class);
+                    commitTimestamp = (Long) dataLib.decode(commitValue, Long.class);
                 }
                 return new TransactionStruct(transactionId.getId(), status, commitTimestamp);
             }
@@ -91,8 +94,8 @@ public class TransactionStore {
     }
 
     private Object makeBasePut(TransactionId transactionId) {
-        Object rowKey = handler.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
-        return handler.newPut(rowKey);
+        Object rowKey = dataLib.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
+        return dataLib.newPut(rowKey);
     }
 
     private long transactionIdToRowKey(TransactionId transactionId) {
@@ -102,7 +105,7 @@ public class TransactionStore {
     }
 
     private void addFieldToPut(Object put, Object qualifier, Object value) {
-        handler.addKeyValueToPut(put, encodedSchema.siFamily, qualifier, null, handler.encode(value));
+        dataLib.addKeyValueToPut(put, encodedSchema.siFamily, qualifier, null, dataLib.encode(value));
     }
 
     private void writePut(Object put) throws IOException {
