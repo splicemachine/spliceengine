@@ -13,8 +13,8 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.hbase.txn.ZkTransactionGetsPuts;
-import com.splicemachine.si.utils.SIConstants;
 import com.splicemachine.si2.data.hbase.TransactorFactory;
+import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.txn.SiGetsPuts;
 import com.splicemachine.si2.txn.TransactionTableCreator;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -33,7 +33,13 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
@@ -44,7 +50,11 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -178,7 +188,17 @@ public class SpliceUtils {
 		}
 	}
 
-	public static Delete delete(RowLocation loc, String transID) throws StandardException {
+    public static void doDelete(HTableInterface htable, RowLocation loc, String transId) throws StandardException, IOException {
+        if (useSi) {
+            final ClientTransactor clientTransactor = TransactorFactory.getDefaultClientTransactor();
+            Put put = (Put) clientTransactor.newDeletePut(clientTransactor.transactionIdFromString(transId), loc.getBytes());
+            htable.put(put);
+        } else {
+            htable.delete(delete(loc, transId));
+        }
+    }
+
+	private static Delete delete(RowLocation loc, String transID) throws StandardException {
 		SpliceLogUtils.trace(LOG,"delete row at location %s",loc);
 		Delete delete = new Delete(loc.getBytes());
 		if (transID != null) {
