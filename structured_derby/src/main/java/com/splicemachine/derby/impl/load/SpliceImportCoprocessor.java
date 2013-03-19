@@ -38,6 +38,7 @@ import org.apache.hadoop.util.LineReader;
 import org.apache.log4j.Logger;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -188,7 +189,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
         }catch(StandardException se){
             throw new DoNotRetryIOException(se.getMessageId());
         } catch (Exception e) {
-            SpliceLogUtils.error(LOG,"Error importing line %s",Arrays.toString(line));
+            SpliceLogUtils.error(LOG,"Error importing line %s", Arrays.toString(line));
             throw Exceptions.getIOException(e);
         }
     }

@@ -4,7 +4,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;

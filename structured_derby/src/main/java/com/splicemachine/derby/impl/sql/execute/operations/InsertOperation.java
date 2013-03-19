@@ -92,7 +92,7 @@ public class InsertOperation extends DMLWriteOperation {
 //                SpliceLogUtils.trace(LOG,"InsertOperation sink, nextRow="+nextRow);
 
                 byte[] rowKey = rowKeySerializer.serialize(nextRow.getRowArray());
-                writer.add(Puts.buildInsert(rowKey, nextRow.getRowArray(), this.transactionID.getBytes(), serializer)); // Buffered
+                writer.add(Puts.buildInsert(rowKey, nextRow.getRowArray(), this.transactionID, serializer)); // Buffered
 
                 stats.sinkAccumulator().tick(System.nanoTime()-start);
             }while(nextRow!=null);
