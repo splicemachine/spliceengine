@@ -14,8 +14,6 @@ public interface IHTableWriter {
     void write(Object table, Put put, boolean durable);
     void write(HTableInterface table, List puts);
 
-    boolean checkAndPut(HTableInterface table, byte[] family, byte[] qualifier, byte[] value, Put put);
-
     RowLock lockRow(HTableInterface table, byte[] rowKey);
     Integer lockRow(HRegion region, byte[] rowKey);
     void unLockRow(HTableInterface table, RowLock lock);

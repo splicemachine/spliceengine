@@ -14,6 +14,7 @@ public class SiFilterState implements FilterState {
     Object currentRowKey;
     Map<Long,Long> committedTransactions;
     Object lastValidQualifier; // used to emulate the INCLUDE_AND_NEXT_COLUMN ReturnCode that is in later HBase versions
+    Long tombstoneTimestamp = null;
 
     public SiFilterState(STable table, TransactionId transactionId) {
         this.table = table;

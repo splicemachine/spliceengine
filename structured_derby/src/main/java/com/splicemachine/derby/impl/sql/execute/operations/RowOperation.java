@@ -224,7 +224,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	@Override
 	public void	close() throws StandardException
 	{
-		SpliceLogUtils.trace(LOG,"close");
+		SpliceLogUtils.trace(LOG,"close in RowOp");
 	    
 		beginTime = getCurrentTimeMillis();
 		if (isOpen) {

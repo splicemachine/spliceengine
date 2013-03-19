@@ -21,8 +21,6 @@
 
 package com.splicemachine.derby.impl.sql.execute;
 
-import java.util.Properties;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;
@@ -63,6 +61,7 @@ import org.apache.derby.impl.sql.execute.rts.RealUpdateResultSetStatistics;
 import org.apache.derby.impl.sql.execute.rts.RealVTIStatistics;
 import org.apache.derby.impl.sql.execute.rts.RealWindowResultSetStatistics;
 import org.apache.derby.impl.sql.execute.rts.RunTimeStatisticsImpl;
+import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.impl.sql.execute.operations.AnyOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DeleteCascadeOperation;
@@ -93,6 +92,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.UnionOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.WindowOperation;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * ResultSetStatisticsFactory provides a wrapper around all of
@@ -108,7 +108,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.WindowOperation;
 public class SpliceRealResultSetStatisticsFactory 
 		implements ResultSetStatisticsFactory
 {
-
+	private static Logger LOG = Logger.getLogger(SpliceRealResultSetStatisticsFactory.class);
 	//
 	// ExecutionFactory interface
 	//
@@ -133,35 +133,27 @@ public class SpliceRealResultSetStatisticsFactory
 		if (preStmt == null)
 			return null;
 
-
-
+		SpliceLogUtils.trace(LOG, "in getRunTimeStatistics, activation.getPreparedStatement()="+activation.getPreparedStatement());
+		SpliceLogUtils.trace(LOG, "preStmt compile time="+preStmt.getBeginCompileTimestamp()+",rs.getBeginExecutionTimestamp()="
+				+rs.getBeginExecutionTimestamp()+",rs.getEndExecutionTimestamp()="+rs.getEndExecutionTimestamp());
 
 		ResultSetStatistics topResultSetStatistics;
 
 		if (rs instanceof NoPutResultSet)
-		{
-			topResultSetStatistics =
-									getResultSetStatistics((NoPutResultSet) rs);
-		}
+			topResultSetStatistics = getResultSetStatistics((NoPutResultSet) rs);
 		else
-		{
 			topResultSetStatistics = getResultSetStatistics(rs);
-		}
 
 		/* Build up the info on the materialized subqueries */
-		int subqueryTrackingArrayLength =
-				(subqueryTrackingArray == null) ? 0 :
-					subqueryTrackingArray.length;
-		ResultSetStatistics[] subqueryRSS =
-				new ResultSetStatistics[subqueryTrackingArrayLength];
+		int subqueryTrackingArrayLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
+		ResultSetStatistics[] subqueryRSS = new ResultSetStatistics[subqueryTrackingArrayLength];
 		boolean anyAttached = false;
 		for (int index = 0; index < subqueryTrackingArrayLength; index++)
 		{
 			if (subqueryTrackingArray[index] != null &&
 				subqueryTrackingArray[index].getPointOfAttachment() == -1)
 			{
-				subqueryRSS[index] =
-						getResultSetStatistics(subqueryTrackingArray[index]);
+				subqueryRSS[index] = getResultSetStatistics(subqueryTrackingArray[index]);
 				anyAttached = true;
 			}
 		}
@@ -195,17 +187,11 @@ public class SpliceRealResultSetStatisticsFactory
 	public ResultSetStatistics getResultSetStatistics(ResultSet rs)
 	{
 		if (!rs.returnsRows())
-		{
 			return getNoRowsResultSetStatistics(rs);
-		}
 		else if (rs instanceof NoPutResultSet)
-		{
 			return getResultSetStatistics((NoPutResultSet) rs);
-		}
 		else
-		{
 			return null;
-		}
 	}
 
 	public ResultSetStatistics getNoRowsResultSetStatistics(ResultSet rs)
@@ -1123,11 +1109,9 @@ public class SpliceRealResultSetStatisticsFactory
 			for (int index = 0; index < subqueryTrackingArrayLength; index++)
 			{
 				if (htrs.subqueryTrackingArray[index] != null &&
-					htrs.subqueryTrackingArray[index].getPointOfAttachment() ==
-						htrs.getResultSetNumber())
+					htrs.subqueryTrackingArray[index].getPointOfAttachment() == htrs.getResultSetNumber())
 				{
-					subqueryTrackingArray[index] =
-										getResultSetStatistics(
+					subqueryTrackingArray[index] = getResultSetStatistics(
 											htrs.subqueryTrackingArray[index]);
 					anyAttached = true;
 				}

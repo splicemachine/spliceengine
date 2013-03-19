@@ -143,12 +143,4 @@ public class HStore implements IHTableReader, IHTableWriter {
         region.releaseRowLock(lock);
     }
 
-    @Override
-    public boolean checkAndPut(HTableInterface table, byte[] family, byte[] qualifier, byte[] value, Put put) {
-        try {
-            return table.checkAndPut(put.getRow(), family, qualifier, value, put);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 }

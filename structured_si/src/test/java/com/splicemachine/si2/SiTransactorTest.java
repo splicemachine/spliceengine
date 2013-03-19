@@ -48,6 +48,10 @@ public class SiTransactorTest {
         insertJobDirect(useSimple, transactorSetup, storeSetup, transactionId, name, job);
     }
 
+    private void deleteRow(TransactionId transactionId, String name) throws IOException {
+        deleteRowDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
+    }
+
     private String read(TransactionId transactionId, String name) throws IOException {
         return readAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
     }
@@ -77,6 +81,20 @@ public class SiTransactorTest {
         dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
         transactorSetup.clientTransactor.initializePut(transactionId, put);
 
+        processPutDirect(useSimple, transactorSetup, storeSetup, reader, put);
+    }
+
+    static void deleteRowDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+                                TransactionId transactionId, String name) throws IOException {
+        final SDataLib dataLib = storeSetup.getDataLib();
+        final STableReader reader = storeSetup.getReader();
+
+        Object key = dataLib.newRowKey(new Object[]{name});
+        Object deletePut = transactorSetup.clientTransactor.newDeletePut(transactionId, key);
+        processPutDirect(useSimple, transactorSetup, storeSetup, reader, deletePut);
+    }
+
+    private static void processPutDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup, STableReader reader, Object put) throws IOException {
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             if (useSimple) {
@@ -222,7 +240,7 @@ public class SiTransactorTest {
         }
         Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
         try {
-            Assert.assertEquals("joe2 age=null job=null", read(t2, "joe2"));
+            read(t2, "joe2");
             assert false;
         } catch (RuntimeException e) {
             DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
@@ -334,6 +352,166 @@ public class SiTransactorTest {
 
         TransactionId t11 = transactor.beginTransaction();
         Assert.assertEquals("joe6 age=20 job=farrier", read(t11, "joe6"));
+        dumpStore();
+    }
+
+    @Test
+    public void writeDelete() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe10 age=null job=null", read(t1, "joe10"));
+        insertAge(t1, "joe10", 20);
+        Assert.assertEquals("joe10 age=20 job=null", read(t1, "joe10"));
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe10 age=20 job=null", read(t2, "joe10"));
+        deleteRow(t2, "joe10");
+        Assert.assertEquals("joe10 age=null job=null", read(t2, "joe10"));
+        transactor.commit(t2);
+    }
+
+    @Test
+    public void writeDeleteRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe11", 20);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        deleteRow(t2, "joe11");
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction();
+        Assert.assertEquals("joe11 age=null job=null", read(t3, "joe11"));
+        transactor.commit(t3);
+    }
+
+    @Test
+    public void writeDeleteOverlap() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe12", 20);
+
+        TransactionId t2 = transactor.beginTransaction();
+        try {
+            deleteRow(t2, "joe12");
+            assert false;
+        } catch (RuntimeException e) {
+            // TODO: expected write/write conflict
+            //DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
+            //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
+        }
+        Assert.assertEquals("joe12 age=20 job=null", read(t1, "joe12"));
+        try {
+            read(t2, "joe12");
+            assert false;
+        } catch (RuntimeException e) {
+            DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
+            Assert.assertTrue(dnrio.getMessage().indexOf("transaction is not ACTIVE") >= 0);
+        }
+        Assert.assertEquals("joe12 age=20 job=null", read(t1, "joe12"));
+        transactor.commit(t1);
+        try {
+            transactor.commit(t2);
+            assert false;
+        } catch (DoNotRetryIOException dnrio) {
+            Assert.assertEquals("transaction is not ACTIVE", dnrio.getMessage());
+        }
+    }
+
+    @Test
+    public void writeWriteDeleteOverlap() throws IOException {
+        TransactionId t0 = transactor.beginTransaction();
+        insertAge(t0, "jo13", 20);
+        transactor.commit(t0);
+
+        TransactionId t1 = transactor.beginTransaction();
+        deleteRow(t1, "joe13");
+
+        TransactionId t2 = transactor.beginTransaction();
+        try {
+            insertAge(t2, "joe13", 21);
+            assert false;
+        } catch (RuntimeException e) {
+            // TODO: expected write/write conflict
+            //DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
+            //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
+        }
+        Assert.assertEquals("joe13 age=null job=null", read(t1, "joe13"));
+        try {
+            read(t2, "joe13");
+            assert false;
+        } catch (RuntimeException e) {
+            DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
+            Assert.assertTrue(dnrio.getMessage().indexOf("transaction is not ACTIVE") >= 0);
+        }
+        Assert.assertEquals("joe13 age=null job=null", read(t1, "joe13"));
+        transactor.commit(t1);
+        try {
+            transactor.commit(t2);
+            assert false;
+        } catch (DoNotRetryIOException dnrio) {
+            Assert.assertEquals("transaction is not ACTIVE", dnrio.getMessage());
+        }
+
+        TransactionId t3 = transactor.beginTransaction();
+        Assert.assertEquals("joe13 age=null job=null", read(t3, "joe13"));
+        transactor.commit(t3);
+    }
+
+    @Test
+    public void writeWriteDeleteWriteRead() throws IOException {
+        TransactionId t0 = transactor.beginTransaction();
+        insertAge(t0, "joe14", 20);
+        transactor.commit(t0);
+
+        TransactionId t1 = transactor.beginTransaction();
+        insertJob(t1, "joe14", "baker");
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        deleteRow(t2, "joe14");
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction();
+        insertJob(t3, "joe14", "smith");
+        Assert.assertEquals("joe14 age=null job=smith", read(t3, "joe14"));
+        transactor.commit(t3);
+
+        TransactionId t4 = transactor.beginTransaction();
+        Assert.assertEquals("joe14 age=null job=smith", read(t4, "joe14"));
+        transactor.commit(t4);
+    }
+
+    @Test
+    public void writeWriteDeleteWriteDeleteWriteRead() throws IOException {
+        TransactionId t0 = transactor.beginTransaction();
+        insertAge(t0, "joe15", 20);
+        transactor.commit(t0);
+
+        TransactionId t1 = transactor.beginTransaction();
+        insertJob(t1, "joe15", "baker");
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        deleteRow(t2, "joe15");
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction();
+        insertJob(t3, "joe15", "smith");
+        Assert.assertEquals("joe15 age=null job=smith", read(t3, "joe15"));
+        transactor.commit(t3);
+
+        TransactionId t4 = transactor.beginTransaction();
+        deleteRow(t4, "joe15");
+        transactor.commit(t4);
+
+        TransactionId t5 = transactor.beginTransaction();
+        insertAge(t5, "joe15", 21);
+        transactor.commit(t5);
+
+        TransactionId t6 = transactor.beginTransaction();
+        Assert.assertEquals("joe15 age=21 job=null", read(t6, "joe15"));
+        transactor.commit(t6);
+
         dumpStore();
     }
 

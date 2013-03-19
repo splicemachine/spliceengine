@@ -93,6 +93,7 @@ public class TableScanOperation extends ScanOperation {
         this.indexColItem = indexColItem;
         this.indexName = indexName;
         runTimeStatisticsOn = (activation != null && activation.getLanguageConnectionContext().getRunTimeStatisticsMode());
+        SpliceLogUtils.trace(LOG, "statisticsTimingOn="+statisticsTimingOn+",isTopResultSet="+isTopResultSet+",runTimeStatisticsOn="+runTimeStatisticsOn);
         init(SpliceOperationContext.newContext(activation));
         recordConstructorTime(); 
     }
@@ -200,6 +201,7 @@ public class TableScanOperation extends ScanOperation {
 	@Override
 	public void	close() throws StandardException
 	{
+		SpliceLogUtils.trace(LOG, "close in TableScan");
 		beginTime = getCurrentTimeMillis();
 		if ( isOpen )
 	    {

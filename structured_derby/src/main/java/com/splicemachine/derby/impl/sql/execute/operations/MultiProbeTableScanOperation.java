@@ -573,6 +573,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 
         @Override
         public void close() {
+        	SpliceLogUtils.trace(LOG, "close in MultiProbeRowProvider");
         	if (!isOpen) 
         		return;
             if(currentScanner!=null)currentScanner.close();

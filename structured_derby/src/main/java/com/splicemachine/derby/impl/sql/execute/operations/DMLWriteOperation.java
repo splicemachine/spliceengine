@@ -233,6 +233,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
 		@Override
 		public void close() {
+			SpliceLogUtils.trace(LOG, "close in modifiedProvider for Delete/Insert/Update");
 			if (!isOpen)
 				return;
 			if (isTopResultSet && activation.getLanguageConnectionContext().getRunTimeStatisticsMode() &&

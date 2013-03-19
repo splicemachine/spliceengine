@@ -24,6 +24,7 @@ import org.apache.derby.iapi.types.SQLLongint;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 
 import com.splicemachine.derby.impl.sql.execute.TemporaryRowHolderImpl;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
 * A result set to scan temporary row holders.  Ultimately, this

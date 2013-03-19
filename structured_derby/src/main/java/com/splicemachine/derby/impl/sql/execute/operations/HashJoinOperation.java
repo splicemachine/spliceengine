@@ -52,17 +52,20 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowCore");
+		beginTime = getCurrentTimeMillis();
 		if (nestedLoopIterator == null || !nestedLoopIterator.hasNext()) {
 			if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
 				mergedRow = null;
 				setCurrentRow(mergedRow);
 				return mergedRow;
 			} else {
+				rowsSeenLeft++;
 				nestedLoopIterator = new NestedLoopIterator(leftRow);
 				getNextRowCore();
 			}
 		}
 		SpliceLogUtils.trace(LOG, "getNextRowCore loop iterate next ");		
+		nextTime += getElapsedMillis(beginTime);
 		return nestedLoopIterator.next();
 	}
 
@@ -166,6 +169,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 				ExecRow rightRow;
 				if ( (rightRow = probeResultSet.getNextRowCore()) != null) {
 					SpliceLogUtils.trace(LOG, "right has result " + rightRow);
+					rowsSeenRight++;
 					getMergedRow(leftRow,rightRow);	
 				} else {
 					SpliceLogUtils.trace(LOG, "already has seen row and no right result");
@@ -194,6 +198,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 		@Override
 		public ExecRow next() {
 			SpliceLogUtils.trace(LOG, "next row=" + mergedRow);
+			rowsReturned++;
 			return mergedRow;
 		}
 
@@ -202,11 +207,14 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 			SpliceLogUtils.trace(LOG, "remove");
 		}
 		public void close() throws StandardException {
+			SpliceLogUtils.trace(LOG, "close in HashJoin");
+			beginTime = getCurrentTimeMillis();
 			if (!isOpen)
 				return;
 			SpliceLogUtils.trace(LOG, "close, closing probe result set");
 			probeResultSet.close();
 			isOpen = false;
+			closeTime += getElapsedMillis(beginTime);
 		}
 	}
 

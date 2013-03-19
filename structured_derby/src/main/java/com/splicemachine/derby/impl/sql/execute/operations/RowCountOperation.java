@@ -1,20 +1,16 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.stats.ThroughputStats;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.conn.StatementContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -23,12 +19,17 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class RowCountOperation extends SpliceBaseOperation {
 	private static final long serialVersionUID = 11111;
@@ -47,6 +48,8 @@ public class RowCountOperation extends SpliceBaseOperation {
 	protected int numColumns;
     private long offset;
     private long fetchFirst;
+    
+    private boolean runTimeStatsOn;
 
     /**
      * True if we haven't yet fetched any rows from this result set.
@@ -88,6 +91,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 		this.source = s;
 		firstTime = true;
 		rowsFetched = 0;
+		runTimeStatsOn = activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
 		recordConstructorTime(); 
 	}
 	
@@ -99,6 +103,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 		source = (SpliceOperation)in.readObject();
 		offsetMethodName = readNullableString(in);
 		fetchFirstMethodName = readNullableString(in);
+		runTimeStatsOn = in.readBoolean();
 	}
 
 	@Override
@@ -108,6 +113,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 		out.writeObject((SpliceOperation)source);
 		writeNullableString(offsetMethodName, out);
 		writeNullableString(fetchFirstMethodName, out);
+		out.writeBoolean(runTimeStatsOn);
 	}
 
 	@Override
@@ -197,6 +203,19 @@ public class RowCountOperation extends SpliceBaseOperation {
 				SpliceLogUtils.trace(LOG,  "Keeping Row: " + r);
 			}
 		}
+		
+		if (runTimeStatsOn) {
+            if (! isTopResultSet) {
+                 // This is simply for RunTimeStats.  We first need to get the
+                 // subquery tracking array via the StatementContext
+                StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
+                
+                if (sc == null) 
+                	SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
+                else
+                	subqueryTrackingArray = sc.getSubqueryTrackingArray();
+            }
+        }
 		return r;
 	}
 	
@@ -364,7 +383,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 	
 	@Override
 	public void close() throws StandardException {
-		SpliceLogUtils.trace(LOG, "close");	
+		SpliceLogUtils.trace(LOG, "close in RowCount");	
 		beginTime = getCurrentTimeMillis();
         if ( isOpen ) {
 
