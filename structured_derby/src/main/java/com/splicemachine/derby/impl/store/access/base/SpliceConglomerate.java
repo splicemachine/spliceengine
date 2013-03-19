@@ -5,6 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Properties;
 
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -20,7 +21,6 @@ import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
 import org.apache.derby.impl.store.access.conglomerate.GenericConglomerate;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
 
 public abstract class SpliceConglomerate extends GenericConglomerate implements Conglomerate, StaticCompiledOpenConglomInfo {
 	protected static Logger LOG = Logger.getLogger(SpliceConglomerate.class);
@@ -44,7 +44,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 			Properties              properties,
 			int                     conglom_format_id,
 			int                     tmpFlag) throws StandardException {
-        SpliceLogUtils.trace(LOG,"create segmentId "+ segmentId + ", input_containerid "+ input_containerid);
+        SpliceLogUtils.trace(LOG, "create segmentId " + segmentId + ", input_containerid " + input_containerid);
 		if (properties != null) {
 			String value = properties.getProperty(RawStoreFactory.MINIMUM_RECORD_SIZE_PARAMETER);
 			int minimumRecordSize = (value == null) ? RawStoreFactory.MINIMUM_RECORD_SIZE_DEFAULT : Integer.parseInt(value);
@@ -64,7 +64,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 		hasCollatedTypes = hasCollatedColumns(collation_ids);		   
 		
 		try {
-			((ZookeeperTransaction)rawtran).setActiveState();
+			((SpliceTransaction)rawtran).setActiveState();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

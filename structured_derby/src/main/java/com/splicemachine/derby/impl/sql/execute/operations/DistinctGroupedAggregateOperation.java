@@ -71,13 +71,14 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 	{
 		super(s, isInSortedOrder, aggregateItem, orderingItem,
 			  a, ra, maxRowSize, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup);
+		recordConstructorTime();
     }
     
     @Override
 	public SinkStats sink() {
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
-
+        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for DistinctGroupedAggregationOperation at "+stats.getStartTime());
 		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
 		ExecRow row = null;
 		HTableInterface tempTable = null;
@@ -115,7 +116,10 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-        return stats.finish();
+        //return stats.finish();
+		SinkStats ss = stats.finish();
+		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for DistinctGroupedAggregationOperation at "+stats.getFinishTime());
+        return ss;
 	}
     
     @Override

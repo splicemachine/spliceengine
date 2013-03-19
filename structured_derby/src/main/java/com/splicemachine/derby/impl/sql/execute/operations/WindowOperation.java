@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -11,11 +12,11 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation.NodeType;
 import com.splicemachine.utils.SpliceLogUtils;
 
-class WindowOperation extends SpliceBaseOperation {
+public class WindowOperation extends SpliceBaseOperation {
 	private static Logger LOG = Logger.getLogger(WindowOperation.class);
     private GeneratedMethod restriction = null;
     private GeneratedMethod row;
@@ -52,7 +53,7 @@ class WindowOperation extends SpliceBaseOperation {
      * @throws StandardException 
      */
 
-    WindowOperation(Activation activation,
+    public WindowOperation(Activation activation,
         NoPutResultSet         source,
         GeneratedMethod        rowAllocator,
         int                    resultSetNumber,
@@ -69,6 +70,7 @@ class WindowOperation extends SpliceBaseOperation {
         if (erdNumber != -1) {
             this.referencedColumns = (FormatableBitSet)(activation.getPreparedStatement().getSavedObject(erdNumber));
         }
+        recordConstructorTime(); 
     }
 
 
@@ -155,9 +157,16 @@ class WindowOperation extends SpliceBaseOperation {
      * @exception StandardException thrown on error
      */
     public void close() throws StandardException {
-            clearCurrentRow();
-            source.close();
-            super.close();
+    	beginTime = getCurrentTimeMillis();
+
+    	if (isOpen) {
+    		clearCurrentRow();
+    		source.close();
+    		super.close();
+
+    	} 
+
+    	closeTime += getElapsedMillis(beginTime);
     }
 
     /**
@@ -220,5 +229,16 @@ class WindowOperation extends SpliceBaseOperation {
 		List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
 		operations.add(source);
 		return operations;
+	}
+	
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
+
+		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
 	}
 }

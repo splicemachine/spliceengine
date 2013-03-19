@@ -73,6 +73,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		ExecutionFactory factory = a.getExecutionFactory();
 		sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(a));
 		sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
+		recordConstructorTime();
 	}
 
 	@Override
@@ -250,7 +251,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	public SinkStats sink() {
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
-
+        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for ScalaAggregation at "+stats.getStartTime());
 		SpliceLogUtils.trace(LOG, "sink");
 		ExecRow row;
 		try{
@@ -266,7 +267,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                 SpliceLogUtils.trace(LOG,"row=%s, key.length=%d, afterPrefix?%b,beforeEnd?%b",
                         row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
                         Bytes.compareTo(key,reduceScan.getStopRow())<0);
-                put = Puts.buildInsert(key,row.getRowArray(),Bytes.toBytes(transactionID),serializer);
+                put = Puts.buildInsert(key,row.getRowArray(), transactionID,serializer);
                 SpliceLogUtils.trace(LOG, "put=%s",put);
                 tempTable.put(put);
 
@@ -279,7 +280,10 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		} catch (IOException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
-        return stats.finish();
+        //return stats.finish();
+		SinkStats ss = stats.finish();
+		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for ScalarAggregation at "+stats.getFinishTime());
+        return ss;
 	}
 
 	@Override
@@ -287,5 +291,18 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		return "ScalarAggregateOperation {source=" + source + "}";
 	}
 	
+	public boolean isSingleInputRow() {
+		return this.singleInputRow;
+	}
 	
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
+
+		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
+	}
 }

@@ -26,13 +26,13 @@ public class EnvUtils {
 		else if (tableName.equals(TxnConstants.TEMP_TABLE))
 			return TableEnv.DERBY_SYS_TABLE;
 		else {
-			LOG.info("OTHER_TABLES table name= " + tableName+", with hard-cocded FIRST_USER_TABLE_NUMBER="+FIRST_USER_TABLE_NUMBER);
+			LOG.info("OTHER_TABLES table name= " + tableName+ ", with hard-coded FIRST_USER_TABLE_NUMBER=" + FIRST_USER_TABLE_NUMBER);
 			try {
 				long tableNumber = Long.parseLong(tableName);			
 				if (tableNumber < FIRST_USER_TABLE_NUMBER) 
 					return TableEnv.DERBY_SYS_TABLE;
 			} catch (Exception e) {
-				LOG.error("OTHER_TABLES table name is not a number. Need to check");
+				LOG.error("OTHER_TABLES table name is not a number. Need to check", e);
 			}
 			
 			return TableEnv.USER_TABLE;

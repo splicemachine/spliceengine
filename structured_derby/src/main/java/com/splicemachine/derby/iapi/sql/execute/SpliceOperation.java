@@ -2,12 +2,13 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stats.SinkStats;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 
 import java.io.IOException;
 import java.util.List;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 
 /**
  * 

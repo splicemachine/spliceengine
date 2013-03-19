@@ -47,6 +47,7 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 				this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();	
 				this.wasRightOuterJoin = wasRightOuterJoin;
                 init(SpliceOperationContext.newContext(activation));
+                recordConstructorTime(); 
 	}
 	
 	@Override

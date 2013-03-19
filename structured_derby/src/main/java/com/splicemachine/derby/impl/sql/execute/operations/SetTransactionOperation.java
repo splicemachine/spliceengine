@@ -21,6 +21,7 @@ public class SetTransactionOperation extends MiscOperation
 	public SetTransactionOperation(Activation activation) throws StandardException
     {
 		super(activation);
+		recordConstructorTime(); 
 	}
 
 	/**

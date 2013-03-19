@@ -56,6 +56,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
         this.erdNumber = erdNumber;
         this.forUpdate = forUpdate;
 		init(SpliceOperationContext.newContext(activation));
+		recordConstructorTime(); 
 	}
 
 	@Override
@@ -246,4 +247,18 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		if(source!=null) source.openCore();
 	}
 
+	public NoPutResultSet getSource() {
+		return this.source;
+	}
+	
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
+
+		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
+	}
 }

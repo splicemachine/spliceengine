@@ -55,6 +55,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				   optimizerEstimatedCost,userSuppliedOptimizerOverrides);	
 		this.isHash = false;
         init(SpliceOperationContext.newContext(activation));
+        recordConstructorTime(); 
 	}
 	
 	@Override
@@ -149,8 +150,10 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	@Override
 	public void	close() throws StandardException
 	{ 
+		beginTime = getCurrentTimeMillis();
 		clearCurrentRow();
 		super.close();
+		closeTime += getElapsedMillis(beginTime);
 	}
 
 	protected class NestedLoopIterator implements Iterator<ExecRow> {
@@ -233,4 +236,17 @@ public class NestedLoopJoinOperation extends JoinOperation {
 			probeResultSet.close();
 		}
 	}
+	
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
+
+		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+			return	totTime - leftResultSet.getTimeSpent(ENTIRE_RESULTSET_TREE) 
+							- rightResultSet.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
+	}
+	
 }

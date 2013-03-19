@@ -88,7 +88,7 @@ public class Scans {
 	 * @return a transactionally-aware scan constructed with {@link #DEFAULT_CACHE_SIZE}
 	 */
 	public static Scan newScan(byte[] start, byte[] finish, String transactionID) {
-		return newScan(start,finish,Bytes.toBytes(transactionID),DEFAULT_CACHE_SIZE);
+		return newScan(start, finish, transactionID, DEFAULT_CACHE_SIZE);
 	}
 	/**
 	 * Constructs a new Scan from the specified start and stop rows, and adds transaction information
@@ -101,7 +101,7 @@ public class Scans {
 	 * @return a correctly constructed, transactionally-aware scan.
 	 */
 	public static Scan newScan(byte[] startRow, byte[] stopRow,
-														 byte[] transactionId, int caching){
+                               String transactionId, int caching) {
 		Scan scan = new Scan();
 		scan.setCaching(caching);
 		scan.setStartRow(startRow);
@@ -148,7 +148,7 @@ public class Scans {
 															 Qualifier[][] qualifiers,
 															 boolean[] sortOrder,
 															 FormatableBitSet scanColumnList,
-															 byte[] transactionId) throws IOException {
+															 String transactionId) throws IOException {
 		Scan scan = new Scan();
 		scan.setCaching(DEFAULT_CACHE_SIZE);
 		attachTransactionInformation(transactionId, scan);
@@ -200,7 +200,7 @@ public class Scans {
 															 boolean[] sortOrder,
                                                              FormatableBitSet primaryKeys,
 															 FormatableBitSet scanColumnList,
-															 byte[] transactionId) throws IOException {
+															 String transactionId) throws IOException {
 		Scan scan = new Scan();
 		scan.setCaching(DEFAULT_CACHE_SIZE);
 		attachTransactionInformation(transactionId, scan);
@@ -262,12 +262,12 @@ public class Scans {
 
 /* *************************************************************************************************/
 	/*private helper methods*/
-	private static void attachTransactionInformation(byte[] transactionId, Scan scan) {
+	private static void attachTransactionInformation(String transactionId, Scan scan) {
 		/*
 		 * This attaches the TransactionInformation as an attribute on scan.
 		 */
-		if(transactionId!=null){
-			scan.setAttribute(TxnConstants.TRANSACTION_ID,transactionId);
+		if(transactionId!=null) {
+            SpliceUtils.getTransactionGetsPuts().prepScan(transactionId, scan);
 			//TODO -sf- change this to use the Ordinal of the TransactionIsolationLevel
 			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
 					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));

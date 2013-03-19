@@ -1,14 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -25,15 +23,21 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class ScanOperation extends SpliceBaseOperation implements CursorResultSet{
 	private static Logger LOG = Logger.getLogger(ScanOperation.class);
 	private static long serialVersionUID=6l;
-	protected int lockMode;
-	protected int isolationLevel;
+
+	public int lockMode;
+	public int isolationLevel;
 	protected ExecRow candidate;
 	protected FormatableBitSet accessedCols;
 	protected String resultRowAllocatorMethodName;
@@ -51,12 +55,16 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	protected boolean isKeyed;
 	protected GeneratedMethod startKeyGetter;
 	protected GeneratedMethod stopKeyGetter;
-
+	protected String tableName;
+	protected String indexName;
+	public boolean isConstraint;
+	public boolean forUpdate;
+	
 	private int colRefItem;
 	protected GeneratedMethod resultRowAllocator;
     protected ExecRow currentTemplate;
     protected FormatableBitSet pkCols;
-
+    
 
     public ScanOperation () {
 		super();
@@ -210,7 +218,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     protected Scan getScan() throws IOException {
         return Scans.setupScan(startPosition == null ? null : startPosition.getRowArray(), startSearchOperator,
                 stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator,
-                scanQualifiers, conglomerate.getAscDescInfo(), pkCols,accessedCols, Bytes.toBytes(transactionID));
+                scanQualifiers, conglomerate.getAscDescInfo(), pkCols,accessedCols, transactionID);
     }
 
     protected void populateQualifiers()  {
@@ -249,4 +257,116 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	public int[] getRootAccessedCols() {
         return baseColumnMap;
 	}
+    
+    public FormatableBitSet getAccessedCols() {
+    	return this.accessedCols;
+    }
+    
+    public Qualifier[][] getScanQualifiers() {
+    	return this.scanQualifiers;
+    }
+    
+    public String getTableName(){
+    	return this.tableName;
+    }
+    
+    public String getIndexName() {
+    	return this.indexName;
+    }
+    
+    @Override
+    public void close() throws StandardException {
+        SpliceLogUtils.trace(LOG, "closing");
+        super.close();
+    }
+    
+    public String printStartPosition()
+   	{
+   		return printPosition(startSearchOperator, startKeyGetter, startPosition);
+   	}
+
+   	public String printStopPosition()
+   	{
+   		if (sameStartStopPosition)
+   			return printPosition(stopSearchOperator, startKeyGetter, startPosition);
+   		else
+   			return printPosition(stopSearchOperator, stopKeyGetter, stopPosition);
+   	}
+
+   	/**
+   	 * Return a start or stop positioner as a String.
+   	 *
+   	 * If we already generated the information, then use
+   	 * that.  Otherwise, invoke the activation to get it.
+   	 */
+   	private String printPosition(int searchOperator,
+   								 GeneratedMethod positionGetter,
+   								 ExecIndexRow positioner)
+   	{
+   		String output = "";
+   		if (positionGetter == null)
+   			return "\t" + MessageService.getTextMessage(SQLState.LANG_NONE) + "\n";
+   		
+   		if (positioner == null)
+   		{
+   			if (numOpens == 0)
+   				return "\t" + MessageService.getTextMessage(
+   					SQLState.LANG_POSITION_NOT_AVAIL) +
+                                       "\n";
+   			try {
+   				positioner = (ExecIndexRow)positionGetter.invoke(activation);
+   			} catch (StandardException e) {
+   				return "\t" + MessageService.getTextMessage(
+   						SQLState.LANG_UNEXPECTED_EXC_GETTING_POSITIONER,
+   						e.toString());
+   			}
+   		}
+   		if (positioner == null)
+   			return "\t" + MessageService.getTextMessage(SQLState.LANG_NONE) + "\n";
+   		String searchOp = null;
+
+   		switch (searchOperator)
+   		{
+   			case ScanController.GE:
+   				searchOp = ">=";
+   				break;
+
+   			case ScanController.GT:
+   				searchOp = ">";
+   				break;
+
+   			default:
+
+   				// NOTE: This does not have to be internationalized because
+   				// this code should never be reached.
+   				searchOp = "unknown value (" + searchOperator + ")";
+   				break;
+   		}
+
+   		output = output + "\t" +
+   						MessageService.getTextMessage(
+   							SQLState.LANG_POSITIONER,
+   							searchOp,
+   							String.valueOf(positioner.nColumns())) +
+   						"\n";
+
+   		output = output + "\t" +
+   					MessageService.getTextMessage(
+   						SQLState.LANG_ORDERED_NULL_SEMANTICS) +
+   					"\n";
+   		boolean colSeen = false;
+   		for (int position = 0; position < positioner.nColumns(); position++)
+   		{
+   			if (positioner.areNullsOrdered(position))
+   			{
+   				output = output + position + " ";
+   				colSeen = true;
+   			}
+
+   			if (colSeen && position == positioner.nColumns() - 1)
+   				output = output +  "\n";
+   		}
+
+   		return output;
+   	}
 }

@@ -7,26 +7,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.utils.SpliceUtils;
+
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ResultColumnDescriptor;
-import org.apache.derby.iapi.sql.ResultDescription;
-import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.iapi.storage.RowProvider;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {
@@ -49,6 +45,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	// Set in init method
 	protected GeneratedMethod restriction;
 	protected GeneratedMethod projection;
+	
+	public long restrictionTime;
+	public long projectionTime;
 	
 	static {
 		nodeTypes = Collections.singletonList(NodeType.MAP);
@@ -79,9 +78,17 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		this.doesProjection = doesProjection;
 		this.source = (SpliceOperation) source;
 		init(SpliceOperationContext.newContext(activation));
+		recordConstructorTime();
     }
     
+	public String getRestrictionMethodName() {
+		return restrictionMethodName;
+	}
  
+	public boolean doesProjection() {
+		return doesProjection;
+	}
+	
 	@Override
     public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
 //        if (LOG.isTraceEnabled())
@@ -95,6 +102,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         reuseResult = in.readBoolean();
         doesProjection = in.readBoolean();
         source = (SpliceOperation) in.readObject();
+        restrictionTime = in.readLong();
+        projectionTime = in.readLong();
     }
 
     @Override
@@ -110,6 +119,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         out.writeBoolean(reuseResult);
         out.writeBoolean(doesProjection);
         out.writeObject(source);
+        out.writeLong(restrictionTime);
+        out.writeLong(projectionTime);
     }
 
 	@Override
@@ -202,9 +213,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		if (LOG.isTraceEnabled())
 			LOG.trace("cleanup");
 	}
+	
 	@Override
 	public NoPutResultSet executeScan() {
 		SpliceLogUtils.trace(LOG, "executeScan");
+		beginTime = getCurrentTimeMillis();
 		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
 		this.generateLeftOperationStack(operationStack);
 		SpliceLogUtils.trace(LOG, "operationStack=%s",operationStack);
@@ -225,7 +238,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 			SpliceLogUtils.trace(LOG,"scanning Map Table");
 			provider = regionOperation.getMapRowProvider(this,fromResults);
 		}
-		return new SpliceNoPutResultSet(activation,this, provider);
+        SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
+		nextTime += getCurrentTimeMillis() - beginTime;
+		return rs;
 	}
 
 
@@ -238,6 +253,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		ExecRow result = null;
 		boolean restrict = false;
 		DataValueDescriptor restrictBoolean;
+		long beginRT = 0;
+
 
 		/* Return null if open was short circuited by false constant expression */
 //		if (shortCircuitOpen)
@@ -246,6 +263,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 //			return result;
 //		}
 
+		beginTime = getCurrentTimeMillis();
 		do {
 			candidateRow = source.getNextRowCore();
 
@@ -253,6 +271,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 
 			if (candidateRow != null) {
+				beginRT = getCurrentTimeMillis();
 				/* If restriction is null, then all rows qualify */
 				if (restriction == null) {
 					restrict = true;
@@ -260,16 +279,24 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				else {
 					setCurrentRow(candidateRow);
 					restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
+					restrictionTime += getElapsedMillis(beginRT);
 
 					// if the result is null, we make it false --
 					// so the row won't be returned.
 					restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
+					if (! restrict)
+					{
+						rowsFiltered++;
+					}
 				}
+				rowsSeen++;
 				SpliceLogUtils.trace(LOG,"restricting row %s?%b",candidateRow,restrict);
 			}
 		} while ( (candidateRow != null) && (! restrict ) );
 		if (candidateRow != null)  {
+			beginRT = getCurrentTimeMillis();
 			result = doProjection(candidateRow);
+			projectionTime += getElapsedMillis(beginRT);
 		}
 		/* Clear the current row, if null */
 		else {
@@ -277,6 +304,15 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		}
 		currentRow = result;
 		setCurrentRow(currentRow);
+		if (statisticsTimingOn)
+		{
+			if (! isTopResultSet)
+			{
+				/* This is simply for RunTimeStats */
+				subqueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();
+			}
+			nextTime += getElapsedMillis(beginTime);
+		}
 		return result;
 	}
 
@@ -308,5 +344,44 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 			return ((SpliceBaseOperation) source).getRootAccessedCols();
 		throw new RuntimeException("Source of merge join not a SpliceBaseOperation, it is this " + source);
 	}
-	
+	public NoPutResultSet getSource() {
+		return this.source;
+	}
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
+
+		if (type == CURRENT_RESULTSET_ONLY)
+			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
+	}
+	@Override
+	public void	close() throws StandardException
+	{
+		/* Nothing to do if open was short circuited by false constant expression */
+		if (shortCircuitOpen)
+		{
+			isOpen = false;
+			shortCircuitOpen = false;
+			source.close();
+			return;
+		}
+
+		beginTime = getCurrentTimeMillis();
+	    if ( isOpen ) {
+
+			// we don't want to keep around a pointer to the
+			// row ... so it can be thrown away.
+			// REVISIT: does this need to be in a finally
+			// block, to ensure that it is executed?
+	    	clearCurrentRow();
+
+	        source.close();
+
+			super.close();
+	    }
+		closeTime += getElapsedMillis(beginTime);
+	}
 }

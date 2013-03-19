@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.conn.StatementContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
@@ -32,6 +33,7 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 		super(activation,-1,0d,0d);
 		this.activation = activation;
 		init(SpliceOperationContext.newContext(activation));
+		recordConstructorTime(); 
 	}
 	
 	@Override
@@ -88,25 +90,20 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 		return null;
 	}
 
-	public final NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries)
-	{
-		if (subqueryTrackingArray == null)
-		{
-			subqueryTrackingArray = new NoPutResultSet[numSubqueries];
-		}
-
-		return subqueryTrackingArray;
-	}
-	
 	protected void setup() throws StandardException {
 		isOpen = true;
-//        StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
-//        sc.setTopResultSet(this, subqueryTrackingArray);
-//
-//        // Pick up any materialized subqueries
-//        if (subqueryTrackingArray == null) {
-//            subqueryTrackingArray = sc.getSubqueryTrackingArray();
-//        }
+        StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
+        
+        if (sc == null) {
+        	SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
+        	return;
+        }
+        sc.setTopResultSet(this, subqueryTrackingArray);
+
+        // Pick up any materialized subqueries
+        if (subqueryTrackingArray == null) {
+            subqueryTrackingArray = sc.getSubqueryTrackingArray();
+        }
 	}
 	
 	@Override
@@ -114,27 +111,23 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 		return !isOpen;
 	}
 	
-//	@Override
-//	public void close() {
-//		if (!isOpen)
-//			return;
-//		try {
-//			int staLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
-//
-//			for (int index = 0; index < staLength; index++) {
-//				if (subqueryTrackingArray[index] == null || subqueryTrackingArray[index].isClosed())
-//					continue;
-//				
-//				subqueryTrackingArray[index].close();
-//			}
-//			
-//			isOpen = false;
-//
-//			if (activation.isSingleExecution())
-//				activation.close();
-//	
-//		} catch (Exception e) {
-//			SpliceLogUtils.error(LOG, e);
-//		}
-//	}
+	@Override
+	public long getTimeSpent(int type)
+	{
+		return 0;
+	}
+	
+	@Override
+	public void close() {
+		if (!isOpen)
+			return;
+		try {
+			super.close();
+			if (activation.isSingleExecution())
+				activation.close();
+	
+		} catch (Exception e) {
+			SpliceLogUtils.error(LOG, e);
+		}
+	}
 }

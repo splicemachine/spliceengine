@@ -1,4 +1,25 @@
+
 package com.splicemachine.derby.impl.sql.execute.operations;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.store.access.ColumnOrdering;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
@@ -13,24 +34,6 @@ import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 public class SortOperation extends SpliceBaseOperation {
     private static final long serialVersionUID = 2l;
@@ -44,6 +47,7 @@ public class SortOperation extends SpliceBaseOperation {
 	private ExecRow sortResult;
 	private int numColumns;
 	private Scan reduceScan;
+	private Properties sortProperties = new Properties();
 	
 	static{
 		nodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SCAN);
@@ -74,6 +78,7 @@ public class SortOperation extends SpliceBaseOperation {
 		this.orderingItem = orderingItem;
 		this.numColumns = numColumns;
         init(SpliceOperationContext.newContext(a));
+        recordConstructorTime(); 
 	}
 	
 	@Override
@@ -181,6 +186,7 @@ public class SortOperation extends SpliceBaseOperation {
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeScan");
+		beginTime = getCurrentTimeMillis();
 		final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
 		this.generateLeftOperationStack(opStack);
 		SpliceLogUtils.trace(LOG,"operationStack=%s",opStack);
@@ -194,7 +200,9 @@ public class SortOperation extends SpliceBaseOperation {
 		}else {
 			provider = regionOperation.getMapRowProvider(this,getExecRowDefinition());
 		}
-		return new SpliceNoPutResultSet(activation,this,provider);
+		SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this,provider);
+		nextTime += getCurrentTimeMillis() - beginTime;
+		return rs;
 	}
 	
 	@Override
@@ -206,6 +214,7 @@ public class SortOperation extends SpliceBaseOperation {
 		 */
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
+        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for SortOperation at "+stats.getStartTime());
 		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
 		ExecRow row;
 		HTableInterface tempTable = null;
@@ -249,7 +258,10 @@ public class SortOperation extends SpliceBaseOperation {
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-        return stats.finish();
+		
+		SinkStats ss = stats.finish();
+		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SortOperation at "+stats.getFinishTime());
+        return ss;
 	}
 
 	@Override
@@ -262,6 +274,55 @@ public class SortOperation extends SpliceBaseOperation {
 		if(source!=null) source.openCore();
 	}
 	
+	public NoPutResultSet getSource() {
+		return this.source;
+	}
 	
+	public boolean needsDistinct() {
+		return this.distinct;
+	}
+	@Override
+	public void	close() throws StandardException
+	{
+		beginTime = getCurrentTimeMillis();
+		if ( isOpen )
+	    {
+		    clearCurrentRow();
+
+		    sortResult = null;
+			source.close();
+			
+			super.close();
+		}
+
+		closeTime += getElapsedMillis(beginTime);
+
+		isOpen = false;
+	}
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
+
+		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
+	}
+	public Properties getSortProperties() {
+		if (sortProperties == null)
+			sortProperties = new Properties();
 	
+		sortProperties.setProperty("numRowsInput", ""+getRowsInput());
+		sortProperties.setProperty("numRowsOutput", ""+getRowsOutput());
+		return sortProperties;
+	}
+	
+	public long getRowsInput() {
+		return getRegionStats() == null ? 0l : getRegionStats().getTotalProcessedRecords();
+	}
+	
+	public long getRowsOutput() {
+		return getRegionStats() == null ? 0l : getRegionStats().getTotalSunkRecords();
+	}
 }

@@ -5,9 +5,18 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -21,12 +30,6 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * 
@@ -37,6 +40,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     private static final long serialVersionUID = 2l;
 	private static final Logger LOG = Logger.getLogger(DMLWriteOperation.class);
 	protected NoPutResultSet source;
+	public NoPutResultSet savedSource;
 	ConstantAction constants;
 	protected long heapConglom;
 	
@@ -196,6 +200,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 			SpliceLogUtils.trace(LOG, "open");
 			try {
 				source.openCore();
+				/* Cache query plan text for source, before it gets blown away */
+				if (activation.getLanguageConnectionContext().getRunTimeStatisticsMode())
+				{
+					/* savedSource nulled after run time statistics generation */
+					savedSource = source;
+				}
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
@@ -208,7 +218,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				//Bug 185 - jz
 				try {
 					if (trans.isIdle()) {
-						((ZookeeperTransaction)trans).setActiveState();
+						((SpliceTransaction)trans).setActiveState();
 						transactionID = SpliceUtils.getTransIDString(trans);
 					}
 				} catch (Exception e) {
@@ -225,8 +235,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
 		@Override
 		public void close() {
+			if (!isOpen)
+				return;
+			if (isTopResultSet && activation.getLanguageConnectionContext().getRunTimeStatisticsMode() &&
+                    !activation.getLanguageConnectionContext().getStatementContext().getStatementWasInvalidated())
+				endExecutionTime = getCurrentTimeMillis();
 			try {
 				source.close();
+				isOpen = false;
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
@@ -247,4 +263,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		}
 	};
 	
+	public int getModifiedRowCount() {
+		if (modifiedProvider != null)
+			return modifiedProvider.getModifiedRowCount();
+		else
+			return (int)rowsSunk;
+	}
+	
+	public NoPutResultSet getSource() {
+		return this.source;
+	}
 }

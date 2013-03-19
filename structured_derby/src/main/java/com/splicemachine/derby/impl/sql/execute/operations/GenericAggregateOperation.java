@@ -43,6 +43,8 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 	protected static List<NodeType> nodeTypes; 
 	protected Scan reduceScan;
 	
+	protected long rowsInput;
+	
 	static {
 		nodeTypes = new ArrayList<NodeType>();
 //		nodeTypes.add(NodeType.MAP);
@@ -217,5 +219,16 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 		} catch (IOException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Error closing Temp Table",e);
 		}
+	}
+	public NoPutResultSet getSource() {
+		return this.source;
+	}
+	
+	public long getRowsInput() {
+		return getRegionStats() == null ? 0l : getRegionStats().getTotalProcessedRecords();
+	}
+	
+	public long getRowsOutput() {
+		return getRegionStats() == null ? 0l : getRegionStats().getTotalSunkRecords();
 	}
 }

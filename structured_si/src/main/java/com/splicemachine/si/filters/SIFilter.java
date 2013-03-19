@@ -84,7 +84,7 @@ public class SIFilter extends FilterBase {
 		if (region == null)
 			return;
 		Put put = new Put(keyValue.getRow(),keyValue.getTimestamp());
-		put.add(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN, Bytes.toBytes(transaction.getCommitTimestamp()));
+		put.add(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, Bytes.toBytes(transaction.getCommitTimestamp()));
 		try {
 			region.put(put,false);
 		} catch (Exception e) {
@@ -127,12 +127,12 @@ public class SIFilter extends FilterBase {
 	
 	public static boolean isCommitTimestamp(KeyValue keyValue) {
 		return Arrays.equals(keyValue.getFamily(), SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) && 
-				Arrays.equals(keyValue.getQualifier(), SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN);
+				Arrays.equals(keyValue.getQualifier(), SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES);
 	}
 	
 	public static boolean isTombstone(KeyValue keyValue) {
 		return Arrays.equals(keyValue.getFamily(), SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) && 
-				Arrays.equals(keyValue.getQualifier(), SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN);
+				Arrays.equals(keyValue.getQualifier(), SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES);
 	}
 	
 	
@@ -155,7 +155,7 @@ public class SIFilter extends FilterBase {
 			}
 			throw new RuntimeException(SIConstants.FILTER_CHECKING_MULTIPLE_ROW_TOMBSTONES);
 		}
-		if (Arrays.equals(keyValue.getFamily(),SIConstants.DEFAULT_FAMILY) && 
+		if (Arrays.equals(keyValue.getFamily(),SIConstants.DEFAULT_FAMILY_BYTES) &&
 			!Arrays.equals(lastValidQualifier,keyValue.getQualifier())) {
 				if (committedTransactions.containsKey(keyValue.getTimestamp()) || 
 					startTimestamp == keyValue.getTimestamp()) {

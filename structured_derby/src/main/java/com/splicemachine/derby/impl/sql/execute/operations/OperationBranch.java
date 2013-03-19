@@ -71,7 +71,7 @@ public class OperationBranch {
 		return spliceOperations.get(spliceOperations.size()-1);
 	}
 	
-	public void execCoprocessor() throws StandardException {
+	public void execCoprocessor(String opName) throws StandardException {
 		SpliceLogUtils.trace(LOG, "execCoprocessor with top operation of %s", topOperation);
 		final Scan scan = rowProvider.toScan();
         if(scan==null||table==null){
@@ -82,10 +82,10 @@ public class OperationBranch {
 		HTableInterface htable = null;
 		try{
             SpliceLogUtils.debug(LOG,"Exec Coprocessor against table=%s",Bytes.toString(table));
+            final RegionStats regionStats = new RegionStats(opName);
+            regionStats.start();
 			htable = SpliceAccessManager.getHTable(table);
 			final SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
-            final RegionStats regionStats = new RegionStats();
-            regionStats.start();
 			htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),
                     new Batch.Call<SpliceOperationProtocol,SinkStats>(){
 				@Override

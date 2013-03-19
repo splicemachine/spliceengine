@@ -42,11 +42,12 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 public class HashScanOperation extends ScanOperation {
 	private static Logger LOG = Logger.getLogger(HashScanOperation.class);
 	protected Scan mapScan;
-	protected String mapTableName;
 	protected Boolean isKeyed;
 	protected ExecRow currentRow;
 	protected int hashKeyItem;
@@ -59,7 +60,12 @@ public class HashScanOperation extends ScanOperation {
 	public static final	int	DEFAULT_INITIAL_CAPACITY = -1;
 	public static final float DEFAULT_LOADFACTOR = (float) -1.0;
 	public static final	int	DEFAULT_MAX_CAPACITY = -1;
-
+	
+	private boolean runTimeStatisticsOn;
+	public Properties scanProperties;
+	public String startPositionString;
+	public String stopPositionString;
+	
 	protected Hasher hasher;
 	
 	static {
@@ -102,30 +108,35 @@ public class HashScanOperation extends ScanOperation {
     	super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,sameStartStopPosition,scanQualifiersField,
     			resultRowAllocator,lockMode,tableLocked,isolationLevel,colRefItem,optimizerEstimatedRowCount,optimizerEstimatedCost);
 		SpliceLogUtils.trace(LOG, "scan operation instantiated for " + tableName);
-		this.mapTableName = "" + conglomId;
+		this.tableName = "" + conglomId;
 		this.hashKeyItem = hashKeyItem;
 		this.nextQualifierField = nextQualifierField;
+		this.indexName = indexName;
+		runTimeStatisticsOn = activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
         init(SpliceOperationContext.newContext(activation));
+        recordConstructorTime(); 
 	}
 	
 	@Override
 	public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
 		SpliceLogUtils.trace(LOG, "readExternal");
 		super.readExternal(in);
-		mapTableName = in.readUTF();
+		tableName = in.readUTF();
 		hashKeyItem = in.readInt();
 		nextQualifierField = readNullableString(in);
 		eliminateDuplicates = in.readBoolean();
+		runTimeStatisticsOn = in.readBoolean();
 	}
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
 		SpliceLogUtils.trace(LOG, "writeExternal");
 		super.writeExternal(out);
-		out.writeUTF(mapTableName);
+		out.writeUTF(tableName);
 		out.writeInt(hashKeyItem);
 		writeNullableString(nextQualifierField, out);
 		out.writeBoolean(eliminateDuplicates);
+		out.writeBoolean(runTimeStatisticsOn);
 	}
 
 	@Override
@@ -147,9 +158,9 @@ public class HashScanOperation extends ScanOperation {
 			LOG.info("activation.getClass()="+activation.getClass()+",aactivation="+activation);
 			if (scanQualifiersField != null)
 				scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
-			this.mapScan = Scans.setupScan(startPosition==null?null:startPosition.getRowArray(),startSearchOperator,
-					stopPosition==null?null:stopPosition.getRowArray(),stopSearchOperator,
-					scanQualifiers,null,accessedCols,Bytes.toBytes(transactionID));
+			this.mapScan = Scans.setupScan(startPosition==null?null:startPosition.getRowArray(), startSearchOperator,
+					stopPosition==null?null:stopPosition.getRowArray(), stopSearchOperator,
+					scanQualifiers, null, accessedCols, transactionID);
 //			this.mapScan = SpliceUtils.setupScan(Bytes.toBytes(transactionID), accessedCols,scanQualifiers, startPosition == null ? null : startPosition.getRowArray(), startSearchOperator, stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator, null);
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
@@ -176,11 +187,12 @@ public class HashScanOperation extends ScanOperation {
 		final SpliceOperation regionOperation = operationStack.get(0);
 		HTableInterface htable = null;
 		try {
-			htable = SpliceAccessManager.getHTable(Bytes.toBytes(mapTableName));
-			SpliceLogUtils.trace(LOG, "executing coprocessor on table=" + mapTableName + ", with scan=" + mapScan);
-			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,regionOperation);
-            final RegionStats regionStats = new RegionStats();
+			regionStats = new RegionStats(this.getClass().getName());
             regionStats.start();
+            
+			htable = SpliceAccessManager.getHTable(Bytes.toBytes(tableName));
+			SpliceLogUtils.trace(LOG, "executing coprocessor on table=" + tableName + ", with scan=" + mapScan);
+			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,regionOperation);
 			htable.coprocessorExec(SpliceOperationProtocol.class,
 					mapScan.getStartRow(), mapScan.getStopRow(),
 					new Batch.Call<SpliceOperationProtocol, SinkStats>() {
@@ -202,8 +214,8 @@ public class HashScanOperation extends ScanOperation {
             regionStats.finish();
             regionStats.recordStats(LOG);
 			executed = true;
-		}
-		catch (Exception e) {
+            nextTime += regionStats.getTotalTimeTaken();
+		} catch (Exception e) {
 			LOG.error("Problem Running Coprocessor " + e.getMessage());
 			throw new RuntimeException(e);
 		} catch (Throwable e) {
@@ -224,7 +236,7 @@ public class HashScanOperation extends ScanOperation {
 	public SinkStats sink() {
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
-
+        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for HashScan at "+stats.getStartTime());
 		SpliceLogUtils.trace(LOG, "sink called on" + regionScanner.getRegionInfo().getTableNameAsString());
 		HTableInterface tempTable = null;
 		Put put = null;
@@ -276,7 +288,10 @@ public class HashScanOperation extends ScanOperation {
 				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
 			}
 		}
-        return stats.finish();
+        //return stats.finish();
+		SinkStats ss = stats.finish();
+		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for HashScan at "+stats.getFinishTime());
+        return ss;
 	}
 	
 	@Override
@@ -287,7 +302,7 @@ public class HashScanOperation extends ScanOperation {
 	@Override
 	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow template){
 		SpliceUtils.setInstructions(mapScan,getActivation(),top);
-		return new ClientScanProvider(Bytes.toBytes(mapTableName),mapScan,template,null);
+		return new ClientScanProvider(Bytes.toBytes(tableName),mapScan,template,null);
 	}
 	
 	@Override
@@ -345,5 +360,60 @@ public class HashScanOperation extends ScanOperation {
 	    currentRow = null;
 	    this.setCurrentRow(currentRow);
 		return currentRow;		  
+	}
+	
+	public int[] getKeyColumns() {
+		return this.keyColumns;
+	}
+	
+	public Qualifier[][] getNextQualifier() {
+		return this.nextQualifier;
+	}
+	
+	@Override
+	public void	close() throws StandardException
+	{
+		beginTime = getCurrentTimeMillis();
+		if ( isOpen )
+	    {
+			// we don't want to keep around a pointer to the
+			// row ... so it can be thrown away.
+			// REVISIT: does this need to be in a finally
+			// block, to ensure that it is executed?
+		    clearCurrentRow();
+		    
+		    //TODO: need to get ScanInfo to store in runtime statistics
+		    scanProperties = getScanProperties();
+			
+			// This is where we get the positioner info for inner tables
+			if (runTimeStatisticsOn)
+			{
+				startPositionString = printStartPosition();
+				stopPositionString = printStopPosition();
+			}
+
+			startPosition = null;
+			stopPosition = null;
+
+			super.close();
+	    }
+		
+		closeTime += getElapsedMillis(beginTime);
+	}
+	
+	public Properties getScanProperties()
+	{
+		//TODO: need to get ScanInfo to store in runtime statistics
+		if (scanProperties == null) 
+			scanProperties = new Properties();
+
+		scanProperties.setProperty("numPagesVisited", "0");
+		scanProperties.setProperty("numRowsVisited", "0");
+		scanProperties.setProperty("numRowsQualified", "0"); 
+		scanProperties.setProperty("numColumnsFetched", "0");//FIXME: need to loop through accessedCols to figure out
+		scanProperties.setProperty("columnsFetchedBitSet", ""+getAccessedCols());
+		//treeHeight
+		
+		return scanProperties;
 	}
 }

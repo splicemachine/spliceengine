@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.google.gson.Gson;
 import com.splicemachine.SpliceConfiguration;
 import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.ITransactionGetsPuts;
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -10,7 +11,12 @@ import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
-import com.splicemachine.derby.impl.store.access.ZookeeperTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.hbase.txn.ZkTransactionGetsPuts;
+import com.splicemachine.si.utils.SIConstants;
+import com.splicemachine.si2.data.hbase.TransactorFactory;
+import com.splicemachine.si2.txn.SiGetsPuts;
+import com.splicemachine.si2.txn.TransactionTableCreator;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -100,7 +106,7 @@ public class SpliceUtils {
 	protected static String quorum;
 	protected static String transPath;
 	protected static String derbyPropertyPath = "/derbyPropertyPath";
-	protected static String queryNodePath = "/queryNodePath";	
+	protected static String queryNodePath = "/queryNodePath";
 	protected static RecoverableZooKeeper rzk = null;
 	protected static ZooKeeperWatcher zkw = null;
 
@@ -142,7 +148,7 @@ public class SpliceUtils {
 	public static String getTransactionPath() {
 		return transPath;
 	}
-	
+
 
 	public static String toJSON(Object object) {
 		return gson.toJson(object);
@@ -152,7 +158,7 @@ public class SpliceUtils {
 		return gson.fromJson(json, instanceClass);
 	}
 
-	public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, byte[] transID) throws StandardException {
+	public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
 		SpliceLogUtils.trace(LOG,"createGet %s",loc.getBytes());
 		try {
 			Get get = new Get(loc.getBytes());
@@ -168,7 +174,7 @@ public class SpliceUtils {
 
 			//FIXME: need to get the isolation level
 			if (transID != null) {
-				get.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+                SpliceUtils.getTransactionGetsPuts().prepGet(transID,  get);
 				get.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
 													Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
 			}
@@ -179,25 +185,27 @@ public class SpliceUtils {
 		}
 	}
 
-	public static Delete delete(RowLocation loc, byte[] transID) throws StandardException {
+	public static Delete delete(RowLocation loc, String transID) throws StandardException {
 		SpliceLogUtils.trace(LOG,"delete row at location %s",loc);
 		Delete delete = new Delete(loc.getBytes());
-		if (transID != null)
-			delete.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+		if (transID != null) {
+            SpliceUtils.getTransactionGetsPuts().prepDelete(transID,  delete);
+        }
 		return delete;
 	}
-	
-	public static Delete cleanupNullsDelete(RowLocation loc,DataValueDescriptor[] destRow, FormatableBitSet validColumns, byte[] transID) throws StandardException {
+
+	public static Delete cleanupNullsDelete(RowLocation loc,DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("cleanupNullsDelete row ");
 		try {
 			Delete delete = new Delete(loc.getBytes());
-			if (transID != null)
-				delete.setAttribute(TxnConstants.TRANSACTION_ID, transID);
+            if (transID != null) {
+                SpliceUtils.getTransactionGetsPuts().prepDelete(transID,  delete);
+            }
 			int numrows = (validColumns != null ? validColumns.getLength() : destRow.length);  // bug 118
 			for (int i = 0; i < numrows; i++) {
 				if (validColumns.isSet(i) && destRow[i] != null && destRow[i].isNull())
-					delete.deleteColumn(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes()); 
+					delete.deleteColumn(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes());
 			}
 			return delete;
 		} catch (Exception e) {
@@ -340,7 +348,7 @@ public class SpliceUtils {
 	}
 
 	public static boolean update(RowLocation loc, DataValueDescriptor[] row,
-			FormatableBitSet validColumns, HTableInterface htable, byte[] transID) throws StandardException {
+			FormatableBitSet validColumns, HTableInterface htable, String transID) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("update row " + row);
 
@@ -348,11 +356,11 @@ public class SpliceUtils {
 			//FIXME: Check if the record exists. Not using htable.checkAndPut because it's one column at a time
 			//May need to read more HTableInteface's checkAndPut
 			Get get = new Get(loc.getBytes());
-			
+
 			//FIXME: need to get the isolation level
 			if (transID != null) {
-				get.setAttribute(TxnConstants.TRANSACTION_ID, transID);
-				get.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL, 
+                SpliceUtils.getTransactionGetsPuts().prepGet(transID, get);
+				get.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
 		    			Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
 			}
 			Result result = htable.get(get);
@@ -367,7 +375,7 @@ public class SpliceUtils {
 			return true;
 		} catch (IOException ie) {
 			LOG.error(ie.getMessage(), ie);
-		} 
+		}
 		return false;
 	}
 
@@ -388,7 +396,7 @@ public class SpliceUtils {
 
 	public static String generateQueryNodeSequence() {
 		SpliceLogUtils.trace(LOG,"generateQueryNodeSequence");
-		try {			
+		try {
 			String node = rzk.create(queryNodePath + "/", Bytes.toBytes(OperationTreeStatus.CREATED.toString()), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
 			if (LOG.isTraceEnabled())
 				LOG.trace("generate Query Node Sequence " +node);
@@ -399,7 +407,7 @@ public class SpliceUtils {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
 		return null;
-	}	
+	}
 
 	public static void setQueryWaitNode(String uniqueSequenceID, Watcher watcher) {
 		if (LOG.isTraceEnabled())
@@ -413,10 +421,10 @@ public class SpliceUtils {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}	
+	}
 
-	
-	
+
+
 	public static boolean created() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("started ");
@@ -502,7 +510,7 @@ public class SpliceUtils {
 		}
 		return properties;
 	}
-	
+
 	public static HTableDescriptor generateDefaultDescriptor(String tableName) {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
 		desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
@@ -512,34 +520,47 @@ public class SpliceUtils {
 				HBaseConstants.DEFAULT_BLOCKCACHE,
 				HBaseConstants.DEFAULT_TTL,
 				HBaseConstants.DEFAULT_BLOOMFILTER));
-		return desc;		
+        if (useSi) {
+            desc.addFamily(TransactionTableCreator.createTransactionFamily());
+        }
+        return desc;
 	}
 
 	public static String getTransIDString(Transaction trans) {
 		if (trans == null)
 			return null;
-		
+
 		//for debugging purpose right now
-		if (!(trans instanceof ZookeeperTransaction))
-			LOG.error("We should only support ZookeeperTransaction!");
-		
-		ZookeeperTransaction zt = (ZookeeperTransaction)trans;
+		if (!(trans instanceof SpliceTransaction))
+			LOG.error("We should only support SpliceTransaction!");
+
+		SpliceTransaction zt = (SpliceTransaction)trans;
 		if (zt.getTransactionState() != null && zt.getTransactionState().getTransactionID() != null)
 			return zt.getTransactionState().getTransactionID();
-		
+
 		return null;
 	}
-	
-	public static byte[] getTransID(Transaction trans) {
+
+	public static String getTransID(Transaction trans) {
 		String transID = getTransIDString(trans);
 		if (transID == null)
 			return null;
-		
-		return transID.getBytes();
+
+		return transID;
 	}
 
+    public static final boolean useSi = false;
+
+    public static ITransactionGetsPuts getTransactionGetsPuts() {
+        if (useSi) {
+            return new SiGetsPuts(TransactorFactory.getDefaultClientTransactor());
+        } else {
+            return new ZkTransactionGetsPuts();
+        }
+    }
+
 	public static byte[] getUniqueKey(){
-		return gen.next().toString().getBytes();			
+		return gen.next().toString().getBytes();
 	}
 
     public static String getUniqueKeyString() {

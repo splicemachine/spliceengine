@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 
+import com.splicemachine.constants.ITransactionManager;
+import com.splicemachine.constants.ITransactionState;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -21,8 +23,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.TxnConstants;
 
-
-public abstract class TransactionManager extends TxnConstants {
+public abstract class TransactionManager extends TxnConstants implements ITransactionManager {
 	
 	protected ZooKeeperWatcher zkw;
     protected RecoverableZooKeeper rzk;
@@ -72,13 +73,15 @@ public abstract class TransactionManager extends TxnConstants {
 
 	public abstract TransactionState beginTransaction() throws KeeperException, InterruptedException, IOException, ExecutionException;
 
-	public abstract int prepareCommit(final TransactionState transactionState) throws KeeperException, InterruptedException, IOException;
+    public abstract int prepareCommit(final ITransactionState transactionState) throws KeeperException, InterruptedException, IOException;
 
-	public abstract void doCommit(final TransactionState transactionState) throws KeeperException, InterruptedException, IOException;
+    public abstract void prepareCommit2(final Object bonus, final ITransactionState transactionState) throws KeeperException, InterruptedException, IOException;
 
-	public abstract void tryCommit(final TransactionState transactionState) throws IOException, KeeperException, InterruptedException;
+	public abstract void doCommit(final ITransactionState transactionState) throws KeeperException, InterruptedException, IOException;
 
-	public abstract void abort(final TransactionState transactionState) throws IOException, KeeperException, InterruptedException;
+	public abstract void tryCommit(final ITransactionState transactionState) throws IOException, KeeperException, InterruptedException;
+
+	public abstract void abort(final ITransactionState transactionState) throws IOException, KeeperException, InterruptedException;
 	
 	public abstract JtaXAResource getXAResource();
 

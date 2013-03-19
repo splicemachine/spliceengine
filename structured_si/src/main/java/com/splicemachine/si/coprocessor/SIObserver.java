@@ -123,7 +123,7 @@ public class SIObserver extends BaseRegionObserver {
 			return false;
 		}
 		SpliceLogUtils.trace(LOG, "result= %s",result);
-		KeyValue commitTimestampValue = result.getColumnLatest(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN);
+		KeyValue commitTimestampValue = result.getColumnLatest(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES);
 		if (!Arrays.equals(commitTimestampValue.getValue(), SIConstants.ZERO_BYTE_ARRAY)) {
 			SpliceLogUtils.trace(LOG, "hasCommitTimestamp");
 			return hasConflict(mutationBeginTimestamp,commitTimestampValue.getTimestamp());
@@ -173,14 +173,14 @@ public class SIObserver extends BaseRegionObserver {
 		SpliceLogUtils.trace(LOG, "postPut on table %s, %s", e.getEnvironment().getRegion().getTableDesc().getNameAsString(),put);
 		if (isTransactionalTable) { // TXN Table must be after put so we do not jump the gun in case of failure
 			Map<byte[],List<KeyValue>> familyMap = put.getFamilyMap();
-			List<KeyValue> keyValues = familyMap.get(SIConstants.DEFAULT_FAMILY);
+			List<KeyValue> keyValues = familyMap.get(SIConstants.DEFAULT_FAMILY_BYTES);
 			SITransactionResponse transactionResponse = new SITransactionResponse();
 			for (KeyValue kv: keyValues) {
-				if (Arrays.equals(kv.getQualifier(),SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN))
+				if (Arrays.equals(kv.getQualifier(),SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN_BYTES))
 					transactionResponse.setStartTimestamp(Bytes.toLong(kv.getValue()));
-				if (Arrays.equals(kv.getQualifier(),SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN) && Arrays.equals(kv.getValue(),SIConstants.ZERO_BYTE_ARRAY))
+				if (Arrays.equals(kv.getQualifier(),SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES) && Arrays.equals(kv.getValue(),SIConstants.ZERO_BYTE_ARRAY))
 					transactionResponse.setCommitTimestamp(Bytes.toLong(kv.getValue()));
-				if (Arrays.equals(kv.getQualifier(),SIConstants.TRANSACTION_STATUS_COLUMN))
+				if (Arrays.equals(kv.getQualifier(),SIConstants.TRANSACTION_STATUS_COLUMN_BYTES))
 					transactionResponse.setTransactionState(TransactionState.values()[Bytes.toInt(kv.getValue())]);						
 			}
 			
@@ -198,7 +198,7 @@ public class SIObserver extends BaseRegionObserver {
 				throw new DoNotRetryIOException(String.format(SIConstants.WRITE_WRITE_CONFLICT_COMMIT,delete)); // Special Exception
 			} else {
 				Put put = new Put(delete.getRow(),delete.getTimeStamp());
-				put.add(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN, SIConstants.ZERO_BYTE_ARRAY);
+				put.add(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES, SIConstants.ZERO_BYTE_ARRAY);
 				region.put(put, writeToWAL);
 				ArrayList<byte[]> rows;
 				if ( (rows = transactionRowCallbackCache.getIfPresent(put.getTimeStamp())) != null) {

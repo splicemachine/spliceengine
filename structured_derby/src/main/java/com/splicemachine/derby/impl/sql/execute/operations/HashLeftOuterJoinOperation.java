@@ -41,5 +41,6 @@ public class HashLeftOuterJoinOperation extends NestedLoopLeftOuterJoinOperation
 				oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides);
 		this.isHash = true;
 		SpliceLogUtils.trace(LOG, "instantiate");
+		recordConstructorTime(); 
 	}
 }

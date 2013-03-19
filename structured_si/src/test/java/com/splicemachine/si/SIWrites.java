@@ -41,10 +41,10 @@ public class SIWrites extends SIBaseTest {
 
 	private static Put generatePut(Transaction transaction, byte[] rowKey, byte[] value) {
 		SIPut put = new SIPut(rowKey,transaction.getStartTimestamp());
-		put.add(SIConstants.DEFAULT_FAMILY, Bytes.toBytes(0), value);
-		put.add(SIConstants.DEFAULT_FAMILY, Bytes.toBytes(1), value);
-		put.add(SIConstants.DEFAULT_FAMILY, Bytes.toBytes(2), value);
-		put.add(SIConstants.DEFAULT_FAMILY, Bytes.toBytes(3), value);
+		put.add(SIConstants.DEFAULT_FAMILY_BYTES, Bytes.toBytes(0), value);
+		put.add(SIConstants.DEFAULT_FAMILY_BYTES, Bytes.toBytes(1), value);
+		put.add(SIConstants.DEFAULT_FAMILY_BYTES, Bytes.toBytes(2), value);
+		put.add(SIConstants.DEFAULT_FAMILY_BYTES, Bytes.toBytes(3), value);
 		return put;
 	}
 

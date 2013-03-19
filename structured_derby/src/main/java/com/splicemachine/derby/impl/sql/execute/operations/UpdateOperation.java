@@ -1,14 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.base.Throwables;
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.sql.execute.index.IndexManager;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.NavigableMap;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -18,13 +13,23 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.execute.UpdateConstantAction;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.NavigableMap;
+import com.google.common.base.Throwables;
+import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * @author jessiezhang
@@ -42,6 +47,7 @@ public class UpdateOperation extends DMLWriteOperation{
 			throws StandardException {
 		super(source, generationClauses, checkGM, activation);
 		init(SpliceOperationContext.newContext(activation));
+		recordConstructorTime(); 
 	}
 
 	@Override
@@ -61,7 +67,8 @@ public class UpdateOperation extends DMLWriteOperation{
 	public SinkStats sink() throws IOException {
 		SpliceLogUtils.trace(LOG,"sink on transactionID="+transactionID);
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
-
+        stats.start();
+        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for UpdateOperation at "+stats.getStartTime());
 		ExecRow nextRow;
 		int[] colPositionMap = null;
 		FormatableBitSet heapList = ((UpdateConstantAction)constants).getBaseRowReadList();
@@ -132,7 +139,7 @@ public class UpdateOperation extends DMLWriteOperation{
                  */
                 if(!modifiedPrimaryKeys){
                     SpliceLogUtils.trace(LOG, "UpdateOperation sink, nextRow=%s, validCols=%s,colPositionMap=%s", nextRow, heapList, Arrays.toString(colPositionMap));
-                    Put put = Puts.buildUpdate(location, nextRow.getRowArray(), heapList, colPositionMap, this.transactionID.getBytes(), serializer);
+                    Put put = Puts.buildUpdate(location, nextRow.getRowArray(), heapList, colPositionMap, this.transactionID, serializer);
                     put.setAttribute(Puts.PUT_TYPE,Puts.FOR_UPDATE);
                     htable.put(put);
                 }else{
@@ -183,7 +190,10 @@ public class UpdateOperation extends DMLWriteOperation{
             if(t instanceof IOException) throw (IOException)t;
             SpliceLogUtils.logAndThrow(LOG,new IOException(e));
 		}
-        return stats.finish();
+        //return stats.finish();
+		SinkStats ss = stats.finish();
+		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for UpdateOperation at "+stats.getFinishTime());
+        return ss;
 	}
 
 	

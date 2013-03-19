@@ -43,12 +43,12 @@ public class Puts {
      * @throws IOException if {@code row} or {@code extraColumns} cannot be serialized.
      */
     public static Put buildUpdate(RowLocation location, DataValueDescriptor[] row,
-                                  FormatableBitSet validColumns,int[] validColPositionMap,
-                                  byte[] transactionID,Serializer serializer,DataValueDescriptor...extraColumns)
+                                  FormatableBitSet validColumns, int[] validColPositionMap,
+                                  String transactionID, Serializer serializer, DataValueDescriptor...extraColumns)
             throws IOException{
         try {
             Put put = new Put(location.getBytes());
-            attachTransactionInformation(put,transactionID);
+            attachTransactionInformation(put, transactionID);
             put.setAttribute(PUT_TYPE,FOR_UPDATE);
             if(validColumns!=null){
                 for(int pos = validColumns.anySetBit();pos!=-1;pos=validColumns.anySetBit(pos)){
@@ -84,7 +84,7 @@ public class Puts {
 	 * @return a Put representing the row to insert
 	 * @throws IOException if {@code row} or {@code extraColumns} cannot be serialized.
 	 */
-	public static Put buildInsert(DataValueDescriptor[] row, byte[] transactionID,
+	public static Put buildInsert(DataValueDescriptor[] row, String transactionID,
 																DataValueDescriptor...extraColumns) throws IOException{
 		return buildInsert(SpliceUtils.getUniqueKey(),row,null,transactionID,new Serializer(),extraColumns);
 	}
@@ -102,9 +102,9 @@ public class Puts {
      * @return a Put representing the row to insert
      * @throws IOException if {@code row} or {@code extraColumns} cannot be serialized.
      */
-    public static Put buildInsert(DataValueDescriptor[] row, byte[] transactionID,Serializer serializer,
+    public static Put buildInsert(DataValueDescriptor[] row, String transactionID, Serializer serializer,
                                   DataValueDescriptor...extraColumns) throws IOException{
-        return buildInsert(SpliceUtils.getUniqueKey(),row,null,transactionID,serializer,extraColumns);
+        return buildInsert(SpliceUtils.getUniqueKey(), row, null, transactionID, serializer, extraColumns);
     }
 
 	/**
@@ -127,8 +127,8 @@ public class Puts {
 	 * @throws IOException if unable to serialize any of {@code row} or {@code extraColumns} into a byte[]
 	 */
 	public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row, FormatableBitSet validColumns,
-																byte[] transactionID,DataValueDescriptor...extraColumns) throws IOException{
-        return buildInsert(rowKey,row,validColumns,transactionID,new Serializer(),extraColumns);
+                                  String transactionID, DataValueDescriptor...extraColumns) throws IOException{
+        return buildInsert(rowKey, row, validColumns, transactionID, new Serializer(), extraColumns);
 	}
 
     public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row,
@@ -137,7 +137,7 @@ public class Puts {
     }
 
     public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row, FormatableBitSet validColumns,
-                                  byte[] transactionID,Serializer serializer,DataValueDescriptor...extraColumns) throws IOException{
+                                  String transactionID,Serializer serializer,DataValueDescriptor...extraColumns) throws IOException{
         Put put = new Put(rowKey);
         attachTransactionInformation(put,transactionID);
         if(validColumns!=null){
@@ -180,8 +180,8 @@ public class Puts {
      * @throws IOException if unable to serializer any of {@code row} into a byte[]
      */
     public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row,
-                                  byte[] transactionID,Serializer serializer,DataValueDescriptor... extraColumns) throws IOException{
-        return buildInsert(rowKey,row,null,transactionID,serializer,extraColumns);
+                                  String transactionID,Serializer serializer,DataValueDescriptor... extraColumns) throws IOException{
+        return buildInsert(rowKey, row, null, transactionID, serializer, extraColumns);
     }
 
 
@@ -212,9 +212,9 @@ public class Puts {
 		}
 	}
 
-	private static void attachTransactionInformation(Put put, byte[] transactionID) {
+	private static void attachTransactionInformation(Put put, String transactionID) {
 		if(transactionID!=null){
-			put.setAttribute(TxnConstants.TRANSACTION_ID,transactionID);
+			SpliceUtils.getTransactionGetsPuts().prepPut(transactionID, put);
 		}
 	}
 

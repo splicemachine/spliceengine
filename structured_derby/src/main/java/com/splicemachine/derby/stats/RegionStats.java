@@ -1,13 +1,14 @@
 package com.splicemachine.derby.stats;
 
-import com.google.common.collect.Maps;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
+import static com.splicemachine.derby.stats.TimeUtils.toSeconds;
 
 import java.util.Arrays;
 import java.util.Map;
 
-import static com.splicemachine.derby.stats.TimeUtils.toSeconds;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
+import com.google.common.collect.Maps;
 
 /**
  * Statistics gatherer for coprocessor-exec stages. Collects statistics from
@@ -17,13 +18,28 @@ import static com.splicemachine.derby.stats.TimeUtils.toSeconds;
  * Created on: 2/26/13
  */
 public class RegionStats {
+	private static Logger LOG = Logger.getLogger(RegionStats.class);
+	
     private final Map<byte[], Stats> processStats = Maps.newConcurrentMap();
     private final Map<byte[], Stats> sinkStats = Maps.newConcurrentMap();
 
+    private String currentOp;
+    
     private long start;
     private long totalTimeTaken;
+    //processed and sunk records may be different in duplicate cases?
+    private long totalProcessedRecords = 0l;
+    private long totalSunkRecords = 0l;
+    private long maxRegionTime = 0l;
+    private long minRegionTime = 0l;
 
-
+    public RegionStats() {
+    }
+    
+    public RegionStats(String currentOpName) {
+    	this.currentOp = currentOpName;
+    }
+    
     public void addRegionStats(byte[] region, SinkStats stats){
         this.processStats.put(region,stats.getProcessStats());
         this.sinkStats.put(region,stats.getSinkStats());
@@ -39,6 +55,26 @@ public class RegionStats {
 
     public long getTotalTimeTaken(){
         return totalTimeTaken;
+    }
+    
+    public long getTotalProcessedRecords(){
+        return totalProcessedRecords;
+    }
+    
+    public long getTotalSunkRecords(){
+        return totalSunkRecords;
+    }
+    
+    public long getMaxRegionTime(){
+        return maxRegionTime;
+    }
+    
+    public long getMinRegionTime(){
+        return minRegionTime;
+    }
+    
+    public long getTotalRegions() {
+    	return processStats.size(); //do processStats and sinkStats have the same # of regions? 
     }
 
     public void recordStats(Logger log) {
@@ -62,9 +98,9 @@ public class RegionStats {
                 .append("Coprocessor Time: ").append(toSeconds(totalTimeTaken))
                 .append("\t Number of Regions: ").append(processStats.size())
                 .append("\nProcess Summary:\n")
-                .append(writeSummaryStats(processStats))
+                .append(writeSummaryStats(processStats, false))
                 .append("\nSink Summary:\n")
-                .append(writeSummaryStats(sinkStats)).toString();
+                .append(writeSummaryStats(sinkStats, true)).toString();
         log.debug(sb);
 
         if(!showDetail) return; //no more to log
@@ -83,7 +119,7 @@ public class RegionStats {
 
     }
 
-    private static String writeSummaryStats(Map<byte[], Stats> statsMap) {
+    private String writeSummaryStats(Map<byte[], Stats> statsMap, boolean isSunk) {
         long[] times = new long[statsMap.size()];
         long[] records = new long[statsMap.size()];
 
@@ -91,11 +127,8 @@ public class RegionStats {
         byte[] largestRegion = null;
         byte[] fastestRegion = null;
         byte[] slowestRegion = null;
-        long minTime = Long.MAX_VALUE;
-        long maxTime = 0l;
         long minRecords = Long.MAX_VALUE;
         long maxRecords = 0l;
-
         long totalTime = 0l;
         long totalRecords = 0l;
         int pos=0;
@@ -104,12 +137,12 @@ public class RegionStats {
             long regionTotalTime= stats.getTotalTime();
             long regionTotalRecords = stats.getTotalRecords();
 
-            if(minTime > regionTotalTime){
-                minTime = regionTotalTime;
+            if(minRegionTime > regionTotalTime){
+                minRegionTime = regionTotalTime;
                 fastestRegion = region;
             }
-            if(maxTime < regionTotalTime){
-                maxTime = regionTotalTime;
+            if(maxRegionTime < regionTotalTime){
+                maxRegionTime = regionTotalTime;
                 slowestRegion = region;
             }
             if(minRecords > regionTotalRecords){
@@ -120,20 +153,31 @@ public class RegionStats {
                 maxRecords = regionTotalRecords;
                 largestRegion = region;
             }
+            
+            LOG.info(">>>region="+region+",regionTotalTime="+regionTotalTime+",regionTotalRecords="+regionTotalRecords);
 
             totalTime+=regionTotalTime;
-            totalRecords+=regionTotalRecords;
+            totalRecords += regionTotalRecords;
             times[pos] = regionTotalTime;
             records[pos] = regionTotalRecords;
+            pos++;
+            
+            LOG.info(">>>region="+region+",totalTime="+regionTotalTime+",totalRecords="+regionTotalRecords);
         }
+        
+        if (isSunk)
+        	this.totalSunkRecords = totalRecords;
+        else
+        	this.totalProcessedRecords = totalRecords;
+        
         Arrays.sort(times);
         Arrays.sort(records);
 
-        return new StringBuilder("Total Time: ").append(toSeconds(totalTime))
+        return new StringBuilder("Current operation: ").append(currentOp).append(", Total Time: ").append(toSeconds(totalTime))
                 .append("\t").append("Number of Records: ").append(totalRecords)
                 .append("\nTiming Stats")
-                .append("\tmin: ").append(toSeconds(minTime))
-                .append(" |max: ").append(toSeconds(maxTime))
+                .append("\tmin: ").append(toSeconds(minRegionTime))
+                .append(" |max: ").append(toSeconds(maxRegionTime))
                 .append(" |med: ").append(toSeconds(times[times.length / 2]))
                 .append(" |p75: ").append(toSeconds(times[3 * times.length / 4]))
                 .append(" |p95: ").append(toSeconds(times[19 * times.length / 20]))
@@ -152,8 +196,5 @@ public class RegionStats {
                 .append("\tlargest region: ").append(Bytes.toString(largestRegion))
                 .append("|smallest region: ").append(Bytes.toString(smallestRegion))
                 .toString();
-
     }
-
-
 }

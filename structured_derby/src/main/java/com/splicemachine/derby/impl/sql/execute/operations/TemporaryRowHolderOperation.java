@@ -1050,20 +1050,6 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
 	}
 
 	/**
-	 * Return the total amount of time spent in this ResultSet
-	 *
-	 * @param type	CURRENT_RESULTSET_ONLY - time spent only in this ResultSet
-	 *				ENTIRE_RESULTSET_TREE  - time spent in this ResultSet and below.
-	 *
-	 * @return long		The total amount of time spent (in milliseconds).
-	 */
-	public long getTimeSpent(int type)
-	{
-		return 0L;
-	}
-
-
-	/**
 	 * Get the subquery ResultSet tracking array from the top ResultSet.
 	 * (Used for tracking open subqueries when closing down on an error.)
 	 *
@@ -1327,5 +1313,11 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
 	 */
 	public final Activation getActivation() {
 		return holder.activation;
+	}
+	
+	@Override
+	public long getTimeSpent(int type)
+	{
+		return 0L;
 	}
 }

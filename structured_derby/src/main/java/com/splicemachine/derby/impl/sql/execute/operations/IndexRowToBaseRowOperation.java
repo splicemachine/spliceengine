@@ -1,13 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -29,12 +29,13 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Maps between an Index Table and a data Table.
@@ -105,6 +106,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		this.indexColMapItem = indexColMapItem;
 		this.restrictionMethodName = restriction==null? null: restriction.getMethodName();
 		init(SpliceOperationContext.newContext(activation));
+		recordConstructorTime(); 
 	}
 
 	@Override
@@ -271,8 +273,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 			SpliceLogUtils.trace(LOG,"<%s> retrieved index row %s",indexName,sourceRow);
 			if(sourceRow!=null){
 				baseRowLocation = (RowLocation)sourceRow.getColumn(sourceRow.nColumns());
-				Get get =  SpliceUtils.createGet(baseRowLocation, rowArray,
-																				heapOnlyCols, Bytes.toBytes(transactionID));
+				Get get =  SpliceUtils.createGet(baseRowLocation, rowArray, heapOnlyCols, transactionID);
 				boolean rowExists = false;
 				try{
 					Result result = table.get(get);
@@ -330,13 +331,38 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	@Override
 	public void close() throws StandardException {
 		SpliceLogUtils.trace(LOG, "closing conglomerate controllers if necessary");
+		beginTime = getCurrentTimeMillis();
 		source.close();
 		super.close();
+		closeTime += getElapsedMillis(beginTime);
 	}
 
 	@Override
 	public ExecRow getExecRowDefinition() {
 		return compactRow.getClone();
+	}
+	
+	public String getIndexName() {
+		return this.indexName;
+	}
+	
+	public  FormatableBitSet getAccessedHeapCols() {
+		return this.accessedHeapCols;
+	}
+	
+	public SpliceOperation getSource() {
+		return this.source;
+	}
+	
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
+
+		if (type == CURRENT_RESULTSET_ONLY)
+			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
 	}
 	
 	@Override

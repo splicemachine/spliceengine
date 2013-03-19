@@ -23,6 +23,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 	protected GeneratedMethod emptyRowFun;
 	protected Qualifier[][] qualifierProbe;
 	protected NestedLoopLeftIterator nestedLoopLeftIterator;
+	public int emptyRightRowsReturned = 0;
 	
 	public NestedLoopLeftOuterJoinOperation() {
 		super();
@@ -50,6 +51,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
 		this.wasRightOuterJoin = wasRightOuterJoin;
 		init(SpliceOperationContext.newContext(activation));
+		recordConstructorTime(); 
 	}
 
 	@Override
@@ -109,6 +111,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		SpliceLogUtils.trace(LOG, "init");
 		super.init(context);
 		try {
+			emptyRightRowsReturned = 0;
 			emptyRowFun = (emptyRowFunMethodName == null) ? null :
                                     context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunMethodName);
 		} catch (StandardException e) {
@@ -151,6 +154,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 					if (seenRow) {
 						SpliceLogUtils.trace(LOG, "already has seen row and no right result");
 						probeResultSet.setCurrentRow(null);
+						emptyRightRowsReturned++;
 						close();
 						return false;
 					}
@@ -188,8 +192,11 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 			SpliceLogUtils.trace(LOG, "remove");
 		}
 		public void close() throws StandardException {
+			if (!isOpen)
+				return;
 			SpliceLogUtils.trace(LOG, "close, closing probe result set");
 			probeResultSet.close();
+			isOpen = false;
 		}
 	}
 

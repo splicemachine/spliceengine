@@ -93,10 +93,10 @@ public class Transaction extends SIConstants {
 		try {
 			table = SIUtils.pushTransactionTable();
 			Put put = new Put(Bytes.toBytes(startTimestamp));
-			put.add(TRANSACTION_FAMILY, TRANSACTION_START_TIMESTAMP_COLUMN,Bytes.toBytes(startTimestamp));
+			put.add(TRANSACTION_FAMILY_BYTES, TRANSACTION_START_TIMESTAMP_COLUMN_BYTES,Bytes.toBytes(startTimestamp));
 			if (commitTimestamp != null)
-				put.add(TRANSACTION_FAMILY, TRANSACTION_COMMIT_TIMESTAMP_COLUMN,Bytes.toBytes(commitTimestamp));
-			put.add(TRANSACTION_FAMILY,TRANSACTION_STATUS_COLUMN,Bytes.toBytes(transactionState.ordinal()));
+				put.add(TRANSACTION_FAMILY_BYTES, TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES,Bytes.toBytes(commitTimestamp));
+			put.add(TRANSACTION_FAMILY_BYTES, TRANSACTION_STATUS_COLUMN_BYTES,Bytes.toBytes(transactionState.ordinal()));
 			table.put(put);
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, e);			
@@ -144,10 +144,10 @@ public class Transaction extends SIConstants {
 			table = SIUtils.pushTransactionTable();
 			Get get = new Get(Bytes.toBytes(startTimestamp));
 			Result result = table.get(get);
-			byte[] value = result.getValue(TRANSACTION_FAMILY, TRANSACTION_COMMIT_TIMESTAMP_COLUMN);
+			byte[] value = result.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
 			if (value != null)	
 				this.commitTimestamp = Bytes.toLong(value);
-			value = result.getValue(TRANSACTION_FAMILY, TRANSACTION_STATUS_COLUMN);
+			value = result.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_STATUS_COLUMN_BYTES);
 			if (value != null)	
 				this.transactionState = TransactionState.values()[Bytes.toInt(value)];
 		} catch (Exception e) {

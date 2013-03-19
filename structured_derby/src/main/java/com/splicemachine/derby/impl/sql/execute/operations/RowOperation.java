@@ -52,6 +52,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 		this.canCacheRow = canCacheRow;
         this.rowMethodName = row.getMethodName();
         init(SpliceOperationContext.newContext(activation));
+        recordConstructorTime(); 
     }
 	
 	public RowOperation (
@@ -65,6 +66,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
         this.cachedRow = constantRow;
 		this.canCacheRow = canCacheRow;
 		init(SpliceOperationContext.newContext(activation));
+		recordConstructorTime(); 
     }
 
 
@@ -215,12 +217,34 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 		}
 	}
 	
+	public int getRowsReturned() {
+		return this.rowsReturned;
+	}
+	
 	@Override
 	public void	close() throws StandardException
 	{
 		SpliceLogUtils.trace(LOG,"close");
-	    clearCurrentRow();
-	    next = false;
-		super.close();
+	    
+		beginTime = getCurrentTimeMillis();
+		if (isOpen) {
+
+			// we don't want to keep around a pointer to the
+			// row ... so it can be thrown away.
+			// REVISIT: does this need to be in a finally
+			// block, to ensure that it is executed?
+	    	clearCurrentRow();
+	    	next = false;
+
+			super.close();
+		}
+		
+		closeTime += getElapsedMillis(beginTime);
+	}
+	
+	@Override
+	public long getTimeSpent(int type)
+	{
+		return constructorTime + openTime + nextTime + closeTime;
 	}
 }

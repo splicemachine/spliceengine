@@ -57,6 +57,7 @@ public class OnceOperation extends SpliceBaseOperation {
 		   this.cardinalityCheck = cardinalityCheck;
 		   this.subqueryNumber = subqueryNumber;
 		   this.pointOfAttachment = pointOfAttachment;
+		   recordConstructorTime(); 
 	   }
 	   
 		@Override
@@ -214,6 +215,15 @@ public class OnceOperation extends SpliceBaseOperation {
 		operations.add(source);
 		return operations;
 	}
+	
+	@Override
+	public long getTimeSpent(int type)
+	{
+		long totTime = constructorTime + openTime + nextTime + closeTime;
 
-
+		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+		else
+			return totTime;
+	}
 }
