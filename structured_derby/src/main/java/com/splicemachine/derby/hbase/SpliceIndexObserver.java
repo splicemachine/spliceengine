@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
@@ -69,15 +70,19 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
     @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
-        indexSet.update(put,e.getEnvironment());
+        indexSet.update(put ,e.getEnvironment());
         super.prePut(e, put, edit, writeToWAL);
     }
 
     @Override
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,
                           Delete delete, WALEdit edit, boolean writeToWAL) throws IOException {
-        indexSet.update(delete,e.getEnvironment());
-        super.preDelete(e, delete, edit, writeToWAL);
+        if (SpliceUtils.useSi) {
+            throw new RuntimeException("deletes not expected in SI mode");
+        } else {
+            indexSet.update(delete, e.getEnvironment());
+            super.preDelete(e, delete, edit, writeToWAL);
+        }
     }
 
 /*******************************************************************************************************************/

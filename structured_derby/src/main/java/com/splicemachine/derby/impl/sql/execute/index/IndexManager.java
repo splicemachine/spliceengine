@@ -324,11 +324,10 @@ public class IndexManager {
         if(!indexNeedsUpdating) return null; //nothing changed that we indexed, whoo!
 
         //bummer, have to update the index
-        Get oldGet = new Get(mainPut.getRow());
+        Get oldGet = SpliceUtils.createGetFromPut(mainPut);
         for(byte[] indexColPos:mainColPos){
             oldGet.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,indexColPos);
         }
-
 
         Result r = region.get(oldGet,null);
         if(r==null||r.isEmpty()) return mainPut; //no row to change, so this is really an insert!
@@ -342,10 +341,7 @@ public class IndexManager {
         }
 
         byte[] indexRowKey = convert(rowToDelete,size);
-        Delete delete = new Delete(indexRowKey);
-        delete.deleteFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
-
-        table.delete(delete);
+        SpliceUtils.doDeleteFromPut(table, indexRowKey, mainPut);
 
         //merge the old row with the new row to form the new index put
         Put newPut = new Put(mainPut.getRow());

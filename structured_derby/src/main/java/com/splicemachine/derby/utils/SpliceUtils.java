@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.hbase.txn.ZkTransactionGetsPuts;
+import com.splicemachine.si.utils.SIConstants;
 import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.txn.SiGetsPuts;
@@ -70,6 +71,8 @@ import java.util.Properties;
 public class SpliceUtils {
 	private static Logger LOG = Logger.getLogger(SpliceUtils.class);
 
+    public static final boolean useSi = false;
+
     /**
      * Populates an array of DataValueDescriptors with a default value based on their type.
      *
@@ -103,7 +106,6 @@ public class SpliceUtils {
             }
         }
     }
-
 
     public enum SpliceConglomerate {HEAP,BTREE}
 	public static Configuration config = SpliceConfiguration.create();
@@ -188,26 +190,59 @@ public class SpliceUtils {
 		}
 	}
 
-    public static void doDelete(HTableInterface htable, RowLocation loc, String transId) throws StandardException, IOException {
+    public static Get createGetFromPut(Put put) {
+        Get get = new Get(put.getRow());
+        final ITransactionGetsPuts transactionGetsPuts = SpliceUtils.getTransactionGetsPuts();
+        transactionGetsPuts.prepGet(transactionGetsPuts.getTransactionIdForPut(put), get);
+        return get;
+    }
+
+    public static void doDeleteFromPut(HTableInterface table, byte[] row, Put put) throws IOException {
+        deleteDirect(table, SpliceUtils.getTransactionGetsPuts().getTransactionIdForPut(put), row);
+    }
+
+    public static void doDelete(HTableInterface htable, RowLocation loc, String transId) throws IOException, StandardException {
+        SpliceLogUtils.trace(LOG, "delete row at location %s", loc);
+        final byte[] rowKey = loc.getBytes();
+        deleteDirect(htable, transId, rowKey);
+    }
+
+    private static void deleteDirect(HTableInterface table, String transId, byte[] row) throws IOException {
         if (useSi) {
             final ClientTransactor clientTransactor = TransactorFactory.getDefaultClientTransactor();
-            Put put = (Put) clientTransactor.newDeletePut(clientTransactor.transactionIdFromString(transId), loc.getBytes());
-            htable.put(put);
+            Put put = (Put) clientTransactor.newDeletePut(clientTransactor.transactionIdFromString(transId), row);
+            table.put(put);
         } else {
-            htable.delete(delete(loc, transId));
+            Delete delete = new Delete(row);
+            if (transId != null) {
+                SpliceUtils.getTransactionGetsPuts().prepDelete(transId, delete);
+            }
+            table.delete(delete);
         }
     }
 
-	private static Delete delete(RowLocation loc, String transID) throws StandardException {
-		SpliceLogUtils.trace(LOG,"delete row at location %s",loc);
-		Delete delete = new Delete(loc.getBytes());
-		if (transID != null) {
-            SpliceUtils.getTransactionGetsPuts().prepDelete(transID,  delete);
+    public static void handleNullsInUpdate(Put put, DataValueDescriptor[] row, FormatableBitSet validColumns) {
+        if (validColumns != null) {
+            int numrows = (validColumns != null ? validColumns.getLength() : row.length);  // bug 118
+            for (int i = 0; i < numrows; i++) {
+                if (validColumns.isSet(i) && row[i] != null && row[i].isNull())
+                    put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), 0, SIConstants.EMPTY_BYTE_ARRAY);
+            }
         }
-		return delete;
-	}
+    }
 
-	public static Delete cleanupNullsDelete(RowLocation loc,DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
+    public static void doCleanupNullsDelete(HTableInterface table, RowLocation loc,DataValueDescriptor[] destRow,
+                                              FormatableBitSet validColumns, String transID)
+            throws StandardException, IOException {
+        if (useSi) {
+            // handle this in the put
+        } else {
+            table.delete(cleanupNullsDelete(loc, destRow, validColumns, transID));
+        }
+    }
+
+    private static Delete cleanupNullsDelete(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns,
+                                             String transID) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("cleanupNullsDelete row ");
 		try {
@@ -561,8 +596,6 @@ public class SpliceUtils {
 
 		return transID;
 	}
-
-    public static final boolean useSi = false;
 
     public static ITransactionGetsPuts getTransactionGetsPuts() {
         if (useSi) {
