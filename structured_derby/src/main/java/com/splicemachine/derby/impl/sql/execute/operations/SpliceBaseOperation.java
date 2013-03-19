@@ -84,7 +84,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	protected int resultSetNumber;
 	protected String transactionID;
 	protected Transaction trans;
-	protected boolean isTopResultSet;
+	protected boolean isTopResultSet = false;
 	protected String uniqueSequenceID;
 	protected ExecRow currentRow;
 	protected RowLocation currentRowLocation;
@@ -116,7 +116,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     public SpliceBaseOperation() {
 		super();
-//        SpliceLogUtils.trace(LOG,"instantiated");
 	}
 
 	public SpliceBaseOperation(Activation activation, int resultSetNumber, double optimizerEstimatedRowCount,double optimizerEstimatedCost) throws StandardException {
@@ -139,6 +138,16 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
 
 		operationParams = activation.getParameterValueSet().getClone();
+		
+		
+		SpliceLogUtils.trace(LOG,"begine compile time="+activation.getPreparedStatement().getBeginCompileTimestamp()
+				+",end compile time="+activation.getPreparedStatement().getEndCompileTimestamp());
+		
+		if (activation.getLanguageConnectionContext().getStatementContext() == null) {
+			SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
+			return;
+		}
+		//TODO: need to getStatementContext from somewhere
 		if (subqueryTrackingArray == null)
 			subqueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();
 	}
@@ -334,7 +343,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
                     // get the RuntimeStatisticsImpl object which is the wrapper for all 
                     // gathered statistics about all the different resultsets
                     RunTimeStatistics rsImpl = rssf.getRunTimeStatistics(activation, this, subqueryTrackingArray); 
-  
+                    SpliceLogUtils.trace(LOG, "top resultset, RunTimeStatistics="+rsImpl+",EndExecutionTimestamp="+rsImpl.getEndExecutionTimestamp());
                     // save the RTW (wrapper)object in the lcc
                     lcc.setRunTimeStatisticsObject(rsImpl);
                     
@@ -374,11 +383,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	
 	@Override
 	public NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries) {
-
 		if (subqueryTrackingArray == null)
-		{
 			subqueryTrackingArray = new NoPutResultSet[numSubqueries];
-		}
 		return subqueryTrackingArray;
 	}
 	
@@ -689,7 +695,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 					});
             regionStats.finish();
             regionStats.recordStats(LOG);
-            nextTime += regionStats.getTotalTimeTaken();
+            nextTime += regionStats.getTotalTimeTakenMs();
 			SpliceLogUtils.trace(LOG,"Sunk %d records",numberCreated);
 			rowsSunk=numberCreated;
 		}catch(IOException ioe){

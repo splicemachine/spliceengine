@@ -116,12 +116,14 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 //		SpliceLogUtils.trace(LOG, "getNextRowCore");
+		beginTime = getCurrentTimeMillis();
 		if (nestedLoopIterator == null) {
 			if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
 				mergedRow = null;
 				setCurrentRow(mergedRow);
 				return mergedRow;
 			} else {
+				rowsSeenLeft++;
 				nestedLoopIterator = new NestedLoopIterator(leftRow,isHash);
 				return getNextRowCore();
 			}
@@ -134,6 +136,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				setCurrentRow(mergedRow);
 				return mergedRow;
 			} else {
+				rowsSeenLeft++;
 				nestedLoopIterator = new NestedLoopIterator(leftRow,isHash);
 				return getNextRowCore();
 			}
@@ -143,6 +146,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		ExecRow next = nestedLoopIterator.next();
 		SpliceLogUtils.trace(LOG,"getNextRowCore returning %s",next);
 		setCurrentRow(next);
+		nextTime += getElapsedMillis(beginTime);
+		rowsReturned++;
 //		mergedRow=null;
 		return next;
 	}
@@ -150,6 +155,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	@Override
 	public void	close() throws StandardException
 	{ 
+		SpliceLogUtils.trace(LOG, "close in NestdLoopJoin");
 		beginTime = getCurrentTimeMillis();
 		clearCurrentRow();
 		super.close();
@@ -192,6 +198,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 					 * up the stack.
 					 */
 					rightResultSet.setCurrentRow(rightRow); //set this here for serialization up the stack
+					rowsSeenRight++;
 					mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
 				} else {
 					SpliceLogUtils.trace(LOG, "already has seen row and no right result");
@@ -233,7 +240,12 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		}
 		public void close() throws StandardException {
 			SpliceLogUtils.trace(LOG, "close, closing probe result set");
+			beginTime = getCurrentTimeMillis();
+			if (!isOpen)
+				return;
 			probeResultSet.close();
+			isOpen = false;
+			closeTime += getElapsedMillis(beginTime);
 		}
 	}
 	

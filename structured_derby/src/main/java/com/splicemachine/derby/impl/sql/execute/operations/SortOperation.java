@@ -283,7 +283,8 @@ public class SortOperation extends SpliceBaseOperation {
 	}
 	@Override
 	public void	close() throws StandardException
-	{
+	{ 
+		SpliceLogUtils.trace(LOG, "close in Sort");
 		beginTime = getCurrentTimeMillis();
 		if ( isOpen )
 	    {
@@ -299,6 +300,7 @@ public class SortOperation extends SpliceBaseOperation {
 
 		isOpen = false;
 	}
+	
 	@Override
 	public long getTimeSpent(int type)
 	{

@@ -192,6 +192,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 			SpliceLogUtils.trace(LOG, "remove");
 		}
 		public void close() throws StandardException {
+			SpliceLogUtils.trace(LOG, "close in NestedLoopLeftuterJoin");
 			if (!isOpen)
 				return;
 			SpliceLogUtils.trace(LOG, "close, closing probe result set");

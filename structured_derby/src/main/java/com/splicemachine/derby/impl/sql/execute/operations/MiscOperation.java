@@ -68,7 +68,7 @@ public class MiscOperation extends NoRowsOperation
 
 		@Override
 		public void close() {
-			SpliceLogUtils.trace(LOG, "close, isOpen="+isOpen);
+			SpliceLogUtils.trace(LOG, "close for miscRowProvider, isOpen="+isOpen);
 			if (!isOpen)
 				return;
 			try {

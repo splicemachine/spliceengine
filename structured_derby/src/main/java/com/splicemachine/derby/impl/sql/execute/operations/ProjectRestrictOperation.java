@@ -78,6 +78,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		this.doesProjection = doesProjection;
 		this.source = (SpliceOperation) source;
 		init(SpliceOperationContext.newContext(activation));
+		SpliceLogUtils.trace(LOG, "statisticsTimingOn="+statisticsTimingOn+",isTopResultSet="+isTopResultSet);
 		recordConstructorTime();
     }
     
@@ -309,7 +310,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 			if (! isTopResultSet)
 			{
 				/* This is simply for RunTimeStats */
-				subqueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();
+				//TODO: need to getStatementContext() from somewhere
+				if (activation.getLanguageConnectionContext().getStatementContext() == null) 
+					SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
+				else
+					subqueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();
 			}
 			nextTime += getElapsedMillis(beginTime);
 		}
@@ -360,6 +365,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	@Override
 	public void	close() throws StandardException
 	{
+		SpliceLogUtils.trace(LOG, "close in ProjectRestrict");
 		/* Nothing to do if open was short circuited by false constant expression */
 		if (shortCircuitOpen)
 		{

@@ -81,12 +81,13 @@ public class CallStatementOperation extends NoRowsOperation {
 
 		@Override
 		public void close() {
-
+			SpliceLogUtils.trace(LOG, "close in callableRowProvider for CallStatement, StatementContext="+
+					activation.getLanguageConnectionContext().getStatementContext());
 			if (!isOpen)
 				return;
 			
-			if (isTopResultSet && activation.getLanguageConnectionContext().getRunTimeStatisticsMode() &&
-	                    !activation.getLanguageConnectionContext().getStatementContext().getStatementWasInvalidated())
+			if (isTopResultSet && activation.getLanguageConnectionContext().getRunTimeStatisticsMode() 
+					&& !activation.getLanguageConnectionContext().getStatementContext().getStatementWasInvalidated())
 				endExecutionTime = getCurrentTimeMillis();
 
 			ResultSet[][] dynamicResults = activation.getDynamicResults();

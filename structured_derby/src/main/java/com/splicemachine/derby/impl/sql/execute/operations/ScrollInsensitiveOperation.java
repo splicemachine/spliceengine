@@ -36,7 +36,6 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 		this.sourceRowWidth = sourceRowWidth;
 		this.source = source;
 		this.scrollable = scrollable;
-		this.isTopResultSet = true;
 		recordConstructorTime(); 
 	}
 

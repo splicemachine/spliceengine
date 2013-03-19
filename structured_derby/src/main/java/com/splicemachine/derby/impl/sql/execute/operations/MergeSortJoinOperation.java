@@ -117,10 +117,12 @@ public class MergeSortJoinOperation extends JoinOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowCore");
+		beginTime = getCurrentTimeMillis();
 		if (mergeSortIterator == null)
 			mergeSortIterator = new MergeSortNextRowIterator(false);
 		if (mergeSortIterator.hasNext()) {
 			ExecRow next = mergeSortIterator.next();
+			nextTime += getElapsedMillis(beginTime);
 			return next;
 		} else {
 			setCurrentRow(null);
@@ -241,7 +243,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                 put = Puts.buildInsert(rowKey, row.getRowArray(),null, null,serializer, additionalDescriptors);
                 put.setWriteToWAL(false); // Seeing if this speeds stuff up a bit...
                 tempTable.put(put);
-
+                rowsReturned++;
                 stats.sinkAccumulator().tick(System.nanoTime()-start);
             }while(row!=null);
 			tempTable.flushCommits();
@@ -324,6 +326,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 			if (rightIterator!= null && rightIterator.hasNext()) {
 				currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
 				setCurrentRow(currentRow);
+				rowsSeenRight++;
 				currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
 				SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
 				return true;
@@ -340,6 +343,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 						rights.add(joinRow.getRow().getClone());
 					} else {
 						resetRightSide();
+						rowsSeenRight++;
 						SpliceLogUtils.trace(LOG, "adding initial right=%s",joinRow);
 						rights.add(joinRow.getRow().getClone());
 						priorHash = joinRow.getHash();
@@ -348,12 +352,14 @@ public class MergeSortJoinOperation extends JoinOperation {
 				} 
 				else { // Left Side
 					leftRow = joinRow.getRow();
+					rowsSeenLeft++;
 					if (joinRow.sameHash(priorHash)) {
 						if (joinRow.sameHash(rightHash)) {
 							SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s",joinRow);
 							rightIterator = rights.iterator();
 							currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, rightNumCols,leftNumCols, mergedRow);
 							setCurrentRow(currentRow);
+							rowsSeenRight++;
 							currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());					
 							SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
 							return true;
@@ -411,6 +417,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 	@Override
 	public void	close() throws StandardException
 	{
+		SpliceLogUtils.trace(LOG, "close in MergeSortJoin");
 		beginTime = getCurrentTimeMillis();
 
 		if ( isOpen )
