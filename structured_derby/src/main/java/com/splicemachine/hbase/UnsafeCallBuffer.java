@@ -54,7 +54,6 @@ public class UnsafeCallBuffer<E> implements CallBuffer<E>{
         checkBuffer();
     }
 
-
     @Override
     public void addAll(Collection<? extends E> elements) throws Exception {
         int n=0;

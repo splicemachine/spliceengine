@@ -24,12 +24,69 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
+ * Global interface for writing to HBase.
+ *
+ * There are several issues with using a traditional HTableInterface which this
+ * implementation attempts to solve:
+ *
+ * 1. Creating an HTableInterface is generally an expensive operation, involving synchronized
+ * access to an HConnection, as well as reading the same fields out of Configuration.
+ * 2. Once created, HTableInterface implementations are generally unable to be shared amongst
+ * multiple writers without risking data-share issues. Specifically, when {@code autoFlush}
+ * is disabled, HTableInterface implementations must maintain a single shared buffer of
+ * writes.
+ * 3. There is no region-awareness state that is maintained, so time must be spent on every
+ * write asking the connection to lookup region information and validate it. While HConnection
+ * implementations generally maintain a region-level cache, that cache is insufficient when
+ * multiple tables are constructed, as they often won't share the same connection. The
+ * end result is more time spent on preparing to write than necessary.
+ * 4. HTableInterface implementations are synchronous by nature. It is therefore not
+ * possible to offload a batch of writes to a separate thread for later writing.
+ *
+ * This implementation attempts to resolve the HTableInterface troubles by creating
+ * a single, non-blocking, global Table management tool. It wraps a single HConnection,
+ * which allows for better region caching at the connection level, and allows for both
+ * synchronous and asynchronous buffer flushing. Additionally, it maintains a cache of
+ * region information, and uses the {@link BatchProtocol} coprocessor endpoint to perform writes.
+ * This cache is maintained and always used--there is never a situation in which the cache is not used,
+ * although there are some situations in which the cache may be invalidated (either wholly or in part),
+ * which may impose additional temporary latency on writes until the cache is repopulated.
+ *
+ * TableWriters deal out CallBuffers, which are isolated from one another,
+ * allowing multiple different operations to use the same TableWriter
+ * instance without fear of cross contamination.
+ *
+ * CallBuffers come in asynchronous and synchronous forms. Synchronous CallBuffers will
+ * immediately write their buffer upon flushing, while Asynchronous buffers do not have
+ * that guarantee. However, Asynchronous CallBuffers will wait for all flushed buffers
+ * to complete writing before closing, which allows callers to ensure that all
+ * elements have been written successfully.
+ *
+ * When using Asynchronous CallBuffers, it is important to be aware that there is only one pool
+ * for writing all Buffers accessed through a single TableWriter instance. This has advantages--
+ * thread management is simpler to manage globally, but it is possible for some operations to have additional
+ * latency when attempting to flush a buffer, as it must wait for a thread to process its information. This can
+ * be monitored via JMX by looking at PendingBufferFlushes. If a spike occurs in that, then the number of pending
+ * buffers may be too small; one can adjust it on the fly by setting maxFlushesPerBuffer.
+ *
+ * The following configuration settings are used to configure the default (and initial) execution strategy for
+ * TableWriters:
+ *
+ * 1.<em>hbase.client.write.buffer</em>: The maximum heap size of any given CallBuffer, in bytes. Puts are measured
+ * using {@code put.heapSize()}, while deletes are measured by the length of their row key. This can
+ * be adjusted through JMX by using the "maxBufferHeapSize" settings.
+ * 2. <em>hbase.client.write.buffer.maxentres</em>: The maximum number of of entries in any given CallBuffer. This
+ * can be adjusted through JMX by using the "maxBufferEntries" settings.
+ * 3. <em>hbase.client.write.buffer.maxflushes</em>: The maximum number of flushes which can occur concurrently
+ * for any given buffer, before blocking the caller.
+ *
  * @author Scott Fines
  * Created on: 3/18/13
  */
-public class TableWriter {
+public class TableWriter implements WriterStatus{
     private static final Logger LOG = Logger.getLogger(TableWriter.class);
     private static final Logger CACHE_LOG = Logger.getLogger(RegionCacheLoader.class);
 
@@ -46,12 +103,21 @@ public class TableWriter {
     private final LoadingCache<Integer,Set<HRegionInfo>> regionCache;
     private final ScheduledExecutorService cacheUpdater;
     private final long cacheUpdatePeriod;
+    private final Configuration configuration;
 
+    /*
+     * Manageable state information about handing out buffers
+     */
     private volatile long maxHeapSize;
     private volatile int maxBufferEntries;
     private volatile int maxPendingBuffers;
-    private final Configuration configuration;
 
+    private final AtomicInteger pendingBufferFlushes = new AtomicInteger(0);
+    private final AtomicInteger executingBufferFlushes = new AtomicInteger(0);
+    private final AtomicInteger outstandingCallBuffers = new AtomicInteger(0);
+    private final AtomicLong totalBufferFlushes = new AtomicLong(0);
+    private final AtomicInteger runningWrites = new AtomicInteger(0);
+    private volatile long cacheUpdatedTimestamp;
 
     public static TableWriter create(Configuration configuration) throws IOException {
         assert configuration!=null;
@@ -60,7 +126,7 @@ public class TableWriter {
 
         long writeBufferSize = configuration.getLong("hbase.client.write.buffer", 2097152);
         int maxBufferEntries = configuration.getInt("hbase.client.write.buffer.maxentries", -1);
-        int maxPendingBuffers = configuration.getInt("hbase.client.write.buffers.maxpending",
+        int maxPendingBuffers = configuration.getInt("hbase.client.write.buffers.maxflushes",
                 DEFAULT_MAX_PENDING_BUFFERS);
 
         int maxThreads = configuration.getInt("hbase.htable.threads.max",Integer.MAX_VALUE);
@@ -121,21 +187,102 @@ public class TableWriter {
     }
 
     public CallBuffer<Mutation> writeBuffer(byte[] tableName) throws Exception{
+        outstandingCallBuffers.incrementAndGet();
         final Writer writer = new Writer(tableName, maxPendingBuffers);
         return new UnsafeCallBuffer<Mutation>(maxHeapSize,maxBufferEntries,writer){
             @Override
             public void close() throws Exception {
                 writer.ensureFlushed();
                 super.close();
+                outstandingCallBuffers.decrementAndGet();
             }
         };
     }
 
     public CallBuffer<Mutation> synchronousWriteBuffer(byte[] tableName) throws Exception{
+        outstandingCallBuffers.incrementAndGet();
         final SynchronousWriter writer = new SynchronousWriter(tableName);
-        return new UnsafeCallBuffer<Mutation>(maxHeapSize,maxBufferEntries,writer);
+        return new UnsafeCallBuffer<Mutation>(maxHeapSize,maxBufferEntries,writer){
+            @Override
+            public void close() throws Exception {
+                super.close();
+                outstandingCallBuffers.decrementAndGet();
+            }
+        };
     }
 
+    /*MBean methods for JMX management*/
+    @Override
+    public long getMaxBufferHeapSize() {
+        return maxHeapSize;
+    }
+
+    @Override
+    public void setMaxBufferHeapSize(long newMaxHeapSize) {
+        this.maxHeapSize = newMaxHeapSize;
+    }
+
+    @Override
+    public int getMaxBufferEntries() {
+        return maxBufferEntries;
+    }
+
+    @Override
+    public void setMaxBufferEntries(int newMaxBufferEntries) {
+        this.maxBufferEntries = newMaxBufferEntries;
+    }
+
+    @Override
+    public int getMaxFlushesPerBuffer() {
+        return maxPendingBuffers;
+    }
+
+    @Override
+    public void setMaxFlushesPerBuffer(int newMaxFlushesPerBuffer) {
+        this.maxPendingBuffers = newMaxFlushesPerBuffer;
+    }
+
+    @Override
+    public int getOutstandingCallBuffers() {
+        return outstandingCallBuffers.get();
+    }
+
+    @Override
+    public int getPendingBufferFlushes() {
+        return pendingBufferFlushes.get();
+    }
+
+    @Override
+    public int getExecutingBufferFlushes() {
+        return executingBufferFlushes.get();
+    }
+
+    @Override
+    public long getTotalBufferFlushes() {
+        return totalBufferFlushes.get();
+    }
+
+    @Override
+    public int getRunningWriteThreads() {
+        return runningWrites.get();
+    }
+
+    @Override
+    public long getNumCachedTables() {
+        return regionCache.size();
+    }
+
+    @Override
+    public int getNumCachedRegions(String tableName) {
+        Set<HRegionInfo> regions = regionCache.getIfPresent(Bytes.mapKey(tableName.getBytes()));
+        if(regions==null) return 0;
+        return regions.size();
+    }
+
+    @Override
+    public long getCacheLastUpdatedTimeStamp() {
+        return cacheUpdatedTimestamp;
+    }
 
     private abstract class BufferListener implements CallBuffer.Listener<Mutation>{
         protected final byte[] tableName;
@@ -217,7 +364,22 @@ public class TableWriter {
              * semaphore permit is released.
              *
              */
+            totalBufferFlushes.incrementAndGet();
+
+            /*
+             * Tell the world that we've entered the pendingBuffer stage. That way, if
+             * the permits are too low, we will see a spike in pending Buffers.
+             */
+            pendingBufferFlushes.incrementAndGet();
             pendingBuffersPermits.acquire();
+
+            /*
+             * Tell the world that we've entered the executingBuffer stage. That way, if
+             * the number of available threads are too low, we'll see a large spike in executing
+             * buffers, followed by a spike in the pendingBuffer stage as writes back up.
+             */
+            pendingBufferFlushes.decrementAndGet();
+            executingBufferFlushes.incrementAndGet();
 
             Map<byte[],MutationRequest> bucketedMutations = bucketMutations(tableName,entries);
             final AtomicInteger runningCounts = new AtomicInteger(bucketedMutations.size());
@@ -230,14 +392,20 @@ public class TableWriter {
                 futures.add(writerPool.submit(new Callable<Void>(){
                     @Override
                     public Void call() throws Exception {
-                        BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
-                                protoClassArray,
-                                invoker);
-                        instance.batchMutate(mutationsToWrite);
+                        runningWrites.incrementAndGet();
+                        try{
+                            BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
+                                    protoClassArray,
+                                    invoker);
+                            instance.batchMutate(mutationsToWrite);
 
-                        int threadsStillRunning = runningCounts.decrementAndGet();
-                        if(threadsStillRunning<=0){
-                            pendingBuffersPermits.release();
+                            int threadsStillRunning = runningCounts.decrementAndGet();
+                            if(threadsStillRunning<=0){
+                                executingBufferFlushes.decrementAndGet();
+                                pendingBuffersPermits.release();
+                            }
+                        }finally{
+                            runningWrites.decrementAndGet();
                         }
                         return null;
                     }
@@ -306,6 +474,7 @@ public class TableWriter {
         @Override
         public void run() {
             SpliceLogUtils.debug(CACHE_LOG,"Refreshing Region cache for all tables");
+            TableWriter.this.cacheUpdatedTimestamp = System.currentTimeMillis();
             final Map<byte[],Set<HRegionInfo>> regionInfos = Maps.newHashMap();
             MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
                 @Override

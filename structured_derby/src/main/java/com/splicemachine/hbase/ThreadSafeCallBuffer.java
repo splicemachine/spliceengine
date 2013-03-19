@@ -36,12 +36,6 @@ public class ThreadSafeCallBuffer<E> implements CallBuffer<E> {
             queue = new LinkedBlockingQueue<E>();
     }
 
-    /**
-     * Adds an entry to the buffer, flushing the buffer if it's full.
-     *
-     * @param element the element to add.
-     * @throws Exception if the buffer is flushed and something goes wrong during the flush operation.
-     */
     @Override
     public void add(E element) throws Exception{
         /*
@@ -83,14 +77,6 @@ public class ThreadSafeCallBuffer<E> implements CallBuffer<E> {
         }
     }
 
-
-    /**
-     * Bulk adds multiple elements to the buffer, flushing it if it's full.
-     *
-     * @param elements the elements to add
-     * @throws Exception if the buffer is flushed, and then something goes wrong during
-     * the buffer flush operation.
-     */
     @Override
     public void addAll(E[] elements) throws Exception{
         int n=0;
@@ -106,13 +92,6 @@ public class ThreadSafeCallBuffer<E> implements CallBuffer<E> {
         }
     }
 
-    /**
-     * Bulk adds multiple elements to the buffer, flushing it if it's full.
-     *
-     * @param elements the elements to add
-     * @throws Exception if the buffer is flushed, and then something goes wrong during
-     * the buffer flush operation.
-     */
     @Override
     public void addAll(Collection<? extends E> elements) throws Exception{
         int n=0;
@@ -128,11 +107,6 @@ public class ThreadSafeCallBuffer<E> implements CallBuffer<E> {
         }
     }
 
-    /**
-     * Flush the buffer.
-     *
-     * @throws Exception if something goes wrong during the flush operation.
-     */
     @Override
     public void flushBuffer()  throws Exception{
         List<E> entries = new ArrayList<E>(queue.size());

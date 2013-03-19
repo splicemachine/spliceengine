@@ -64,6 +64,7 @@ public class SpliceDriver {
     private volatile NetworkServerControl server;
 
     private volatile TableWriter writerPool;
+    private volatile CountDownLatch initalizationLatch = new CountDownLatch(1);
 
     private ExecutorService executor;
 
@@ -78,11 +79,31 @@ public class SpliceDriver {
     }
 
     public LanguageConnectionContext getLanguageConnectionContext(){
+        return getLanguageConnectionContext(3);
+    }
+
+    private LanguageConnectionContext getLanguageConnectionContext(int numAttempts) {
+        if(numAttempts<0){
+            throw new AssertionError("Unable to get Language Connection Context, " +
+                    "Driver failed to start up after multiple attempts");
+        }
         switch (stateHolder.get()) {
             case STARTUP_FAILED:
                 throw new AssertionError("Service Startup failed, unable to acquire Language Connection Context");
             case SHUTDOWN:
                 throw new AssertionError("Service is shutdown");
+            case INITIALIZING:
+                //need to block until the initialization state has ended
+                try {
+                    initalizationLatch.await();
+                } catch (InterruptedException e) {
+                    SpliceLogUtils.warn(LOG,"Interrupted while waiting for Splice Driver initialization",e);
+                    //interrupted during wait, see if it's good
+                    return getLanguageConnectionContext(numAttempts-1);
+                }
+            case NOT_STARTED:
+                start();
+                return getLanguageConnectionContext(numAttempts);
             default:
                 /*
                  * Either the lcc is null or it's not. Either way, return that to the caller
@@ -142,6 +163,7 @@ public class SpliceDriver {
                         return null;
                     } else
                         stateHolder.set(State.RUNNING);
+                        initalizationLatch.countDown();
                     return null;
                 }
             });
