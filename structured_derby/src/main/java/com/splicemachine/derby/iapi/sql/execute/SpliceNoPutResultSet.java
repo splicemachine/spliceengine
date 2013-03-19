@@ -3,27 +3,17 @@ package com.splicemachine.derby.iapi.sql.execute;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.ResultSet;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.conn.StatementContext;
 import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.sql.execute.ResultSetStatisticsFactory;
 import org.apache.derby.iapi.sql.execute.RowChanger;
-import org.apache.derby.iapi.sql.execute.RunTimeStatistics;
 import org.apache.derby.iapi.sql.execute.TargetResultSet;
-import org.apache.derby.iapi.sql.execute.xplain.XPLAINVisitor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
@@ -33,6 +23,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -54,9 +45,6 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	protected boolean returnsRows;
     private StatementContext statementContext;
     private NoPutResultSet[] subqueryTrackingArray;
-    protected long startTime;
-	protected long endTime;
-	protected boolean statisticsTimingOn;
 	
     public SpliceNoPutResultSet(Activation activation,SpliceOperation topOperation,RowProvider rowProvider){
 		this(activation,topOperation,rowProvider,true);
@@ -71,13 +59,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 		this.topOperation = topOperation;
 		this.rowProvider = rowProvider;
 		this.returnsRows = returnsRows;
-//		if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming())
-//			startTime = System.currentTimeMillis();
-		statisticsTimingOn = true;
-		startTime = System.currentTimeMillis();
 	}
-
-
 
 	public SpliceNoPutResultSet(Scan scan, String table,
 			Activation activation,
@@ -148,10 +130,10 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	}
 
     private void attachStatementContext() throws StandardException {
-        if(statementContext == null || !statementContext.onStack()){
+    	if(statementContext == null || !statementContext.onStack()){
             statementContext = activation.getLanguageConnectionContext().getStatementContext();
         }
-        statementContext.setTopResultSet(topOperation,subqueryTrackingArray);
+    	statementContext.setTopResultSet(topOperation,subqueryTrackingArray);
         if(subqueryTrackingArray == null)
             subqueryTrackingArray = statementContext.getSubqueryTrackingArray();
         statementContext.setActivation(activation);
@@ -196,39 +178,6 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	public void close() throws StandardException {
 		SpliceLogUtils.trace(LOG, "close="+closed);
 		if(closed) return; //nothing to do;
-
-		/*LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-
-		// only if statistics is switched on, collect & derive them
-		if (lcc.getRunTimeStatisticsMode() &&
-				!lcc.getStatementContext().getStatementWasInvalidated())
-		{   
-			endTime = System.currentTimeMillis() - startTime;
-			
-			// get the ResultSetStatisticsFactory, which gathers RuntimeStatistics
-			ExecutionFactory ef = lcc.getLanguageConnectionFactory().getExecutionFactory();
-			ResultSetStatisticsFactory rssf = ef.getResultSetStatisticsFactory();
-
-			// get the RuntimeStatisticsImpl object which is the wrapper for all 
-			// gathered statistics about all the different resultsets
-			RunTimeStatistics rsImpl = rssf.getRunTimeStatistics(activation, this, subqueryTrackingArray); 
-
-			// save the RTW (wrapper)object in the lcc
-			lcc.setRunTimeStatisticsObject(rsImpl);
-
-			// now explain gathered statistics, using an appropriate visitor
-			XPLAINVisitor visitor = ef.getXPLAINFactory().getXPLAINVisitor();
-			visitor.doXPLAIN(rsImpl,activation);
-		}
-
-		int staLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
-
-		for (int index = 0; index < staLength; index++)
-		{
-			if (subqueryTrackingArray[index] == null || subqueryTrackingArray[index].isClosed())
-				continue;
-			subqueryTrackingArray[index].close();
-		}*/
 
 		rowProvider.close();
 		topOperation.close();
@@ -279,7 +228,10 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	@Override
 	public NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries) {
 		SpliceLogUtils.trace(LOG,"getSubqueryTrackingArray with numSubqueries "+ numSubqueries);
-		return null;
+		if (subqueryTrackingArray == null)
+			subqueryTrackingArray = new NoPutResultSet[numSubqueries];
+
+		return subqueryTrackingArray;
 	}
 
 	@Override
