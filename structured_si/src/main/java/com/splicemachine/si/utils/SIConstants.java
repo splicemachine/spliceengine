@@ -5,7 +5,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.constants.HBaseConstants;
 
 public class SIConstants {
-	public static final byte[] ZERO_BYTE_ARRAY = new byte[0];
+	public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 	public static final String SNAPSHOT_ISOLATION_FAMILY = "_si";
 	public static final byte[] SNAPSHOT_ISOLATION_FAMILY_BYTES = SNAPSHOT_ISOLATION_FAMILY.getBytes();
 	public static final String TRANSACTION_TABLE = "__TXN";

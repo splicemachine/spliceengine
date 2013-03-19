@@ -39,8 +39,8 @@ public class SIPut extends Put {
 	}
 	private void init(long timestamp) {
 		this.startTimestamp = timestamp;		
-		add(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, startTimestamp, SIConstants.ZERO_BYTE_ARRAY);
-		setAttribute(SIConstants.SI, SIConstants.ZERO_BYTE_ARRAY);
+		add(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, startTimestamp, SIConstants.EMPTY_BYTE_ARRAY);
+		setAttribute(SIConstants.SI, SIConstants.EMPTY_BYTE_ARRAY);
 	}
 	@Override
 	public Put add(byte[] family, byte[] qualifier, byte[] value) {

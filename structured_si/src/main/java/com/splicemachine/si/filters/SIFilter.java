@@ -26,7 +26,7 @@ public class SIFilter extends FilterBase {
 	protected HashMap<Long,Long> committedTransactions;
 	protected HRegion region;
 	protected Cache<Long,Transaction> transactionCache;
-	protected byte[] lastValidQualifier = SIConstants.ZERO_BYTE_ARRAY;
+	protected byte[] lastValidQualifier = SIConstants.EMPTY_BYTE_ARRAY;
 	
 	public SIFilter() {
 		
@@ -95,7 +95,7 @@ public class SIFilter extends FilterBase {
 		
 	private void updateCommitTimestamps (KeyValue keyValue) {
  		byte[] commitValue = keyValue.getValue();
- 		if (Arrays.equals(commitValue,SIConstants.ZERO_BYTE_ARRAY)) {
+ 		if (Arrays.equals(commitValue,SIConstants.EMPTY_BYTE_ARRAY)) {
 			Transaction transaction = Transaction.readTransaction(keyValue.getTimestamp());
 			switch (transaction.getTransactionState()) {
 			case ABORT:
@@ -159,7 +159,7 @@ public class SIFilter extends FilterBase {
 			!Arrays.equals(lastValidQualifier,keyValue.getQualifier())) {
 				if (committedTransactions.containsKey(keyValue.getTimestamp()) || 
 					startTimestamp == keyValue.getTimestamp()) {
-					if (keyValue.getValue() != null && Arrays.equals(keyValue.getValue(),SIConstants.ZERO_BYTE_ARRAY)) { 
+					if (keyValue.getValue() != null && Arrays.equals(keyValue.getValue(),SIConstants.EMPTY_BYTE_ARRAY)) {
 						return ReturnCode.NEXT_COL;
 					}
 					if (currentTombstoneMarker == null || currentTombstoneMarker < keyValue.getTimestamp()) {
