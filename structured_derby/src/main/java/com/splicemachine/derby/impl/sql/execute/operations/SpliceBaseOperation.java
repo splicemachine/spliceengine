@@ -695,7 +695,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 					});
             regionStats.finish();
             regionStats.recordStats(LOG);
-            nextTime += regionStats.getTotalTimeTaken();
+            nextTime += regionStats.getTotalTimeTakenMs();
 			SpliceLogUtils.trace(LOG,"Sunk %d records",numberCreated);
 			rowsSunk=numberCreated;
 		}catch(IOException ioe){

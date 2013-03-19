@@ -218,7 +218,7 @@ public class HashScanOperation extends ScanOperation {
             regionStats.finish();
             regionStats.recordStats(LOG);
 			executed = true;
-            nextTime += regionStats.getTotalTimeTaken();
+            nextTime += regionStats.getTotalTimeTakenMs();
 		} catch (Exception e) {
 			LOG.error("Problem Running Coprocessor " + e.getMessage());
 			throw new RuntimeException(e);

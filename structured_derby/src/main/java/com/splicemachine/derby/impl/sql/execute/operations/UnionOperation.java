@@ -242,7 +242,7 @@ public class UnionOperation extends SpliceBaseOperation {
 
             stats.finish();
             stats.recordStats(LOG);
-            nextTime += stats.getTotalTimeTaken();
+            nextTime += stats.getTotalTimeTakenMs();
 			SpliceLogUtils.trace(LOG,"Retrieved %d records",numberCreated);
 			executed = true;
 		} catch (IOException ioe){
