@@ -33,7 +33,7 @@ public class Query {
         this.threads = threads;
     }
 
-    public Result run(final Connection conn) throws Exception{
+    public Result run(final JDBCConnectionPool connectionPool) throws Exception{
         ExecutorService testRunner = Executors.newFixedThreadPool(threads);
         final int samplesPerThread = samples/threads;
         try{
@@ -44,16 +44,21 @@ public class Query {
                 completionService.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        PreparedStatement ps = conn.prepareStatement(query);
-                        for(int j=0;j<samplesPerThread;j++){
-                            fillParameters(ps);
-                            long start = System.nanoTime();
-                            ResultSet resultSet = ps.executeQuery();
-                            long numRecords = validate(resultSet);
+                        Connection conn = connectionPool.getConnection();
+                        try{
+                            PreparedStatement ps = conn.prepareStatement(query);
+                            for(int j=0;j<samplesPerThread;j++){
+                                fillParameters(ps);
+                                long start = System.nanoTime();
+                                ResultSet resultSet = ps.executeQuery();
+                                long numRecords = validate(resultSet);
 
-                            accumulator.tick(numRecords,System.nanoTime()-start);
+                                accumulator.tick(numRecords,System.nanoTime()-start);
+                            }
+                            return null;
+                        }finally{
+                            connectionPool.returnConnection(conn);
                         }
-                        return null;
                     }
                 });
             }

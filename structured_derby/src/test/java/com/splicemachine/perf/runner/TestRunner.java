@@ -15,26 +15,74 @@ import java.io.Reader;
  *         Created on: 3/15/13
  */
 public class TestRunner {
+    private static enum RunMode{
+        CREATE_ONLY(true, false,false,false),
+        INSERT_ONLY(false,true, false,false),
+        QUERY_ONLY (false,false,true, false),
+        DROP_ONLY  (false,false,false,true),
 
+        CREATE_AND_INSERT(true,true,false,false),
+        CREATE_INSERT_AND_QUERY(true,true,true,false),
+        INSERT_AND_QUERY(false,true,true,false),
+        RUN_ALL(true,true,true,true);
+
+        private final boolean createPhase;
+        private final boolean insertPhase;
+        private final boolean queryPhase;
+        private final boolean dropPhase;
+
+        private RunMode(boolean createPhase, boolean insertPhase, boolean queryPhase, boolean dropPhase) {
+            this.createPhase = createPhase;
+            this.insertPhase = insertPhase;
+            this.queryPhase = queryPhase;
+            this.dropPhase = dropPhase;
+        }
+
+        public static RunMode getMode(boolean createPhase, boolean insertPhase, boolean queryPhase, boolean dropPhase) {
+            for(RunMode runMode:values()){
+                if(createPhase==runMode.createPhase){
+                   if(insertPhase==runMode.insertPhase){
+                       if(queryPhase==runMode.queryPhase){
+                           if(dropPhase==runMode.dropPhase) return runMode;
+                       }
+                   }
+                }
+            }
+            //default run mode is to run only the queries
+            return QUERY_ONLY;
+        }
+    }
     public static void main(String...args) throws Exception{
         String dataFile = null;
         int pos=0;
-        boolean skipTableDrop =false;
-        boolean skipTableCreation=false;
+        boolean createPhase = false;
+        boolean insertPhase = false;
+        boolean queryPhase = false;
+        boolean dropPhase = false;
         while(pos<args.length){
             if(args[pos].equals("-t")){
                 pos++;
                 dataFile = args[pos];
                 pos++;
-            }else if("--skip-drop".equalsIgnoreCase(args[pos])){
+            }else if("--drop".equalsIgnoreCase(args[pos])){
                 pos++;
-                skipTableDrop = true;
-            }else if("--skip-create".equalsIgnoreCase(args[pos])){
+                dropPhase=true;
+            }else if("--create".equalsIgnoreCase(args[pos])){
                 pos++;
-                skipTableCreation=true;
+                createPhase = true;
+            }else if("--all".equalsIgnoreCase(args[pos])){
+                pos++;
+                createPhase = true;
+                insertPhase = true;
+                queryPhase = true;
+                dropPhase = true;
+            }else if("--insert".equalsIgnoreCase(args[pos])){
+                pos++;
+                insertPhase = true;
             }
         }
 
+        RunMode runMode = RunMode.getMode(createPhase, insertPhase, queryPhase, dropPhase);
         Preconditions.checkNotNull(dataFile,"No Data file specified");
 
         //noinspection ConstantConditions
@@ -56,15 +104,18 @@ public class TestRunner {
 
         data.connect();
         try{
-            if(!skipTableCreation){
+            if(runMode.createPhase){
                 data.createTables();
                 data.createIndices();
             }
             try{
-                data.loadData();
-                data.runQueries();
+                if(runMode.insertPhase)
+                    data.loadData();
+                if(runMode.queryPhase){
+                    data.runQueries();
+                }
             }finally{
-                if(!skipTableDrop)
+                if(runMode.dropPhase)
                     data.dropTables();
             }
         }finally{

@@ -4,13 +4,9 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.BatchTable;
 import com.splicemachine.hbase.CallBuffer;
-import com.splicemachine.hbase.SafeTable;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -18,7 +14,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.InsertConstantAction;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.log4j.Logger;
 
@@ -96,7 +91,7 @@ public class InsertOperation extends DMLWriteOperation {
 //                SpliceLogUtils.trace(LOG,"InsertOperation sink, nextRow="+nextRow);
 
                 byte[] rowKey = rowKeySerializer.serialize(nextRow.getRowArray());
-                writer.add(Puts.buildInsert(rowKey,nextRow.getRowArray(), this.transactionID.getBytes(),serializer)); // Buffered
+                writer.add(Puts.buildInsert(rowKey, nextRow.getRowArray(), this.transactionID.getBytes(), serializer)); // Buffered
 
                 stats.sinkAccumulator().tick(System.nanoTime()-start);
             }while(nextRow!=null);

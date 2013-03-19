@@ -251,6 +251,8 @@ public class SpliceDriver {
             server = new NetworkServerControl(InetAddress.getByName(bindAddress),bindPort);
             server.setLogConnections(true);
             server.start(new DerbyOutputLoggerWriter());
+            server.setTimeSlice(100);
+            server.setMaxThreads(1000);
 
             SpliceLogUtils.info(LOG,"Ready to accept connections");
             return true;

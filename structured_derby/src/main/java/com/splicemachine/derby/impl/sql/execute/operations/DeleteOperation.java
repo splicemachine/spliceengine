@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.BatchTable;
+import com.splicemachine.hbase.SafeTable;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -51,7 +51,7 @@ public class DeleteOperation extends DMLWriteOperation{
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
 		ExecRow nextRow;
-		HTableInterface htable = BatchTable.create(SpliceUtils.config,Long.toString(heapConglom).getBytes());
+		HTableInterface htable = SafeTable.create(SpliceUtils.config, Long.toString(heapConglom).getBytes());
 		try {
             do{
                 long processStart = System.nanoTime();

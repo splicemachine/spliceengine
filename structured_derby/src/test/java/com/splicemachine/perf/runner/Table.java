@@ -45,7 +45,7 @@ public class Table {
         ps.execute();
     }
 
-    public Result insertData(final Connection conn) throws Exception{
+    public Result insertData(final JDBCConnectionPool connectionPool) throws Exception{
         ExecutorService dataInserter = Executors.newFixedThreadPool(insertThreads);
         try{
             List<Future<Void>> futures = Lists.newArrayListWithCapacity(insertThreads+1);
@@ -55,21 +55,32 @@ public class Table {
                 futures.add(dataInserter.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        PreparedStatement ps = conn.prepareStatement(getInsertDataString());
-                        for(int numRowsInserted=0;numRowsInserted<numRows/insertThreads;numRowsInserted++){
-                            fillStatement(ps);
-                            ps.addBatch();
-                            if(numRowsInserted%insertBatch==0){
-                                long start = System.nanoTime();
-                                int numInserted = ps.executeBatch().length;
-                                insertAccumulator.tick(numInserted,System.nanoTime()-start);
+                        Connection conn = connectionPool.getConnection();
+                        try{
+                            PreparedStatement ps = conn.prepareStatement(getInsertDataString());
+                            for(int numRowsInserted=0;numRowsInserted<numRows/insertThreads;numRowsInserted++){
+                                fillStatement(ps);
+                                ps.addBatch();
+                                if(numRowsInserted%insertBatch==0){
+                                    long start = System.nanoTime();
+                                    int numInserted = ps.executeBatch().length;
+                                    insertAccumulator.tick(numInserted,System.nanoTime()-start);
+
+                                }
                             }
+                            long start = System.nanoTime();
+                            int numInserted = ps.executeBatch().length;
+                            if(numInserted>0)
+                                insertAccumulator.tick(numInserted,System.nanoTime()-start);
+
+                            conn.commit();
+                            return null;
+                        }catch(SQLException se){
+                            conn.rollback();
+                            throw se;
+                        }finally{
+                            connectionPool.returnConnection(conn);
                         }
-                        long start = System.nanoTime();
-                        int numInserted = ps.executeBatch().length;
-                        if(numInserted>0)
-                            insertAccumulator.tick(numInserted,System.nanoTime()-start);
-                        return null;
                     }
                 }));
             }
@@ -174,6 +185,7 @@ public class Table {
             stream.printf("\t%-25s\t%15d samples%n","Number of samples",numRows/insertBatch);
             stream.printf("\t%-25s\t%15d records%n","Total records inserted", stats.getTotalRecords());
             stream.printf("\t%-25s\t%20.4f ms%n","Total time spent", TimeUtils.toMillis(stats.getTotalTime()));
+            stream.printf("\t%-25s\t%20.4f records/sec%n","Overall throughput",stats.getTotalRecords()/TimeUtils.toSeconds(stats.getTotalTime()));
             stream.printf("--------------------TIME DISTRIBUTION--------------------%n");
             stream.printf("Per %d records:%n",insertBatch);
             stream.printf("\t%-20s\t%20.4f ms%n","min",TimeUtils.toMillis(stats.getMinTime()));

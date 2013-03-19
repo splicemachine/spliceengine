@@ -20,7 +20,7 @@ public interface BatchProtocol extends CoprocessorProtocol {
      * @param mutationsToApply the mutations to apply
      * @throws IOException if something goes wrong applying the mutation
      */
-    public void batchMutate(Collection<Mutation> mutationsToApply) throws IOException;
+    public void batchMutate(MutationRequest mutationsToApply) throws IOException;
 
     /**
      * Delete the first row that appears after the specified rowKey, but *only* if it

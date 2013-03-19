@@ -287,17 +287,20 @@ public class TimingStats implements Stats{
         private AtomicLong minTime = new AtomicLong(Long.MAX_VALUE);
         private Sample processSample;
 
+        private long start;
+
         public ThreadSafeAccumulator(Sample processSample){
             this.processSample = processSample;
         }
         @Override
         public void start() {
             totalTime.set(0l);
+            start = System.nanoTime();
         }
 
         @Override
         public Stats finish() {
-            return new TimingStats(totalTime.get(),totalRecords.get(),avgTime.get(),timeVariation.get(),
+            return new TimingStats(System.nanoTime()-start,totalRecords.get(),avgTime.get(),timeVariation.get(),
                     maxTime.get(),minTime.get(),processSample.getSnapshot());
         }
 

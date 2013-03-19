@@ -5,6 +5,7 @@ import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
 import com.splicemachine.hbase.BatchProtocol;
+import com.splicemachine.hbase.MutationRequest;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
@@ -67,13 +68,13 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     }
 
     @Override
-    public void batchMutate(Collection<Mutation> mutationsToApply) throws IOException {
+    public void batchMutate(MutationRequest mutationsToApply) throws IOException {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
-        indexSet.update(mutationsToApply, rce);
+        indexSet.update(mutationsToApply.getMutations(), rce);
 
         //apply the local mutations
         HRegion region = rce.getRegion();
-        for(Mutation mutation:mutationsToApply){
+        for(Mutation mutation:mutationsToApply.getMutations()){
             mutation.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
             if(mutation instanceof Put)
                 region.put((Put)mutation);

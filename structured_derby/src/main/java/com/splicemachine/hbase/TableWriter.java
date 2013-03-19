@@ -3,10 +3,8 @@ package com.splicemachine.hbase;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -21,7 +19,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -162,10 +159,10 @@ public class TableWriter {
 
         @Override
         public void bufferFlushed(List<Mutation> entries) throws Exception {
-            Multimap<byte[], Mutation> bucketedMutations = bucketMutations(tableName,entries);
+            Map<byte[],MutationRequest> bucketedMutations = bucketMutations(tableName,entries);
             final List<Future<Void>> futures = Lists.newArrayListWithCapacity(bucketedMutations.size());
             for(byte[] regionStartKey:bucketedMutations.keySet()){
-                final Collection<Mutation> mutationsToWrite = bucketedMutations.get(regionStartKey);
+                final MutationRequest mutationsToWrite = bucketedMutations.get(regionStartKey);
                 final ExecRPCInvoker invoker = new ExecRPCInvoker(
                         configuration,connection,
                         batchProtocolClass,
@@ -222,10 +219,10 @@ public class TableWriter {
              */
             pendingBuffersPermits.acquire();
 
-            Multimap<byte[], Mutation> bucketedMutations = bucketMutations(tableName,entries);
+            Map<byte[],MutationRequest> bucketedMutations = bucketMutations(tableName,entries);
             final AtomicInteger runningCounts = new AtomicInteger(bucketedMutations.size());
             for(byte[] regionStartKey:bucketedMutations.keySet()){
-                final Collection<Mutation> mutationsToWrite = bucketedMutations.get(regionStartKey);
+                final MutationRequest mutationsToWrite = bucketedMutations.get(regionStartKey);
                 final ExecRPCInvoker invoker = new ExecRPCInvoker(
                         configuration,connection,
                         batchProtocolClass,
@@ -259,11 +256,11 @@ public class TableWriter {
         }
     }
 
-    private Multimap<byte[], Mutation> bucketMutations(
+    private Map<byte[],MutationRequest> bucketMutations(
             byte[] tableName, List<Mutation> mutations) throws Exception {
         Integer tableKey = Bytes.mapKey(tableName);
         Set<HRegionInfo> regionInfos = regionCache.get(tableKey);
-        Multimap<byte[],Mutation> bucketedMutations = ArrayListMultimap.create();
+        Map<byte[],MutationRequest> bucketedMutations = Maps.newHashMapWithExpectedSize(regionInfos.size());
         List<Mutation> regionLessMutations = Lists.newArrayListWithExpectedSize(0);
         for(Mutation mutation:mutations){
             byte[] row = mutation.getRow();
@@ -275,7 +272,12 @@ public class TableWriter {
                         Bytes.compareTo(regionStart,row)<=0){
                     if(Bytes.equals(regionFinish,HConstants.EMPTY_END_ROW)||
                             Bytes.compareTo(row,regionFinish)<0){
-                        bucketedMutations.put(regionStart,mutation);
+                        MutationRequest request = bucketedMutations.get(regionStart);
+                        if(request==null){
+                            request = new SnappyMutationRequest();
+                            bucketedMutations.put(regionStart,request);
+                        }
+                        request.addMutation(mutation);
                         found=true;
                         break;
                     }
@@ -287,7 +289,14 @@ public class TableWriter {
 
         //TODO -sf- should we deal with offline regions differently?
         for(HRegionInfo region:regionInfos){
-            bucketedMutations.putAll(region.getStartKey(),regionLessMutations);
+            MutationRequest mutation = bucketedMutations.get(region.getStartKey());
+            if(mutation==null){
+                mutation = new SnappyMutationRequest();
+                bucketedMutations.put(region.getStartKey(),mutation);
+            }
+            for(Mutation mut:mutations){
+                mutation.addMutation(mut);
+            }
         }
         return bucketedMutations;
     }

@@ -1,11 +1,5 @@
 package com.splicemachine.perf.runner;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.splicemachine.derby.stats.Accumulator;
-import com.splicemachine.derby.stats.Stats;
-import com.splicemachine.derby.stats.TimingStats;
-import com.splicemachine.derby.stats.TimeUtils;
 import com.splicemachine.perf.runner.qualifiers.Result;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -15,7 +9,6 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.*;
 
 /**
@@ -29,48 +22,59 @@ public class Data {
     private final List<Table> tables;
     private final List<Query> queries;
     private final List<Index> indices;
-    private Connection conn;
+    private final int poolSize;
+    private JDBCConnectionPool connectionPool;
 
     public Data(String server,
                 int concurrentQueries, List<Table> tables,
-                List<Query> queries, List<Index> indices) {
+                List<Query> queries, List<Index> indices, int poolSize) {
         this.concurrentQueries = concurrentQueries;
         this.tables = tables;
         this.server = server;
         this.queries = queries;
         this.indices = indices;
+        this.poolSize = poolSize;
     }
 
-    public void connect() throws SQLException{
-        conn = DriverManager.getConnection("jdbc:derby://"+server+"/wombat;create=true");
-        conn.setAutoCommit(false);
+    public void connect() throws Exception {
+        connectionPool = new JDBCConnectionPool(server,poolSize);
+        connectionPool.preLoadConnections();
     }
 
-    public void createTables() throws SQLException {
+    public void createTables() throws Exception {
         //create Tables
         SpliceLogUtils.info(LOG,"Creating tables");
-        for(Table table:tables){
-            table.create(conn);
+        Connection connection = connectionPool.getConnection();
+        try{
+            for(Table table:tables){
+                table.create(connection);
+            }
+            connection.commit();
+        }finally{
+            connectionPool.returnConnection(connection);
         }
-        conn.commit();
     }
 
     public void createIndices() throws Exception {
         SpliceLogUtils.info(LOG,"Creating indices");
-        for(Index index:indices){
-            index.create(conn);
+        Connection conn = connectionPool.getConnection();
+        try{
+            for(Index index:indices){
+                index.create(conn);
+            }
+            conn.commit();
+        }finally{
+            connectionPool.returnConnection(conn);
         }
-        conn.commit();
     }
 
     public void loadData() throws Exception  {
         //load data into each table
         SpliceLogUtils.info(LOG,"Loading data");
         for(Table table:tables){
-            table.insertData(conn).write(System.out);
+            table.insertData(connectionPool).write(System.out);
         }
-        SpliceLogUtils.info(LOG,"Data loading, ready to perform queries");
-        conn.commit();
+        SpliceLogUtils.info(LOG, "Data loading, ready to perform queries");
     }
 
     public void runQueries() throws Exception {
@@ -82,7 +86,7 @@ public class Data {
                     @Override
                     public Result call() throws Exception {
                         SpliceLogUtils.trace(LOG,"Executing query '%s'",query);
-                        return query.run(conn);
+                        return query.run(connectionPool);
                     }
                 });
             }
@@ -98,27 +102,23 @@ public class Data {
         }
     }
 
-    public void dropTables() throws SQLException {
+    public void dropTables() throws Exception {
         SpliceLogUtils.info(LOG, "dropping tables");
         PreparedStatement dropStatement;
+        Connection conn = connectionPool.getConnection();
+        try{
         for(Table table:tables){
             dropStatement = conn.prepareStatement("drop table "+ table.getName());
             dropStatement.execute();
         }
         conn.commit();
-    }
-
-    public void shutdown() throws SQLException{
-        if(conn!=null)
-            conn.close();
-    }
-
-    public static void printInsertStatistics( Map<Table,Accumulator> statsMap){
-        for(Table table:statsMap.keySet()){
-            Stats stats = statsMap.get(table).finish();
-
-
+        }finally{
+            connectionPool.returnConnection(conn);
         }
+    }
+
+    public void shutdown() throws Exception {
+        connectionPool.shutdown();
     }
 
     @Override
@@ -129,5 +129,4 @@ public class Data {
                 ", queries=" + queries +
                 '}';
     }
-
 }

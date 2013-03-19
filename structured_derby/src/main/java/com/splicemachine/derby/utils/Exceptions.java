@@ -7,6 +7,7 @@ import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -36,4 +37,9 @@ public class Exceptions {
         return StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,rootCause);
     }
 
+    public static IOException toIOException(Throwable e) {
+        //TODO -sf- flesh this out better
+        if(e instanceof IOException) return (IOException)e;
+        return new IOException(e);
+    }
 }
