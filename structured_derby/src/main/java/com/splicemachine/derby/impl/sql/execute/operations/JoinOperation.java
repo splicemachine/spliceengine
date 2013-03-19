@@ -38,6 +38,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	protected ExecRow mergedRow;
 	protected int leftResultSetNumber;
 	
+	public int rowsSeenLeft;
+	public int rowsSeenRight;
 	public long restrictionTime;
 	public int rowsReturned;
 	
@@ -67,6 +69,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		this.leftResultSet = (SpliceOperation) leftResultSet;
 		this.leftResultSetNumber = leftResultSet.resultSetNumber();
 		this.rightResultSet = (SpliceOperation) rightResultSet;
+		recordConstructorTime();
 	}
 	
 	@Override
@@ -83,6 +86,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		notExistsRightSide = in.readBoolean();
 		leftResultSet = (SpliceOperation) in.readObject();
 		rightResultSet = (SpliceOperation) in.readObject();
+		rowsSeenLeft = in.readInt();
+		rowsSeenRight = in.readInt();
+		rowsReturned = in.readInt();
 	}
 
 	@Override
@@ -99,6 +105,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		out.writeBoolean(notExistsRightSide);	
 		out.writeObject((SpliceOperation) leftResultSet);
 		out.writeObject((SpliceOperation) rightResultSet);
+		out.writeInt(rowsSeenLeft);
+		out.writeInt(rowsSeenRight);
+		out.writeInt(rowsReturned);
 	}
 	@Override
 	public List<SpliceOperation> getSubOperations() {
@@ -186,6 +195,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	@Override
 	public void	close() throws StandardException
 	{
+		SpliceLogUtils.trace(LOG, "close in Join");
 		if ( isOpen )
 	    {
 	        leftResultSet.close();

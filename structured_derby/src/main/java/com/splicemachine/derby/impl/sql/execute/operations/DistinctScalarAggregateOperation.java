@@ -183,6 +183,7 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
 	@Override
 	public void close() throws StandardException
     {
+		SpliceLogUtils.trace(LOG, "close in DistinctScalarAggregate");
         super.close();
         source.close();
     }

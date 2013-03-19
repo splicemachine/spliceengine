@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;

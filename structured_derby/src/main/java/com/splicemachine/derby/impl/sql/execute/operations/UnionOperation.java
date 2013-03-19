@@ -99,6 +99,8 @@ public class UnionOperation extends SpliceBaseOperation {
     	} catch (IOException e) {
     		SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to create reduce scan",e);
     	}
+    	SpliceLogUtils.trace(LOG, "statisticsTimingOn="+statisticsTimingOn+",isTopResultSet="+isTopResultSet);
+        
     	recordConstructorTime();
     }
     
@@ -177,13 +179,14 @@ public class UnionOperation extends SpliceBaseOperation {
 		long start = System.currentTimeMillis();
 		final List<SpliceOperation> opStack = getOperations();
 		final SpliceOperation topOperation = getOperations().get(opStack.size()-1);
+		nextTime += System.currentTimeMillis() - start;
 		
 		whichSource = 1;
 		executeShuffle((SpliceOperation) source1, topOperation);
 		
 		whichSource = 2;
 		executeShuffle((SpliceOperation) source2, topOperation);
-		nextTime += System.currentTimeMillis() - start;
+		
 		//whichSource = 1;
 	}
 	
@@ -239,6 +242,7 @@ public class UnionOperation extends SpliceBaseOperation {
 
             stats.finish();
             stats.recordStats(LOG);
+            nextTime += stats.getTotalTimeTaken();
 			SpliceLogUtils.trace(LOG,"Retrieved %d records",numberCreated);
 			executed = true;
 		} catch (IOException ioe){
@@ -261,7 +265,7 @@ public class UnionOperation extends SpliceBaseOperation {
 
 	@Override
 	public void close() throws StandardException {
-		SpliceLogUtils.trace(LOG, "close, whichSource="+whichSource);
+		SpliceLogUtils.trace(LOG, "close in Union, whichSource="+whichSource);
 		beginTime = getCurrentTimeMillis();
 		clearCurrentRow();
 

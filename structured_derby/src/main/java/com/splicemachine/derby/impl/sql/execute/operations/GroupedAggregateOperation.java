@@ -477,6 +477,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	@Override
 	public void	close() throws StandardException
 	{
+		SpliceLogUtils.trace(LOG, "close in GroupedAggregate");
 		beginTime = getCurrentTimeMillis();
 		if ( isOpen )
 	    {

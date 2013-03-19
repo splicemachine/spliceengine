@@ -330,7 +330,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 	@Override
 	public void close() throws StandardException {
-		SpliceLogUtils.trace(LOG, "closing conglomerate controllers if necessary");
+		SpliceLogUtils.trace(LOG, "close in IndexRowToBaseRow");
 		beginTime = getCurrentTimeMillis();
 		source.close();
 		super.close();

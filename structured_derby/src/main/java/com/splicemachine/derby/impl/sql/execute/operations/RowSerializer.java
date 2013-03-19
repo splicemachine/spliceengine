@@ -76,7 +76,7 @@ public class RowSerializer {
         }else{
             pos=0;
             for(DataValueDescriptor col:row){
-                values[pos] = DerbyBytesUtil.getObject(col);
+            	values[pos] = DerbyBytesUtil.getObject(col);
                 pos++;
             }
         }

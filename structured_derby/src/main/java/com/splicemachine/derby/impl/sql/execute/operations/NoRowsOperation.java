@@ -119,6 +119,7 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 	
 	@Override
 	public void close() {
+		SpliceLogUtils.trace(LOG, "close in NoRows");
 		if (!isOpen)
 			return;
 		try {

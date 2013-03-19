@@ -119,6 +119,7 @@ public class AnyOperation extends SpliceBaseOperation {
 	 * @exception StandardException thrown on error
 	 */
 	public void	close() throws StandardException {
+		SpliceLogUtils.trace(LOG, "close in AnyOperation");
 		beginTime = getCurrentTimeMillis();
 		clearCurrentRow();
 		source.close();
