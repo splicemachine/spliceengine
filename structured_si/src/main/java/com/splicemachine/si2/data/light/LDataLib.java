@@ -69,8 +69,11 @@ public class LDataLib implements SDataLib {
 
     @Override
     public Object getAttribute(Object operation, String attributeName) {
-        LTuple lTuple = (LTuple) operation;
-        return lTuple.attributes.get(attributeName);
+        if (operation instanceof LGet) {
+            return ((LGet) operation).attributes.get(attributeName);
+        } else {
+            return ((LTuple) operation).attributes.get(attributeName);
+        }
     }
 
     @Override

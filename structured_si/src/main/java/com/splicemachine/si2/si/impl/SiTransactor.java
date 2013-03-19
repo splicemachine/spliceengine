@@ -103,19 +103,28 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public void initializePut(Object put1, Object put2) {
         if (dataStore.getSiNeededAttribute(put1)) {
-            final SiTransactionId transactionId = dataStore.getTransactionIdFromPut(put1);
+            final SiTransactionId transactionId = dataStore.getTransactionIdFromOperation(put1);
             initializePut(transactionId, put2);
         }
+    }
+
+    @Override
+    public Object newDeletePut(TransactionId transactionId, Object rowKey) {
+        SiTransactionId siTransactionId = (SiTransactionId) transactionId;
+        final Object deletePut = dataLib.newPut(rowKey);
+        initializePut(siTransactionId, deletePut);
+        dataStore.setTombstoneOnPut(deletePut, siTransactionId);
+        return deletePut;
     }
 
     @Override
     public boolean processPut(STable table, Object put) throws IOException {
         Boolean siNeeded = dataStore.getSiNeededAttribute(put);
         if (siNeeded != null && siNeeded) {
+            SiTransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
             Object rowKey = dataLib.getPutKey(put);
             SRowLock lock = dataWriter.lockRow(table, rowKey);
             try {
-                SiTransactionId transactionId = dataStore.getTransactionIdFromPut(put);
                 checkForConflict(transactionId, table, lock, rowKey);
                 Object newPut = dataStore.newLockWithPut(transactionId, put, lock);
                 dataStore.addTransactionIdToPut(newPut, transactionId);
@@ -254,27 +263,42 @@ public class SiTransactor implements Transactor, ClientTransactor {
         if (dataStore.isCommitTimestampKeyValue(keyValue)) {
             filterProcessCommitTimestamp(keyValue, siFilterState);
             return Filter.ReturnCode.SKIP;
+        } else if (dataStore.isTombstoneKeyValue(keyValue)) {
+            if (filterKeepDataValue(keyValue, siFilterState)) {
+                siFilterState.tombstoneTimestamp = dataLib.getKeyValueTimestamp(keyValue);
+                return Filter.ReturnCode.NEXT_COL;
+            }
         } else if (dataStore.isDataKeyValue(keyValue)) {
             if (dataLib.valuesEqual(dataLib.getKeyValueQualifier(keyValue), siFilterState.lastValidQualifier)) {
                 return Filter.ReturnCode.NEXT_COL;
             } else {
-                long dataTimestamp = dataLib.getKeyValueTimestamp(keyValue);
-                Long commitTimestamp = siFilterState.committedTransactions.get(dataTimestamp);
-                if (commitTimestamp == null) {
-                    // debugging code
-                    final TransactionStruct transactionStatus = transactionStore.getTransactionStatus(dataTimestamp);
-                    commitTimestamp = transactionStatus.commitTimestamp;
-                    // If the transaction was committed it should have been included in the committedTransactions map
-                    assert( commitTimestamp == null );
-                }
-                if (isCommittedBeforeThisTransaction(siFilterState, commitTimestamp)
-                        || isThisTransactionsData(siFilterState, dataTimestamp, commitTimestamp)) {
+                if (siFilterState.tombstoneTimestamp != null &&
+                        dataLib.getKeyValueTimestamp(keyValue) < siFilterState.tombstoneTimestamp) {
+                    return Filter.ReturnCode.NEXT_COL;
+                } else if (filterKeepDataValue(keyValue, siFilterState)) {
                     siFilterState.lastValidQualifier = dataLib.getKeyValueQualifier(keyValue);
                     return Filter.ReturnCode.INCLUDE;
                 }
             }
         }
         return Filter.ReturnCode.SKIP;
+    }
+
+    private boolean filterKeepDataValue(Object keyValue, SiFilterState siFilterState) throws IOException {
+        long dataTimestamp = dataLib.getKeyValueTimestamp(keyValue);
+        Long commitTimestamp = siFilterState.committedTransactions.get(dataTimestamp);
+        if (commitTimestamp == null) {
+            // debugging code
+            final TransactionStruct transactionStatus = transactionStore.getTransactionStatus(dataTimestamp);
+            commitTimestamp = transactionStatus.commitTimestamp;
+            // If the transaction was committed it should have been included in the committedTransactions map
+            assert (commitTimestamp == null);
+        }
+        if (isCommittedBeforeThisTransaction(siFilterState, commitTimestamp)
+                || isThisTransactionsData(siFilterState, dataTimestamp, commitTimestamp)) {
+            return true;
+        }
+        return false;
     }
 
     private boolean isCommittedBeforeThisTransaction(SiFilterState siFilterState, Long commitTimestamp) {

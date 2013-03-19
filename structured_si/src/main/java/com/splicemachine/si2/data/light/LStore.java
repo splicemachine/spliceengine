@@ -233,33 +233,4 @@ public class LStore implements STableReader, STableWriter {
         }
     }
 
-    @Override
-    public boolean checkAndPut(STable table, Object family, Object qualifier, Object value, Object put) {
-        synchronized (this) {
-            Object key = tupleReaderWriter.getResultKey(put);
-
-            List columns = Arrays.asList(Arrays.asList(family, qualifier));
-            LGet get = new LGet(key, key, null, columns, null);
-            Object result = get(table, get);
-            if (result != null) {
-                Object currentCellValue = tupleReaderWriter.getResultValue(result, family, qualifier);
-                if ((currentCellValue == null && value != null) || !currentCellValue.equals(value)) {
-                    return false;
-                }
-            } else {
-                if (value != null) {
-                    return false;
-                }
-            }
-
-            final String relationIdentifier = ((LTable) table).relationIdentifier;
-            List<LTuple> newTuples = relations.get(relationIdentifier);
-            if (newTuples == null) {
-                newTuples = new ArrayList<LTuple>();
-            }
-            newTuples = writeSingle(table, (LTuple) put, newTuples);
-            relations.put(relationIdentifier, newTuples);
-            return true;
-        }
-    }
 }

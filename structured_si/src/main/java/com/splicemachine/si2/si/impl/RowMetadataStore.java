@@ -22,13 +22,14 @@ public class RowMetadataStore {
 
     private final Object siFamily;
     private final Object commitTimestampQualifier;
+    private final Object tombstoneQualifier;
     private final Object siNull;
 
     private final Object userColumnFamily;
 
     public RowMetadataStore(SDataLib dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
                             String transactionIdAttribute,
-                            String siMetaFamily, Object siCommitQualifier, Object siMetaNull,
+                            String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier, Object siMetaNull,
                             Object userColumnFamily) {
         this.dataLib = dataLib;
         this.reader = reader;
@@ -37,6 +38,7 @@ public class RowMetadataStore {
         this.transactionIdAttribute = transactionIdAttribute;
         this.siFamily = dataLib.encode(siMetaFamily);
         this.commitTimestampQualifier = dataLib.encode(siCommitQualifier);
+        this.tombstoneQualifier = dataLib.encode(siTombstoneQualifier);
         this.siNull = dataLib.encode(siMetaNull);
         this.userColumnFamily = dataLib.encode(userColumnFamily);
     }
@@ -58,7 +60,7 @@ public class RowMetadataStore {
         dataLib.addAttribute(put, transactionIdAttribute, dataLib.encode(transactionId.getId()));
     }
 
-    SiTransactionId getTransactionIdFromPut(Object put) {
+    SiTransactionId getTransactionIdFromOperation(Object put) {
         Object value = dataLib.getAttribute(put, transactionIdAttribute);
         Long transactionId = (Long) dataLib.decode(value, Long.class);
         if (transactionId != null) {
@@ -94,6 +96,11 @@ public class RowMetadataStore {
                 dataLib.valuesEqual(dataLib.getKeyValueQualifier(keyValue), commitTimestampQualifier);
     }
 
+    public boolean isTombstoneKeyValue(Object keyValue) {
+        return dataLib.valuesEqual(dataLib.getKeyValueFamily(keyValue), siFamily) &&
+                dataLib.valuesEqual(dataLib.getKeyValueQualifier(keyValue), tombstoneQualifier);
+    }
+
     public boolean isSiNull(Object value) {
         return dataLib.valuesEqual(value, siNull);
     }
@@ -107,4 +114,9 @@ public class RowMetadataStore {
         dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, beginTimestamp, dataLib.encode(commitTimestamp));
         writer.write(table, put, false);
     }
+
+    public void setTombstoneOnPut(Object put, SiTransactionId transactionId) {
+        dataLib.addKeyValueToPut(put, siFamily, tombstoneQualifier, transactionId.getId(), siNull);
+    }
+
 }
