@@ -15,6 +15,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.hbase.txn.ZkTransactionGetsPuts;
 import com.splicemachine.si.utils.SIConstants;
 import com.splicemachine.si2.data.hbase.TransactorFactory;
+import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.txn.SiGetsPuts;
 import com.splicemachine.si2.txn.TransactionTableCreator;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -33,7 +34,13 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
@@ -44,7 +51,11 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -59,6 +70,8 @@ import java.util.Properties;
 @SuppressWarnings(value = "deprecation")
 public class SpliceUtils {
 	private static Logger LOG = Logger.getLogger(SpliceUtils.class);
+
+    public static final boolean useSi = false;
 
     /**
      * Populates an array of DataValueDescriptors with a default value based on their type.
@@ -93,7 +106,6 @@ public class SpliceUtils {
             }
         }
     }
-
 
     public enum SpliceConglomerate {HEAP,BTREE}
 	public static Configuration config = SpliceConfiguration.create();
@@ -178,16 +190,59 @@ public class SpliceUtils {
 		}
 	}
 
-	public static Delete delete(RowLocation loc, String transID) throws StandardException {
-		SpliceLogUtils.trace(LOG,"delete row at location %s",loc);
-		Delete delete = new Delete(loc.getBytes());
-		if (transID != null) {
-            SpliceUtils.getTransactionGetsPuts().prepDelete(transID,  delete);
-        }
-		return delete;
-	}
+    public static Get createGetFromPut(Put put) {
+        Get get = new Get(put.getRow());
+        final ITransactionGetsPuts transactionGetsPuts = SpliceUtils.getTransactionGetsPuts();
+        transactionGetsPuts.prepGet(transactionGetsPuts.getTransactionIdForPut(put), get);
+        return get;
+    }
 
-	public static Delete cleanupNullsDelete(RowLocation loc,DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
+    public static void doDeleteFromPut(HTableInterface table, byte[] row, Put put) throws IOException {
+        deleteDirect(table, SpliceUtils.getTransactionGetsPuts().getTransactionIdForPut(put), row);
+    }
+
+    public static void doDelete(HTableInterface htable, RowLocation loc, String transId) throws IOException, StandardException {
+        SpliceLogUtils.trace(LOG, "delete row at location %s", loc);
+        final byte[] rowKey = loc.getBytes();
+        deleteDirect(htable, transId, rowKey);
+    }
+
+    private static void deleteDirect(HTableInterface table, String transId, byte[] row) throws IOException {
+        if (useSi) {
+            final ClientTransactor clientTransactor = TransactorFactory.getDefaultClientTransactor();
+            Put put = (Put) clientTransactor.newDeletePut(clientTransactor.transactionIdFromString(transId), row);
+            table.put(put);
+        } else {
+            Delete delete = new Delete(row);
+            if (transId != null) {
+                SpliceUtils.getTransactionGetsPuts().prepDelete(transId, delete);
+            }
+            table.delete(delete);
+        }
+    }
+
+    public static void handleNullsInUpdate(Put put, DataValueDescriptor[] row, FormatableBitSet validColumns) {
+        if (validColumns != null) {
+            int numrows = (validColumns != null ? validColumns.getLength() : row.length);  // bug 118
+            for (int i = 0; i < numrows; i++) {
+                if (validColumns.isSet(i) && row[i] != null && row[i].isNull())
+                    put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), 0, SIConstants.EMPTY_BYTE_ARRAY);
+            }
+        }
+    }
+
+    public static void doCleanupNullsDelete(HTableInterface table, RowLocation loc,DataValueDescriptor[] destRow,
+                                              FormatableBitSet validColumns, String transID)
+            throws StandardException, IOException {
+        if (useSi) {
+            // handle this in the put
+        } else {
+            table.delete(cleanupNullsDelete(loc, destRow, validColumns, transID));
+        }
+    }
+
+    private static Delete cleanupNullsDelete(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns,
+                                             String transID) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("cleanupNullsDelete row ");
 		try {
@@ -541,8 +596,6 @@ public class SpliceUtils {
 
 		return transID;
 	}
-
-    public static final boolean useSi = false;
 
     public static ITransactionGetsPuts getTransactionGetsPuts() {
         if (useSi) {

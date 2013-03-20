@@ -51,6 +51,11 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
+    public TransactionId getTransactionIdFromPut(Object put) {
+        return dataStore.getTransactionIdFromOperation(put);
+    }
+
+    @Override
     public void commit(TransactionId transactionId) throws IOException {
         ensureTransactionActive(transactionId);
         transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.COMMITTING);
@@ -105,6 +110,14 @@ public class SiTransactor implements Transactor, ClientTransactor {
         if (dataStore.getSiNeededAttribute(put1)) {
             final SiTransactionId transactionId = dataStore.getTransactionIdFromOperation(put1);
             initializePut(transactionId, put2);
+        }
+    }
+
+    @Override
+    public void initializeGetFromDelete(Object delete, Object put) {
+        if (dataStore.getSiNeededAttribute(delete)) {
+            final SiTransactionId transactionId = dataStore.getTransactionIdFromOperation(delete);
+            initializePut(transactionId, put);
         }
     }
 

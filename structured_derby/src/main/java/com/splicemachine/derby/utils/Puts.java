@@ -137,31 +137,32 @@ public class Puts {
     }
 
     public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row, FormatableBitSet validColumns,
-                                  String transactionID,Serializer serializer,DataValueDescriptor...extraColumns) throws IOException{
+                                  String transactionID, Serializer serializer, DataValueDescriptor...extraColumns)
+            throws IOException{
         Put put = new Put(rowKey);
-        attachTransactionInformation(put,transactionID);
-        if(validColumns!=null){
-            for(int i=validColumns.anySetBit();i!=-1;i=validColumns.anySetBit(i)){
+        attachTransactionInformation(put, transactionID);
+        if (validColumns!=null) {
+            for(int i=validColumns.anySetBit(); i!=-1; i=validColumns.anySetBit(i)){
                 addColumn(put,row[i],i,serializer);
             }
-        }else{
-           for(int i=0;i<row.length;i++){
+        } else {
+           for(int i=0; i<row.length; i++){
                addColumn(put,row[i],i,serializer);
            }
         }
 
-        for (int pos=0;pos<extraColumns.length;pos++){
-            addColumn(put,extraColumns[pos],-(pos+1),serializer);
+        for (int pos=0; pos<extraColumns.length; pos++){
+            addColumn(put, extraColumns[pos], -(pos+1), serializer);
         }
 
-        if(put.size()==0)
-            put.add(HBaseConstants.DEFAULT_FAMILY_BYTES, NULL_COLUMN_MARKER,new byte[]{});
+        SpliceUtils.handleNullsInUpdate(put, row, validColumns);
+
+        if(put.size()==0) {
+            put.add(HBaseConstants.DEFAULT_FAMILY_BYTES, NULL_COLUMN_MARKER, new byte[]{});
+        }
 
         return put;
     }
-
-
-
 
     /**
      * Constructs a transaction-aware insert for direct HBase actions.

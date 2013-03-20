@@ -10,6 +10,8 @@ import java.util.List;
  */
 public interface ClientTransactor {
     TransactionId transactionIdFromString(String transactionId);
+    TransactionId getTransactionIdFromPut(Object put);
+
     void initializeGet(TransactionId transactionId, SGet get);
     void initializeGets(TransactionId transactionId, List gets);
     void initializeScan(TransactionId transactionId, SScan scan);
@@ -19,6 +21,7 @@ public interface ClientTransactor {
      * Flag put2 for the same kind of transaction treatment as put1 has.
      */
     void initializePut(Object put1, Object put2);
+    void initializeGetFromDelete(Object put1, Object put2);
 
     Object newDeletePut(TransactionId transactionId, Object rowKey);
 }
