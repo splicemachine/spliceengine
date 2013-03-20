@@ -6,6 +6,7 @@ import junit.framework.Assert;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -71,5 +72,27 @@ public class FunctionTest {
         }
         Assert.assertTrue("Incorrect rows returned!",rows>0);
     }
+    /**
+     * See Bug 266
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Ignore
+    public void testAcosFunction() throws SQLException{
+        ResultSet funcRs = rule.executeQuery("select acos(data) from t");
+        int rows = 0;
+        while(funcRs.next()){
+            double acos = funcRs.getDouble(1);
+            double correctAcos = Math.acos(1.23d);
+            Assert.assertEquals("incorrect acos!",correctAcos,acos,1/100000d);
+            LOG.info(funcRs.getDouble(1));
+            rows++;
+        }
+        Assert.assertTrue("Incorrect rows returned!",rows>0);
+    }
+    
+    
+    
 }
 
