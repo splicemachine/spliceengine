@@ -1,5 +1,6 @@
 package com.splicemachine.constants.environment;
 
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
@@ -9,10 +10,10 @@ import com.splicemachine.constants.TxnConstants.TableEnv;
 
 public class EnvUtils {
 	private static Logger LOG = Logger.getLogger(EnvUtils.class);
-	private static long FIRST_USER_TABLE_NUMBER = 1168;
+	private static final long FIRST_USER_TABLE_NUMBER = 1168;
 
 	public static TableEnv getTableEnv(String tableName) {
-		LOG.info("Checking table environment for " + tableName);
+        SpliceLogUtils.trace(LOG,"Checking table environment for %s",tableName);
 		if (tableName.equals(TxnConstants.TRANSACTION_TABLE))
 			return TableEnv.TRANSACTION_TABLE;
 		else if (tableName.equals(TxnConstants.TRANSACTION_LOG_TABLE))
@@ -26,13 +27,12 @@ public class EnvUtils {
 		else if (tableName.equals(TxnConstants.TEMP_TABLE))
 			return TableEnv.DERBY_SYS_TABLE;
 		else {
-			LOG.info("OTHER_TABLES table name= " + tableName+ ", with hard-coded FIRST_USER_TABLE_NUMBER=" + FIRST_USER_TABLE_NUMBER);
 			try {
 				long tableNumber = Long.parseLong(tableName);			
 				if (tableNumber < FIRST_USER_TABLE_NUMBER) 
 					return TableEnv.DERBY_SYS_TABLE;
 			} catch (Exception e) {
-				LOG.error("OTHER_TABLES table name is not a number. Need to check", e);
+                SpliceLogUtils.info(LOG,tableName+" is not a number");
 			}
 			
 			return TableEnv.USER_TABLE;
