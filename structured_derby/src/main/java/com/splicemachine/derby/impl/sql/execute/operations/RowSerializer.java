@@ -38,14 +38,12 @@ public class RowSerializer {
             this.values = new Object[cols.getNumBitsSet()+1];
         else if(cols!=null)
             this.values = new Object[cols.getNumBitsSet()];
-        else if(appendPostfix)
-            this.values = new Object[rowTemplate.length+1];
         else
-            this.values = new Object[rowTemplate.length];
+            this.values = new Object[1];
 
         StructBuilder builder = new StructBuilder();
         if(this.cols!=null){
-            for(int i= cols.anySetBit();i!=-1;i=cols.anySetBit(i)){
+            for(int i= this.cols.anySetBit();i!=-1;i=this.cols.anySetBit(i)){
                 RowKey rowKey;
                 if(colsToRowArrayMap!=null)
                     rowKey = DerbyBytesUtil.getRowKey(rowTemplate[colsToRowArrayMap[i+1]]);
@@ -53,13 +51,11 @@ public class RowSerializer {
                     rowKey = DerbyBytesUtil.getRowKey(rowTemplate[i]);
                 builder.add(rowKey);
             }
+            if(appendPostfix)
+                builder.add(new VariableLengthByteArrayRowKey());
         }else{
-            for(DataValueDescriptor col:rowTemplate){
-                builder.add(DerbyBytesUtil.getRowKey(col));
-            }
-        }
-        if(appendPostfix)
             builder.add(new VariableLengthByteArrayRowKey());
+        }
         rowKey = builder.toRowKey();
     }
 
@@ -73,15 +69,12 @@ public class RowSerializer {
                 else
                     values[pos] = DerbyBytesUtil.getObject(row[i]);
             }
+            if(appendPostfix)
+                values[pos] = SpliceUtils.getUniqueKey();
         }else{
-            pos=0;
-            for(DataValueDescriptor col:row){
-            	values[pos] = DerbyBytesUtil.getObject(col);
-                pos++;
-            }
+            //we have no key columns, so just generate a unique key to begin with
+            values[0] = SpliceUtils.getUniqueKey();
         }
-        if(appendPostfix)
-            values[pos] = SpliceUtils.getUniqueKey();
 
         return rowKey.serialize(values);
     }
