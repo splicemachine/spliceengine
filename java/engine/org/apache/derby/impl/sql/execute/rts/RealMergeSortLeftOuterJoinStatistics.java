@@ -94,9 +94,9 @@ public class RealMergeSortLeftOuterJoinStatistics extends RealNestedLoopLeftOute
 	// Class implementation
 	protected void setNames()
 	{
-		nodeName = MessageService.getTextMessage(SQLState.RTS_HASH_LEFT_OJ);
+		nodeName = MessageService.getTextMessage(SQLState.RTS_MERGE_SORT_LEFT_OJ);
 		resultSetName =
-			MessageService.getTextMessage(SQLState.RTS_HASH_LEFT_OJ_RS);
+			MessageService.getTextMessage(SQLState.RTS_MERGE_SORT_LEFT_OJ_RS);
 	}
     public String getRSXplainType() { return XPLAINUtil.OP_JOIN_MERGE_SORT_LO; }
     public String getRSXplainDetails()
@@ -104,7 +104,7 @@ public class RealMergeSortLeftOuterJoinStatistics extends RealNestedLoopLeftOute
         String op_details = "("+this.resultSetNumber + ")" +
             this.resultSetName       + ", ";
 
-        // check to see if this NL Join is part of an Exist clause
+        // check to see if this Join is part of an Exist clause
         if (this.oneRowRightSide) op_details+= ", EXISTS JOIN";
         return op_details;
     }

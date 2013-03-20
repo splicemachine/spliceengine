@@ -31,8 +31,7 @@ import org.apache.derby.impl.sql.execute.xplain.XPLAINUtil;
 
 
 */
-public class RealMergeSortJoinStatistics 
-	extends RealNestedLoopJoinStatistics
+public class RealMergeSortJoinStatistics extends RealNestedLoopJoinStatistics
 {
 
 	// CONSTRUCTORS
@@ -95,16 +94,16 @@ public class RealMergeSortJoinStatistics
 		if (oneRowRightSide)
 		{
 			nodeName = MessageService.getTextMessage(
-												SQLState.RTS_HASH_EXISTS_JOIN);
+												SQLState.RTS_MERGE_SORT_EXISTS_JOIN);
 			resultSetName = MessageService.getTextMessage(
-											SQLState.RTS_HASH_EXISTS_JOIN_RS);
+											SQLState.RTS_MERGE_SORT_EXISTS_JOIN_RS);
 		}
 		else
 		{
 			nodeName = MessageService.getTextMessage(
-												SQLState.RTS_HASH_JOIN);
+												SQLState.RTS_MERGE_SORT_JOIN);
 			resultSetName = MessageService.getTextMessage(
-											SQLState.RTS_HASH_JOIN_RS);
+											SQLState.RTS_MERGE_SORT_JOIN_RS);
 		}
 	}
     public String getRSXplainType() { return XPLAINUtil.OP_JOIN_MERGE_SORT; }
@@ -113,7 +112,7 @@ public class RealMergeSortJoinStatistics
         String op_details = "("+this.resultSetNumber + ")" +
             this.resultSetName       + ", ";
 
-        // check to see if this NL Join is part of an Exist clause
+        // check to see if this Join is part of an Exist clause
         if (this.oneRowRightSide) op_details+= ", EXISTS JOIN";
         return op_details;
     }
