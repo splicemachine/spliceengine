@@ -8,9 +8,9 @@ How to Build Derby For Splice Machine.
 4.  Go into maven2 directory.
 	cd maven2
 5.  Install Locally to your own Maven Repo
-	./SpliceBuild.sh
+	./SpliceBuild.sh 'gpg passphrase'
 6.  Push to nexus
-	./SpliceDeploy.sh
+	./SpliceDeploy.sh 'gpg passphrase'
 
 
 
