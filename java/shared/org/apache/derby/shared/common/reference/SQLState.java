@@ -1247,7 +1247,13 @@ public interface SQLState {
 	String RTS_RC                                                      = "43X9A.U";
 	String RTS_RC_RS                                                   = "43X9B.U";
 	String RTS_WINDOW_RS                                               = "43X9C.U";
-
+	String RTS_MERGE_SORT_EXISTS_JOIN								   = "43X9D.U";
+	String RTS_MERGE_SORT_EXISTS_JOIN_RS							   = "43X9E.U";
+	String RTS_MERGE_SORT_JOIN								   		   = "43X9F.U";
+	String RTS_MERGE_SORT_JOIN_RS							   		   = "43X9G.U";
+	String RTS_MERGE_SORT_LEFT_OJ									   = "43X9H.U";
+	String RTS_MERGE_SORT_LEFT_OJ_RS								   = "43X9I.U";
+	
 	String RTS_SCALAR_AGG_RS										   = "43Y00.U";
 	String RTS_INDEX_KEY_OPT										   = "43Y01.U";
 	String RTS_SCALAR_AGG											   = "43Y02.U";
