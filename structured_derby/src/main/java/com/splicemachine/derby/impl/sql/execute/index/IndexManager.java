@@ -113,11 +113,13 @@ public class IndexManager {
     /**
      * Translate a list of KeyValue objects into a List of insert puts.
      *
+     *
+     * @param transactionId
      * @param result the keyvalues to translate
      * @return a list of puts, one for each distinct row in {@code result}
      * @throws IOException if something goes wrong during the translation
      */
-    public List<Put> translateResult(List<KeyValue> result) throws IOException{
+    public List<Put> translateResult(String transactionId, List<KeyValue> result) throws IOException{
         Map<byte[],List<KeyValue>> putConstructors = Maps.newHashMapWithExpectedSize(1);
         for(KeyValue keyValue:result){
             List<KeyValue> cols = putConstructors.get(keyValue.getRow());
@@ -156,7 +158,7 @@ public class IndexManager {
                 System.arraycopy(indexCol,0,finalIndexRow,offset,indexCol.length);
                 offset+=indexCol.length;
             }
-            Put indexPut = new Put(finalIndexRow);
+            Put indexPut = SpliceUtils.createPut(transactionId, finalIndexRow);
             for(int dataPos=0;dataPos<indexRowData.length;dataPos++){
                 byte[] putPos = Integer.toString(dataPos).getBytes();
                 indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);

@@ -6,6 +6,7 @@ import com.splicemachine.derby.impl.sql.execute.index.IndexManager;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
 import com.splicemachine.derby.stats.SinkStats;
+import org.apache.derby.iapi.sql.Activation;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
@@ -27,8 +28,8 @@ import java.util.List;
 public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor implements SpliceIndexProtocol{
 
     @Override
-    public SinkStats buildIndex(long indexConglomId,long baseConglomId,
-                                int[] indexColsToBaseColMap,boolean isUnique) throws IOException {
+    public SinkStats buildIndex(String transactionId, long indexConglomId, long baseConglomId,
+                                int[] indexColsToBaseColMap, boolean isUnique) throws IOException {
         SinkStats.SinkAccumulator accumulator = SinkStats.uniformAccumulator();
         accumulator.start();
 
@@ -62,7 +63,7 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
                 nextRow.clear();
                 long start = System.nanoTime();
                 shouldContinue = sourceScanner.next(nextRow);
-                List<Put> indexPuts = indexManager.translateResult(nextRow);
+                List<Put> indexPuts = indexManager.translateResult(transactionId, nextRow);
                 accumulator.processAccumulator().tick(indexPuts.size(),System.nanoTime()-start);
 
                 start = System.nanoTime();
