@@ -269,18 +269,31 @@ public class TxnUtils extends TxnConstants{
 		SpliceLogUtils.trace(LOG,"Begin transaction at server and create znode for %s",transactionPath);
 		String id = null;
 		try {
-			TxnUtils.createWithParents(zkw, transactionPath);
+//			TxnUtils.createWithParents(zkw, transactionPath);
 			id = zkw.getRecoverableZooKeeper().create(transactionPath + "/txn-", Bytes.toBytes(TransactionStatus.PENDING.toString()), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
 			SpliceLogUtils.debug(LOG,"Begin transaction at server and create znode for transId="+id);
 		} catch (KeeperException e) {
-			e.printStackTrace();
+            if(e.code()== KeeperException.Code.NONODE){
+                safeCreateWithParents(zkw, transactionPath);
+            }
+            throw new RuntimeException(e);
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+            throw new RuntimeException(e);
 		}
 		return id;
 	}
 
-	public static void commit(String transactionID, RecoverableZooKeeper rzk) {
+    private static void safeCreateWithParents(ZooKeeperWatcher zkw, String transactionPath) {
+        try{
+            createWithParents(zkw,transactionPath);
+        } catch (KeeperException e) {
+            //we can ignore NODEEXISTS, because someone else created what we did already
+            if(e.code()!= KeeperException.Code.NODEEXISTS)
+                throw new RuntimeException(e);
+        }
+    }
+
+    public static void commit(String transactionID, RecoverableZooKeeper rzk) {
 		SpliceLogUtils.debug(LOG,"Committing Transaction: " + transactionID);
 		prepareCommit(transactionID, rzk);
 		doCommit(transactionID, rzk);
