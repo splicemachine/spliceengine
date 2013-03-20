@@ -173,7 +173,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     htable.put(newPut);
 
                     //now delete the old entry
-                    Delete delete = new Delete(location.getBytes());
+                    Delete delete = SpliceUtils.createDelete(transactionID, location.getBytes());
                     htable.delete(delete);
                 }
 

@@ -194,10 +194,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("HBaseScan delete " + currentResult.getRow());
 		try {
-			Delete delete = new Delete(this.currentResult.getRow());
-			if (transID != null) {
-                SpliceUtils.getTransactionGetsPuts().prepDelete(transID, delete);
-            }
+            Delete delete = SpliceUtils.createDelete(transID, this.currentResult.getRow());
 			table.delete(delete);
 			currentRowDeleted = true;
 			return true;

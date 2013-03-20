@@ -211,10 +211,4 @@ public class Puts {
 		}
 	}
 
-	private static void attachTransactionInformation(Put put, String transactionID) {
-		if(transactionID!=null){
-			SpliceUtils.getTransactionGetsPuts().prepPut(transactionID, put);
-		}
-	}
-
 }

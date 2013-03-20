@@ -198,7 +198,7 @@ public class IndexManager {
     /*
      * Update the index to delete records that are no longer in the main table.
      */
-    private void update(Delete delete, HTableInterface table) throws IOException{
+    private void update(final Delete delete, HTableInterface table) throws IOException{
         /*
          * To delete an entry, we'll need to first get the row, then construct
          * the index row key from the row, then delete it
@@ -223,7 +223,7 @@ public class IndexManager {
         final byte[] indexRowKey = convert(rowKeyBuilder,size);
 
         if(isUnique){
-            Delete indexDelete = new Delete(indexRowKey);
+            Delete indexDelete = SpliceUtils.createDeleteFromDelete(delete, indexRowKey);
             indexDelete.deleteFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
 
             table.delete(indexDelete);
@@ -239,7 +239,7 @@ public class IndexManager {
                 table.coprocessorExec(BatchProtocol.class,indexRowKey,indexStop,new Batch.Call<BatchProtocol, Void>() {
                     @Override
                     public Void call(BatchProtocol instance) throws IOException {
-                        instance.deleteFirstAfter(indexRowKey,indexStop);
+                        instance.deleteFirstAfter(SpliceUtils.getTransactionIdFromDelete(delete),indexRowKey,indexStop);
                         return null;
                     }
                 });

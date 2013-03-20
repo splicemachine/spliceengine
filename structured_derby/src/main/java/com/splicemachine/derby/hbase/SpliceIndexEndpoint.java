@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -83,7 +84,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     }
 
     @Override
-    public void deleteFirstAfter(byte[] rowKey,byte[] limit) throws IOException {
+    public void deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         Scan scan = new Scan(rowKey,limit);
         scan.setCaching(1);
@@ -95,7 +96,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             //get the row for the first entry
             byte[] rowBytes =  row.get(0).getRow();
             if(Bytes.compareTo(rowBytes,limit)<0){
-                Delete delete = new Delete(rowBytes);
+                Delete delete = SpliceUtils.createDelete(transactionId, rowBytes);
                 delete.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
                 delete.deleteFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
                 rce.getRegion().delete(delete,null,true);

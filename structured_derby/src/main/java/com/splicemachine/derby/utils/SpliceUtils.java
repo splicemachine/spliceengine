@@ -181,6 +181,20 @@ public class SpliceUtils {
         return createGet(getTransactionGetsPuts().getTransactionIdForDelete(delete), delete.getRow());
     }
 
+    public static Delete createDelete(String transactionId, byte[] row) {
+        Delete delete = new Delete(row);
+        getTransactionGetsPuts().prepDelete(transactionId, delete);
+        return delete;
+    }
+
+    public static Delete createDeleteFromDelete(Delete delete, byte[] row) {
+        return createDelete(getTransactionGetsPuts().getTransactionIdForDelete(delete), row);
+    }
+
+    public static String getTransactionIdFromDelete(Delete delete) {
+        return getTransactionGetsPuts().getTransactionIdForDelete(delete);
+    }
+
     public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
 		SpliceLogUtils.trace(LOG,"createGet %s",loc.getBytes());
 		try {
@@ -233,10 +247,7 @@ public class SpliceUtils {
             Put put = (Put) clientTransactor.newDeletePut(clientTransactor.transactionIdFromString(transId), row);
             table.put(put);
         } else {
-            Delete delete = new Delete(row);
-            if (transId != null) {
-                SpliceUtils.getTransactionGetsPuts().prepDelete(transId, delete);
-            }
+            Delete delete = createDelete(transId, row);
             table.delete(delete);
         }
     }
@@ -266,10 +277,7 @@ public class SpliceUtils {
 		if (LOG.isTraceEnabled())
 			LOG.trace("cleanupNullsDelete row ");
 		try {
-			Delete delete = new Delete(loc.getBytes());
-            if (transID != null) {
-                SpliceUtils.getTransactionGetsPuts().prepDelete(transID,  delete);
-            }
+            Delete delete = createDelete(transID, loc.getBytes());
 			int numrows = (validColumns != null ? validColumns.getLength() : destRow.length);  // bug 118
 			for (int i = 0; i < numrows; i++) {
 				if (validColumns.isSet(i) && destRow[i] != null && destRow[i].isNull())
