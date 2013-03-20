@@ -82,6 +82,19 @@ import java.util.concurrent.atomic.AtomicLong;
  * can be adjusted through JMX by using the "maxBufferEntries" settings.
  * 3. <em>hbase.client.write.buffer.maxflushes</em>: The maximum number of flushes which can occur concurrently
  * for any given buffer, before blocking the caller.
+ * 4. <em>hbase.htable.threads.max</em>: The maximum number of writer threads to use. Tuning this too low
+ * may result in higher latency, because fewer writes will be able to run concurrently, which will result in
+ * more pending buffer flushes, resulting in more time spent waiting. On the other hand, tuning this too high
+ * may result in stability issues due to the overcreation of threads and the overuse of memory in storing pending
+ * buffer flushes. The default is not to bound the number of threads. Throttling still occurs because of
+ * bounded buffer flush counts, but only at an individual operation level.
+ * 5. <em>hbase.htable.regioncache.updateinterval</em>: The length of time (in milliseconds) to wait before
+ * forcibly refreshing the region cache.
+ * 6. <em>hbase.htable.regioncache.expiration</em>: The length of time (in seconds) after writing a table's
+ * region information into the cache before expiring it. This won't have any effect if
+ * hbase.htable.regioncache.updateinterval is set sufficiently lower than this setting, as the cache
+ * updater will reset the region cache before it has a chance to expire entries on existing tables.
+ * However, once a table is dropped, this value will be used to prevent memory overrun in the cache.
  *
  * @author Scott Fines
  * Created on: 3/18/13
@@ -97,7 +110,7 @@ public class TableWriter implements WriterStatus{
     private static final long DEFAULT_CACHE_UPDATE_PERIOD = 30000;
     private static final long DEFAULT_CACHE_EXPIRATION = 60;
 
-    private final ExecutorService writerPool;
+    private final ThreadPoolExecutor writerPool;
     private final HConnection connection;
 
     private final LoadingCache<Integer,Set<HRegionInfo>> regionCache;
@@ -138,9 +151,8 @@ public class TableWriter implements WriterStatus{
                 .setNameFormat("tablewriter-writerpool-%d")
                 .setDaemon(true)
                 .setPriority(Thread.NORM_PRIORITY).build();
-        ExecutorService writerPool = new ThreadPoolExecutor(1,maxThreads,threadKeepAlive,
+        ThreadPoolExecutor writerPool = new ThreadPoolExecutor(1,maxThreads,threadKeepAlive,
                 TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),writerFactory);
-
         long cacheUpdatePeriod = configuration.getLong("hbase.htable.regioncache.updateinterval",DEFAULT_CACHE_UPDATE_PERIOD);
         ThreadFactory cacheFactory = new ThreadFactoryBuilder()
                 .setNameFormat("tablewriter-cacheupdater-%d")
@@ -157,7 +169,7 @@ public class TableWriter implements WriterStatus{
                 writeBufferSize,maxBufferEntries,maxPendingBuffers,cacheUpdatePeriod,configuration);
     }
 
-    private TableWriter( ExecutorService writerPool,
+    private TableWriter( ThreadPoolExecutor writerPool,
                          ScheduledExecutorService cacheUpdater,
                         HConnection connection,
                         LoadingCache<Integer, Set<HRegionInfo>> regionCache,

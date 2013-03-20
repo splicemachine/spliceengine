@@ -23,6 +23,7 @@ public class TestRunner {
 
         CREATE_AND_INSERT(true,true,false,false),
         CREATE_INSERT_AND_QUERY(true,true,true,false),
+        CREATE_INSERT_AND_DROP(true,true,false,true),
         INSERT_AND_QUERY(false,true,true,false),
         RUN_ALL(true,true,true,true);
 
@@ -79,6 +80,9 @@ public class TestRunner {
             }else if("--insert".equalsIgnoreCase(args[pos])){
                 pos++;
                 insertPhase = true;
+            }else if("--query".equalsIgnoreCase(args[pos])){
+                pos++;
+                queryPhase=true;
             }
         }
 
@@ -106,9 +110,10 @@ public class TestRunner {
         try{
             if(runMode.createPhase){
                 data.createTables();
-                data.createIndices();
             }
             try{
+                if(runMode.createPhase)
+                    data.createIndices();
                 if(runMode.insertPhase)
                     data.loadData();
                 if(runMode.queryPhase){

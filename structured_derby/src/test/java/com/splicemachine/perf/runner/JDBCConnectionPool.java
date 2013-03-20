@@ -13,7 +13,7 @@ import java.util.concurrent.Semaphore;
  */
 public class JDBCConnectionPool {
     private final Semaphore poolPermits;
-    private BlockingQueue<Connection> connections = new LinkedBlockingQueue<Connection>();
+    private final BlockingQueue<Connection> connections = new LinkedBlockingQueue<Connection>();
     private final int poolSize;
     private final String serverName;
     private volatile boolean closed = false;
@@ -29,13 +29,15 @@ public class JDBCConnectionPool {
         //try to acquire a permit first
         poolPermits.acquire();
 
-        //we have a permit--get a Connection from the connections if it's there
-        //otherwise, we'll need to create one
-        if(connections.isEmpty()){
-            return createConnection();
+        synchronized(connections){
+            //we have a permit--get a Connection from the connections if it's there
+            //otherwise, we'll need to create one
+            if(connections.isEmpty()){
+                return createConnection();
+            }
+            //get the first connection in the pool
+            return connections.poll();
         }
-        //get the first connection in the pool
-        return connections.take();
     }
 
     public void returnConnection(Connection connection) throws SQLException {
@@ -63,8 +65,10 @@ public class JDBCConnectionPool {
     public void shutdown() throws Exception{
         closed=true;
         for(Connection connection:connections){
-            connection.commit();
-            connection.close();
+            if(!connection.isClosed()){
+                connection.commit();
+                connection.close();
+            }
         }
     }
 

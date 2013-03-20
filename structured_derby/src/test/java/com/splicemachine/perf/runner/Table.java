@@ -18,6 +18,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Scott Fines
@@ -51,6 +52,7 @@ public class Table {
             List<Future<Void>> futures = Lists.newArrayListWithCapacity(insertThreads+1);
             final Accumulator insertAccumulator = TimingStats.uniformSafeAccumulator();
             insertAccumulator.start();
+            final AtomicInteger numBatches = new AtomicInteger(0);
             for(int i=0;i<insertThreads;i++){
                 futures.add(dataInserter.submit(new Callable<Void>() {
                     @Override
@@ -65,14 +67,17 @@ public class Table {
                                     long start = System.nanoTime();
                                     int numInserted = ps.executeBatch().length;
                                     insertAccumulator.tick(numInserted,System.nanoTime()-start);
-
+                                    int batches = numBatches.incrementAndGet();
+                                    if(batches%100==0)
+                                        SpliceLogUtils.info(LOG,"inserted %d batches",batches);
                                 }
                             }
                             long start = System.nanoTime();
                             int numInserted = ps.executeBatch().length;
-                            if(numInserted>0)
+                            if(numInserted>0){
                                 insertAccumulator.tick(numInserted,System.nanoTime()-start);
-
+                                numBatches.incrementAndGet();
+                            }
                             conn.commit();
                             return null;
                         }catch(SQLException se){
