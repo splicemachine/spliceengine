@@ -86,7 +86,9 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     @Override
     public void deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
-        Scan scan = new Scan(rowKey,limit);
+        Scan scan = SpliceUtils.createScan(transactionId);
+        scan.setStartRow(rowKey);
+        scan.setStopRow(limit);
         scan.setCaching(1);
         scan.setBatch(1);
 

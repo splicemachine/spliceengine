@@ -111,6 +111,14 @@ public class SpliceUtils {
         return createPut(getTransactionGetsPuts().getTransactionIdForPut(put), put.getRow());
     }
 
+    public static Scan createScan(String transactionId) {
+        Scan scan = new Scan();
+        if (transactionId != null) {
+            getTransactionGetsPuts().prepScan(transactionId, scan);
+        }
+        return scan;
+    }
+
     public enum SpliceConglomerate {HEAP,BTREE}
 	public static Configuration config = SpliceConfiguration.create();
 	protected static Gson gson = new Gson();
@@ -630,7 +638,7 @@ public class SpliceUtils {
 		return transID;
 	}
 
-    public static ITransactionGetsPuts getTransactionGetsPuts() {
+    private static ITransactionGetsPuts getTransactionGetsPuts() {
         if (useSi) {
             return new SiGetsPuts(TransactorFactory.getDefaultClientTransactor());
         } else {

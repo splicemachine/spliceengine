@@ -102,12 +102,12 @@ public class Scans {
 	 */
 	public static Scan newScan(byte[] startRow, byte[] stopRow,
                                String transactionId, int caching) {
-		Scan scan = new Scan();
+		Scan scan = SpliceUtils.createScan(transactionId);
 		scan.setCaching(caching);
 		scan.setStartRow(startRow);
 		scan.setStopRow(stopRow);
 		scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
-		attachTransactionInformation(transactionId, scan);
+        attachTransactionInformation(transactionId, scan);
 		return scan;
 	}
 
@@ -149,7 +149,7 @@ public class Scans {
 															 boolean[] sortOrder,
 															 FormatableBitSet scanColumnList,
 															 String transactionId) throws IOException {
-		Scan scan = new Scan();
+        Scan scan = SpliceUtils.createScan(transactionId);
 		scan.setCaching(DEFAULT_CACHE_SIZE);
 		attachTransactionInformation(transactionId, scan);
 		attachScanKeys(scan, startKeyValue, startSearchOperator,
@@ -201,7 +201,7 @@ public class Scans {
                                                              FormatableBitSet primaryKeys,
 															 FormatableBitSet scanColumnList,
 															 String transactionId) throws IOException {
-		Scan scan = new Scan();
+		Scan scan = SpliceUtils.createScan(transactionId);
 		scan.setCaching(DEFAULT_CACHE_SIZE);
 		attachTransactionInformation(transactionId, scan);
 		attachScanKeys(scan, startKeyValue, startSearchOperator,
@@ -267,7 +267,6 @@ public class Scans {
 		 * This attaches the TransactionInformation as an attribute on scan.
 		 */
 		if(transactionId!=null) {
-            SpliceUtils.getTransactionGetsPuts().prepScan(transactionId, scan);
 			//TODO -sf- change this to use the Ordinal of the TransactionIsolationLevel
 			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
 					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));

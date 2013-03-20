@@ -503,22 +503,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		// TODO Auto-generated method stub
 		
 	}
-	
-	
-	public static String convertScanToString(Scan scan) throws IOException {
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		DataOutputStream dos = new DataOutputStream(out);
-		scan.write(dos);
-		return Base64.encodeBytes(out.toByteArray());
-	}
-	 
-	public static Scan convertStringToScan(String base64) throws IOException {
-		ByteArrayInputStream bis = new ByteArrayInputStream(Base64.decode(base64));
-		DataInputStream dis = new DataInputStream(bis);
-		Scan scan = new Scan();
-		scan.readFields(dis);
-		return scan;
-	}
 
     protected ExecRow getCompactRow(LanguageConnectionContext lcc,
                                     ExecRow candidate,

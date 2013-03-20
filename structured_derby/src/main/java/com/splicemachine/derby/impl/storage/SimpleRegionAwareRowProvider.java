@@ -23,23 +23,23 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
     private final  RegionAwareScanner scanner;
     private final byte[] table;
 
-    public SimpleRegionAwareRowProvider(HRegion region,byte[] table,
+    public SimpleRegionAwareRowProvider(String transactionId, HRegion region,byte[] table,
                                            byte[] columnFamily,
                                            byte[] start, byte[] finish,
                                            final Hasher hasher,
                                            final ExecRow rowTemplate, FormatableBitSet fbt) {
         super(rowTemplate, fbt);
         this.table = table;
-        this.scanner = RegionAwareScanner.create(region, new SingleTypeHashAwareScanBoundary(
+        this.scanner = RegionAwareScanner.create(transactionId, region, new SingleTypeHashAwareScanBoundary(
                            columnFamily,rowTemplate, hasher),table,start,finish);
     }
 
-	public SimpleRegionAwareRowProvider(HRegion region, byte[] table,
+	public SimpleRegionAwareRowProvider(String transactionId, HRegion region, byte[] table,
 																			byte[] start, byte[] finish,
 																			final ExecRow rowTemplate, FormatableBitSet fbt,ScanBoundary boundary){
 		super(rowTemplate,fbt);
 		this.table = table;
-		this.scanner = RegionAwareScanner.create(region,boundary,table,start,finish);
+		this.scanner = RegionAwareScanner.create(transactionId, region,boundary,table,start,finish);
 	}
 
     @Override

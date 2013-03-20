@@ -49,8 +49,9 @@ public class RegionAwareScanner implements Closeable {
     private byte[] regionFinish;
     private byte[] regionStart;
     private byte[] tableName;
+    private final String transactionId;
 
-    private RegionAwareScanner(HTableInterface table, HRegion region, byte[] scanStart, byte[] scanFinish, ScanBoundary scanBoundary){
+    private RegionAwareScanner(String transactionId, HTableInterface table, HRegion region, byte[] scanStart, byte[] scanFinish, ScanBoundary scanBoundary){
         this.table = table;
         this.region = region;
         this.scanStart = scanStart;
@@ -63,6 +64,7 @@ public class RegionAwareScanner implements Closeable {
             this.regionFinish = scanFinish;
             this.regionStart = scanStart;
         }
+        this.transactionId = transactionId;
     }
 
     /**
@@ -106,11 +108,11 @@ public class RegionAwareScanner implements Closeable {
      * @return a RegionAwareScanner which can complete the portions of the global scan which
      * {@code region} is responsible for.
      */
-    public static RegionAwareScanner create(HRegion region, ScanBoundary boundary,
+    public static RegionAwareScanner create(String transactionId, HRegion region, ScanBoundary boundary,
                                             byte[] tableName,
                                             byte[] scanStart,byte[] scanFinish){
         HTableInterface table = SpliceAccessManager.getHTable(tableName);
-        return new RegionAwareScanner(table,region,scanStart,scanFinish,boundary);
+        return new RegionAwareScanner(transactionId,table,region,scanStart,scanFinish,boundary);
     }
 
     public void open(){
@@ -142,11 +144,11 @@ public class RegionAwareScanner implements Closeable {
             //deal with the start of the region
         	handleStartOfRegion();
         }
-        localScanner = region.getScanner(boundary.buildScan(localStart,localFinish));
+        localScanner = region.getScanner(boundary.buildScan(transactionId,localStart,localFinish));
         if(remoteStart!=null)
-            lookBehindScanner = table.getScanner(boundary.buildScan(remoteStart,regionFinish));
+            lookBehindScanner = table.getScanner(boundary.buildScan(transactionId,remoteStart,regionFinish));
         if(remoteFinish!=null)
-            lookAheadScanner = table.getScanner(boundary.buildScan(regionFinish,remoteFinish));
+            lookAheadScanner = table.getScanner(boundary.buildScan(transactionId,regionFinish,remoteFinish));
     }
     
     private void handleEndOfRegion() throws IOException {
@@ -157,7 +159,7 @@ public class RegionAwareScanner implements Closeable {
             lookAheadExhausted = true;
         }else{
             //have to determine whether to lookahead or stop early.
-            Scan aheadScan = boundary.buildScan(regionFinish,scanFinish);
+            Scan aheadScan = boundary.buildScan(transactionId,regionFinish,scanFinish);
             aheadScan.setCaching(1);
             aheadScan.setBatch(1);
             ResultScanner aheadScanner = null;
@@ -203,7 +205,7 @@ public class RegionAwareScanner implements Closeable {
             lookBehindExhausted=true;
         }else{
             //have to determine whether or not to lookbehind or skip the first local elements
-            Scan startScan = boundary.buildScan(regionStart,regionFinish);
+            Scan startScan = boundary.buildScan(transactionId,regionStart,regionFinish);
             startScan.setCaching(1);
             startScan.setBatch(1);
             RegionScanner localScanner = null;
@@ -245,7 +247,7 @@ public class RegionAwareScanner implements Closeable {
 
     public Scan toScan() {
         //this is naive--we should probably pay attention to look-behinds and look-aheads here
-        return boundary.buildScan(scanStart,scanFinish);
+        return boundary.buildScan(transactionId,scanStart,scanFinish);
     }
 
 }

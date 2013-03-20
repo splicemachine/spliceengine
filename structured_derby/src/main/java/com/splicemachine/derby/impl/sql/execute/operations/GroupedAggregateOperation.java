@@ -147,7 +147,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			}else{
 				Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
 				rowProvider = new SimpleRegionAwareRowProvider(
-						context.getRegion(),
+						transactionID,
+                        context.getRegion(),
 						regionScanner.getRegionInfo().getTableName(),
 						HBaseConstants.DEFAULT_FAMILY_BYTES,
 						start,finish,hasher,

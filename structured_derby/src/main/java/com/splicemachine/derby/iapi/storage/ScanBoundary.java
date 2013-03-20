@@ -14,7 +14,7 @@ public interface ScanBoundary{
      * @param finish the end key of the scan
      * @return a constructed Scan representing the range given by {@code start} and {@code finish}
      */
-    Scan buildScan(byte[] start, byte[] finish);
+    Scan buildScan(String transactionId, byte[] start, byte[] finish);
 
     /**
      * Get the beginning of the key range that this row belongs to.

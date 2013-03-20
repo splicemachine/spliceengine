@@ -777,7 +777,7 @@ class PropertyConglomerate {
         // scan the table for a row with no matching "key"
         HTableInterface table = SpliceAccessManager.getHTable(PROPERTIES_TABLE_NAME_BYTES);
 
-        Scan scan = new Scan();
+        Scan scan = SpliceUtils.createScan(getTransactionId(tc));
         scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
         scan.setCaching(100);
         scan.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN);

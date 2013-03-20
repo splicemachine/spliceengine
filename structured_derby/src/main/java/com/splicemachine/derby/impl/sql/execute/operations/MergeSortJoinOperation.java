@@ -161,7 +161,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 			if(regionScanner==null){
 				reduceScan = Scans.newScan(start,finish,transactionID);
 			}else{
-				serverProvider = new MergeSortRegionAwareRowProvider(context.getRegion(),SpliceOperationCoprocessor.TEMP_TABLE,HBaseConstants.DEFAULT_FAMILY_BYTES,
+				serverProvider = new MergeSortRegionAwareRowProvider(transactionID, context.getRegion(),SpliceOperationCoprocessor.TEMP_TABLE,HBaseConstants.DEFAULT_FAMILY_BYTES,
 						start,finish,leftHasher,leftRow,rightHasher,rightRow,null,rowType);		
 				serverProvider.open();
 			}

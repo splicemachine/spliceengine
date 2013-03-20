@@ -51,7 +51,7 @@ public class MergeSortRegionAwareRowProvider implements RowProvider {
     private JoinSideExecRow rightSideRow;
 
 
-    public MergeSortRegionAwareRowProvider(HRegion region,byte[] table,
+    public MergeSortRegionAwareRowProvider(String transactionId, HRegion region, byte[] table,
                                            byte[] columnFamily,
                                            byte[] start, byte[] finish,
                                            final Hasher leftHasher,
@@ -60,7 +60,7 @@ public class MergeSortRegionAwareRowProvider implements RowProvider {
                                            ExecRow rightRow,
                                            FormatableBitSet fbt, SQLInteger rowType) {
     	SpliceLogUtils.trace(LOG, "instantiated for region %s of table %s",region.getRegionInfo().toString(), Bytes.toString(table));
-        this.scanner = RegionAwareScanner.create(region, 
+        this.scanner = RegionAwareScanner.create(transactionId, region,
         		new MultipleTypeHashAwareScanBoundary(rowType,columnFamily,leftRow, leftHasher,rightRow,rightHasher),table,start,finish);   
         this.leftRow = leftRow;
         this.rightRow = rightRow;
@@ -72,7 +72,7 @@ public class MergeSortRegionAwareRowProvider implements RowProvider {
         this.serializer = new Serializer();
     }
 
-    public MergeSortRegionAwareRowProvider(HRegion region,byte[] table,
+    public MergeSortRegionAwareRowProvider(String transactionId, HRegion region,byte[] table,
                                            byte[] columnFamily,
                                            byte[] start, byte[] finish,
                                            final Hasher leftHasher,
@@ -81,7 +81,7 @@ public class MergeSortRegionAwareRowProvider implements RowProvider {
                                            ExecRow rightRow,
                                            FormatableBitSet fbt, SQLInteger rowType,Serializer serializer) {
         SpliceLogUtils.trace(LOG, "instantiated for region %s of table %s",region.getRegionInfo().toString(), Bytes.toString(table));
-        this.scanner = RegionAwareScanner.create(region,
+        this.scanner = RegionAwareScanner.create(transactionId, region,
                 new MultipleTypeHashAwareScanBoundary(rowType,columnFamily,leftRow, leftHasher,rightRow,rightHasher),table,start,finish);
         this.leftRow = leftRow;
         this.rightRow = rightRow;

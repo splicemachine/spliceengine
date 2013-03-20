@@ -29,15 +29,15 @@ public class SingleTypeHashAwareScanBoundary extends BaseHashAwareScanBoundary {
 	}
 
     @Override
-    public Scan buildScan(byte[] start, byte[] finish) {
-        Scan scan = super.buildScan(start,finish);
+    public Scan buildScan(String transactionId, byte[] start, byte[] finish) {
+        Scan scan = super.buildScan(transactionId, start, finish);
 
         try{
             scan.setFilter(new PrefixFilter(hasher.getPrefixBytes()));
         }catch(IOException ioe){
             SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
         }
-        return super.buildScan(start, finish);    //To change body of overridden methods use File | Settings | File Templates.
+        return super.buildScan(transactionId, start, finish);    //To change body of overridden methods use File | Settings | File Templates.
     }
 
     @Override

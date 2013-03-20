@@ -6,6 +6,7 @@ import com.splicemachine.derby.impl.sql.execute.index.IndexManager;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
 import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
@@ -35,7 +36,7 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
 
         //get a region scanner
         HRegion region = ((RegionCoprocessorEnvironment) this.getEnvironment()).getRegion();
-        Scan regionScan = new Scan();
+        Scan regionScan = SpliceUtils.createScan(transactionId);
         regionScan.setCaching(100);
         //we want to scan the entire region in order to update the index correctly
         regionScan.setStartRow(region.getStartKey());
