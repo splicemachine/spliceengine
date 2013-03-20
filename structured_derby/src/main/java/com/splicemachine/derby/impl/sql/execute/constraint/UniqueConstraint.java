@@ -5,7 +5,9 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -37,7 +39,14 @@ public class UniqueConstraint implements Constraint {
     private static final Function<? super Mutation, Get> validator = new Function<Mutation, Get>() {
         @Override
         public Get apply(@Nullable Mutation input) {
-            @SuppressWarnings("ConstantConditions") Get get = new Get(input.getRow());
+            @SuppressWarnings("ConstantConditions") Get get = null;
+            if (input instanceof Put) {
+                get = SpliceUtils.createGetFromPut((Put) input);
+            } else if (input instanceof Delete) {
+                get = SpliceUtils.createGetFromDelete((Delete) input);
+            } else {
+                throw new RuntimeException("unknown mutation type " + input.getClass().getName());
+            }
             get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
 
             return get;

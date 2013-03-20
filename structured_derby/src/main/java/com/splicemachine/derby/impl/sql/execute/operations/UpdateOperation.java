@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.NavigableMap;
 
+import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -152,7 +153,7 @@ public class UpdateOperation extends DMLWriteOperation{
                      * That means we have to do a Get to get the full row, then merge it with the update values,
                      * re-insert it in the new location, and then delete the old location.
                      */
-                    Get remoteGet = new Get(location.getBytes());
+                    Get remoteGet = SpliceUtils.createGet(transactionID, location.getBytes());
                     remoteGet.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
                     Result result = htable.get(remoteGet);
 

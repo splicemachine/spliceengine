@@ -201,7 +201,7 @@ public class IndexManager {
          * To delete an entry, we'll need to first get the row, then construct
          * the index row key from the row, then delete it
          */
-        Get get = new Get(delete.getRow());
+        Get get = SpliceUtils.createGetFromDelete(delete);
         for(byte[] mainColumn:mainColPos){
             get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColumn);
         }

@@ -37,4 +37,9 @@ public class ZkTransactionGetsPuts implements ITransactionGetsPuts {
     public String getTransactionIdForPut(Put put) {
         return Bytes.toString(put.getAttribute(TxnConstants.TRANSACTION_ID));
     }
+
+    @Override
+    public String getTransactionIdForDelete(Delete delete) {
+        return Bytes.toString(delete.getAttribute(TxnConstants.TRANSACTION_ID));
+    }
 }

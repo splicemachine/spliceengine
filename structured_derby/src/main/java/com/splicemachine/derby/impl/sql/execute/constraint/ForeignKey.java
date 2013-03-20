@@ -42,9 +42,8 @@ public class ForeignKey implements Constraint{
 
 //    @Override
     public boolean validate(Put put,RegionCoprocessorEnvironment rce) throws IOException{
-//        Get get = new Get(Constraints.getReferencedRowKey(put, fkCols));
+//        Get get = SpliceUtils.createGet(... Constraints.getReferencedRowKey(put, fkCols));
 //        get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
-
         return true;// TODO -sf- implement
     }
 
@@ -64,7 +63,7 @@ public class ForeignKey implements Constraint{
     }
 
     public void updateForeignKey(Delete delete) throws IOException{
-//        Get get = new Get(delete.getRow());
+//        Get get = SpliceUtils.createGet(...);
 //        for(int fk = fkCols.nextSetBit(0);fk!=-1;fk=fkCols.nextSetBit(fk+1)){
 //            get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(fk).getBytes());
 //        }

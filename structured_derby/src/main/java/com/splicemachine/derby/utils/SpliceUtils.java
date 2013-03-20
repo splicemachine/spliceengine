@@ -163,10 +163,24 @@ public class SpliceUtils {
 		return gson.fromJson(json, instanceClass);
 	}
 
-	public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
+    public static Get createGet(String transactionId, byte[] row) {
+        Get get = new Get(row);
+        getTransactionGetsPuts().prepGet(transactionId, get);
+        return get;
+    }
+
+    public static Get createGetFromPut(Put put) {
+        return createGet(getTransactionGetsPuts().getTransactionIdForPut(put), put.getRow());
+    }
+
+    public static Get createGetFromDelete(Delete delete) {
+        return createGet(getTransactionGetsPuts().getTransactionIdForDelete(delete), delete.getRow());
+    }
+
+    public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
 		SpliceLogUtils.trace(LOG,"createGet %s",loc.getBytes());
 		try {
-			Get get = new Get(loc.getBytes());
+			Get get = createGet(transID, loc.getBytes());
 			if(validColumns!=null){
 				for(int i= validColumns.anySetBit();i!=-1;i = validColumns.anySetBit(i)){
 					get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
@@ -179,7 +193,6 @@ public class SpliceUtils {
 
 			//FIXME: need to get the isolation level
 			if (transID != null) {
-                SpliceUtils.getTransactionGetsPuts().prepGet(transID,  get);
 				get.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
 													Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
 			}
@@ -189,13 +202,6 @@ public class SpliceUtils {
 			return null;
 		}
 	}
-
-    public static Get createGetFromPut(Put put) {
-        Get get = new Get(put.getRow());
-        final ITransactionGetsPuts transactionGetsPuts = SpliceUtils.getTransactionGetsPuts();
-        transactionGetsPuts.prepGet(transactionGetsPuts.getTransactionIdForPut(put), get);
-        return get;
-    }
 
     public static void doDeleteFromPut(HTableInterface table, byte[] row, Put put) throws IOException {
         deleteDirect(table, SpliceUtils.getTransactionGetsPuts().getTransactionIdForPut(put), row);
@@ -403,11 +409,10 @@ public class SpliceUtils {
 		try {
 			//FIXME: Check if the record exists. Not using htable.checkAndPut because it's one column at a time
 			//May need to read more HTableInteface's checkAndPut
-			Get get = new Get(loc.getBytes());
+			Get get = createGet(transID, loc.getBytes());
 
 			//FIXME: need to get the isolation level
 			if (transID != null) {
-                SpliceUtils.getTransactionGetsPuts().prepGet(transID, get);
 				get.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
 		    			Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
 			}

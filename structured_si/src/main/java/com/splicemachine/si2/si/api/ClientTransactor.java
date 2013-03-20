@@ -2,6 +2,7 @@ package com.splicemachine.si2.si.api;
 
 import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.SScan;
+import org.apache.hadoop.hbase.client.Delete;
 
 import java.util.List;
 
@@ -11,6 +12,7 @@ import java.util.List;
 public interface ClientTransactor {
     TransactionId transactionIdFromString(String transactionId);
     TransactionId getTransactionIdFromPut(Object put);
+    TransactionId getTransactionIdFromDelete(Delete delete);
 
     void initializeGet(TransactionId transactionId, SGet get);
     void initializeGets(TransactionId transactionId, List gets);
