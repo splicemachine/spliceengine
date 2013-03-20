@@ -10,16 +10,19 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
 /**
- * Derby Days?
+ * Coprocessor for starting the derby services on top of HBase.
  *
- * @author johnleach
+ * @author John Leach
  */
 public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
     private static final AtomicLong runningCoprocessors = new AtomicLong(0l);
     private boolean tableEnvMatch;
 
     /**
-     * Logs the start of the observer.
+     * Logs the start of the observer and runs the SpliceDriver if needed...
+     * 
+     * @see com.splicemachine.derby.hbase.SpliceDriver
+     * 
      */
     @Override
     public void start(CoprocessorEnvironment e) {
@@ -36,7 +39,10 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
     }
 
     /**
-     * Logs the stop of the observer.
+     * Logs the stop of the observer and shutdowns the SpliceDriver if needed...
+     * 
+     * @see com.splicemachine.derby.hbase.SpliceDriver
+     * 
      */
     @Override
     public void stop(CoprocessorEnvironment e) {
