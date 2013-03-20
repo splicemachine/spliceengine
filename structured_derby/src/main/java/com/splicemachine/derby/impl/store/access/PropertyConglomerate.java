@@ -320,8 +320,7 @@ class PropertyConglomerate {
             String transactionId = getTransactionId(tc);
             if(value==null){
                 //null value means delete the property
-                Delete delete = SpliceUtils.createDelete(transactionId, keyBytes);
-                table.delete(delete);
+                SpliceUtils.doDelete(table, transactionId, keyBytes);
             }
 
             //set the value

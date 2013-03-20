@@ -133,7 +133,14 @@ public class SiTransactor implements Transactor, ClientTransactor {
         final Object deletePut = dataLib.newPut(rowKey);
         initializePut(siTransactionId, deletePut);
         dataStore.setTombstoneOnPut(deletePut, siTransactionId);
+        dataStore.setDeletePutAttribute(deletePut);
         return deletePut;
+    }
+
+    @Override
+    public boolean isDeletePut(Object put) {
+        final Boolean deleteAttribute = dataStore.getDeletePutAttribute(put);
+        return (deleteAttribute != null && deleteAttribute);
     }
 
     @Override

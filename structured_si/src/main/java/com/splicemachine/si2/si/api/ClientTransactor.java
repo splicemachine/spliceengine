@@ -3,6 +3,7 @@ package com.splicemachine.si2.si.api;
 import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.SScan;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Put;
 
 import java.util.List;
 
@@ -26,4 +27,5 @@ public interface ClientTransactor {
     void initializeGetFromDelete(Object put1, Object put2);
 
     Object newDeletePut(TransactionId transactionId, Object rowKey);
+    boolean isDeletePut(Object put);
 }

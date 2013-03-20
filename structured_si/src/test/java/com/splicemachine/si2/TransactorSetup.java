@@ -34,7 +34,7 @@ public class TransactorSetup {
 
         transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
         SiTransactor siTransactor = new SiTransactor(new SimpleTimestampSource(), dataLib, writer,
-                new DataStore(dataLib, reader, writer, "si-needed", "si-transaction-id",
+                new DataStore(dataLib, reader, writer, "si-needed", "si-transaction-id", "si-delete-put",
                         "_si", "commit", "tombstone", -1, userColumnsFamilyName),
                 transactionStore);
         clientTransactor = siTransactor;

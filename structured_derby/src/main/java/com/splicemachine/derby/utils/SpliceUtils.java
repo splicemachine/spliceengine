@@ -10,6 +10,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.hbase.txn.ZkTransactionGetsPuts;
@@ -41,6 +42,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
@@ -187,26 +189,6 @@ public class SpliceUtils {
         return createGet(getTransactionGetsPuts().getTransactionIdForPut(put), put.getRow());
     }
 
-    public static Get createGetFromDelete(Delete delete) {
-        return createGet(getTransactionGetsPuts().getTransactionIdForDelete(delete), delete.getRow());
-    }
-
-    public static Delete createDelete(String transactionId, byte[] row) {
-        Delete delete = new Delete(row);
-        if (transactionId != null) {
-            getTransactionGetsPuts().prepDelete(transactionId, delete);
-        }
-        return delete;
-    }
-
-    public static Delete createDeleteFromDelete(Delete delete, byte[] row) {
-        return createDelete(getTransactionGetsPuts().getTransactionIdForDelete(delete), row);
-    }
-
-    public static String getTransactionIdFromDelete(Delete delete) {
-        return getTransactionGetsPuts().getTransactionIdForDelete(delete);
-    }
-
     public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
 		SpliceLogUtils.trace(LOG,"createGet %s",loc.getBytes());
 		try {
@@ -245,24 +227,73 @@ public class SpliceUtils {
         return createPut(getTransactionGetsPuts().getTransactionIdForPut(put1), rowKey);
     }
 
-    public static void doDeleteFromPut(HTableInterface table, byte[] row, Put put) throws IOException {
+    public static Get createGetFromDelete(Delete delete) {
+        return createGet(getTransactionGetsPuts().getTransactionIdForDelete(delete), delete.getRow());
+    }
+
+    public static Delete createDelete(String transactionId, byte[] row) {
+        Delete delete = new Delete(row);
+        if (transactionId != null) {
+            getTransactionGetsPuts().prepDelete(transactionId, delete);
+        }
+        return delete;
+    }
+
+    public static void doDeleteFromDelete(HTableInterface table, Delete delete, byte[] row) throws IOException {
+        deleteDirect(table, getTransactionGetsPuts().getTransactionIdForDelete(delete), row);
+    }
+
+    public static String getTransactionIdFromDelete(Delete delete) {
+        return getTransactionGetsPuts().getTransactionIdForDelete(delete);
+    }
+
+    public static String getTransactionIdFromPut(Put put) {
+        return getTransactionGetsPuts().getTransactionIdForPut(put);
+    }
+
+    public static void doDeleteFromPut(HTableInterface table, Put put, byte[] row) throws IOException {
         deleteDirect(table, SpliceUtils.getTransactionGetsPuts().getTransactionIdForPut(put), row);
     }
 
-    public static void doDelete(HTableInterface htable, RowLocation loc, String transId) throws IOException, StandardException {
-        SpliceLogUtils.trace(LOG, "delete row at location %s", loc);
-        final byte[] rowKey = loc.getBytes();
-        deleteDirect(htable, transId, rowKey);
+    public static void doDelete(HTableInterface table, String transactionId, byte[] row) throws IOException {
+        deleteDirect(table, transactionId, row);
     }
 
-    private static void deleteDirect(HTableInterface table, String transId, byte[] row) throws IOException {
+    public static void doDelete(HTableInterface htable, RowLocation loc, String transactionid) throws IOException, StandardException {
+        SpliceLogUtils.trace(LOG, "delete row at location %s", loc);
+        deleteDirect(htable, transactionid, loc.getBytes());
+    }
+
+    public static void doDeleteWithoutIndexing(HRegion region, String transactionId, byte[] row) throws IOException {
         if (useSi) {
             final ClientTransactor clientTransactor = TransactorFactory.getDefaultClientTransactor();
-            Put put = (Put) clientTransactor.newDeletePut(clientTransactor.transactionIdFromString(transId), row);
+            Put put = (Put) clientTransactor.newDeletePut(clientTransactor.transactionIdFromString(transactionId), row);
+            put.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
+            region.put(put);
+        } else {
+            Delete delete = SpliceUtils.createDelete(transactionId, row);
+            delete.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
+            region.delete(delete, null, true);
+        }
+    }
+
+    private static void deleteDirect(HTableInterface table, String transactionId, byte[] row) throws IOException {
+        if (useSi) {
+            final ClientTransactor clientTransactor = TransactorFactory.getDefaultClientTransactor();
+            Put put = (Put) clientTransactor.newDeletePut(clientTransactor.transactionIdFromString(transactionId), row);
             table.put(put);
         } else {
-            Delete delete = createDelete(transId, row);
+            Delete delete = createDelete(transactionId, row);
             table.delete(delete);
+        }
+    }
+
+    public static boolean isDeletePut(Put put) {
+        if (useSi) {
+            final ClientTransactor clientTransactor = TransactorFactory.getDefaultClientTransactor();
+            return clientTransactor.isDeletePut(put);
+        } else {
+            return false;
         }
     }
 

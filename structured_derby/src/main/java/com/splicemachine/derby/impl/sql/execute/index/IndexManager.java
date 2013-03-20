@@ -177,11 +177,11 @@ public class IndexManager {
     /*
      * Convenience wrapper around type casting of the mutation.
      */
-    private void update(Mutation mutation, HTableInterface table,HRegion region) throws IOException{
-        if(mutation instanceof Put)
-            updateIndex((Put)mutation,table,region);
+    private void update(Mutation mutation, HTableInterface table, HRegion region) throws IOException {
+        if ((mutation instanceof Put) && !SpliceUtils.isDeletePut((Put) mutation))
+            updateIndex((Put) mutation, table, region);
         else
-            update((Delete) mutation, table);
+            update(mutation, table);
     }
 
     /*
@@ -198,12 +198,17 @@ public class IndexManager {
     /*
      * Update the index to delete records that are no longer in the main table.
      */
-    private void update(final Delete delete, HTableInterface table) throws IOException{
+    private void update(final Mutation mutation, HTableInterface table) throws IOException{
         /*
          * To delete an entry, we'll need to first get the row, then construct
          * the index row key from the row, then delete it
          */
-        Get get = SpliceUtils.createGetFromDelete(delete);
+        Get get;
+        if (mutation instanceof Delete) {
+            get = SpliceUtils.createGetFromDelete((Delete) mutation);
+        } else {
+            get = SpliceUtils.createGetFromPut((Put) mutation);
+        }
         for(byte[] mainColumn:mainColPos){
             get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColumn);
         }
@@ -223,10 +228,11 @@ public class IndexManager {
         final byte[] indexRowKey = convert(rowKeyBuilder,size);
 
         if(isUnique){
-            Delete indexDelete = SpliceUtils.createDeleteFromDelete(delete, indexRowKey);
-            indexDelete.deleteFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
-
-            table.delete(indexDelete);
+            if (mutation instanceof Delete) {
+                SpliceUtils.doDeleteFromDelete(table, (Delete) mutation, indexRowKey);
+            } else {
+                SpliceUtils.doDeleteFromPut(table, (Put) mutation, indexRowKey);
+            }
         }else{
             /*
              * Because index keys in non-null indices have a postfix appended to them,
@@ -239,7 +245,13 @@ public class IndexManager {
                 table.coprocessorExec(BatchProtocol.class,indexRowKey,indexStop,new Batch.Call<BatchProtocol, Void>() {
                     @Override
                     public Void call(BatchProtocol instance) throws IOException {
-                        instance.deleteFirstAfter(SpliceUtils.getTransactionIdFromDelete(delete),indexRowKey,indexStop);
+                        final String transactionId;
+                        if (mutation instanceof Delete) {
+                            transactionId = SpliceUtils.getTransactionIdFromDelete((Delete) mutation);
+                        } else {
+                            transactionId = SpliceUtils.getTransactionIdFromPut((Put) mutation);
+                        }
+                        instance.deleteFirstAfter(transactionId,indexRowKey,indexStop);
                         return null;
                     }
                 });
@@ -343,7 +355,7 @@ public class IndexManager {
         }
 
         byte[] indexRowKey = convert(rowToDelete,size);
-        SpliceUtils.doDeleteFromPut(table, indexRowKey, mainPut);
+        SpliceUtils.doDeleteFromPut(table, mainPut, indexRowKey);
 
         //merge the old row with the new row to form the new index put
         Put newPut = SpliceUtils.createPutFromPut(mainPut);

@@ -19,6 +19,7 @@ public class DataStore {
 
     private final String siNeededAttribute;
     private final String transactionIdAttribute;
+    private final String deletePutAttribute;
 
     private final Object siFamily;
     private final Object commitTimestampQualifier;
@@ -28,7 +29,7 @@ public class DataStore {
     private final Object userColumnFamily;
 
     public DataStore(SDataLib dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
-                     String transactionIdAttribute,
+                     String transactionIdAttribute, String deletePutAttribute,
                      String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier, Object siMetaNull,
                      Object userColumnFamily) {
         this.dataLib = dataLib;
@@ -36,6 +37,7 @@ public class DataStore {
         this.writer = writer;
         this.siNeededAttribute = siNeededAttribute;
         this.transactionIdAttribute = transactionIdAttribute;
+        this.deletePutAttribute = deletePutAttribute;
         this.siFamily = dataLib.encode(siMetaFamily);
         this.commitTimestampQualifier = dataLib.encode(siCommitQualifier);
         this.tombstoneQualifier = dataLib.encode(siTombstoneQualifier);
@@ -49,6 +51,15 @@ public class DataStore {
 
     Boolean getSiNeededAttribute(Object put) {
         Object neededValue = dataLib.getAttribute(put, siNeededAttribute);
+        return (Boolean) dataLib.decode(neededValue, Boolean.class);
+    }
+
+    void setDeletePutAttribute(Object put) {
+        dataLib.addAttribute(put, deletePutAttribute, dataLib.encode(true));
+    }
+
+    Boolean getDeletePutAttribute(Object put) {
+        Object neededValue = dataLib.getAttribute(put, deletePutAttribute);
         return (Boolean) dataLib.decode(neededValue, Boolean.class);
     }
 

@@ -61,7 +61,7 @@ public class TransactorFactory {
         final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
 
         final DataStore rowStore = new DataStore(dataLib, reader, writer, "si-needed",
-                "si-transaction-id", SIConstants.SNAPSHOT_ISOLATION_FAMILY,
+                "si-transaction-id", "si-delete-put", SIConstants.SNAPSHOT_ISOLATION_FAMILY,
                 SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,
                 SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN,
                 SIConstants.EMPTY_BYTE_ARRAY, SIConstants.DEFAULT_FAMILY);
