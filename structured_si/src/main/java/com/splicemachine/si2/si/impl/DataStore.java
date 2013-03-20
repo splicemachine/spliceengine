@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-public class RowMetadataStore {
+public class DataStore {
     private final SDataLib dataLib;
     private final STableReader reader;
     private final STableWriter writer;
@@ -27,10 +27,10 @@ public class RowMetadataStore {
 
     private final Object userColumnFamily;
 
-    public RowMetadataStore(SDataLib dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
-                            String transactionIdAttribute,
-                            String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier, Object siMetaNull,
-                            Object userColumnFamily) {
+    public DataStore(SDataLib dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
+                     String transactionIdAttribute,
+                     String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier, Object siMetaNull,
+                     Object userColumnFamily) {
         this.dataLib = dataLib;
         this.reader = reader;
         this.writer = writer;

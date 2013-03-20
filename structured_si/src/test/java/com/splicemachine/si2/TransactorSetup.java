@@ -6,7 +6,7 @@ import com.splicemachine.si2.data.api.STableReader;
 import com.splicemachine.si2.data.api.STableWriter;
 import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.si.impl.RowMetadataStore;
+import com.splicemachine.si2.si.impl.DataStore;
 import com.splicemachine.si2.si.impl.SiTransactor;
 import com.splicemachine.si2.si.impl.SimpleTimestampSource;
 import com.splicemachine.si2.si.impl.TransactionSchema;
@@ -34,7 +34,7 @@ public class TransactorSetup {
 
         transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
         SiTransactor siTransactor = new SiTransactor(new SimpleTimestampSource(), dataLib, writer,
-                new RowMetadataStore(dataLib, reader, writer, "si-needed", "si-transaction-id",
+                new DataStore(dataLib, reader, writer, "si-needed", "si-transaction-id",
                         "_si", "commit", "tombstone", -1, userColumnsFamilyName),
                 transactionStore);
         clientTransactor = siTransactor;

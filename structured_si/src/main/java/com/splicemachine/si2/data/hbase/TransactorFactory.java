@@ -7,7 +7,7 @@ import com.splicemachine.si2.data.api.STableWriter;
 import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.TimestampSource;
 import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.si.impl.RowMetadataStore;
+import com.splicemachine.si2.si.impl.DataStore;
 import com.splicemachine.si2.si.impl.SiTransactor;
 import com.splicemachine.si2.si.impl.TransactionSchema;
 import com.splicemachine.si2.si.impl.TransactionStore;
@@ -60,7 +60,7 @@ public class TransactorFactory {
                 SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN, SIConstants.TRANSACTION_STATUS_COLUMN);
         final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
 
-        final RowMetadataStore rowStore = new RowMetadataStore(dataLib, reader, writer, "si-needed",
+        final DataStore rowStore = new DataStore(dataLib, reader, writer, "si-needed",
                 "si-transaction-id", SIConstants.SNAPSHOT_ISOLATION_FAMILY,
                 SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,
                 SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN,

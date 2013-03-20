@@ -27,11 +27,11 @@ public class SiTransactor implements Transactor, ClientTransactor {
     private final TimestampSource timestampSource;
     private final SDataLib dataLib;
     private final STableWriter dataWriter;
-    private final RowMetadataStore dataStore;
+    private final DataStore dataStore;
     private final TransactionStore transactionStore;
 
     public SiTransactor(TimestampSource timestampSource, SDataLib dataLib, STableWriter dataWriter,
-                        RowMetadataStore dataStore, TransactionStore transactionStore) {
+                        DataStore dataStore, TransactionStore transactionStore) {
         this.timestampSource = timestampSource;
         this.dataLib = dataLib;
         this.dataWriter = dataWriter;
