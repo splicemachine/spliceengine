@@ -69,6 +69,10 @@ public class XPLAINUtil {
      public static final String OP_JOIN_HASH                  =   "HASHJOIN";
      public static final String OP_JOIN_NL_LO                 =   "LONLJOIN";
      public static final String OP_JOIN_HASH_LO               =   "LOHASHJOIN";
+     public static final String OP_JOIN_MERGE_SORT           =   "MERGERSORTJOIN";
+     public static final String OP_JOIN_MERGE_SORT_LO        =   "LOMERGERDORTJOIN";
+     public static final String OP_JOIN_BROADCAST             =   "BROADCASTJOIN";
+     public static final String OP_JOIN_BROADCAST_LO          =   "LOBROADCASTJOIN";
      public static final String OP_UNION                      =   "UNION";
      public static final String OP_SET                        =   "SET";
      
