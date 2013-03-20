@@ -87,10 +87,7 @@ public abstract class SpliceController implements ConglomerateController {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("delete row location " + loc.getBytes());
 		try {
-			Delete delete = new Delete(loc.getBytes());
-			if (transID != null) {
-                SpliceUtils.getTransactionGetsPuts().prepDelete(transID, delete);
-            }
+            Delete delete = SpliceUtils.createDelete(transID, loc.getBytes());
 			htable.delete(delete);
 			return true;
 		} catch (Exception e) {

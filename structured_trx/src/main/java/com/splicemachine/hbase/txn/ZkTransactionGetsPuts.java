@@ -6,6 +6,7 @@ import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
 
 /**
  * Implements logic for 'flagging' gets/scans/puts as neeeded to be part of the transaction. Does this under the
@@ -30,5 +31,15 @@ public class ZkTransactionGetsPuts implements ITransactionGetsPuts {
     @Override
     public void prepScan(String transactionId, Scan scan) {
         scan.setAttribute(TxnConstants.TRANSACTION_ID, transactionId.getBytes());
+    }
+
+    @Override
+    public String getTransactionIdForPut(Put put) {
+        return Bytes.toString(put.getAttribute(TxnConstants.TRANSACTION_ID));
+    }
+
+    @Override
+    public String getTransactionIdForDelete(Delete delete) {
+        return Bytes.toString(delete.getAttribute(TxnConstants.TRANSACTION_ID));
     }
 }

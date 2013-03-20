@@ -113,11 +113,13 @@ public class IndexManager {
     /**
      * Translate a list of KeyValue objects into a List of insert puts.
      *
+     *
+     * @param transactionId
      * @param result the keyvalues to translate
      * @return a list of puts, one for each distinct row in {@code result}
      * @throws IOException if something goes wrong during the translation
      */
-    public List<Put> translateResult(List<KeyValue> result) throws IOException{
+    public List<Put> translateResult(String transactionId, List<KeyValue> result) throws IOException{
         Map<byte[],List<KeyValue>> putConstructors = Maps.newHashMapWithExpectedSize(1);
         for(KeyValue keyValue:result){
             List<KeyValue> cols = putConstructors.get(keyValue.getRow());
@@ -156,7 +158,7 @@ public class IndexManager {
                 System.arraycopy(indexCol,0,finalIndexRow,offset,indexCol.length);
                 offset+=indexCol.length;
             }
-            Put indexPut = new Put(finalIndexRow);
+            Put indexPut = SpliceUtils.createPut(transactionId, finalIndexRow);
             for(int dataPos=0;dataPos<indexRowData.length;dataPos++){
                 byte[] putPos = Integer.toString(dataPos).getBytes();
                 indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
@@ -196,12 +198,12 @@ public class IndexManager {
     /*
      * Update the index to delete records that are no longer in the main table.
      */
-    private void update(Delete delete, HTableInterface table) throws IOException{
+    private void update(final Delete delete, HTableInterface table) throws IOException{
         /*
          * To delete an entry, we'll need to first get the row, then construct
          * the index row key from the row, then delete it
          */
-        Get get = new Get(delete.getRow());
+        Get get = SpliceUtils.createGetFromDelete(delete);
         for(byte[] mainColumn:mainColPos){
             get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColumn);
         }
@@ -221,7 +223,7 @@ public class IndexManager {
         final byte[] indexRowKey = convert(rowKeyBuilder,size);
 
         if(isUnique){
-            Delete indexDelete = new Delete(indexRowKey);
+            Delete indexDelete = SpliceUtils.createDeleteFromDelete(delete, indexRowKey);
             indexDelete.deleteFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
 
             table.delete(indexDelete);
@@ -237,7 +239,7 @@ public class IndexManager {
                 table.coprocessorExec(BatchProtocol.class,indexRowKey,indexStop,new Batch.Call<BatchProtocol, Void>() {
                     @Override
                     public Void call(BatchProtocol instance) throws IOException {
-                        instance.deleteFirstAfter(indexRowKey,indexStop);
+                        instance.deleteFirstAfter(SpliceUtils.getTransactionIdFromDelete(delete),indexRowKey,indexStop);
                         return null;
                     }
                 });
@@ -285,7 +287,7 @@ public class IndexManager {
 
         byte[] indexRowKey = convert(rowKeyBuilder,size);
 
-        Put indexPut = new Put(indexRowKey);
+        Put indexPut = SpliceUtils.createPutFromPut(mainPut, indexRowKey);
         for(int i=0;i<indexColsToMainColMap.length;i++){
             byte[] indexPos = Integer.toString(i).getBytes();
             indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos,rowKeyBuilder[i]);
@@ -324,11 +326,10 @@ public class IndexManager {
         if(!indexNeedsUpdating) return null; //nothing changed that we indexed, whoo!
 
         //bummer, have to update the index
-        Get oldGet = new Get(mainPut.getRow());
+        Get oldGet = SpliceUtils.createGetFromPut(mainPut);
         for(byte[] indexColPos:mainColPos){
             oldGet.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,indexColPos);
         }
-
 
         Result r = region.get(oldGet,null);
         if(r==null||r.isEmpty()) return mainPut; //no row to change, so this is really an insert!
@@ -342,13 +343,10 @@ public class IndexManager {
         }
 
         byte[] indexRowKey = convert(rowToDelete,size);
-        Delete delete = new Delete(indexRowKey);
-        delete.deleteFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
-
-        table.delete(delete);
+        SpliceUtils.doDeleteFromPut(table, indexRowKey, mainPut);
 
         //merge the old row with the new row to form the new index put
-        Put newPut = new Put(mainPut.getRow());
+        Put newPut = SpliceUtils.createPutFromPut(mainPut);
         for(byte[] indexPos:mainColPos){
             byte[] data;
             if(mainPut.has(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos))

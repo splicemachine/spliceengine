@@ -81,6 +81,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				return mergedRow;
 			} else {
 				nestedLoopIterator = new NestedLoopIterator(leftRow,isHash);
+				rowsSeenLeft++;
 				return getNextRowCore();
 			}
 		}
@@ -93,6 +94,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				return mergedRow;
 			} else {
 				nestedLoopIterator = new NestedLoopIterator(leftRow,isHash);
+				rowsSeenLeft++;
 				return getNextRowCore();
 			}
 		}
@@ -101,6 +103,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		ExecRow next = nestedLoopIterator.next();
 		SpliceLogUtils.trace(LOG,"getNextRowCore returning %s",next);
 		setCurrentRow(next);
+		rowsReturned++;
 //		mergedRow=null;
 		return next;
 
@@ -148,6 +151,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				probeResultSet.clearCurrentRow();
 				if ( (rightRow = probeResultSet.getNextRowCore()) != null) {
 					probeResultSet.setCurrentRow(rightRow);
+					rowsSeenRight++;
 					SpliceLogUtils.trace(LOG, "right has result " + rightRow);
 					mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 				} else {

@@ -317,16 +317,10 @@ class PropertyConglomerate {
 
             byte[] keyBytes = key.getBytes();
             byte[] valColumn = Integer.toString(1).getBytes();
-            Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
-            String txnId = SpliceUtils.getTransID(td);
+            String transactionId = getTransactionId(tc);
             if(value==null){
                 //null value means delete the property
-                Delete delete = new Delete(keyBytes);
-
-                if(txnId!=null) {
-                    SpliceUtils.getTransactionGetsPuts().prepDelete(txnId, delete);
-                }
-
+                Delete delete = SpliceUtils.createDelete(transactionId, keyBytes);
                 table.delete(delete);
             }
 
@@ -335,11 +329,8 @@ class PropertyConglomerate {
             ObjectOutputStream oos = new ObjectOutputStream(baos);
             oos.writeObject(value);
 
-            Put put = new Put(keyBytes);
+            Put put = SpliceUtils.createPut(transactionId, keyBytes);
             put.add(HBaseConstants.DEFAULT_FAMILY_BYTES, valColumn,baos.toByteArray());
-            if(txnId!=null) {
-                SpliceUtils.getTransactionGetsPuts().prepPut(txnId, put);
-            }
 
             table.put(put);
         }catch(IOException ioe){
@@ -356,7 +347,12 @@ class PropertyConglomerate {
 
 	}
 
-	private boolean saveServiceProperty(String key, Serializable value)
+    private String getTransactionId(TransactionController tc) {
+        Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
+        return SpliceUtils.getTransID(td);
+    }
+
+    private boolean saveServiceProperty(String key, Serializable value)
 	{
 		if (LOG.isTraceEnabled())
 			LOG.trace("saveServiceProperty key " + key + ", value " + value);
@@ -572,7 +568,7 @@ class PropertyConglomerate {
 		// scan the table for a row with matching "key"
         HTableInterface table = SpliceAccessManager.getHTable(PROPERTIES_TABLE_NAME_BYTES);
         try {
-            Get get = new Get(new StringRowKey().serialize(key));
+            Get get = SpliceUtils.createGet(getTransactionId(tc), new StringRowKey().serialize(key));
             get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN);
 
             Result result = table.get(get);

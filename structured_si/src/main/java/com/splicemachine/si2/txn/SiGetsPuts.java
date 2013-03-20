@@ -42,4 +42,13 @@ public class SiGetsPuts implements ITransactionGetsPuts {
         transactor.initializeScan(transactor.transactionIdFromString(transactionId), hScan);
     }
 
+    @Override
+    public String getTransactionIdForPut(Put put) {
+        return transactor.getTransactionIdFromPut(put).getTransactionID();
+    }
+
+    @Override
+    public String getTransactionIdForDelete(Delete delete) {
+        return transactor.getTransactionIdFromDelete(delete).getTransactionID();
+    }
 }

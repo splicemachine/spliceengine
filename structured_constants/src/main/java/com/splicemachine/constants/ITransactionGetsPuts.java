@@ -13,4 +13,6 @@ public interface ITransactionGetsPuts {
     void prepGet(String transactionId, Get get);
     void prepScan(String transactionId, Scan scan);
     void prepDelete(String transactionId, Delete delete);
+    String getTransactionIdForPut(Put put);
+    String getTransactionIdForDelete(Delete delete);
 }

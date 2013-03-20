@@ -194,10 +194,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("HBaseScan delete " + currentResult.getRow());
 		try {
-			Delete delete = new Delete(this.currentResult.getRow());
-			if (transID != null) {
-                SpliceUtils.getTransactionGetsPuts().prepDelete(transID, delete);
-            }
+            Delete delete = SpliceUtils.createDelete(transID, this.currentResult.getRow());
 			table.delete(delete);
 			currentRowDeleted = true;
 			return true;
@@ -450,13 +447,13 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		} 
 	}
 	
-	public boolean replace(DataValueDescriptor[] row,FormatableBitSet validColumns) throws StandardException {
+	public boolean replace(DataValueDescriptor[] row, FormatableBitSet validColumns) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("replace values for these valid Columns " + validColumns);
 		try {
 			table.put(Puts.buildInsert(currentRowLocation.getBytes(), row, validColumns, transID));
 			if (validColumns != null)
-				table.delete(SpliceUtils.cleanupNullsDelete(new HBaseRowLocation(currentResult.getRow()), row, validColumns, transID)); // Might be faster to cycle through the result
+				SpliceUtils.doCleanupNullsDelete(table, new HBaseRowLocation(currentResult.getRow()), row, validColumns, transID); // Might be faster to cycle through the result
 			return true;			
 		} catch (Exception e) {
 			throw StandardException.newException("Error during replace " + e);

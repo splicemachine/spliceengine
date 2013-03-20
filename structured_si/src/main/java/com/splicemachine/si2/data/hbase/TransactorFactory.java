@@ -64,7 +64,7 @@ public class TransactorFactory {
                 "si-transaction-id", SIConstants.SNAPSHOT_ISOLATION_FAMILY,
                 SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,
                 SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN,
-                SIConstants.ZERO_BYTE_ARRAY, SIConstants.DEFAULT_FAMILY);
+                SIConstants.EMPTY_BYTE_ARRAY, SIConstants.DEFAULT_FAMILY);
         return new SiTransactor(timestampSource, dataLib, writer, rowStore, transactionStore);
     }
 }

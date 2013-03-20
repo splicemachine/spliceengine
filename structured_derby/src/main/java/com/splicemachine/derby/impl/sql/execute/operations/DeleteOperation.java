@@ -67,7 +67,7 @@ public class DeleteOperation extends DMLWriteOperation{
                 //there is a row to delete, so delete it
                 SpliceLogUtils.trace(LOG, "DeleteOperation sink, nextRow=" + nextRow);
                 RowLocation locToDelete = (RowLocation) nextRow.getColumn(nextRow.nColumns()).getObject();
-                htable.delete(SpliceUtils.delete(locToDelete, this.transactionID) );
+                SpliceUtils.doDelete(htable, locToDelete, this.transactionID);
 
                 stats.sinkAccumulator().tick(System.nanoTime()-processStart);
             }while(nextRow!=null);

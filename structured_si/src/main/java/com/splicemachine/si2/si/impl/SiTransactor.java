@@ -12,6 +12,7 @@ import com.splicemachine.si2.si.api.TimestampSource;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
@@ -48,6 +49,16 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public TransactionId transactionIdFromString(String transactionId) {
         return new SiTransactionId(Long.valueOf(transactionId));
+    }
+
+    @Override
+    public TransactionId getTransactionIdFromPut(Object put) {
+        return dataStore.getTransactionIdFromOperation(put);
+    }
+
+    @Override
+    public TransactionId getTransactionIdFromDelete(Delete delete) {
+        return dataStore.getTransactionIdFromOperation(delete);
     }
 
     @Override
@@ -105,6 +116,14 @@ public class SiTransactor implements Transactor, ClientTransactor {
         if (dataStore.getSiNeededAttribute(put1)) {
             final SiTransactionId transactionId = dataStore.getTransactionIdFromOperation(put1);
             initializePut(transactionId, put2);
+        }
+    }
+
+    @Override
+    public void initializeGetFromDelete(Object delete, Object put) {
+        if (dataStore.getSiNeededAttribute(delete)) {
+            final SiTransactionId transactionId = dataStore.getTransactionIdFromOperation(delete);
+            initializePut(transactionId, put);
         }
     }
 

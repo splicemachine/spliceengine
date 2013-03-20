@@ -72,15 +72,15 @@ public class SIFilterTest {
 	public void testNoCommitMarker() {
 		SIFilter filter = new SIFilter(100);
 		Assert.assertEquals(ReturnCode.SKIP,filter.filterKeyValue(SIUtils.createTombstone(new byte[0], 1)));
-		Assert.assertEquals(ReturnCode.SKIP,filter.filterKeyValue(new KeyValue(new byte[0],SIConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(1),SIConstants.ZERO_BYTE_ARRAY)));
+		Assert.assertEquals(ReturnCode.SKIP,filter.filterKeyValue(new KeyValue(new byte[0],SIConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(1),SIConstants.EMPTY_BYTE_ARRAY)));
 	}
 	
 	@Test
 	public void testSinglePriorInsertNoCommit() {
 		SIFilter filter = new SIFilter(100);
 		Assert.assertEquals(ReturnCode.SKIP,filter.filterKeyValue(SIUtils.createEmptyCommitTimestamp(new byte[0], activeTransaction.getStartTimestamp())));
-		Assert.assertEquals(ReturnCode.SKIP,filter.filterKeyValue(new KeyValue(new byte[0],SIConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(1),activeTransaction.getStartTimestamp(),SIConstants.ZERO_BYTE_ARRAY)));
-		Assert.assertEquals(ReturnCode.SKIP,filter.filterKeyValue(new KeyValue(new byte[0],SIConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(1),activeTransaction.getStartTimestamp(),SIConstants.ZERO_BYTE_ARRAY)));
+		Assert.assertEquals(ReturnCode.SKIP,filter.filterKeyValue(new KeyValue(new byte[0],SIConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(1),activeTransaction.getStartTimestamp(),SIConstants.EMPTY_BYTE_ARRAY)));
+		Assert.assertEquals(ReturnCode.SKIP,filter.filterKeyValue(new KeyValue(new byte[0],SIConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(1),activeTransaction.getStartTimestamp(),SIConstants.EMPTY_BYTE_ARRAY)));
 	}
 
 	@Test
@@ -158,7 +158,7 @@ public class SIFilterTest {
 		SIFilter filter = new SIFilter(latestActiveTransaction.getStartTimestamp());
 		Assert.assertEquals(ReturnCode.SKIP,filter.filterKeyValue(SIUtils.createEmptyCommitTimestamp(new byte[0], latestActiveTransaction.getStartTimestamp())));	
 		Assert.assertEquals(ReturnCode.SKIP,filter.filterKeyValue(SIUtils.createEmptyCommitTimestamp(new byte[0], commitTransaction.getStartTimestamp())));
-		Assert.assertEquals(ReturnCode.NEXT_COL,filter.filterKeyValue(new KeyValue(new byte[0],SIConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(0),latestActiveTransaction.getStartTimestamp(),SIConstants.ZERO_BYTE_ARRAY)));
+		Assert.assertEquals(ReturnCode.NEXT_COL,filter.filterKeyValue(new KeyValue(new byte[0],SIConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(0),latestActiveTransaction.getStartTimestamp(),SIConstants.EMPTY_BYTE_ARRAY)));
 		Assert.assertEquals(ReturnCode.INCLUDE,filter.filterKeyValue(new KeyValue(new byte[0],SIConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(1),commitTransaction.getStartTimestamp(),Bytes.toBytes(1))));
 	}
 

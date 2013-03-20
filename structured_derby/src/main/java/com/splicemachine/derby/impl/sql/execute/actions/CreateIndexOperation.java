@@ -2,10 +2,12 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -17,6 +19,7 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.hadoop.hbase.HConstants;
@@ -100,7 +103,7 @@ public class CreateIndexOperation implements ConstantAction {
     }
 
     @Override
-    public void executeConstantAction(Activation activation) throws StandardException {
+    public void executeConstantAction(final Activation activation) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
 
@@ -194,7 +197,8 @@ public class CreateIndexOperation implements ConstantAction {
                     new Batch.Call<SpliceIndexProtocol,SinkStats>(){
                         @Override
                         public SinkStats call(SpliceIndexProtocol instance) throws IOException {
-                            return instance.buildIndex(indexConglomId,tableConglomId,baseColumnPositions,isUnique);
+                            final String transactionId = getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute());
+                            return instance.buildIndex(transactionId,indexConglomId,tableConglomId,baseColumnPositions,isUnique);
                         }
                     },new Batch.Callback<SinkStats>() {
                         @Override
@@ -207,6 +211,11 @@ public class CreateIndexOperation implements ConstantAction {
         }catch(Throwable t){
             throw Exceptions.parseException(t);
         }
+    }
+
+    private String getTransactionId(TransactionController tc) {
+        Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
+        return SpliceUtils.getTransID(td);
     }
 
     private TableDescriptor getActiveTableDescriptor(Activation activation,

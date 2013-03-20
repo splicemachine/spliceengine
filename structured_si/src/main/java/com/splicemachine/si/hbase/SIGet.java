@@ -33,6 +33,6 @@ public class SIGet extends Get {
 		init();
 	}
 	public void init() {
-		this.setAttribute(SIConstants.SI, SIConstants.ZERO_BYTE_ARRAY);
+		this.setAttribute(SIConstants.SI, SIConstants.EMPTY_BYTE_ARRAY);
 	}
 }

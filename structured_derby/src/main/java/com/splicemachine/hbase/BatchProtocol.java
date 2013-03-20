@@ -27,8 +27,10 @@ public interface BatchProtocol extends CoprocessorProtocol {
      * falls before the limit key. If {@code null} is specified for the limit key,
      * then the first row found at or after the specified rowKey will be deleted.
      *
+     *
+     * @param transactionId
      * @param rowKey the start to search
      * @throws IOException if something goes wrong
      */
-    public void deleteFirstAfter(byte[] rowKey,byte[] limit) throws IOException;
+    public void deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException;
 }

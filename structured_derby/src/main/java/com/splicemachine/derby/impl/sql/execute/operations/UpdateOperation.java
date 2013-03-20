@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.NavigableMap;
 
+import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -152,13 +153,13 @@ public class UpdateOperation extends DMLWriteOperation{
                      * That means we have to do a Get to get the full row, then merge it with the update values,
                      * re-insert it in the new location, and then delete the old location.
                      */
-                    Get remoteGet = new Get(location.getBytes());
+                    Get remoteGet = SpliceUtils.createGet(transactionID, location.getBytes());
                     remoteGet.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
                     Result result = htable.get(remoteGet);
 
                     //convert Result into put under the new row key
                     byte[] newRowKey = rowInsertSerializer.serialize(nextRow.getRowArray());
-                    Put newPut = new Put(newRowKey);
+                    Put newPut = SpliceUtils.createPut(transactionID, newRowKey);
                     NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
                     for(byte[] qualifier:familyMap.keySet()){
                         int position = Integer.parseInt(Bytes.toString(qualifier));
@@ -172,7 +173,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     htable.put(newPut);
 
                     //now delete the old entry
-                    Delete delete = new Delete(location.getBytes());
+                    Delete delete = SpliceUtils.createDelete(transactionID, location.getBytes());
                     htable.delete(delete);
                 }
 

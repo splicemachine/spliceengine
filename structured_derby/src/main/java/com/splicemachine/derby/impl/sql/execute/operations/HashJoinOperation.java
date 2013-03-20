@@ -66,6 +66,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 		}
 		SpliceLogUtils.trace(LOG, "getNextRowCore loop iterate next ");		
 		nextTime += getElapsedMillis(beginTime);
+		rowsReturned++;
 		return nestedLoopIterator.next();
 	}
 
@@ -198,7 +199,6 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 		@Override
 		public ExecRow next() {
 			SpliceLogUtils.trace(LOG, "next row=" + mergedRow);
-			rowsReturned++;
 			return mergedRow;
 		}
 

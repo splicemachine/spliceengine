@@ -5,7 +5,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.constants.HBaseConstants;
 
 public class SIConstants {
-	public static final byte[] ZERO_BYTE_ARRAY = new byte[0];
+	public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 	public static final String SNAPSHOT_ISOLATION_FAMILY = "_si";
 	public static final byte[] SNAPSHOT_ISOLATION_FAMILY_BYTES = SNAPSHOT_ISOLATION_FAMILY.getBytes();
 	public static final String TRANSACTION_TABLE = "__TXN";
@@ -27,5 +27,4 @@ public class SIConstants {
 	public static final String NO_TRANSACTION_STATUS = "Transaction with start timestamp %s does not have a transaction status";
 	public static final String FILTER_CHECKING_MULTIPLE_ROW_TOMBSTONES = "Filter should never hit multiple row level tombstones, one tombstone hit we move on.";
 	public static final String SI = "SI";
-	
 }
