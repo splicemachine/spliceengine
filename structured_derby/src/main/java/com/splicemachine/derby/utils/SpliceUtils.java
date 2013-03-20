@@ -169,7 +169,9 @@ public class SpliceUtils {
 
     public static Get createGet(String transactionId, byte[] row) {
         Get get = new Get(row);
-        getTransactionGetsPuts().prepGet(transactionId, get);
+        if (transactionId != null) {
+            getTransactionGetsPuts().prepGet(transactionId, get);
+        }
         return get;
     }
 
@@ -183,7 +185,9 @@ public class SpliceUtils {
 
     public static Delete createDelete(String transactionId, byte[] row) {
         Delete delete = new Delete(row);
-        getTransactionGetsPuts().prepDelete(transactionId, delete);
+        if (transactionId != null) {
+            getTransactionGetsPuts().prepDelete(transactionId, delete);
+        }
         return delete;
     }
 
@@ -223,7 +227,9 @@ public class SpliceUtils {
 
     public static Put createPut(String transactionId, byte[] row) {
         Put put = new Put(row);
-        getTransactionGetsPuts().prepPut(transactionId, put);
+        if (transactionId != null) {
+            getTransactionGetsPuts().prepPut(transactionId, put);
+        }
         return put;
     }
 
