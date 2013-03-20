@@ -287,7 +287,7 @@ public class IndexManager {
 
         byte[] indexRowKey = convert(rowKeyBuilder,size);
 
-        Put indexPut = new Put(indexRowKey);
+        Put indexPut = SpliceUtils.createPutFromPut(mainPut, indexRowKey);
         for(int i=0;i<indexColsToMainColMap.length;i++){
             byte[] indexPos = Integer.toString(i).getBytes();
             indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos,rowKeyBuilder[i]);
@@ -346,7 +346,7 @@ public class IndexManager {
         SpliceUtils.doDeleteFromPut(table, indexRowKey, mainPut);
 
         //merge the old row with the new row to form the new index put
-        Put newPut = new Put(mainPut.getRow());
+        Put newPut = SpliceUtils.createPutFromPut(mainPut);
         for(byte[] indexPos:mainColPos){
             byte[] data;
             if(mainPut.has(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos))

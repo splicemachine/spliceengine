@@ -159,7 +159,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
                     //convert Result into put under the new row key
                     byte[] newRowKey = rowInsertSerializer.serialize(nextRow.getRowArray());
-                    Put newPut = new Put(newRowKey);
+                    Put newPut = SpliceUtils.createPut(transactionID, newRowKey);
                     NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
                     for(byte[] qualifier:familyMap.keySet()){
                         int position = Integer.parseInt(Bytes.toString(qualifier));

@@ -334,7 +334,7 @@ class PropertyConglomerate {
             ObjectOutputStream oos = new ObjectOutputStream(baos);
             oos.writeObject(value);
 
-            Put put = new Put(keyBytes);
+            Put put = SpliceUtils.createPut(transactionId, keyBytes);
             put.add(HBaseConstants.DEFAULT_FAMILY_BYTES, valColumn,baos.toByteArray());
             if(transactionId!=null) {
                 SpliceUtils.getTransactionGetsPuts().prepPut(transactionId, put);

@@ -107,6 +107,10 @@ public class SpliceUtils {
         }
     }
 
+    public static Put createPutFromPut(Put put) {
+        return createPut(getTransactionGetsPuts().getTransactionIdForPut(put), put.getRow());
+    }
+
     public enum SpliceConglomerate {HEAP,BTREE}
 	public static Configuration config = SpliceConfiguration.create();
 	protected static Gson gson = new Gson();
@@ -202,6 +206,16 @@ public class SpliceUtils {
 			return null;
 		}
 	}
+
+    public static Put createPut(String transactionId, byte[] row) {
+        Put put = new Put(row);
+        getTransactionGetsPuts().prepPut(transactionId, put);
+        return put;
+    }
+
+    public static Put createPutFromPut(Put put1, byte[] rowKey) {
+        return createPut(getTransactionGetsPuts().getTransactionIdForPut(put1), rowKey);
+    }
 
     public static void doDeleteFromPut(HTableInterface table, byte[] row, Put put) throws IOException {
         deleteDirect(table, SpliceUtils.getTransactionGetsPuts().getTransactionIdForPut(put), row);
