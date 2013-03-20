@@ -11,6 +11,11 @@ How to Build Derby For Splice Machine.
 	./SpliceBuild.sh 'gpg passphrase'
 6.  Push to nexus
 	./SpliceDeploy.sh 'gpg passphrase'
+	
+	
+GPG Explanation
+
+http://www.sonatype.com/people/2010/01/how-to-generate-pgp-signatures-with-maven/
 
 
 
