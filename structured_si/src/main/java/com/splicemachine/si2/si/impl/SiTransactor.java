@@ -285,6 +285,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         if (siFilterState.currentRowKey == null || !dataLib.valuesEqual(siFilterState.currentRowKey, rowKey)) {
             siFilterState.currentRowKey = rowKey;
             siFilterState.committedTransactions = new HashMap<Long, Long>();
+            siFilterState.lastValidQualifier = null;
         }
         if (dataStore.isCommitTimestampKeyValue(keyValue)) {
             filterProcessCommitTimestamp(keyValue, siFilterState);
