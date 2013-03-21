@@ -64,6 +64,36 @@ public class StandardException extends Exception
 	** End of constructors
 	*/
 	
+	public StandardException() {
+		
+	}
+	
+	
+	
+	public String getTextMessage() {
+		return textMessage;
+	}
+
+
+
+	public void setTextMessage(String textMessage) {
+		this.textMessage = textMessage;
+	}
+
+
+
+	public String getSqlState() {
+		return sqlState;
+	}
+
+
+
+	public void setSqlState(String sqlState) {
+		this.sqlState = sqlState;
+	}
+
+
+
 	protected StandardException(String messageID)
 	{
 		this(messageID, (Throwable) null, (Object[]) null);
