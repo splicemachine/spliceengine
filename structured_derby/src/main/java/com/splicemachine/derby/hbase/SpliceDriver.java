@@ -72,6 +72,14 @@ public class SpliceDriver {
         ThreadFactory factory = new ThreadFactoryBuilder()
                 .setNameFormat("splice-lifecycle-manager").build();
         executor = Executors.newSingleThreadExecutor(factory);
+
+
+        //TODO -sf- create a separate pool for writing to TEMP
+        try {
+            writerPool = TableWriter.create(SpliceUtils.config);
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to boot Splice Driver",e);
+        }
     }
 
     public TableWriter getTableWriter() {
@@ -137,10 +145,8 @@ public class SpliceDriver {
             executor.submit(new Callable<Void>(){
                 @Override
                 public Void call() throws Exception {
-                    //TODO -sf- create a separate pool for writing to TEMP
-                    writerPool = TableWriter.create(SpliceUtils.config);
-                    writerPool.start();
 
+                    writerPool.start();
                     boolean setRunning = true;
                     setRunning = enableDriver();
                     if(!setRunning) {

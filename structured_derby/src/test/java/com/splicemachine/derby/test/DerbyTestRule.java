@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -36,6 +37,9 @@ public class DerbyTestRule extends TestWatchman{
 	public static void start() throws Exception{
 		SpliceDerbyTest.startConnection();
 		conn = SpliceDerbyTest.conn;
+
+        //disable Snappy compression to avoid errors with Macs running JDK 1.7
+        SpliceDriver.driver().getTableWriter().setCompressWrites(false);
 	}
 	
 	public static void shutdown() throws Exception {

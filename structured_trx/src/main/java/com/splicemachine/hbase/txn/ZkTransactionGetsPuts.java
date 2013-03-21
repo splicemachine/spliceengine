@@ -15,22 +15,26 @@ import org.apache.hadoop.hbase.util.Bytes;
 public class ZkTransactionGetsPuts implements ITransactionGetsPuts {
     @Override
     public void prepDelete(String transactionId, Delete delete) {
-        delete.setAttribute(TxnConstants.TRANSACTION_ID, transactionId.getBytes());
+        if(transactionId!=null)
+            delete.setAttribute(TxnConstants.TRANSACTION_ID, transactionId.getBytes());
     }
 
     @Override
     public void prepPut(String transactionId, Put put) {
-        put.setAttribute(TxnConstants.TRANSACTION_ID, transactionId.getBytes());
+        if(transactionId!=null)
+            put.setAttribute(TxnConstants.TRANSACTION_ID, transactionId.getBytes());
     }
 
     @Override
     public void prepGet(String transactionId, Get get) {
-        get.setAttribute(TxnConstants.TRANSACTION_ID, transactionId.getBytes());
+        if(transactionId!=null)
+            get.setAttribute(TxnConstants.TRANSACTION_ID, transactionId.getBytes());
     }
 
     @Override
     public void prepScan(String transactionId, Scan scan) {
-        scan.setAttribute(TxnConstants.TRANSACTION_ID, transactionId.getBytes());
+        if(transactionId!=null)
+            scan.setAttribute(TxnConstants.TRANSACTION_ID, transactionId.getBytes());
     }
 
     @Override
