@@ -35,8 +35,8 @@ public class SiBrowser {
             System.out.println(beginTimestamp + " " + status + " " + commitTimestamp);
         }
 
-        System.out.println("conglomerates");
-        HTable cTable = new HTable("16");
+        System.out.println("table contents");
+        HTable cTable = new HTable("1168");
         scan = new Scan();
         scan.setMaxVersions();
         scanner = cTable.getScanner(scan);
