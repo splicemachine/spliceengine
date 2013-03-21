@@ -45,6 +45,8 @@ import org.apache.derby.impl.sql.execute.rts.RealHashScanStatistics;
 import org.apache.derby.impl.sql.execute.rts.RealHashTableStatistics;
 import org.apache.derby.impl.sql.execute.rts.RealIndexRowToBaseRowStatistics;
 import org.apache.derby.impl.sql.execute.rts.RealInsertResultSetStatistics;
+import org.apache.derby.impl.sql.execute.rts.RealMergeSortJoinStatistics;
+import org.apache.derby.impl.sql.execute.rts.RealMergeSortLeftOuterJoinStatistics;
 import org.apache.derby.impl.sql.execute.rts.RealNestedLoopJoinStatistics;
 import org.apache.derby.impl.sql.execute.rts.RealNestedLoopLeftOuterJoinStatistics;
 import org.apache.derby.impl.sql.execute.rts.RealNormalizeResultSetStatistics;
@@ -76,6 +78,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.HashScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.HashTableOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MergeSortJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MergeSortLeftOuterJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopLeftOuterJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.NormalizeOperation;
@@ -743,6 +747,55 @@ public class SpliceRealResultSetStatisticsFactory
 											getResultSetStatistics(nljrs.getLeftResultSet()),
 											getResultSetStatistics(nljrs.getRightResultSet())
 											);
+		}
+		else if (rs instanceof MergeSortJoinOperation)
+		{
+			MergeSortJoinOperation msjrs = (MergeSortJoinOperation) rs;
+
+			return new RealMergeSortJoinStatistics(
+					msjrs.numOpens,
+					msjrs.rowsSeen,
+					msjrs.rowsFiltered,
+					msjrs.constructorTime,
+					msjrs.openTime,
+					msjrs.nextTime,
+					msjrs.closeTime,
+					msjrs.getResultSetNumber(),
+					msjrs.getLeftNumCols(),
+					msjrs.getRightNumCols(),
+					msjrs.rowsReturned,
+					msjrs.restrictionTime,
+					msjrs.isOneRowRightSide(),
+					msjrs.getOptimizerEstimatedRowCount(),
+					msjrs.getOptimizerEstimatedCost(),
+					msjrs.getUserSuppliedOptimizerOverrides(),
+					getResultSetStatistics(msjrs.getLeftResultSet()),
+					getResultSetStatistics(msjrs.getRightResultSet())
+			);
+		}
+		else if (rs instanceof MergeSortLeftOuterJoinOperation)
+		{
+			MergeSortLeftOuterJoinOperation mslojrs = (MergeSortLeftOuterJoinOperation) rs;
+
+			return new RealMergeSortLeftOuterJoinStatistics(
+					mslojrs.numOpens,
+					mslojrs.rowsSeen,
+					mslojrs.rowsFiltered,
+					mslojrs.constructorTime,
+					mslojrs.openTime,
+					mslojrs.nextTime,
+					mslojrs.closeTime,
+					mslojrs.getResultSetNumber(),
+					mslojrs.getLeftNumCols(),
+					mslojrs.getRightNumCols(),
+					mslojrs.rowsReturned,
+					mslojrs.restrictionTime,
+					mslojrs.getOptimizerEstimatedRowCount(),
+					mslojrs.getOptimizerEstimatedCost(),
+					mslojrs.getUserSuppliedOptimizerOverrides(),
+					getResultSetStatistics(mslojrs.getLeftResultSet()),
+					getResultSetStatistics(mslojrs.getRightResultSet()),
+					mslojrs.emptyRightRowsReturned);
 		}
 		else if (rs instanceof IndexRowToBaseRowOperation)
 		{
