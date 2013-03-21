@@ -4,7 +4,6 @@ import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.si.api.FilterState;
 import com.splicemachine.si2.si.api.TransactionId;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class SiFilterState implements FilterState {

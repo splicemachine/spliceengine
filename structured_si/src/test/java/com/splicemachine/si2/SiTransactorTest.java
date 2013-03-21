@@ -60,6 +60,10 @@ public class SiTransactorTest {
         return scanAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
     }
 
+    private String scanAll(TransactionId transactionId, String startKey, String stopKey) throws IOException {
+        return scanAllDirect(useSimple, transactorSetup, storeSetup, transactionId, startKey, stopKey);
+    }
+
     static void insertAgeDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
                                 TransactionId transactionId, String name, int age) throws IOException {
         insertField(useSimple, transactorSetup, storeSetup, transactionId, name, transactorSetup.ageQualifier, age);
@@ -143,6 +147,32 @@ public class SiTransactorTest {
             Object rawTuple = results.next();
             assert !results.hasNext();
             return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, testSTable, rawTuple);
+        } finally {
+            reader.close(testSTable);
+        }
+    }
+
+    static String scanAllDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+                                TransactionId transactionId, String startKey, String stopKey) throws IOException {
+        final SDataLib dataLib = storeSetup.getDataLib();
+        final STableReader reader = storeSetup.getReader();
+
+        Object key = dataLib.newRowKey(new Object[]{startKey});
+        Object endKey = dataLib.newRowKey(new Object[]{stopKey});
+        SScan get = dataLib.newScan(key, endKey, null, null, null);
+        transactorSetup.clientTransactor.initializeScan(transactionId, get);
+        STable testSTable = reader.open(storeSetup.getPersonTableName());
+        try {
+            Iterator results = reader.scan(testSTable, get);
+            StringBuilder result = new StringBuilder();
+            while (results.hasNext()) {
+                final Object value = results.next();
+                final String name = (String) dataLib.decode(dataLib.getResultKey(value), String.class);
+                final String s = readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, testSTable, value);
+                result.append(s);
+                result.append("\n");
+            }
+            return result.toString();
         } finally {
             reader.close(testSTable);
         }
@@ -287,6 +317,24 @@ public class SiTransactorTest {
     }
 
     @Test
+    public void writeScanMultipleRows() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "17joe", 20);
+        insertAge(t1, "17bob", 30);
+        insertAge(t1, "17boe", 40);
+        insertAge(t1, "17tom", 50);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        String expected = "17bob age=30 job=null\n" +
+                "17boe age=40 job=null\n" +
+                "17joe age=20 job=null\n" +
+                "17tom age=50 job=null\n";
+        Assert.assertEquals(expected, scanAll(t2, "17a", "17z"));
+        dumpStore();
+    }
+
+    @Test
     public void writeWriteRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         Assert.assertEquals("joe5 age=null job=null", read(t1, "joe5"));
@@ -305,6 +353,26 @@ public class SiTransactorTest {
         TransactionId t3 = transactor.beginTransaction();
         Assert.assertEquals("joe5 age=20 job=baker", read(t3, "joe5"));
         dumpStore();
+    }
+
+    @Test
+    public void multipleWritesSameTransaction() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe16 age=null job=null", read(t1, "joe16"));
+        insertAge(t1, "joe16", 20);
+        Assert.assertEquals("joe16 age=20 job=null", read(t1, "joe16"));
+
+        insertAge(t1, "joe16", 21);
+        Assert.assertEquals("joe16 age=21 job=null", read(t1, "joe16"));
+
+        insertAge(t1, "joe16", 22);
+        Assert.assertEquals("joe16 age=22 job=null", read(t1, "joe16"));
+        dumpStore();
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe16 age=22 job=null", read(t2, "joe16"));
+        transactor.commit(t2);
     }
 
     @Test

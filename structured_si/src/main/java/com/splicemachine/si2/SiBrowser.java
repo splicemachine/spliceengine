@@ -73,7 +73,7 @@ public class SiBrowser {
                         }
                     }
                     byteValue += "]";
-                    System.out.println(" " + family + " " + qualifier + " @ " + ts + " " + byteValue + " " + v2);
+                    System.out.println( Bytes.toString(row) + " " + family + " " + qualifier + " @ " + ts + " " + byteValue + " " + v2);
                 }
             }
             i++;

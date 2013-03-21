@@ -9,6 +9,8 @@ import com.splicemachine.si2.data.api.STableWriter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -69,12 +71,22 @@ public class LStore implements STableReader, STableWriter {
         }
         List<LTuple> results = new ArrayList<LTuple>();
         for (LTuple t : tuples) {
-            if ((t.key.equals((String) get.startTupleKey)) ||
+            if ((t.key.equals(get.startTupleKey)) ||
                     ((t.key.compareTo((String) get.startTupleKey) > 0) && (t.key.compareTo((String) get.endTupleKey) < 0))) {
                 results.add(filterCells(t, get.families, get.columns, get.effectiveTimestamp));
             }
         }
+        sort(results);
         return results.iterator();
+    }
+
+    private void sort(List<LTuple> results) {
+        Collections.sort(results, new Comparator<Object>() {
+            @Override
+            public int compare(Object tuple1, Object tuple2) {
+                return ((LTuple) tuple1).key.compareTo(((LTuple) tuple2).key);
+            }
+        });
     }
 
     private LTuple filterCells(LTuple t, List families,

@@ -6,13 +6,13 @@ import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.hbase.HGet;
 import com.splicemachine.si2.data.hbase.HScan;
 import com.splicemachine.si2.data.hbase.HbRegion;
-import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.filters.SIFilter;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.txn.TransactionManagerFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
@@ -39,9 +39,10 @@ public class SIObserver extends BaseRegionObserver {
     public void start(CoprocessorEnvironment e) throws IOException {
         SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
         region = ((RegionCoprocessorEnvironment) e).getRegion();
-        tableEnvMatch = SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.USER_TABLE)
+        tableEnvMatch = (SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.USER_TABLE)
                 || SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.USER_INDEX_TABLE)
-                || SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.DERBY_SYS_TABLE);
+                || SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.DERBY_SYS_TABLE))
+                && !((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString().equals(TxnConstants.TEMP_TABLE);
         super.start(e);
     }
 
@@ -55,7 +56,7 @@ public class SIObserver extends BaseRegionObserver {
     public void preGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get, List<KeyValue> results) throws IOException {
         SpliceLogUtils.trace(LOG, "preGet %s", get);
         if (tableEnvMatch && shouldUseSI(new HGet(get))) {
-            assert(get.getMaxVersions() == Integer.MAX_VALUE);
+            assert (get.getMaxVersions() == Integer.MAX_VALUE);
             addSiFilterToGet(e, get);
         }
         super.preGet(e, get, results);
@@ -65,7 +66,7 @@ public class SIObserver extends BaseRegionObserver {
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan, RegionScanner s) throws IOException {
         SpliceLogUtils.trace(LOG, "preScannerOpen %s", scan);
         if (tableEnvMatch && shouldUseSI(new HScan(scan))) {
-            assert(scan.getMaxVersions() == Integer.MAX_VALUE);
+            assert (scan.getMaxVersions() == Integer.MAX_VALUE);
             addSiFilterToScan(e, scan);
         }
         return super.preScannerOpen(e, scan, s);
@@ -109,5 +110,11 @@ public class SIObserver extends BaseRegionObserver {
                 e.complete();
             }
         }
+    }
+
+    @Override
+    public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e, Delete delete, WALEdit edit,
+                          boolean writeToWAL) throws IOException {
+        throw new RuntimeException("Direct deletes are not supported under snapshot isolation. Instead a Put is expected that will set a record level tombstone.");
     }
 }
