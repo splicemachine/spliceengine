@@ -20,6 +20,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -79,10 +80,12 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         HRegion region = rce.getRegion();
         for(Mutation mutation:mutationsToApply.getMutations()){
             mutation.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
-            if(mutation instanceof Put)
-                region.put((Put)mutation);
-            else
+            if(mutation instanceof Put) {
+                Pair<Put, Integer> putsAndLocks[] = new Pair[] {new Pair<Put, Integer>((Put) mutation, null)};
+                region.put(putsAndLocks);
+            } else {
                 region.delete((Delete)mutation,null,true);
+            }
         }
     }
 
