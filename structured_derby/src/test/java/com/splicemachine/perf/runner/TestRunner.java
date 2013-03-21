@@ -3,8 +3,10 @@ package com.splicemachine.perf.runner;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.perf.runner.qualifiers.Qualifier;
 import com.splicemachine.perf.runner.qualifiers.QualifierAdapter;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 
 import java.io.File;
 import java.io.FileReader;

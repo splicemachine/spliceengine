@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.NavigableMap;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.hbase.CallBuffer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -13,12 +15,7 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.execute.UpdateConstantAction;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -74,7 +71,7 @@ public class UpdateOperation extends DMLWriteOperation{
 		FormatableBitSet heapList = ((UpdateConstantAction)constants).getBaseRowReadList();
 
 		//Use HTable to do inserts instead of HeapConglomerateController - see Bug 188
-		HTableInterface htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(""+heapConglom));
+		HTableInterface htable = null;
         Serializer serializer = new Serializer();
         //lazily instantiated because we might not need it (only needed if we modify primary keys)
         RowSerializer rowInsertSerializer = null;
@@ -89,6 +86,7 @@ public class UpdateOperation extends DMLWriteOperation{
             }
         }
 		try {
+            CallBuffer<Mutation> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(Bytes.toBytes(Long.toString(heapConglom)));
             do{
                 long start = System.nanoTime();
                 nextRow = source.getNextRowCore();
@@ -140,11 +138,13 @@ public class UpdateOperation extends DMLWriteOperation{
                 if(!modifiedPrimaryKeys){
                     SpliceLogUtils.trace(LOG, "UpdateOperation sink, nextRow=%s, validCols=%s,colPositionMap=%s", nextRow, heapList, Arrays.toString(colPositionMap));
                     Put put = Puts.buildUpdate(location, nextRow.getRowArray(), heapList, colPositionMap, this.transactionID, serializer);
-                    put.setAttribute(Puts.PUT_TYPE,Puts.FOR_UPDATE);
-                    htable.put(put);
+                    put.setAttribute(Puts.PUT_TYPE, Puts.FOR_UPDATE);
+                    writeBuffer.add(put);
                 }else{
                     if(rowInsertSerializer==null)
                         rowInsertSerializer = new RowSerializer(nextRow.getRowArray(),pkColumns,colPositionMap,false);
+                    if(htable==null)
+                        htable =SpliceAccessManager.getFlushableHTable(Bytes.toBytes("" + heapConglom));
                     SpliceLogUtils.trace(LOG,"UpdateOperation sink: primary keys modified");
 
                     /*
@@ -169,17 +169,17 @@ public class UpdateOperation extends DMLWriteOperation{
                         }else
                             newPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,qualifier,familyMap.get(qualifier));
                     }
-                    htable.put(newPut);
+                    writeBuffer.add(newPut);
 
                     //now delete the old entry
                     Delete delete = new Delete(location.getBytes());
-                    htable.delete(delete);
+                    writeBuffer.add(delete);
                 }
 
                 stats.sinkAccumulator().tick(System.nanoTime() - start);
             }while(nextRow!=null);
-			htable.flushCommits();
-			htable.close();
+            writeBuffer.flushBuffer();
+            writeBuffer.close();
 		} catch (Exception e) {
             if(e instanceof RetriesExhaustedWithDetailsException){
                 Throwable t= ((RetriesExhaustedWithDetailsException) e).getCause(0);

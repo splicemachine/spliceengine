@@ -16,7 +16,12 @@ import java.util.ArrayList;
 public class SnappyMutationRequest  extends MutationRequest {
     private static final long serialVerionUID = 1l;
 
-    public SnappyMutationRequest() {
+    public SnappyMutationRequest(){
+
+    }
+
+    public SnappyMutationRequest(byte[] regionStartKey) {
+        super(regionStartKey);
     }
 
     @Override

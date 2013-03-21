@@ -1,13 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.SafeTable;
+import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
-
-import java.io.IOException;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
@@ -15,8 +13,10 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.execute.DeleteConstantAction;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 
 /**
  * 
@@ -55,8 +55,8 @@ public class DeleteOperation extends DMLWriteOperation{
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for DeleteOperation at "+stats.getStartTime());
 		ExecRow nextRow;
-		HTableInterface htable = SafeTable.create(SpliceUtils.config, Long.toString(heapConglom).getBytes());
 		try {
+            CallBuffer<Mutation> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(Long.toString(heapConglom).getBytes());
             do{
                 long processStart = System.nanoTime();
                 nextRow = source.getNextRowCore();
@@ -67,12 +67,12 @@ public class DeleteOperation extends DMLWriteOperation{
                 //there is a row to delete, so delete it
                 SpliceLogUtils.trace(LOG, "DeleteOperation sink, nextRow=" + nextRow);
                 RowLocation locToDelete = (RowLocation) nextRow.getColumn(nextRow.nColumns()).getObject();
-                htable.delete(SpliceUtils.delete(locToDelete, this.transactionID) );
+                writeBuffer.add(SpliceUtils.delete(locToDelete, this.transactionID));
 
                 stats.sinkAccumulator().tick(System.nanoTime()-processStart);
             }while(nextRow!=null);
-			htable.flushCommits();
-			htable.close();
+            writeBuffer.flushBuffer();
+            writeBuffer.close();
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}

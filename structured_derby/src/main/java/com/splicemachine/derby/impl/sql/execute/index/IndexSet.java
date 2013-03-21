@@ -10,6 +10,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
@@ -146,15 +147,7 @@ public class IndexSet {
         //If the Index was updated already, then bypass this, since we don't need to check it
         if(mutation.getAttribute(INDEX_UPDATED)!=null) return;
 
-        //check local constraints
-        if(!localConstraint.validate(mutation,rce))
-            throw ConstraintViolation.create(localConstraint.getType());
-
-        //check foreign key constraints
-        for(Constraint fkConstraint: fkConstraints){
-            if(!fkConstraint.validate(mutation,rce))
-                throw ConstraintViolation.create(fkConstraint.getType());
-        }
+        validate(mutation,rce);
 
         //update indices
         for(IndexManager index:indices){
@@ -173,15 +166,7 @@ public class IndexSet {
                               RegionCoprocessorEnvironment rce) throws IOException{
         checkState();
 
-        //validate local constraints
-        if(localConstraint!=null&&!localConstraint.validate(mutations,rce))
-            throw ConstraintViolation.create(localConstraint.getType());
-
-        //validate fkConstraints
-        for(Constraint fkConstraint:fkConstraints){
-            if(!fkConstraint.validate(mutations,rce))
-                throw ConstraintViolation.create(fkConstraint.getType());
-        }
+        validate(mutations,rce);
 
         //update indices
         for(IndexManager index:indices){
@@ -237,6 +222,32 @@ public class IndexSet {
     public void dropIndex(IndexManager index){
         if(state.get()!=State.RUNNING) return;
         indices.remove(index);
+    }
+
+    public void validate(Mutation mutation, RegionCoprocessorEnvironment environment) throws IOException {
+        if(mutation.getAttribute(INDEX_UPDATED)!=null) return;
+        //validate local constraints
+        if(localConstraint!=null&&!localConstraint.validate(mutation,environment))
+            throw ConstraintViolation.create(localConstraint.getType());
+
+        //validate fkConstraints
+        for(Constraint fkConstraint:fkConstraints){
+            if(!fkConstraint.validate(mutation,environment))
+                throw ConstraintViolation.create(fkConstraint.getType());
+        }
+    }
+
+    public void validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment environment) throws IOException {
+
+        //validate local constraints
+        if(localConstraint!=null&&!localConstraint.validate(mutations,environment))
+            throw ConstraintViolation.create(localConstraint.getType());
+
+        //validate fkConstraints
+        for(Constraint fkConstraint:fkConstraints){
+            if(!fkConstraint.validate(mutations,environment))
+                throw ConstraintViolation.create(fkConstraint.getType());
+        }
     }
 
 /*********************************************************************************************************************/
@@ -398,6 +409,7 @@ public class IndexSet {
         //todo -sf- implement!
         return Constraints.noConstraint();
     }
+
 
     /*
      * State management indicator

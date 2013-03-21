@@ -4,11 +4,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchProtocol;
-import com.splicemachine.hbase.SafeTable;
-import com.splicemachine.hbase.SpliceTable;
+import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -89,7 +89,14 @@ public class IndexManager {
          * so it's best to avoid it whenever the mutation has already been managed externally.
          */
         if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null) return; //index already managed for this
-        update(mutation,rce.getTable(indexConglomBytes),rce.getRegion());
+        try{
+            CallBuffer<Mutation> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexConglomBytes);
+            update(mutation,writeBuffer,rce,null);
+            writeBuffer.flushBuffer();
+            writeBuffer.close();
+        }catch(Exception e){
+            throw (IOException)e;
+        }
     }
 
     /**
@@ -102,12 +109,18 @@ public class IndexManager {
     public void update(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException{
         //get the table ahead of time for better batch putting
 
-        SpliceTable table = SafeTable.create(rce.getConfiguration(), indexConglomBytes);
-        for(Mutation mutation:mutations){
-            update(mutation,table,rce.getRegion());
+        try {
+            CallBuffer<Mutation> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexConglomBytes);
+
+            HTableInterface deleteTable = null;
+            for(Mutation mutation:mutations){
+                deleteTable = update(mutation,writeBuffer,rce,deleteTable);
+            }
+            writeBuffer.flushBuffer();
+            writeBuffer.close();
+        } catch (Exception e) {
+            throw new IOException(e);
         }
-        table.flushCommits();
-        table.close();
     }
 
     /**
@@ -169,18 +182,20 @@ public class IndexManager {
 
         return indexPuts;
     }
+
 /*********************************************************************************************************************/
     /*private helper methods*/
 
-    /*
-     * Convenience wrapper around type casting of the mutation.
-     */
-    private void update(Mutation mutation, HTableInterface table,HRegion region) throws IOException{
-        if(mutation instanceof Put)
-            updateIndex((Put)mutation,table,region);
-        else
-            update((Delete) mutation, table);
+    private HTableInterface update(Mutation mutation,CallBuffer<Mutation> writeBuffer,
+                                   RegionCoprocessorEnvironment rce,HTableInterface table) throws Exception{
+        if(mutation instanceof Put){
+            updateIndex((Put)mutation,writeBuffer,rce.getRegion());
+            return table;
+        }else{
+            return update((Delete)mutation,writeBuffer,rce,table);
+        }
     }
+
 
     /*
      * convert a one-based int[] into a zero-based. In essence, shift all values in the array down by one
@@ -196,7 +211,7 @@ public class IndexManager {
     /*
      * Update the index to delete records that are no longer in the main table.
      */
-    private void update(Delete delete, HTableInterface table) throws IOException{
+    private HTableInterface update(Delete delete, CallBuffer<Mutation> writeBuffer,RegionCoprocessorEnvironment rce, HTableInterface table) throws Exception {
         /*
          * To delete an entry, we'll need to first get the row, then construct
          * the index row key from the row, then delete it
@@ -205,8 +220,8 @@ public class IndexManager {
         for(byte[] mainColumn:mainColPos){
             get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColumn);
         }
-        Result result = table.get(get);
-        if(result==null||result.isEmpty()) return; //already deleted? weird, but oh well, we're good
+        Result result = rce.getRegion().get(get, null);
+        if(result==null||result.isEmpty()) return table; //already deleted? weird, but oh well, we're good
 
         NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
         byte[][] rowKeyBuilder = getDataArray();
@@ -224,7 +239,7 @@ public class IndexManager {
             Delete indexDelete = new Delete(indexRowKey);
             indexDelete.deleteFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
 
-            table.delete(indexDelete);
+            writeBuffer.add(indexDelete);
         }else{
             /*
              * Because index keys in non-null indices have a postfix appended to them,
@@ -234,6 +249,7 @@ public class IndexManager {
              */
             final byte[] indexStop = BytesUtil.copyAndIncrement(indexRowKey);
             try {
+                if(table==null) table = rce.getTable(indexConglomBytes);
                 table.coprocessorExec(BatchProtocol.class,indexRowKey,indexStop,new Batch.Call<BatchProtocol, Void>() {
                     @Override
                     public Void call(BatchProtocol instance) throws IOException {
@@ -246,6 +262,7 @@ public class IndexManager {
                 throw new IOException(throwable);
             }
         }
+        return table;
     }
 
     /*
@@ -265,8 +282,8 @@ public class IndexManager {
     /*
      * Update the index to manage inserts and updates.
      */
-    private void updateIndex(Put mainPut,HTableInterface table,HRegion region) throws IOException{
-        Put put = doUpdate(mainPut,table,region);
+    private void updateIndex(Put mainPut,CallBuffer<Mutation>writeBuffer,HRegion region) throws Exception {
+        Put put = doUpdate(mainPut,writeBuffer,region);
         if(put==null) return; //this was an update, but it doesn't affect our index, whoo!
         byte[][] rowKeyBuilder = getDataArray();
         int size=0;
@@ -296,7 +313,7 @@ public class IndexManager {
 
         indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,locPos,put.getRow());
 
-        doPut(indexPut, table) ;
+        doPut(indexPut, writeBuffer) ;
     }
 
     /*
@@ -309,7 +326,7 @@ public class IndexManager {
      * is performed to get the old values of the index row, which is then deleted from the index. Then
      * this Put is treated as if it were an insert.
      */
-    private Put doUpdate(Put mainPut, HTableInterface table,HRegion region) throws IOException {
+    private Put doUpdate(Put mainPut, CallBuffer<Mutation> writeBuffer,HRegion region) throws Exception {
         if(!Bytes.equals(mainPut.getAttribute(Puts.PUT_TYPE),Puts.FOR_UPDATE))
             return mainPut; //it's an insert
         //check if we changed anything in the index
@@ -345,7 +362,7 @@ public class IndexManager {
         Delete delete = new Delete(indexRowKey);
         delete.deleteFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
 
-        table.delete(delete);
+        writeBuffer.add(delete);
 
         //merge the old row with the new row to form the new index put
         Put newPut = new Put(mainPut.getRow());
@@ -377,9 +394,9 @@ public class IndexManager {
     /*
      * Actually perform the put. Convenience around error management.
      */
-    private void doPut(Put put, HTableInterface table) throws IOException{
+    private void doPut(Put put, CallBuffer<Mutation> writeBuffer) throws Exception {
         try {
-            table.put(put);
+            writeBuffer.add(put);
         } catch (IOException ioe) {
             if(!(ioe instanceof RetriesExhaustedWithDetailsException))
                 throw ioe;

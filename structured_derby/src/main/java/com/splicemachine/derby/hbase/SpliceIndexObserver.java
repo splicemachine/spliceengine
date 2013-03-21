@@ -69,7 +69,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
     @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
-        indexSet.update(put,e.getEnvironment());
+        indexSet.update(put, e.getEnvironment());
         super.prePut(e, put, edit, writeToWAL);
     }
 

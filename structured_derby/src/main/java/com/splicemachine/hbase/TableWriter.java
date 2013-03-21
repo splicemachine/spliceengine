@@ -1,27 +1,34 @@
 package com.splicemachine.hbase;
 
+import com.google.common.base.Function;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 import org.apache.hadoop.hbase.ipc.ExecRPCInvoker;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Writables;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Proxy;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -124,13 +131,17 @@ public class TableWriter implements WriterStatus{
     private volatile long maxHeapSize;
     private volatile int maxBufferEntries;
     private volatile int maxPendingBuffers;
+    private volatile int numRetries;
+    private volatile long cacheUpdatedTimestamp;
+    private volatile long pause;
+    private volatile boolean compressWrites;
 
     private final AtomicInteger pendingBufferFlushes = new AtomicInteger(0);
     private final AtomicInteger executingBufferFlushes = new AtomicInteger(0);
     private final AtomicInteger outstandingCallBuffers = new AtomicInteger(0);
     private final AtomicLong totalBufferFlushes = new AtomicLong(0);
     private final AtomicInteger runningWrites = new AtomicInteger(0);
-    private volatile long cacheUpdatedTimestamp;
+
 
     public static TableWriter create(Configuration configuration) throws IOException {
         assert configuration!=null;
@@ -146,6 +157,9 @@ public class TableWriter implements WriterStatus{
         if(maxThreads==0)maxThreads = 1;
 
         long threadKeepAlive = configuration.getLong("hbase.htable.threads.keepalivetime",60);
+
+        int numRetries = configuration.getInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER,
+                HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
 
         ThreadFactory writerFactory = new ThreadFactoryBuilder()
                 .setNameFormat("tablewriter-writerpool-%d")
@@ -165,8 +179,12 @@ public class TableWriter implements WriterStatus{
                 .expireAfterWrite(cacheExpirationPeriod,TimeUnit.SECONDS)
                 .build(new RegionLoader(configuration));
 
+        boolean compressWrites = configuration.getBoolean("hbase.client.compress.writes",true);
+        long pause = configuration.getLong(HConstants.HBASE_CLIENT_PAUSE,
+                HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
+
         return new TableWriter(writerPool,cacheUpdater,connection,regionCache,
-                writeBufferSize,maxBufferEntries,maxPendingBuffers,cacheUpdatePeriod,configuration);
+                writeBufferSize,maxBufferEntries,maxPendingBuffers,cacheUpdatePeriod,numRetries,compressWrites,pause,configuration);
     }
 
     private TableWriter( ThreadPoolExecutor writerPool,
@@ -177,6 +195,9 @@ public class TableWriter implements WriterStatus{
                         int maxBufferEntries,
                         int maxPendingBuffers,
                         long cacheUpdatePeriod,
+                        int numRetries,
+                        boolean compressWrites,
+                        long pause,
                         Configuration configuration) {
         this.writerPool = writerPool;
         this.cacheUpdater = cacheUpdater;
@@ -187,6 +208,9 @@ public class TableWriter implements WriterStatus{
         this.maxHeapSize = maxHeapSize;
         this.maxBufferEntries = maxBufferEntries;
         this.maxPendingBuffers = maxPendingBuffers;
+        this.numRetries = numRetries;
+        this.compressWrites = compressWrites;
+        this.pause = pause;
     }
 
     public void start(){
@@ -284,6 +308,10 @@ public class TableWriter implements WriterStatus{
         return regionCache.size();
     }
 
+    public void setCompressWrites(boolean compressWrites) {
+        this.compressWrites = compressWrites;
+    }
+
     @Override
     public int getNumCachedRegions(String tableName) {
         Set<HRegionInfo> regions = regionCache.getIfPresent(Bytes.mapKey(tableName.getBytes()));
@@ -308,6 +336,8 @@ public class TableWriter implements WriterStatus{
             if(element instanceof Put) return ((Put)element).heapSize();
             else return element.getRow().length;
         }
+
+        public abstract void threadFinished(AtomicInteger counter);
     }
 
     private class SynchronousWriter extends BufferListener{
@@ -317,26 +347,16 @@ public class TableWriter implements WriterStatus{
         }
 
         @Override
-        public void bufferFlushed(List<Mutation> entries) throws Exception {
-            Map<byte[],MutationRequest> bucketedMutations = bucketMutations(tableName,entries);
-            final List<Future<Void>> futures = Lists.newArrayListWithCapacity(bucketedMutations.size());
-            for(byte[] regionStartKey:bucketedMutations.keySet()){
-                final MutationRequest mutationsToWrite = bucketedMutations.get(regionStartKey);
-                final ExecRPCInvoker invoker = new ExecRPCInvoker(
-                        configuration,connection,
-                        batchProtocolClass,
-                        tableName,regionStartKey);
-                futures.add(writerPool.submit(new Callable<Void>(){
-                    @Override
-                    public Void call() throws Exception {
-                        BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
-                                protoClassArray,
-                                invoker);
-                        instance.batchMutate(mutationsToWrite);
+        public void threadFinished(AtomicInteger counter) {
+            //no-op, since we're waiting for them all anyway
+        }
 
-                        return null;
-                    }
-                }));
+        @Override
+        public void bufferFlushed(List<Mutation> entries) throws Exception {
+            List<MutationRequest> mutationRequests = bucketMutations(tableName,entries);
+            final List<Future<Void>> futures =new ArrayList<Future<Void>>(mutationRequests.size());
+            for(MutationRequest mutationRequest:mutationRequests){
+                futures.add(writerPool.submit(new BufferWrite(mutationRequest,tableName,this,new AtomicInteger(1))));
             }
             for(Future<Void> future:futures){
                 future.get();
@@ -393,36 +413,28 @@ public class TableWriter implements WriterStatus{
             pendingBufferFlushes.decrementAndGet();
             executingBufferFlushes.incrementAndGet();
 
-            Map<byte[],MutationRequest> bucketedMutations = bucketMutations(tableName,entries);
-            final AtomicInteger runningCounts = new AtomicInteger(bucketedMutations.size());
-            for(byte[] regionStartKey:bucketedMutations.keySet()){
-                final MutationRequest mutationsToWrite = bucketedMutations.get(regionStartKey);
-                final ExecRPCInvoker invoker = new ExecRPCInvoker(
-                        configuration,connection,
-                        batchProtocolClass,
-                        tableName,regionStartKey);
-                futures.add(writerPool.submit(new Callable<Void>(){
-                    @Override
-                    public Void call() throws Exception {
-                        runningWrites.incrementAndGet();
-                        try{
-                            BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
-                                    protoClassArray,
-                                    invoker);
-                            instance.batchMutate(mutationsToWrite);
+            writeBuffer(entries,0,new CopyOnWriteArrayList<Throwable>());
+        }
 
-                            int threadsStillRunning = runningCounts.decrementAndGet();
-                            if(threadsStillRunning<=0){
-                                executingBufferFlushes.decrementAndGet();
-                                pendingBuffersPermits.release();
-                            }
-                        }finally{
-                            runningWrites.decrementAndGet();
-                        }
-                        return null;
-                    }
-                }));
+        private void writeBuffer(List<Mutation> entries, final int tries, final List<Throwable> retryExceptions) throws Exception {
+            if(tries > numRetries)
+               throw new RetriesExhaustedWithDetailsException(retryExceptions,getRows(entries), Collections.<String>emptyList());
+
+            List<MutationRequest> bucketedMutations = bucketMutations(tableName,entries);
+            final AtomicInteger runningCounts = new AtomicInteger(bucketedMutations.size());
+            for(MutationRequest mutationToWrite: bucketedMutations){
+                futures.add(writerPool.submit(new BufferWrite(mutationToWrite,tableName,this,runningCounts)));
             }
+        }
+
+        private List<Row> getRows(List<Mutation> entries) {
+            return Lists.transform(entries,new Function<Mutation, Row>() {
+                @Override
+                public Row apply(@Nullable Mutation input) {
+                    if(input instanceof Row) return (Row)input;
+                    return null;
+                }
+            });
         }
 
         public void ensureFlushed() throws Exception{
@@ -434,51 +446,72 @@ public class TableWriter implements WriterStatus{
                 future.get();
             }
         }
+
+        public void threadFinished(AtomicInteger runningCounts) {
+            int threadsStillRunning = runningCounts.decrementAndGet();
+            if(threadsStillRunning<=0){
+                executingBufferFlushes.decrementAndGet();
+                pendingBuffersPermits.release();
+            }
+        }
     }
 
-    private Map<byte[],MutationRequest> bucketMutations(
-            byte[] tableName, List<Mutation> mutations) throws Exception {
-        Integer tableKey = Bytes.mapKey(tableName);
+    private Multimap<byte[],Mutation> getBucketedMutations(Integer tableKey,Collection<Mutation> mutations, int tries) throws Exception{
+        if(tries <=0){
+            throw new NotServingRegionException("Unable to find a region for mutations "
+                    +mutations.size()+" mutations, unable to write buffer");
+        }
         Set<HRegionInfo> regionInfos = regionCache.get(tableKey);
-        Map<byte[],MutationRequest> bucketedMutations = Maps.newHashMapWithExpectedSize(regionInfos.size());
+        Multimap<byte[],Mutation> bucketsMutations = ArrayListMultimap.create();
         List<Mutation> regionLessMutations = Lists.newArrayListWithExpectedSize(0);
         for(Mutation mutation:mutations){
             byte[] row = mutation.getRow();
-            boolean found=false;
+            boolean found = false;
             for(HRegionInfo region:regionInfos){
-                byte[] regionStart = region.getStartKey();
-                byte[] regionFinish = region.getEndKey();
-                if(Bytes.equals(regionStart, HConstants.EMPTY_START_ROW) ||
-                        Bytes.compareTo(regionStart,row)<=0){
-                    if(Bytes.equals(regionFinish,HConstants.EMPTY_END_ROW)||
-                            Bytes.compareTo(row,regionFinish)<0){
-                        MutationRequest request = bucketedMutations.get(regionStart);
-                        if(request==null){
-                            request = new SnappyMutationRequest();
-                            bucketedMutations.put(regionStart,request);
-                        }
-                        request.addMutation(mutation);
-                        found=true;
-                        break;
-                    }
+                if(HRegion.rowIsInRange(region,row)){
+                    bucketsMutations.put(region.getStartKey(),mutation);
+                    found =true;
+                    break;
                 }
             }
             if(!found)
                 regionLessMutations.add(mutation);
         }
-
-        //TODO -sf- should we deal with offline regions differently?
-        for(HRegionInfo region:regionInfos){
-            MutationRequest mutation = bucketedMutations.get(region.getStartKey());
-            if(mutation==null){
-                mutation = new SnappyMutationRequest();
-                bucketedMutations.put(region.getStartKey(),mutation);
-            }
-            for(Mutation mut:mutations){
-                mutation.addMutation(mut);
-            }
+        if(regionLessMutations.size()>0){
+            /*
+             * We have some regions that either weren't alive or were splitting or something during
+             * the time when the region loaded (if it loaded). So we need to invalidate the region cache
+             * and try again. But only retry numRetries times. After that, just give up since we can't
+             * write these correctly.
+             */
+            //wait for a backoff period, then try again
+            Thread.sleep(getWaitTime(numRetries-tries+1));
+            regionCache.invalidate(tableKey);
+            Multimap<byte[],Mutation> tryAgainMutationBuckets = getBucketedMutations(tableKey,mutations,tries-1);
+            bucketsMutations.putAll(tryAgainMutationBuckets);
         }
-        return bucketedMutations;
+        return bucketsMutations;
+    }
+
+    private long getWaitTime(int tryNum) {
+        long retryWait;
+        if(tryNum>=HConstants.RETRY_BACKOFF.length)
+            retryWait = HConstants.RETRY_BACKOFF[HConstants.RETRY_BACKOFF.length-1];
+        else
+            retryWait = HConstants.RETRY_BACKOFF[tryNum];
+        return retryWait*pause;
+    }
+
+    private List<MutationRequest> bucketMutations(byte[] tableName,Collection<Mutation> mutations) throws Exception{
+        Multimap<byte[],Mutation> bucketsMutations = getBucketedMutations(Bytes.mapKey(tableName),mutations,numRetries);
+        List<MutationRequest> mutationRequests = Lists.newArrayListWithCapacity(bucketsMutations.size());
+        for(byte[] regionStart:bucketsMutations.keySet()){
+            MutationRequest request = compressWrites? new SnappyMutationRequest(regionStart): new UncompressedMutationRequest(regionStart);
+            request.addAll(bucketsMutations.get(regionStart));
+            mutationRequests.add(request);
+        }
+
+        return mutationRequests;
     }
 
     private class RegionCacheLoader  implements Runnable{
@@ -502,7 +535,8 @@ public class TableWriter implements WriterStatus{
                         regions = new CopyOnWriteArraySet<HRegionInfo>();
                         regionInfos.put(info.getTableName(),regions);
                     }
-                    regions.add(info);
+                    if(!(info.isOffline()||info.isSplit()))
+                        regions.add(info);
                     return true;
                 }
             };
@@ -540,8 +574,9 @@ public class TableWriter implements WriterStatus{
                     }
                     HRegionInfo info = Writables.getHRegionInfo(bytes);
                     Integer tableKey = Bytes.mapKey(info.getTableName());
-                    if(key.equals(tableKey))
-                        regionInfos.add(info);
+                    if(key.equals(tableKey)&& !(info.isOffline()||info.isSplit())){
+                            regionInfos.add(info);
+                    }
                     return true;
                 }
             };
@@ -551,7 +586,133 @@ public class TableWriter implements WriterStatus{
             } catch (IOException e) {
                 SpliceLogUtils.error(LOG,"Unable to update region cache",e);
             }
+            SpliceLogUtils.trace(CACHE_LOG,"loaded regions %s",regionInfos);
             return regionInfos;
+        }
+    }
+
+    private class BufferWrite implements Callable<Void>{
+        /*
+         * represents a write of a Mutation request for a Buffer. One of these
+         * is created for each thread which performs writes.
+         */
+        private List<MutationRequest> mutationsToWrite;
+        private final List<Throwable> retryExceptions = new ArrayList<Throwable>(0);
+        private final byte[] tableName;
+        private final BufferListener writer;
+        private final AtomicInteger runningCounts;
+
+        private BufferWrite(MutationRequest mutationsToWrite,
+                            byte[] tableName,
+                            BufferListener writer,
+                            AtomicInteger runningCounts) {
+            this.mutationsToWrite = Lists.newArrayList(mutationsToWrite);
+            this.tableName = tableName;
+            this.writer = writer;
+            this.runningCounts = runningCounts;
+        }
+
+        public void tryWrite(int tries) throws Exception {
+        /*
+         * The workflow is as follows:
+         *
+         * 1. Attempt to write the MutationRequest as handed to you. This is the
+         * optimistic scenario that nothing has happened to Table regions between
+         * when the MutationRequest was constructed and when this code actually gets
+         * called. If the request succeeds, yippee! we're done
+         * 2. If the initial request fails with a retry-able error, we need to back off and try again. To
+         * do this, we wait for an exponentially increasing amount of time, then invalidate the region cache
+         * for the table, re-split the Mutation into different mutation requests based on the new shape of the
+         * Table topology, and retry synchronously. If we go too many times, then we fail this thread, which
+         * will in turn fail the buffer write.
+         */
+            if(tries<=0){
+                throw new RetriesExhaustedWithDetailsException(retryExceptions,getBadRows(),Collections.<String>emptyList());
+            }
+            List<MutationRequest> failedMutations = Lists.newArrayListWithExpectedSize(0);
+
+            Iterator<MutationRequest> mutations = mutationsToWrite.iterator();
+            while(mutations.hasNext()){
+                MutationRequest mutationRequest = mutations.next();
+                try{
+                    NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(configuration,connection,
+                            batchProtocolClass,tableName,mutationRequest.getRegionStartKey(),tries<numRetries);
+                    BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
+                            protoClassArray,invoker );
+                    instance.batchMutate(mutationRequest);
+                    mutations.remove();
+                }catch(IOException ioe){
+                    LOG.info("Error received when trying to write buffer:"+ ioe.getMessage());
+                    if(ioe instanceof DoNotRetryIOException) throw ioe;
+                    else{
+                        retryExceptions.add(ioe);
+                        failedMutations.add(mutationRequest);
+                    }
+                }
+            }
+            if(failedMutations.size()>0){
+                //we had some mutations that failed due to a retry-able exception.
+                //invalidate the cache, reset them, and try them again
+                //wait for the backoff period before trying
+                Thread.sleep(getWaitTime(numRetries-tries+1));
+                regionCache.invalidate(Bytes.mapKey(tableName));
+
+                resetMutations();
+                tryWrite(tries - 1);
+            }
+
+        }
+
+        /*
+         * For error handling, convert a batch of failed mutations into a list of rows for error reporting.
+         */
+        private List<Row> getBadRows(){
+            List<Row> badRows = Lists.newArrayList();
+            for(MutationRequest mutationRequest:mutationsToWrite){
+                badRows.addAll(Lists.transform(mutationRequest.getMutations(),new Function<Mutation, Row>() {
+                    @Override
+                    public Row apply(@Nullable Mutation input) {
+                        return (Row)input;
+                    }
+                }));
+            }
+            return badRows;
+        }
+
+        /*
+         * Re-bucket the mutations list into new MutationRequests based on a new cache topology for the
+         * table.
+         */
+        private void resetMutations() throws Exception {
+            List<MutationRequest> newMutations = Lists.newArrayList();
+            for(MutationRequest remainingMutation:mutationsToWrite){
+                List<MutationRequest> mutationRequests = bucketMutations(tableName,remainingMutation.getMutations());
+                for(MutationRequest request:mutationRequests){
+                    boolean found = false;
+                    for(MutationRequest newMutation:newMutations){
+                        if(Bytes.equals(newMutation.getRegionStartKey(), request.getRegionStartKey())){
+                            newMutation.addAll(request.getMutations());
+                            found=true;
+                            break;
+                        }
+                    }
+                    if(!found)
+                        newMutations.add(request);
+                }
+            }
+            this.mutationsToWrite = newMutations;
+        }
+
+        @Override
+        public Void call() throws Exception {
+            runningWrites.incrementAndGet();
+            try{
+                tryWrite(numRetries);
+            }finally{
+                writer.threadFinished(runningCounts);
+                runningWrites.decrementAndGet();
+            }
+            return null;
         }
     }
 }

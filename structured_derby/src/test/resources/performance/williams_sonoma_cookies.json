@@ -10,18 +10,17 @@
     "tables": [
     {
         "name": "pk_test",
-        "numRows": 10000,
+        "numRows": 1000,
         "insertBatch": 200, /*The number of records to insert with each Prepared Statement*/
-        "insertThreads":10, /*Number of Insertions to run simultaneously */
+        "insertThreads":5, /*Number of Insertions to run simultaneously */
         "columns": [
             {
                 "name":"cookie_id",
                 "type":"int",
                 "primaryKey":true,
-                "generatorType":"hashedIntGenerator",
+                "generatorType":"sequentialIntGenerator",
                 "generatorConfig":{
-                    "start":0,
-                    "stop":1000
+                    "start":10001
                 }
             },
             {

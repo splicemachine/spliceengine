@@ -19,6 +19,9 @@ public class UncompressedMutationRequest extends MutationRequest{
 
     public UncompressedMutationRequest() { }
 
+    public UncompressedMutationRequest(byte[] regionStartKey) {
+        super(regionStartKey);
+    }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {

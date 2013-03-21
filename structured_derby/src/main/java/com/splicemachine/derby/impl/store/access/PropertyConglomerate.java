@@ -21,54 +21,36 @@
 
 package com.splicemachine.derby.impl.store.access;
 
-import com.google.common.io.ByteArrayDataOutput;
-import com.google.common.io.ByteStreams;
 import com.gotometrics.orderly.StringRowKey;
 import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.SafeTable;
-import com.splicemachine.hbase.filter.ColumnNullableFilter;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Attribute;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
-
-import org.apache.derby.iapi.store.access.*;
-import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
-import org.apache.derby.iapi.store.access.conglomerate.ConglomerateFactory;
-import org.apache.derby.iapi.store.access.conglomerate.MethodFactory;
-import org.apache.derby.iapi.store.raw.ContainerHandle;
-import org.apache.derby.iapi.store.raw.Transaction;
-import org.apache.derby.iapi.types.UserType;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.io.FormatableHashtable; 
-import org.apache.derby.iapi.services.locks.CompatibilitySpace;
-import org.apache.derby.iapi.services.locks.ShExLockable;
-import org.apache.derby.iapi.services.locks.ShExQual;
-import org.apache.derby.iapi.services.locks.C_LockFactory;
-import org.apache.derby.iapi.services.locks.Latch;
-import org.apache.derby.iapi.services.locks.LockFactory;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.services.io.Formatable;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.store.access.conglomerate.TransactionManager;
+import org.apache.derby.iapi.services.io.FormatableHashtable;
+import org.apache.derby.iapi.services.locks.*;
+import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.property.PropertyFactory;
+import org.apache.derby.iapi.services.property.PropertyUtil;
+import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.store.access.AccessFactory;
+import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
+import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.store.access.conglomerate.TransactionManager;
 import org.apache.derby.iapi.store.raw.RawStoreFactory;
+import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.UserType;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
 import org.apache.derby.impl.store.access.UTF;
-import org.apache.derby.impl.store.access.UTFQualifier;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 

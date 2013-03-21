@@ -54,6 +54,9 @@ public class UniqueConstraint implements Constraint {
         Get get = validator.apply(mutation);
 
         HRegion region = rce.getRegion();
+        if(!HRegion.rowIsInRange(region.getRegionInfo(),get.getRow())){
+
+        }
         Result result = region.get(get,null);
 
         boolean rowPresent = result!=null && !result.isEmpty();

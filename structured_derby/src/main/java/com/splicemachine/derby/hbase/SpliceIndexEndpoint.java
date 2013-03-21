@@ -45,6 +45,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
                     "index management for batch operations will be diabled",tableName);
             indexSet = IndexSet.noIndex();
+            super.start(env);
             return;
         }
 
