@@ -104,23 +104,7 @@ public class SpliceUtils {
         return scan;
     }
 
-    public static String getTransactionId(Mutation mutation) {
-        if(mutation instanceof Put)
-            return getTransactionGetsPuts().getTransactionIdForPut((Put)mutation);
-        else
-            return getTransactionGetsPuts().getTransactionIdForDelete((Delete)mutation);
-    }
 
-    public static void attachTransaction(OperationWithAttributes op, String txnId) {
-        if(op instanceof Get)
-            getTransactionGetsPuts().prepGet(txnId,(Get)op);
-        else if(op instanceof Put)
-            getTransactionGetsPuts().prepPut(txnId,(Put)op);
-        else if (op instanceof Delete)
-            getTransactionGetsPuts().prepDelete(txnId,(Delete)op);
-        else
-            getTransactionGetsPuts().prepScan(txnId, (Scan) op);
-    }
 
 
     public enum SpliceConglomerate {HEAP,BTREE}
@@ -216,12 +200,50 @@ public class SpliceUtils {
 		}
 	}
 
+    /**
+     * Perform a Delete against a table. The operation which is actually performed depends on the transactional semantics.
+     *
+     * @param table the table to delete from
+     * @param transactionId the transaction to delete under
+     * @param row the row to delete.
+     * @throws IOException if something goes wrong during deletion.
+     */
     public static void doDelete(HTableInterface table, String transactionId, byte[] row) throws IOException {
         Mutation mutation = Mutations.getDeleteOp(transactionId,row);
         if(mutation instanceof Put)
             table.put((Put)mutation);
         else
             table.delete((Delete)mutation);
+    }
+
+    /**
+     * Get the transaction information from the specified mutation.
+     *
+     * @param mutation the mutation to get transaction information from
+     * @return the transaction id specified by the given mutation.
+     */
+    public static String getTransactionId(Mutation mutation) {
+        if(mutation instanceof Put)
+            return getTransactionGetsPuts().getTransactionIdForPut((Put)mutation);
+        else
+            return getTransactionGetsPuts().getTransactionIdForDelete((Delete)mutation);
+    }
+
+    /**
+     * Attach transactional information to the specified operation.
+     *
+     * @param op the operation to attach to.
+     * @param txnId the transaction id to attach.
+     */
+    public static void attachTransaction(OperationWithAttributes op, String txnId) {
+        if(op instanceof Get)
+            getTransactionGetsPuts().prepGet(txnId,(Get)op);
+        else if(op instanceof Put)
+            getTransactionGetsPuts().prepPut(txnId,(Put)op);
+        else if (op instanceof Delete)
+            getTransactionGetsPuts().prepDelete(txnId,(Delete)op);
+        else
+            getTransactionGetsPuts().prepScan(txnId, (Scan) op);
     }
 
     public static void handleNullsInUpdate(Put put, DataValueDescriptor[] row, FormatableBitSet validColumns) {

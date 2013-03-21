@@ -23,6 +23,7 @@ package com.splicemachine.derby.impl.store.access;
 
 import com.gotometrics.orderly.StringRowKey;
 import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -326,7 +327,6 @@ class PropertyConglomerate {
                 }
             }
         }
-
 	}
 
     private String getTransactionId(TransactionController tc) {
