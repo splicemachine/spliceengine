@@ -47,7 +47,8 @@ public class Puts {
                                   String transactionID, Serializer serializer, DataValueDescriptor...extraColumns)
             throws IOException{
         try {
-            Put put = SpliceUtils.createPut(transactionID, location.getBytes());
+            Put put = new Put(location.getBytes());
+            SpliceUtils.attachTransaction(put,transactionID);
             put.setAttribute(PUT_TYPE,FOR_UPDATE);
             if(validColumns!=null){
                 for(int pos = validColumns.anySetBit();pos!=-1;pos=validColumns.anySetBit(pos)){
@@ -138,7 +139,9 @@ public class Puts {
     public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row, FormatableBitSet validColumns,
                                   String transactionID, Serializer serializer, DataValueDescriptor...extraColumns)
             throws IOException{
-        Put put = SpliceUtils.createPut(transactionID, rowKey);
+        Put put = new Put(rowKey);
+        SpliceUtils.attachTransaction(put,transactionID);
+
         if (validColumns!=null) {
             for(int i=validColumns.anySetBit(); i!=-1; i=validColumns.anySetBit(i)){
                 addColumn(put,row[i],i,serializer);

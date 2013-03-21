@@ -39,14 +39,8 @@ public class UniqueConstraint implements Constraint {
     private static final Function<? super Mutation, Get> validator = new Function<Mutation, Get>() {
         @Override
         public Get apply(@Nullable Mutation input) {
-            @SuppressWarnings("ConstantConditions") Get get = null;
-            if (input instanceof Put) {
-                get = SpliceUtils.createGetFromPut((Put) input);
-            } else if (input instanceof Delete) {
-                get = SpliceUtils.createGetFromDelete((Delete) input);
-            } else {
-                throw new RuntimeException("unknown mutation type " + input.getClass().getName());
-            }
+            Get get = new Get(input.getRow());
+            SpliceUtils.attachTransaction(get,SpliceUtils.getTransactionId(input));
             get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
 
             return get;
@@ -63,6 +57,9 @@ public class UniqueConstraint implements Constraint {
         Get get = validator.apply(mutation);
 
         HRegion region = rce.getRegion();
+        if(!HRegion.rowIsInRange(region.getRegionInfo(),get.getRow())){
+
+        }
         Result result = region.get(get,null);
 
         boolean rowPresent = result!=null && !result.isEmpty();

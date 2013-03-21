@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
 import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.stats.ThroughputStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;

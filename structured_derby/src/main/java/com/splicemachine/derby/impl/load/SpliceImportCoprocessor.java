@@ -4,19 +4,18 @@ import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVReader;
 import com.google.common.io.Closeables;
 import com.google.common.primitives.Longs;
-import com.gotometrics.orderly.*;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
+
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.StringUtils;
-import com.splicemachine.hbase.BatchTable;
+import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.catalog.TypeDescriptor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -29,10 +28,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
@@ -40,13 +38,6 @@ import org.apache.hadoop.util.LineReader;
 import org.apache.log4j.Logger;
 
 import java.io.*;
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -83,14 +74,13 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		Path path =  context.getFilePath();
 		FSDataInputStream is = null;
 		//get a bulk-insert table for our table to insert
-		HTableInterface table = BatchTable.create(SpliceUtils.config,Bytes.toBytes(context.getTableName()));
 
 		LineReader reader = null;
 		//open a serializer to serialize our data
         Serializer serializer = new Serializer();
         CSVParser csvParser = new CSVParser(context.getColumnDelimiter().charAt(0),context.getStripString().charAt(0));
         try{
-
+            CallBuffer<Mutation> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(context.getTableName().getBytes());
             ExecRow row = getExecRow(context);
             FormatableBitSet pkCols = context.getPrimaryKeys();
             RowSerializer rowSerializer = new RowSerializer(row.getRowArray(),pkCols,pkCols==null);
@@ -126,17 +116,16 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 					SpliceLogUtils.trace(LOG,"inserting line %s",text);
 					pos+=newSize;
                     String[] cols = csvParser.parseLine(text.toString());
-                    doImportRow(cols, context.getActiveCols(), row, table,rowSerializer,serializer);
+                    doImportRow(cols, context.getActiveCols(), row, writeBuffer,rowSerializer,serializer);
 					numImported++;
 				}
 			}
+            writeBuffer.flushBuffer();
+            writeBuffer.close();
 		}catch(Exception e){
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Unexpected error importing block locations", e);
 		}finally{
-			SpliceLogUtils.trace(LOG,"Finished importing all Block locations, closing table and streams");
-			//make sure that all the inserts are flushed out to their respective locations.
-			table.flushCommits();
-			table.close();
+			SpliceLogUtils.trace(LOG, "Finished importing all Block locations, closing table and streams");
 			if(is!=null)is.close();
 			if(reader!=null)reader.close();
 		}
@@ -149,7 +138,6 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 	public long importFile(ImportContext context) throws IOException{
 		Path path =  context.getFilePath();
 
-		HTableInterface table = BatchTable.create(SpliceUtils.config, Bytes.toBytes(context.getTableName()));
         ExecRow row = getExecRow(context);
 		InputStream is;
 		Reader reader = null;
@@ -157,6 +145,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
         Serializer serializer = new Serializer();
         FormatableBitSet pkCols = context.getPrimaryKeys();
 		try{
+            CallBuffer<Mutation> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(context.getTableName().getBytes());
             RowSerializer rowSerializer = new RowSerializer(row.getRowArray(),pkCols,pkCols==null);
 			CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
 			CompressionCodec codec = codecFactory.getCodec(path);
@@ -165,25 +154,26 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
             CSVReader csvReader = new CSVReader(reader,context.getColumnDelimiter().charAt(0),context.getStripString().charAt(0));
             String[] line;
 			while((line = csvReader.readNext())!=null){
-                doImportRow(line,context.getActiveCols(), row,table,rowSerializer,serializer);
+                doImportRow(line,context.getActiveCols(), row,writeBuffer,rowSerializer,serializer);
 
 				numImported++;
                 if(numImported%100==0){
                     SpliceLogUtils.trace(LOG,"imported %d records",numImported);
                 }
 			}
+            writeBuffer.flushBuffer();
+            writeBuffer.close();
 		}catch (Exception e){
 			SpliceLogUtils.logAndThrow(LOG,new IOException(e));
 		}finally{
-			table.flushCommits();
-			table.close();
 			Closeables.closeQuietly(reader);
 		}
 		return numImported;
 	}
 
     private void doImportRow(String[] line,FormatableBitSet activeCols, ExecRow row,
-                             HTableInterface table,RowSerializer rowSerializer,Serializer serializer) throws IOException {
+                             CallBuffer<Mutation> writeBuffer,
+                             RowSerializer rowSerializer,Serializer serializer) throws IOException {
         try{
             if(activeCols!=null){
                 for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
@@ -195,9 +185,11 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
                 }
             }
             Put put = Puts.buildInsert(rowSerializer.serialize(row.getRowArray()),row.getRowArray(), null,serializer); //TODO -sf- add transaction stuff
-            table.put(put);
-        }catch(StandardException e){
-            SpliceLogUtils.error(LOG,"Error importing line %s",Arrays.toString(line));
+            writeBuffer.add(put);
+        }catch(StandardException se){
+            throw new DoNotRetryIOException(se.getMessageId());
+        } catch (Exception e) {
+            SpliceLogUtils.error(LOG,"Error importing line %s", Arrays.toString(line));
             throw Exceptions.getIOException(e);
         }
     }

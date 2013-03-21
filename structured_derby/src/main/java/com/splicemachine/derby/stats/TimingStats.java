@@ -1,5 +1,6 @@
 package com.splicemachine.derby.stats;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import org.apache.hadoop.hbase.metrics.histogram.ExponentiallyDecayingSample;
 import org.apache.hadoop.hbase.metrics.histogram.Sample;
 import org.apache.hadoop.hbase.metrics.histogram.Snapshot;
@@ -8,6 +9,7 @@ import org.apache.hadoop.hbase.metrics.histogram.UniformSample;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.splicemachine.derby.stats.TimeUtils.toSeconds;
 
@@ -17,7 +19,7 @@ import static com.splicemachine.derby.stats.TimeUtils.toSeconds;
  * @author Scott Fines
  * Created on: 2/26/13
  */
-public class ThroughputStats implements Stats{
+public class TimingStats implements Stats{
     private static final long serialVersionUID = 1l;
     private static final int DEFAULT_SAMPLE_SIZE = 100;
 
@@ -29,11 +31,11 @@ public class ThroughputStats implements Stats{
     private long minTime;
     private double[] percentiles; //includes p50,p75,p95,p98,p99,p999 in that order
 
-    public ThroughputStats(){}
+    public TimingStats(){}
 
-    public ThroughputStats(long totalTime, long totalRecords,
-                           double avgTime, double timeVariation,
-                           long maxTime, long minTable,Snapshot timingSample) {
+    public TimingStats(long totalTime, long totalRecords,
+                       double avgTime, double timeVariation,
+                       long maxTime, long minTable, Snapshot timingSample) {
         this.totalTime = totalTime;
         this.totalRecords = totalRecords;
         this.avgTime = avgTime;
@@ -187,15 +189,18 @@ public class ThroughputStats implements Stats{
         }
     }
 
-    public static Accumulator uniformAccumulator(){
+    public static com.splicemachine.derby.stats.Accumulator uniformAccumulator(){
         return new Accumulator(new UniformSample(DEFAULT_SAMPLE_SIZE));
     }
 
-    public static Accumulator uniformAccumulator(int sampleSize){
+    public static com.splicemachine.derby.stats.Accumulator uniformSafeAccumulator(){
+        return new ThreadSafeAccumulator(new UniformSample(DEFAULT_SAMPLE_SIZE));
+    }
+    public static com.splicemachine.derby.stats.Accumulator uniformAccumulator(int sampleSize){
         return new Accumulator(new UniformSample(sampleSize));
     }
 
-    public static Accumulator exponentialAccumulator(int sampleSize, double decayWeight){
+    public static com.splicemachine.derby.stats.Accumulator exponentialAccumulator(int sampleSize, double decayWeight){
         return new Accumulator(new ExponentiallyDecayingSample(sampleSize,decayWeight));
     }
 
@@ -247,7 +252,7 @@ public class ThroughputStats implements Stats{
         }
 
         public Stats finish(){
-            return new ThroughputStats(totalTime,totalRecords,
+            return new TimingStats(totalTime,totalRecords,
                     avgTime,timeVariation,maxTime,
                     minTime, processSample.getSnapshot());
         }
@@ -270,6 +275,75 @@ public class ThroughputStats implements Stats{
 
             double oldVar = timeVariation;
             timeVariation = oldVar+(time-oldAvg)*(time-avgTime);
+        }
+    }
+
+    private static class ThreadSafeAccumulator implements com.splicemachine.derby.stats.Accumulator{
+        private AtomicLong totalTime = new AtomicLong(0l);
+        private AtomicLong totalRecords = new AtomicLong(0l);
+        private AtomicDouble avgTime = new AtomicDouble(0d);
+        private AtomicDouble timeVariation = new AtomicDouble(0d);
+        private AtomicLong maxTime = new AtomicLong(0l);
+        private AtomicLong minTime = new AtomicLong(Long.MAX_VALUE);
+        private Sample processSample;
+
+        private long start;
+
+        public ThreadSafeAccumulator(Sample processSample){
+            this.processSample = processSample;
+        }
+        @Override
+        public void start() {
+            totalTime.set(0l);
+            start = System.nanoTime();
+        }
+
+        @Override
+        public Stats finish() {
+            return new TimingStats(System.nanoTime()-start,totalRecords.get(),avgTime.get(),timeVariation.get(),
+                    maxTime.get(),minTime.get(),processSample.getSnapshot());
+        }
+
+        @Override
+        public void tick(long numRecords, long timeTaken) {
+            totalTime.addAndGet(timeTaken);
+            updateMax(timeTaken);
+            updateMin(timeTaken);
+            updateAvg(numRecords,timeTaken);
+            processSample.update(timeTaken);
+        }
+
+        private void updateAvg(long numRecords,long timeTaken) {
+            synchronized (ThreadSafeAccumulator.this){
+                double oldAvg = avgTime.get();
+                double oldVar = timeVariation.get();
+                long newNumRecords = totalRecords.addAndGet(numRecords);
+
+                double newAvg = oldAvg+(timeTaken-oldAvg)/newNumRecords;
+                double newVar = oldVar+(timeTaken-oldAvg)*(timeTaken-newAvg);
+                totalRecords.set(newNumRecords);
+                avgTime.set(newAvg);
+                timeVariation.set(newVar);
+            }
+        }
+
+        @Override
+        public void tick(long timeTaken) {
+            tick(1l,timeTaken);
+        }
+
+        private void updateMax(long timeTaken) {
+            while(true){
+                long oldMax = maxTime.get();
+                if(oldMax >=timeTaken||maxTime.compareAndSet(oldMax,timeTaken)) return;
+            }
+        }
+
+        private void updateMin(long timeTaken){
+            while(true){
+                long oldMin = minTime.get();
+                if(oldMin < timeTaken||minTime.compareAndSet(oldMin,timeTaken))return;
+            }
         }
     }
 }

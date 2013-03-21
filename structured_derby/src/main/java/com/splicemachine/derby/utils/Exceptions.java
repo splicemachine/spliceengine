@@ -49,6 +49,12 @@ public class Exceptions {
         return new IOException(se);
     }
 
+    public static IOException getIOException(Throwable t){
+        if(t instanceof StandardException) return getIOException((StandardException)t);
+        else if(t instanceof IOException) return (IOException)t;
+        else return new IOException(t);
+    }
+
     public static class LangFormatException extends DoNotRetryIOException{
         public LangFormatException() { }
         public LangFormatException(String message) { super(message); }

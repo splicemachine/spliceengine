@@ -33,7 +33,7 @@ public class SinkStats implements Externalizable{
     }
 
     public static SinkAccumulator uniformAccumulator(){
-        return new SinkAccumulator(ThroughputStats.uniformAccumulator(),ThroughputStats.uniformAccumulator());
+        return new SinkAccumulator(TimingStats.uniformAccumulator(), TimingStats.uniformAccumulator());
     }
 
     @Override

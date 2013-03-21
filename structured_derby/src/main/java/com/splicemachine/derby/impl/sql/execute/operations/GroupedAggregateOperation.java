@@ -38,7 +38,7 @@ import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.stats.ThroughputStats;
+import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
@@ -61,7 +61,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	private boolean completedExecution = false;
 
     protected RowProvider rowProvider;
-    private Accumulator scanAccumulator = ThroughputStats.uniformAccumulator();
+    private Accumulator scanAccumulator = TimingStats.uniformAccumulator();
 
     public GroupedAggregateOperation () {
     	super();

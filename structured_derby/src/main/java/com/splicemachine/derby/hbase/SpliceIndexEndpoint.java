@@ -4,8 +4,10 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
+import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchProtocol;
+import com.splicemachine.hbase.MutationRequest;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
@@ -45,6 +47,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
                     "index management for batch operations will be diabled",tableName);
             indexSet = IndexSet.noIndex();
+            super.start(env);
             return;
         }
 
@@ -68,13 +71,13 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     }
 
     @Override
-    public void batchMutate(Collection<Mutation> mutationsToApply) throws IOException {
+    public void batchMutate(MutationRequest mutationsToApply) throws IOException {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
-        indexSet.update(mutationsToApply, rce);
+        indexSet.update(mutationsToApply.getMutations(), rce);
 
         //apply the local mutations
         HRegion region = rce.getRegion();
-        for(Mutation mutation:mutationsToApply){
+        for(Mutation mutation:mutationsToApply.getMutations()){
             mutation.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
             if(mutation instanceof Put)
                 region.put((Put)mutation);
@@ -99,7 +102,12 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             //get the row for the first entry
             byte[] rowBytes =  row.get(0).getRow();
             if(Bytes.compareTo(rowBytes,limit)<0){
-                SpliceUtils.doDeleteWithoutIndexing(region, transactionId, rowBytes);
+                Mutation mutation = Mutations.getDeleteOp(transactionId,rowBytes);
+                mutation.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
+                if(mutation instanceof Put)
+                    region.put((Put)mutation);
+                else
+                    region.delete((Delete)mutation,null,true);
             }
         }
     }

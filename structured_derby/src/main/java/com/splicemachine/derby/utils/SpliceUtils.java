@@ -10,13 +10,11 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.hbase.txn.ZkTransactionGetsPuts;
 import com.splicemachine.si.utils.SIConstants;
 import com.splicemachine.si2.data.hbase.TransactorFactory;
-import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.txn.SiGetsPuts;
 import com.splicemachine.si2.txn.TransactionTableCreator;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -35,14 +33,7 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
@@ -53,11 +44,7 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -109,10 +96,6 @@ public class SpliceUtils {
         }
     }
 
-    public static Put createPutFromPut(Put put) {
-        return createPut(getTransactionGetsPuts().getTransactionIdForPut(put), put.getRow());
-    }
-
     public static Scan createScan(String transactionId) {
         Scan scan = new Scan();
         if (transactionId != null) {
@@ -120,6 +103,25 @@ public class SpliceUtils {
         }
         return scan;
     }
+
+    public static String getTransactionId(Mutation mutation) {
+        if(mutation instanceof Put)
+            return getTransactionGetsPuts().getTransactionIdForPut((Put)mutation);
+        else
+            return getTransactionGetsPuts().getTransactionIdForDelete((Delete)mutation);
+    }
+
+    public static void attachTransaction(OperationWithAttributes op, String txnId) {
+        if(op instanceof Get)
+            getTransactionGetsPuts().prepGet(txnId,(Get)op);
+        else if(op instanceof Put)
+            getTransactionGetsPuts().prepPut(txnId,(Put)op);
+        else if (op instanceof Delete)
+            getTransactionGetsPuts().prepDelete(txnId,(Delete)op);
+        else
+            getTransactionGetsPuts().prepScan(txnId, (Scan) op);
+    }
+
 
     public enum SpliceConglomerate {HEAP,BTREE}
 	public static Configuration config = SpliceConfiguration.create();
@@ -132,6 +134,7 @@ public class SpliceUtils {
 	protected static RecoverableZooKeeper rzk = null;
 	protected static ZooKeeperWatcher zkw = null;
 
+    protected static HConnection connection;
 	static {
 		quorum = generateQuorum();
 //		conglomeratePath = config.get(SchemaConstants.CONGLOMERATE_PATH_NAME,SchemaConstants.DEFAULT_CONGLOMERATE_SCHEMA_PATH);
@@ -147,6 +150,8 @@ public class SpliceUtils {
 				rzk.create(derbyPropertyPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 			if (rzk.exists(transPath, false) == null)
 				rzk.create(transPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
+            connection = HConnectionManager.getConnection(config);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		} finally {
@@ -185,10 +190,6 @@ public class SpliceUtils {
         return get;
     }
 
-    public static Get createGetFromPut(Put put) {
-        return createGet(getTransactionGetsPuts().getTransactionIdForPut(put), put.getRow());
-    }
-
     public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
 		SpliceLogUtils.trace(LOG,"createGet %s",loc.getBytes());
 		try {
@@ -215,22 +216,6 @@ public class SpliceUtils {
 		}
 	}
 
-    public static Put createPut(String transactionId, byte[] row) {
-        Put put = new Put(row);
-        if (transactionId != null) {
-            getTransactionGetsPuts().prepPut(transactionId, put);
-        }
-        return put;
-    }
-
-    public static Put createPutFromPut(Put put1, byte[] rowKey) {
-        return createPut(getTransactionGetsPuts().getTransactionIdForPut(put1), rowKey);
-    }
-
-    public static Get createGetFromDelete(Delete delete) {
-        return createGet(getTransactionGetsPuts().getTransactionIdForDelete(delete), delete.getRow());
-    }
-
     public static Delete createDelete(String transactionId, byte[] row) {
         Delete delete = new Delete(row);
         if (transactionId != null) {
@@ -239,62 +224,12 @@ public class SpliceUtils {
         return delete;
     }
 
-    public static void doDeleteFromDelete(HTableInterface table, Delete delete, byte[] row) throws IOException {
-        deleteDirect(table, getTransactionGetsPuts().getTransactionIdForDelete(delete), row);
-    }
-
-    public static String getTransactionIdFromDelete(Delete delete) {
-        return getTransactionGetsPuts().getTransactionIdForDelete(delete);
-    }
-
-    public static String getTransactionIdFromPut(Put put) {
-        return getTransactionGetsPuts().getTransactionIdForPut(put);
-    }
-
-    public static void doDeleteFromPut(HTableInterface table, Put put, byte[] row) throws IOException {
-        deleteDirect(table, SpliceUtils.getTransactionGetsPuts().getTransactionIdForPut(put), row);
-    }
-
     public static void doDelete(HTableInterface table, String transactionId, byte[] row) throws IOException {
-        deleteDirect(table, transactionId, row);
-    }
-
-    public static void doDelete(HTableInterface htable, RowLocation loc, String transactionid) throws IOException, StandardException {
-        SpliceLogUtils.trace(LOG, "delete row at location %s", loc);
-        deleteDirect(htable, transactionid, loc.getBytes());
-    }
-
-    public static void doDeleteWithoutIndexing(HRegion region, String transactionId, byte[] row) throws IOException {
-        if (useSi) {
-            final ClientTransactor clientTransactor = TransactorFactory.getDefaultClientTransactor();
-            Put put = (Put) clientTransactor.newDeletePut(clientTransactor.transactionIdFromString(transactionId), row);
-            put.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
-            region.put(put);
-        } else {
-            Delete delete = SpliceUtils.createDelete(transactionId, row);
-            delete.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
-            region.delete(delete, null, true);
-        }
-    }
-
-    private static void deleteDirect(HTableInterface table, String transactionId, byte[] row) throws IOException {
-        if (useSi) {
-            final ClientTransactor clientTransactor = TransactorFactory.getDefaultClientTransactor();
-            Put put = (Put) clientTransactor.newDeletePut(clientTransactor.transactionIdFromString(transactionId), row);
-            table.put(put);
-        } else {
-            Delete delete = createDelete(transactionId, row);
-            table.delete(delete);
-        }
-    }
-
-    public static boolean isDeletePut(Put put) {
-        if (useSi) {
-            final ClientTransactor clientTransactor = TransactorFactory.getDefaultClientTransactor();
-            return clientTransactor.isDeletePut(put);
-        } else {
-            return false;
-        }
+        Mutation mutation = Mutations.getDeleteOp(transactionId,row);
+        if(mutation instanceof Put)
+            table.put((Put)mutation);
+        else
+            table.delete((Delete)mutation);
     }
 
     public static void handleNullsInUpdate(Put put, DataValueDescriptor[] row, FormatableBitSet validColumns) {
@@ -669,7 +604,7 @@ public class SpliceUtils {
 		return transID;
 	}
 
-    private static ITransactionGetsPuts getTransactionGetsPuts() {
+    public static ITransactionGetsPuts getTransactionGetsPuts() {
         if (useSi) {
             return new SiGetsPuts(TransactorFactory.getDefaultClientTransactor());
         } else {
