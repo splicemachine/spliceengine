@@ -20,7 +20,7 @@ import java.util.Map;
  *
  */
 public class MultiGroupGroupedAggregateOperationTest {
-	private static Logger LOG = Logger.getLogger(SingleGroupGroupedAggregateOperationTest.class);
+	private static Logger LOG = Logger.getLogger(MultiGroupGroupedAggregateOperationTest.class);
 
     static Map<String,String> tableSchemaMap = Maps.newHashMap();
     static{
