@@ -520,7 +520,6 @@ public class DataOperationTest extends SpliceDerbyTest {
 	}	
 
 	@Test
-	@Ignore
 	public void testUpdate() throws SQLException {	
 		LOG.info("start Update test");
 		int count = 0;
@@ -550,7 +549,6 @@ public class DataOperationTest extends SpliceDerbyTest {
 	}	
 
 	@Test
-	@Ignore("Until implemented")
 	public void testDelete() throws SQLException {	
 		LOG.info("start delete test");
 		Statement s = null;
@@ -578,7 +576,6 @@ public class DataOperationTest extends SpliceDerbyTest {
 	}	
 
 	@Test
-	@Ignore("Until implemented")
 	public void testAggregatedDelete() throws SQLException {	
 		LOG.info("start aggregated delete test");
 		Statement s = null;
@@ -605,6 +602,30 @@ public class DataOperationTest extends SpliceDerbyTest {
 		}		
 	}	
 
+	@Test
+	public void testNullTimeStampInsert() throws SQLException {	
+		LOG.info("start null insert test");
+		Statement s = null;
+		ResultSet result = null;
+		try {
+			s = conn.createStatement();
+			s.executeUpdate("create table tsd (i int, t TIMESTAMP)");
+			s.executeUpdate("insert into tsd values (1,null)");
+		} catch (SQLException e) {
+			Assert.assertTrue("Insert null records has problem", true);	
+			LOG.error("error in testDelete-"+e.getMessage(), e);
+		} finally {
+			try {
+				if (result!=null)
+					result.close();
+				if(s!=null)
+					s.close();
+			} catch (SQLException e) {
+				//no need to print out
+			}
+		}		
+	}	
+	
 	@Test
 	@Ignore("Until implemented")
 	public void testAggregatedDeleteExt() throws SQLException {	
