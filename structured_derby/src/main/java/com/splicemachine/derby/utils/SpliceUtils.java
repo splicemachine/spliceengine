@@ -216,14 +216,6 @@ public class SpliceUtils {
 		}
 	}
 
-    public static Delete createDelete(String transactionId, byte[] row) {
-        Delete delete = new Delete(row);
-        if (transactionId != null) {
-            getTransactionGetsPuts().prepDelete(transactionId, delete);
-        }
-        return delete;
-    }
-
     public static void doDelete(HTableInterface table, String transactionId, byte[] row) throws IOException {
         Mutation mutation = Mutations.getDeleteOp(transactionId,row);
         if(mutation instanceof Put)
@@ -257,7 +249,7 @@ public class SpliceUtils {
 		if (LOG.isTraceEnabled())
 			LOG.trace("cleanupNullsDelete row ");
 		try {
-            Delete delete = createDelete(transID, loc.getBytes());
+            Delete delete = Mutations.createDelete(transID, loc.getBytes());
 			int numrows = (validColumns != null ? validColumns.getLength() : destRow.length);  // bug 118
 			for (int i = 0; i < numrows; i++) {
 				if (validColumns.isSet(i) && destRow[i] != null && destRow[i].isNull())
