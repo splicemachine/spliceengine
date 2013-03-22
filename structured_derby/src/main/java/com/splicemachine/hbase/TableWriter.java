@@ -181,7 +181,7 @@ public class TableWriter implements WriterStatus{
                 .expireAfterWrite(cacheExpirationPeriod,TimeUnit.SECONDS)
                 .build(new RegionLoader(configuration));
 
-        boolean compressWrites = configuration.getBoolean("hbase.client.compress.writes",true);
+        boolean compressWrites = configuration.getBoolean("hbase.client.compress.writes",false);
         long pause = configuration.getLong(HConstants.HBASE_CLIENT_PAUSE,
                 HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
 
