@@ -357,10 +357,12 @@ public class SpliceUtils {
         else{
             try{
                 Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
-                for(int i=scanList.anySetBit();i!=-1;i=scanList.anySetBit(i)){
-                    byte[] value = dataMap.get(Integer.toString(i).getBytes());
-                    SpliceLogUtils.trace(LOG,"Attempting to place column[%d] into destRow %s",i,destRow[bitSetToDestRowMap[i]]);
-                    fill(value, destRow[bitSetToDestRowMap[i]],serializer);
+                if (dataMap != null) {
+                    for (int i = scanList.anySetBit(); i != -1; i = scanList.anySetBit(i)) {
+                        byte[] value = dataMap.get(Integer.toString(i).getBytes());
+                        SpliceLogUtils.trace(LOG, "Attempting to place column[%d] into destRow %s", i, destRow[bitSetToDestRowMap[i]]);
+                        fill(value, destRow[bitSetToDestRowMap[i]], serializer);
+                    }
                 }
             }catch(IOException e){
                 SpliceLogUtils.logAndThrowRuntime(LOG,"Error occurred during populate",e);

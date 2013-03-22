@@ -91,7 +91,7 @@ public class DistinctScanOperationTest extends SpliceDerbyTest {
 	
 	@Test
     @Category(OperationCategories.Transactional.class)
-	public void testTransactionalDistinctString() throws SQLException {	
+	public void testTransactionalDistinctString() throws SQLException {
 		rule.setAutoCommit(false);
 		Statement s = rule.getStatement();
 		s.execute("insert into foobar values('Noncommitted, Noncommitted', 9)");
@@ -103,7 +103,7 @@ public class DistinctScanOperationTest extends SpliceDerbyTest {
 			Assert.assertNotNull(rs.getString(1));
 		}	
 		Assert.assertEquals(8, j);
-		rule.rollback();				
+		rule.rollback();
 		rs = s.executeQuery("select distinct name from foobar");
 		j = 0;
 		while (rs.next()) {
@@ -111,6 +111,6 @@ public class DistinctScanOperationTest extends SpliceDerbyTest {
 			LOG.info("after rollback, person name="+rs.getString(1));
 			Assert.assertNotNull(rs.getString(1));
 		}	
-		Assert.assertEquals(7, j);			
+		Assert.assertEquals(7, j);
 	}		
 }
