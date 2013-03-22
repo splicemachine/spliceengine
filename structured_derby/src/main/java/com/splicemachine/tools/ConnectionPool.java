@@ -1,24 +1,41 @@
 package com.splicemachine.tools;
 
-import com.google.common.collect.Lists;
+import com.google.common.base.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 
 import java.sql.*;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.*;
 
 /**
+ * A Pool of Connections.
+ *
+ * To get a Connection, call one of the methods
+ * {@link #acquire()},{@link #tryAcquire()}, or {@link #tryAcquire(long, java.util.concurrent.TimeUnit)}, depending
+ * on the level of blocking you desire. Then, once finished with the Connection, simply call {@code close()} on the
+ * connection itself and it will be returned to the pool.
+ *
  * @author Scott Fines
  * Created on: 3/22/13
  */
 public class ConnectionPool {
+    /*Default maximum connections created in this pool*/
+    private static final int DEFAULT_MAX_CONNECTIONS = 100;
+    /*Configuration string for adjusting the max connections up or down*/
+    private static final String MAX_CONNECTIONS="splice.execution.maxconns";
+
+    /**
+     * A Supplier of Connections. Only called when a new connection is needed.
+     */
     public interface Supplier{
+        /**
+         * Create a new connection
+         * @return a new connection instance
+         * @throws SQLException if something goes wrong creating that connection
+         */
         Connection createNew() throws SQLException;
     }
-    private static final int DEFAULT_MAX_CONNECTIONS = 100;
-    private static final String MAX_CONNECTIONS="splice.execution.maxconns";
 
     private final Supplier connectionMaker;
     private final Semaphore permits;
@@ -46,24 +63,62 @@ public class ConnectionPool {
         return new ConnectionPool(supplier,connectionPoolSize,false);
     }
 
+    /**
+     * Acquires a Connection from the pool, waiting if necessary until one becomes available.
+     *
+     * This method will block until a connection becomes available, it will <em>not</em> fail to return a
+     * connection, but it will also <em>not</em> back off from attempting acquisition unless interrupted.
+     *
+     * @return a Connection
+     * @throws InterruptedException if interrupted while attempting to get a connection from the pool.
+     * @throws SQLException if something goes wrong getting the connection
+     */
     public Connection acquire() throws InterruptedException, SQLException {
+        Preconditions.checkArgument(!closed,"Pool is closed");
         permits.acquire();
 
         return getConnection();
     }
 
+    /**
+     * Try to acquire a connection if one becomes available before the specified timeout is reached.
+     *
+     * If a connection becomes available before {@code timeout} is reached, then it will be returned. Otherwise,
+     * {@code null} is returned.
+     *
+     * @param timeout how long to wait before giving up on acquisition
+     * @param unit the time unit to use for wait computations.
+     * @return a Connection, of {@code null} if no connection became available within the specified time frame.
+     * @throws InterruptedException if interrupted while waiting for a connection
+     * @throws SQLException if something goes wrong getting a connection
+     */
     public Connection tryAcquire(long timeout,TimeUnit unit) throws InterruptedException, SQLException {
+        Preconditions.checkArgument(!closed,"Pool is closed");
         if(permits.tryAcquire(timeout,unit))
             return getConnection();
         return null;
     }
 
+    /**
+     * Try to acquire a connection, returning immediately if a connection is not immediately available.
+     *
+     * @return a Connection if one is already available in the pool, or {@code null} otherwise.
+     *
+     * @throws SQLException if something goes wrong acquiring the connection
+     */
     public Connection tryAcquire() throws SQLException {
+        Preconditions.checkArgument(!closed,"Pool is closed");
         if(permits.tryAcquire())
             return getConnection();
         return null;
     }
 
+    /**
+     * Shut down the pool. No further acquisitions will be allowed from the pool. Outstanding Connections
+     * will be closed as they are returned to the pool, but will not be closed immediately.
+     *
+     * @throws SQLException If something goes wrong closing the pool
+     */
     public void shutdown() throws SQLException {
         this.closed=true;
         SQLException error = null;
@@ -80,6 +135,9 @@ public class ConnectionPool {
             throw error;
     }
 
+/*****************************************************************************************************/
+    /*private helper methods*/
+
     private Connection getConnection() throws SQLException {
         Connection conn = alreadyCreatedConnections.poll();
         if(conn!=null)
@@ -93,6 +151,9 @@ public class ConnectionPool {
         return new PooledConnection(connectionMaker.createNew());
     }
 
+    /*
+     * Convenience wrapper for Connections.
+     */
     private class PooledConnection implements Connection{
         private final Connection delegate;
         private boolean closed = false;
@@ -104,7 +165,7 @@ public class ConnectionPool {
         @Override
         public void close() throws SQLException {
             closed=true;
-            if(!alreadyCreatedConnections.offer(delegate)) {
+            if(ConnectionPool.this.closed||!alreadyCreatedConnections.offer(delegate)) {
                /*
                 * This should never happen, because we use a semaphore to bound the number of connections
                 * that can be created, so at least in theory we should never have created more connections
