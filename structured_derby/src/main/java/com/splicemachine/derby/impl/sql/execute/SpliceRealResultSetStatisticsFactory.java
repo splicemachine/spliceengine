@@ -213,7 +213,7 @@ public class SpliceRealResultSetStatisticsFactory
 			InsertOperation irs = (InsertOperation) rs;
 
 			retval = new RealInsertResultSetStatistics(
-									irs.getModifiedRowCount(),
+									irs.modifiedRowCount(),
 									false,//irs.constants.deferred,
 									0,//FIXME: need this after index is implemented irs.constants.irgs.length,
 									true,//irs.userSpecifiedBulkInsert,
@@ -243,7 +243,7 @@ public class SpliceRealResultSetStatisticsFactory
 			UpdateOperation urs = (UpdateOperation) rs;
 
 			retval = new RealUpdateResultSetStatistics(
-					urs.getModifiedRowCount(),
+					urs.modifiedRowCount(),
 					false,//urs.constants.deferred,
 					0,//FIXME: need this after index is implemented urs.constants.irgs.length,
 					false,//urs.constants.lockMode == TransactionController.MODE_TABLE,
@@ -278,7 +278,7 @@ public class SpliceRealResultSetStatisticsFactory
 			}
 
 			retval = new RealDeleteCascadeResultSetStatistics(
-					dcrs.getModifiedRowCount(),
+					dcrs.modifiedRowCount(),
 					false,//urs.constants.deferred,
 					0,//FIXME: need this after index is implemented urs.constants.irgs.length,
 					false,//urs.constants.lockMode == TransactionController.MODE_TABLE,
@@ -294,7 +294,7 @@ public class SpliceRealResultSetStatisticsFactory
 			DeleteOperation drs = (DeleteOperation) rs;
 
 			retval = new RealDeleteResultSetStatistics(
-					drs.getModifiedRowCount(),
+					drs.modifiedRowCount(),
 					false,//urs.constants.deferred,
 					0,//FIXME: need this after index is implemented urs.constants.irgs.length,
 					false,//urs.constants.lockMode == TransactionController.MODE_TABLE,
@@ -309,7 +309,7 @@ public class SpliceRealResultSetStatisticsFactory
 			DeleteVTIResultSet dVTIrs = (DeleteVTIResultSet) rs;
 
 			retval = new RealDeleteVTIResultSetStatistics(
-									dVTIrs.getModifiedRowCount(),
+									dVTIrs.modifiedRowCount(),
 									dVTIrs.getExecuteTime(), 
 									getResultSetStatistics(dVTIrs.savedSource)
 									);

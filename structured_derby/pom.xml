@@ -109,44 +109,6 @@
 			section below. These settings can be overwritten here. -->
 		<plugins>
 
-	     <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>1.2.1</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>java</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-        	<mainClass>com.splicemachine.test.SpliceTestPlatform</mainClass>
-          <executable>maven</executable>
-          <arguments>
-            <argument>${project.build.directory}/zookeeper</argument>
-            <argument>${project.build.directory}/hbase</argument>
-          </arguments>
-        </configuration>
-      </plugin>
-	
-	<plugin>  
-   <groupId>org.codehaus.mojo</groupId>  
-   <artifactId>exec-maven-plugin</artifactId> 
-   <version>1.2.1</version>  
-   <executions>  
-    <execution> 
-     <goals>  
-      <goal>java</goal>  
-     </goals>  
-     <configuration>
-     
-      <mainClass>org.apache.derby.tools.ij</mainClass> 
-      <includeProjectDependencies>true</includeProjectDependencies>
-     </configuration>  
-    </execution>  
-   </executions>  
-  </plugin>
 
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
@@ -173,4 +135,67 @@
 			</plugin>
 		</plugins>
 	</build>
+	
+	<profiles>
+	<profile>
+	<id>splice</id>
+	<activation><property><name>splice</name></property></activation>
+	<build>
+	<plugins>
+		<plugin>	
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.2.1</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>java</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+        	<mainClass>com.splicemachine.test.SpliceTestPlatform</mainClass>
+          <executable>maven</executable>
+          <arguments>
+            <argument>${project.build.directory}/zookeeper</argument>
+            <argument>${project.build.directory}/hbase</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+	</plugins>
+	</build>
+		
+	
+	</profile>
+	<profile>
+	<id>ij</id>
+	<activation><property><name>ij</name></property></activation>
+		<build>
+	<plugins>
+	<plugin>	
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.2.1</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>java</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+        	<mainClass>org.apache.derby.tools.ij</mainClass>
+        	<includeProjectDependencies>true</includeProjectDependencies>
+          <executable>maven</executable>
+        </configuration>
+      </plugin>
+  </plugins>
+	</build>
+	
+	</profile>
+	
+	
+	
+	</profiles>
+	
 </project>
