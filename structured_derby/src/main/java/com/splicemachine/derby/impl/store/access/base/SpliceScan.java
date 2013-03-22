@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.store.access.base;
 
-import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.impl.sql.execute.LazyScan;
 import com.splicemachine.derby.impl.sql.execute.ParallelScan;
@@ -10,7 +9,6 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.BackingStoreHashtable;
@@ -76,8 +74,6 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 			e.printStackTrace();
 		}
 		this.transID = SpliceUtils.getTransID(trans);
-//		if (LOG.isTraceEnabled())
-//			logIndexKeys();
 		setupScan();
 		attachFilter();
 		tableName = Bytes.toString(SpliceOperationCoprocessor.TEMP_TABLE);
@@ -104,8 +100,6 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		this.stopSearchOperator = stopSearchOperator;
 		this.trans = trans;
 		this.transID = SpliceUtils.getTransID(trans);
-//		if (LOG.isTraceEnabled())
-//			logIndexKeys();
 		setupScan();
 		attachFilter();
 		tableName = spliceConglomerate.getConglomerate().getContainerid() + "";
@@ -114,7 +108,6 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	
 	public void close() throws StandardException {
 		if (LOG.isTraceEnabled())
-//			LOG.trace("Close");
 		try {
 			if (scanner != null)
 				scanner.close();
@@ -125,57 +118,19 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 
 	protected void attachFilter() {
-//        SpliceLogUtils.trace(LOG,"attaching filter");
 		try {
 				scan.setFilter(Scans.buildKeyFilter(startKeyValue,2,qualifier));
-//            SpliceUtils.attachFilterToScan(scan,qualifier,startKeyValue,2,stopKeyValue,2);
-//			FilterList masterList = new FilterList(Operator.MUST_PASS_ALL);
-//			if (qualifier != null)
-//				masterList.addFilter(SpliceUtils.constructFilter(qualifier));
-//			if (startSearchOperator == 1 && stopSearchOperator == 1 && startKeyValue != null && startKeyValue.length == 1
-//					&& "".equals(startKeyValue[0].getTraceString().trim())) {
-//				LOG.info("NOT GENERATING INDEX FILTER. DO A FULL SCAN.......");
-//			} else {
-//				if (startKeyValue != null && startSearchOperator >= 0)
-//					masterList.addFilter(SpliceUtils.generateIndexFilter(startKeyValue,startSearchOperator));
-//				if (stopKeyValue != null && stopSearchOperator >= 0)
-//					masterList.addFilter(SpliceUtils.generateIndexFilter(stopKeyValue,stopSearchOperator));
-//			}
-//		    scan.setFilter(masterList);
 		} catch (Exception e) {
 			throw new RuntimeException("error attaching Filter",e);
 		}
 	}
 	
 	protected void setupScan() {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("setup Scan");
 		try {
             boolean[] sortOrder = spliceConglomerate==null?null:
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).getAscDescInfo();
             scan = Scans.setupScan(startKeyValue, startSearchOperator, stopKeyValue, stopSearchOperator, qualifier,
                     sortOrder, scanColumnList, transID);
-//			boolean generateKey = true;
-//			if (startKeyValue != null && stopKeyValue != null) {
-//				for (int i =0; i<startKeyValue.length; i++) {
-//					if (startKeyValue[i].isNull())
-//						generateKey = false;
-//				}
-//			}
-//			if (generateKey) {
-//				boolean[] sortOrder = null;
-//				if (spliceConglomerate != null)
-//					sortOrder = ((SpliceConglomerate) this.spliceConglomerate.getConglomerate()).getAscDescInfo();
-//				scan.setStartRow(DerbyBytesUtil.generateScanKeyForIndex(startKeyValue,startSearchOperator,sortOrder));
-//				scan.setStopRow(DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue,stopSearchOperator,sortOrder));
-//				if (scan.getStartRow() != null && scan.getStopRow() != null && Bytes.compareTo(scan.getStartRow(), scan.getStopRow())>=0) {
-//					LOG.warn("Scan begin key is greater than the end key");
-//				}
-//				if (scan.getStartRow() == null)
-//					scan.setStartRow(HConstants.EMPTY_START_ROW);
-//				if (scan.getStopRow() == null)
-//					scan.setStopRow(HConstants.EMPTY_END_ROW);
-//			}
 		} catch (Exception e) {
 			LOG.error("Exception creating start key");
 			throw new RuntimeException(e);
@@ -187,12 +142,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	
 	public boolean delete() throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("delete");
 		if (currentResult == null)
 			throw StandardException.newException("Attempting to delete with a null current result");
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("HBaseScan delete " + currentResult.getRow());
 		try {
             SpliceUtils.doDelete(table, transID, this.currentResult.getRow());
 			currentRowDeleted = true;
@@ -204,8 +155,6 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 		
 	public boolean next() throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("next ");
 		if (!scannerInitialized)
 			initialize();
 		currentRowDeleted = false;
@@ -222,14 +171,10 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	public void fetch(DataValueDescriptor[] destRow) throws StandardException {
 		if (this.currentResult == null)
 			return;
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("HBaseScan fetch "+ currentResult.toString());
 		fetchWithoutQualify(destRow);
 	}
 	
 	public void didNotQualify() throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("HBaseScan didNotQualify");
 	}
 	
 	public boolean doesCurrentPositionQualify() throws StandardException {
