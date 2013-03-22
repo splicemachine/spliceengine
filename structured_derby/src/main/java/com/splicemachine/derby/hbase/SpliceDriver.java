@@ -100,39 +100,6 @@ public class SpliceDriver {
         return embeddedConnections;
     }
 
-    public LanguageConnectionContext getLanguageConnectionContext(){
-        return getLanguageConnectionContext(3);
-    }
-
-    private LanguageConnectionContext getLanguageConnectionContext(int numAttempts) {
-        if(numAttempts<0){
-            throw new AssertionError("Unable to get Language Connection Context, " +
-                    "Driver failed to start up after multiple attempts");
-        }
-        switch (stateHolder.get()) {
-            case STARTUP_FAILED:
-                throw new AssertionError("Service Startup failed, unable to acquire Language Connection Context");
-            case SHUTDOWN:
-                throw new AssertionError("Service is shutdown");
-            case INITIALIZING:
-                //need to block until the initialization state has ended
-                try {
-                    initalizationLatch.await();
-                } catch (InterruptedException e) {
-                    SpliceLogUtils.warn(LOG,"Interrupted while waiting for Splice Driver initialization",e);
-                    //interrupted during wait, see if it's good
-                    return getLanguageConnectionContext(numAttempts-1);
-                }
-            case NOT_STARTED:
-                start();
-                return getLanguageConnectionContext(numAttempts);
-            default:
-                /*
-                 * Either the lcc is null or it's not. Either way, return that to the caller
-                 */
-                return lcc;
-        }
-    }
 
     public void registerService(Service service){
         this.services.add(service);

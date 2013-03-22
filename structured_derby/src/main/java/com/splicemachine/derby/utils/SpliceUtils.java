@@ -656,14 +656,6 @@ public class SpliceUtils {
 		scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(activation,topOperation));
 	}
 
-	public static void setThreadContext(){
-		SpliceLogUtils.trace(LOG,"addThreadContext");
-        ContextService contextService = ContextService.getFactory();
-		ContextManager mgr = contextService.newContextManager();
-		mgr.pushContext(SpliceDriver.driver().getLanguageConnectionContext());
-		contextService.setCurrentContextManager(mgr);
-	}
-
     public static void setThreadContext(LanguageConnectionContext lcc){
         SpliceLogUtils.trace(LOG,"addThreadContext");
         ContextService contextService = ContextService.getFactory();
