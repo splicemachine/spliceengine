@@ -652,7 +652,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             regionStats.start();
             
 			htable = SpliceAccessManager.getHTable(table);
-			long numberCreated = 0;
             SpliceLogUtils.trace(LOG,"Performing coprocessorExec");
          
 			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), topOperation);
@@ -680,8 +679,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             regionStats.finish();
             regionStats.recordStats(LOG);
             nextTime += regionStats.getTotalTimeTakenMs();
-			SpliceLogUtils.trace(LOG,"Sunk %d records",numberCreated);
-			rowsSunk=numberCreated;
+			rowsSunk=regionStats.getTotalSunkRecords();
+			SpliceLogUtils.trace(LOG,"Sunk %d records",regionStats.getTotalSunkRecords());
 		}catch(IOException ioe){
 			if(ioe.getCause() instanceof StandardException)
 				SpliceLogUtils.logAndThrow(LOG, (StandardException)ioe.getCause());
