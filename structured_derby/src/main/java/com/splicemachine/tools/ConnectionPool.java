@@ -238,6 +238,9 @@ public class ConnectionPool {
         public String getSchema() throws SQLException { throw new UnsupportedOperationException() ;}
         public void abort(Executor executor) throws SQLException { throw new UnsupportedOperationException(); }
         public int getNetworkTimeout() throws SQLException { throw new UnsupportedOperationException(); }
+        public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
+            throw new UnsupportedOperationException();
+        }
 
         @Override
         public void setAutoCommit(boolean autoCommit) throws SQLException {
@@ -350,9 +353,6 @@ public class ConnectionPool {
             return delegate.createStruct(typeName, attributes);
         }
 
-        public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
-            throw new UnsupportedOperationException();
-        }
 
 
     }
