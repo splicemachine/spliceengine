@@ -38,6 +38,7 @@ public class SpliceDriver {
     private static final String DEFAULT_SERVER_ADDRESS = "0.0.0.0";
 
 
+
     public static enum State{
         NOT_STARTED,
         INITIALIZING,
@@ -84,6 +85,10 @@ public class SpliceDriver {
 
     public TableWriter getTableWriter() {
         return writerPool;
+    }
+
+    public Properties getProperties() {
+        return props;
     }
 
     public LanguageConnectionContext getLanguageConnectionContext(){
