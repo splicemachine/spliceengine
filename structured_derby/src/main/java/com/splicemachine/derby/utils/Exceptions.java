@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.impl.load.SpliceImportCoprocessor;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
+import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -53,6 +54,23 @@ public class Exceptions {
         if(t instanceof StandardException) return getIOException((StandardException)t);
         else if(t instanceof IOException) return (IOException)t;
         else return new IOException(t);
+    }
+
+    /**
+     * Determine if we should dump a stack trace to the log file.
+     *
+     * This is to filter out exceptions from the log that don't need to write an error to the
+     * log (Primary Key violations, or other user errors, or something that can be retried without
+     * punishment).
+     *
+     * @param e the exception to check
+     * @return true if the stack trace should be logged.
+     */
+    public static boolean shouldLogStackTrace(Exception e) {
+        if(e instanceof ConstraintViolation.PrimaryKeyViolation) return false;
+        if(e instanceof ConstraintViolation.UniqueConstraintViolation) return false;
+        if(e instanceof IndexNotSetUpException) return false;
+        return true;
     }
 
     public static class LangFormatException extends DoNotRetryIOException{

@@ -8,17 +8,24 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextService;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
+import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Represents all Indices and Constraints on a Table.
@@ -56,6 +63,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Created on: 3/11/13
  */
 public class IndexSet {
+    private static final long STARTUP_LOCK_BACKOFF_PERIOD = 100;
     private static final Logger LOG = Logger.getLogger(IndexSet.class);
 
     /*
@@ -73,8 +81,7 @@ public class IndexSet {
     /*
      * Synchronizer object for use during initialization.
      */
-    @SuppressWarnings("UnnecessaryBoxing")
-    private final Object initializeSync = new Integer(1); //lock object for synchronous initialization
+    private final Lock initializationLock = new ReentrantLock(true);
 
     /*
      * The conglomerate id of the main table that we are indexing.
@@ -143,7 +150,13 @@ public class IndexSet {
      * @throws IOException if something goes wrong (Constraint violation, index issue, etc.)
      */
     public void update(Mutation mutation,RegionCoprocessorEnvironment rce) throws IOException{
-        checkState();
+        try {
+            checkState();
+        } catch (InterruptedException e) {
+            //we were interrupted while either waiting for a lock or attempting to get a connection
+            //bomb out this write in a retryable fashion so that we can prevent the interruption
+            throw new IndexNotSetUpException();
+        }
         //If the Index was updated already, then bypass this, since we don't need to check it
         if(mutation.getAttribute(INDEX_UPDATED)!=null) return;
 
@@ -163,8 +176,12 @@ public class IndexSet {
      * @throws IOException if something goes wrong with <em>any</em> of the mutations.
      */
     public void update(Collection<Mutation> mutations,
-                              RegionCoprocessorEnvironment rce) throws IOException{
-        checkState();
+                       RegionCoprocessorEnvironment rce) throws IOException{
+        try {
+            checkState();
+        } catch (InterruptedException e) {
+            throw new IndexNotSetUpException();
+        }
 
         validate(mutations,rce);
 
@@ -174,7 +191,7 @@ public class IndexSet {
         }
     }
 
-    private void checkState() throws ConstraintViolation {
+    private void checkState() throws IOException, InterruptedException {
         switch (state.get()) {
             case WAITING_TO_START:
                 SpliceLogUtils.warn(LOG, "Index management for conglomerate %d " +
@@ -250,13 +267,13 @@ public class IndexSet {
         }
     }
 
-/*********************************************************************************************************************/
+    /*********************************************************************************************************************/
     /*private helper methods*/
 
     /*
      * initialize the table management.
      */
-    private void start(){
+    private void start() throws IOException, InterruptedException {
         /*
          * The following code exercises a bit of fancy Double-checked locking, which goes as follows:
          *
@@ -274,88 +291,128 @@ public class IndexSet {
             if(state.get()!=State.STARTING) return;
         }
 
-        synchronized (initializeSync){
-            //someone else may have initialized this. If so, we don't need to repeat it, so return
-            if(state.get()!=State.STARTING) return;
+        //someone else may have initialized this. If so, we don't need to repeat it, so return
+        if(state.get()!=State.STARTING) return;
 
-            SpliceLogUtils.debug(LOG,"Setting up index for conglomerate "+ conglomId);
+        SpliceLogUtils.debug(LOG,"Setting up index for conglomerate "+ conglomId);
 
-            try{
-                SpliceUtils.setThreadContext();
-                DataDictionary dataDictionary = SpliceDriver.driver().getLanguageConnectionContext().getDataDictionary();
-                ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(conglomId);
+        Connection connection = null;
+            /*
+             * RegionServers only have a limited number of IPC listeners to respond to puts, so we
+             * want to make sure that they don't all end up blocking here lest we run out of threads. If
+             * that happens, then likely we won't be able to leave this synchronization barrier, so we're in
+             * a nice distributed deadlock, which is bad
+             *
+             * To avoid this, we have a backoff period on the synchronization barrier. If you can't
+             * get through the barrier after a reasonably brief time period, then we just blow up on this
+             * write and rely on the calling client to retry, which will (hopefully) generate enough
+             * of a delay for the start up thread to complete its metadata scanning and finish
+             * setting up for us
+             */
+        if(!initializationLock.tryLock(STARTUP_LOCK_BACKOFF_PERIOD, TimeUnit.MILLISECONDS)){
+            throw new IndexNotSetUpException("Unable to initialize index management within a sufficient period." +
+                    " Please wait a bit and try again");
+        }
+        try{
+            connection = SpliceDriver.driver().embedConnPool().acquire();
+            LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
+            SpliceUtils.setThreadContext(lcc);
+            DataDictionary dataDictionary = lcc.getDataDictionary();
+            ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(conglomId);
 
-                dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
-                TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
+            dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
+            TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
 	            /*
 	             * That's weird, there's no Table in the dictionary? Probably not good, but nothing we
 	             * can do about it, so just bail.
 	             */
-                if(td==null) return;
-                boolean isSysConglomerate = td.getSchemaDescriptor().getSchemaName().equals("SYS");
-                if(isSysConglomerate){
+            if(td==null) return;
+            boolean isSysConglomerate = td.getSchemaDescriptor().getSchemaName().equals("SYS");
+            if(isSysConglomerate){
                     /*
                      * The DataDictionary and Derby metadata code management will actually deal with
                      * constraints internally, so we don't have anything to do
                      */
-                    SpliceLogUtils.trace(LOG,"Index management for Sys table disabled, relying on external" +
-                            "index management");
-                    state.set(State.NOT_MANAGED);
-                    return;
-                }
+                SpliceLogUtils.trace(LOG,"Index management for Sys table disabled, relying on external" +
+                        "index management");
+                state.set(State.NOT_MANAGED);
+                return;
+            }
 
-                //get primary key constraint
-                ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
-                for(int i=0;i<constraintDescriptors.size();i++){
-                    ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
-                    if(cDescriptor.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
-                        localConstraint = buildPrimaryKey(cDescriptor);
-                    }else{
-                        LOG.warn("Unknown Constraint on table "+ conglomId+": type = "+ cDescriptor.getConstraintText());
-                    }
+            //get primary key constraint
+            ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
+            for(int i=0;i<constraintDescriptors.size();i++){
+                ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
+                if(cDescriptor.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
+                    localConstraint = buildPrimaryKey(cDescriptor);
+                }else{
+                    LOG.warn("Unknown Constraint on table "+ conglomId+": type = "+ cDescriptor.getConstraintText());
                 }
+            }
 
-                //get Constraints list
-                ConglomerateDescriptorList congloms = td.getConglomerateDescriptorList();
-                List<Constraint> foreignKeys = Lists.newArrayListWithExpectedSize(congloms.size());
-                List<Constraint> checkConstraints = Lists.newArrayListWithExpectedSize(congloms.size());
+            //get Constraints list
+            ConglomerateDescriptorList congloms = td.getConglomerateDescriptorList();
+            List<Constraint> foreignKeys = Lists.newArrayListWithExpectedSize(congloms.size());
+            List<Constraint> checkConstraints = Lists.newArrayListWithExpectedSize(congloms.size());
 
-                List<IndexManager> attachedIndices = Lists.newArrayListWithExpectedSize(congloms.size());
-                for(int i=0;i<congloms.size();i++){
-                    ConglomerateDescriptor conglomDesc = (ConglomerateDescriptor) congloms.get(i);
-                    if(conglomDesc.isIndex()){
-                        if(conglomDesc.getConglomerateNumber()==conglomId){
-                            //we are an index, so just map a constraint, rather than an IndexManager
-                            localConstraint = buildIndexConstraint(conglomDesc);
-                            attachedIndices.clear(); //there are no attached indices on the index htable itself
-                            foreignKeys.clear(); //there are no foreign keys to deal with on the index htable itself
-                            break;
-                        }else
-                            attachedIndices.add(buildIndex(conglomDesc));
-                    }
+            List<IndexManager> attachedIndices = Lists.newArrayListWithExpectedSize(congloms.size());
+            for(int i=0;i<congloms.size();i++){
+                ConglomerateDescriptor conglomDesc = (ConglomerateDescriptor) congloms.get(i);
+                if(conglomDesc.isIndex()){
+                    if(conglomDesc.getConglomerateNumber()==conglomId){
+                        //we are an index, so just map a constraint, rather than an IndexManager
+                        localConstraint = buildIndexConstraint(conglomDesc);
+                        attachedIndices.clear(); //there are no attached indices on the index htable itself
+                        foreignKeys.clear(); //there are no foreign keys to deal with on the index htable itself
+                        break;
+                    }else
+                        attachedIndices.add(buildIndex(conglomDesc));
                 }
+            }
 
                 /*
                  * Make sure that fkConstraints is thread safe so that we can drop the constraint whenever
                  * someone asks us to.
                  */
-                fkConstraints = new CopyOnWriteArrayList<Constraint>(foreignKeys);
-                indices = new CopyOnWriteArraySet<IndexManager>(attachedIndices);
+            fkConstraints = new CopyOnWriteArrayList<Constraint>(foreignKeys);
+            indices = new CopyOnWriteArraySet<IndexManager>(attachedIndices);
 
-
-            }catch(StandardException se){
-                SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ conglomId+", aborting",se);
-                state.set(State.FAILED_SETUP);
-                return;
-            } catch (IOException e) {
-                SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ conglomId+", aborting",e);
-                state.set(State.FAILED_SETUP);
-                return;
-            }
             SpliceLogUtils.debug(LOG,"Index setup complete for table "+conglomId+", ready to run");
             state.set(State.RUNNING);
+        }catch(StandardException se){
+            SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ conglomId+", aborting",se);
+            state.set(State.FAILED_SETUP);
+            return;
+        } catch (IOException e) {
+            SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ conglomId+", aborting",e);
+            state.set(State.FAILED_SETUP);
+            return;
+        } catch (InterruptedException e) {
+            SpliceLogUtils.error(LOG,"Unable to acquire a Database Connection, " +
+                    "aborting write, but backing off so that other writes can try again",e);
+            state.set(State.READY_TO_START);
+            throw new IndexNotSetUpException(e);
+        } catch (SQLException e) {
+            SpliceLogUtils.error(LOG,"Unable to acquire a Database Connection, " +
+                    "aborting write, but backing off so that other writes can try again",e);
+            state.set(State.READY_TO_START);
+            throw new IndexNotSetUpException(e);
+        } finally{
+            //now unlock so that other threads can get access
+            initializationLock.unlock();
+
+            //release our connection
+            if(connection!=null){
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    SpliceLogUtils.error(LOG,"Unable to close index connection",e);
+                }
+            }
         }
-    }    public void shutdown() throws IOException{
+    }
+
+    public void shutdown() throws IOException{
         state.set(State.SHUTDOWN);
         //do other stuff to clean up
     }

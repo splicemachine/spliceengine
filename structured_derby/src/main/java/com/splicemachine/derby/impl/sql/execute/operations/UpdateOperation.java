@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.NavigableMap;
 
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -183,14 +184,10 @@ public class UpdateOperation extends DMLWriteOperation{
             writeBuffer.flushBuffer();
             writeBuffer.close();
 		} catch (Exception e) {
-            if(e instanceof RetriesExhaustedWithDetailsException){
-                Throwable t= ((RetriesExhaustedWithDetailsException) e).getCause(0);
-                if(t instanceof IOException) throw (IOException)t;
-                throw new IOException(t);
-            }
-            Throwable t = Throwables.getRootCause(e);
-            if(t instanceof IOException) throw (IOException)t;
-            SpliceLogUtils.logAndThrow(LOG,new IOException(e));
+            if(Exceptions.shouldLogStackTrace(e))
+                SpliceLogUtils.logAndThrow(LOG,Exceptions.getIOException(e));
+            else
+                throw Exceptions.getIOException(e);
 		}
         //return stats.finish();
 		SinkStats ss = stats.finish();

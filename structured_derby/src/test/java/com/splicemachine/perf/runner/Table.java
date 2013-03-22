@@ -6,6 +6,7 @@ import com.splicemachine.derby.stats.Stats;
 import com.splicemachine.derby.stats.TimeUtils;
 import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.perf.runner.qualifiers.Result;
+import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -46,37 +47,40 @@ public class Table {
         ps.execute();
     }
 
-    public Result insertData(final JDBCConnectionPool connectionPool) throws Exception{
+    public Result insertData(final ConnectionPool connectionPool) throws Exception{
         ExecutorService dataInserter = Executors.newFixedThreadPool(insertThreads);
         try{
             List<Future<Void>> futures = Lists.newArrayListWithCapacity(insertThreads+1);
             final Accumulator insertAccumulator = TimingStats.uniformSafeAccumulator();
             insertAccumulator.start();
-            final AtomicInteger numBatches = new AtomicInteger(0);
             for(int i=0;i<insertThreads;i++){
                 futures.add(dataInserter.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        Connection conn = connectionPool.getConnection();
+                        int rowsToInsert = numRows/insertThreads;
+                        int tenPercentSize = rowsToInsert>10?rowsToInsert/10 : 1;
+                        int written = 0;
+                        Connection conn = connectionPool.acquire();
                         try{
                             PreparedStatement ps = conn.prepareStatement(getInsertDataString());
                             for(int numRowsInserted=0;numRowsInserted<numRows/insertThreads;numRowsInserted++){
                                 fillStatement(ps);
                                 ps.addBatch();
-                                if(numRowsInserted%insertBatch==0){
+                                written++;
+                                if(numRowsInserted>0&&numRowsInserted%insertBatch==0){
                                     long start = System.nanoTime();
                                     int numInserted = ps.executeBatch().length;
                                     insertAccumulator.tick(numInserted,System.nanoTime()-start);
-                                    int batches = numBatches.incrementAndGet();
-                                    if(batches%100==0)
-                                        SpliceLogUtils.info(LOG,"inserted %d batches",batches);
+
+                                    if((written-1)%tenPercentSize==0)
+                                        SpliceLogUtils.info(LOG,"%d%% complete",((written-1)/tenPercentSize)*10);
                                 }
                             }
                             long start = System.nanoTime();
                             int numInserted = ps.executeBatch().length;
                             if(numInserted>0){
-                                insertAccumulator.tick(numInserted,System.nanoTime()-start);
-                                numBatches.incrementAndGet();
+                                insertAccumulator.tick(numInserted, System.nanoTime() - start);
+                                SpliceLogUtils.info(LOG,"writing complete");
                             }
                             conn.commit();
                             return null;
@@ -84,7 +88,7 @@ public class Table {
                             conn.rollback();
                             throw se;
                         }finally{
-                            connectionPool.returnConnection(conn);
+                            conn.close();
                         }
                     }
                 }));

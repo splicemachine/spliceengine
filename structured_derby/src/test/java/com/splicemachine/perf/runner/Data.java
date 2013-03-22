@@ -1,6 +1,7 @@
 package com.splicemachine.perf.runner;
 
 import com.splicemachine.perf.runner.qualifiers.Result;
+import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -23,7 +24,7 @@ public class Data {
     private final List<Query> queries;
     private final List<Index> indices;
     private final int poolSize;
-    private JDBCConnectionPool connectionPool;
+    private ConnectionPool connectionPool;
 
     public Data(String server,
                 int concurrentQueries, List<Table> tables,
@@ -37,34 +38,38 @@ public class Data {
     }
 
     public void connect() throws Exception {
-        connectionPool = new JDBCConnectionPool(server,poolSize);
-        connectionPool.preLoadConnections();
+        connectionPool = ConnectionPool.create(new ConnectionPool.Supplier() {
+            @Override
+            public Connection createNew() throws SQLException {
+                return DriverManager.getConnection("jdbc:derby://"+server+"/wombat;create=true");
+            }
+        }, poolSize);
     }
 
     public void createTables() throws Exception {
         //create Tables
         SpliceLogUtils.info(LOG,"Creating tables");
-        Connection connection = connectionPool.getConnection();
+        Connection connection = connectionPool.acquire();
         try{
             for(Table table:tables){
                 table.create(connection);
             }
             connection.commit();
         }finally{
-            connectionPool.returnConnection(connection);
+            connection.close();
         }
     }
 
     public void createIndices() throws Exception {
         SpliceLogUtils.info(LOG,"Creating indices");
-        Connection conn = connectionPool.getConnection();
+        Connection conn = connectionPool.acquire();
         try{
             for(Index index:indices){
                 index.create(conn);
             }
             conn.commit();
         }finally{
-            connectionPool.returnConnection(conn);
+            conn.close();
         }
     }
 
@@ -105,7 +110,7 @@ public class Data {
     public void dropTables() throws Exception {
         SpliceLogUtils.info(LOG, "dropping tables");
         PreparedStatement dropStatement;
-        Connection conn = connectionPool.getConnection();
+        Connection conn = connectionPool.acquire();
         try{
         for(Table table:tables){
             dropStatement = conn.prepareStatement("drop table "+ table.getName());
@@ -113,7 +118,7 @@ public class Data {
         }
         conn.commit();
         }finally{
-            connectionPool.returnConnection(conn);
+            conn.close();
         }
     }
 

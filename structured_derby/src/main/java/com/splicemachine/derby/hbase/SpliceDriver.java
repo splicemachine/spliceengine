@@ -6,6 +6,7 @@ import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.TableWriter;
+import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -19,6 +20,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.sql.Connection;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.*;
@@ -36,6 +38,7 @@ public class SpliceDriver {
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     private static final int DEFAULT_PORT = 1527;
     private static final String DEFAULT_SERVER_ADDRESS = "0.0.0.0";
+
 
 
     public static enum State{
@@ -67,6 +70,7 @@ public class SpliceDriver {
     private volatile CountDownLatch initalizationLatch = new CountDownLatch(1);
 
     private ExecutorService executor;
+    private ConnectionPool embeddedConnections;
 
     private SpliceDriver(){
         ThreadFactory factory = new ThreadFactoryBuilder()
@@ -77,13 +81,23 @@ public class SpliceDriver {
         //TODO -sf- create a separate pool for writing to TEMP
         try {
             writerPool = TableWriter.create(SpliceUtils.config);
-        } catch (IOException e) {
+
+            embeddedConnections = ConnectionPool.create(SpliceUtils.config);
+        } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
     }
 
     public TableWriter getTableWriter() {
         return writerPool;
+    }
+
+    public Properties getProperties() {
+        return props;
+    }
+
+    public ConnectionPool embedConnPool(){
+        return embeddedConnections;
     }
 
     public LanguageConnectionContext getLanguageConnectionContext(){
