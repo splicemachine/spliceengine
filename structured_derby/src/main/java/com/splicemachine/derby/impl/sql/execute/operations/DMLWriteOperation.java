@@ -263,7 +263,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		}
 	};
 	
-	public int getModifiedRowCount() {
+	@Override
+	public int modifiedRowCount() {
 		if (modifiedProvider != null)
 			return modifiedProvider.getModifiedRowCount();
 		else
