@@ -350,9 +350,8 @@ public class ConnectionPool {
             return delegate.createStruct(typeName, attributes);
         }
 
-        @Override
         public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
-            delegate.setNetworkTimeout(executor, milliseconds);
+            throw new UnsupportedOperationException();
         }
 
 
