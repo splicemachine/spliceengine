@@ -230,12 +230,14 @@ public class ConnectionPool {
         @Override public NClob createNClob() throws SQLException { return delegate.createNClob(); }
         @Override public SQLXML createSQLXML() throws SQLException { return delegate.createSQLXML(); }
         @Override public boolean isValid(int timeout) throws SQLException { return delegate.isValid(timeout); }
-        @Override public void setSchema(String schema) throws SQLException { delegate.setSchema(schema); }
-        @Override public String getSchema() throws SQLException { return delegate.getSchema(); }
-        @Override public void abort(Executor executor) throws SQLException { delegate.abort(executor); }
-        @Override public int getNetworkTimeout() throws SQLException { return delegate.getNetworkTimeout(); }
         @Override public String getClientInfo(String name) throws SQLException { return delegate.getClientInfo(name); }
         @Override public Properties getClientInfo() throws SQLException { return delegate.getClientInfo(); }
+
+        //Java 7 compliant java.sql.Connection
+        public void setSchema(String schema) throws SQLException { throw new UnsupportedOperationException(); }
+        public String getSchema() throws SQLException { throw new UnsupportedOperationException() ;}
+        public void abort(Executor executor) throws SQLException { throw new UnsupportedOperationException(); }
+        public int getNetworkTimeout() throws SQLException { throw new UnsupportedOperationException(); }
 
         @Override
         public void setAutoCommit(boolean autoCommit) throws SQLException {
