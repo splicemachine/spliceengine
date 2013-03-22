@@ -85,7 +85,7 @@ public class ConnectionPool {
         if(conn!=null)
             return new PooledConnection(conn);
 
-        //create a new connection
+        //there are no pooled connections to re-use, so create a new one
         return createConnection();
     }
 
@@ -95,6 +95,7 @@ public class ConnectionPool {
 
     private class PooledConnection implements Connection{
         private final Connection delegate;
+        private boolean closed = false;
 
         private PooledConnection(Connection delegate) {
             this.delegate = delegate;
@@ -102,6 +103,7 @@ public class ConnectionPool {
 
         @Override
         public void close() throws SQLException {
+            closed=true;
             if(!alreadyCreatedConnections.offer(delegate)) {
                /*
                 * This should never happen, because we use a semaphore to bound the number of connections
@@ -131,8 +133,19 @@ public class ConnectionPool {
         }
 
         @Override
+        public <T> T unwrap(Class<T> iface) throws SQLException {
+            if(!isWrapperFor(iface)) throw new SQLException("Not a wrapper for Class "+ iface);
+            return iface.cast(delegate);
+        }
+
+        @Override
+        public boolean isWrapperFor(Class<?> iface) throws SQLException {
+            return iface.isAssignableFrom(delegate.getClass());
+        }
+
+        @Override
         public boolean isClosed() throws SQLException {
-            return delegate.isClosed();
+            return closed;
         }
 
         @Override public Statement createStatement() throws SQLException { return delegate.createStatement(); }
@@ -159,7 +172,6 @@ public class ConnectionPool {
         @Override public void setSchema(String schema) throws SQLException { delegate.setSchema(schema); }
         @Override public String getSchema() throws SQLException { return delegate.getSchema(); }
         @Override public void abort(Executor executor) throws SQLException { delegate.abort(executor); }
-        @Override public <T> T unwrap(Class<T> iface) throws SQLException { return delegate.unwrap(iface); }
         @Override public int getNetworkTimeout() throws SQLException { return delegate.getNetworkTimeout(); }
         @Override public String getClientInfo(String name) throws SQLException { return delegate.getClientInfo(name); }
         @Override public Properties getClientInfo() throws SQLException { return delegate.getClientInfo(); }
@@ -281,9 +293,5 @@ public class ConnectionPool {
         }
 
 
-        @Override
-        public boolean isWrapperFor(Class<?> iface) throws SQLException {
-            return delegate.isWrapperFor(iface);
-        }
     }
 }

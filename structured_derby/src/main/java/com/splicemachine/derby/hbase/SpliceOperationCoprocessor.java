@@ -3,14 +3,18 @@ package com.splicemachine.derby.hbase;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.error.SpliceStandardException;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Properties;
 
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
@@ -69,24 +73,39 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	@Override
 	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException {
 		threadLocalEnvironment.set(getEnvironment());
+        Connection runningConnection = null;
 		try {
 			SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
 																			instructions.getStatement(),instructions.getTopOperation(), scan);
 			HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
 			SpliceLogUtils.trace(LOG,"Creating RegionScanner");
-			LanguageConnectionContext lcc = SpliceDriver.driver().getLanguageConnectionContext();
-			SpliceUtils.setThreadContext();
+            runningConnection = SpliceDriver.driver().embedConnPool().acquire();
+
+			LanguageConnectionContext lcc = runningConnection.unwrap(EmbedConnection.class).getLanguageConnection();
+			SpliceUtils.setThreadContext(lcc);
 			Activation activation = instructions.getActivation(lcc);
 
-			SpliceOperationContext context = new SpliceOperationContext(region,scan, activation, instructions.getStatement(),lcc);
+			SpliceOperationContext context = new SpliceOperationContext(region,scan,
+                    activation, instructions.getStatement(),runningConnection);
 			SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
 			SpliceLogUtils.trace(LOG,"performing sink");
 			SinkStats out = spliceScanner.sink();
 			SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getSinkStats().getTotalRecords());
 			spliceScanner.close();
 			return out;
-		} finally {
-			threadLocalEnvironment.set(null);
+		} catch (InterruptedException e) {
+            throw new IOException(e);
+        } catch (SQLException e) {
+            throw new IOException(e);
+        } finally {
+            threadLocalEnvironment.set(null);
+            try{
+                if(runningConnection!=null)
+                    runningConnection.close();
+            }catch(SQLException e){
+                //should never happen in a pooled operation
+                throw new IOException(e);
+            }
 		}
 	}
 

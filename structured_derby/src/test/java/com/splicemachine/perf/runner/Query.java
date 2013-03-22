@@ -6,6 +6,7 @@ import com.splicemachine.derby.stats.TimeUtils;
 import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.perf.runner.qualifiers.Qualifier;
 import com.splicemachine.perf.runner.qualifiers.Result;
+import com.splicemachine.tools.ConnectionPool;
 
 import java.io.PrintStream;
 import java.sql.Connection;
@@ -33,7 +34,7 @@ public class Query {
         this.threads = threads;
     }
 
-    public Result run(final JDBCConnectionPool connectionPool) throws Exception{
+    public Result run(final ConnectionPool connectionPool) throws Exception{
         ExecutorService testRunner = Executors.newFixedThreadPool(threads);
         final int samplesPerThread = samples/threads;
         try{
@@ -44,7 +45,7 @@ public class Query {
                 completionService.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        Connection conn = connectionPool.getConnection();
+                        Connection conn = connectionPool.acquire();
                         try{
                             PreparedStatement ps = conn.prepareStatement(query);
                             for(int j=0;j<samplesPerThread;j++){
@@ -57,7 +58,7 @@ public class Query {
                             }
                             return null;
                         }finally{
-                            connectionPool.returnConnection(conn);
+                            conn.close();
                         }
                     }
                 });
