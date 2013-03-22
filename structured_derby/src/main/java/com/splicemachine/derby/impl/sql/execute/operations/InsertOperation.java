@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -100,7 +101,10 @@ public class InsertOperation extends DMLWriteOperation {
             writer.close();
 		} catch (Exception e) {
 			//TODO -sf- abort transaction
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            if(Exceptions.shouldLogStackTrace(e))
+                SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            else
+                throw Exceptions.getIOException(e);
 		}
 		SinkStats ss = stats.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for InsertOperation at "+stats.getFinishTime());

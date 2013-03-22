@@ -6,13 +6,13 @@
 {
     "server": "localhost:1527", /*The server to connect to*/
     "concurrentQueries":1, /*Number of queries to run simultaneously*/
-    "poolSize":10, /*Number of open Connections to the server to use*/
+    "poolSize":15, /*Number of open Connections to the server to use*/
     "tables": [
     {
         "name": "pk_test",
-        "numRows": 1000,
+        "numRows": 10000,
         "insertBatch": 200, /*The number of records to insert with each Prepared Statement*/
-        "insertThreads":5, /*Number of Insertions to run simultaneously */
+        "insertThreads":15, /*Number of Insertions to run simultaneously */
         "columns": [
             {
                 "name":"cookie_id",
@@ -20,7 +20,7 @@
                 "primaryKey":true,
                 "generatorType":"sequentialIntGenerator",
                 "generatorConfig":{
-                    "start":10001
+                    "start":0
                 }
             },
             {
@@ -83,8 +83,8 @@
     "queries":[
         {
             "query":"select * from pk_test where cookie_id = ?",
-            "samples":1000,
-            "threads":1,
+            "samples":10000,
+            "threads":10,
             "qualifiers": [
                 {
                     "qualifierType": "intRange",

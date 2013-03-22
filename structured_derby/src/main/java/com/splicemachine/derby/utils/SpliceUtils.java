@@ -24,6 +24,7 @@ import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
@@ -655,12 +656,12 @@ public class SpliceUtils {
 		scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(activation,topOperation));
 	}
 
-	public static void setThreadContext(){
-		SpliceLogUtils.trace(LOG,"addThreadContext");
+    public static void setThreadContext(LanguageConnectionContext lcc){
+        SpliceLogUtils.trace(LOG,"addThreadContext");
         ContextService contextService = ContextService.getFactory();
-		ContextManager mgr = contextService.newContextManager();
-		mgr.pushContext(SpliceDriver.driver().getLanguageConnectionContext());
-		contextService.setCurrentContextManager(mgr);
-	}
+        ContextManager mgr = contextService.newContextManager();
+        mgr.pushContext(lcc);
+        contextService.setCurrentContextManager(mgr);
+    }
 
 }

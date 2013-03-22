@@ -1,14 +1,22 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
 
+import com.splicemachine.error.SpliceStandardException;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import com.splicemachine.hbase.txn.coprocessor.region.TxnUtils;
+import org.apache.log4j.Logger;
 
 /**
  * Represents the context of a SpliceOperation stack.
@@ -20,23 +28,23 @@ import com.splicemachine.hbase.txn.coprocessor.region.TxnUtils;
  * Created: 1/18/13 9:18 AM
  */
 public class SpliceOperationContext {
-    private final LanguageConnectionContext lcc;
     private final GenericStorablePreparedStatement preparedStatement;
     private final HRegion region;
     private final Activation activation;
     private final Scan scan;
     private RegionScanner scanner;
+    private final Connection connection;
 
     public SpliceOperationContext(HRegion region,
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
-                                  LanguageConnectionContext lcc){
-        this.lcc = lcc;
+                                  Connection connection){
         this.region= region;
         this.scan = scan;
         this.activation = activation;
         this.preparedStatement = preparedStatement;
+        this.connection = connection;
     }
 
     public SpliceOperationContext(RegionScanner scanner,
@@ -44,13 +52,13 @@ public class SpliceOperationContext {
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
-                                  LanguageConnectionContext lcc){
-        this.lcc = lcc;
+                                  Connection connection){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
         this.scanner = scanner;
         this.region=region;
         this.scan = scan;
+        this.connection = connection;
     }
 
     public HRegion getRegion(){
@@ -82,7 +90,39 @@ public class SpliceOperationContext {
     }
 
     public LanguageConnectionContext getLanguageConnectionContext() {
-        return lcc;
+        LanguageConnectionContext lcc = null;
+        if(activation!=null){
+           lcc = activation.getLanguageConnectionContext();
+        }
+        if(lcc!=null) return lcc;
+        if(connection!=null){
+            try {
+                return connection.unwrap(EmbedConnection.class).getLanguageConnection();
+            } catch (SQLException e) {
+                SpliceLogUtils.logAndThrowRuntime(Logger.getLogger(SpliceOperation.class), e);
+                return null;
+            }
+        }
+        //if neither the activate nor the connection is set, then why are you calling this anyway? bomb out
+        return null;
+    }
+
+    public void close() throws IOException {
+        try{
+        if(activation!=null) try {
+            activation.close();
+        } catch (StandardException e) {
+            throw new DoNotRetryIOException(new SpliceStandardException(e).getTextMessage());
+        }
+        }finally{
+            if(connection!=null){
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    throw new DoNotRetryIOException(e.getMessage());
+                }
+            }
+        }
     }
 
     public GenericStorablePreparedStatement getPreparedStatement() {
@@ -97,7 +137,7 @@ public class SpliceOperationContext {
         return new SpliceOperationContext(null,null,
                 a,
                 (GenericStorablePreparedStatement)a.getPreparedStatement(),
-                a.getLanguageConnectionContext());
+                null);
     }
 
 }

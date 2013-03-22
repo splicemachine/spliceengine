@@ -6,6 +6,7 @@ import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.TableWriter;
+import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -19,6 +20,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.sql.Connection;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.*;
@@ -36,6 +38,7 @@ public class SpliceDriver {
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     private static final int DEFAULT_PORT = 1527;
     private static final String DEFAULT_SERVER_ADDRESS = "0.0.0.0";
+
 
 
     public static enum State{
@@ -67,6 +70,7 @@ public class SpliceDriver {
     private volatile CountDownLatch initalizationLatch = new CountDownLatch(1);
 
     private ExecutorService executor;
+    private ConnectionPool embeddedConnections;
 
     private SpliceDriver(){
         ThreadFactory factory = new ThreadFactoryBuilder()
@@ -77,7 +81,9 @@ public class SpliceDriver {
         //TODO -sf- create a separate pool for writing to TEMP
         try {
             writerPool = TableWriter.create(SpliceUtils.config);
-        } catch (IOException e) {
+
+            embeddedConnections = ConnectionPool.create(SpliceUtils.config);
+        } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
     }
@@ -86,39 +92,14 @@ public class SpliceDriver {
         return writerPool;
     }
 
-    public LanguageConnectionContext getLanguageConnectionContext(){
-        return getLanguageConnectionContext(3);
+    public Properties getProperties() {
+        return props;
     }
 
-    private LanguageConnectionContext getLanguageConnectionContext(int numAttempts) {
-        if(numAttempts<0){
-            throw new AssertionError("Unable to get Language Connection Context, " +
-                    "Driver failed to start up after multiple attempts");
-        }
-        switch (stateHolder.get()) {
-            case STARTUP_FAILED:
-                throw new AssertionError("Service Startup failed, unable to acquire Language Connection Context");
-            case SHUTDOWN:
-                throw new AssertionError("Service is shutdown");
-            case INITIALIZING:
-                //need to block until the initialization state has ended
-                try {
-                    initalizationLatch.await();
-                } catch (InterruptedException e) {
-                    SpliceLogUtils.warn(LOG,"Interrupted while waiting for Splice Driver initialization",e);
-                    //interrupted during wait, see if it's good
-                    return getLanguageConnectionContext(numAttempts-1);
-                }
-            case NOT_STARTED:
-                start();
-                return getLanguageConnectionContext(numAttempts);
-            default:
-                /*
-                 * Either the lcc is null or it's not. Either way, return that to the caller
-                 */
-                return lcc;
-        }
+    public ConnectionPool embedConnPool(){
+        return embeddedConnections;
     }
+
 
     public void registerService(Service service){
         this.services.add(service);

@@ -1,6 +1,7 @@
 package com.splicemachine.hbase;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -10,6 +11,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -443,7 +445,14 @@ public class TableWriter implements WriterStatus{
              * of explode if one of them did.
              */
             for(Future<Void> future:futures){
-                future.get();
+                try{
+                    future.get();
+                }catch(ExecutionException ee){
+                    Throwable t = Throwables.getRootCause(ee);
+                    if(t instanceof Exception)
+                        throw (Exception)t;
+                    else throw ee;
+                }
             }
         }
 
@@ -642,7 +651,10 @@ public class TableWriter implements WriterStatus{
                     instance.batchMutate(mutationRequest);
                     mutations.remove();
                 }catch(IOException ioe){
-                    LOG.info("Error received when trying to write buffer:"+ ioe.getMessage());
+                    if(Exceptions.shouldLogStackTrace(ioe))
+                        LOG.info("Error received when trying to write buffer:"+ ioe.getMessage());
+                    else
+                        LOG.info("Received a retryable exception when trying to write buffer: "+ ioe.getClass().getSimpleName());
                     if(ioe instanceof DoNotRetryIOException) throw ioe;
                     else{
                         retryExceptions.add(ioe);

@@ -10,6 +10,8 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -19,6 +21,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
@@ -51,6 +54,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
     private SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
     private SinkStats finalStats;
+    private SpliceOperationContext context;
 
     public SpliceOperationRegionScanner(SpliceOperation topOperation,
                                         SpliceOperationContext context){
@@ -58,14 +62,14 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     	SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
         this.topOperation = topOperation;
         this.statement = context.getPreparedStatement();
+        this.context = context;
         try {
             this.regionScanner = context.getScanner();
-            LanguageConnectionContext lcc = context.getLanguageConnectionContext();
-            SpliceLogUtils.trace(LOG,"lcc=%s",lcc);
+
             activation = context.getActivation();//((GenericActivationHolder) statement.getActivation(lcc, false)).ac;
             topOperation.init(context);
         }catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            SpliceLogUtils.logAndThrowRuntime(LOG, e);
         }
     }
 
@@ -79,15 +83,21 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
 			statement = soi.getStatement();
 			topOperation = soi.getTopOperation();
-			LanguageConnectionContext lcc = SpliceDriver.driver().getLanguageConnectionContext();
-			SpliceUtils.setThreadContext();
+
+            //TODO -sf- timed backoffs here?
+            Connection connection = SpliceDriver.driver().embedConnPool().acquire();
+			LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
+			SpliceUtils.setThreadContext(lcc);
 
 			activation = soi.getActivation(lcc);
 
-			topOperation.init(new SpliceOperationContext(regionScanner,region,scan, activation, statement, lcc));			
+            context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, connection);
+
+			topOperation.init(context);
 			List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
 			topOperation.generateLeftOperationStack(opStack);
 			SpliceLogUtils.trace(LOG,"Ready to execute stack %s",opStack);
+
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
 		}
@@ -130,12 +140,14 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			topOperation.close();
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		}
-		if (regionScanner != null)
-			regionScanner.close();
-        finalStats = stats.finish();
-        ((SpliceBaseOperation)topOperation).nextTime +=finalStats.getTotalTime();
-        SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SpliceOperationRegionScanner at "+stats.getFinishTime());
+		}finally{
+            if (regionScanner != null)
+                regionScanner.close();
+            finalStats = stats.finish();
+            ((SpliceBaseOperation)topOperation).nextTime +=finalStats.getTotalTime();
+            SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SpliceOperationRegionScanner at "+stats.getFinishTime());
+            context.close();
+        }
 	}
 
 	@Override
