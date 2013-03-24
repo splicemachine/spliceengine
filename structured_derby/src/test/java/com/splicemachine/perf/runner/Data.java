@@ -5,11 +5,9 @@ import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.*;
 
 /**
@@ -38,12 +36,7 @@ public class Data {
     }
 
     public void connect() throws Exception {
-        connectionPool = ConnectionPool.create(new ConnectionPool.Supplier() {
-            @Override
-            public Connection createNew() throws SQLException {
-                return DriverManager.getConnection("jdbc:derby://"+server+"/wombat;create=true");
-            }
-        }, poolSize);
+        connectionPool = ConnectionPool.create(new Loader(), poolSize);
     }
 
     public void createTables() throws Exception {
@@ -133,5 +126,22 @@ public class Data {
                 ", tables=" + tables +
                 ", queries=" + queries +
                 '}';
+    }
+    private class Loader implements ConnectionPool.Supplier{
+        private final Driver driver;
+        private final String jdbcPath;
+
+        private Loader()  throws Exception{
+            //attempt to load the driver
+            Class.forName("org.apache.derby.jdbc.AutoloadedDriver40");
+            //fetch the driver for the url
+            jdbcPath = "jdbc:derby://"+server+"/wombat;create=true";
+            driver = DriverManager.getDriver(jdbcPath);
+        }
+
+        @Override
+        public Connection createNew() throws SQLException {
+            return driver.connect(jdbcPath,new Properties());
+        }
     }
 }

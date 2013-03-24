@@ -10,7 +10,7 @@
     "tables": [
     {
         "name": "pk_test",
-        "numRows": 10000,
+        "numRows": 1000,
         "insertBatch": 200, /*The number of records to insert with each Prepared Statement*/
         "insertThreads":15, /*Number of Insertions to run simultaneously */
         "columns": [
@@ -83,7 +83,7 @@
     "queries":[
         {
             "query":"select * from pk_test where cookie_id = ?",
-            "samples":10000,
+            "samples":1000,
             "threads":10,
             "qualifiers": [
                 {

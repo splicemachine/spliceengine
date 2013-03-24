@@ -249,70 +249,23 @@ public class TableWriter implements WriterStatus{
         };
     }
 
+/******************************************************************************************************************/
     /*MBean methods for JMX management*/
-    @Override
-    public long getMaxBufferHeapSize() {
-        return maxHeapSize;
-    }
-
-    @Override
-    public void setMaxBufferHeapSize(long newMaxHeapSize) {
-        this.maxHeapSize = newMaxHeapSize;
-    }
-
-    @Override
-    public int getMaxBufferEntries() {
-        return maxBufferEntries;
-    }
-
-    @Override
-    public void setMaxBufferEntries(int newMaxBufferEntries) {
-        this.maxBufferEntries = newMaxBufferEntries;
-    }
-
-    @Override
-    public int getMaxFlushesPerBuffer() {
-        return maxPendingBuffers;
-    }
-
-    @Override
-    public void setMaxFlushesPerBuffer(int newMaxFlushesPerBuffer) {
-        this.maxPendingBuffers = newMaxFlushesPerBuffer;
-    }
-
-    @Override
-    public int getOutstandingCallBuffers() {
-        return outstandingCallBuffers.get();
-    }
-
-    @Override
-    public int getPendingBufferFlushes() {
-        return pendingBufferFlushes.get();
-    }
-
-    @Override
-    public int getExecutingBufferFlushes() {
-        return executingBufferFlushes.get();
-    }
-
-    @Override
-    public long getTotalBufferFlushes() {
-        return totalBufferFlushes.get();
-    }
-
-    @Override
-    public int getRunningWriteThreads() {
-        return runningWrites.get();
-    }
-
-    @Override
-    public long getNumCachedTables() {
-        return regionCache.size();
-    }
-
-    public void setCompressWrites(boolean compressWrites) {
-        this.compressWrites = compressWrites;
-    }
+    @Override public long getMaxBufferHeapSize() { return maxHeapSize; }
+    @Override public void setMaxBufferHeapSize(long newMaxHeapSize) { this.maxHeapSize = newMaxHeapSize; }
+    @Override public int getMaxBufferEntries() { return maxBufferEntries; }
+    @Override public void setMaxBufferEntries(int newMaxBufferEntries) { this.maxBufferEntries = newMaxBufferEntries; }
+    @Override public int getMaxFlushesPerBuffer() { return maxPendingBuffers; }
+    @Override public void setMaxFlushesPerBuffer(int newMaxFlushesPerBuffer){this.maxPendingBuffers = newMaxFlushesPerBuffer;}
+    @Override public int getOutstandingCallBuffers() { return outstandingCallBuffers.get(); }
+    @Override public int getPendingBufferFlushes() { return pendingBufferFlushes.get(); }
+    @Override public int getExecutingBufferFlushes() { return executingBufferFlushes.get(); }
+    @Override public long getTotalBufferFlushes() { return totalBufferFlushes.get(); }
+    @Override public int getRunningWriteThreads() { return runningWrites.get(); }
+    @Override public long getNumCachedTables() { return regionCache.size(); }
+    @Override public boolean getCompressWrites(){ return compressWrites; }
+    @Override public void setCompressWrites(boolean compressWrites) { this.compressWrites = compressWrites; }
+    @Override public long getCacheLastUpdatedTimeStamp() { return cacheUpdatedTimestamp; }
 
     @Override
     public int getNumCachedRegions(String tableName) {
@@ -321,11 +274,9 @@ public class TableWriter implements WriterStatus{
         return regions.size();
     }
 
-    @Override
-    public long getCacheLastUpdatedTimeStamp() {
-        return cacheUpdatedTimestamp;
-    }
 
+/********************************************************************************************************************/
+    /*private helper methods*/
     private abstract class BufferListener implements CallBuffer.Listener<Mutation>{
         protected final byte[] tableName;
 

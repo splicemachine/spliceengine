@@ -18,7 +18,9 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.log4j.Logger;
 
+import javax.management.*;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.sql.Connection;
 import java.util.List;
@@ -38,8 +40,6 @@ public class SpliceDriver {
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     private static final int DEFAULT_PORT = 1527;
     private static final String DEFAULT_SERVER_ADDRESS = "0.0.0.0";
-
-
 
     public static enum State{
         NOT_STARTED,
@@ -83,6 +83,8 @@ public class SpliceDriver {
             writerPool = TableWriter.create(SpliceUtils.config);
 
             embeddedConnections = ConnectionPool.create(SpliceUtils.config);
+
+
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
@@ -128,6 +130,9 @@ public class SpliceDriver {
                 public Void call() throws Exception {
 
                     writerPool.start();
+
+                    //register JMX items
+                    registerJMX();
                     boolean setRunning = true;
                     setRunning = enableDriver();
                     if(!setRunning) {
@@ -156,6 +161,7 @@ public class SpliceDriver {
             });
         }
     }
+
 
     public void shutdown(){
         executor.submit(new Callable<Void>() {
@@ -189,6 +195,30 @@ public class SpliceDriver {
 
 /********************************************************************************************/
     /*private helper methods*/
+
+    private void registerJMX()  {
+        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+        try{
+            //register ConnectionPool
+            ObjectName connPoolName = new ObjectName("com.splicemachine.execution:type=PoolStatus");
+
+            mbs.registerMBean(embeddedConnections,connPoolName);
+
+            //register TableWriter
+            ObjectName writerName = new ObjectName("com.splicemachine.writer:type=WriterStatus");
+
+            mbs.registerMBean(writerPool,writerName);
+        } catch (MalformedObjectNameException e) {
+            //we want to log the message, but this shouldn't affect startup
+            SpliceLogUtils.error(LOG,"Unable to register JMX entries",e);
+        } catch (NotCompliantMBeanException e) {
+            SpliceLogUtils.error(LOG, "Unable to register JMX entries", e);
+        } catch (InstanceAlreadyExistsException e) {
+            SpliceLogUtils.error(LOG, "Unable to register JMX entries", e);
+        } catch (MBeanRegistrationException e) {
+            SpliceLogUtils.error(LOG, "Unable to register JMX entries", e);
+        }
+    }
 
     private EmbeddedDriver loadDriver() throws Exception {
         Monitor.clearMonitor();

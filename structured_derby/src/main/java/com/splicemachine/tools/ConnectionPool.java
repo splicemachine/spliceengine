@@ -7,6 +7,7 @@ import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A Pool of Connections.
@@ -19,7 +20,7 @@ import java.util.concurrent.*;
  * @author Scott Fines
  * Created on: 3/22/13
  */
-public class ConnectionPool {
+public class ConnectionPool implements PoolStatus{
     /*Default maximum connections created in this pool*/
     private static final int DEFAULT_MAX_CONNECTIONS = 100;
     /*Configuration string for adjusting the max connections up or down*/
@@ -38,7 +39,7 @@ public class ConnectionPool {
     }
 
     private final Supplier connectionMaker;
-    private final Semaphore permits;
+    private final DynamicSemaphore permits;
     private final BlockingQueue<Connection> alreadyCreatedConnections;
 
     private volatile boolean closed;
@@ -47,7 +48,7 @@ public class ConnectionPool {
                            int poolSize,
                            boolean fairPool) {
         this.connectionMaker = connectionMaker;
-        this.permits = new Semaphore(poolSize,fairPool);
+        this.permits = new DynamicSemaphore(poolSize,fairPool);
         this.alreadyCreatedConnections = new ArrayBlockingQueue<Connection>(poolSize);
     }
 
@@ -135,6 +136,34 @@ public class ConnectionPool {
             throw error;
     }
 
+/**************************************************************************************************/
+    /*JMX status methods*/
+
+    @Override
+    public int getWaiting(){
+        return permits.getQueueLength();
+    }
+
+    @Override
+    public int getMaxPoolSize(){
+        return permits.getNumPermits();
+    }
+
+    @Override
+    public void setMaxPoolSize(int newMaxPoolSize){
+        permits.setMaxPermits(newMaxPoolSize);
+    }
+
+    @Override
+    public int getAvailable(){
+        return permits.availablePermits();
+    }
+
+    @Override
+    public int getInUse(){
+        return Math.max(0,permits.getNumPermits()-permits.availablePermits());
+    }
+
 /*****************************************************************************************************/
     /*private helper methods*/
 
@@ -156,7 +185,7 @@ public class ConnectionPool {
      */
     private class PooledConnection implements Connection{
         private final Connection delegate;
-        private boolean closed = false;
+        private boolean connClosed = false;
 
         private PooledConnection(Connection delegate) {
             this.delegate = delegate;
@@ -164,7 +193,7 @@ public class ConnectionPool {
 
         @Override
         public void close() throws SQLException {
-            closed=true;
+            connClosed=true;
             if(ConnectionPool.this.closed||!alreadyCreatedConnections.offer(delegate)) {
                /*
                 * This should never happen, because we use a semaphore to bound the number of connections
@@ -206,7 +235,7 @@ public class ConnectionPool {
 
         @Override
         public boolean isClosed() throws SQLException {
-            return closed;
+            return connClosed;
         }
 
         @Override public Statement createStatement() throws SQLException { return delegate.createStatement(); }
@@ -355,5 +384,31 @@ public class ConnectionPool {
 
 
 
+    }
+
+    private static class DynamicSemaphore extends Semaphore{
+        private volatile int numPermits;
+        public DynamicSemaphore(int permits) {
+            super(permits);
+            this.numPermits = permits;
+        }
+        public DynamicSemaphore(int permits, boolean fair) {
+            super(permits, fair);
+            this.numPermits = permits;
+        }
+
+        public int getNumPermits(){
+            return numPermits;
+        }
+
+        public synchronized void setMaxPermits(int newMax){
+            Preconditions.checkArgument(newMax>0,"Cannot have a pool with fewer than 1 entry, "+ newMax+" specified");
+            int change = newMax-numPermits;
+            if(change>0){
+                release(change);
+            }else{
+                reducePermits(Math.abs(change));
+            }
+        }
     }
 }
