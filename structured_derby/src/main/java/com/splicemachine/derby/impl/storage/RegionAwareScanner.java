@@ -5,7 +5,6 @@ import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.avro.generated.HBase;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -48,7 +47,6 @@ public class RegionAwareScanner implements Closeable {
     private byte[] localFinish;
     private byte[] regionFinish;
     private byte[] regionStart;
-    private byte[] tableName;
     private final String transactionId;
 
     private RegionAwareScanner(String transactionId, HTableInterface table, HRegion region, byte[] scanStart, byte[] scanFinish, ScanBoundary scanBoundary){
