@@ -28,6 +28,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.Puts;
@@ -264,6 +265,11 @@ public class SortOperation extends SpliceBaseOperation {
         return ss;
 	}
 
+	@Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template){
+        return RowProviders.sourceProvider(top,LOG);
+    }
+	
 	@Override
 	public String toString() {
 		return "SortOperation {resultSetNumber="+resultSetNumber+",source="+source+"}";
