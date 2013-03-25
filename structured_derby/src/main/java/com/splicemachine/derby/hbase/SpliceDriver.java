@@ -60,8 +60,6 @@ public class SpliceDriver {
 
     private AtomicReference<State> stateHolder = new AtomicReference<State>(State.NOT_STARTED);
 
-    private volatile EmbedConnection conn;
-    private volatile LanguageConnectionContext lcc;
     private volatile Properties props = new Properties();
 
     private volatile NetworkServerControl server;
@@ -134,11 +132,6 @@ public class SpliceDriver {
                     //register JMX items
                     registerJMX();
                     boolean setRunning = true;
-                    setRunning = enableDriver();
-                    if(!setRunning) {
-                        abortStartup();
-                        return null;
-                    }
                     setRunning = ensureHBaseTablesPresent();
                     if(!setRunning) {
                         abortStartup();
@@ -178,9 +171,8 @@ public class SpliceDriver {
 
                     SpliceLogUtils.info(LOG,"Destroying internal Engine");
                     try{
-                        if(conn!=null)
-                            conn.close();
-                        conn = null;
+                        if(embeddedConnections!=null)
+                            embeddedConnections.shutdown();
                     }finally{
                         stateHolder.set(State.SHUTDOWN);
                     }
@@ -220,12 +212,6 @@ public class SpliceDriver {
         }
     }
 
-    private EmbeddedDriver loadDriver() throws Exception {
-        Monitor.clearMonitor();
-        SpliceLogUtils.trace(LOG,"Attempting to load the Derby Embedded Driver");
-        return (EmbeddedDriver) Class.forName(DRIVER).newInstance();
-    }
-
     private boolean ensureHBaseTablesPresent() {
         SpliceLogUtils.info(LOG, "Ensuring Required Hbase Tables are present");
         HBaseAdmin admin = null;
@@ -261,19 +247,6 @@ public class SpliceDriver {
         }catch(Exception e){
             //just in case the outside services decide to blow up on me
             SpliceLogUtils.error(LOG,"Unable to start services, aborting startup",e);
-            return false;
-        }
-    }
-
-    private boolean enableDriver() {
-        try{
-            SpliceLogUtils.info(LOG, "Constructing Internal Database Engine");
-            EmbeddedDriver driver = loadDriver();
-            conn = (EmbedConnection)driver.connect(protocol+dbName+";create=true",props);
-            lcc = conn.getLanguageConnection();
-            return true;
-        }catch(Exception e){
-            SpliceLogUtils.error(LOG,"Unable to boot internal driver, aborting Startup",e);
             return false;
         }
     }
