@@ -1,5 +1,7 @@
 package com.splicemachine.derby.utils;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.si.api.ClientTransactor;
@@ -7,7 +9,9 @@ import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Collection;
 
 /**
  * Utilities for operating with Mutations.
@@ -91,4 +95,23 @@ public class Mutations {
         SpliceUtils.getTransactionGetsPuts().prepPut(txnId,put);
         return put;
     }
+
+    public static boolean isDelete(Mutation mutation){
+        if(mutation instanceof Delete) return true;
+        if(TransactorFactory.getDefaultClientTransactor()!=null)
+            return TransactorFactory.getDefaultClientTransactor().isDeletePut(mutation);
+
+        return false;
+    }
+
+    public static Collection<Mutation> filterDeletes(Collection<Mutation> mutations){
+        return Collections2.filter(mutations, stripDeletes);
+    }
+
+    private static final Predicate<? super Mutation> stripDeletes = new Predicate<Mutation>() {
+        @Override
+        public boolean apply(@Nullable Mutation input) {
+            return !Mutations.isDelete(input);
+        }
+    };
 }

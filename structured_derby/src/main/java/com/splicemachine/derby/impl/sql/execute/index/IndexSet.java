@@ -90,6 +90,7 @@ public class IndexSet {
 
     //The local constraint to apply (if any).
     private volatile Constraint localConstraint = Constraints.noConstraint();
+
     //any Foreign Key Constraints to apply.
     private volatile List<Constraint> fkConstraints = Collections.emptyList();
 
@@ -310,7 +311,7 @@ public class IndexSet {
              * setting up for us
              */
         if(!initializationLock.tryLock(STARTUP_LOCK_BACKOFF_PERIOD, TimeUnit.MILLISECONDS)){
-            throw new IndexNotSetUpException("Unable to initialize index management within a sufficient period." +
+            throw new IndexNotSetUpException("Unable to initialize index management for table "+ conglomId+" within a sufficient period." +
                     " Please wait a bit and try again");
         }
         try{

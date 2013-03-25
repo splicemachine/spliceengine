@@ -9,7 +9,7 @@
     "poolSize":15, /*Number of open Connections to the server to use*/
     "tables": [
     {
-        "name": "pk_test",
+        "name": "web_log",
         "numRows": 1000,
         "insertBatch": 200, /*The number of records to insert with each Prepared Statement*/
         "insertThreads":10, /*Number of Insertions to run simultaneously */
@@ -28,21 +28,27 @@
                  "type":"int",
                  "generatorType":"randomIntGenerator",
                  "generatorConfig":{
-                    "start": 10,
-                    "stop": 100
+                    "start": 0,
+                    "stop": 5000000
                  }
             },
             {
                 "name": "last_visited",
                  "type":"timestamp",
-                 "generatorType": "systemTimeGenerator",
-                 "generatorConfig":{}
+                 "generatorType": "randomTimestampGenerator",
+                 "generatorConfig":{
+                    "start":1325376000000,
+                     "stop":1356998400000
+                 }
             },
             {
                 "name":"created_on",
                 "type":"timestamp",
-                "generatorType": "systemTimeGenerator",
-                "generatorConfig":{}
+                 "generatorType": "randomTimestampGenerator",
+                 "generatorConfig":{
+                    "start":1325376000000,
+                     "stop":1356998400000
+                 }
             },
             {
                 "name":"user_agent",
@@ -98,12 +104,14 @@
         },
         {
             "query":"select count(*) from pk_test",
-            "samples": 1,
+            "samples": 10,
             "threads": 1,
-            "qualifiers":[],
+            "qualifiers":[]
+            /*
             "printColumns":{
                 "count":1
             }
+            */
         }
     ]
 }

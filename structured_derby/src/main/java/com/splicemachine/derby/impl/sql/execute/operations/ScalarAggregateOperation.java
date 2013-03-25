@@ -78,7 +78,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		SpliceLogUtils.trace(LOG,"readExternal");
 		super.readExternal(in);
 		isInSortedOrder = in.readBoolean();
 		singleInputRow = in.readBoolean();
@@ -86,7 +85,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		SpliceLogUtils.trace(LOG,"writeExternal");
 		super.writeExternal(out);
 		out.writeBoolean(isInSortedOrder);
 		out.writeBoolean(singleInputRow);
@@ -94,7 +92,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	@Override
 	public void openCore() throws StandardException {
-		SpliceLogUtils.trace(LOG,"openCore");
 		source.openCore();
 		isOpen=true;
 	}
@@ -107,7 +104,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	@Override
 	public void init(SpliceOperationContext context){
-		SpliceLogUtils.trace(LOG,"init");
 		super.init(context);
 		ExecutionFactory factory = activation.getExecutionFactory();
 		try {

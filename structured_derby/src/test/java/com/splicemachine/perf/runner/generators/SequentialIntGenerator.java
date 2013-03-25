@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *         Created on: 3/15/13
  */
 public class SequentialIntGenerator implements ColumnDataGenerator {
-    private final AtomicInteger value;
+    protected final AtomicInteger value;
     private final int startValue;
 
     public SequentialIntGenerator(int start) {

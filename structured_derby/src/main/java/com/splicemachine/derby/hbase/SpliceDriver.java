@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.*;
@@ -132,6 +133,11 @@ public class SpliceDriver {
                     //register JMX items
                     registerJMX();
                     boolean setRunning = true;
+                    setRunning = bootDatabase();
+                    if(!setRunning){
+                        abortStartup();
+                        return null;
+                    }
                     setRunning = ensureHBaseTablesPresent();
                     if(!setRunning) {
                         abortStartup();
@@ -152,6 +158,17 @@ public class SpliceDriver {
                     return null;
                 }
             });
+        }
+    }
+
+    private boolean bootDatabase() throws Exception {
+        Connection connection = null;
+        try{
+            connection = embeddedConnections.acquire();
+            return true;
+        }finally{
+            if(connection!=null)
+                connection.close();
         }
     }
 

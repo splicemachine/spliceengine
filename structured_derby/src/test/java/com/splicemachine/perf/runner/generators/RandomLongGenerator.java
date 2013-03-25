@@ -4,6 +4,7 @@ import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import org.apache.commons.lang.math.JVMRandom;
 
 import java.io.IOException;
 import java.sql.PreparedStatement;
@@ -12,54 +13,54 @@ import java.util.Random;
 
 /**
  * @author Scott Fines
- *         Created on: 3/17/13
+ *         Created on: 3/25/13
  */
-public class RandomIntGenerator implements ColumnDataGenerator{
+public class RandomLongGenerator implements ColumnDataGenerator{
+    private final long start;
+    private final long stop;
     private final Random random = new Random();
-    private final int start;
-    private final int stop;
 
-    public RandomIntGenerator(int start, int stop) {
-        this.start = start;
+    public RandomLongGenerator(long stop, long start) {
         this.stop = stop;
+        this.start = start;
     }
 
     @Override
     public void setInto(PreparedStatement ps, int position) throws SQLException {
-        ps.setInt(position,nextValue());
+        ps.setLong(position,nextValue());
     }
 
-    private int nextValue(){
-        return random.nextInt(stop-start)+start;
+    private long nextValue() {
+        long next = random.nextLong()%stop;
+        return (((stop-start)*next)/stop) +start;
     }
 
     public static TypeAdapter<? extends ColumnDataGenerator> getTypeAdapter(){
         return new Adapter();
     }
 
-    private static class Adapter extends TypeAdapter<RandomIntGenerator>{
 
-        @Override public void write(JsonWriter out, RandomIntGenerator value) throws IOException { }
+    private static class Adapter extends TypeAdapter<RandomLongGenerator>{
+        @Override public void write(JsonWriter out, RandomLongGenerator value) throws IOException {}
 
         @Override
-        public RandomIntGenerator read(JsonReader in) throws IOException {
+        public RandomLongGenerator read(JsonReader in) throws IOException {
             if(in.peek()== JsonToken.NULL){
                 in.nextNull();
                 return null;
             }
-            int start = 0;
-            int stop = Integer.MAX_VALUE;
+            long start = 0;
+            long stop = Long.MAX_VALUE;
             in.beginObject();
             while(in.hasNext()){
                 String name = in.nextName();
                 if("start".equalsIgnoreCase(name))
-                    start = in.nextInt();
+                    start = in.nextLong();
                 else if("stop".equalsIgnoreCase(name))
-                    stop = in.nextInt();
+                    stop = in.nextLong();
             }
             in.endObject();
-            return new RandomIntGenerator(start,stop);
+            return new RandomLongGenerator(start,stop);
         }
     }
-
 }
