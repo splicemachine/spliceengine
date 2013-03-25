@@ -252,7 +252,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for ScalaAggregation at "+stats.getStartTime());
-		SpliceLogUtils.trace(LOG, "sink");
 		ExecRow row;
 		try{
 			Put put;
@@ -264,9 +263,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
                 long pTs = System.nanoTime();
                 byte[] key = DerbyBytesUtil.generatePrefixedRowKey(sequence[0]);
-                SpliceLogUtils.trace(LOG,"row=%s, key.length=%d, afterPrefix?%b,beforeEnd?%b",
-                        row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
-                        Bytes.compareTo(key,reduceScan.getStopRow())<0);
+//                SpliceLogUtils.trace(LOG,"row=%s, key.length=%d, afterPrefix?%b,beforeEnd?%b",
+//                        row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
+//                        Bytes.compareTo(key,reduceScan.getStopRow())<0);
                 put = Puts.buildInsert(key,row.getRowArray(), transactionID,serializer);
                 SpliceLogUtils.trace(LOG, "put=%s",put);
                 tempTable.put(put);

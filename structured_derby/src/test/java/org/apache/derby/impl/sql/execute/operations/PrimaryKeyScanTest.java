@@ -66,6 +66,13 @@ public class PrimaryKeyScanTest {
     }
 
     @Test
+    public void testCountAllData() throws Exception{
+        ResultSet rs = rule.executeQuery("select count(*) from a");
+        Assert.assertTrue("No Results returned!",rs.next());
+        Assert.assertEquals("Incorrect count returned",pk1Size*pk2Size,rs.getInt(1));
+    }
+
+    @Test
     public void testScanAllData() throws SQLException{
         ResultSet rs = rule.executeQuery("select * from a");
         List<String> results = Lists.newArrayListWithExpectedSize(correctData.size());

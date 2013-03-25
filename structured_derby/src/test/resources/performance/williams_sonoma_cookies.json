@@ -12,7 +12,7 @@
         "name": "pk_test",
         "numRows": 1000,
         "insertBatch": 200, /*The number of records to insert with each Prepared Statement*/
-        "insertThreads":15, /*Number of Insertions to run simultaneously */
+        "insertThreads":10, /*Number of Insertions to run simultaneously */
         "columns": [
             {
                 "name":"cookie_id",
@@ -83,17 +83,27 @@
     "queries":[
         {
             "query":"select * from pk_test where cookie_id = ?",
-            "samples":1000,
-            "threads":10,
+            "samples":100,
+            "threads":1,
             "qualifiers": [
                 {
                     "qualifierType": "intRange",
+                    "resultPosition": 1,
                     "qualifierConfig": {
                         "start": 0,
                         "stop": 1000
                     }
                 }
             ]
+        },
+        {
+            "query":"select count(*) from pk_test",
+            "samples": 1,
+            "threads": 1,
+            "qualifiers":[],
+            "printColumns":{
+                "count":1
+            }
         }
     ]
 }

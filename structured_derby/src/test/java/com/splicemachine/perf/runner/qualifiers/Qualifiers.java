@@ -10,9 +10,9 @@ public class Qualifiers {
 
     private Qualifiers(){}
 
-    public static Qualifier getQualifier(String qualifierType,Map<String,Object> qualifierConfig){
+    public static Qualifier getQualifier(String qualifierType,int resultPosition,Map<String,Object> qualifierConfig){
         if(IntRange.class.getSimpleName().equalsIgnoreCase(qualifierType)){
-            return IntRange.create(qualifierConfig);
+            return IntRange.create(resultPosition,qualifierConfig);
         }
 
         throw new AssertionError("Unknown Qualifier: "+ qualifierType);

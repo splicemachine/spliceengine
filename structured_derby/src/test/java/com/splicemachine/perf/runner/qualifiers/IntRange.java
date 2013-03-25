@@ -14,13 +14,15 @@ import java.util.Random;
  */
 public class IntRange implements Qualifier{
     private final int start;
+    private final int resultPosition;
     private final int stop;
 
     private final Random random = new Random();
 
 
-    public IntRange(int start, int stop) {
+    public IntRange(int start, int resultPosition, int stop) {
         this.start = start;
+        this.resultPosition = resultPosition;
         this.stop = stop;
     }
 
@@ -30,8 +32,8 @@ public class IntRange implements Qualifier{
     }
 
     @Override
-    public void validate(ResultSet rs, int position) throws SQLException {
-        int value = rs.getInt(position);
+    public void validate(ResultSet rs) throws SQLException {
+        int value = rs.getInt(resultPosition);
         Preconditions.checkArgument(value >= start,value+" < "+ start);
         Preconditions.checkArgument(value < stop, value +" >= "+ stop);
     }
@@ -46,7 +48,7 @@ public class IntRange implements Qualifier{
         return (((stop-start)*val)/stop)+start;
     }
 
-    public static Qualifier create(Map<String, Object> qualifierConfig) {
+    public static Qualifier create(int resultPosition,Map<String, Object> qualifierConfig) {
         int start = 0;
         int stop = Integer.MAX_VALUE;
         if(qualifierConfig.containsKey("start"))
@@ -54,7 +56,7 @@ public class IntRange implements Qualifier{
 
         if(qualifierConfig.containsKey("stop"))
             stop = ((Double)qualifierConfig.get("stop")).intValue();
-        return new IntRange(start,stop);
+        return new IntRange(start, resultPosition, stop);
     }
 
     @Override

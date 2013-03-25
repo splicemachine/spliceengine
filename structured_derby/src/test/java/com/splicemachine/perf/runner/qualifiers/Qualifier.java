@@ -12,5 +12,5 @@ public interface Qualifier {
 
     void setInto(PreparedStatement ps,int position) throws SQLException;
 
-    void validate(ResultSet rs, int position) throws SQLException;
+    void validate(ResultSet rs) throws SQLException;
 }
