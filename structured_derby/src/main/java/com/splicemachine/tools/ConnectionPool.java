@@ -193,7 +193,9 @@ public class ConnectionPool implements PoolStatus{
 
         @Override
         public void close() throws SQLException {
-            connClosed=true;
+            if (closed)
+        	return;
+            closed=true;
             if(ConnectionPool.this.closed||!alreadyCreatedConnections.offer(delegate)) {
                /*
                 * This should never happen, because we use a semaphore to bound the number of connections

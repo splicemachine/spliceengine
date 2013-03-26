@@ -1,8 +1,12 @@
-package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
+package com.splicemachine.test.suites;
 
 import org.junit.experimental.categories.Categories;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
+
+import com.splicemachine.derby.impl.sql.execute.operations.microstrategy.MicostrategiesCustomerTest;
+import com.splicemachine.derby.impl.sql.execute.operations.microstrategy.MicrostrategiesItemTest;
+import com.splicemachine.derby.impl.sql.execute.operations.microstrategy.MsOrderDetailTest;
 
 /**
  * @author Scott Fines
