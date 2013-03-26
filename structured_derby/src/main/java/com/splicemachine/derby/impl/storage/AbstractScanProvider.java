@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -21,7 +20,7 @@ import java.util.NoSuchElementException;
  * @author Scott Fines
  * Created: 1/17/13:1:05 PM
  */
-public abstract class AbstractScanProvider implements RowProvider {
+public abstract class AbstractScanProvider extends SingleScanRowProvider {
 	protected static final Logger LOG = Logger.getLogger(ClientScanProvider.class);
     private boolean populated = false;
 

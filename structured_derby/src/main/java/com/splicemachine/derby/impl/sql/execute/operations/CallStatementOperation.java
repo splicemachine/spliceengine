@@ -6,17 +6,13 @@ import java.io.ObjectOutput;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.ConnectionContext;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.sql.execute.ResultSetStatisticsFactory;
-import org.apache.derby.iapi.sql.execute.RunTimeStatistics;
-import org.apache.derby.iapi.sql.execute.xplain.XPLAINVisitor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
@@ -61,7 +57,7 @@ public class CallStatementOperation extends NoRowsOperation {
 		return new SpliceNoPutResultSet(activation,this,callableRowProvider,false);
 	}
 	
-	private final RowProvider callableRowProvider = new RowProvider(){
+	private final RowProvider callableRowProvider = new SingleScanRowProvider(){
 		@Override public boolean hasNext() { return false; }
 
 		@Override public ExecRow next() { return null; }

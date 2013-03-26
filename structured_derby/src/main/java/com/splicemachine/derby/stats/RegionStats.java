@@ -177,8 +177,9 @@ public class RegionStats {
         Arrays.sort(times);
         Arrays.sort(records);
 
-        return new StringBuilder("Current operation: ").append(currentOp).append(", Total Time: ").append(toSeconds(totalTime))
-                .append("\t").append("Number of Records: ").append(totalRecords)
+        StringBuilder sb = new StringBuilder("Current operation: ").append(currentOp).append(", Total Time: ").append(toSeconds(totalTime));
+        if(totalRecords>0){
+                sb = sb.append("\t").append("Number of Records: ").append(totalRecords)
                 .append("\nTiming Stats")
                 .append("\tmin: ").append(toSeconds(minRegionTime))
                 .append(" |max: ").append(toSeconds(maxRegionTime))
@@ -198,7 +199,8 @@ public class RegionStats {
                 .append(" |p99: ").append(records[99*records.length/100])
                 .append("\n")
                 .append("\tlargest region: ").append(Bytes.toString(largestRegion))
-                .append("|smallest region: ").append(Bytes.toString(smallestRegion))
-                .toString();
+                .append("|smallest region: ").append(Bytes.toString(smallestRegion));
+        }
+        return sb.toString();
     }
 }

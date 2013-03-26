@@ -70,7 +70,9 @@ public class Data {
         //load data into each table
         SpliceLogUtils.info(LOG,"Loading data");
         for(Table table:tables){
-            table.insertData(connectionPool).write(System.out);
+            Result result = table.insertData(connectionPool);
+            if(result!=null)
+                result.write(System.out);
         }
         SpliceLogUtils.info(LOG, "Data loading, ready to perform queries");
     }
@@ -100,16 +102,23 @@ public class Data {
         }
     }
 
-    public void dropTables() throws Exception {
+    public void dropTables(boolean explodeOnError) throws Exception {
         SpliceLogUtils.info(LOG, "dropping tables");
         PreparedStatement dropStatement;
         Connection conn = connectionPool.acquire();
         try{
-        for(Table table:tables){
-            dropStatement = conn.prepareStatement("drop table "+ table.getName());
-            dropStatement.execute();
-        }
-        conn.commit();
+            for(Table table:tables){
+                try{
+                    dropStatement = conn.prepareStatement("drop table "+ table.getName());
+                    dropStatement.execute();
+                }catch(SQLException se){
+                    if(explodeOnError)
+                        throw se;
+                    else
+                        SpliceLogUtils.warn(LOG,"Encountered error dropping tables:"+se.getMessage());
+                }
+            }
+            conn.commit();
         }finally{
             conn.close();
         }

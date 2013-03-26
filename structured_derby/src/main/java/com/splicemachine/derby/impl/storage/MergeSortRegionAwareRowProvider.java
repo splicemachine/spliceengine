@@ -2,13 +2,11 @@ package com.splicemachine.derby.impl.storage;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.Hasher;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.JoinSideExecRow;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -32,7 +30,7 @@ import java.util.NoSuchElementException;
  * @author Scott Fines
  * Created: 1/17/13 9:35 PM
  */
-public class MergeSortRegionAwareRowProvider implements RowProvider {
+public class MergeSortRegionAwareRowProvider extends SingleScanRowProvider {
     private static final Logger LOG = Logger.getLogger(MergeSortRegionAwareRowProvider.class);
 	protected final  RegionAwareScanner scanner;
     protected boolean populated = false;

@@ -1,10 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.stats.RegionStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -91,10 +94,15 @@ public class MiscOperation extends NoRowsOperation
 		}
 
 		@Override public RowLocation getCurrentRowLocation() { return null; }
-        @Override public Scan toScan() { return null; }
         @Override public byte[] getTableName() { return null; }
 
-		@Override
+        @Override
+        public void shuffleRows(SpliceObserverInstructions instructions,
+                                RegionStats stats) throws StandardException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
 		public int getModifiedRowCount() {
 			return 0;
 		}

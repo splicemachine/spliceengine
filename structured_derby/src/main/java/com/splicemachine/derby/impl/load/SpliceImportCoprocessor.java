@@ -78,7 +78,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		LineReader reader = null;
 		//open a serializer to serialize our data
         Serializer serializer = new Serializer();
-        CSVParser csvParser = new CSVParser(context.getColumnDelimiter().charAt(0),context.getStripString().charAt(0));
+        CSVParser csvParser = getCsvParser(context);
         try{
             CallBuffer<Mutation> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(context.getTableName().getBytes());
             ExecRow row = getExecRow(context);
@@ -133,8 +133,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		return numImported;
 	}
 
-
-	@Override
+    @Override
 	public long importFile(ImportContext context) throws IOException{
 		Path path =  context.getFilePath();
 
@@ -151,7 +150,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 			CompressionCodec codec = codecFactory.getCodec(path);
 			is = codec!=null?codec.createInputStream(fs.open(path)):fs.open(path);
             reader = new InputStreamReader(is);
-            CSVReader csvReader = new CSVReader(reader,context.getColumnDelimiter().charAt(0),context.getStripString().charAt(0));
+            CSVReader csvReader = getCsvReader(reader,context);
             String[] line;
 			while((line = csvReader.readNext())!=null){
                 doImportRow(line,context.getActiveCols(), row,writeBuffer,rowSerializer,serializer);
@@ -171,6 +170,31 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		return numImported;
 	}
 
+    /*****************************************************************************************************************/
+	/*private helper stuff*/
+
+    private CSVReader getCsvReader(Reader reader, ImportContext context) {
+        return new CSVReader(reader,getColumnDelimiter(context),getQuoteChar(context));
+    }
+
+    private CSVParser getCsvParser(ImportContext context) {
+        return new CSVParser(getColumnDelimiter(context),getQuoteChar(context));
+    }
+
+    private char getQuoteChar(ImportContext context) {
+        String stripStr = context.getStripString();
+        if(stripStr==null||stripStr.length()<=0)
+            stripStr = "\"";
+        return stripStr.charAt(0);
+    }
+
+    private char getColumnDelimiter(ImportContext context) {
+        String delimiter = context.getColumnDelimiter();
+        if(delimiter==null||delimiter.length()<=0)
+            delimiter = ",";
+        return delimiter.charAt(0);
+    }
+
     private void doImportRow(String[] line,FormatableBitSet activeCols, ExecRow row,
                              CallBuffer<Mutation> writeBuffer,
                              RowSerializer rowSerializer,Serializer serializer) throws IOException {
@@ -182,6 +206,10 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
             }else{
                 for(int pos=0;pos<line.length-1;pos++){
                     row.getColumn(pos+1).setValue(line[pos]);
+                }
+                //the last entry in the line array can be an empty string, which correlates to the row's nColumns() = line.length-1
+                if(row.nColumns()==line.length){
+                    row.getColumn(line.length).setValue(line[line.length-1]);
                 }
             }
             Put put = Puts.buildInsert(rowSerializer.serialize(row.getRowArray()),row.getRowArray(), null,serializer); //TODO -sf- add transaction stuff
@@ -218,15 +246,6 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
             throw new DoNotRetryIOException(e.getMessageId());
         }
     }
-
-    /*****************************************************************************************************************/
-	/*private helper stuff*/
-
-	public static String[] parseCsvLine(String columnDelimiter, String line) throws IOException {
-		final CSVReader csvReader = new CSVReader(new StringReader(line), columnDelimiter.charAt(0));
-		return csvReader.readNext();
-	}
-
 
 
 }

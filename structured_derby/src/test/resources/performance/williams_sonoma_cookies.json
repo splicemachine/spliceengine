@@ -29,7 +29,7 @@
                  "generatorType":"randomIntGenerator",
                  "generatorConfig":{
                     "start": 0,
-                    "stop": 5000000
+                    "stop": 1000
                  }
             },
             {
@@ -37,8 +37,8 @@
                  "type":"timestamp",
                  "generatorType": "randomTimestampGenerator",
                  "generatorConfig":{
-                    "start":1325376000000,
-                     "stop":1356998400000
+                    "start":1262304000000,
+                     "stop":1293840000000
                  }
             },
             {
@@ -75,16 +75,14 @@
     }
     ],
     "indices":[
-    /*
         {
-            "name":"cookie_id_unq_idx",
-            "table": "pk_test",
-            "unique": true,
+            "name":"wlog_profile_idx",
+            "table": "web_log",
+            "unique": false,
             "columns":[
-                "cookie_id"
+                "profile_id"
             ]
         }
-        */
     ],
     "queries":[
         {

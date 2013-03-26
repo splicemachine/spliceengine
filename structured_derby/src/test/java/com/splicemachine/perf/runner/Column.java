@@ -99,7 +99,7 @@ public class Column {
         public Column build(){
             Preconditions.checkNotNull(name,"No Column name specified!");
             Preconditions.checkNotNull(type,"No Column type specified!");
-            Preconditions.checkNotNull(dataGenerator,"No Data Generator specified!");
+//            Preconditions.checkNotNull(dataGenerator,"No Data Generator specified!");
             if(type.requiresWidth())
                 Preconditions.checkArgument(width > 0, "No Width specified!");
 

@@ -209,64 +209,58 @@ public class UnionOperation extends SpliceBaseOperation {
 		SpliceLogUtils.trace(LOG,"regionOperation="+regionOperation);
 		long start = System.currentTimeMillis();
 		RowProvider provider = regionOperation.getMapRowProvider(topOperation,regionOperation.getExecRowDefinition());
+        nextTime += System.currentTimeMillis() - start;
+
 		final byte[] table = provider.getTableName();
-		final Scan scan = provider.toScan();
-		nextTime += System.currentTimeMillis() - start;
-		
-		SpliceLogUtils.trace(LOG,"executeSink, map table="+table+",map scan="+scan);
-	    if(scan==null||table==null) {
-	    	if (provider.getClass().equals(SourceRowProvider.class)) {
-	    		start = System.currentTimeMillis();
-	    		topOperation.init(SpliceOperationContext.newContext(activation));
-	    		((SpliceBaseOperation)topOperation).constructorTime += System.currentTimeMillis() - start;
-                try{
-    	    		topOperation.sink();
-                }catch(IOException ioe){
-                    throw Exceptions.parseException(ioe);
-                }
-	    		return;
-	    	} else
-	    		throw new AssertionError("Cannot perform shuffle, either scan or table is null");
-	    }
+//		final Scan scan = provider.toScan();
+//
+//		SpliceLogUtils.trace(LOG,"executeSink, map table="+table+",map scan="+scan);
+//	    if(scan==null||table==null) {
+//	    	if (provider.getClass().equals(SourceRowProvider.class)) {
+//	    		start = System.currentTimeMillis();
+//	    		topOperation.init(SpliceOperationContext.newContext(activation));
+//	    		((SpliceBaseOperation)topOperation).constructorTime += System.currentTimeMillis() - start;
+//                try{
+//    	    		topOperation.sink();
+//                }catch(IOException ioe){
+//                    throw Exceptions.parseException(ioe);
+//                }
+//	    		return;
+//	    	} else
+//	    		throw new AssertionError("Cannot perform shuffle, either scan or table is null");
+//	    }
 		HTableInterface htable = null;
 		try{
 			final RegionStats stats = new RegionStats("UnionOperation's "+regionOperation.getClass().getName());
             stats.start();
             
-			htable = SpliceAccessManager.getHTable(table);
 			long numberCreated = 0;
 			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,topOperation);
-			htable.coprocessorExec(SpliceOperationProtocol.class,
-																scan.getStartRow(),scan.getStopRow(),
-																new Batch.Call<SpliceOperationProtocol,SinkStats>(){
-				@Override
-				public SinkStats call(SpliceOperationProtocol instance) throws IOException {
-					try{
-						return instance.run(scan,soi);
-					}catch(StandardException se){
-						SpliceLogUtils.logAndThrow(LOG, "Unexpected error executing coprocessor",new IOException(se));
-						return null; //won't happen
-					}
-				}
-			}, new Batch.Callback<SinkStats>() {
-                        @Override
-                        public void update(byte[] region, byte[] row, SinkStats result) {
-                            stats.addRegionStats(region,result);
-                        }
-                    });
+            provider.shuffleRows(soi,regionStats);
+//			htable.coprocessorExec(SpliceOperationProtocol.class,
+//																scan.getStartRow(),scan.getStopRow(),
+//																new Batch.Call<SpliceOperationProtocol,SinkStats>(){
+//				@Override
+//				public SinkStats call(SpliceOperationProtocol instance) throws IOException {
+//					try{
+//						return instance.run(scan,soi);
+//					}catch(StandardException se){
+//						SpliceLogUtils.logAndThrow(LOG, "Unexpected error executing coprocessor",new IOException(se));
+//						return null; //won't happen
+//					}
+//				}
+//			}, new Batch.Callback<SinkStats>() {
+//                        @Override
+//                        public void update(byte[] region, byte[] row, SinkStats result) {
+//                            stats.addRegionStats(region,result);
+//                        }
+//                    });
 
             stats.finish();
             stats.recordStats(LOG);
             nextTime += stats.getTotalTimeTakenMs();
 			SpliceLogUtils.trace(LOG,"Retrieved %d records",numberCreated);
 			executed = true;
-		} catch (IOException ioe){
-			if(ioe.getCause() instanceof StandardException)
-				SpliceLogUtils.logAndThrow(LOG,(StandardException)ioe.getCause());
-			else
-				SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
-		}catch (Throwable e) {
-			SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
 		}finally{
 			if (htable != null){
 				try {

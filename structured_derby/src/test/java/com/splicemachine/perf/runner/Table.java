@@ -1,6 +1,8 @@
 package com.splicemachine.perf.runner;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.Stats;
 import com.splicemachine.derby.stats.TimeUtils;
@@ -8,18 +10,17 @@ import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.perf.runner.qualifiers.Result;
 import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Map;
+import java.util.concurrent.*;
 
 /**
  * @author Scott Fines
@@ -32,13 +33,15 @@ public class Table {
     private final int numRows;
     private final int insertBatch;
     private final int insertThreads;
+    private final List<String> files;
 
-    public Table(String name, List<Column> columns, int numRows, int insertBatch, int insertThreads) {
+    public Table(String name, List<Column> columns, int numRows, int insertBatch, int insertThreads, List<String> filesToImport) {
         this.name = name;
         this.columns = columns;
         this.numRows = numRows;
         this.insertBatch = insertBatch;
         this.insertThreads = insertThreads;
+        this.files = filesToImport;
     }
 
     public void create(Connection conn) throws SQLException{
@@ -48,9 +51,37 @@ public class Table {
     }
 
     public Result insertData(final ConnectionPool connectionPool) throws Exception{
+        if(files !=null){
+            return importData(connectionPool);
+        }else{
+            return generateAndInsertData(connectionPool);
+        }
+    }
+
+    private Result importData(ConnectionPool connectionPool) throws InterruptedException, SQLException {
+        ImportResult stats = new ImportResult();
+        long start = System.nanoTime();
+        for(String file: files){
+            Connection connection = connectionPool.acquire();
+            try{
+                SpliceLogUtils.debug(LOG, "Loading data from file %s", file);
+                long fileStart = System.nanoTime();
+                PreparedStatement s = connection.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA(null,'"+name.toUpperCase()+"',null,null,'"+file+"',',',null,null)");
+                s.execute();
+                long stop = System.nanoTime();
+                stats.addTime(file,stop-fileStart);
+            }finally{
+                connection.close();
+            }
+        }
+        stats.finalize(System.nanoTime()-start);
+        return stats;
+    }
+
+    private Result generateAndInsertData(final ConnectionPool connectionPool) throws InterruptedException, ExecutionException {
         ExecutorService dataInserter = Executors.newFixedThreadPool(insertThreads);
         try{
-            List<Future<Void>> futures = Lists.newArrayListWithCapacity(insertThreads+1);
+            List<Future<Void>> futures = Lists.newArrayListWithCapacity(insertThreads + 1);
             final Accumulator insertAccumulator = TimingStats.uniformSafeAccumulator();
             insertAccumulator.start();
             for(int i=0;i<insertThreads;i++){
@@ -73,7 +104,7 @@ public class Table {
                                     insertAccumulator.tick(numInserted,System.nanoTime()-start);
 
                                     if((written-1)%tenPercentSize==0)
-                                        SpliceLogUtils.info(LOG,"%d%% complete",((written-1)/tenPercentSize)*10);
+                                        SpliceLogUtils.info(LOG, "%d%% complete", ((written - 1) / tenPercentSize) * 10);
                                 }
                             }
                             long start = System.nanoTime();
@@ -222,6 +253,31 @@ public class Table {
             stream.printf("\t%-20s\t%20.4f ms%n","avg",TimeUtils.toMillis(stats.getAvgTime()/insertBatch));
             stream.printf("\t%-20s\t%20.4f ms%n","std. dev",TimeUtils.toMillis(stats.getTimeStandardDeviation()/insertBatch));
             stream.println();
+        }
+    }
+
+    private class ImportResult implements Result{
+        private final Map<String,Long> filePaths = new HashMap<String, Long>();
+        private long totalTime;
+
+        public void addTime(String fileName, long nanos){
+            this.filePaths.put(fileName,nanos);
+        }
+
+        public void finalize(long timeTaken){
+            this.totalTime = timeTaken;
+        }
+
+        @Override
+        public void write(PrintStream stream) throws Exception {
+            stream.printf("Import stats:%n");
+            stream.printf("%-25s%n",name);
+            stream.printf("%-25s\t%15d files%n","Number Files",filePaths.size());
+            stream.printf("%-25s\t%20.4f seconds%n","Total time spent",TimeUtils.toSeconds(totalTime));
+            stream.printf("---------------FILE STATISTICS---------------%n");
+            for(String file:filePaths.keySet()){
+                stream.printf("%-100s\t%20.4f%n",file,TimeUtils.toSeconds(filePaths.get(file)));
+            }
         }
     }
 }

@@ -53,7 +53,7 @@ public class SingleGroupGroupedAggregateOperationTest {
     public static void insertData() throws Exception{
     	rule.setAutoCommit(false);
         PreparedStatement ps = rule.prepareStatement("insert into t (username, i) values (?,?)");
-        List<String> users = Arrays.asList("jzhang");//,"sfines","jleach");
+        List<String> users = Arrays.asList("jzhang","sfines","jleach");
         for(int i=0;i< size;i++){
             for(String user:users){
                 int value = i*10;
@@ -70,6 +70,23 @@ public class SingleGroupGroupedAggregateOperationTest {
         rule.commit();
 
         rule.splitTable("t",size/3);
+    }
+
+    @Test
+    public void testGroupedWithInOperator() throws Exception{
+        String query = "select username, count(i) from t where username in ('sfines','jzhang') group by username";
+
+        ResultSet rs = rule.executeQuery(query);
+        int row =0;
+        while(rs.next()){
+            String uname = rs.getString(1);
+            int count = rs.getInt(2);
+            int correctCount = unameStats.get(uname).getCount();
+            SpliceLogUtils.trace(LOG, "uname=%s, count=%d, correctCount=%d",uname,count,correctCount);
+            Assert.assertEquals("Incorrect count for uname "+ uname,correctCount,count);
+            row++;
+        }
+        Assert.assertEquals("Not all groups found!", 2,row);
     }
 
     @Test
