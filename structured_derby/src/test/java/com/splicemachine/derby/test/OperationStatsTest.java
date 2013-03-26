@@ -26,7 +26,6 @@ public class OperationStatsTest extends SpliceDerbyTest {
 		Statement s = null;
 		CallableStatement cs = null;
 		try {
-			conn.setAutoCommit(true);
 			s = conn.createStatement();
 			s.execute("create table a (i int)");
 			s.execute("create table b (j int)");
@@ -131,7 +130,6 @@ public class OperationStatsTest extends SpliceDerbyTest {
 		PreparedStatement s = null;
 		ResultSet rs = null;
 		try {
-			System.setProperty("","");
 			long start = System.nanoTime();
 			s = conn.prepareStatement("select k from c");
 			rs = s.executeQuery();
