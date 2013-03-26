@@ -164,6 +164,8 @@ public class ConnectionPool {
 
         @Override
         public void close() throws SQLException {
+        	if (closed)
+        		return;
             closed=true;
             if(ConnectionPool.this.closed||!alreadyCreatedConnections.offer(delegate)) {
                /*

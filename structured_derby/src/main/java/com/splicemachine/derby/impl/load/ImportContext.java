@@ -24,6 +24,8 @@ import java.util.Map;
  */
 public class ImportContext implements Externalizable{
 	private static final long serialVersionUID = 3l;
+	protected static final String DEFAULT_COLUMN_DELIMITTER = ",";
+	protected static final String DEFAULT_STRIP_STRING = "\"";
 	//the path to the file to import
 	private Path filePath;
 	//the delimiter which separates columns
@@ -68,8 +70,8 @@ public class ImportContext implements Externalizable{
                           FormatableBitSet pkCols,
                           String timestampFormat){
 		this.filePath = filePath;
-		this.columnDelimiter = columnDelimiter;
-		this.stripString = stripString;
+		this.columnDelimiter = columnDelimiter!= null?columnDelimiter:DEFAULT_COLUMN_DELIMITTER;
+		this.stripString = stripString!=null?stripString:DEFAULT_STRIP_STRING;
 		this.columnTypes = columnTypes;
 		this.tableId = destTableId;
 		this.activeCols = activeCols;
