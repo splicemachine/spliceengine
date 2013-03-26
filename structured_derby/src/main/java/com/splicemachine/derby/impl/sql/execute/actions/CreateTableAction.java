@@ -34,6 +34,61 @@ public class CreateTableAction extends CreateTableConstantAction {
      */
     public CreateTableAction(String schemaName, String tableName, int tableType, ColumnInfo[] columnInfo, CreateConstraintConstantAction[] constraintActions, Properties properties, char lockGranularity, boolean onCommitDeleteRows, boolean onRollbackDeleteRows) {
         super(schemaName, tableName, tableType, columnInfo, constraintActions, properties, lockGranularity, onCommitDeleteRows, onRollbackDeleteRows);
+        this.tableType = tableType;
+        this.tableName = tableName;
+        this.schemaName = schemaName;
+    }
+
+    @Override
+    public void executeConstantAction(Activation activation) throws StandardException {
+        /*
+         * what follows here is a pretty nasty hack to prevent creating duplicate Table entries.
+         *
+         * There are two underlying problems preventing a more elegant solution here:
+         *
+         * 1. Derby manages system indices inside of the DataDictionary, rather than
+         * allowing transparent insertions. This prevents the Index management coprocessors
+         * from managing indices themselves.
+         *
+         * 2. Derby generates a UUID for a table which it uses as it's key for inserting
+         * into its indices (because it manages them itself). Then, the HBase row key for
+         * the system indices is just a random Row Key, rather than a primary key-type structure.
+         * This means that a UniqueConstraint running in the Index coprocessor will never fail, which
+         * will allow duplicates in.
+         *
+         * The most effective implementation is probably to remove explicit index management
+         * from the DataDictionary, which should mean that UniqueConstraints can be enforced like
+         * any other table, but that's a huge amount of work for very little reward in this case.
+         *
+         * Thus, this little hack: Basically, before creating the table, we first scan the SYSTABLES table
+         * to see if any table with that name already exists in the specified Schema. If it doesn't, we
+         * allow the table to be created; if it does, then we bomb out with an error.
+         *
+         * The downside? This is a check-then-act operation, which probably isn't thread-safe (and certainly
+         * isn't cluster-safe), so we have to be certain that DDL operations occur within a transaction. Even then,
+         * we're probably not safe, and this breaks adding tables concurrently. However, I am pretty sure that
+         * the DataDictionary in general is not cluster-safe, so we are probably not any more screwed now
+         * than we were before. Still, if this causes concurrent table-creations to fail, blame me.
+         *
+         * -Scott Fines, March 26 2013 -
+         */
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        TransactionController tc = lcc.getTransactionExecute();
+
+        SchemaDescriptor sd;
+        if(tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
+            sd = dd.getSchemaDescriptor(schemaName,tc, true);
+        else
+            sd = DDLConstantAction.getSchemaDescriptorForCreate(dd, activation, schemaName);
+
+        TableDescriptor tableDescriptor = dd.getTableDescriptor(tableName, sd,tc);
+        if(tableDescriptor!=null)
+            throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
+                    "table",tableName,"schema",schemaName);
+
+        //if the table doesn't exist, allow super class to create it
+        super.executeConstantAction(activation);
     }
 
     @Override
