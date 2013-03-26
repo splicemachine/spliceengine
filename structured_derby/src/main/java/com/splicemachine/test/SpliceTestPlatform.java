@@ -12,6 +12,8 @@ import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.impl.load.SpliceImportCoprocessor;
+import com.splicemachine.hbase.txn.coprocessor.region.TransactionalManagerRegionObserver;
+import com.splicemachine.hbase.txn.coprocessor.region.TransactionalRegionObserver;
 import com.splicemachine.si.coprocessor.SIObserver;
 
 public class SpliceTestPlatform extends TestConstants {
@@ -80,8 +82,12 @@ public class SpliceTestPlatform extends TestConstants {
 				SpliceDerbyCoprocessor.class.getCanonicalName() + "," + 
 				SpliceIndexManagementEndpoint.class.getCanonicalName() + "," + 
 				SpliceIndexEndpoint.class.getCanonicalName() + "," + 
-				SIObserver.class
+				TransactionalManagerRegionObserver.class.getCanonicalName() + "," + 
+				TransactionalRegionObserver.class.getCanonicalName() + "," +
+				SIObserver.class.getCanonicalName()
 				);
+	
+	
 	}
 
 }
