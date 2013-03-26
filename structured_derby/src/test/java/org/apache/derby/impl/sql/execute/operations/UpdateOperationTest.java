@@ -27,6 +27,7 @@ public class UpdateOperationTest {
 	}
 	@AfterClass
 	public static void shutdown() throws Exception{
+		rule.dropTables();
 		DerbyTestRule.shutdown();
 	}
 
