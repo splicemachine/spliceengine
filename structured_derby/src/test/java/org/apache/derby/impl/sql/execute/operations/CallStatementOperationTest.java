@@ -12,8 +12,8 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-//public class CallStatementOperationTest extends SpliceDerbyTest {
-public class CallStatementOperationTest extends SpliceNetDerbyTest {
+public class CallStatementOperationTest extends SpliceDerbyTest {
+//public class CallStatementOperationTest extends SpliceNetDerbyTest {
 	private static Logger LOG = Logger.getLogger(CallStatementOperationTest.class);
 	
 	@BeforeClass 
@@ -25,15 +25,13 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
     public void testCallIndexInfo() throws SQLException {
         ResultSet resultSet = null;
         DatabaseMetaData dmd;
-        conn.setAutoCommit(false);
         try{
-            conn.setAutoCommit(false);
+            conn.setAutoCommit(true);
             dmd = conn.getMetaData();
             resultSet = dmd.getIndexInfo(null,"SYS","SYSSCHEMAS",false,true);
             while(resultSet.next()){
                 SpliceLogUtils.info(LOG,"c1=%s,c2=%s,c3=%s",resultSet.getString(1),resultSet.getString(2),resultSet.getString(3));
             }
-            conn.commit();
         }finally{
             if(resultSet!=null)resultSet.close();
         }
@@ -43,15 +41,12 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
 	public void testCallSqlProcedures() throws SQLException {
         ResultSet resultSet = null;
         DatabaseMetaData dmd;
-        conn.setAutoCommit(false);
         try{
-        	conn.setAutoCommit(false);
             dmd = conn.getMetaData();
             resultSet = dmd.getProcedures(null, null, null);
             while(resultSet.next()){
                 SpliceLogUtils.info(LOG,"c1=%s,c2=%s,c3=%s",resultSet.getString(1),resultSet.getString(2),resultSet.getString(3));
             }
-            conn.commit();
         }finally{
             if(resultSet!=null)resultSet.close();
         }
@@ -94,7 +89,7 @@ public class CallStatementOperationTest extends SpliceNetDerbyTest {
 				Assert.assertTrue(result.getBoolean(1));
 				count++;
 			}
-			Assert.assertEquals(11, count);
+			Assert.assertEquals(1, count);
 		} finally {
 			try {
 				if (result!=null)
