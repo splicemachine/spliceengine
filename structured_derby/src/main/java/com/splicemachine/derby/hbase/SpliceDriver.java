@@ -18,9 +18,12 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.log4j.Logger;
 
+import javax.management.*;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.*;
@@ -38,8 +41,6 @@ public class SpliceDriver {
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     private static final int DEFAULT_PORT = 1527;
     private static final String DEFAULT_SERVER_ADDRESS = "0.0.0.0";
-
-
 
     public static enum State{
         NOT_STARTED,
@@ -60,8 +61,6 @@ public class SpliceDriver {
 
     private AtomicReference<State> stateHolder = new AtomicReference<State>(State.NOT_STARTED);
 
-    private volatile EmbedConnection conn;
-    private volatile LanguageConnectionContext lcc;
     private volatile Properties props = new Properties();
 
     private volatile NetworkServerControl server;
@@ -83,6 +82,8 @@ public class SpliceDriver {
             writerPool = TableWriter.create(SpliceUtils.config);
 
             embeddedConnections = ConnectionPool.create(SpliceUtils.config);
+
+
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
@@ -128,9 +129,12 @@ public class SpliceDriver {
                 public Void call() throws Exception {
 
                     writerPool.start();
+
+                    //register JMX items
+                    registerJMX();
                     boolean setRunning = true;
-                    setRunning = enableDriver();
-                    if(!setRunning) {
+                    setRunning = bootDatabase();
+                    if(!setRunning){
                         abortStartup();
                         return null;
                     }
@@ -157,6 +161,18 @@ public class SpliceDriver {
         }
     }
 
+    private boolean bootDatabase() throws Exception {
+        Connection connection = null;
+        try{
+            connection = embeddedConnections.acquire();
+            return true;
+        }finally{
+            if(connection!=null)
+                connection.close();
+        }
+    }
+
+
     public void shutdown(){
         executor.submit(new Callable<Void>() {
             @Override
@@ -172,9 +188,8 @@ public class SpliceDriver {
 
                     SpliceLogUtils.info(LOG,"Destroying internal Engine");
                     try{
-                        if(conn!=null)
-                            conn.close();
-                        conn = null;
+                        if(embeddedConnections!=null)
+                            embeddedConnections.shutdown();
                     }finally{
                         stateHolder.set(State.SHUTDOWN);
                     }
@@ -190,10 +205,28 @@ public class SpliceDriver {
 /********************************************************************************************/
     /*private helper methods*/
 
-    private EmbeddedDriver loadDriver() throws Exception {
-        Monitor.clearMonitor();
-        SpliceLogUtils.trace(LOG,"Attempting to load the Derby Embedded Driver");
-        return (EmbeddedDriver) Class.forName(DRIVER).newInstance();
+    private void registerJMX()  {
+        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+        try{
+            //register ConnectionPool
+            ObjectName connPoolName = new ObjectName("com.splicemachine.execution:type=PoolStatus");
+
+            mbs.registerMBean(embeddedConnections,connPoolName);
+
+            //register TableWriter
+            ObjectName writerName = new ObjectName("com.splicemachine.writer:type=WriterStatus");
+
+            mbs.registerMBean(writerPool,writerName);
+        } catch (MalformedObjectNameException e) {
+            //we want to log the message, but this shouldn't affect startup
+            SpliceLogUtils.error(LOG,"Unable to register JMX entries",e);
+        } catch (NotCompliantMBeanException e) {
+            SpliceLogUtils.error(LOG, "Unable to register JMX entries", e);
+        } catch (InstanceAlreadyExistsException e) {
+            SpliceLogUtils.error(LOG, "Unable to register JMX entries", e);
+        } catch (MBeanRegistrationException e) {
+            SpliceLogUtils.error(LOG, "Unable to register JMX entries", e);
+        }
     }
 
     private boolean ensureHBaseTablesPresent() {
@@ -231,19 +264,6 @@ public class SpliceDriver {
         }catch(Exception e){
             //just in case the outside services decide to blow up on me
             SpliceLogUtils.error(LOG,"Unable to start services, aborting startup",e);
-            return false;
-        }
-    }
-
-    private boolean enableDriver() {
-        try{
-            SpliceLogUtils.info(LOG, "Constructing Internal Database Engine");
-            EmbeddedDriver driver = loadDriver();
-            conn = (EmbedConnection)driver.connect(protocol+dbName+";create=true",props);
-            lcc = conn.getLanguageConnection();
-            return true;
-        }catch(Exception e){
-            SpliceLogUtils.error(LOG,"Unable to boot internal driver, aborting Startup",e);
             return false;
         }
     }

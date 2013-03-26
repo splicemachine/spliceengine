@@ -25,6 +25,12 @@ public class Generators {
             return IpGenerator.getAdapter();
         }else if(RandomUniqueIntGenerator.class.getSimpleName().equalsIgnoreCase(typeString)){
             return RandomUniqueIntGenerator.getAdapter();
+        }else if(RandomLongGenerator.class.getSimpleName().equalsIgnoreCase(typeString)){
+            return RandomLongGenerator.getTypeAdapter();
+        }else if(RandomTimestampGenerator.class.getSimpleName().equalsIgnoreCase(typeString)){
+            return RandomTimestampGenerator.getTypeAdapter();
+        }else if(ReversedSequentialIntGenerator.class.getSimpleName().equalsIgnoreCase(typeString)){
+            return ReversedSequentialIntGenerator.getTypeAdapter();
         }
 
         throw new AssertionError("Unable to determine type adapter for generator type "+ typeString);

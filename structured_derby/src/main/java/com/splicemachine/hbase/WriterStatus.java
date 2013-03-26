@@ -37,6 +37,8 @@ public interface WriterStatus {
     long getCacheLastUpdatedTimeStamp();
 
 
+    boolean getCompressWrites();
 
+    void setCompressWrites(boolean compressWrites);
 
 }

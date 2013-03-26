@@ -26,17 +26,20 @@ public class QualifierAdapter extends TypeAdapter<Qualifier> {
         in.beginObject();
         Map<String,Object> qualifierConfig = null;
         String qualifierType = null;
+        int resultPosition = -1;
         while(in.hasNext()){
             String name = in.nextName();
             if("qualifierType".equalsIgnoreCase(name)){
                 qualifierType = in.nextString();
             }else if("qualifierConfig".equalsIgnoreCase(name)){
                 qualifierConfig = new MapAdapter().read(in);
+            }else if("resultPosition".equalsIgnoreCase(name)){
+                resultPosition = in.nextInt();
             }
         }
 
         in.endObject();
 
-        return Qualifiers.getQualifier(qualifierType,qualifierConfig);
+        return Qualifiers.getQualifier(qualifierType,resultPosition,qualifierConfig);
     }
 }

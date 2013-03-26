@@ -36,6 +36,10 @@ public interface Constraint {
          */
         CHECK,
         /**
+         * A Not-Null Constraint.
+         */
+        NOT_NULL,
+        /**
          * no constraint
          */
         NONE //used for NoConstraint

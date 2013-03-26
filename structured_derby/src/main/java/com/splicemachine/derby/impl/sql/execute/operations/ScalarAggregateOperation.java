@@ -78,7 +78,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		SpliceLogUtils.trace(LOG,"readExternal");
 		super.readExternal(in);
 		isInSortedOrder = in.readBoolean();
 		singleInputRow = in.readBoolean();
@@ -86,7 +85,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		SpliceLogUtils.trace(LOG,"writeExternal");
 		super.writeExternal(out);
 		out.writeBoolean(isInSortedOrder);
 		out.writeBoolean(singleInputRow);
@@ -94,7 +92,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	@Override
 	public void openCore() throws StandardException {
-		SpliceLogUtils.trace(LOG,"openCore");
 		source.openCore();
 		isOpen=true;
 	}
@@ -107,7 +104,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	@Override
 	public void init(SpliceOperationContext context){
-		SpliceLogUtils.trace(LOG,"init");
 		super.init(context);
 		ExecutionFactory factory = activation.getExecutionFactory();
 		try {
@@ -252,7 +248,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for ScalaAggregation at "+stats.getStartTime());
-		SpliceLogUtils.trace(LOG, "sink");
 		ExecRow row;
 		try{
 			Put put;
@@ -264,9 +259,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
                 long pTs = System.nanoTime();
                 byte[] key = DerbyBytesUtil.generatePrefixedRowKey(sequence[0]);
-                SpliceLogUtils.trace(LOG,"row=%s, key.length=%d, afterPrefix?%b,beforeEnd?%b",
-                        row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
-                        Bytes.compareTo(key,reduceScan.getStopRow())<0);
+//                SpliceLogUtils.trace(LOG,"row=%s, key.length=%d, afterPrefix?%b,beforeEnd?%b",
+//                        row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
+//                        Bytes.compareTo(key,reduceScan.getStopRow())<0);
                 put = Puts.buildInsert(key,row.getRowArray(), transactionID,serializer);
                 SpliceLogUtils.trace(LOG, "put=%s",put);
                 tempTable.put(put);

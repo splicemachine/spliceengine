@@ -5,6 +5,7 @@ import com.google.common.collect.Maps;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -97,7 +98,7 @@ public class IndexManager {
             writeBuffer.flushBuffer();
             writeBuffer.close();
         }catch(Exception e){
-            throw (IOException)e;
+            throw Exceptions.getIOException(e);
         }
     }
 
@@ -197,7 +198,7 @@ public class IndexManager {
     private HTableInterface update(Mutation mutation,
                         CallBuffer<Mutation> writeBuffer,
                         RegionCoprocessorEnvironment rce,HTableInterface table) throws Exception {
-        if(isDelete(mutation))
+        if(Mutations.isDelete(mutation))
             return doDelete(mutation,writeBuffer,rce,table);
         else{
             updateIndex((Put) mutation, writeBuffer, rce.getRegion());
@@ -216,9 +217,7 @@ public class IndexManager {
         return zeroBased;
     }
 
-    private boolean isDelete(Mutation mutation){
-        return mutation instanceof Delete || TransactorFactory.getDefaultClientTransactor().isDeletePut(mutation);
-    }
+
     /*
      * Update the index to delete records that are no longer in the main table.
      */

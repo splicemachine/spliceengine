@@ -55,6 +55,8 @@ public class ConstraintViolation extends DoNotRetryIOException{
                 return new PrimaryKeyViolation("Duplicate Primary Key");
             case UNIQUE:
                 return new UniqueConstraintViolation("Violated Unique Constraint");
+            case NOT_NULL:
+                return new NotNullConstraintViolation("Non Null Constraint Violated");
             default:
                 return null; //TODO -sf- implement foreign and check constraints
         }
@@ -78,5 +80,12 @@ public class ConstraintViolation extends DoNotRetryIOException{
         public UniqueConstraintViolation() {super(); }
         public UniqueConstraintViolation(String message) { super(message); }
         public UniqueConstraintViolation(String message, Throwable cause) { super(message, cause); }
+    }
+
+    public static class NotNullConstraintViolation extends DoNotRetryIOException{
+        @Deprecated
+        public NotNullConstraintViolation() { }
+        public NotNullConstraintViolation(String message) { super(message); }
+        public NotNullConstraintViolation(String message, Throwable cause) { super(message, cause); }
     }
 }

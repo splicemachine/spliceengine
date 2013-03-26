@@ -7,6 +7,7 @@ import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.perf.runner.qualifiers.Qualifier;
 import com.splicemachine.perf.runner.qualifiers.Result;
 import com.splicemachine.tools.ConnectionPool;
+import org.apache.log4j.Logger;
 
 import java.io.PrintStream;
 import java.sql.Connection;
@@ -14,24 +15,27 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 
 /**
  * @author Scott Fines
- *         Created on: 3/15/13
+ * Created on: 3/15/13
  */
 public class Query {
-
     private final String query;
     private final List<Qualifier> qualifiers;
     private final int samples;
     private final int threads;
+    private final Map<String,Integer> printColumns;
+    private static final Logger LOG = Logger.getLogger(Query.class);
 
-    public Query(String query, List<Qualifier> qualifiers, int samples, int threads) {
+    public Query(String query, List<Qualifier> qualifiers, int samples, int threads, Map<String, Integer> printColumns) {
         this.query = query;
         this.qualifiers = qualifiers;
         this.samples = samples;
         this.threads = threads;
+        this.printColumns = printColumns;
     }
 
     public Result run(final ConnectionPool connectionPool) throws Exception{
@@ -52,7 +56,7 @@ public class Query {
                                 fillParameters(ps);
                                 long start = System.nanoTime();
                                 ResultSet resultSet = ps.executeQuery();
-                                long numRecords = validate(resultSet);
+                                long numRecords = processResults(resultSet);
 
                                 accumulator.tick(numRecords,System.nanoTime()-start);
                             }
@@ -127,22 +131,43 @@ public class Query {
             stream.println();
         }
     }
-    private void reportQueryStats(QueryAccumulator accumulator) {
-        //print query stats  to stdout
 
+    private long processResults(ResultSet rs) throws Exception {
+        long resultCount=0;
+        StringBuilder results = null;
+        if(printColumns!=null)
+            results = new StringBuilder("results for query ").append(query).append("\n");
 
+        while(rs.next()){
+            resultCount++;
+            for(Qualifier qualifier: qualifiers){
+                qualifier.validate(rs);
+            }
+
+            if(results!=null){
+                results = results.append("row:").append(resultCount).append(",");
+                results = results.append(stringifyRow(rs)).append("\n");
+            }
+
+        }
+        if(results!=null){
+            LOG.info(results.toString());
+        }
+
+        return resultCount;
     }
 
-    private long validate(ResultSet resultSet) throws SQLException {
-        int pos=1;
-        long numRecords=0l;
-        while(resultSet.next()){
-            numRecords++;
-            for(Qualifier qualifier:qualifiers){
-                qualifier.validate(resultSet, pos);
-            }
+    private String stringifyRow(ResultSet rs) throws Exception {
+        boolean isStart=true;
+        StringBuilder results = new StringBuilder();
+        for(String colName:printColumns.keySet()){
+            if(!isStart)results = results.append(",");
+            else isStart=false;
+
+            int colNum = printColumns.get(colName);
+            results = results.append(colName).append(":").append(rs.getObject(colNum));
         }
-        return numRecords;
+        return results.toString();
     }
 
     public void fillParameters(PreparedStatement ps) throws Exception{
