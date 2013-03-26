@@ -631,7 +631,8 @@ public class TransactionTest extends SpliceDerbyTest {
 
 	@AfterClass 
 	public static void shutdown() throws SQLException {
-		//dropTable("locationTranRR");
+		dropTable("locationTranRR");
+		dropTable("locationTranR");
 		dropTable("locationTran");
 		stopConnection();		
 	}
