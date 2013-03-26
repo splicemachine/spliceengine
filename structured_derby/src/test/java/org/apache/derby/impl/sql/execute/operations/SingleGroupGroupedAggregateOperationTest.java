@@ -53,7 +53,7 @@ public class SingleGroupGroupedAggregateOperationTest {
     public static void insertData() throws Exception{
     	rule.setAutoCommit(false);
         PreparedStatement ps = rule.prepareStatement("insert into t (username, i) values (?,?)");
-        List<String> users = Arrays.asList("jzhang");//,"sfines","jleach");
+        List<String> users = Arrays.asList("jzhang","sfines","jleach");
         for(int i=0;i< size;i++){
             for(String user:users){
                 int value = i*10;
