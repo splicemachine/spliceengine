@@ -12,7 +12,7 @@
 	</parent>
 
     <properties>
-        <runSuite>*</runSuite>
+        <runSuite>*Test</runSuite>
         <runClass>**/${runSuite}.class</runClass>
     </properties>
 
