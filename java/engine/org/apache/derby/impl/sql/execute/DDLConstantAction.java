@@ -72,7 +72,7 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
  * all DDL actions.
  *
  */
-abstract class DDLConstantAction implements ConstantAction
+public abstract class DDLConstantAction implements ConstantAction
 {
 	/**
 	 * Get the schema descriptor for the schemaid.
@@ -108,7 +108,7 @@ abstract class DDLConstantAction implements ConstantAction
 	 *
 	 * @exception StandardException if the schema does not exist
 	 */
-	static SchemaDescriptor getSchemaDescriptorForCreate(
+	public static SchemaDescriptor getSchemaDescriptorForCreate(
 						DataDictionary		dd,
 						Activation activation,
 						String schemaName)
