@@ -64,6 +64,7 @@ public class SingleGroupGroupedAggregateOperationTest {
 
 	            ps.setString(1, user);
 	            ps.setInt(2, value);
+	            SpliceLogUtils.trace(LOG,"user="+user+",value="+value);
 	            ps.executeUpdate();
             }
         }
