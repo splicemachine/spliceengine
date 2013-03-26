@@ -4,7 +4,6 @@ import java.io.File;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.zookeeper.MiniZooKeeperCluster;
 import org.slf4j.LoggerFactory;
 import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
@@ -54,9 +53,8 @@ public class SpliceTestPlatform extends TestConstants {
 	public void start() throws Exception {
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
-		miniZooKeeperCluster = new MiniZooKeeperCluster(config);
-		miniZooKeeperCluster.setDefaultClientPort(2181);
-		miniZooKeeperCluster.startup(new File(zookeeperTargetDirectory),1);
+		miniZooKeeperCluster = new MiniZooKeeperCluster();
+		miniZooKeeperCluster.startup(new File(zookeeperTargetDirectory),3);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
 	}
 	public void end() throws Exception {
@@ -65,9 +63,10 @@ public class SpliceTestPlatform extends TestConstants {
 
 	public void setBaselineConfigurationParameters(Configuration configuration) {
 		configuration.set("hbase.rootdir", "file://" + hbaseTargetDirectory);
-		configuration.set("hbase.rpc.timeout", "900000");
+		configuration.set("hbase.rpc.timeout", "6000");
 		configuration.set("hbase.cluster.distributed", "true");
 		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
+		configuration.set("hbase.regionserver.handler.count", "40");
 		coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
 	}
