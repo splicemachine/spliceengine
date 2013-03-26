@@ -3,17 +3,13 @@ package org.apache.derby.impl.sql.execute.operations;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.DerbyTestRule;
 import org.apache.log4j.Logger;
 import org.junit.*;
-
-import com.splicemachine.derby.test.SpliceDerbyTest;
 
 public class UpdateOperationTest {
 	private static Logger LOG = Logger.getLogger(UpdateOperationTest.class);
@@ -21,6 +17,7 @@ public class UpdateOperationTest {
 	private static final Map<String,String> tableSchemas = new HashMap<String, String>();
 	static{
 		tableSchemas.put("locations","num int, addr varchar(50), zip char(5)");
+		//tableSchemas.put("t1","int_col int, smallint_col smallint, char_30_col char(30), varchar_50_col varchar(50)");
 	}
 	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableSchemas,LOG);
 
@@ -49,8 +46,10 @@ public class UpdateOperationTest {
 		insertPs.setInt(1,300);
 		insertPs.setString(2,"300");
 		insertPs.setString(3, "34166");
-		insertPs.executeUpdate();
+		insertPs.executeUpdate();		
+				
 
+		
 	}
 
 	@Test
