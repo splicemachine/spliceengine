@@ -4,10 +4,15 @@ import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.IndexDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
+import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.impl.sql.execute.CreateConstraintConstantAction;
 import org.apache.derby.impl.sql.execute.CreateTableConstantAction;
+import org.apache.derby.impl.sql.execute.DDLConstantAction;
+import org.apache.derby.shared.common.reference.SQLState;
 
 import java.util.Properties;
 
@@ -18,6 +23,9 @@ import java.util.Properties;
  * Created on: 3/5/13
  */
 public class CreateTableAction extends CreateTableConstantAction {
+    private final int tableType;
+    private final String tableName;
+    private final String schemaName;
     /**
      * Make the ConstantAction for a CREATE TABLE statement.
      *
