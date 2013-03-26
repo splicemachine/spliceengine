@@ -16,24 +16,25 @@ public class UpdateOperationTest {
 
 	private static final Map<String,String> tableSchemas = new HashMap<String, String>();
 	static{
-		tableSchemas.put("locations","num int, addr varchar(50), zip char(5)");
+		tableSchemas.put("locationup","num int, addr varchar(50), zip char(5)");
 		//tableSchemas.put("t1","int_col int, smallint_col smallint, char_30_col char(30), varchar_50_col varchar(50)");
 	}
-	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableSchemas,LOG);
+	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableSchemas,false,LOG);
 
 	@BeforeClass
 	public static void startup() throws Exception{
 		DerbyTestRule.start();
+		rule.createTables();
+		insertData(rule);
 	}
 	@AfterClass
 	public static void shutdown() throws Exception{
 		rule.dropTables();
 		DerbyTestRule.shutdown();
 	}
-
-	@Before
-	public void setupTest() throws Exception{
-		PreparedStatement insertPs = rule.prepareStatement("insert into locations values(?,?,?)");
+	
+	public static void insertData(DerbyTestRule rule) throws Exception{
+		PreparedStatement insertPs = rule.prepareStatement("insert into locationup values(?,?,?)");
 		insertPs.setInt(1,100);
 		insertPs.setString(2,"100");
 		insertPs.setString(3, "94114");
@@ -48,16 +49,13 @@ public class UpdateOperationTest {
 		insertPs.setString(2,"300");
 		insertPs.setString(3, "34166");
 		insertPs.executeUpdate();		
-				
-
-		
 	}
 
 	@Test
 	public void testUpdate() throws SQLException {
-		int updated= rule.getStatement().executeUpdate("update locations set addr='240' where num=100");
+		int updated= rule.getStatement().executeUpdate("update locationup set addr='240' where num=100");
 		Assert.assertEquals("Incorrect num rows updated!",1,updated);
-		ResultSet rs = rule.executeQuery("select * from locations where num = 100");
+		ResultSet rs = rule.executeQuery("select * from locationup where num = 100");
 		List<String> results = Lists.newArrayListWithCapacity(1);
 		while(rs.next()){
 			Integer num = rs.getInt(1);
@@ -76,9 +74,9 @@ public class UpdateOperationTest {
 
 	@Test
 	public void testUpdateMultipleColumns() throws Exception{
-		int updated = rule.getStatement().executeUpdate("update locations set addr='900',zip='63367' where num=300");
+		int updated = rule.getStatement().executeUpdate("update locationup set addr='900',zip='63367' where num=300");
 		Assert.assertEquals("incorrect number of records updated!",1,updated);
-		ResultSet rs = rule.executeQuery("select * from locations where num=300");
+		ResultSet rs = rule.executeQuery("select * from locationup where num=300");
 		List<String>results = Lists.newArrayList();
 		while(rs.next()){
 			Integer num = rs.getInt(1);
