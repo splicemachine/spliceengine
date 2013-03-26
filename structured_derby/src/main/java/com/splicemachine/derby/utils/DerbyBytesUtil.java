@@ -227,12 +227,11 @@ public class DerbyBytesUtil {
 	}
 
 	public static byte[] generateEndKeyForTemp(DataValueDescriptor uniqueString) throws StandardException, IOException {
+		
 		SpliceLogUtils.trace(LOG,"generateEndKeyForTemp is %s",uniqueString.getTraceString());
-		byte[] bytes= generateBeginKeyForTemp(uniqueString);
+		byte[] bytes = generateBeginKeyForTemp(uniqueString);
 		BytesUtil.incrementAtIndex(bytes,bytes.length-1);
-
-		RowKey rowKey = new VariableLengthByteArrayRowKey();
-		return rowKey.serialize(bytes);
+		return bytes;		
 	}
 
 	
