@@ -26,7 +26,6 @@ public class CallStatementOperationTest extends SpliceDerbyTest {
         ResultSet resultSet = null;
         DatabaseMetaData dmd;
         try{
-            conn.setAutoCommit(true);
             dmd = conn.getMetaData();
             resultSet = dmd.getIndexInfo(null,"SYS","SYSSCHEMAS",false,true);
             while(resultSet.next()){
@@ -257,9 +256,7 @@ public class CallStatementOperationTest extends SpliceDerbyTest {
         	} catch (Exception e) {
         		
         	}
-        }
-        
-    	
+        } 	
     }
     
 	@AfterClass 
