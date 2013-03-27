@@ -15,7 +15,7 @@ import com.splicemachine.derby.test.DerbyTestRule;
 import com.splicemachine.derby.test.SpliceDerbyTest;
 
 /**
- * This tests basic table scans with and without projection/restriction
+ * @author jessiezhang
  */
 public class UnionOperationTest extends SpliceDerbyTest {
 	private static Logger LOG = Logger.getLogger(UnionOperationTest.class);
@@ -78,7 +78,6 @@ public class UnionOperationTest extends SpliceDerbyTest {
 		Assert.assertEquals(8, i);
 	}		
 	
-	
 	@Test
 	/**
 	 * 
@@ -94,8 +93,6 @@ public class UnionOperationTest extends SpliceDerbyTest {
 		}	
 		Assert.assertTrue(i>0);
 	}
-	
-	
 	
 	@Test
 	public void testUnion() throws SQLException {			
