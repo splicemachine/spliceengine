@@ -1,20 +1,23 @@
 package org.apache.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.splicemachine.derby.test.DerbyTestRule;
-import junit.framework.Assert;
-import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+
+import junit.framework.Assert;
+
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.splicemachine.derby.test.DerbyTestRule;
 
 /**
  * @author Scott Fines
@@ -29,17 +32,15 @@ public class PrimaryKeyTest {
 //        tableMap.put("multi_pk","name varchar(50),fruit varchar(30),val int, PRIMARY KEY(name,fruit)");
     }
 
-    @Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,false,LOG);
+    @Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,LOG);
 
     @BeforeClass
     public static void startup() throws Exception{
         DerbyTestRule.start();
-        rule.createTables();
     }
 
     @AfterClass
     public static void shutdown() throws Exception{
-    	rule.dropTables();
         DerbyTestRule.shutdown();
     }
 
@@ -74,7 +75,7 @@ public class PrimaryKeyTest {
         try{
             ps.executeUpdate();
         }catch(SQLException se){
-            LOG.info(se.getMessage(),se);
+            LOG.info(se.getMessage());
             failed=true;
         }
         Assert.assertTrue("Insert of duplicate records succeeded!",failed);
