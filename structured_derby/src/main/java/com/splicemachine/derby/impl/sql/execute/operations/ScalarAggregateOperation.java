@@ -10,10 +10,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.stats.TimingStats;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -244,7 +241,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 	
 	@Override
-	public SinkStats sink() {
+	public SinkStats sink() throws IOException {
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for ScalaAggregation at "+stats.getStartTime());
@@ -271,9 +268,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 			tempTable.flushCommits();
 			tempTable.close();
 		}catch(StandardException se){
-			SpliceLogUtils.logAndThrowRuntime(LOG, se);
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            throw Exceptions.getIOException(se);
 		}
         //return stats.finish();
 		SinkStats ss = stats.finish();

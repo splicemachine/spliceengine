@@ -245,7 +245,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
                  * or equals to the start (e.g. leave startSearchOperator alone).
                  */
                 stopPosition = startPosition;
-                startSearchOperator= ScanController.GE; //ensure that we put in an EQUALS filter
+                startSearchOperator= ScanController.NA; //ensure that we put in an EQUALS filter
             }
         }
         if(stopKeyGetter!=null){
