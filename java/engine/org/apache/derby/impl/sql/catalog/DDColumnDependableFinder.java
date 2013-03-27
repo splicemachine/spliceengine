@@ -43,6 +43,7 @@ import java.io.IOException;
 
 public class DDColumnDependableFinder extends DDdependableFinder
 {
+	private static final long serialVersionUID = 1l;
 	////////////////////////////////////////////////////////////////////////
 	//
 	//  STATE
@@ -58,6 +59,14 @@ public class DDColumnDependableFinder extends DDdependableFinder
     //  CONSTRUCTORS
     //
     ////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Serialization Constructor. DO NOT USE
+	 */
+	public DDColumnDependableFinder()
+	{
+		
+	}
 
 	/**
 	 * Constructor same as in parent.

@@ -48,19 +48,28 @@ import org.apache.derby.iapi.sql.dictionary.DefaultDescriptor;
 
 public class DDdependableFinder implements	DependableFinder, Formatable
 {
+	private static final long serialVersionUID = 1l;
 	////////////////////////////////////////////////////////////////////////
 	//
 	//	STATE
 	//
 	////////////////////////////////////////////////////////////////////////
 
-	private final int formatId;
+	private int formatId;
 
 	////////////////////////////////////////////////////////////////////////
 	//
 	//	CONSTRUCTORS
 	//
 	////////////////////////////////////////////////////////////////////////
+
+	/**
+ 	  * Serialization Constructor. DO NOT USER
+	  */
+	public DDdependableFinder()
+	{
+
+	}
 
 	/**
 	  *	Public constructor for Formatable hoo-hah.
@@ -97,6 +106,7 @@ public class DDdependableFinder implements	DependableFinder, Formatable
     public void readExternal( ObjectInput in )
 			throws IOException, ClassNotFoundException
 	{
+		formatId = in.readInt();
 	}
 
 	/**
@@ -108,6 +118,7 @@ public class DDdependableFinder implements	DependableFinder, Formatable
     public void writeExternal( ObjectOutput out )
 			throws IOException
 	{
+		out.writeInt(formatId);
 	}
 
 	/**
