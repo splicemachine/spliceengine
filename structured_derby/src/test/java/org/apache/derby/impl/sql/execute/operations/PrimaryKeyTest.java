@@ -29,15 +29,17 @@ public class PrimaryKeyTest {
 //        tableMap.put("multi_pk","name varchar(50),fruit varchar(30),val int, PRIMARY KEY(name,fruit)");
     }
 
-    @Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,LOG);
+    @Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,false,LOG);
 
     @BeforeClass
     public static void startup() throws Exception{
         DerbyTestRule.start();
+        rule.createTables();
     }
 
     @AfterClass
     public static void shutdown() throws Exception{
+    	rule.dropTables();
         DerbyTestRule.shutdown();
     }
 

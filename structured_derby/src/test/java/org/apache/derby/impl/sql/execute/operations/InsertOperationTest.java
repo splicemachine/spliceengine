@@ -26,18 +26,20 @@ public class InsertOperationTest {
 		tableMap.put("s","name varchar(40), count int");
 	}
 
-	@Rule public DerbyTestRule rule = new DerbyTestRule(tableMap,LOG);
+	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,false,LOG);
 
 	@BeforeClass
 	public static void startup() throws Exception{
 		LOG.debug("Starting up embedded connection");
 		DerbyTestRule.start();
+		rule.createTables();
 		LOG.debug("EmbeddedConnection started successfully");
 	}
 	
 	@AfterClass
 	public static void shutdown() throws Exception{
 		LOG.debug("Shutting down embedded connection");
+		rule.dropTables();
 		DerbyTestRule.shutdown();
 		LOG.debug("Embedded connection shutdown successfully");
 	}
@@ -227,12 +229,8 @@ public class InsertOperationTest {
 			Assert.assertEquals("Incorrect number of groups returned!",nameCountMap.size(),groupCount);
 		}finally{
 			if(rs!=null)rs.close();
-			try{
-				s.execute("drop table s");
-				rule.commit();
-			}finally{
-				if(s!=null)s.close();
-			}
+			if (s!=null)
+				s.close();
 		}	
 	}
 	
