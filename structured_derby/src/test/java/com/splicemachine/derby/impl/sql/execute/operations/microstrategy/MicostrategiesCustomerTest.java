@@ -70,7 +70,7 @@ public class MicostrategiesCustomerTest {
         }
         if(!hasSmall){
             rule.createTable("CUSTOMER",CUSTOMER_SCHEMA);
-            importData("CUSTOMER","lu_customer.csv");
+            importData("CUSTOMER","customer_iso.csv");
         }
     }
 
@@ -81,7 +81,7 @@ public class MicostrategiesCustomerTest {
         PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, ?, null,null," +
                 "?,',',null,null)");
         ps.setString(1,table);
-        ps.setString(2,userDir+"/src/test/resources/microstrategy/"+filename);
+        ps.setString(2,userDir+"/src/test/resources/"+filename);
         ps.executeUpdate();
     }
 
