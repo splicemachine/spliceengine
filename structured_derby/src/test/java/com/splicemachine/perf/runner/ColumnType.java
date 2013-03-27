@@ -11,6 +11,7 @@ public enum ColumnType {
     VARCHAR("varchar",Types.VARCHAR){
         @Override public boolean requiresWidth() { return true; }
     },
+    FLOAT("float",Types.FLOAT),
     TIMESTAMP("timestamp",Types.TIMESTAMP);
 
     private final int jdbcTypeCode;

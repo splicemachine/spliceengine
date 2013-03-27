@@ -8,6 +8,9 @@
 **/target/
 *.class
 *.jad
-*.project
-*.classpath
+.project
+.classpath
+**/.project
+**/.classpath
 *.prefs
+*.swp

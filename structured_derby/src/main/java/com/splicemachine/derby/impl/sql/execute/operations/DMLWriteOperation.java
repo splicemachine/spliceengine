@@ -4,6 +4,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -186,7 +187,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         return fbt;
     }
 
-	private final RowProvider modifiedProvider = new RowProvider(){
+	private final RowProvider modifiedProvider = new SingleScanRowProvider(){
 		private long rowsModified=0;
 		@Override public boolean hasNext() { return false; }
 

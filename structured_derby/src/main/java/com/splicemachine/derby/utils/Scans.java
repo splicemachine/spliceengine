@@ -71,7 +71,7 @@ public class Scans {
 	public static Scan buildPrefixRangeScan(DataValueDescriptor prefix,String transactionId) throws IOException {
 		try {
 			byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(prefix);
-			byte[] finish = DerbyBytesUtil.generateEndKeyForTemp(prefix);
+			byte[] finish = BytesUtil.copyAndIncrement(start);
 			return newScan(start,finish,transactionId);
 		} catch (StandardException e) {
 			throw new IOException(e);

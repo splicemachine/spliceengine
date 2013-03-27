@@ -1,11 +1,14 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.storage.MultiScanExecRowProvider;
+import com.splicemachine.derby.impl.storage.MultiScanRowProvider;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.AbstractScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -13,6 +16,7 @@ import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.compile.RowOrdering;
@@ -27,6 +31,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Result set that fetches rows from a scan by "probing" the underlying
@@ -519,7 +524,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         return "MultiProbe"+super.toString();
     }
 
-    private class MultiProbeRowProvider extends AbstractScanProvider {
+    private class MultiProbeRowProvider extends MultiScanExecRowProvider {
         private final DataValueDescriptor[] probeValues;
         private final byte[] tableName;
         private final SpliceOperation top;
@@ -530,11 +535,13 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         private ResultScanner currentScanner;
         private Scan currentScan;
 
+        private boolean open = false;
+
         private MultiProbeRowProvider(SpliceOperation top,ExecRow rowTemplate,
                                       FormatableBitSet fbt,
                                       DataValueDescriptor[] probeValues,
                                       byte[] tableName) {
-            super(rowTemplate, fbt);
+            super(rowTemplate,fbt);
             this.probeValues = probeValues;
             this.tableName = tableName;
             this.top = top;
@@ -586,13 +593,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         }
 
         @Override
-        public Scan toScan() {
-            return currentScan;
-        }
-
-        @Override
         public byte[] getTableName() {
-            return table.getTableName();
+            return tableName;
         }
 
         private void nextProbePosition() throws StandardException, IOException {
@@ -621,6 +623,59 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             currentScan = getScan();
             SpliceUtils.setInstructions(currentScan,activation,top);
             currentScanner = table.getScanner(currentScan);
+        }
+
+        @Override
+        protected List<Scan> getScans() throws StandardException{
+            //get the old state so that we can return to it when we're finished
+            int oldProbePosition = currentProbePosition;
+            Scan oldScan = currentScan;
+            ExecIndexRow oldStartPosition = startPosition;
+            ExecIndexRow oldStopPosition = stopPosition;
+
+            List<Scan> scans = Lists.newArrayListWithExpectedSize(probeValues.length-oldProbePosition);
+            currentProbePosition++;
+            if(currentProbePosition >= probeValues.length) return scans; //we're out of rows, just return
+
+            while(currentProbePosition < probeValues.length){
+                int probePosition = currentProbePosition;
+                scans.add(getNextScan());
+                if(probePosition==currentProbePosition)currentProbePosition++;
+            }
+            //reset to old state
+            currentProbePosition = oldProbePosition;
+            currentScan = oldScan;
+            startPosition = oldStartPosition;
+            stopPosition = oldStopPosition;
+
+            populateQualifiers();
+
+            return scans;
+        }
+
+        private Scan getNextScan() throws StandardException {
+            DataValueDescriptor next = probeValues[currentProbePosition];
+            currentProbePosition++;
+            //skip all the descriptors that match next
+            while(currentProbePosition<probeValues.length &&next.equals(probeValues[currentProbePosition])){
+                currentProbePosition++;
+            }
+            currentProbePosition = currentProbePosition-1;
+            //get the Scanner for this position
+            populateStartAndStopPositions();
+            if(startPosition!=null)
+                startPosition.getRowArray()[0] = next;
+            if(sameStartStopPosition){
+                stopPosition.getRowArray()[0] = next;
+            }
+            populateQualifiers();
+            Scan scan;
+            try {
+                scan = getScan();
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
+            return scan;
         }
     }
 }

@@ -73,19 +73,15 @@ public class OperationBranch {
 	
 	public void execCoprocessor(String opName) throws StandardException {
 		SpliceLogUtils.trace(LOG, "execCoprocessor with top operation of %s", topOperation);
-		final Scan scan = rowProvider.toScan();
-        if(scan==null||table==null){
-            SpliceLogUtils.debug(LOG,"Unable to exec coprocessor, no scan or table name present");
-            return;
-        }
-        
+
 		HTableInterface htable = null;
 		try{
             SpliceLogUtils.debug(LOG,"Exec Coprocessor against table=%s",Bytes.toString(table));
             final RegionStats regionStats = new RegionStats(opName);
             regionStats.start();
-			htable = SpliceAccessManager.getHTable(table);
 			final SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
+            rowProvider.shuffleRows(instructions,regionStats);
+            /*
 			htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),
                     new Batch.Call<SpliceOperationProtocol,SinkStats>(){
 				@Override
@@ -106,13 +102,7 @@ public class OperationBranch {
                     });
             regionStats.finish();
             regionStats.recordStats(LOG);
-		}catch(IOException ioe){
-			if(ioe.getCause() instanceof StandardException)
-				SpliceLogUtils.logAndThrow(LOG, (StandardException)ioe.getCause());
-			else
-				SpliceLogUtils.logAndThrow(LOG,StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION, ioe));
-		}catch(Throwable t){
-			SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,t));
+            */
 		}finally{
 			if(htable !=null ){
 				try{

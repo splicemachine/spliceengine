@@ -5,10 +5,7 @@ import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.DerbyTestRule;
 import junit.framework.Assert;
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -191,6 +188,21 @@ public class NonUniqueIndexTest {
         Assert.assertTrue("Rows returned incorrectly",!rs.next());
 
         assertSelectCorrect(newName,1);
+    }
+
+    @Test
+    @Ignore("ignored until Bug #309 can be resolved and we can properly drop views")
+    public void testCanAddIndexToViewedTable() throws Exception{
+        /*
+         * Regression test for Bug 149. Confirm that we can add a view and then add an index
+         * and stuff
+         */
+        rule.getStatement().execute("create view t_view as select name,val from t where val > 1");
+        try{
+            testCanUseIndex();
+        }finally{
+            rule.getStatement().execute("drop view t_view");
+        }
     }
 
     private void assertSelectCorrect(String name, int size) throws Exception{

@@ -66,7 +66,7 @@ public class Exceptions {
      * @param e the exception to check
      * @return true if the stack trace should be logged.
      */
-    public static boolean shouldLogStackTrace(Exception e) {
+    public static boolean shouldLogStackTrace(Throwable e) {
         if(e instanceof ConstraintViolation.PrimaryKeyViolation) return false;
         if(e instanceof ConstraintViolation.UniqueConstraintViolation) return false;
         if(e instanceof IndexNotSetUpException) return false;

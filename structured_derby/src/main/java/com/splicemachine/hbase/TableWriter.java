@@ -602,13 +602,14 @@ public class TableWriter implements WriterStatus{
                     instance.batchMutate(mutationRequest);
                     mutations.remove();
                 }catch(IOException ioe){
-                    if(Exceptions.shouldLogStackTrace(ioe))
+                    Throwable t = Throwables.getRootCause(ioe);
+                    if(Exceptions.shouldLogStackTrace(t))
                         LOG.info("Error received when trying to write buffer:"+ ioe.getMessage());
                     else
                         LOG.info("Received a retryable exception when trying to write buffer: "+ ioe.getClass().getSimpleName());
-                    if(ioe instanceof DoNotRetryIOException) throw ioe;
+                    if(t instanceof DoNotRetryIOException) throw (IOException)t;
                     else{
-                        retryExceptions.add(ioe);
+                        retryExceptions.add(t);
                         failedMutations.add(mutationRequest);
                     }
                 }
