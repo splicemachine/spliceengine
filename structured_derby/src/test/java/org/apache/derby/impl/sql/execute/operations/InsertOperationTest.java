@@ -26,20 +26,20 @@ public class InsertOperationTest {
 		tableMap.put("s","name varchar(40), count int");
 	}
 
-	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,false,LOG);
+	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,LOG);
 
 	@BeforeClass
 	public static void startup() throws Exception{
 		LOG.debug("Starting up embedded connection");
 		DerbyTestRule.start();
-		rule.createTables();
+		//rule.createTables();
 		LOG.debug("EmbeddedConnection started successfully");
 	}
 	
 	@AfterClass
 	public static void shutdown() throws Exception{
 		LOG.debug("Shutting down embedded connection");
-		rule.dropTables();
+		//rule.dropTables();
 		DerbyTestRule.shutdown();
 		LOG.debug("Embedded connection shutdown successfully");
 	}
@@ -128,7 +128,7 @@ public class InsertOperationTest {
 			}
 			
 			Collections.sort(names);
-			Assert.assertEquals("returned named incorrect!",correctNames,names);
+			Assert.assertEquals("returned named incorrect!",correctNames,names); 
 			rule.commit();
 		}finally{
 			if(s!=null)s.close();
