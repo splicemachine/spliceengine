@@ -32,7 +32,6 @@ import org.apache.derby.iapi.sql.execute.ResultSetStatistics;
 import org.apache.derby.iapi.sql.execute.ResultSetStatisticsFactory;
 import org.apache.derby.iapi.sql.execute.RunTimeStatistics;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.impl.sql.execute.HashScanResultSet;
 import org.apache.derby.impl.sql.execute.rts.RealAnyResultSetStatistics;
 import org.apache.derby.impl.sql.execute.rts.RealDeleteCascadeResultSetStatistics;
 import org.apache.derby.impl.sql.execute.rts.RealDeleteResultSetStatistics;
@@ -1186,7 +1185,7 @@ public class SpliceRealResultSetStatisticsFactory
                     htrs.getResultSetNumber(),
                     htrs.hashtableSize,
                     htrs.keyColumns,
-                    HashScanResultSet.printQualifiers(
+                    HashScanOperation.printQualifiers(
                         htrs.nextQualifiers),
                     htrs.scanProperties,
                     htrs.getOptimizerEstimatedRowCount(),
