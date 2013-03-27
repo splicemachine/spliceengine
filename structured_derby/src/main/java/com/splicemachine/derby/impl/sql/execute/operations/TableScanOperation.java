@@ -173,7 +173,7 @@ public class TableScanOperation extends ScanOperation {
 				result = new Result(keyValues);
 				SpliceUtils.populate(result, currentRow.getRowArray(), accessedCols,baseColumnMap);
 
-                if(indexName!=null && currentRow.getColumn(currentRow.nColumns()) instanceof RowLocation){
+                if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()) instanceof RowLocation){
                     /*
                      * If indexName !=null, then we are currently scanning an index,
                      *so our RowLocation should point to the main table, and not to the
