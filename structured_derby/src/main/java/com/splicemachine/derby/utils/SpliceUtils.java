@@ -638,23 +638,33 @@ public class SpliceUtils {
     }
 
 	public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation) {
-	SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
-		try {
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			ObjectOutputStream oos = new ObjectOutputStream(out);
-			oos.writeObject(instructions);
-			oos.flush();
-			oos.close();
-			return out.toByteArray();
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Error generating Splice instructions:"+e.getMessage(),e);
-			return null;
-		}
-	}
+        SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
+        return generateInstructions(instructions);
+    }
 
-	public static void setInstructions(Scan scan, Activation activation, SpliceOperation topOperation){
+    public static byte[] generateInstructions(SpliceObserverInstructions instructions) {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(out);
+            oos.writeObject(instructions);
+            oos.flush();
+            oos.close();
+            return out.toByteArray();
+        } catch (IOException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG, "Error generating Splice instructions:" + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    public static void setInstructions(Scan scan, Activation activation, SpliceOperation topOperation){
 		scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(activation,topOperation));
 	}
+
+    public static void setInstructions(Scan scan, SpliceObserverInstructions instructions){
+        //instructions are already set
+//        if(scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS)!=null) return;
+        scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(instructions));
+    }
 
     public static void setThreadContext(LanguageConnectionContext lcc){
         SpliceLogUtils.trace(LOG,"addThreadContext");

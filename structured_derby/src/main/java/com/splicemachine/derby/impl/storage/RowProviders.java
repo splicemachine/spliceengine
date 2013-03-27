@@ -2,12 +2,15 @@ package com.splicemachine.derby.impl.storage;
 
 import java.util.NoSuchElementException;
 
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -20,14 +23,15 @@ import org.apache.log4j.Logger;
  */
 public class RowProviders {
 
-	private static final RowProvider EMPTY_PROVIDER = new RowProvider(){
+	private static final SingleScanRowProvider EMPTY_PROVIDER = new SingleScanRowProvider(){
 		@Override public boolean hasNext() { return false; }
 		@Override public ExecRow next() { return null; }
 		@Override public void remove() { throw new UnsupportedOperationException(); }
 		@Override public void open() { }
 		@Override public void close() { }
 		@Override public RowLocation getCurrentRowLocation() { return null; }
-		@Override public Scan toScan() { return null; }
+
+        @Override public Scan toScan() { return null; }
 		@Override public byte[] getTableName() { return null; }
 
 		@Override public int getModifiedRowCount() { return 0; }
@@ -55,20 +59,26 @@ public class RowProviders {
 
 		@Override public void open() { provider.open(); }
 		@Override public void close() { provider.close(); }
-		@Override public Scan toScan() { return provider.toScan(); }
+//		@Override public Scan toScan() { return provider.toScan(); }
 		@Override public byte[] getTableName() { return provider.getTableName(); }
 		@Override public int getModifiedRowCount() { return provider.getModifiedRowCount(); }
 		@Override public boolean hasNext() { return provider.hasNext(); }
 		@Override public void remove() { provider.remove(); }
 
-		@Override
+        @Override
+        public void shuffleRows(SpliceObserverInstructions instructions,
+                                RegionStats stats) throws StandardException {
+            provider.shuffleRows(instructions,stats);
+        }
+
+        @Override
 		public RowLocation getCurrentRowLocation() {
 			return provider.getCurrentRowLocation();
 		}
 
 	}
 
-	private static class SingletonRowProvider implements RowProvider{
+	private static class SingletonRowProvider extends SingleScanRowProvider{
 		private final ExecRow row;
 		private boolean emitted = false;
 		
@@ -99,7 +109,7 @@ public class RowProviders {
 		@Override public void remove() { throw new UnsupportedOperationException("Remove not supported"); }
     }
 
-	public static class SourceRowProvider implements RowProvider{
+	public static class SourceRowProvider extends SingleScanRowProvider{
 		private final NoPutResultSet source;
 		private final Logger log;
 		//private boolean populated = false;

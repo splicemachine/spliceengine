@@ -2,8 +2,12 @@ package com.splicemachine.derby.iapi.storage;
 
 import java.util.Iterator;
 
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.stats.RegionStats;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 
 /**
@@ -26,17 +30,21 @@ public interface RowProvider extends Iterator<ExecRow>  {
 	 * Close the iterator
 	 */
 	void close();
-	
+
+    /**
+     * @return the current row location.
+     */
 	RowLocation getCurrentRowLocation();
 
     /**
-     * Converts this RowProvider into an HBase Scan, if it is possible to do so.
-     * If it is not possible to construct a scan with this provider, it will return {@code null}
+     * Execute the constructed instructions against all the rows provided by this row provider.
      *
-     * @return a Scan representation for this RowProvider, or {@code null} if a Scan representation
-     * is not possible.
+     * @param instructions the instructions to execute
+     * @param stats the statistics table to gather
+     * @throws StandardException if something goes wrong during the shuffle phase
      */
-    Scan toScan();
+    void shuffleRows(SpliceObserverInstructions instructions,
+                     RegionStats stats) throws StandardException;
 
     /**
      * Gets the "table name" of the backing storage, or {@code null} if there is none.

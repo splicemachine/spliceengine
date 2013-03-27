@@ -22,6 +22,24 @@ public class CallStatementOperationTest extends SpliceDerbyTest {
 	}
 
     @Test
+    public void testCallSqlColumns() throws Exception{
+        ResultSet rs = null;
+        DatabaseMetaData dmd;
+        int count =0;
+        try{
+            dmd = conn.getMetaData();
+            rs = dmd.getColumns(null,"SYS","SYSSCHEMAS",null);
+            while(rs.next()){
+                count++;
+                SpliceLogUtils.info(LOG,"c1=%s,c2=%s,c3=%s,c4=%s",rs.getString(1),rs.getString(2),rs.getString(3),rs.getString(4));
+            }
+            Assert.assertTrue("No Rows returned!",count>0);
+        }finally{
+            if(rs!=null)rs.close();
+        }
+    }
+
+    @Test
     public void testCallIndexInfo() throws SQLException {
         ResultSet resultSet = null;
         DatabaseMetaData dmd;

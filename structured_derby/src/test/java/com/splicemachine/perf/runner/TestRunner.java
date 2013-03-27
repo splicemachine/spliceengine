@@ -111,6 +111,8 @@ public class TestRunner {
         data.connect();
         try{
             if(runMode.createPhase){
+                //drop the tables first, to make sure they don't exist already
+                data.dropTables(false);
                 data.createTables();
             }
             try{
@@ -123,7 +125,7 @@ public class TestRunner {
                 }
             }finally{
                 if(runMode.dropPhase)
-                    data.dropTables();
+                    data.dropTables(true);
             }
         }finally{
             data.shutdown();
