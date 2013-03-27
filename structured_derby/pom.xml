@@ -103,6 +103,16 @@
           </exclusion>
         </exclusions>
       </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.1</version>
+        </dependency>
 	</dependencies>
 	<build>
 	  <resources>
@@ -141,34 +151,61 @@
 			</plugin>
 		</plugins>
 	</build>
-	
-	<profiles>
-	<profile>
-	<id>splice</id>
-	<activation><property><name>splice</name></property></activation>
-	<build>
-	<plugins>
-		<plugin>	
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>1.2.1</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>java</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-        	<mainClass>com.splicemachine.test.SpliceTestPlatform</mainClass>
-          <executable>maven</executable>
-          <arguments>
-            <argument>${project.build.directory}/zookeeper</argument>
-            <argument>${project.build.directory}/hbase</argument>
-          </arguments>
-        </configuration>
-      </plugin>
-	</plugins>
+
+    <profiles>
+        <profile>
+            <id>splice</id>
+            <activation><property><name>splice</name></property></activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.2.1</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <classpathScope>compile</classpathScope>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-cp</argument>
+                                <classpath>${maven.runtime.classpath}</classpath>
+                                <argument>-Xdebug</argument>
+                                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
+                                <argument>com.splicemachine.test.SpliceTestPlatform</argument>
+                                <argument>${project.build.directory}/zookeeper</argument>
+                                <argument>${project.build.directory}/hbase</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                    <!--
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.2.1</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <mainClass>com.splicemachine.test.SpliceTestPlatform</mainClass>
+                            <executable>maven</executable>
+                            <arguments>
+                                <argument>${project.build.directory}/zookeeper</argument>
+                                <argument>${project.build.directory}/hbase</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                    -->
+                </plugins>
 	</build>
 		
 	
