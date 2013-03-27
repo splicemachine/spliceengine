@@ -236,7 +236,7 @@ public class UnionOperation extends SpliceBaseOperation {
             
 			long numberCreated = 0;
 			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,topOperation);
-            provider.shuffleRows(soi,regionStats);
+            provider.shuffleRows(soi,stats);
 //			htable.coprocessorExec(SpliceOperationProtocol.class,
 //																scan.getStartRow(),scan.getStopRow(),
 //																new Batch.Call<SpliceOperationProtocol,SinkStats>(){
