@@ -39,13 +39,7 @@ public class IntRange implements Qualifier{
     }
 
     private int nextValue() {
-        int val = random.nextInt(stop);
-
-        /*
-         * val is in range [0,stop). We need to transform it to fit within the range
-         * [start,stop).
-         */
-        return (((stop-start)*val)/stop)+start;
+        return random.nextInt(stop-start)+start;
     }
 
     public static Qualifier create(int resultPosition,Map<String, Object> qualifierConfig) {

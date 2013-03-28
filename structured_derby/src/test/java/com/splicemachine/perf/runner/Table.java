@@ -44,10 +44,19 @@ public class Table {
         this.files = filesToImport;
     }
 
-    public void create(Connection conn) throws SQLException{
-        SpliceLogUtils.trace(LOG, "Creating table %s",name);
-        PreparedStatement ps = conn.prepareStatement(getCreateTableString());
-        ps.execute();
+    public void create(ConnectionPool pool) throws SQLException, InterruptedException {
+        SpliceLogUtils.debug(LOG, "Creating table %s",name);
+        Connection conn = null;
+        try{
+            conn = pool.acquire();
+            String createStr = getCreateTableString();
+            SpliceLogUtils.trace(LOG,"using sql "+ createStr);
+            PreparedStatement ps = conn.prepareStatement(createStr);
+            ps.execute();
+        }finally{
+            if(conn!=null)
+                conn.close();
+        }
     }
 
     public Result insertData(final ConnectionPool connectionPool) throws Exception{

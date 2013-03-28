@@ -42,14 +42,8 @@ public class Data {
     public void createTables() throws Exception {
         //create Tables
         SpliceLogUtils.info(LOG,"Creating tables");
-        Connection connection = connectionPool.acquire();
-        try{
-            for(Table table:tables){
-                table.create(connection);
-            }
-            connection.commit();
-        }finally{
-            connection.close();
+        for(Table table:tables){
+            table.create(connectionPool);
         }
     }
 

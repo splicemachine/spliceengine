@@ -50,18 +50,19 @@ public class Query {
                     @Override
                     public Void call() throws Exception {
                         Connection conn = connectionPool.acquire();
+                        PreparedStatement ps = null;
                         try{
-                            PreparedStatement ps = conn.prepareStatement(query);
+                            ps = conn.prepareStatement(query);
                             for(int j=0;j<samplesPerThread;j++){
                                 fillParameters(ps);
                                 long start = System.nanoTime();
-                                ResultSet resultSet = ps.executeQuery();
-                                long numRecords = processResults(resultSet);
+                                long numRecords = processResults(ps.executeQuery());
 
                                 accumulator.tick(numRecords,System.nanoTime()-start);
                             }
                             return null;
                         }finally{
+//                            if(ps!=null)ps.close();
                             conn.close();
                         }
                     }
@@ -137,24 +138,28 @@ public class Query {
         StringBuilder results = null;
         if(printColumns!=null)
             results = new StringBuilder("results for query ").append(query).append("\n");
+        try{
+            while(rs.next()){
+                resultCount++;
+                for(Qualifier qualifier: qualifiers){
+                    qualifier.validate(rs);
+                }
 
-        while(rs.next()){
-            resultCount++;
-            for(Qualifier qualifier: qualifiers){
-                qualifier.validate(rs);
+                if(results!=null){
+                    results = results.append("row:").append(resultCount).append(",");
+                    results = results.append(stringifyRow(rs)).append("\n");
+                }
+
             }
 
             if(results!=null){
-                results = results.append("row:").append(resultCount).append(",");
-                results = results.append(stringifyRow(rs)).append("\n");
+                LOG.info(results.toString());
             }
 
+            return resultCount;
+        }finally{
+            rs.close();
         }
-        if(results!=null){
-            LOG.info(results.toString());
-        }
-
-        return resultCount;
     }
 
     private String stringifyRow(ResultSet rs) throws Exception {

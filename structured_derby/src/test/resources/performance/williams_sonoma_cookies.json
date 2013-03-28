@@ -29,7 +29,7 @@
                  "generatorType":"randomIntGenerator",
                  "generatorConfig":{
                     "start": 0,
-                    "stop": 1000
+                    "stop": 10000
                  }
             },
             {
@@ -86,8 +86,8 @@
     ],
     "queries":[
         {
-            "query":"select * from pk_test where cookie_id = ?",
-            "samples":100,
+            "query":"select * from web_log where cookie_id = ?",
+            "samples":1000,
             "threads":1,
             "qualifiers": [
                 {
@@ -99,15 +99,10 @@
                     }
                 }
             ]
-        },
-        {
-            "query":"select count(*) from pk_test",
-            "samples": 10,
-            "threads": 1,
-            "qualifiers":[]
             /*
             "printColumns":{
-                "count":1
+                "cookie_id":1,
+                "profile_id":2
             }
             */
         }

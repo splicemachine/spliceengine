@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -74,8 +75,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount, optimizerEstimatedCost);
             op.markAsTopResultSet();
             OperationTree operationTree = new OperationTree();
-            operationTree.traverse(op);
-            return (NoPutResultSet) operationTree.execute();
+            return new OperationResultSet(source.getActivation(),operationTree,op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -244,21 +244,11 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                                                         double optimizerEstimatedCost) throws StandardException {
         try{
             SpliceLogUtils.trace(LOG, "getScrollInsensitiveResultSet");
-            NoPutResultSet top;
-            if (scrollable) {
-                top = new ScrollInsensitiveResultSet(source, activation,
-                        resultSetNumber,
-                        sourceRowWidth,
-                        optimizerEstimatedRowCount,
-                        optimizerEstimatedCost);
-            }
-            else {
-                top = source;
-            }
+            SpliceOperation top = (SpliceOperation)source;
+
             top.markAsTopResultSet();
             OperationTree operationTree = new OperationTree();
-            operationTree.traverse((SpliceOperation) top);
-            return (NoPutResultSet) operationTree.execute();
+            return new OperationResultSet(activation,operationTree,top);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -825,8 +815,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             SpliceOperation top = new MiscOperation(activation);
             top.markAsTopResultSet();
             OperationTree opTree = new OperationTree();
-            opTree.traverse(top);
-            return (NoPutResultSet)opTree.execute();
+            return new OperationResultSet(activation,opTree,top);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -840,8 +829,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             SpliceOperation top = new CallStatementOperation(methodCall, activation);
             top.markAsTopResultSet();
             OperationTree opTree = new OperationTree();
-            opTree.traverse(top);
-            return (NoPutResultSet)opTree.execute();
+            return new OperationResultSet(activation,opTree,top);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -855,8 +843,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             SpliceOperation top = new SetTransactionOperation(activation);
             top.markAsTopResultSet();
             OperationTree opTree = new OperationTree();
-            opTree.traverse(top);
-            return (NoPutResultSet)opTree.execute();
+            return new OperationResultSet(activation,opTree,top);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -870,8 +857,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             SpliceOperation top = new InsertOperation(source, generationClauses, checkGM);
             top.markAsTopResultSet();
             OperationTree opTree = new OperationTree();
-            opTree.traverse(top);
-            return (NoPutResultSet)opTree.execute();
+            return new OperationResultSet(source.getActivation(),opTree,top);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -884,8 +870,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             SpliceOperation top = new UpdateOperation(source, generationClauses, checkGM, source.getActivation());
             top.markAsTopResultSet();
             OperationTree opTree = new OperationTree();
-            opTree.traverse(top);
-            return (NoPutResultSet)opTree.execute();
+            return new OperationResultSet(source.getActivation(),opTree,top);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -898,8 +883,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             SpliceOperation top = new DeleteOperation(source, source.getActivation());
             top.markAsTopResultSet();
             OperationTree opTree = new OperationTree();
-            opTree.traverse(top);
-            return (NoPutResultSet)opTree.execute();
+            return new OperationResultSet(source.getActivation(),opTree,top);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

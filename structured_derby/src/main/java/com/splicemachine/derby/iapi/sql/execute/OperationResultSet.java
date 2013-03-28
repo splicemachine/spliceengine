@@ -1,0 +1,358 @@
+package com.splicemachine.derby.iapi.sql.execute;
+
+import com.google.common.base.Preconditions;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultDescription;
+import org.apache.derby.iapi.sql.ResultSet;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.sql.execute.RowChanger;
+import org.apache.derby.iapi.sql.execute.TargetResultSet;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.log4j.Logger;
+
+import java.sql.SQLWarning;
+import java.sql.Timestamp;
+
+/**
+ * Delegating ResultSet to ensure that operation stacks are re-run when Derby
+ * re-uses an Operation.
+ *
+ * @author Scott Fines
+ * Created on: 3/28/13
+ */
+public class OperationResultSet implements NoPutResultSet {
+    private static final Logger LOG = Logger.getLogger(OperationResultSet.class);
+    private final Activation activation;
+    private final OperationTree operationTree;
+    private final SpliceOperation topOperation;
+    private NoPutResultSet delegate;
+    private boolean closed = false;
+
+    public OperationResultSet(Activation activation,
+                              OperationTree operationTree,
+                              SpliceOperation topOperation){
+        this.activation = activation;
+        this.operationTree = operationTree;
+        this.topOperation = topOperation;
+    }
+
+    @Override
+    public void markAsTopResultSet() {
+        SpliceLogUtils.trace(LOG, "markAsTopResultSet");
+    }
+
+    @Override
+    public void openCore() throws StandardException {
+        SpliceLogUtils.trace(LOG,"openCore");
+        closed=false;
+        if(delegate!=null) delegate.close();
+
+        operationTree.traverse(topOperation);
+        delegate = (NoPutResultSet)operationTree.execute();
+        //open the delegate
+        delegate.openCore();
+    }
+
+    @Override
+    public void reopenCore() throws StandardException {
+        openCore();
+    }
+
+    @Override
+    public ExecRow getNextRowCore() throws StandardException {
+        checkDelegate();
+        return delegate.getNextRowCore();
+    }
+
+    @Override
+    public int getPointOfAttachment() {
+        checkDelegate();
+        return delegate.getPointOfAttachment();
+    }
+
+    @Override
+    public int getScanIsolationLevel() {
+        checkDelegate();
+        return delegate.getScanIsolationLevel();
+    }
+
+    @Override
+    public void setTargetResultSet(TargetResultSet trs) {
+        checkDelegate();
+        delegate.setTargetResultSet(trs);
+    }
+
+    @Override
+    public void setNeedsRowLocation(boolean needsRowLocation) {
+        checkDelegate();
+        delegate.setNeedsRowLocation(needsRowLocation);
+    }
+
+    @Override
+    public double getEstimatedRowCount() {
+        checkDelegate();
+        return delegate.getEstimatedRowCount();
+    }
+
+    @Override
+    public int resultSetNumber() {
+        checkDelegate();
+        return delegate.resultSetNumber();
+    }
+
+    @Override
+    public void setCurrentRow(ExecRow row) {
+        checkDelegate();
+        delegate.setCurrentRow(row);
+    }
+
+    @Override
+    public boolean requiresRelocking() {
+        checkDelegate();
+        return delegate.requiresRelocking();
+    }
+
+    @Override
+    public boolean isForUpdate() {
+        checkDelegate();
+        return delegate.isForUpdate();
+    }
+
+    @Override
+    public void updateRow(ExecRow row, RowChanger rowChanger) throws StandardException {
+        checkDelegate();
+        delegate.updateRow(row, rowChanger);
+    }
+
+    @Override
+    public void markRowAsDeleted() throws StandardException {
+        checkDelegate();
+        delegate.markRowAsDeleted();
+    }
+
+    @Override
+    public void positionScanAtRowLocation(RowLocation rLoc) throws StandardException {
+        checkDelegate();
+        delegate.positionScanAtRowLocation(rLoc);
+    }
+
+    @Override
+    public boolean returnsRows() {
+        checkDelegate();
+        return delegate.returnsRows();
+    }
+
+    @Override
+    public int modifiedRowCount() {
+        checkDelegate();
+        return delegate.modifiedRowCount();
+    }
+
+    @Override
+    public ResultDescription getResultDescription() {
+        checkDelegate();
+        return delegate.getResultDescription();
+    }
+
+    @Override
+    public Activation getActivation() {
+        return activation;
+    }
+
+    @Override
+    public void open() throws StandardException {
+        openCore();
+    }
+
+    @Override
+    public ExecRow getAbsoluteRow(int row) throws StandardException {
+        checkDelegate();
+        return delegate.getAbsoluteRow(row);
+    }
+
+    @Override
+    public ExecRow getRelativeRow(int row) throws StandardException {
+        checkDelegate();
+        return delegate.getRelativeRow(row);
+    }
+
+    @Override
+    public ExecRow setBeforeFirstRow() throws StandardException {
+        checkDelegate();
+        return delegate.setBeforeFirstRow();
+    }
+
+    @Override
+    public ExecRow getFirstRow() throws StandardException {
+        checkDelegate();
+        return delegate.getFirstRow();
+    }
+
+    @Override
+    public ExecRow getNextRow() throws StandardException {
+        checkDelegate();
+        return delegate.getNextRow();
+    }
+
+    @Override
+    public ExecRow getPreviousRow() throws StandardException {
+        checkDelegate();
+        return delegate.getPreviousRow();
+    }
+
+    @Override
+    public ExecRow getLastRow() throws StandardException {
+        checkDelegate();
+        return delegate.getLastRow();
+    }
+
+    @Override
+    public ExecRow setAfterLastRow() throws StandardException {
+        checkDelegate();
+        return delegate.setAfterLastRow();
+    }
+
+    @Override
+    public void clearCurrentRow() {
+        checkDelegate();
+        delegate.clearCurrentRow();
+    }
+
+    @Override
+    public boolean checkRowPosition(int isType) throws StandardException {
+        checkDelegate();
+        return delegate.checkRowPosition(isType);
+    }
+
+    @Override
+    public int getRowNumber() {
+        checkDelegate();
+        return delegate.getRowNumber();
+    }
+
+    @Override
+    public void close() throws StandardException {
+        if(delegate!=null)delegate.close();
+        closed=true;
+    }
+
+    @Override
+    public void cleanUp() throws StandardException {
+        checkDelegate();
+        delegate.cleanUp();
+    }
+
+    @Override
+    public boolean isClosed() {
+        return closed;
+    }
+
+    @Override
+    public void finish() throws StandardException {
+        checkDelegate();
+        delegate.finish();
+    }
+
+    @Override
+    public long getExecuteTime() {
+        checkDelegate();
+        return delegate.getExecuteTime();
+    }
+
+    @Override
+    public Timestamp getBeginExecutionTimestamp() {
+        checkDelegate();
+        return delegate.getBeginExecutionTimestamp();
+    }
+
+    @Override
+    public Timestamp getEndExecutionTimestamp() {
+        checkDelegate();
+        return delegate.getEndExecutionTimestamp();
+    }
+
+    @Override
+    public long getTimeSpent(int type) {
+        checkDelegate();
+        return delegate.getTimeSpent(type);
+    }
+
+    @Override
+    public NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries) {
+        checkDelegate();
+        return delegate.getSubqueryTrackingArray(numSubqueries);
+    }
+
+    @Override
+    public ResultSet getAutoGeneratedKeysResultset() {
+        checkDelegate();
+        return delegate.getAutoGeneratedKeysResultset();
+    }
+
+    @Override
+    public String getCursorName() {
+        checkDelegate();
+        return delegate.getCursorName();
+    }
+
+    @Override
+    public void addWarning(SQLWarning w) {
+        checkDelegate();
+        delegate.addWarning(w);
+    }
+
+    @Override
+    public SQLWarning getWarnings() {
+        checkDelegate();
+        return delegate.getWarnings();
+    }
+
+    @Override
+    public boolean needsRowLocation() {
+        checkDelegate();
+        return delegate.needsRowLocation();
+    }
+
+    @Override
+    public void rowLocation(RowLocation rl) throws StandardException {
+        checkDelegate();
+        delegate.rowLocation(rl);
+    }
+
+    @Override
+    public DataValueDescriptor[] getNextRowFromRowSource() throws StandardException {
+        checkDelegate();
+        return delegate.getNextRowFromRowSource();
+    }
+
+    @Override
+    public boolean needsToClone() {
+        checkDelegate();
+        return delegate.needsToClone();
+    }
+
+    @Override
+    public FormatableBitSet getValidColumns() {
+        checkDelegate();
+        return delegate.getValidColumns();
+    }
+
+    @Override
+    public void closeRowSource() {
+        checkDelegate();
+        delegate.closeRowSource();
+    }
+
+
+    /*private helper methods*/
+    private void checkDelegate() {
+        Preconditions.checkNotNull(delegate,
+                "No Delegate Result Set provided, please ensure open() or openCore() was called");
+    }
+}
