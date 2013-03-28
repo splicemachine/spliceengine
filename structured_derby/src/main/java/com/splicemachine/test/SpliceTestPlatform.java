@@ -83,8 +83,11 @@ public class SpliceTestPlatform extends TestConstants {
 				SpliceIndexManagementEndpoint.class.getCanonicalName() + "," + 
 				SpliceIndexEndpoint.class.getCanonicalName() + "," + 
 				TransactionalManagerRegionObserver.class.getCanonicalName() + "," + 
-				TransactionalRegionObserver.class.getCanonicalName() + "," +
-				SIObserver.class.getCanonicalName()
+				TransactionalRegionObserver.class.getCanonicalName() 
+				//comment out SIObserver for now, and when SI is ready, 
+				//uncomment it out and comment out the above old transaction observers
+				//+ "," +
+				//SIObserver.class.getCanonicalName()
 				);
 	
 	
