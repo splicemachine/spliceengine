@@ -1,11 +1,13 @@
 package org.apache.derby.impl.sql.execute.operations.joins;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.splicemachine.derby.test.DerbyTestRule;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+
 import junit.framework.Assert;
+
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
@@ -13,12 +15,11 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.splicemachine.derby.test.DerbyTestRule;
 
 /**
  * @author Scott Fines
@@ -45,7 +46,6 @@ public class SimpleJoinTest {
 	public static void setup() throws Exception{
 		DerbyTestRule.start();
 		rule.createTables();
-
 		insertData();
 	}
 

@@ -2,8 +2,8 @@ package org.apache.derby.impl.sql.execute.operations.joins;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.Map;
+
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -11,25 +11,25 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
+import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.DerbyTestRule;
 
 public class OuterJoinTest extends BaseJoinTest {
 	private static Logger LOG = Logger.getLogger(OuterJoinTest.class);
 	
-	private static final Map<String,String> tableMap;
+	private static final Map<String,String> tableMap = Maps.newHashMap();
 	static{
-		Map<String,String> tMap = new HashMap<String,String>();
-		tMap.put("f","si varchar(40), sa varchar(40)");
-		tMap.put("g","si varchar(40), sa varchar(40)");
-		tableMap = tMap;
+		tableMap.put("f","si varchar(40), sa varchar(40)");
+		tableMap.put("g","si varchar(40), sa varchar(40)");
 	}
+	
 	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,false,LOG);
 	
 	@BeforeClass
 	public static void startup() throws Exception{
 		DerbyTestRule.start();
 		rule.createTables();
-		createData("f","g",rule);
+		insertData("f","g",rule);
 	}
 	
 	@AfterClass
