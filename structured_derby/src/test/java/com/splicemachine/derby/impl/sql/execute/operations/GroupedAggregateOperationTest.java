@@ -21,6 +21,7 @@ import org.apache.derby.impl.sql.compile.ResultColumn;
 import org.apache.derby.impl.sql.execute.AggregatorInfo;
 import org.apache.derby.impl.sql.execute.AggregatorInfoList;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
@@ -38,6 +39,7 @@ public class GroupedAggregateOperationTest {
     DataValueFactory dataValueFactory = new J2SEDataValueFactory();
 
     @Test
+    @Ignore
     public void testAggregatesProperly() throws Exception{
         int aggregateItem = 4;
         int orderingItem = 3;
