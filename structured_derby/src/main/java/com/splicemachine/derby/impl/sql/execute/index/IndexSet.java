@@ -314,8 +314,13 @@ public class IndexSet {
             throw new IndexNotSetUpException("Unable to initialize index management for table "+ conglomId+" within a sufficient period." +
                     " Please wait a bit and try again");
         }
+        boolean autoCommitOriginally = false;
         try{
             connection = SpliceDriver.driver().embedConnPool().acquire();
+            if (SpliceUtils.useSi) {
+                autoCommitOriginally = connection.getAutoCommit();
+                connection.setAutoCommit(false);
+            }
             LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
             SpliceUtils.setThreadContext(lcc);
             DataDictionary dataDictionary = lcc.getDataDictionary();
@@ -403,12 +408,23 @@ public class IndexSet {
             initializationLock.unlock();
 
             //release our connection
-            if(connection!=null){
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    SpliceLogUtils.error(LOG,"Unable to close index connection",e);
+            try {
+                if (connection != null) {
+                    try {
+                        if (!connection.isClosed()) {
+                            if (SpliceUtils.useSi) {
+                                connection.commit();
+                            }
+                            connection.close();
+                        }
+                    } finally {
+                        if (SpliceUtils.useSi) {
+                            connection.setAutoCommit(autoCommitOriginally);
+                        }
+                    }
                 }
+            } catch (SQLException e) {
+                SpliceLogUtils.error(LOG, "Unable to close index connection", e);
             }
         }
     }

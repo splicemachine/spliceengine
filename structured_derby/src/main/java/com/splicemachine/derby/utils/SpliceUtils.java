@@ -237,6 +237,7 @@ public class SpliceUtils {
      * @param txnId the transaction id to attach.
      */
     public static void attachTransaction(OperationWithAttributes op, String txnId) {
+        if (txnId != null) {
         if(op instanceof Get)
             getTransactionGetsPuts().prepGet(txnId,(Get)op);
         else if(op instanceof Put)
@@ -245,6 +246,7 @@ public class SpliceUtils {
             getTransactionGetsPuts().prepDelete(txnId,(Delete)op);
         else
             getTransactionGetsPuts().prepScan(txnId, (Scan) op);
+        }
     }
 
     public static void handleNullsInUpdate(Put put, DataValueDescriptor[] row, FormatableBitSet validColumns) {
