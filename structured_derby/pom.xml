@@ -183,7 +183,15 @@
                             </arguments>
                         </configuration>
                     </plugin>
-                    <!--
+                </plugins>
+		</build>
+	</profile>
+	
+	<profile>
+            <id>splice-java</id>
+            <activation><property><name>splice-java</name></property></activation>
+            <build>
+                <plugins>            
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
@@ -204,12 +212,10 @@
                             </arguments>
                         </configuration>
                     </plugin>
-                    -->
                 </plugins>
-	</build>
-		
-	
+		</build>
 	</profile>
+	
 	<profile>
 	<id>ij</id>
 	<activation><property><name>ij</name></property></activation>
