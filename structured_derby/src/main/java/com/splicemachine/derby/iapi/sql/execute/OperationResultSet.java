@@ -42,6 +42,9 @@ public class OperationResultSet implements NoPutResultSet {
         this.topOperation = topOperation;
     }
 
+    public SpliceOperation getTopOperation() {
+        return topOperation;
+    }
     @Override
     public void markAsTopResultSet() {
         SpliceLogUtils.trace(LOG, "markAsTopResultSet");

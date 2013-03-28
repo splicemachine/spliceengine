@@ -1,5 +1,6 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.utils.SerializingExecRow;
 import com.splicemachine.derby.utils.SerializingIndexRow;
@@ -142,7 +143,14 @@ public class SpliceObserverInstructions implements Externalizable {
                 if(ResultSet.class.isAssignableFrom(field.getType())){
                     try {
                         if(!field.isAccessible())field.setAccessible(true); //make it accessible to me
-                        SpliceOperation op = (SpliceOperation)field.get(activation);
+
+                        final Object fieldValue = field.get(activation);
+                        SpliceOperation op;
+                        if (fieldValue instanceof OperationResultSet) {
+                            op = ((OperationResultSet) fieldValue).getTopOperation();
+                        } else {
+                            op = (SpliceOperation) fieldValue;
+                        }
                         for(int i=0;i<operations.size();i++){
                             if(op == operations.get(i)){
                                 setOps.put(field.getName(),i);
