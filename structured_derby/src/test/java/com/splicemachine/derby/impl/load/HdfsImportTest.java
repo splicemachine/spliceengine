@@ -39,7 +39,6 @@ public class HdfsImportTest {
 	}
 
 	@Test
-//    @Ignore
 	public void testHdfsImport() throws Exception{
 		String baseDir = System.getProperty("user.dir");
 		testImport("t",getBaseDirectory()+"importTest.in","NAME,TITLE,AGE");
@@ -199,7 +198,6 @@ public class HdfsImportTest {
     }
 	
 	@Test
-    @Ignore
 	public void testCallScript() throws Exception{
 		ResultSet rs = rule.getConnection().getMetaData().getColumns(null, "SYS","SYSSCHEMAS",null);
 		Map<String,Integer>colNameToTypeMap = Maps.newHashMap();
