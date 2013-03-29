@@ -1,9 +1,11 @@
 package org.apache.derby.impl.sql.execute.operations.joins;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.io.FileInputStream;
+import java.sql.*;
 import java.util.Map;
 
+import com.splicemachine.homeless.TestUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -17,23 +19,27 @@ import com.splicemachine.derby.test.DerbyTestRule;
 public class InnerJoinTest extends BaseJoinTest {
 	private static Logger LOG = Logger.getLogger(InnerJoinTest.class);
 	private static final Map<String,String> tableMap = Maps.newHashMap();
-	static{
-		tableMap.put("cc","si varchar(40), sa varchar(40)");
-		tableMap.put("dd","si varchar(40), sa varchar(40)");
-	}
-	
-	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,false,LOG);
-	
+
+    static {
+        tableMap.put("cc", "si varchar(40), sa varchar(40)");
+        tableMap.put("dd", "si varchar(40), sa varchar(40)");
+    }
+
+    @Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,false,LOG);
+
 	@BeforeClass
 	public static void startup() throws Exception{
 		DerbyTestRule.start();
 		rule.createTables();
 		insertData("cc","dd",rule);
+        TestUtils.executeSqlFile(rule.getConnection(), "small_msdatasample/startup.sql");
 	}
 	
 	@AfterClass
 	public static void shutdown() throws Exception{
 		rule.dropTables();
+        String sqlStatementStrings = IOUtils.toString(new FileInputStream(TestUtils.getBaseDirectory() + "small_msdatasample/shutdown.sql"));
+        TestUtils.executeSqlFile(rule.getConnection(), "small_msdatasample/shutdown.sql");
 		DerbyTestRule.shutdown();
 	}
 	
@@ -72,4 +78,10 @@ public class InnerJoinTest extends BaseJoinTest {
 		Assert.assertEquals(9, j);
 	}
 
+    @Test(expected = java.sql.SQLException.class)
+    public void testThreeTableJoin() throws SQLException {
+        rule.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name " +
+                "from order_line t1, customer t2, item t3 " +
+                "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id");
+    }
 }
