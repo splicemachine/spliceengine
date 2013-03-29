@@ -35,8 +35,16 @@ public class SiBrowser {
             System.out.println(beginTimestamp + " " + status + " " + commitTimestamp);
         }
 
-        System.out.println("table contents");
-        HTable cTable = new HTable("1168");
+        //dumpTable("conglomerates", "16");
+
+        //dumpTable("p", "1184");
+    }
+
+    private static void dumpTable(String tableName, String tableId) throws IOException {
+        Scan scan;ResultScanner scanner;Iterator<Result> results;
+        System.out.println("------------------");
+        System.out.println(tableName);
+        HTable cTable = new HTable(tableId);
         scan = new Scan();
         scan.setMaxVersions();
         scanner = cTable.getScanner(scan);

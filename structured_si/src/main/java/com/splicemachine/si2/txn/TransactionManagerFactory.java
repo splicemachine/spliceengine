@@ -13,8 +13,8 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import java.io.IOException;
 
 public class TransactionManagerFactory implements ITransactionManagerFactory {
-    private static ITransactionManager transactionManager;
-    private static Transactor transactor;
+    private static volatile ITransactionManager transactionManager;
+    private static volatile Transactor transactor;
 
     @Override
     public void init() {

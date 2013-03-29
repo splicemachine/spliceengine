@@ -17,7 +17,7 @@ import org.apache.hadoop.hbase.client.HTablePool;
 
 public class TransactorFactory {
     private static Transactor defaultTransactor;
-    private static HTablePool hTablePool;
+    private static volatile HTablePool hTablePool;
 
     public static void setDefaultTransactor(Transactor transactorToUse) {
         defaultTransactor = transactorToUse;
