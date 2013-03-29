@@ -122,7 +122,7 @@ public class IndexManager {
             writeBuffer.flushBuffer();
             writeBuffer.close();
         } catch (Exception e) {
-            throw new IOException(e);
+            throw Exceptions.getIOException(e);
         }
     }
 

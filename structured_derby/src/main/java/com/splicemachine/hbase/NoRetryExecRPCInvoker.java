@@ -2,6 +2,7 @@ package com.splicemachine.hbase;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.RemoteExceptionHandler;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.ServerCallable;
 import org.apache.hadoop.hbase.client.coprocessor.Exec;
@@ -112,7 +113,8 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
             t = t.getCause();
         }
         if (t instanceof RemoteException) {
-            t =((RemoteException) t).unwrapRemoteException();
+            RemoteException re = (RemoteException)t;
+            t = RemoteExceptionHandler.decodeRemoteException(re);
         }
         if (t instanceof DoNotRetryIOException) {
             throw (DoNotRetryIOException)t;
