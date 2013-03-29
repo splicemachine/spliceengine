@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Writables;
+import org.apache.hadoop.ipc.RemoteException;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -603,6 +604,8 @@ public class TableWriter implements WriterStatus{
                     mutations.remove();
                 }catch(IOException ioe){
                     Throwable t = Throwables.getRootCause(ioe);
+                    if(t instanceof RemoteException)
+                        t= ((RemoteException)t).unwrapRemoteException();
                     if(Exceptions.shouldLogStackTrace(t))
                         LOG.info("Error received when trying to write buffer:"+ ioe.getMessage());
                     else
