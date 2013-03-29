@@ -101,6 +101,26 @@ public class SpliceDriver {
         return embeddedConnections;
     }
 
+    public Connection acquireConnection() throws SQLException, InterruptedException {
+        final Connection connection = embeddedConnections.acquire();
+        connection.setAutoCommit(!SpliceUtils.useSi);
+        return connection;
+    }
+
+    public void closeConnection(Connection connection) throws SQLException {
+        if (connection != null) {
+            try {
+                if (!connection.isClosed()) {
+                    if (!connection.getAutoCommit()) {
+                        connection.commit();
+                    }
+                    connection.close();
+                }
+            } finally {
+                //connection.setAutoCommit(true);
+            }
+        }
+    }
 
     public void registerService(Service service){
         this.services.add(service);

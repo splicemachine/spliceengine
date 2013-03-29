@@ -79,7 +79,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 																			instructions.getStatement(),instructions.getTopOperation(), scan);
 			HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
 			SpliceLogUtils.trace(LOG,"Creating RegionScanner");
-            runningConnection = SpliceDriver.driver().embedConnPool().acquire();
+            runningConnection = SpliceDriver.driver().acquireConnection();
 
 			LanguageConnectionContext lcc = runningConnection.unwrap(EmbedConnection.class).getLanguageConnection();
 			SpliceUtils.setThreadContext(lcc);
@@ -100,8 +100,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
         } finally {
             threadLocalEnvironment.set(null);
             try{
-                if(runningConnection!=null)
-                    runningConnection.close();
+                SpliceDriver.driver().closeConnection(runningConnection);
             }catch(SQLException e){
                 //should never happen in a pooled operation
                 throw new IOException(e);
