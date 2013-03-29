@@ -13,6 +13,8 @@ public class Qualifiers {
     public static Qualifier getQualifier(String qualifierType,int resultPosition,Map<String,Object> qualifierConfig){
         if(IntRange.class.getSimpleName().equalsIgnoreCase(qualifierType)){
             return IntRange.create(resultPosition,qualifierConfig);
+        }else if(BlockRange.class.getSimpleName().equalsIgnoreCase(qualifierType)){
+            return BlockRange.create(resultPosition,qualifierConfig);
         }
 
         throw new AssertionError("Unknown Qualifier: "+ qualifierType);
