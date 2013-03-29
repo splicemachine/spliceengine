@@ -18,7 +18,7 @@ import java.util.Map;
  *         Created on: 3/8/13
  */
 public class NonNullConstraintTest {
-    private static final Logger LOG = Logger.getLogger(UniqueIndexTest.class);
+    private static final Logger LOG = Logger.getLogger(NonNullConstraintTest.class);
 
     private static final Map<String,String> tableMap = Maps.newHashMap();
     static{

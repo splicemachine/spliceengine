@@ -17,7 +17,7 @@ import java.util.Map;
  *         Created on: 3/8/13
  */
 public class NonUniqueIndexTest {
-    private static final Logger LOG = Logger.getLogger(UniqueIndexTest.class);
+    private static final Logger LOG = Logger.getLogger(NonUniqueIndexTest.class);
 
     private static final Map<String,String> tableMap = Maps.newHashMap();
     static{
