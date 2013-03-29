@@ -316,11 +316,7 @@ public class IndexSet {
         }
         boolean autoCommitOriginally = false;
         try{
-            connection = SpliceDriver.driver().embedConnPool().acquire();
-            if (SpliceUtils.useSi) {
-                autoCommitOriginally = connection.getAutoCommit();
-                connection.setAutoCommit(false);
-            }
+            connection = SpliceDriver.driver().acquireConnection();
             LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
             SpliceUtils.setThreadContext(lcc);
             DataDictionary dataDictionary = lcc.getDataDictionary();
@@ -409,20 +405,7 @@ public class IndexSet {
 
             //release our connection
             try {
-                if (connection != null) {
-                    try {
-                        if (!connection.isClosed()) {
-                            if (SpliceUtils.useSi) {
-                                connection.commit();
-                            }
-                            connection.close();
-                        }
-                    } finally {
-                        if (SpliceUtils.useSi) {
-                            connection.setAutoCommit(autoCommitOriginally);
-                        }
-                    }
-                }
+                SpliceDriver.driver().closeConnection(connection);
             } catch (SQLException e) {
                 SpliceLogUtils.error(LOG, "Unable to close index connection", e);
             }

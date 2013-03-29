@@ -85,7 +85,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			topOperation = soi.getTopOperation();
 
             //TODO -sf- timed backoffs here?
-            Connection connection = SpliceDriver.driver().embedConnPool().acquire();
+            Connection connection = SpliceDriver.driver().acquireConnection();
 			LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
 			SpliceUtils.setThreadContext(lcc);
 

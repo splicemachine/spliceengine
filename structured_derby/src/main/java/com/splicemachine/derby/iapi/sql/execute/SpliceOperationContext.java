@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.error.SpliceStandardException;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -115,12 +116,11 @@ public class SpliceOperationContext {
             throw new DoNotRetryIOException(new SpliceStandardException(e).getTextMessage());
         }
         }finally{
-            if(connection!=null){
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    throw new DoNotRetryIOException(e.getMessage());
-                }
+            try {
+                getLanguageConnectionContext().popStatementContext(getLanguageConnectionContext().getStatementContext(), null);
+                SpliceDriver.driver().closeConnection(connection);
+            } catch (SQLException e) {
+                throw new DoNotRetryIOException(e.getMessage(), e);
             }
         }
     }
