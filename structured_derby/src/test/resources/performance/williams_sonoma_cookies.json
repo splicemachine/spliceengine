@@ -87,7 +87,7 @@
     "queries":[
         {
             "query":"select * from web_log where cookie_id = ?",
-            "samples":1000,
+            "samples":0,
             "threads":1,
             "qualifiers": [
                 {
@@ -105,6 +105,32 @@
                 "profile_id":2
             }
             */
+        },
+        {
+            "query": "select count(*) from web_log where cookie_id < ? and cookie_id >= ?",
+            "samples": 11,
+            "threads": 1,
+            "qualifiers": [
+                {
+                    "qualifierType": "blockRange",
+                    "resultPosition": 1,
+                    "qualifierConfig": {
+                        "start": 100,
+                        "range": 100
+                    }
+                },
+                {
+                    "qualifierType": "blockRange",
+                    "resultPosition": 2,
+                    "qualifierConfig": {
+                        "start": 0,
+                        "range": 100
+                    }
+                }
+            ],
+            "printColumns":{
+                "count":1
+            }
         }
     ]
 }

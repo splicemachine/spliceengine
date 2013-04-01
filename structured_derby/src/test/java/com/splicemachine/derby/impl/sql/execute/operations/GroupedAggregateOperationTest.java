@@ -14,17 +14,14 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.iapi.types.J2SEDataValueFactory;
-import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.impl.sql.GenericResultDescription;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
-import org.apache.derby.impl.sql.compile.ResultColumn;
 import org.apache.derby.impl.sql.execute.AggregatorInfo;
 import org.apache.derby.impl.sql.execute.AggregatorInfoList;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.lang.reflect.Method;
 import java.sql.Types;
 
 import static org.mockito.Matchers.any;

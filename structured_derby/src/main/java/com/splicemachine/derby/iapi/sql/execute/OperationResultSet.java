@@ -23,6 +23,15 @@ import java.sql.Timestamp;
  * Delegating ResultSet to ensure that operation stacks are re-run when Derby
  * re-uses an Operation.
  *
+ * This is necessary to ensure that the OperationTree is re-traversed when the Activation changes.
+ * When using PreparedStatements, Derby will construct a ResultSet entity only once, and then
+ * repeatedly call open() on it each time the activation changes and it needs to be re-executed. This
+ * means that each time open() is called, we must assume that the Activation has changed, and re-execute
+ * the operation stack. This class wraps out that behavior.
+ *
+ * This class is <em>not</em> thread-safe, and should <em>never</em> be used by more than one thread
+ * simultaneously.
+ *
  * @author Scott Fines
  * Created on: 3/28/13
  */
@@ -48,6 +57,8 @@ public class OperationResultSet implements NoPutResultSet {
     @Override
     public void markAsTopResultSet() {
         SpliceLogUtils.trace(LOG, "markAsTopResultSet");
+//        checkDelegate();
+//        delegate.markAsTopResultSet();
     }
 
     @Override
@@ -352,8 +363,9 @@ public class OperationResultSet implements NoPutResultSet {
         delegate.closeRowSource();
     }
 
-
+/*********************************************************************************************************************/
     /*private helper methods*/
+
     private void checkDelegate() {
         Preconditions.checkNotNull(delegate,
                 "No Delegate Result Set provided, please ensure open() or openCore() was called");

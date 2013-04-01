@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -196,7 +197,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		@Override public void remove() { throw new UnsupportedOperationException(); }
 
 		@Override
-		public void open() {
+		public void open()  {
 			SpliceLogUtils.trace(LOG, "open");
 			try {
 				source.openCore();
@@ -228,7 +229,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                     SinkStats stats = sink();
                     rowsModified = (int)stats.getProcessStats().getTotalRecords();
                 }catch(IOException ioe){
-                    SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
+                    if(Exceptions.shouldLogStackTrace(ioe)){
+                        SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
+                    }else
+                        throw new RuntimeException(ioe);
                 }
 			}
 		}

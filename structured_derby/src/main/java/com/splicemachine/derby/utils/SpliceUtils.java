@@ -167,7 +167,7 @@ public class SpliceUtils {
 		return gson.fromJson(json, instanceClass);
 	}
 
-    public static Get createGet(String transactionId, byte[] row) {
+    public static Get createGet(String transactionId, byte[] row) throws IOException {
         Get get = new Get(row);
         if (transactionId != null) {
             getTransactionGetsPuts().prepGet(transactionId, get);
@@ -236,7 +236,7 @@ public class SpliceUtils {
      * @param op the operation to attach to.
      * @param txnId the transaction id to attach.
      */
-    public static void attachTransaction(OperationWithAttributes op, String txnId) {
+    public static void attachTransaction(OperationWithAttributes op, String txnId) throws IOException {
         if (txnId != null) {
         if(op instanceof Get)
             getTransactionGetsPuts().prepGet(txnId,(Get)op);

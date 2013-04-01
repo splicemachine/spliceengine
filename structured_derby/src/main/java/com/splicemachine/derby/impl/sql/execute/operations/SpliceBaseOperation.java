@@ -140,8 +140,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		operationParams = activation.getParameterValueSet().getClone();
 		
 		
-		SpliceLogUtils.trace(LOG,"begine compile time="+activation.getPreparedStatement().getBeginCompileTimestamp()
-				+",end compile time="+activation.getPreparedStatement().getEndCompileTimestamp());
+//		SpliceLogUtils.trace(LOG,"begine compile time="+activation.getPreparedStatement().getBeginCompileTimestamp()
+//				+",end compile time="+activation.getPreparedStatement().getEndCompileTimestamp());
 		
 		if (activation.getLanguageConnectionContext().getStatementContext() == null) {
 			SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
