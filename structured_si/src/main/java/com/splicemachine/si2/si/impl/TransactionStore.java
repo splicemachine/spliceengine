@@ -32,9 +32,9 @@ public class TransactionStore {
     }
 
     public void recordNewTransaction(TransactionId startTransactionTimestamp, boolean allowWrites,
-                                     TransactionStatus status)
+                                     boolean readUncommitted, boolean readCommitted, TransactionStatus status)
             throws IOException {
-        writePut(makeCreateTuple(startTransactionTimestamp, allowWrites, status));
+        writePut(makeCreateTuple(startTransactionTimestamp, allowWrites, readUncommitted, readCommitted, status));
     }
 
     public void recordTransactionCommit(TransactionId startTransactionTimestamp, long commitTransactionTimestamp,
@@ -66,17 +66,25 @@ public class TransactionStore {
                 if (commitValue != null) {
                     commitTimestamp = (Long) dataLib.decode(commitValue, Long.class);
                 }
-                final Object allowWritesValue = dataLib.getResultValue(resultTuple, encodedSchema.siFamily, encodedSchema.allowWritesQualifier);
-                Boolean allowWrites = false;
-                if (allowWritesValue != null) {
-                    allowWrites = (Boolean) dataLib.decode(allowWritesValue, Boolean.class);
-                }
-                return new TransactionStruct(transactionId.getId(), allowWrites, status, commitTimestamp);
+                return new TransactionStruct(transactionId.getId(),
+                        getBooleanFieldFromResult(resultTuple, encodedSchema.allowWritesQualifier),
+                        getBooleanFieldFromResult(resultTuple, encodedSchema.readUncommittedQualifier),
+                        getBooleanFieldFromResult(resultTuple, encodedSchema.readCommittedQualifier),
+                        status, commitTimestamp);
             }
         } finally {
             reader.close(transactionSTable);
         }
         throw new RuntimeException("transaction ID not found");
+    }
+
+    private Boolean getBooleanFieldFromResult(Object resultTuple, Object qualifier) {
+        final Object value = dataLib.getResultValue(resultTuple, encodedSchema.siFamily, qualifier);
+        Boolean result = false;
+        if (value != null) {
+            result = (Boolean) dataLib.decode(value, Boolean.class);
+        }
+        return result;
     }
 
     private Object makeStatusUpdateTuple(TransactionId transactionId, TransactionStatus newStatus) {
@@ -85,10 +93,13 @@ public class TransactionStore {
         return put;
     }
 
-    private Object makeCreateTuple(TransactionId transactionId, boolean allowWrites, TransactionStatus status) {
+    private Object makeCreateTuple(TransactionId transactionId, boolean allowWrites, boolean readUncommitted,
+                                   boolean readCommitted, TransactionStatus status) {
         Object put = makeBasePut(transactionId);
         addFieldToPut(put, encodedSchema.startQualifier, transactionId.getId());
         addFieldToPut(put, encodedSchema.allowWritesQualifier, allowWrites);
+        addFieldToPut(put, encodedSchema.readUncommittedQualifier, readUncommitted);
+        addFieldToPut(put, encodedSchema.readCommittedQualifier, readCommitted);
         addFieldToPut(put, encodedSchema.statusQualifier, status.ordinal());
         return put;
     }

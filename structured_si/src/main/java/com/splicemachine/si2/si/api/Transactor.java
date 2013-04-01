@@ -9,7 +9,7 @@ import java.io.IOException;
  * The primary interface to the transaction module.
  */
 public interface Transactor {
-    TransactionId beginTransaction(boolean allowWrites) throws IOException;
+    TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
     void commit(TransactionId transactionId) throws IOException;
     void abort(TransactionId transactionId) throws IOException;
     void fail(TransactionId transactionId) throws IOException;

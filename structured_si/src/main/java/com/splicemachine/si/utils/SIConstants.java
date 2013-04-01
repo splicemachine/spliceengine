@@ -12,10 +12,14 @@ public class SIConstants {
 	public static final byte[] TRANSACTION_TABLE_BYTES = TRANSACTION_TABLE.getBytes();
     public static final int TRANSACTION_START_TIMESTAMP_COLUMN = 0;
     public static final int TRANSACTION_ALLOW_WRITES_COLUMN = 1;
-    public static final int TRANSACTION_STATUS_COLUMN = 2;
-    public static final int TRANSACTION_COMMIT_TIMESTAMP_COLUMN = 3;
+    public static final int TRANSACTION_READ_UNCOMMITTED_COLUMN = 2;
+    public static final int TRANSACTION_READ_COMMITTED_COLUMN = 3;
+    public static final int TRANSACTION_STATUS_COLUMN = 4;
+    public static final int TRANSACTION_COMMIT_TIMESTAMP_COLUMN = 5;
     public static final byte[] TRANSACTION_START_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_START_TIMESTAMP_COLUMN);
     public static final byte[] TRANSACTION_ALLOW_WRITES_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_ALLOW_WRITES_COLUMN);
+    public static final byte[] TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_READ_UNCOMMITTED_COLUMN);
+    public static final byte[] TRANSACTION_READ_COMMITTED_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_READ_COMMITTED_COLUMN);
 	public static final byte[] TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_COMMIT_TIMESTAMP_COLUMN);
 	public static final byte[] TRANSACTION_STATUS_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_STATUS_COLUMN);
     public static final String DEFAULT_FAMILY = HBaseConstants.DEFAULT_FAMILY;

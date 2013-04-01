@@ -22,7 +22,7 @@ public class TransactionManager implements ITransactionManager {
 
     public TransactionId beginTransaction() throws KeeperException, InterruptedException, IOException, ExecutionException {
         SpliceLogUtils.trace(LOG, "Begin transaction");
-        return transactor.beginTransaction(true);
+        return transactor.beginTransaction(true, false, false);
     }
 
     public int prepareCommit(final ITransactionState transaction) throws KeeperException, InterruptedException, IOException {

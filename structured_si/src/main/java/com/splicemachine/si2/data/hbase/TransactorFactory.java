@@ -58,6 +58,8 @@ public class TransactorFactory {
         final TransactionSchema transactionSchema = new TransactionSchema(SIConstants.TRANSACTION_TABLE,
                 SIConstants.DEFAULT_FAMILY, SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN,
                 SIConstants.TRANSACTION_ALLOW_WRITES_COLUMN_BYTES,
+                SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES,
+                SIConstants.TRANSACTION_READ_COMMITTED_COLUMN_BYTES,
                 SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN, SIConstants.TRANSACTION_STATUS_COLUMN);
         final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
 

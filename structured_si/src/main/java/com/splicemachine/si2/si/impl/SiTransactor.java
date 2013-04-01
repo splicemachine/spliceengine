@@ -40,9 +40,10 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public TransactionId beginTransaction(boolean allowWrites) throws IOException {
+    public TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException {
         final SiTransactionId transactionId = new SiTransactionId(timestampSource.nextTimestamp());
-        transactionStore.recordNewTransaction(transactionId, allowWrites, TransactionStatus.ACTIVE);
+        transactionStore.recordNewTransaction(transactionId, allowWrites, readUncommitted, readCommitted,
+                TransactionStatus.ACTIVE);
         return transactionId;
     }
 
@@ -283,7 +284,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public FilterState newFilterState(STable table, TransactionId transactionId) throws IOException {
         ensureTransactionActive(transactionId);
-        return new SiFilterState(table, transactionId);
+        return new SiFilterState(table, transactionStore.getTransactionStatus(transactionId));
     }
 
     @Override
@@ -330,10 +331,15 @@ public class SiTransactor implements Transactor, ClientTransactor {
             assert (commitTimestamp == null);
         }
         if (isCommittedBeforeThisTransaction(siFilterState, commitTimestamp)
-                || isThisTransactionsData(siFilterState, dataTimestamp, commitTimestamp)) {
+                || isThisTransactionsData(siFilterState, dataTimestamp, commitTimestamp)
+                || readCommittedAndCommitted(siFilterState, commitTimestamp)) {
             return true;
         }
         return false;
+    }
+
+    private boolean readCommittedAndCommitted(SiFilterState siFilterState, Long commitTimestamp) {
+        return siFilterState.transactionStruct.readCommitted && (commitTimestamp != null);
     }
 
     private boolean isCommittedBeforeThisTransaction(SiFilterState siFilterState, Long commitTimestamp) {

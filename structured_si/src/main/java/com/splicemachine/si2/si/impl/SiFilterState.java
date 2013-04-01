@@ -9,14 +9,16 @@ import java.util.Map;
 public class SiFilterState implements FilterState {
     final STable table;
     final TransactionId transactionId;
+    final TransactionStruct transactionStruct;
 
     Object currentRowKey;
     Map<Long,Long> committedTransactions;
     Object lastValidQualifier; // used to emulate the INCLUDE_AND_NEXT_COLUMN ReturnCode that is in later HBase versions
     Long tombstoneTimestamp = null;
 
-    public SiFilterState(STable table, TransactionId transactionId) {
+    public SiFilterState(STable table, TransactionStruct transactionStruct) {
         this.table = table;
-        this.transactionId = transactionId;
+        this.transactionId = new SiTransactionId(transactionStruct.beginTimestamp);
+        this.transactionStruct = transactionStruct;
     }
 }

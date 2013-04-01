@@ -54,13 +54,13 @@ public class SiFilterTest {
     public void testFiltering() throws Exception {
         final SDataLib dataLib = storeSetup.getDataLib();
         final Transactor transactor = transactorSetup.transactor;
-        final TransactionId t1 = transactor.beginTransaction(true);
+        final TransactionId t1 = transactor.beginTransaction(true, false, false);
         STable table = storeSetup.getReader().open(storeSetup.getPersonTableName());
         final FilterState filterState = transactor.newFilterState(table, t1);
         insertAge(t1, "bill", 20);
         transactor.commit(t1);
 
-        final TransactionId t2 = transactor.beginTransaction(true);
+        final TransactionId t2 = transactor.beginTransaction(true, false, false);
         insertAge(t2, "bill", 30);
 
         Object row = readEntireTuple("bill");
