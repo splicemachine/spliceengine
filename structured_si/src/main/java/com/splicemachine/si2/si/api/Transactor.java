@@ -17,6 +17,8 @@ public interface Transactor {
     boolean processPut(STable table, Object put) throws IOException;
     boolean isFilterNeeded(Object operation);
 
+    TransactionId getTransactionIdFromGet(Object get);
+    TransactionId getTransactionIdFromScan(Object scan);
     FilterState newFilterState(STable table, TransactionId transactionId) throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
     Object filterResult(FilterState filterState, Object result) throws IOException;

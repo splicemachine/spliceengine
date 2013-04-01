@@ -2,6 +2,7 @@ package com.splicemachine.si2.filters;
 
 import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.si.api.FilterState;
+import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.SiTransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -24,9 +25,9 @@ public class SIFilter extends FilterBase {
     public SIFilter() {
     }
 
-    public SIFilter(Transactor transactor, long startTimestamp, STable region) throws IOException {
+    public SIFilter(Transactor transactor, TransactionId transactionId, STable region) throws IOException {
         this.transactor = transactor;
-        this.startTimestamp = startTimestamp;
+        this.startTimestamp = transactionId.getId();
         this.region = region;
         // this call is so that the filter will fail fast if the transaction is no longer active
         transactor.newFilterState(region, new SiTransactionId(startTimestamp));

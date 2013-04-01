@@ -5,6 +5,7 @@ import com.splicemachine.si2.data.api.SScan;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -15,8 +16,8 @@ public interface ClientTransactor {
     TransactionId getTransactionIdFromPut(Object put);
     TransactionId getTransactionIdFromDelete(Delete delete);
 
-    void initializeGet(TransactionId transactionId, SGet get);
-    void initializeGets(TransactionId transactionId, List gets);
+    void initializeGet(TransactionId transactionId, SGet get) throws IOException;
+    void initializeGets(TransactionId transactionId, List gets) throws IOException;
     void initializeScan(TransactionId transactionId, SScan scan);
     void initializePut(TransactionId transactionId, Object put);
 

@@ -10,6 +10,8 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 
+import java.io.IOException;
+
 /**
  * Plugin for the derby code to 'flag' HBase operations for snashot isolation treatment.
  */
@@ -31,7 +33,7 @@ public class SiGetsPuts implements ITransactionGetsPuts {
     }
 
     @Override
-    public void prepGet(String transactionId, Get get) {
+    public void prepGet(String transactionId, Get get) throws IOException {
         HGet sGet = new HGet(get);
         transactor.initializeGet(transactor.transactionIdFromString(transactionId), sGet);
     }

@@ -640,10 +640,58 @@ public class SiTransactorTest {
         dumpStore();
 
         TransactionId t2 = transactor.beginTransaction(false, false, true);
-        transactor.commit(t1);
 
+        Assert.assertEquals("joe20 age=null job=null", read(t2, "joe20"));
+        transactor.commit(t1);
         Assert.assertEquals("joe20 age=20 job=null", read(t2, "joe20"));
         dumpStore();
+    }
+
+    @Test
+    public void writeReadDirty() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe22", 20);
+        dumpStore();
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction(false, true, true);
+        Assert.assertEquals("joe22 age=20 job=null", read(t2, "joe22"));
+        dumpStore();
+    }
+
+    @Test
+    public void writeReadDirtyOverlap() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe21", 20);
+        dumpStore();
+
+        TransactionId t2 = transactor.beginTransaction(false, true, true);
+
+        Assert.assertEquals("joe21 age=20 job=null", read(t2, "joe21"));
+        transactor.commit(t1);
+        Assert.assertEquals("joe21 age=20 job=null", read(t2, "joe21"));
+        dumpStore();
+    }
+
+    @Test
+    public void writeRollbackWriteReadDirtyOverlap() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe23", 20);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction(true, false, false);
+        insertAge(t2, "joe23", 21);
+
+        TransactionId t3 = transactor.beginTransaction(false, true, true);
+        Assert.assertEquals("joe23 age=21 job=null", read(t3, "joe23"));
+
+        transactor.abort(t2);
+        Assert.assertEquals("joe23 age=20 job=null", read(t3, "joe23"));
+
+        TransactionId t4 = transactor.beginTransaction(true, false, false);
+        insertAge(t4, "joe23", 22);
+        dumpStore();
+        Assert.assertEquals("joe23 age=22 job=null", read(t3, "joe23"));
     }
 
     @Test

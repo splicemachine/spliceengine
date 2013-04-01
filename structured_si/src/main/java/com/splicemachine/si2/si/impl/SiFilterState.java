@@ -5,6 +5,7 @@ import com.splicemachine.si2.si.api.FilterState;
 import com.splicemachine.si2.si.api.TransactionId;
 
 import java.util.Map;
+import java.util.Set;
 
 public class SiFilterState implements FilterState {
     final STable table;
@@ -13,6 +14,7 @@ public class SiFilterState implements FilterState {
 
     Object currentRowKey;
     Map<Long,Long> committedTransactions;
+    Set<Long> stillRunningTransactions;
     Object lastValidQualifier; // used to emulate the INCLUDE_AND_NEXT_COLUMN ReturnCode that is in later HBase versions
     Long tombstoneTimestamp = null;
 
