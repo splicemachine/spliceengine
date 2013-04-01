@@ -10,6 +10,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 
 import java.util.List;
+import java.util.Map;
 
 public class HDataLibAdapter implements SDataLib {
     private final IHDataLib dataLib;
@@ -46,6 +47,11 @@ public class HDataLibAdapter implements SDataLib {
     @Override
     public Object getResultValue(Object result, Object family, Object qualifier) {
         return dataLib.getResultValue((Result) result, (byte[]) family, (byte[]) qualifier);
+    }
+
+    @Override
+    public Map getResultFamilyMap(Object result, Object family) {
+        return dataLib.getResultFamilyMap((Result) result, (byte[]) family);
     }
 
     @Override

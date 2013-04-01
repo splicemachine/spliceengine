@@ -36,8 +36,9 @@ public class HStoreSetup implements StoreSetup {
             testCluster.getConfiguration().setStrings(CoprocessorHost.USER_REGION_COPROCESSOR_CONF_KEY, SIObserver.class.getName());
 
             testCluster.startMiniCluster(1);
-            final TestHTableSource tableSource = new TestHTableSource(testCluster, getPersonTableName(), new String[]{"attributes", "_si"});
-            tableSource.addTable(testCluster, SIConstants.TRANSACTION_TABLE, new String[]{"siFamily"});
+            final TestHTableSource tableSource = new TestHTableSource(testCluster, getPersonTableName(),
+                    new String[]{SIConstants.DEFAULT_FAMILY, SIConstants.SNAPSHOT_ISOLATION_FAMILY});
+            tableSource.addTable(testCluster, SIConstants.TRANSACTION_TABLE, new String[]{"siFamily", "siChildrenFamily"});
             return new HStore(tableSource);
         } catch (Exception e) {
             throw new RuntimeException(e);

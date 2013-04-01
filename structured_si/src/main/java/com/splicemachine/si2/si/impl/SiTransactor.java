@@ -49,13 +49,16 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
                                                Boolean readUncommitted, Boolean readCommitted) throws IOException {
-        return beginTransactionDirect(parent, dependent, null, allowWrites, readUncommitted, readCommitted);
+        final TransactionId childTransactionId = beginTransactionDirect(parent, dependent, null, allowWrites, readUncommitted, readCommitted);
+        transactionStore.addChildToTransaction(parent, childTransactionId);
+        return childTransactionId;
     }
 
     private TransactionId beginTransactionDirect(TransactionId parent, Boolean dependent, TransactionStatus status,
                                                  boolean allowWrites, Boolean readUncommitted, Boolean readCommitted) throws IOException {
         final SiTransactionId transactionId = new SiTransactionId(timestampSource.nextTimestamp());
-        transactionStore.recordNewTransaction(transactionId, parent, dependent, allowWrites, readUncommitted, readCommitted, status);
+        transactionStore.recordNewTransaction(transactionId, parent, dependent, allowWrites,
+                readUncommitted, readCommitted, status);
         return transactionId;
     }
 
@@ -87,9 +90,28 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public void commit(TransactionId transactionId) throws IOException {
         ensureTransactionActive(transactionId);
-        transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.COMMITTING);
-        final long endId = timestampSource.nextTimestamp();
-        transactionStore.recordTransactionCommit(transactionId, endId, TransactionStatus.COMMITED);
+        final TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
+        if (transaction.parent == null || !transaction.dependent) {
+            transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.COMMITTING);
+            final long endId = timestampSource.nextTimestamp();
+            transactionStore.recordTransactionCommit(transactionId, endId, TransactionStatus.COMMITED);
+            for (Long childId : transaction.children) {
+                final TransactionStruct childTransaction = transactionStore.getTransactionStatus(childId);
+                final TransactionStatus childStatus = childTransaction.getEffectiveStatus();
+                if (childStatus == TransactionStatus.ACTIVE
+                        || childStatus == TransactionStatus.COMMITED
+                        || childStatus == TransactionStatus.COMMITTING) {
+                    commitChild(childId, endId);
+                }
+            }
+        } else {
+            // perform "local" commit only within the parent transaction
+            transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.COMMITED);
+        }
+    }
+
+    private void commitChild(long childId, long endId) throws IOException {
+        transactionStore.recordTransactionCommit(new SiTransactionId(childId), endId, TransactionStatus.COMMITED);
     }
 
     @Override
@@ -445,7 +467,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     private void rollForward(SiFilterState siFilterState, Object keyValue, TransactionStruct transactionStruct) {
-        dataStore.setCommitTimestamp(siFilterState.table, keyValue, transactionStruct.beginTimestamp, transactionStruct.commitTimestamp);
+        if (transactionStruct.parent == null || !transactionStruct.dependent) {
+            dataStore.setCommitTimestamp(siFilterState.table, keyValue, transactionStruct.beginTimestamp, transactionStruct.commitTimestamp);
+        }
     }
 
     private void cleanupErrors() {

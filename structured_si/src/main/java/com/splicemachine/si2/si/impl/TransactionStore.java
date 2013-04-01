@@ -11,6 +11,9 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class TransactionStore {
     static final Logger LOG = Logger.getLogger(TransactionStore.class);
@@ -31,12 +34,19 @@ public class TransactionStore {
         this.writer = writer;
     }
 
-    public void recordNewTransaction(TransactionId startTransactionTimestamp, TransactionId parent, Boolean dependent,
-                                     boolean allowWrites, Boolean readUncommitted, Boolean readCommitted,
-                                     TransactionStatus status)
+    public void recordNewTransaction(TransactionId startTransactionTimestamp, TransactionId parent,
+                                     Boolean dependent, boolean allowWrites, Boolean readUncommitted,
+                                     Boolean readCommitted, TransactionStatus status)
             throws IOException {
         writePut(makeCreateTuple(startTransactionTimestamp, parent, dependent, allowWrites, readUncommitted,
                 readCommitted, status));
+    }
+
+    public void addChildToTransaction(TransactionId transactionId, TransactionId childTransactionId) throws IOException {
+        Object put = makeBasePut(transactionId);
+        dataLib.addKeyValueToPut(put, encodedSchema.siChildrenFamily, dataLib.encode(childTransactionId.getTransactionID()), null,
+                dataLib.encode(true));
+        writePut(put);
     }
 
     public void recordTransactionCommit(TransactionId startTransactionTimestamp, long commitTransactionTimestamp,
@@ -73,8 +83,14 @@ public class TransactionStore {
                 if (commitValue != null) {
                     commitTimestamp = (Long) dataLib.decode(commitValue, Long.class);
                 }
+                Map childrenMap = dataLib.getResultFamilyMap(resultTuple, encodedSchema.siChildrenFamily);
+                Set<Long> children = new HashSet<Long>();
+                for (Object child : childrenMap.keySet()) {
+                    children.add(Long.valueOf((String) dataLib.decode(child, String.class)));
+                }
+
                 return new TransactionStruct(transactionId.getId(),
-                        parent,
+                        parent, children,
                         getBooleanFieldFromResult(resultTuple, encodedSchema.dependentQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.allowWritesQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.readUncommittedQualifier),
@@ -111,8 +127,8 @@ public class TransactionStore {
         return put;
     }
 
-    private Object makeCreateTuple(TransactionId transactionId, TransactionId parent, Boolean dependent,
-                                   boolean allowWrites, Boolean readUncommitted,
+    private Object makeCreateTuple(TransactionId transactionId, TransactionId parent,
+                                   Boolean dependent, boolean allowWrites, Boolean readUncommitted,
                                    Boolean readCommitted, TransactionStatus status) {
         Object put = makeBasePut(transactionId);
         addFieldToPut(put, encodedSchema.startQualifier, transactionId.getId());

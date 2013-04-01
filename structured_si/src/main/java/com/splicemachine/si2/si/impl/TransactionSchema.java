@@ -5,6 +5,8 @@ import com.splicemachine.si2.data.api.SDataLib;
 public class TransactionSchema {
     final String tableName;
     final Object siFamily;
+    final Object siChildrenFamily;
+
     final Object startQualifier;
     final Object parentQualifier;
     final Object dependentQualifier;
@@ -14,13 +16,15 @@ public class TransactionSchema {
     final Object commitQualifier;
     final Object statusQualifier;
 
-    public TransactionSchema(String tableName, Object siFamily, Object startQualifier, Object parentQualifier,
+    public TransactionSchema(String tableName, Object siFamily, Object siChildrenFamily,
+                             Object startQualifier, Object parentQualifier,
                              Object dependentQualifier,
                              Object allowWritesQualifier, Object readUncommittedQualifier, Object readCommittedQualifier,
                              Object commitQualifier,
                              Object statusQualifier) {
         this.tableName = tableName;
         this.siFamily = siFamily;
+        this.siChildrenFamily = siChildrenFamily;
         this.startQualifier = startQualifier;
         this.parentQualifier = parentQualifier;
         this.dependentQualifier = dependentQualifier;
@@ -34,6 +38,7 @@ public class TransactionSchema {
     public TransactionSchema encodedSchema(SDataLib SDataLib) {
         return new TransactionSchema(tableName,
                 SDataLib.encode(siFamily),
+                SDataLib.encode(siChildrenFamily),
                 SDataLib.encode(startQualifier),
                 SDataLib.encode(parentQualifier),
                 SDataLib.encode(dependentQualifier),
