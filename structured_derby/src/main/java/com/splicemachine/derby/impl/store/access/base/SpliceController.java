@@ -11,14 +11,12 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.store.raw.data.SpaceInformation;
-import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -35,7 +33,7 @@ public abstract class SpliceController implements ConglomerateController {
 	public SpliceController(OpenSpliceConglomerate openSpliceConglomerate, Transaction trans) {
 		this.openSpliceConglomerate = openSpliceConglomerate;
 		try {
-			((SpliceTransaction)trans).setActiveState();
+			((SpliceTransaction)trans).setActiveState(false, false, false, null);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

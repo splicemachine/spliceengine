@@ -21,7 +21,6 @@ import org.apache.derby.iapi.store.raw.xact.TransactionId;
 import org.apache.derby.iapi.types.J2SEDataValueFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
-import org.mortbay.log.Log;
 
 import java.util.Properties;
 
@@ -62,25 +61,25 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		if (this.hbaseStore == hbaseStore) {
 			LOG.error("##############startTransaction, passed in context mgr not the same as current context mgr");
 		}
-		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, transName, false, USER_CONTEXT_ID);
+		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, transName, false, USER_CONTEXT_ID, false, false, null);
 	}
 
-	public Transaction startNestedReadOnlyUserTransaction(HBaseStore hbaseStore, CompatibilitySpace compatibilitySpace,ContextManager contextMgr, String transName) throws StandardException {
+	public Transaction startNestedReadOnlyUserTransaction(HBaseStore hbaseStore, CompatibilitySpace compatibilitySpace,ContextManager contextMgr, String transName, String parentTransactionId) throws StandardException {
 		if (contextMgr != contextFactory.getCurrentContextManager()) 
 			LOG.error("##############startNestedReadOnlyUserTransaction, passed in context mgr not the same as current context mgr");
 		if (this.hbaseStore == hbaseStore) {
 			LOG.error("##############startNestedReadOnlyUserTransaction, passed in context mgr not the same as current context mgr");
 		}
-		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, true, null, false, NESTED_READONLY_USER_CONTEXT_ID);
+		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, true, null, false, NESTED_READONLY_USER_CONTEXT_ID, true, false, parentTransactionId);
 	}
 
-	public Transaction startNestedUpdateUserTransaction(HBaseStore hbaseStore,ContextManager contextMgr, String transName,boolean flush_log_on_xact_end) throws StandardException {
+	public Transaction startNestedUpdateUserTransaction(HBaseStore hbaseStore,ContextManager contextMgr, String transName,boolean flush_log_on_xact_end, String parentTransactionid) throws StandardException {
 		if (contextMgr != contextFactory.getCurrentContextManager()) 
 			LOG.error("##############startNestedUpdateUserTransaction, passed in context mgr not the same as current context mgr");
 		if (this.hbaseStore == hbaseStore) {
 			LOG.error("##############startNestedUpdateUserTransaction, passed in context mgr not the same as current context mgr");
 		}
-		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, transName, false, NESTED_UPDATE_USER_CONTEXT_ID);
+		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, transName, false, NESTED_UPDATE_USER_CONTEXT_ID, true, false, parentTransactionid);
 	}
 
 	public Transaction startGlobalTransaction(HBaseStore hbaseStore,ContextManager contextMgr, int format_id, byte[] global_id,byte[] branch_id) throws StandardException {
@@ -89,7 +88,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		if (this.hbaseStore == hbaseStore) {
 			LOG.error("##############startGlobalTransaction, passed in context mgr not the same as current context mgr");
 		}
-		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, null, false, USER_CONTEXT_ID);
+		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, null, false, USER_CONTEXT_ID, false, false, null);
 	}
 
 	public Transaction findUserTransaction(HBaseStore hbaseStore,ContextManager contextMgr, String transName) throws StandardException {
@@ -101,7 +100,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		SpliceTransactionContext tc = (SpliceTransactionContext)contextMgr.getContext(USER_CONTEXT_ID);
 		if (tc == null) {
 			SpliceLogUtils.debug(LOG, "findUserTransaction, transaction controller is null for UserTransaction");
-			return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, transName, false, USER_CONTEXT_ID);
+			return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, transName, false, USER_CONTEXT_ID, false, false, null);
 		} else {
 			SpliceLogUtils.debug(LOG,"findUserTransaction, transaction controller is NOT null for UserTransaction");
 			return tc.getTransaction();
@@ -114,7 +113,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		if (this.hbaseStore == hbaseStore) {
 			LOG.error("##############startNestedTopTransaction, passed in context mgr not the same as current context mgr");
 		}
-		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, null, true, NTT_CONTEXT_ID);
+		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, null, true, NTT_CONTEXT_ID, false, false, null);
 	}
 
 	public Transaction startInternalTransaction(HBaseStore hbaseStore, ContextManager contextMgr) throws StandardException {
@@ -123,12 +122,12 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		if (this.hbaseStore == hbaseStore) {
 			LOG.error("##############startInternalTransaction, passed in context mgr not the same as current context mgr");
 		}
-		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, null, true, INTERNAL_CONTEXT_ID);
+		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, null, true, INTERNAL_CONTEXT_ID, false, false, null);
 	}
 
 	private SpliceTransaction startCommonTransaction(HBaseStore hbaseStore,
-			ContextManager contextMgr, SpliceLockFactory lockFactory, J2SEDataValueFactory dataValueFactory,
-			boolean readOnly, String transName, boolean abortAll, String contextName) {
+                                                     ContextManager contextMgr, SpliceLockFactory lockFactory, J2SEDataValueFactory dataValueFactory,
+                                                     boolean readOnly, String transName, boolean abortAll, String contextName, boolean nested, boolean dependent, String parentTransactionID) {
         try {
 			//String transPath = config.get(TxnConstants.TRANSACTION_PATH_NAME,TxnConstants.DEFAULT_TRANSACTION_PATH);	
 			//ZkTransactionManager zkTrans = new ZkTransactionManager(transPath, zkw, rzk);
@@ -144,7 +143,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 			
 			SpliceTransactionContext context = new SpliceTransactionContext(contextMgr, contextName, trans, abortAll, hbaseStore);
 			
-			trans.setActiveState();
+			trans.setActiveState(readOnly, nested, dependent, parentTransactionID);
 			SpliceLogUtils.debug(LOG, "transaction type="+context.getIdName()+",transactionID="+trans.getTransactionState().getTransactionID());
 			return trans;
 		} catch (Exception e) {

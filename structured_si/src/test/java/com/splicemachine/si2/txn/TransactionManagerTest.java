@@ -1,10 +1,8 @@
 package com.splicemachine.si2.txn;
 
-import com.splicemachine.si2.HStoreSetup;
 import com.splicemachine.si2.LStoreSetup;
 import com.splicemachine.si2.StoreSetup;
 import com.splicemachine.si2.TransactorSetup;
-import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.TransactionStatus;
@@ -45,7 +43,7 @@ public class TransactionManagerTest {
 
     @Test
     public void beginTransactionTest() throws Exception {
-        TransactionId transactionId = tm.beginTransaction();
+        TransactionId transactionId = tm.beginTransaction(true, false, false, null);
         Assert.assertNotNull(transactionId);
         TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
@@ -54,7 +52,7 @@ public class TransactionManagerTest {
 
     @Test
     public void prepareCommitTest() throws Exception {
-        TransactionId transactionId = tm.beginTransaction();
+        TransactionId transactionId = tm.beginTransaction(true, false, false, null);
         tm.prepareCommit(transactionId);
         Assert.assertNotNull(transactionId);
         TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
@@ -64,7 +62,7 @@ public class TransactionManagerTest {
 
     @Test
     public void doCommitTest() throws Exception {
-        TransactionId transactionId = tm.beginTransaction();
+        TransactionId transactionId = tm.beginTransaction(true, false, false, null);
         tm.doCommit(transactionId);
         TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
@@ -74,7 +72,7 @@ public class TransactionManagerTest {
 
     @Test
     public void tryCommitTest() throws Exception {
-        TransactionId transactionId = tm.beginTransaction();
+        TransactionId transactionId = tm.beginTransaction(true, false, false, null);
         tm.tryCommit(transactionId);
         TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
@@ -84,7 +82,7 @@ public class TransactionManagerTest {
 
     @Test
     public void abortTest() throws Exception {
-        TransactionId transactionId = tm.beginTransaction();
+        TransactionId transactionId = tm.beginTransaction(true, false, false, null);
         tm.abort(transactionId);
         TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);

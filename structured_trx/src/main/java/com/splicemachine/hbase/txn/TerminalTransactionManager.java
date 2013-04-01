@@ -5,8 +5,6 @@ import java.util.concurrent.ExecutionException;
 
 import com.splicemachine.constants.ITransactionState;
 import com.splicemachine.constants.TransactionStatus;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -19,7 +17,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
-import com.splicemachine.hbase.txn.TransactionState;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class TerminalTransactionManager extends TransactionManager {
@@ -47,7 +44,10 @@ public class TerminalTransactionManager extends TransactionManager {
     	this.conf = conf;
 	    this.transactionTable = transactionTable;
     }
-    public TransactionState beginTransaction() throws KeeperException, InterruptedException, IOException, ExecutionException {
+
+    @Override
+    public  TransactionState beginTransaction(boolean allowWrites, boolean nested, boolean dependent, String parentTransactionID)
+            throws KeeperException, InterruptedException, IOException, ExecutionException {
     	SpliceLogUtils.debug(LOG,"Begin transaction.");
     	return new TransactionState(transactionTable.get(new Get(INITIALIZE_TRANSACTION_ID_BYTES)).getRow());
     }

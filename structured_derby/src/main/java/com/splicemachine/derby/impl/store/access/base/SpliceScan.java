@@ -69,7 +69,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		this.stopSearchOperator = stopSearchOperator;
 		this.trans = trans;
 		try {
-			((SpliceTransaction)trans).setActiveState();
+			((SpliceTransaction)trans).setActiveState(false, false, false, null);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

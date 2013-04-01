@@ -21,13 +21,13 @@ public class IsolationLevelTest extends BaseTestOnServer {
 	@Test
 	public void testNonrepeatableRead() throws Exception {
 		LockTestUtils.putSingleCell(htable1, VAL1, null);
-		TransactionState state1 = tm.beginTransaction();
+		TransactionState state1 = tm.beginTransaction(true, false, false, null);
 		byte[] result1 = LockTestUtils.getSingleCell(htable1, state1.getTransactionID(), TransactionIsolationLevel.REPEATABLE_READ);
 		check = false;
 		(new Thread() {
 			public void run() {
 				try {
-					TransactionState state2 = tm.beginTransaction();
+					TransactionState state2 = tm.beginTransaction(true, false, false, null);
 					LockTestUtils.putSingleCell(htable1, VAL2, state2.getTransactionID());
 					Assert.assertTrue(check);
 				} catch (Exception e) {
