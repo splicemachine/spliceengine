@@ -93,6 +93,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         final TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
         if (transaction.parent == null || !transaction.dependent) {
             transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.COMMITTING);
+            // TODO: need to sort out how to take child transactions through COMMITTING state
             final long endId = timestampSource.nextTimestamp();
             transactionStore.recordTransactionCommit(transactionId, endId, TransactionStatus.COMMITED);
             for (Long childId : transaction.children) {
