@@ -40,9 +40,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public TransactionId beginTransaction() throws IOException {
+    public TransactionId beginTransaction(boolean allowWrites) throws IOException {
         final SiTransactionId transactionId = new SiTransactionId(timestampSource.nextTimestamp());
-        transactionStore.recordNewTransaction(transactionId, TransactionStatus.ACTIVE);
+        transactionStore.recordNewTransaction(transactionId, allowWrites, TransactionStatus.ACTIVE);
         return transactionId;
     }
 
@@ -148,6 +148,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         Boolean siNeeded = dataStore.getSiNeededAttribute(put);
         if (siNeeded != null && siNeeded) {
             SiTransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
+            ensureTransactionAllowsWrites(transactionId);
             Object rowKey = dataLib.getPutKey(put);
             SRowLock lock = dataWriter.lockRow(table, rowKey);
             try {
@@ -241,6 +242,13 @@ public class SiTransactor implements Transactor, ClientTransactor {
         TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
         if (!transaction.status.equals(TransactionStatus.ACTIVE)) {
             throw new DoNotRetryIOException("transaction is not ACTIVE");
+        }
+    }
+
+    private void ensureTransactionAllowsWrites(TransactionId transactionId) throws IOException {
+        TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
+        if (!transaction.allowWrites) {
+            throw new DoNotRetryIOException("transaction is read only");
         }
     }
 

@@ -31,9 +31,10 @@ public class TransactionStore {
         this.writer = writer;
     }
 
-    public void recordNewTransaction(TransactionId startTransactionTimestamp, TransactionStatus status)
+    public void recordNewTransaction(TransactionId startTransactionTimestamp, boolean allowWrites,
+                                     TransactionStatus status)
             throws IOException {
-        writePut(makeCreateTuple(startTransactionTimestamp, status));
+        writePut(makeCreateTuple(startTransactionTimestamp, allowWrites, status));
     }
 
     public void recordTransactionCommit(TransactionId startTransactionTimestamp, long commitTransactionTimestamp,
@@ -65,7 +66,12 @@ public class TransactionStore {
                 if (commitValue != null) {
                     commitTimestamp = (Long) dataLib.decode(commitValue, Long.class);
                 }
-                return new TransactionStruct(transactionId.getId(), status, commitTimestamp);
+                final Object allowWritesValue = dataLib.getResultValue(resultTuple, encodedSchema.siFamily, encodedSchema.allowWritesQualifier);
+                Boolean allowWrites = false;
+                if (allowWritesValue != null) {
+                    allowWrites = (Boolean) dataLib.decode(allowWritesValue, Boolean.class);
+                }
+                return new TransactionStruct(transactionId.getId(), allowWrites, status, commitTimestamp);
             }
         } finally {
             reader.close(transactionSTable);
@@ -79,9 +85,10 @@ public class TransactionStore {
         return put;
     }
 
-    private Object makeCreateTuple(TransactionId transactionId, TransactionStatus status) {
+    private Object makeCreateTuple(TransactionId transactionId, boolean allowWrites, TransactionStatus status) {
         Object put = makeBasePut(transactionId);
         addFieldToPut(put, encodedSchema.startQualifier, transactionId.getId());
+        addFieldToPut(put, encodedSchema.allowWritesQualifier, allowWrites);
         addFieldToPut(put, encodedSchema.statusQualifier, status.ordinal());
         return put;
     }

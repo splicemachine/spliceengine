@@ -4,11 +4,9 @@ import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableReader;
-import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.si.api.FilterState;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.txn.TransactionManagerFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,13 +54,13 @@ public class SiFilterTest {
     public void testFiltering() throws Exception {
         final SDataLib dataLib = storeSetup.getDataLib();
         final Transactor transactor = transactorSetup.transactor;
-        final TransactionId t1 = transactor.beginTransaction();
+        final TransactionId t1 = transactor.beginTransaction(true);
         STable table = storeSetup.getReader().open(storeSetup.getPersonTableName());
         final FilterState filterState = transactor.newFilterState(table, t1);
         insertAge(t1, "bill", 20);
         transactor.commit(t1);
 
-        final TransactionId t2 = transactor.beginTransaction();
+        final TransactionId t2 = transactor.beginTransaction(true);
         insertAge(t2, "bill", 30);
 
         Object row = readEntireTuple("bill");
