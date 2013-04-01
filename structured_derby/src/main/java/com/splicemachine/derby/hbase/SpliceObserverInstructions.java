@@ -38,6 +38,8 @@ public class SpliceObserverInstructions implements Externalizable {
 	protected GenericStorablePreparedStatement statement;
 	protected SpliceOperation topOperation;
     private ActivationContext activationContext;
+    // propagate transactionId to all co-processors running operations for this SQL statement
+    private String transactionId;
 
 	public SpliceObserverInstructions() {
 		super();
@@ -57,6 +59,7 @@ public class SpliceObserverInstructions implements Externalizable {
 		this.statement = (GenericStorablePreparedStatement) in.readObject();
 		this.topOperation = (SpliceOperation) in.readObject();
         this.activationContext = (ActivationContext)in.readObject();
+        this.transactionId = (String) in.readObject();
 	}
 
 	@Override
@@ -65,6 +68,7 @@ public class SpliceObserverInstructions implements Externalizable {
 		out.writeObject(statement);
 		out.writeObject(topOperation);
         out.writeObject(activationContext);
+        out.writeObject(transactionId);
 	}
 	/**
 	 * Retrieve the GenericStorablePreparedStatement: This contains the byte code for the activation.
