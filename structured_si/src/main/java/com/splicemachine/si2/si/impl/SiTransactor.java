@@ -394,8 +394,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
             throws IOException {
         final TransactionStruct dataTransaction = transactionStore.getTransactionStatus(dataTimestamp);
         final TransactionStatus dataStatus = dataTransaction.getEffectiveStatus();
-        return (commitTimestamp == null
-                && (dataStatus == TransactionStatus.ACTIVE
+        return ((dataStatus == TransactionStatus.ACTIVE
                 || dataStatus == TransactionStatus.COMMITTING
                 || dataStatus == TransactionStatus.COMMITED)
                 && dataTransaction.getRootBeginTimestamp() == siFilterState.transactionId.getId());
