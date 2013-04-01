@@ -10,6 +10,8 @@ import java.io.IOException;
  */
 public interface Transactor {
     TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
+    TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
+                                        Boolean readUncommitted, Boolean readCommitted) throws IOException;
     void commit(TransactionId transactionId) throws IOException;
     void abort(TransactionId transactionId) throws IOException;
     void fail(TransactionId transactionId) throws IOException;

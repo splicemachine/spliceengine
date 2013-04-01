@@ -6,19 +6,24 @@ public class TransactionSchema {
     final String tableName;
     final Object siFamily;
     final Object startQualifier;
+    final Object parentQualifier;
+    final Object dependentQualifier;
     final Object allowWritesQualifier;
     final Object readUncommittedQualifier;
     final Object readCommittedQualifier;
     final Object commitQualifier;
     final Object statusQualifier;
 
-    public TransactionSchema(String tableName, Object siFamily, Object startQualifier,
+    public TransactionSchema(String tableName, Object siFamily, Object startQualifier, Object parentQualifier,
+                             Object dependentQualifier,
                              Object allowWritesQualifier, Object readUncommittedQualifier, Object readCommittedQualifier,
                              Object commitQualifier,
                              Object statusQualifier) {
         this.tableName = tableName;
         this.siFamily = siFamily;
         this.startQualifier = startQualifier;
+        this.parentQualifier = parentQualifier;
+        this.dependentQualifier = dependentQualifier;
         this.allowWritesQualifier = allowWritesQualifier;
         this.readUncommittedQualifier = readUncommittedQualifier;
         this.readCommittedQualifier = readCommittedQualifier;
@@ -30,6 +35,8 @@ public class TransactionSchema {
         return new TransactionSchema(tableName,
                 SDataLib.encode(siFamily),
                 SDataLib.encode(startQualifier),
+                SDataLib.encode(parentQualifier),
+                SDataLib.encode(dependentQualifier),
                 SDataLib.encode(allowWritesQualifier),
                 SDataLib.encode(commitQualifier),
                 SDataLib.encode(readUncommittedQualifier),
