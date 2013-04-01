@@ -726,6 +726,24 @@ public class SiTransactorTest {
     }
 
     @Test
+    public void multipleChildDependentTransactionWriteRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe26", 20);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t3 = transactor.beginChildTransaction(t1, true, true, null, null);
+        insertAge(t2, "joe26", 21);
+        insertJob(t3, "joe26", "baker");
+        Assert.assertEquals("joe26 age=21 job=baker", read(t1, "joe26"));
+        transactor.commit(t2);
+        transactor.commit(t3);
+        Assert.assertEquals("joe26 age=21 job=baker", read(t1, "joe26"));
+        transactor.commit(t1);
+
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe26 age=21 job=baker", read(t4, "joe26"));
+    }
+
+    @Test
     public void readWriteMechanics() throws Exception {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
