@@ -58,7 +58,7 @@ public class RegionStats {
     }
     
     public long getTotalTimeTakenMs(){
-        return Math.round(totalTimeTaken/1000*1000d);
+        return Math.round(totalTimeTaken/(1000*1000d));
     }
     
     public long getTotalProcessedRecords(){
