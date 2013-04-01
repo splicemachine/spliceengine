@@ -43,9 +43,9 @@ public class TransactionSchema {
                 SDataLib.encode(parentQualifier),
                 SDataLib.encode(dependentQualifier),
                 SDataLib.encode(allowWritesQualifier),
-                SDataLib.encode(commitQualifier),
                 SDataLib.encode(readUncommittedQualifier),
                 SDataLib.encode(readCommittedQualifier),
+                SDataLib.encode(commitQualifier),
                 SDataLib.encode(statusQualifier));
     }
 }
