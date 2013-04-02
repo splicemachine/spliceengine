@@ -62,7 +62,6 @@ public class MultiThreadTest extends SpliceDerbyTest {
 	}
 
 	@Test
-	@Ignore
 	public void testConcurrentStatements() throws SQLException {
 		Thread thread1 = new SelectRecords(conn);
 		thread1.start();
@@ -72,7 +71,6 @@ public class MultiThreadTest extends SpliceDerbyTest {
 	}
 
 	@Test
-	@Ignore
 	public void testConcurrentConnections() throws SQLException {
 		Thread thread1 = new SelectRecords();
 		thread1.start();
