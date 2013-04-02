@@ -35,15 +35,17 @@ public class SIObserver extends BaseRegionObserver {
     private static Logger LOG = Logger.getLogger(SIObserver.class);
     protected HRegion region;
     private boolean tableEnvMatch = false;
+    private String tableName;
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
         region = ((RegionCoprocessorEnvironment) e).getRegion();
+        tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
         tableEnvMatch = (SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.USER_TABLE)
                 || SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.USER_INDEX_TABLE)
                 || SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.DERBY_SYS_TABLE))
-                && !((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString().equals(TxnConstants.TEMP_TABLE);
+                && !tableName.equals(TxnConstants.TEMP_TABLE);
         super.start(e);
     }
 
@@ -57,16 +59,25 @@ public class SIObserver extends BaseRegionObserver {
     public void preGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get, List<KeyValue> results) throws IOException {
         SpliceLogUtils.trace(LOG, "preGet %s", get);
         if (tableEnvMatch && shouldUseSI(new HGet(get))) {
+            Transactor transactor = TransactionManagerFactory.getTransactor();
+            transactor.preProcessGet(new HGet(get));
             assert (get.getMaxVersions() == Integer.MAX_VALUE);
             addSiFilterToGet(e, get);
         }
         super.preGet(e, get, results);
     }
 
+    private void logEvent(String event) {
+        LOG.warn("SIObserver " + event + " " + tableEnvMatch + " " + "_" + " " + tableName + " " + Thread.currentThread().getName() + " " + Thread.currentThread().getId());
+    }
+
+
     @Override
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan, RegionScanner s) throws IOException {
         SpliceLogUtils.trace(LOG, "preScannerOpen %s", scan);
         if (tableEnvMatch && shouldUseSI(new HScan(scan))) {
+            Transactor transactor = TransactionManagerFactory.getTransactor();
+            transactor.preProcessScan(new HScan(scan));
             assert (scan.getMaxVersions() == Integer.MAX_VALUE);
             addSiFilterToScan(e, scan);
         }

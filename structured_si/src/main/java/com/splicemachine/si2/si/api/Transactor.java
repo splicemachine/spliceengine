@@ -1,5 +1,7 @@
 package com.splicemachine.si2.si.api;
 
+import com.splicemachine.si2.data.api.SGet;
+import com.splicemachine.si2.data.api.SScan;
 import com.splicemachine.si2.data.api.STable;
 import org.apache.hadoop.hbase.filter.Filter;
 
@@ -20,7 +22,9 @@ public interface Transactor {
     boolean isFilterNeeded(Object operation);
 
     TransactionId getTransactionIdFromGet(Object get);
+    void preProcessGet(SGet get) throws IOException;
     TransactionId getTransactionIdFromScan(Object scan);
+    void preProcessScan(SScan scan) throws IOException;
     FilterState newFilterState(STable table, TransactionId transactionId) throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
     Object filterResult(FilterState filterState, Object result) throws IOException;

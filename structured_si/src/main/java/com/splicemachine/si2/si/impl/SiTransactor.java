@@ -131,27 +131,28 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     @Override
     public void initializeGet(TransactionId transactionId, SGet get) throws IOException {
-        final TransactionStruct transactionStatus = transactionStore.getTransactionStatus(transactionId);
-        initializeGetDirect(transactionId, get, transactionStatus);
+        initializeGetDirect(transactionId, get);
     }
 
     @Override
     public void initializeGets(TransactionId transactionId, List gets) throws IOException {
-        final TransactionStruct transactionStatus = transactionStore.getTransactionStatus(transactionId);
         for (Object get : gets) {
-            initializeGetDirect(transactionId, (SGet) get, transactionStatus);
+            initializeGetDirect(transactionId, (SGet) get);
         }
     }
 
-    private void initializeGetDirect(TransactionId transactionId, SGet get, TransactionStruct transactionStatus) {
+    private void initializeGetDirect(TransactionId transactionId, SGet get) {
         dataStore.setSiNeededAttribute(get);
         dataStore.setTransactionId((SiTransactionId) transactionId, get);
-        setGetTimeRange(transactionId, transactionStatus.getEffectiveReadUncommitted(),
-                transactionStatus.getEffectiveReadCommitted(), get);
+    }
+
+    @Override
+    public void preProcessGet(SGet get) throws IOException {
+        setGetTimeRange(get);
         dataLib.setGetMaxVersions(get);
     }
 
-    private void setGetTimeRange(TransactionId transactionId, boolean readUncommitted, boolean readCommitted, SGet get) {
+    private void setGetTimeRange(SGet get) {
         dataLib.setGetTimeRange(get, 0, Long.MAX_VALUE);
     }
 
@@ -159,7 +160,11 @@ public class SiTransactor implements Transactor, ClientTransactor {
     public void initializeScan(TransactionId transactionId, SScan scan) {
         dataStore.setSiNeededAttribute(scan);
         dataStore.setTransactionId((SiTransactionId) transactionId, scan);
-        dataLib.setScanTimeRange(scan, 0L, transactionId.getId() + 1);
+    }
+
+    @Override
+    public void preProcessScan(SScan scan) {
+        dataLib.setScanTimeRange(scan, 0L, Long.MAX_VALUE);
         dataLib.setScanMaxVersions(scan);
     }
 
