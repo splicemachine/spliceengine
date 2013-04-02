@@ -28,7 +28,7 @@ public class TransactionManager implements ITransactionManager {
             final TransactionId parentTransaction = ((ClientTransactor) transactor).transactionIdFromString(parentTransactionID);
             return transactor.beginChildTransaction(parentTransaction, dependent, allowWrites, null, null);
         } else {
-            return transactor.beginTransaction(true, false, false);
+            return transactor.beginTransaction(true, false, true);
         }
     }
 
