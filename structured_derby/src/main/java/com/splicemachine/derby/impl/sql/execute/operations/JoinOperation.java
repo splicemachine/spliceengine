@@ -207,4 +207,11 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		rightRow = null;
 		mergedRow = null;
 	}
+
+    @Override
+    public void openCore() throws StandardException {
+        super.openCore();
+        leftResultSet.openCore();
+        rightResultSet.openCore();
+    }
 }

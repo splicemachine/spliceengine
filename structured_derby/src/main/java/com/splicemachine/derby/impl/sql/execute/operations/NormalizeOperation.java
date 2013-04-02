@@ -244,6 +244,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 
 	@Override
 	public void openCore() throws StandardException {
+        super.openCore();
 		if(source!=null) source.openCore();
 	}
 

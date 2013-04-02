@@ -246,7 +246,6 @@ public class TransactionTest extends SpliceDerbyTest {
 	} 
 	
 	@Test
-	@Ignore("Update does not work and generate exception. Needs UpdateOperation be implemented")
 	public void testUpdateRollback() throws SQLException {
 		Statement s = null;
 		ResultSet rs = null;
@@ -325,7 +324,7 @@ public class TransactionTest extends SpliceDerbyTest {
 			Assert.assertFalse(rs.next());
 			
 		} catch (SQLException e) {
-			LOG.error("error during testSelectRollbackData-"+e.getMessage(), e);
+			SpliceLogUtils.info(LOG, "should not be able to select the data from rollback table");
 		} finally {
 			try {
 				if (rs!=null)
@@ -534,7 +533,6 @@ public class TransactionTest extends SpliceDerbyTest {
 	} 
 	
 	@Test
-	@Ignore("Alter Table Add Column needs MiscRsultSet and UpdateResultSet, which have not been implemented")
 	public void testAlterTableAddColumn() throws SQLException {
 		Statement s = null;
 		ResultSet rs = null;

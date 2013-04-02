@@ -231,4 +231,10 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 	public long getRowsOutput() {
 		return getRegionStats() == null ? 0l : getRegionStats().getTotalSunkRecords();
 	}
+
+    @Override
+    public void openCore() throws StandardException {
+        super.openCore();
+        if(source!=null)source.openCore();
+    }
 }

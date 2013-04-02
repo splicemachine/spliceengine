@@ -66,6 +66,7 @@ public class OperationResultSet implements NoPutResultSet {
         SpliceLogUtils.trace(LOG,"openCore");
         closed=false;
         if(delegate!=null) delegate.close();
+        topOperation.openCore();
 
         operationTree.traverse(topOperation);
         delegate = (NoPutResultSet)operationTree.execute();

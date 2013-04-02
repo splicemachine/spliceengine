@@ -73,7 +73,6 @@ public class DataDictionaryOperationTest extends SpliceDerbyTest {
 	}	
 
 	@Test
-	@Ignore("Alter Table Add Column needs MiscRsultSet and UpdateResultSet, which have not been implemented")
 	public void testAlterTableAddColumn() throws SQLException {
 		Statement s = null;
 		ResultSet rs = null;

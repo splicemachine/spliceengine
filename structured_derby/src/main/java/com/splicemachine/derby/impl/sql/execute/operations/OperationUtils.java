@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation.NodeType;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
 
@@ -33,7 +34,7 @@ public class OperationUtils {
 		return ops;
 	}
 
-	public static NoPutResultSet executeScan(SpliceOperation operation,Logger log) {
+	public static NoPutResultSet executeScan(SpliceOperation operation,Logger log) throws StandardException {
 		SpliceLogUtils.trace(log,"executeScan");
 		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
 		operation.generateLeftOperationStack(operationStack);

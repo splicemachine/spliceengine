@@ -42,7 +42,7 @@ public interface SpliceOperation extends NoPutResultSet {
 	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
 	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
 	 */
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow outputRowFormat);
+	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow outputRowFormat) throws StandardException;
 		
 	/**
 	 * Performs the traditional MapReduce shuffle operation for node types of SINK or REDUCE.
