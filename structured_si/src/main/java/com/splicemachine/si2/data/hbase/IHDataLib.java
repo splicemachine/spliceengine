@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.client.RowLock;
 import org.apache.hadoop.hbase.client.Scan;
 
 import java.util.List;
+import java.util.Map;
 
 public interface IHDataLib {
     byte[] newRowKey(Object[] args);
@@ -25,6 +26,7 @@ public interface IHDataLib {
     List listResult(Result result);
     List getResultColumn(Result result, byte[] family, byte[] qualifier);
     byte[] getResultValue(Result result, byte[] family, byte[] qualifier);
+    Map getResultFamilyMap(Result result, byte[] family);
 
     byte[] getKeyValueRow(KeyValue keyValue);
     byte[] getKeyValueFamily(KeyValue keyValue);

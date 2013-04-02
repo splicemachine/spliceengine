@@ -14,7 +14,9 @@ import com.splicemachine.si2.si.impl.TransactionStore;
 
 public class TransactorSetup {
     final TransactionSchema transactionSchema = new TransactionSchema(SIConstants.TRANSACTION_TABLE, "siFamily",
-            "begin", "parent", "dependent", "allowWrites", "readUncommited", "readCommitted", "commit", "status");
+            "siChildrenFamily",
+            "begin", "parent", "dependent", "allowWrites", "readUncommited", "readCommitted", "commit",
+            "status");
     Object family;
     Object ageQualifier;
     Object jobQualifier;

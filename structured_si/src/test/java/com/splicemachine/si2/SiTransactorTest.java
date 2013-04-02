@@ -211,13 +211,11 @@ public class SiTransactorTest {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         Assert.assertEquals("joe9 age=null job=null", read(t1, "joe9"));
         insertAge(t1, "joe9", 20);
-        dumpStore();
         Assert.assertEquals("joe9 age=20 job=null", read(t1, "joe9"));
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction(true, false, false);
         Assert.assertEquals("joe9 age=20 job=null", read(t2, "joe9"));
-        dumpStore();
     }
 
     @Test
@@ -232,7 +230,6 @@ public class SiTransactorTest {
         Assert.assertEquals("joe8 age=null job=null", read(t2, "joe8"));
         transactor.commit(t1);
         Assert.assertEquals("joe8 age=null job=null", read(t2, "joe8"));
-        dumpStore();
     }
 
     @Test
@@ -305,7 +302,6 @@ public class SiTransactorTest {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         Assert.assertEquals("joe4 age=null job=null", read(t1, "joe4"));
         insertAge(t1, "joe4", 20);
-        dumpStore();
         Assert.assertEquals("joe4 age=20 job=null", read(t1, "joe4"));
         transactor.commit(t1);
 
@@ -313,7 +309,6 @@ public class SiTransactorTest {
         Assert.assertEquals("joe4 age=20 job=null", scan(t2, "joe4"));
 
         Assert.assertEquals("joe4 age=20 job=null", read(t2, "joe4"));
-        dumpStore();
     }
 
     @Test
@@ -331,7 +326,6 @@ public class SiTransactorTest {
                 "17joe age=20 job=null\n" +
                 "17tom age=50 job=null\n";
         Assert.assertEquals(expected, scanAll(t2, "17a", "17z"));
-        dumpStore();
     }
 
     @Test
@@ -339,20 +333,17 @@ public class SiTransactorTest {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         Assert.assertEquals("joe5 age=null job=null", read(t1, "joe5"));
         insertAge(t1, "joe5", 20);
-        dumpStore();
         Assert.assertEquals("joe5 age=20 job=null", read(t1, "joe5"));
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction(true, false, false);
         Assert.assertEquals("joe5 age=20 job=null", read(t2, "joe5"));
         insertJob(t2, "joe5", "baker");
-        dumpStore();
         Assert.assertEquals("joe5 age=20 job=baker", read(t2, "joe5"));
         transactor.commit(t2);
 
         TransactionId t3 = transactor.beginTransaction(true, false, false);
         Assert.assertEquals("joe5 age=20 job=baker", read(t3, "joe5"));
-        dumpStore();
     }
 
     @Test
@@ -367,7 +358,6 @@ public class SiTransactorTest {
 
         insertAge(t1, "joe16", 22);
         Assert.assertEquals("joe16 age=22 job=null", read(t1, "joe16"));
-        dumpStore();
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction(true, false, false);
@@ -379,7 +369,6 @@ public class SiTransactorTest {
     public void manyWritesManyRollbacksRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe6", 20);
-        dumpStore();
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction(true, false, false);
@@ -420,7 +409,6 @@ public class SiTransactorTest {
 
         TransactionId t11 = transactor.beginTransaction(true, false, false);
         Assert.assertEquals("joe6 age=20 job=farrier", read(t11, "joe6"));
-        dumpStore();
     }
 
     @Test
@@ -579,8 +567,6 @@ public class SiTransactorTest {
         TransactionId t6 = transactor.beginTransaction(true, false, false);
         Assert.assertEquals("joe15 age=21 job=null", read(t6, "joe15"));
         transactor.commit(t6);
-
-        dumpStore();
     }
 
     @Test
@@ -608,7 +594,6 @@ public class SiTransactorTest {
     public void writeReadOnly() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe18", 20);
-        dumpStore();
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction(false, false, false);
@@ -618,59 +603,50 @@ public class SiTransactorTest {
             Assert.fail("expected exception performing a write on a read-only transaction");
         } catch (RuntimeException e) {
         }
-        dumpStore();
     }
 
     @Test
     public void writeReadCommitted() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe19", 20);
-        dumpStore();
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction(false, false, true);
         Assert.assertEquals("joe19 age=20 job=null", read(t2, "joe19"));
-        dumpStore();
     }
 
     @Test
     public void writeReadCommittedOverlap() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe20", 20);
-        dumpStore();
 
         TransactionId t2 = transactor.beginTransaction(false, false, true);
 
         Assert.assertEquals("joe20 age=null job=null", read(t2, "joe20"));
         transactor.commit(t1);
         Assert.assertEquals("joe20 age=20 job=null", read(t2, "joe20"));
-        dumpStore();
     }
 
     @Test
     public void writeReadDirty() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe22", 20);
-        dumpStore();
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction(false, true, true);
         Assert.assertEquals("joe22 age=20 job=null", read(t2, "joe22"));
-        dumpStore();
     }
 
     @Test
     public void writeReadDirtyOverlap() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe21", 20);
-        dumpStore();
 
         TransactionId t2 = transactor.beginTransaction(false, true, true);
 
         Assert.assertEquals("joe21 age=20 job=null", read(t2, "joe21"));
         transactor.commit(t1);
         Assert.assertEquals("joe21 age=20 job=null", read(t2, "joe21"));
-        dumpStore();
     }
 
     @Test
@@ -690,17 +666,15 @@ public class SiTransactorTest {
 
         TransactionId t4 = transactor.beginTransaction(true, false, false);
         insertAge(t4, "joe23", 22);
-        dumpStore();
         Assert.assertEquals("joe23 age=22 job=null", read(t3, "joe23"));
     }
 
     @Test
-    public void childDependentTransactionWriteRead() throws IOException {
+    public void childDependentTransactionWriteRollbackRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe24", 20);
         TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
         insertAge(t2, "joe24", 21);
-        dumpStore();
         Assert.assertEquals("joe24 age=21 job=null", read(t1, "joe24"));
         transactor.abort(t2);
         Assert.assertEquals("joe24 age=20 job=null", read(t1, "joe24"));
@@ -708,6 +682,137 @@ public class SiTransactorTest {
 
         TransactionId t3 = transactor.beginTransaction(false, false, false);
         Assert.assertEquals("joe24 age=20 job=null", read(t3, "joe24"));
+    }
+
+    @Test
+    public void childDependentTransactionWriteRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe25", 20);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        insertAge(t2, "joe25", 21);
+        Assert.assertEquals("joe25 age=21 job=null", read(t1, "joe25"));
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe25 age=null job=null", read(t3, "joe25"));
+
+        Assert.assertEquals("joe25 age=21 job=null", read(t1, "joe25"));
+        transactor.commit(t1);
+
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe25 age=21 job=null", read(t4, "joe25"));
+    }
+
+    @Test
+    public void multipleChildDependentTransactionWriteRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe26", 20);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t3 = transactor.beginChildTransaction(t1, true, true, null, null);
+        insertAge(t2, "joe26", 21);
+        insertJob(t3, "joe26", "baker");
+        Assert.assertEquals("joe26 age=21 job=baker", read(t1, "joe26"));
+        transactor.commit(t2);
+
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe26 age=null job=null", read(t4, "joe26"));
+
+        transactor.commit(t3);
+
+        TransactionId t5 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe26 age=null job=null", read(t5, "joe26"));
+
+        Assert.assertEquals("joe26 age=21 job=baker", read(t1, "joe26"));
+        transactor.commit(t1);
+
+        TransactionId t6 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe26 age=21 job=baker", read(t6, "joe26"));
+    }
+
+    @Test
+    public void childDependentTransactionWriteRollbackParentRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe27", 20);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        insertAge(t2, "joe27", 21);
+        transactor.commit(t2);
+        transactor.abort(t1);
+
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe27 age=null job=null", read(t4, "joe27"));
+    }
+
+    @Test
+    public void childIndependentTransactionWriteRollbackRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe28", 20);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
+        insertAge(t2, "joe28", 21);
+        Assert.assertEquals("joe28 age=21 job=null", read(t1, "joe28"));
+        transactor.abort(t2);
+        Assert.assertEquals("joe28 age=20 job=null", read(t1, "joe28"));
+        transactor.commit(t1);
+
+        TransactionId t3 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe28 age=20 job=null", read(t3, "joe28"));
+    }
+
+    @Test
+    public void multipleChildIndependentTransactionWriteRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe31", 20);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
+        TransactionId t3 = transactor.beginChildTransaction(t1, false, true, null, null);
+        insertAge(t2, "joe31", 21);
+        insertJob(t3, "joe31", "baker");
+        Assert.assertEquals("joe31 age=21 job=baker", read(t1, "joe31"));
+        transactor.commit(t2);
+
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe31 age=21 job=null", read(t4, "joe31"));
+
+        transactor.commit(t3);
+
+        TransactionId t5 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe31 age=21 job=baker", read(t5, "joe31"));
+
+        Assert.assertEquals("joe31 age=21 job=baker", read(t1, "joe31"));
+        transactor.commit(t1);
+
+        TransactionId t6 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe31 age=21 job=baker", read(t6, "joe31"));
+    }
+
+    @Test
+    public void childIndependentTransactionWriteRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe29", 20);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
+        insertAge(t2, "joe29", 21);
+        Assert.assertEquals("joe29 age=21 job=null", read(t1, "joe29"));
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe29 age=21 job=null", read(t3, "joe29"));
+
+        Assert.assertEquals("joe29 age=21 job=null", read(t1, "joe29"));
+        transactor.commit(t1);
+
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe29 age=21 job=null", read(t4, "joe29"));
+    }
+
+    @Test
+    public void childIndependentTransactionWriteRollbackParentRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe30", 20);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
+        insertAge(t2, "joe30", 21);
+        transactor.commit(t2);
+        transactor.abort(t1);
+
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe30 age=21 job=null", read(t4, "joe30"));
     }
 
     @Test
@@ -726,7 +831,6 @@ public class SiTransactorTest {
         dataLib.addKeyValueToPut(put2, family, ageQualifier, null, dataLib.encode(27));
         transactorSetup.clientTransactor.initializePut(put, put2);
         Assert.assertTrue(dataLib.valuesEqual(dataLib.encode(true), dataLib.getAttribute(put2, "si-needed")));
-        System.out.println("put = " + put);
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Assert.assertTrue(transactor.processPut(testSTable, put));
@@ -747,9 +851,7 @@ public class SiTransactorTest {
         try {
             final Object resultTuple = reader.get(testSTable, get);
             for (Object keyValue : dataLib.listResult(resultTuple)) {
-                System.out.print(keyValue);
-                System.out.print(" ");
-                System.out.println(((SiTransactor) transactor).shouldKeep(keyValue, t2));
+                //System.out.println(((SiTransactor) transactor).shouldKeep(keyValue, t2));
             }
             final FilterState filterState = transactor.newFilterState(testSTable, t2);
             transactor.filterResult(filterState, resultTuple);

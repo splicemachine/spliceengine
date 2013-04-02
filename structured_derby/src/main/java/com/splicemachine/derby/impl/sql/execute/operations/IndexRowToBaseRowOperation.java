@@ -215,7 +215,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	}
 	
 	@Override
-	public NoPutResultSet executeScan() {
+	public NoPutResultSet executeScan() throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeScan");
 		final List<SpliceOperation> operationStack = getOperationStack();
 		SpliceLogUtils.trace(LOG,"operationStack=%s",operationStack);
@@ -370,4 +370,10 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		return String.format("IndexRowToBaseRow {source=%s,indexName=%s,conglomId=%d,resultSetNumber=%d}",
                                                                         source,indexName,conglomId,resultSetNumber);
 	}
+
+    @Override
+    public void openCore() throws StandardException {
+        super.openCore();
+        if(source!=null)source.openCore();
+    }
 }

@@ -56,7 +56,9 @@ public class TransactorFactory {
         final STableReader reader = new HTableReaderAdapter(store);
         final STableWriter writer = new HTableWriterAdapter(store);
         final TransactionSchema transactionSchema = new TransactionSchema(SIConstants.TRANSACTION_TABLE,
-                SIConstants.DEFAULT_FAMILY, SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN,
+                SIConstants.DEFAULT_FAMILY,
+                SIConstants.SNAPSHOT_ISOLATION_CHILDREN_FAMILY,
+                SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN,
                 SIConstants.TRANSACTION_PARENT_COLUMN_BYTES,
                 SIConstants.TRANSACTION_DEPENDENT_COLUMN_BYTES,
                 SIConstants.TRANSACTION_ALLOW_WRITES_COLUMN_BYTES,

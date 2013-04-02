@@ -1,8 +1,14 @@
 package com.splicemachine.si2.si.impl;
 
+import com.splicemachine.si2.si.api.TransactionId;
+
+import java.util.List;
+import java.util.Set;
+
 public class TransactionStruct {
     public final long beginTimestamp;
     public final TransactionStruct parent;
+    public final Set<Long> children;
     public final Boolean dependent;
     public final boolean allowWrites;
     public final Boolean readUncommitted;
@@ -10,11 +16,13 @@ public class TransactionStruct {
     public final TransactionStatus status;
     public final Long commitTimestamp;
 
-    public TransactionStruct(long beginTimestamp, TransactionStruct parent, Boolean dependent, boolean allowWrites,
+    public TransactionStruct(long beginTimestamp, TransactionStruct parent, Set<Long> children,
+                             Boolean dependent, boolean allowWrites,
                              Boolean readUncommitted, Boolean readCommitted, TransactionStatus status,
                              Long commitTimestamp) {
         this.beginTimestamp = beginTimestamp;
         this.parent = parent;
+        this.children = children;
         this.dependent = dependent;
         this.allowWrites = allowWrites;
         this.readUncommitted = readUncommitted;

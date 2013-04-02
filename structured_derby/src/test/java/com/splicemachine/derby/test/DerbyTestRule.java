@@ -82,15 +82,9 @@ public class DerbyTestRule extends TestWatchman{
 				LOG.error("Unable to close all connections: "+ se.getMessage());
 			}
 		}
-		for(Statement s : statements){
-			try{
-				if(!s.isClosed())
-					s.close();
-			}catch (SQLException se){
-				LOG.error("Unable to close all connections: "+ se.getMessage());
-			}
-		}
-		if(manageTables){
+        closeResultSets();
+        closeStatements();
+        if(manageTables){
 			try {
 				dropTables();
 			} catch (Exception e) {
@@ -101,7 +95,18 @@ public class DerbyTestRule extends TestWatchman{
 		LOG.info("test "+ method.getName()+" finished");
 	}
 
-	public Statement getStatement() throws SQLException {
+    private void closeStatements() {
+        for(Statement s : statements){
+            try{
+                if(!s.isClosed())
+                    s.close();
+            }catch (SQLException se){
+                LOG.error("Unable to close all connections: "+ se.getMessage());
+            }
+        }
+    }
+
+    public Statement getStatement() throws SQLException {
 		Statement s = conn.createStatement();
 		statements.add(s);
 		return s;
@@ -187,8 +192,23 @@ public class DerbyTestRule extends TestWatchman{
 		return conn;
 	}
 
+    public void close() throws Exception{
+        closeResultSets();
+        closeStatements();
+    }
 
-   public void splitTable(String tableName) throws Exception{
+    private void closeResultSets() {
+        for(ResultSet rs:resultSets){
+            try{
+                if(!rs.isClosed())
+                    rs.close();
+            }catch(SQLException se){
+                LOG.error(se);
+            }
+        }
+    }
+
+    public void splitTable(String tableName) throws Exception{
 		 ConglomerateUtils.splitConglomerate(getConglomId(tableName));
     }
 

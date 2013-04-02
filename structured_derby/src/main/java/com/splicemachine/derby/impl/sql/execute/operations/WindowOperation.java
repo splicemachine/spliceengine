@@ -80,8 +80,9 @@ public class WindowOperation extends SpliceBaseOperation {
      * @exception StandardException thrown if cursor finished.
      */
     public void openCore() throws StandardException {
+        super.openCore();
         /* Call into the source openCore() */
-        source.openCore();
+        if(source!=null) source.openCore();
         rownumber = 0;
     }
 

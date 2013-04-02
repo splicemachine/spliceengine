@@ -40,7 +40,7 @@ public class OpenSpliceConglomerate  {
 		this.transactionManager = transactionManager;
 		this.transaction = transaction;
 		try {
-			((SpliceTransaction)transaction).setActiveState();
+			((SpliceTransaction)transaction).setActiveState(false, false, false, null);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

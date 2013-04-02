@@ -216,7 +216,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public NoPutResultSet executeScan() {
+	public NoPutResultSet executeScan() throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeScan");
 		beginTime = getCurrentTimeMillis();
 		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
@@ -341,6 +341,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 	@Override
 	public void openCore() throws StandardException {
+        super.openCore();
 		if(source!=null) source.openCore();
 	}
 	@Override

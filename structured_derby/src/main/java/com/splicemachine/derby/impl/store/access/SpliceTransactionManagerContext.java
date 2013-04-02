@@ -6,7 +6,7 @@ import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.shared.common.error.ExceptionSeverity;
 import org.apache.log4j.Logger;
 
-final class SpliceTransactionManagerContext extends ContextImpl {
+public final class SpliceTransactionManagerContext extends ContextImpl {
 	private static Logger LOG = Logger.getLogger(SpliceTransactionManagerContext.class);
 	private SpliceTransactionManager transactionManager;
 	private boolean abortAll;
@@ -68,7 +68,7 @@ final class SpliceTransactionManagerContext extends ContextImpl {
 		transactionManager.setContext(this);
 	}
 
-	SpliceTransactionManager getTransactionManager() {
+	public SpliceTransactionManager getTransactionManager() {
 		return transactionManager;
 	}
 

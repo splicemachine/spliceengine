@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -153,8 +154,8 @@ public class MergeSortJoinOperation extends JoinOperation {
 			mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
 			rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
 			byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
-			byte[] finish = DerbyBytesUtil.generateEndKeyForTemp(sequence[0]);
-			rowType = (SQLInteger) activation.getDataValueFactory().getNullInteger(null);
+			byte[] finish = BytesUtil.copyAndIncrement(start);
+            rowType = (SQLInteger) activation.getDataValueFactory().getNullInteger(null);
 			Hasher leftHasher = new Hasher(leftRow.getRowArray(),leftHashKeys,null,sequence[0]); 
 			Hasher rightHasher = new Hasher(rightRow.getRowArray(),rightHashKeys,null,sequence[0]); 
 			if(regionScanner==null){

@@ -12,7 +12,7 @@ public class TestOnServer extends BaseTestOnServer {
 	@Ignore
     @Test
     public void testEmptyTransaction() throws Exception {
-    	TransactionState state1 = tm.beginTransaction();
+    	TransactionState state1 = tm.beginTransaction(true, false, false, null);
     	Assert.assertNotNull(state1.getTransactionID());
     	tm.prepareCommit(state1);
     	tm.doCommit(state1);
@@ -38,7 +38,7 @@ public class TestOnServer extends BaseTestOnServer {
     	StringBuilder sb = new StringBuilder();
     	for (int i = 1; i < 6; ++i) {
 	    	long start = System.currentTimeMillis();
-	    	TransactionState state1 = tm.beginTransaction();
+	    	TransactionState state1 = tm.beginTransaction(true, false, false, null);
 	    	TxnTestUtils.putDataToTable(table, 1,1000*i, state1.getTransactionID());
 	    	tm.tryCommit(state1);
 	    	long elapsedTime = System.currentTimeMillis() - start;
@@ -55,7 +55,7 @@ public class TestOnServer extends BaseTestOnServer {
     	long start1 = System.currentTimeMillis();
     	for (int j=0; j < 200; ++j) {
 	    	long start = System.currentTimeMillis();
-		    TransactionState state1 = tm.beginTransaction();
+		    TransactionState state1 = tm.beginTransaction(true, false, false, null);
 		    long elapsedTime1 = System.currentTimeMillis() - start;
 	    	start = System.currentTimeMillis();
 	    	for (int i = 1; i < 3; ++i) {
@@ -78,7 +78,7 @@ public class TestOnServer extends BaseTestOnServer {
 	@Ignore
     @Test
     public void testLargeCommit() throws Exception {
-    	TransactionState state1 = tm.beginTransaction();
+    	TransactionState state1 = tm.beginTransaction(true, false, false, null);
     	HTable table = TxnTestUtils.getTestTable(admin, testTable1);
     	TxnTestUtils.putDataToTable(table, 101,100, state1.getTransactionID());
     	tm.prepareCommit(state1);
@@ -91,7 +91,7 @@ public class TestOnServer extends BaseTestOnServer {
     public void testManySmallCommits() throws Exception {
     	HTable table = TxnTestUtils.getTestTable(admin, testTable1);
     	for (int i =300;i< 400;i++) {
-        	TransactionState state1 = tm.beginTransaction();
+        	TransactionState state1 = tm.beginTransaction(true, false, false, null);
         	TxnTestUtils.putDataToTable(table, i,1, state1.getTransactionID());    		
         	tm.prepareCommit(state1);
         	tm.doCommit(state1);
@@ -104,7 +104,7 @@ public class TestOnServer extends BaseTestOnServer {
 	@Ignore
     @Test
     public void testAbort() throws Exception {
-    	TransactionState state1 = tm.beginTransaction();
+    	TransactionState state1 = tm.beginTransaction(true, false, false, null);
     	HTable table = TxnTestUtils.getTestTable(admin, testTable3);
     	TxnTestUtils.putDataToTable(table,500, 100, state1.getTransactionID());
     	Assert.assertEquals(100, TxnTestUtils.countRow(table, 500,state1.getTransactionID()));
@@ -116,7 +116,7 @@ public class TestOnServer extends BaseTestOnServer {
     @Test
 	public void oneSplit() throws Exception {
     	HTable table = getTestTable(admin, testTable1);
-		TransactionState ts1 = tm.beginTransaction();
+		TransactionState ts1 = tm.beginTransaction(true, false, false, null);
 		TxnTestUtils.putDataToTable(table, 1, 100, ts1.getTransactionID());
 		TxnTestUtils.putDataToTable(table, 20, 60, null);
 		admin.split("TEST_TABLE1", "50");
@@ -128,9 +128,9 @@ public class TestOnServer extends BaseTestOnServer {
     @Test
     public void twoTxnSplit() throws Exception {
     	HTable table = getTestTable(admin, testTable1);
-		TransactionState ts1 = tm.beginTransaction();
+		TransactionState ts1 = tm.beginTransaction(true, false, false, null);
 		TxnTestUtils.putDataToTable(table, 1, 80, ts1.getTransactionID());
-		TransactionState ts2 = tm.beginTransaction();
+		TransactionState ts2 = tm.beginTransaction(true, false, false, null);
 		TxnTestUtils.putDataToTable(table, 20, 80, ts2.getTransactionID());
 		TxnTestUtils.putDataToTable(table, 1, 70, null);
 		admin.split("TEST_TABLE1", "ROW50");
@@ -141,9 +141,9 @@ public class TestOnServer extends BaseTestOnServer {
     @Test
 	public void testTxnLog1() throws Exception {
     	HTable table = getTestTable(admin, testTable1);
-		TransactionState ts1 = tm.beginTransaction();
+		TransactionState ts1 = tm.beginTransaction(true, false, false, null);
 		TxnTestUtils.putDataToTable(table, 1, 2000, ts1.getTransactionID());
-		TransactionState ts2 = tm.beginTransaction();
+		TransactionState ts2 = tm.beginTransaction(true, false, false, null);
 		TxnTestUtils.putDataToTable(table, 2101, 1900, ts2.getTransactionID());
 		TxnTestUtils.putDataToTable(table, 1, 10, null);
 		TxnTestUtils.putDataToTable(table, 2001, 100, null);

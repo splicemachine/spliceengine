@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -144,11 +145,6 @@ public class SortOperation extends SpliceBaseOperation {
 			descColumns[keyColumns[i]] = order[i].getIsAscending();
 		}
 		
-		try {
-			reduceScan = Scans.buildPrefixRangeScan(sequence[0], transactionID);
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		}
 	}
 
 	@Override
@@ -179,7 +175,12 @@ public class SortOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template){
+	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
+        try {
+            reduceScan = Scans.buildPrefixRangeScan(sequence[0], transactionID);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
 //		SpliceUtils.setInstructions(reduceScan,getActivation(),top);
 		return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
 	}
@@ -277,6 +278,7 @@ public class SortOperation extends SpliceBaseOperation {
 
 	@Override
 	public void openCore() throws StandardException {
+        super.openCore();
 		if(source!=null) source.openCore();
 	}
 	

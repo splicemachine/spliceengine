@@ -109,7 +109,7 @@ public class JtaXAResource implements XAResource {
     public void start(final Xid xid, final int flags) throws XAException {
         LOG.info("start [" + xid.toString() + "] ");
         try {
-            TransactionId state = this.transactionManager.beginTransaction();
+            TransactionId state = this.transactionManager.beginTransaction(true, false, false, null);
             threadLocalTransactionState.set(state);
             xidToTransactionState.put(xid, state);
 

@@ -1,36 +1,23 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInput;
-import java.io.DataInputStream;
-import java.io.DataOutput;
-import java.io.DataOutputStream;
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.sql.SQLWarning;
-import java.sql.Timestamp;
-import java.util.LinkedList;
-import java.util.List;
-
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.stats.RegionStats;
+import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ParameterValueSet;
-import org.apache.derby.iapi.sql.ResultColumnDescriptor;
-import org.apache.derby.iapi.sql.ResultDescription;
-import org.apache.derby.iapi.sql.ResultSet;
+import org.apache.derby.iapi.sql.*;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.sql.execute.ResultSetStatisticsFactory;
-import org.apache.derby.iapi.sql.execute.RowChanger;
-import org.apache.derby.iapi.sql.execute.RunTimeStatistics;
-import org.apache.derby.iapi.sql.execute.TargetResultSet;
+import org.apache.derby.iapi.sql.execute.*;
 import org.apache.derby.iapi.sql.execute.xplain.XPLAINVisitor;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.raw.Transaction;
@@ -40,26 +27,14 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Base64;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.hbase.SpliceOperationProtocol;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.storage.RowProviders.SourceRowProvider;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.*;
+import java.sql.SQLWarning;
+import java.sql.Timestamp;
+import java.util.LinkedList;
+import java.util.List;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable, NoPutResultSet {
     private static final long serialVersionUID = 4l;
@@ -132,7 +107,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		//SpliceLogUtils.trace(LOG,"before seting active, transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
 		//		+",transactionId="+transactionID);
 		this.transactionID = (trans == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
-		this.uniqueSequenceID = SpliceUtils.generateQueryNodeSequence();
 		sequence = new DataValueDescriptor[1];
 		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
 		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
@@ -313,8 +287,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	@Override
 	public void close() throws StandardException
 	{
-		SpliceLogUtils.trace(LOG, "super close: isOpern="+isOpen+",isTopResultSet="+isTopResultSet+",statisticsTimingOn="+statisticsTimingOn
-				+",activation.getLanguageConnectionContext()="+activation.getLanguageConnectionContext());
+//		SpliceLogUtils.trace(LOG, "super close: isOpern="+isOpen+",isTopResultSet="+isTopResultSet+",statisticsTimingOn="+statisticsTimingOn
+//				+",activation.getLanguageConnectionContext()="+activation.getLanguageConnectionContext());
 		if (!isOpen)
 			return;
 
@@ -435,8 +409,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 	@Override
 	public void openCore() throws StandardException {
-		// TODO Auto-generated method stub
-		
+        this.uniqueSequenceID = SpliceUtils.generateQueryNodeSequence();
+        sequence[0].setValue(uniqueSequenceID);
 	}
 	@Override
 	public void reopenCore() throws StandardException {
@@ -565,18 +539,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void init(SpliceOperationContext context){
-//		SpliceLogUtils.trace(LOG,"init called");
 		this.activation = context.getActivation();
-		//set the parameter value set back on the activation
-//		if(operationParams!=null){
-//			try {
-//				activation.setParameters(operationParams,context.getPreparedStatement().getParameterTypes());
-//			} catch (StandardException e) {
-//				SpliceLogUtils.trace(LOG,"Failed to set Parameters on activation",e);
-//			}
-//		}
 		sequence = new DataValueDescriptor[1];
-		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
+        sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
 		try {
 			this.regionScanner = context.getScanner();
 		} catch (IOException e) {
@@ -600,7 +565,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) {
+	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
 		throw new UnsupportedOperationException("ReduceRowProviders not implemented for this node: "+ this.getClass());
 	}
 	

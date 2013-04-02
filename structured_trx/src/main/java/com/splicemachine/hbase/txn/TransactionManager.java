@@ -71,7 +71,8 @@ public abstract class TransactionManager extends TxnConstants implements ITransa
 		}
 	}
 
-	public abstract TransactionState beginTransaction() throws KeeperException, InterruptedException, IOException, ExecutionException;
+	public abstract TransactionState beginTransaction(boolean allowWrites, boolean nested, boolean dependent, String parentTransactionID)
+            throws KeeperException, InterruptedException, IOException, ExecutionException;
 
     public abstract int prepareCommit(final ITransactionState transactionState) throws KeeperException, InterruptedException, IOException;
 

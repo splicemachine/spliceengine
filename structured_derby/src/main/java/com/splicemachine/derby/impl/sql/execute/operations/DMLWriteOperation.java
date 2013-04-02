@@ -219,7 +219,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				//Bug 185 - jz
 				try {
 					if (trans.isIdle()) {
-						((SpliceTransaction)trans).setActiveState();
+						((SpliceTransaction)trans).setActiveState(false, false, false, null);
 						transactionID = SpliceUtils.getTransIDString(trans);
 					}
 				} catch (Exception e) {
@@ -279,4 +279,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 	public NoPutResultSet getSource() {
 		return this.source;
 	}
+
+    @Override
+    public void openCore() throws StandardException {
+        super.openCore();
+        if(source!=null)source.openCore();
+    }
 }

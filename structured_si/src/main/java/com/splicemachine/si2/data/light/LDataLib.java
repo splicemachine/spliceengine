@@ -8,7 +8,9 @@ import com.splicemachine.si2.data.api.SScan;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class LDataLib implements SDataLib {
 
@@ -137,7 +139,7 @@ public class LDataLib implements SDataLib {
     }
 
     private List getValuesForColumn(LTuple tuple, Object family, Object qualifier) {
-        List<LKeyValue> values = ((LTuple) tuple).values;
+        List<LKeyValue> values = tuple.values;
         List<LKeyValue> results = new ArrayList<LKeyValue>();
         for (Object vRaw : values) {
             LKeyValue v = (LKeyValue) vRaw;
@@ -146,6 +148,18 @@ public class LDataLib implements SDataLib {
             }
         }
         sort(results);
+        return results;
+    }
+
+    private List<LKeyValue> getValuesForFamily(LTuple tuple, Object family) {
+        List<LKeyValue> values = tuple.values;
+        List<LKeyValue> results = new ArrayList<LKeyValue>();
+        for (Object vRaw : values) {
+            LKeyValue v = (LKeyValue) vRaw;
+            if (valuesMatch(v.family, family)) {
+                results.add(v);
+            }
+        }
         return results;
     }
 
@@ -189,6 +203,16 @@ public class LDataLib implements SDataLib {
             return null;
         }
         return ((LKeyValue) valuesForColumn.get(0)).value;
+    }
+
+    @Override
+    public Map getResultFamilyMap(Object result, Object family) {
+        final List<LKeyValue> valuesForFamily = getValuesForFamily((LTuple) result, family);
+        final Map familyMap = new HashMap();
+        for (LKeyValue kv : valuesForFamily) {
+            familyMap.put(kv.qualifier, kv.value);
+        }
+        return familyMap;
     }
 
     @Override

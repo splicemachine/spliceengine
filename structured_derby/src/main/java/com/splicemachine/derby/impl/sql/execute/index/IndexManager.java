@@ -283,8 +283,15 @@ public class IndexManager {
     private byte[] convert(byte[][] rowKeyBuilder, int size) {
         byte[] indexRowKey = new byte[size];
         int offset = 0;
+        boolean isStart=true;
         for(byte[] nextKey:rowKeyBuilder){
             if(nextKey==null) break;
+            if(!isStart){
+                indexRowKey[offset] = 1;
+                offset++;
+            }else
+                isStart = false;
+
             System.arraycopy(nextKey, 0, indexRowKey, offset, nextKey.length);
             offset+=nextKey.length;
         }
@@ -304,7 +311,7 @@ public class IndexManager {
             byte[] putPos = mainColPos[indexPos];
             byte[] data = put.get(HBaseConstants.DEFAULT_FAMILY_BYTES,putPos).get(0).getValue();
             rowKeyBuilder[indexPos] = data;
-            size+=data.length;
+            size+=data.length+1;
         }
         if(!isUnique){
             byte[] postfix = SpliceUtils.getUniqueKey();
@@ -368,7 +375,7 @@ public class IndexManager {
         for(int indexPos = 0;indexPos<mainColPos.length;indexPos++){
             byte[] data = r.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColPos[indexPos]);
             rowToDelete[indexPos] = data;
-            size+=data.length;
+            size+=data.length+1;
         }
 
         byte[] indexRowKey = convert(rowToDelete,size);

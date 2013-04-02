@@ -154,8 +154,7 @@ public class VTIOperation extends SpliceBaseOperation
 	 * @exception StandardException thrown if activation closed.
      */
 	public void	openCore() throws StandardException  {
-
-
+        super.openCore();
 	}
 
     /**

@@ -482,6 +482,8 @@ public class DependentOperation extends ScanOperation implements CursorResultSet
 	}
 
 	public void openCore() throws StandardException {
+        super.openCore();
+        if(source!=null)source.openCore();
 		initIsolationLevel();
 		sVector = activation.getParentResultSet(parentResultSetId);
 		int size = sVector.size();

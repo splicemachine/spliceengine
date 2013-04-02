@@ -2,6 +2,7 @@ package com.splicemachine.si2.txn;
 
 import com.splicemachine.constants.ITransactionManager;
 import com.splicemachine.constants.ITransactionState;
+import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -15,14 +16,29 @@ public class TransactionManager implements ITransactionManager {
     static final Logger LOG = Logger.getLogger(TransactionManager.class);
     protected JtaXAResource xAResource;
     private final Transactor transactor;
+    private static ThreadLocal<String> parentTransactionIdThreadLocal = new ThreadLocal<String>();
 
     public TransactionManager(final Transactor transactor) throws IOException {
         this.transactor = transactor;
     }
 
-    public TransactionId beginTransaction() throws KeeperException, InterruptedException, IOException, ExecutionException {
+    public static void setParentTransactionId(String transactionId) {
+        parentTransactionIdThreadLocal.set(transactionId);
+    }
+
+    public TransactionId beginTransaction(boolean allowWrites, boolean nested, boolean dependent, String parentTransactionID) throws KeeperException, InterruptedException, IOException, ExecutionException {
         SpliceLogUtils.trace(LOG, "Begin transaction");
-        return transactor.beginTransaction(true, false, false);
+        final String parentPerThreadLocal = parentTransactionIdThreadLocal.get();
+        if (!nested && parentPerThreadLocal != null) {
+            parentTransactionID = parentPerThreadLocal;
+            nested = true;
+        }
+        if (nested) {
+            final TransactionId parentTransaction = ((ClientTransactor) transactor).transactionIdFromString(parentTransactionID);
+            return transactor.beginChildTransaction(parentTransaction, dependent, allowWrites, null, null);
+        } else {
+            return transactor.beginTransaction(true, false, true);
+        }
     }
 
     public int prepareCommit(final ITransactionState transaction) throws KeeperException, InterruptedException, IOException {

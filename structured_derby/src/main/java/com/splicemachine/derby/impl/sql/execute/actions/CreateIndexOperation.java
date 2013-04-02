@@ -243,7 +243,7 @@ public class CreateIndexOperation implements ConstantAction {
                 throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE,columnName,tableName);
 
             indexPosMap[pos] = columnDescriptor.getPosition();
-
+            pos++;
         }
 
         return indexPosMap;
