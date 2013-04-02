@@ -54,30 +54,30 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		super();
 	}
 
-	public ScalarAggregateOperation(NoPutResultSet s,
-																	boolean isInSortedOrder,
-																	int	aggregateItem,
-																	Activation a,
-																	GeneratedMethod ra,
-																	int resultSetNumber,
-																	boolean singleInputRow,
-																	double optimizerEstimatedRowCount,
-																	double optimizerEstimatedCost) throws StandardException  {
-		super(s,aggregateItem,a,ra,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-		this.isInSortedOrder = isInSortedOrder;
-		this.singleInputRow = singleInputRow;
+    public ScalarAggregateOperation(NoPutResultSet s,
+                                    boolean isInSortedOrder,
+                                    int	aggregateItem,
+                                    Activation a,
+                                    GeneratedMethod ra,
+                                    int resultSetNumber,
+                                    boolean singleInputRow,
+                                    double optimizerEstimatedRowCount,
+                                    double optimizerEstimatedCost) throws StandardException  {
+        super(s,aggregateItem,a,ra,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+        this.isInSortedOrder = isInSortedOrder;
+        this.singleInputRow = singleInputRow;
 
-		ExecutionFactory factory = a.getExecutionFactory();
-		sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(a));
-		sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
-		recordConstructorTime();
-	}
+        ExecutionFactory factory = a.getExecutionFactory();
+        sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(a));
+        sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
+        recordConstructorTime();
+    }
 
-	@Override
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		super.readExternal(in);
-		isInSortedOrder = in.readBoolean();
-		singleInputRow = in.readBoolean();
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        isInSortedOrder = in.readBoolean();
+        singleInputRow = in.readBoolean();
 	}
 
 	@Override
@@ -89,14 +89,20 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	@Override
 	public void openCore() throws StandardException {
+        super.openCore();
 		source.openCore();
 		isOpen=true;
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template){
-		SpliceUtils.setInstructions(reduceScan,activation,top);
-		return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
+	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
+        try {
+            reduceScan = Scans.buildPrefixRangeScan(sequence[0],transactionID);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        SpliceUtils.setInstructions(reduceScan,activation,top);
+        return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
 	}
 
 	@Override
@@ -104,14 +110,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		super.init(context);
 		ExecutionFactory factory = activation.getExecutionFactory();
 		try {
-			this.reduceScan = Scans.buildPrefixRangeScan(sequence[0],transactionID);
 			sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(activation));
 			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
-
 		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		} catch (IOException e) {
-
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
 	}

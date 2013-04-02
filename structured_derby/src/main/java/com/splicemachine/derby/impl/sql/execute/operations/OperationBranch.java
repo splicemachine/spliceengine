@@ -48,13 +48,17 @@ public class OperationBranch {
 		SpliceLogUtils.trace(LOG, "init");
 		regionOperation = spliceOperations.get(0);
 		topOperation = spliceOperations.get(spliceOperations.size()-1);
-		if(regionOperation.getNodeTypes().contains(NodeType.REDUCE) && spliceOperations.size() > 1){
-			rowProvider = regionOperation.getReduceRowProvider(regionOperation,rowDefinition);
-			table = SpliceOperationCoprocessor.TEMP_TABLE;
-		}else {
-			rowProvider = regionOperation.getMapRowProvider(regionOperation,rowDefinition);
-            table = rowProvider.getTableName();
-		}
+        try{
+            if(regionOperation.getNodeTypes().contains(NodeType.REDUCE) && spliceOperations.size() > 1){
+                rowProvider = regionOperation.getReduceRowProvider(regionOperation,rowDefinition);
+                table = SpliceOperationCoprocessor.TEMP_TABLE;
+            }else {
+                rowProvider = regionOperation.getMapRowProvider(regionOperation,rowDefinition);
+                table = rowProvider.getTableName();
+            }
+        }catch(StandardException se){
+            SpliceLogUtils.logAndThrowRuntime(LOG,se);
+        }
 	}
 	public SpliceOperation getRegionOperation() {
 		SpliceLogUtils.trace(LOG, "getRegionOperation=%s",regionOperation);

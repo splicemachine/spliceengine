@@ -36,6 +36,7 @@ public class ScalarAggregateOperationTest {
 	@AfterClass
 	public static void shutdown() throws Exception {
 		tearDownTest();
+        rule.close();
 		DerbyTestRule.shutdown();
 	}
 	
@@ -143,4 +144,46 @@ public class ScalarAggregateOperationTest {
 		//ensure that only a single row comes back
 		Assert.assertEquals(1, i);
 	}
+
+    @Test
+    public void testRepeatedCountsPreparedStatement() throws Exception{
+        //use a PreparedStatement twice, and make sure that the counts come back correct.
+        PreparedStatement ps = rule.prepareStatement("select count(i) from t where i <= ? and i > ?");
+
+        ps.setInt(1,2);
+        ps.setInt(2,0);
+        ResultSet rs = ps.executeQuery();
+
+        int i=0;
+        try{
+            while(rs.next()){
+                int count = rs.getInt(1);
+                SpliceLogUtils.info(LOG, "count=%d",count);
+                Assert.assertEquals(2,count);
+                i++;
+            }
+            //ensure that only a single row comes back
+            Assert.assertEquals(1, i);
+        }finally{
+            rs.close();
+        }
+
+        ps.setInt(1,4);
+        ps.setInt(2,2);
+        rs = ps.executeQuery();
+        i = 0;
+        try{
+            while(rs.next()){
+                int count = rs.getInt(1);
+                SpliceLogUtils.info(LOG, "count=%d",count);
+                Assert.assertEquals(2,count);
+                i++;
+            }
+            //ensure that only a single row comes back
+            Assert.assertEquals(1, i);
+        }finally{
+            rs.close();
+        }
+
+    }
 }

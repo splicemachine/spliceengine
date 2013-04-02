@@ -108,6 +108,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	}
 	
 	public void	openCore() throws StandardException  {
+        super.openCore();
 		SpliceLogUtils.trace(LOG, "openCore");
 	   	next = false;
 	}
@@ -247,4 +248,6 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	{
 		return constructorTime + openTime + nextTime + closeTime;
 	}
+
+
 }

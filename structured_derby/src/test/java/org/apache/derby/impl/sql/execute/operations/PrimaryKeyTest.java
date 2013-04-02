@@ -27,8 +27,9 @@ public class PrimaryKeyTest {
     private static final Logger LOG = Logger.getLogger(PrimaryKeyTest.class);
 
     private static final Map<String,String> tableMap = Maps.newHashMap();
+    private static String tName = PrimaryKeyTest.class.getSimpleName()+"_t";
     static{
-        tableMap.put("t","name varchar(50),val int, PRIMARY KEY(name)");
+        tableMap.put(tName,"name varchar(50),val int, PRIMARY KEY(name)");
 //        tableMap.put("multi_pk","name varchar(50),fruit varchar(30),val int, PRIMARY KEY(name,fruit)");
     }
 
@@ -49,7 +50,7 @@ public class PrimaryKeyTest {
         /*
          * Test to ensure that duplicate Primary Key combinations are not allowed.
          */
-        PreparedStatement ps = rule.prepareStatement("insert into t (name, val) values (?,?)");
+        PreparedStatement ps = rule.prepareStatement("insert into "+tName+" (name, val) values (?,?)");
 
         //insert the first entry in the row
         ps.setString(1,"sfines");
@@ -58,7 +59,7 @@ public class PrimaryKeyTest {
 
         LOG.info("First insertion completed without error, checking that it succeeded");
         //validate that a single row exists
-        PreparedStatement validator = rule.prepareStatement("select * from t where name = ?");
+        PreparedStatement validator = rule.prepareStatement("select * from "+tName+" where name = ?");
         validator.setString(1,"sfines");
         ResultSet rs = validator.executeQuery();
         int matchCount=0;
@@ -95,7 +96,7 @@ public class PrimaryKeyTest {
 
     @Test
     public void canUpdatePrimaryKeyCorrectly() throws Exception{
-        PreparedStatement ps = rule.prepareStatement("insert into t (name, val) values (?,?)");
+        PreparedStatement ps = rule.prepareStatement("insert into "+tName+" (name, val) values (?,?)");
 
         //insert the first entry in the row
         ps.setString(1,"sfines");
@@ -104,7 +105,7 @@ public class PrimaryKeyTest {
 
         LOG.info("First insertion completed without error, checking that it succeeded");
         //validate that a single row exists
-        PreparedStatement validator = rule.prepareStatement("select * from t where name = ?");
+        PreparedStatement validator = rule.prepareStatement("select * from "+tName+" where name = ?");
         validator.setString(1,"sfines");
         ResultSet rs = validator.executeQuery();
         int matchCount=0;
@@ -117,14 +118,14 @@ public class PrimaryKeyTest {
         Assert.assertEquals("Incorrect number of matching rows found!",1,matchCount);
 
         //update it to change the primary key
-        PreparedStatement updateStatement = rule.prepareStatement("update t set name = ? where name = ?");
+        PreparedStatement updateStatement = rule.prepareStatement("update "+tName+" set name = ? where name = ?");
         updateStatement.setString(1,"jzhang");
         updateStatement.setString(2,"sfines");
         updateStatement.executeUpdate();
 
         LOG.info("Update completed without error, checking success");
 
-        validator = rule.prepareStatement("select * from t where name = ?");
+        validator = rule.prepareStatement("select * from "+tName+" where name = ?");
         validator.setString(1,"sfines");
         rs = validator.executeQuery();
         while(rs.next()){
@@ -132,7 +133,7 @@ public class PrimaryKeyTest {
         }
         rs.close();
 
-        validator = rule.prepareStatement("select * from t where name = ?");
+        validator = rule.prepareStatement("select * from "+tName+" where name = ?");
         validator.setString(1,"jzhang");
         rs = validator.executeQuery();
         matchCount =0;
@@ -148,7 +149,7 @@ public class PrimaryKeyTest {
 
     @Test
     public void canUpdateNonPrimaryKeyCorrectly() throws Exception{
-        PreparedStatement ps = rule.prepareStatement("insert into t (name, val) values (?,?)");
+        PreparedStatement ps = rule.prepareStatement("insert into "+tName+" (name, val) values (?,?)");
 
         //insert the first entry in the row
         ps.setString(1,"sfines");
@@ -157,7 +158,7 @@ public class PrimaryKeyTest {
 
         LOG.info("First insertion completed without error, checking that it succeeded");
         //validate that a single row exists
-        PreparedStatement validator = rule.prepareStatement("select * from t where name = ?");
+        PreparedStatement validator = rule.prepareStatement("select * from "+tName+" where name = ?");
         validator.setString(1,"sfines");
         ResultSet rs = validator.executeQuery();
         int matchCount=0;
@@ -170,14 +171,14 @@ public class PrimaryKeyTest {
         Assert.assertEquals("Incorrect number of matching rows found!",1,matchCount);
 
         //update it to change the primary key
-        PreparedStatement updateStatement = rule.prepareStatement("update t set val = ? where name = ?");
+        PreparedStatement updateStatement = rule.prepareStatement("update "+tName+" set val = ? where name = ?");
         updateStatement.setInt(1,20);
         updateStatement.setString(2,"sfines");
         updateStatement.executeUpdate();
 
         LOG.info("Update completed without error, checking success");
 
-        validator = rule.prepareStatement("select * from t where name = ?");
+        validator = rule.prepareStatement("select * from "+tName+" where name = ?");
         validator.setString(1,"sfines");
         rs = validator.executeQuery();
         matchCount =0;
@@ -193,7 +194,7 @@ public class PrimaryKeyTest {
 
     @Test
     public void scanningPrimaryKeyTable() throws Exception{
-        PreparedStatement test = rule.prepareStatement("select * from t where name = ?");
+        PreparedStatement test = rule.prepareStatement("select * from "+tName+" where name = ?");
         test.setString(1,"sfines");
         ResultSet rs = test.executeQuery();
         if(rs.next());
@@ -201,7 +202,7 @@ public class PrimaryKeyTest {
 
     @Test
     public void scanningPrimaryKeyTableByPk() throws Exception{
-        PreparedStatement test = rule.prepareStatement("select name from t where name = ?");
+        PreparedStatement test = rule.prepareStatement("select name from "+tName+" where name = ?");
         test.setString(1,"sfines");
         ResultSet rs = test.executeQuery();
         if(rs.next());
@@ -209,7 +210,7 @@ public class PrimaryKeyTest {
 
     @Test
     public void testCanRetrievePrimaryKeysFromMetadata() throws Exception{
-        ResultSet rs = rule.getConnection().getMetaData().getPrimaryKeys(null,null,"T");
+        ResultSet rs = rule.getConnection().getMetaData().getPrimaryKeys(null,null,tName.toUpperCase());
         List<String> results = Lists.newArrayList();
         while(rs.next()){
             String tableCat = rs.getString(1);
@@ -258,7 +259,7 @@ public class PrimaryKeyTest {
                 "                  KEYS.CONGLOMERATEID = CONGLOMS.CONGLOMERATEID ");
         ps.setString(1,"%");
         ps.setString(2,"%");
-        ps.setString(3,"T");
+        ps.setString(3,tName.toUpperCase());
         ResultSet rs = ps.executeQuery();
         List<String> results = Lists.newArrayList();
         while(rs.next()){

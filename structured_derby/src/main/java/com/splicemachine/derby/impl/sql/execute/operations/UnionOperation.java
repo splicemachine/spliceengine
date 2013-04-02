@@ -109,11 +109,6 @@ public class UnionOperation extends SpliceBaseOperation {
     	this.source2 = source2;
     	init(SpliceOperationContext.newContext(activation));
 
-    	try {
-    		reduceScan = Scans.buildPrefixRangeScan(sequence[0],transactionID);
-    	} catch (IOException e) {
-    		SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to create reduce scan",e);
-    	}
     	SpliceLogUtils.trace(LOG, "statisticsTimingOn="+statisticsTimingOn+",isTopResultSet="+isTopResultSet);
         
     	recordConstructorTime();
@@ -211,24 +206,6 @@ public class UnionOperation extends SpliceBaseOperation {
 		RowProvider provider = regionOperation.getMapRowProvider(topOperation,regionOperation.getExecRowDefinition());
         nextTime += System.currentTimeMillis() - start;
 
-		final byte[] table = provider.getTableName();
-//		final Scan scan = provider.toScan();
-//
-//		SpliceLogUtils.trace(LOG,"executeSink, map table="+table+",map scan="+scan);
-//	    if(scan==null||table==null) {
-//	    	if (provider.getClass().equals(SourceRowProvider.class)) {
-//	    		start = System.currentTimeMillis();
-//	    		topOperation.init(SpliceOperationContext.newContext(activation));
-//	    		((SpliceBaseOperation)topOperation).constructorTime += System.currentTimeMillis() - start;
-//                try{
-//    	    		topOperation.sink();
-//                }catch(IOException ioe){
-//                    throw Exceptions.parseException(ioe);
-//                }
-//	    		return;
-//	    	} else
-//	    		throw new AssertionError("Cannot perform shuffle, either scan or table is null");
-//	    }
 		HTableInterface htable = null;
 		try{
 			final RegionStats stats = new RegionStats("UnionOperation's "+regionOperation.getClass().getName());
@@ -237,25 +214,6 @@ public class UnionOperation extends SpliceBaseOperation {
 			long numberCreated = 0;
 			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,topOperation);
             provider.shuffleRows(soi,stats);
-//			htable.coprocessorExec(SpliceOperationProtocol.class,
-//																scan.getStartRow(),scan.getStopRow(),
-//																new Batch.Call<SpliceOperationProtocol,SinkStats>(){
-//				@Override
-//				public SinkStats call(SpliceOperationProtocol instance) throws IOException {
-//					try{
-//						return instance.run(scan,soi);
-//					}catch(StandardException se){
-//						SpliceLogUtils.logAndThrow(LOG, "Unexpected error executing coprocessor",new IOException(se));
-//						return null; //won't happen
-//					}
-//				}
-//			}, new Batch.Callback<SinkStats>() {
-//                        @Override
-//                        public void update(byte[] region, byte[] row, SinkStats result) {
-//                            stats.addRegionStats(region,result);
-//                        }
-//                    });
-
             stats.finish();
             stats.recordStats(LOG);
             nextTime += stats.getTotalTimeTakenMs();
@@ -324,17 +282,20 @@ public class UnionOperation extends SpliceBaseOperation {
 	@Override
 	public void	openCore() throws StandardException 
 	{
-		SpliceLogUtils.trace(LOG, "openCore");
-		switch (whichSource) {
-			case 1: source1.openCore();
-				break;
-			case 2: source2.openCore();
-				if (source1 != null)
-					source1.close();
-				break;
-			default: 
-				break;
-		}
+        super.openCore();
+        source1.openCore();
+        source2.openCore();
+//		SpliceLogUtils.trace(LOG, "openCore");
+//		switch (whichSource) {
+//			case 1: source1.openCore();
+//				break;
+//			case 2: source2.openCore();
+//				if (source1 != null)
+//					source1.close();
+//				break;
+//			default:
+//				break;
+//		}
 	}
 	
 	@Override
@@ -426,7 +387,7 @@ public class UnionOperation extends SpliceBaseOperation {
 		
 		try{
 			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
-			openCore();
+//			openCore();
             Serializer serializer= new Serializer();
             do{
                 long start = System.nanoTime();
@@ -484,8 +445,12 @@ public class UnionOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,
-			ExecRow template) {
+	public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        try {
+            reduceScan = Scans.buildPrefixRangeScan(sequence[0],transactionID);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
 		SpliceUtils.setInstructions(reduceScan, activation, top);
 		return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE, reduceScan, template,null);
 	}

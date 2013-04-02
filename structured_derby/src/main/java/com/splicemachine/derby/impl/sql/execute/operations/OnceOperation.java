@@ -226,4 +226,10 @@ public class OnceOperation extends SpliceBaseOperation {
 		else
 			return totTime;
 	}
+
+    @Override
+    public void openCore() throws StandardException {
+        super.openCore();
+        if(source!=null)source.openCore();
+    }
 }

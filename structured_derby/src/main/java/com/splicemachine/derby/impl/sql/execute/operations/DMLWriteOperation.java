@@ -279,4 +279,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 	public NoPutResultSet getSource() {
 		return this.source;
 	}
+
+    @Override
+    public void openCore() throws StandardException {
+        super.openCore();
+        if(source!=null)source.openCore();
+    }
 }

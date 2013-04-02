@@ -68,6 +68,7 @@ public class AnyOperation extends SpliceBaseOperation {
      */
 	public void	openCore() throws StandardException {
         source.openCore();
+        super.openCore();
 		if (statementContext == null) {
 			statementContext = activation.getLanguageConnectionContext().getStatementContext();
 		}

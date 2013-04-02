@@ -7,6 +7,7 @@ import junit.framework.Assert;
 import org.apache.log4j.Logger;
 import org.junit.*;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -22,6 +23,7 @@ public class NonUniqueIndexTest {
     private static final Map<String,String> tableMap = Maps.newHashMap();
     static{
         tableMap.put("t","name varchar(40), val int");
+        tableMap.put("t2","n_1 varchar(40),n_2 varchar(30),val int");
     }
 
     @Rule
@@ -35,6 +37,42 @@ public class NonUniqueIndexTest {
     @AfterClass
     public static void shutdown() throws Exception{
         DerbyTestRule.shutdown();
+    }
+
+    @Test
+    public void testCanCreateIndexWithMultipleEntries() throws Exception{
+        rule.getStatement().execute("create index t_2_name on t2(n_1,n_2)");
+        //now add some data
+        PreparedStatement ps = rule.prepareStatement("insert into t2 (n_1,n_2,val) values (?,?,?)");
+
+        String n1 = "sfines";
+        ps.setString(1,n1);
+        String n2 = "mathematician";
+        ps.setString(2,n2);
+        int value = 2;
+        ps.setInt(3,2);
+
+        ps.execute();
+
+        //now check that we can get data out for the proper key
+        PreparedStatement query = rule.prepareStatement("select * from t2 where n_1 = ? and n_2 = ?");
+        query.setString(1,n1);
+        query.setString(2,n2);
+        ResultSet resultSet = query.executeQuery();
+        List<String> results = Lists.newArrayListWithExpectedSize(1);
+        while(resultSet.next()){
+            String retN1 = resultSet.getString(1);
+            String retN2 = resultSet.getString(2);
+            int val = resultSet.getInt(3);
+            Assert.assertEquals("Incorrect n1 returned!", n1, retN1);
+            Assert.assertEquals("Incorrect n2 returned!", n2, retN2);
+            Assert.assertEquals("Incorrect value returned!",value,val);
+            results.add(String.format("n1:%s,n2:%s,value:%d",retN1,retN2,val));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+        Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
     }
 
     @Test

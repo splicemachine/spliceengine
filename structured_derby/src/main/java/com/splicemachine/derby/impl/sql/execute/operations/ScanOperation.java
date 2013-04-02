@@ -177,7 +177,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     }
 
     @Override
-    public NoPutResultSet executeScan() {
+    public NoPutResultSet executeScan() throws StandardException {
         SpliceLogUtils.trace(LOG, "executeScan");
         return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getExecRowDefinition()));
     }

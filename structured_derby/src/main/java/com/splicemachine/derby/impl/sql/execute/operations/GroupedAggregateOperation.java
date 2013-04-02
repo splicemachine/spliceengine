@@ -452,10 +452,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		return "GroupedAggregateOperation {source="+source;
 	}
 
-	@Override
-	public void openCore() throws StandardException {
-		if(source!=null)source.openCore();
-	}
 
 	public boolean isInSortedOrder() {
 		return this.isInSortedOrder;

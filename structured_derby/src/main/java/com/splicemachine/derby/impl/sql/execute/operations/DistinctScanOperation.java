@@ -69,22 +69,22 @@ public class DistinctScanOperation extends HashScanOperation
 		// Tell super class to eliminate duplicates
 		eliminateDuplicates = true;
 
-		try {
-			reduceScan = Scans.buildPrefixRangeScan(sequence[0], transactionID);
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		}
 		recordConstructorTime();
 	}
     
     @Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template){
+        try {
+            reduceScan = Scans.buildPrefixRangeScan(sequence[0], transactionID);
+        } catch (IOException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG,e);
+        }
 		SpliceUtils.setInstructions(reduceScan,getActivation(),top);
 		return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
 	}
     
     @Override
-	public NoPutResultSet executeScan() {
+	public NoPutResultSet executeScan() throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeScan");
 		beginTime = getCurrentTimeMillis();
 		final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
