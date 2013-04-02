@@ -12,7 +12,6 @@ import org.junit.Test;
 
 import com.splicemachine.derby.test.SpliceDerbyTest;
 
-@Ignore
 public class IndexScanTest extends SpliceDerbyTest {
 	@BeforeClass 
 	public static void startup() throws Exception {
@@ -26,11 +25,6 @@ public class IndexScanTest extends SpliceDerbyTest {
 		}
 	}
 
-	@Test
-	public void geenrate() {
-		
-	}
-	
 	@Test
 	public void queryPrimaryKeyEquals() throws SQLException {
 		ResultSet resultSet = executeQuery("select * from test_jl_a where col1 = 50");
