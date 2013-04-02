@@ -28,6 +28,7 @@ public class TransactionTableCreator {
                         Integer.MAX_VALUE,
                         HBaseConstants.DEFAULT_BLOOMFILTER));
                 desc.addFamily(new HColumnDescriptor(TxnConstants.DEFAULT_FAMILY));
+                desc.addFamily(new HColumnDescriptor(SIConstants.SNAPSHOT_ISOLATION_CHILDREN_FAMILY));
                 admin.createTable(desc);
             }
         } catch (Exception e) {

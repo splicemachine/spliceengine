@@ -1,6 +1,7 @@
 package com.splicemachine.si2.data.api;
 
 import java.util.List;
+import java.util.Map;
 
 public interface SDataLib {
     Object newRowKey(Object[] args);
@@ -17,6 +18,7 @@ public interface SDataLib {
     List listResult(Object result);
     List getResultColumn(Object result, Object family, Object qualifier);
     Object getResultValue(Object result, Object family, Object qualifier);
+    Map getResultFamilyMap(Object result, Object family);
 
     Object newPut(Object key);
     Object newPut(Object key, SRowLock lock);

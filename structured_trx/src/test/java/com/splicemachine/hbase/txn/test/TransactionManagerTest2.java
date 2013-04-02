@@ -26,14 +26,14 @@ public class TransactionManagerTest2 extends BaseTest {
     private static HTable htable1;
     @Test
 	public void testBeginTransaction() throws Exception {
-		TransactionState state1 = tm.beginTransaction();
+		TransactionState state1 = tm.beginTransaction(true, false, false, null);
 		Assert.assertTrue(state1.getTransactionID().startsWith("/TRANSACTION_PATH/txn-"));
 		Assert.assertTrue(state1.getTransactionID().endsWith("0000000000"));
 	}
     
     @Test
     public void tesTransactionalPut() throws Exception {
-		TransactionState state1 = tm.beginTransaction();
+		TransactionState state1 = tm.beginTransaction(true, false, false, null);
 		putSingleFamilyData(htable1, state1.getTransactionID());
 		Assert.assertEquals(0, hbaseTestingUtility.countRows(htable1));
 		tm.tryCommit(state1);
@@ -55,7 +55,7 @@ public class TransactionManagerTest2 extends BaseTest {
     }
     @Test
     public void testGetUnCommitted() throws Exception {
-    	TransactionState state1 = tm.beginTransaction();
+    	TransactionState state1 = tm.beginTransaction(true, false, false, null);
 		String transactionID = state1.getTransactionID();
 		putSingleFamilyData(htable1, transactionID);
 		for (int i=1; i<1001; ++i) {
@@ -69,7 +69,7 @@ public class TransactionManagerTest2 extends BaseTest {
     
     @Test
     public void testGetCommitted() throws Exception {
-    	TransactionState state1 = tm.beginTransaction();
+    	TransactionState state1 = tm.beginTransaction(true, false, false, null);
 		String transactionID = state1.getTransactionID();
 		putSingleFamilyData(htable1, transactionID);
 		for (int i=1; i<1001; ++i) {
@@ -83,7 +83,7 @@ public class TransactionManagerTest2 extends BaseTest {
     
     @Test
     public void testScanUnCommitted() throws Exception {
-    	TransactionState state1 = tm.beginTransaction();
+    	TransactionState state1 = tm.beginTransaction(true, false, false, null);
 		String transactionID = state1.getTransactionID();
 		putSingleFamilyData(htable1, transactionID);
 		
@@ -102,7 +102,7 @@ public class TransactionManagerTest2 extends BaseTest {
     
     @Test
     public void testScanCommitted() throws Exception {
-    	TransactionState state1 = tm.beginTransaction();
+    	TransactionState state1 = tm.beginTransaction(true, false, false, null);
 		String transactionID = state1.getTransactionID();
 		putSingleFamilyData(htable1, transactionID);
 		
@@ -117,7 +117,7 @@ public class TransactionManagerTest2 extends BaseTest {
     
     @Test
     public void testDeleteInMemory() throws Exception {
-    	TransactionState state1 = tm.beginTransaction();
+    	TransactionState state1 = tm.beginTransaction(true, false, false, null);
 		String transactionID = state1.getTransactionID();
 		putSingleFamilyData(htable1, transactionID);
 		for (int i=1; i<1001; ++i) {
@@ -134,7 +134,7 @@ public class TransactionManagerTest2 extends BaseTest {
     
     @Test
     public void testPartialDeleteInMemory() throws Exception {
-    	TransactionState state1 = tm.beginTransaction();
+    	TransactionState state1 = tm.beginTransaction(true, false, false, null);
 		String transactionID = state1.getTransactionID();
 		putSingleFamilyData(htable1, transactionID);
 		for (int i=1; i<1001; ++i) {
@@ -164,7 +164,7 @@ public class TransactionManagerTest2 extends BaseTest {
 	 */
 	@Test
 	public void testPrepareCommit() throws Exception {
-		TransactionState state1 = tm.beginTransaction();
+		TransactionState state1 = tm.beginTransaction(true, false, false, null);
 		String transactionID = state1.getTransactionID();
 		putSingleFamilyData(htable1, transactionID);
 		Assert.assertEquals(TransactionStatus.PENDING, TransactionStatus.valueOf(Bytes.toString(rzk.getData(transactionID, false, null))));
@@ -187,7 +187,7 @@ public class TransactionManagerTest2 extends BaseTest {
 	 */
 	@Test
 	public void testTryCommit() throws Exception {
-		TransactionState state1 = tm.beginTransaction();
+		TransactionState state1 = tm.beginTransaction(true, false, false, null);
 		String transactionID = state1.getTransactionID();
 		putSingleFamilyData(htable1, transactionID);
 		//Check status
@@ -218,7 +218,7 @@ public class TransactionManagerTest2 extends BaseTest {
 	
 	@Test
 	public void testAbort() throws Exception {
-		TransactionState state1 = tm.beginTransaction();
+		TransactionState state1 = tm.beginTransaction(true, false, false, null);
 		putSingleFamilyData(htable1, state1.getTransactionID());
 		Assert.assertEquals(1000, TxnTestUtils.countRow(htable1, null, state1.getTransactionID())); //Read from uncommitted
 		tm.abort(state1);

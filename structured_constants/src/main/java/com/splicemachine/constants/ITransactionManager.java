@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 public interface ITransactionManager {
-    ITransactionState beginTransaction() throws KeeperException, InterruptedException, IOException, ExecutionException;
+    ITransactionState beginTransaction(boolean allowWrites, boolean nested, boolean dependent, String parentTransactionID) throws KeeperException, InterruptedException, IOException, ExecutionException;
 
     int prepareCommit(final ITransactionState transactionState) throws KeeperException, InterruptedException, IOException;
     void doCommit(final ITransactionState transactionState) throws KeeperException, InterruptedException, IOException;

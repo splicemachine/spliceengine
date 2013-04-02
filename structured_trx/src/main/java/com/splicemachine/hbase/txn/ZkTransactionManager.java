@@ -41,8 +41,9 @@ public class ZkTransactionManager extends TransactionManager {
     	this.zkw = zkw;
     	this.rzk = rzk;
     }
-    
-    public TransactionState beginTransaction() throws KeeperException, InterruptedException, IOException, ExecutionException {
+
+    public TransactionState beginTransaction(boolean allowWrites, boolean nested, boolean dependent, String parentTransactionID)
+            throws KeeperException, InterruptedException, IOException, ExecutionException {
     	SpliceLogUtils.trace(LOG, "Begin transaction");
     	return new TransactionState(TxnUtils.beginTransaction(transactionPath, zkw));
     }

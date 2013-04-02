@@ -48,6 +48,11 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
+    public Map getResultFamilyMap(Result result, byte[] family) {
+        return result.getFamilyMap(family);
+    }
+
+    @Override
     public List listResult(Result result) {
         return result.list();
     }

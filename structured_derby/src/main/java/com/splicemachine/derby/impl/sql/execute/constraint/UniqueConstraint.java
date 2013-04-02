@@ -40,7 +40,11 @@ public class UniqueConstraint implements Constraint {
         @Override
         public Get apply(@Nullable Mutation input) {
             Get get = new Get(input.getRow());
-            SpliceUtils.attachTransaction(get,SpliceUtils.getTransactionId(input));
+            try {
+                SpliceUtils.attachTransaction(get,SpliceUtils.getTransactionId(input));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
 
             return get;

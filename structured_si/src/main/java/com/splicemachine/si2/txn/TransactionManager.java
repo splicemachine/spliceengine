@@ -2,8 +2,10 @@ package com.splicemachine.si2.txn;
 
 import com.splicemachine.constants.ITransactionManager;
 import com.splicemachine.constants.ITransactionState;
+import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
+import com.splicemachine.si2.si.impl.SiTransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -20,9 +22,14 @@ public class TransactionManager implements ITransactionManager {
         this.transactor = transactor;
     }
 
-    public TransactionId beginTransaction() throws KeeperException, InterruptedException, IOException, ExecutionException {
+    public TransactionId beginTransaction(boolean allowWrites, boolean nested, boolean dependent, String parentTransactionID) throws KeeperException, InterruptedException, IOException, ExecutionException {
         SpliceLogUtils.trace(LOG, "Begin transaction");
-        return transactor.beginTransaction();
+        if (nested) {
+            final TransactionId parentTransaction = ((ClientTransactor) transactor).transactionIdFromString(parentTransactionID);
+            return transactor.beginChildTransaction(parentTransaction, dependent, allowWrites, null, null);
+        } else {
+            return transactor.beginTransaction(true, false, true);
+        }
     }
 
     public int prepareCommit(final ITransactionState transaction) throws KeeperException, InterruptedException, IOException {

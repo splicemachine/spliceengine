@@ -33,7 +33,7 @@ public class Mutations {
      * @param row the row to delete
      * @return a transactionally-aware delete.
      */
-    public static Delete createDelete(String transactionId, byte[] row) {
+    public static Delete createDelete(String transactionId, byte[] row) throws IOException {
         Delete delete = new Delete(row);
         SpliceUtils.attachTransaction(delete,transactionId);
         return delete;

@@ -294,7 +294,7 @@ public class SpliceTransaction implements Transaction {
 	
 	public String getActiveStateTxIdString() {
 		SpliceLogUtils.debug(LOG,"getActiveStateTxIdString");
-		setActiveState();
+		setActiveState(false, false, false, null);
 		if (ts!=null)
 			return ts.getTransactionID();
 		else
@@ -311,18 +311,18 @@ public class SpliceTransaction implements Transaction {
         return (tempxc == null) ? null : tempxc.getIdName();
     }	
 	
-	public final void setActiveState() {
+	public final void setActiveState(boolean readOnly, boolean nested, boolean dependent, String parentTransactionID) {
 		if (state == IDLE)
 		{
 			try {
 				synchronized(this)
 				{
-					this.setTransactionState(this.getiTransactionManager().beginTransaction());
+					this.setTransactionState(this.getiTransactionManager().beginTransaction(!readOnly, nested, dependent, parentTransactionID));
 					state = ACTIVE;
 					//justCreated = false;
 				}
 			} catch (Exception e) {
-				LOG.error(e.getMessage(), e);
+                SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
 		}
 	}

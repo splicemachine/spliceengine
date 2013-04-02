@@ -11,9 +11,13 @@ import org.apache.hadoop.hbase.util.Bytes;
 import sun.reflect.generics.tree.ByteSignature;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class SiBrowser {
     public static void main(String[] args) throws IOException {
@@ -21,6 +25,7 @@ public class SiBrowser {
         Scan scan = new Scan();
         ResultScanner scanner = transactionTable.getScanner(scan);
         Iterator<Result> results = scanner.iterator();
+        Map<Long,Object> x = new HashMap<Long,Object>();
         while (results.hasNext()) {
             Result r = results.next();
             final byte[] value = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN_BYTES);
@@ -32,10 +37,29 @@ public class SiBrowser {
             if (endValue != null) {
                 commitTimestamp = Bytes.toLong(endValue);
             }
-            System.out.println(beginTimestamp + " " + status + " " + commitTimestamp);
+            final byte[] parentValue = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_PARENT_COLUMN_BYTES);
+            Long parent = null;
+            if (parentValue != null) {
+                parent = Bytes.toLong(parentValue);
+            }
+            final byte[] writesValue = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_ALLOW_WRITES_COLUMN_BYTES);
+            Boolean writes = null;
+            if (writesValue != null) {
+                writes = Bytes.toBoolean(writesValue);
+            }
+            x.put(beginTimestamp, new Object[] {parent, writes, status, commitTimestamp});
+            //System.out.println(beginTimestamp + " " + status + " " + commitTimestamp);
+        }
+        final ArrayList<Long> list = new ArrayList<Long>(x.keySet());
+        Collections.sort(list);
+        System.out.println("transaction parent writesAllowed status commitTimestamp");
+        for (Long k : list) {
+            Object[] v = (Object[]) x.get(k);
+            System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3]);
         }
 
         //dumpTable("conglomerates", "16");
+        //dumpTable("SYCOLUMNS_INDEX2", "161");
 
         //dumpTable("p", "1184");
     }

@@ -137,16 +137,16 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 		return transactionFactory.startInternalTransaction(this, contextManager);
 	}
 
-	public Transaction startNestedReadOnlyUserTransaction(CompatibilitySpace lockSpace, ContextManager contextManager,String nestedReadonlyUserTrans) throws StandardException {
+	public Transaction startNestedReadOnlyUserTransaction(CompatibilitySpace lockSpace, ContextManager contextManager, String nestedReadonlyUserTrans, String parentTransactionId) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("startNestedReadOnlyUserTransaction with context manager " + contextManager + ", lock space " + lockSpace + ", nestedReadonlyUserTrans " + nestedReadonlyUserTrans);											
-		return transactionFactory.startNestedReadOnlyUserTransaction(this, lockSpace, contextManager, nestedReadonlyUserTrans);
+		return transactionFactory.startNestedReadOnlyUserTransaction(this, lockSpace, contextManager, nestedReadonlyUserTrans, parentTransactionId);
 	}
 
-	public Transaction startNestedUpdateUserTransaction(ContextManager contextManager,String nestedUpdateUserTrans, boolean flush_log_on_xact_end) throws StandardException {
+	public Transaction startNestedUpdateUserTransaction(ContextManager contextManager, String nestedUpdateUserTrans, boolean flush_log_on_xact_end, String parentTransactionId) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("startNestedUpdateUserTransaction with context manager " + contextManager + ", lock space " + nestedUpdateUserTrans + ", flush_log_on_xact_end " + flush_log_on_xact_end);											
-		return transactionFactory.startNestedUpdateUserTransaction(this, contextManager, nestedUpdateUserTrans, flush_log_on_xact_end);
+		return transactionFactory.startNestedUpdateUserTransaction(this, contextManager, nestedUpdateUserTrans, flush_log_on_xact_end, parentTransactionId);
 	}
 	@Override
 	public boolean canSupport(Properties properties) {

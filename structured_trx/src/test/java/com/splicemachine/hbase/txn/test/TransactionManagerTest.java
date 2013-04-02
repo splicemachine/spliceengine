@@ -14,7 +14,7 @@ public class TransactionManagerTest extends BaseTest {
   
     @Test
     public void testEmptyTransaction() throws Exception {
-    	TransactionState state1 = tm.beginTransaction();
+    	TransactionState state1 = tm.beginTransaction(true, false, false, null);
     	Assert.assertNotNull(state1.getTransactionID());
     	tm.prepareCommit(state1);
     	tm.doCommit(state1);
@@ -29,7 +29,7 @@ public class TransactionManagerTest extends BaseTest {
     
     @Test
     public void testLargeCommit() throws Exception {
-    	TransactionState state1 = tm.beginTransaction();
+    	TransactionState state1 = tm.beginTransaction(true, false, false, null);
     	TxnTestUtils.putDataToTable(table, 101,100, state1.getTransactionID());
     	tm.prepareCommit(state1);
     	Assert.assertEquals(0, TxnTestUtils.countRow(table, 101, null));
@@ -40,8 +40,8 @@ public class TransactionManagerTest extends BaseTest {
     @Test
     public void testManySmallCommits() throws Exception {
     	for (int i =300;i< 400;i++) {
-        	TransactionState state1 = tm.beginTransaction();
-        	TxnTestUtils.putDataToTable(table, i,1, state1.getTransactionID());    		
+        	TransactionState state1 = tm.beginTransaction(true, false, false, null);
+        	TxnTestUtils.putDataToTable(table, i,1, state1.getTransactionID());
         	tm.prepareCommit(state1);
         	tm.doCommit(state1);
     	}
@@ -53,7 +53,7 @@ public class TransactionManagerTest extends BaseTest {
     
     @Test
     public void testAbort() throws Exception {
-    	TransactionState state1 = tm.beginTransaction();
+    	TransactionState state1 = tm.beginTransaction(true, false, false, null);
     	TxnTestUtils.putDataToTable(table,500, 100, state1.getTransactionID());
     	Assert.assertEquals(100, TxnTestUtils.countRow(table, 500,state1.getTransactionID()));
     	tm.abort(state1);

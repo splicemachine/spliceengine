@@ -1448,7 +1448,7 @@ public class SpliceTransactionManager implements XATransactionController, Transa
 		Conglomerate conglom = findExistingConglomerate(conglomId);
 
 		// Get a scan controller.
-		ScanManager sm = 
+		ScanManager sm =
 				conglom.openScan(
 						this, rawtran, hold, open_mode, 
 						determine_lock_level(lock_level),
@@ -2405,17 +2405,17 @@ public class SpliceTransactionManager implements XATransactionController, Transa
 		// from "this", thus the new transaction shares the compatibility space
 		// of the current transaction.
 
-
+        final String currentTransactionId = rawtran.getActiveStateTxIdString();
 		Transaction child_rawtran = 
 				((readOnly) ?
 						accessmanager.getRawStore().startNestedReadOnlyUserTransaction(
 								getLockSpace(), 
 								cm,
-								AccessFactoryGlobals.NESTED_READONLY_USER_TRANS) :
+								AccessFactoryGlobals.NESTED_READONLY_USER_TRANS, currentTransactionId) :
 									accessmanager.getRawStore().startNestedUpdateUserTransaction(
 											cm, 
 											AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS,
-											flush_log_on_xact_end));
+											flush_log_on_xact_end, currentTransactionId));
 
 		SpliceTransactionManager rt   = 
 				new SpliceTransactionManager(accessmanager, child_rawtran, this);
