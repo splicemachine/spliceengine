@@ -5,7 +5,6 @@ import com.splicemachine.constants.ITransactionState;
 import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.si.impl.SiTransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -17,13 +16,23 @@ public class TransactionManager implements ITransactionManager {
     static final Logger LOG = Logger.getLogger(TransactionManager.class);
     protected JtaXAResource xAResource;
     private final Transactor transactor;
+    private static ThreadLocal<String> parentTransactionIdThreadLocal = new ThreadLocal<String>();
 
     public TransactionManager(final Transactor transactor) throws IOException {
         this.transactor = transactor;
     }
 
+    public static void setParentTransactionId(String transactionId) {
+        parentTransactionIdThreadLocal.set(transactionId);
+    }
+
     public TransactionId beginTransaction(boolean allowWrites, boolean nested, boolean dependent, String parentTransactionID) throws KeeperException, InterruptedException, IOException, ExecutionException {
         SpliceLogUtils.trace(LOG, "Begin transaction");
+        final String parentPerThreadLocal = parentTransactionIdThreadLocal.get();
+        if (!nested && parentPerThreadLocal != null) {
+            parentTransactionID = parentPerThreadLocal;
+            nested = true;
+        }
         if (nested) {
             final TransactionId parentTransaction = ((ClientTransactor) transactor).transactionIdFromString(parentTransactionID);
             return transactor.beginChildTransaction(parentTransaction, dependent, allowWrites, null, null);

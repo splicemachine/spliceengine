@@ -45,6 +45,7 @@ public class SpliceObserverInstructions implements Externalizable {
 	protected GenericStorablePreparedStatement statement;
 	protected SpliceOperation topOperation;
     private ActivationContext activationContext;
+
     // propagate transactionId to all co-processors running operations for this SQL statement
     private String transactionId;
 
@@ -62,7 +63,11 @@ public class SpliceObserverInstructions implements Externalizable {
         this.transactionId = transactionId;
 	}
 
-	@Override
+    public String getTransactionId() {
+        return transactionId;
+    }
+
+    @Override
 	public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
 		SpliceLogUtils.trace(LOG, "readExternal");
 		this.statement = (GenericStorablePreparedStatement) in.readObject();
