@@ -246,7 +246,6 @@ public class TransactionTest extends SpliceDerbyTest {
 	} 
 	
 	@Test
-	@Ignore("Update does not work and generate exception. Needs UpdateOperation be implemented")
 	public void testUpdateRollback() throws SQLException {
 		Statement s = null;
 		ResultSet rs = null;
@@ -534,7 +533,6 @@ public class TransactionTest extends SpliceDerbyTest {
 	} 
 	
 	@Test
-	@Ignore("Alter Table Add Column needs MiscRsultSet and UpdateResultSet, which have not been implemented")
 	public void testAlterTableAddColumn() throws SQLException {
 		Statement s = null;
 		ResultSet rs = null;
