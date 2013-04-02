@@ -325,7 +325,7 @@ public class TransactionTest extends SpliceDerbyTest {
 			Assert.assertFalse(rs.next());
 			
 		} catch (SQLException e) {
-			LOG.error("error during testSelectRollbackData-"+e.getMessage(), e);
+			SpliceLogUtils.info(LOG, "should not be able to select the data from rollback table");
 		} finally {
 			try {
 				if (rs!=null)
