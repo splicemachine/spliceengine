@@ -118,6 +118,10 @@ public class SIObserver extends BaseRegionObserver {
     @Override
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e, Delete delete, WALEdit edit,
                           boolean writeToWAL) throws IOException {
-        //throw new RuntimeException("Direct deletes are not supported under snapshot isolation. Instead a Put is expected that will set a record level tombstone.");
+        if (tableEnvMatch) {
+            throw new RuntimeException("Direct deletes are not supported under snapshot isolation. Instead a Put is expected that will set a record level tombstone.");
+        } else {
+            super.preDelete(e, delete, edit, writeToWAL);
+        }
     }
 }
