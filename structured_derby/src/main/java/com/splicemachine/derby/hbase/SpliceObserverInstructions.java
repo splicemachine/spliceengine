@@ -1,11 +1,16 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.constants.ITransactionState;
 import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManagerContext;
 import com.splicemachine.derby.utils.SerializingExecRow;
 import com.splicemachine.derby.utils.SerializingIndexRow;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ParameterValueSet;
@@ -14,6 +19,8 @@ import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.conn.StatementContext;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
+import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.impl.sql.GenericActivationHolder;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
@@ -46,11 +53,13 @@ public class SpliceObserverInstructions implements Externalizable {
 		SpliceLogUtils.trace(LOG, "instantiated");
 	}
 
-	public SpliceObserverInstructions(GenericStorablePreparedStatement statement,  SpliceOperation topOperation,ActivationContext activationContext ) {
+	public SpliceObserverInstructions(GenericStorablePreparedStatement statement,  SpliceOperation topOperation,
+                                      ActivationContext activationContext, String transactionId ) {
 		SpliceLogUtils.trace(LOG, "instantiated with statement " + statement);
 		this.statement = statement;
 		this.topOperation = topOperation;
         this.activationContext = activationContext;
+        this.transactionId = transactionId;
 	}
 
 	@Override
@@ -103,10 +112,21 @@ public class SpliceObserverInstructions implements Externalizable {
     public static SpliceObserverInstructions create(Activation activation,
                                                     SpliceOperation topOperation) {
         ActivationContext activationContext = ActivationContext.create(activation,topOperation);
-		return new SpliceObserverInstructions(
+        final String transactionID = getTransactionId(activation);
+
+        return new SpliceObserverInstructions(
 				(GenericStorablePreparedStatement) activation.getPreparedStatement(),
-				topOperation,activationContext);
+				topOperation,activationContext, transactionID);
 	}
+
+    private static String getTransactionId(Activation activation) {
+        final ContextManager contextManager = activation.getLanguageConnectionContext().getContextManager();
+        SpliceTransactionManagerContext stmc = (SpliceTransactionManagerContext) contextManager.getContext(AccessFactoryGlobals.RAMXACT_CONTEXT_ID);
+        final SpliceTransactionManager transactionManager = stmc.getTransactionManager();
+        final SpliceTransaction transaction = (SpliceTransaction) transactionManager.getRawStoreXact();
+        final ITransactionState transactionState = transaction.getTransactionState();
+        return transactionState.getTransactionID();
+    }
 
     private static class ActivationContext implements Externalizable{
         private static final long serialVersionUID = 1l;

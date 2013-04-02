@@ -37,14 +37,25 @@ public class SiBrowser {
             if (endValue != null) {
                 commitTimestamp = Bytes.toLong(endValue);
             }
-            x.put(beginTimestamp, new Object[] {status, commitTimestamp});
+            final byte[] parentValue = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_PARENT_COLUMN_BYTES);
+            Long parent = null;
+            if (parentValue != null) {
+                parent = Bytes.toLong(parentValue);
+            }
+            final byte[] writesValue = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_ALLOW_WRITES_COLUMN_BYTES);
+            Boolean writes = null;
+            if (writesValue != null) {
+                writes = Bytes.toBoolean(writesValue);
+            }
+            x.put(beginTimestamp, new Object[] {parent, writes, status, commitTimestamp});
             //System.out.println(beginTimestamp + " " + status + " " + commitTimestamp);
         }
         final ArrayList<Long> list = new ArrayList<Long>(x.keySet());
         Collections.sort(list);
+        System.out.println("transaction parent writesAllowed status commitTimestamp");
         for (Long k : list) {
             Object[] v = (Object[]) x.get(k);
-            System.out.println(k + " " + v[0] + " " + v[1]);
+            System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3]);
         }
 
         //dumpTable("conglomerates", "16");
