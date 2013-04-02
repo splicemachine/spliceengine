@@ -35,8 +35,8 @@ public class IndexRowToBaseRowOperationTest {
 		DerbyTestRule.shutdown();
 	}
 
+        @Ignore ("Bug  209 ")
 	@Test
-    @Ignore
 	public void testScanSysTables() throws Exception{
 		ResultSet s = null;
 //		try{
@@ -77,7 +77,6 @@ public class IndexRowToBaseRowOperationTest {
 	}
 	
 	@Test
-	@Ignore
 	public void testJoinSysSchemasAndSysTables() throws Exception{
 		ResultSet rs = rule.executeQuery("select s.schemaid, t.tableid from sys.sysschemas s join sys.systables t on s.schemaid=t.schemaid");
 		while(rs.next()){
@@ -85,8 +84,8 @@ public class IndexRowToBaseRowOperationTest {
 		}
 	}
 	
+	@Ignore 
 	@Test
-	@Ignore
 	public void testExportTable() throws Exception{
 		LOG.info("Setting up test");
 		Statement s = null;
@@ -107,39 +106,9 @@ public class IndexRowToBaseRowOperationTest {
 //		}
 	}
 
-	@Test
-	@Ignore
-	public void testImportTable() throws Exception{
-		Statement s = null;
-//		try{
-//			s = DerbyTestRule.conn.createStatement();
-//			s.execute("create table t (i int)");
-//			DerbyTestRule.conn.commit();
-//		}finally{
-//			if(s!=null) s.close();
-//		}
-		
-		LOG.trace("Created import table");
-		ResultSet rs = null;
-//		try{
-			s = rule.getStatement();
-			//kept around to help find the table of interest
-//			rs = executeQuery("select * from sys.systables");
-//			while(rs.next()){
-//				LOG.info(String.format("tableId=%s,tableName=%s,tableType=%s,schemaId=%s,lockGranularity=%s",
-//									rs.getString(1),rs.getString(2),rs.getString(3),rs.getString(4),rs.getString(5)));
-//			}
-			s.execute("CALL SYSCS_UTIL.SYSCS_IMPORT_DATA (null,'T',null,null,'myfile.del',null,null,null,0)");
-			rule.commit();
-			
-			rs = rule.executeQuery("select * from t");
-			while(rs.next()){
-				LOG.info(rs.getInt(1));
-			}
-	}
 
+        @Ignore("Bug #209")
 	@Test
-	@Ignore("Test for Bug #209, but delegated to a lower priority fix")
 	public void testScanWithNullQualifier() throws Exception{
 		PreparedStatement ps = rule.prepareStatement("select " +
 																										"s.schemaname " +

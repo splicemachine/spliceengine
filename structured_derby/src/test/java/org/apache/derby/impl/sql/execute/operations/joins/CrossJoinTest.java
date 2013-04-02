@@ -58,7 +58,7 @@ public class CrossJoinTest extends BaseJoinTest {
 	}		
 	
 	@Test
-	@Ignore // Does not work yet, ugh
+        @Ignore("Bug 324")
 	public void testSinkableCrossJoin() throws SQLException {			
 		ResultSet rs = rule.executeQuery("select cc.si, count(*) from cc cross join dd group by cc.si");
 		int j = 0;
