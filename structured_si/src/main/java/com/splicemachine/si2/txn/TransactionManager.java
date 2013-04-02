@@ -26,6 +26,10 @@ public class TransactionManager implements ITransactionManager {
         parentTransactionIdThreadLocal.set(transactionId);
     }
 
+    public static String getParentTransactionId() {
+        return parentTransactionIdThreadLocal.get();
+    }
+
     public TransactionId beginTransaction(boolean allowWrites, boolean nested, boolean dependent, String parentTransactionID) throws KeeperException, InterruptedException, IOException, ExecutionException {
         SpliceLogUtils.trace(LOG, "Begin transaction");
         final String parentPerThreadLocal = parentTransactionIdThreadLocal.get();

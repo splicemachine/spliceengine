@@ -74,9 +74,11 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	@Override
 	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException {
 		threadLocalEnvironment.set(getEnvironment());
-        TransactionManager.setParentTransactionId(instructions.getTransactionId());
         Connection runningConnection = null;
+        final String oldParentTransactionId = TransactionManager.getParentTransactionId();
 		try {
+            TransactionManager.setParentTransactionId(instructions.getTransactionId());
+
 			SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
 																			instructions.getStatement(),instructions.getTopOperation(), scan);
 			HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
@@ -100,7 +102,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
         } catch (SQLException e) {
             throw new IOException(e);
         } finally {
-            TransactionManager.setParentTransactionId(null);
+            TransactionManager.setParentTransactionId(oldParentTransactionId);
             threadLocalEnvironment.set(null);
             try{
                 SpliceDriver.driver().closeConnection(runningConnection);

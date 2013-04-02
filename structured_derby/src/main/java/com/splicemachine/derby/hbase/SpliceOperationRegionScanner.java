@@ -7,6 +7,7 @@ import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.stats.TimeUtils;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.si2.txn.TransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;
@@ -78,9 +79,11 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		stats.start();
 		SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
 		this.regionScanner = regionScanner;
-		
-		try {
+
+        final String oldParentTransactionId = TransactionManager.getParentTransactionId();
+        try {
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
+            TransactionManager.setParentTransactionId(soi.getTransactionId());
 			statement = soi.getStatement();
 			topOperation = soi.getTopOperation();
 
@@ -100,7 +103,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
-		}
+		} finally {
+            TransactionManager.setParentTransactionId(oldParentTransactionId);
+        }
 	}
 
 	@Override
