@@ -4,6 +4,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.error.SpliceStandardException;
+import com.splicemachine.si2.txn.TransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.sql.Connection;
@@ -73,6 +74,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	@Override
 	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException {
 		threadLocalEnvironment.set(getEnvironment());
+        TransactionManager.setParentTransactionId(instructions.getTransactionId());
         Connection runningConnection = null;
 		try {
 			SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
@@ -98,6 +100,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
         } catch (SQLException e) {
             throw new IOException(e);
         } finally {
+            TransactionManager.setParentTransactionId(null);
             threadLocalEnvironment.set(null);
             try{
                 SpliceDriver.driver().closeConnection(runningConnection);
