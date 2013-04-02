@@ -115,7 +115,7 @@ public class MergeSortJoinTest extends BaseJoinTest {
 	}
 
 	@Test
-	@Ignore
+	@Ignore ("Bug 325")
 	public void testScrollableVarcharRightOuterJoin() throws SQLException {			
 		ResultSet rs = rule.executeQuery("select cc.si, dd.si from cc right outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
 		int j = 0;
@@ -133,7 +133,7 @@ public class MergeSortJoinTest extends BaseJoinTest {
 		Assert.assertEquals(9, j);
 	}	
 	@Test
-	@Ignore
+	@Ignore ("Bug 325")
 	public void testSinkableVarcharRightOuterJoin() throws SQLException {
 		ResultSet rs = rule.executeQuery("select cc.si, count(*) from cc right outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
 		int j = 0;
