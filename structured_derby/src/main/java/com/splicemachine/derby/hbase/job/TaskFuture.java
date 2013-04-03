@@ -16,4 +16,6 @@ public interface TaskFuture {
     public double getEstimatedCost();
 
     void cancel() throws ExecutionException;
+
+    String getTaskId();
 }

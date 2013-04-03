@@ -15,7 +15,10 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -230,13 +233,19 @@ public class CoprocessorJobScheduler implements JobScheduler<OperationJob>{
             else{
                 try {
                     byte[] data = zooKeeper.getData(context.getTaskNode(),this,new Stat());
-                    status = TaskStatus.fromBytes(data);
+                    ByteArrayInputStream bais = new ByteArrayInputStream(data);
+                    ObjectInput in = new ObjectInputStream(bais);
+                    status = (TaskStatus)in.readObject();
                 } catch (KeeperException e) {
                     if(e.code() == KeeperException.Code.NONODE){
                         status = TaskStatus.cancelled();
                     }else
                         throw new ExecutionException(e);
                 } catch (InterruptedException e) {
+                    throw new ExecutionException(e);
+                } catch (IOException e) {
+                    throw new ExecutionException(e);
+                } catch (ClassNotFoundException e) {
                     throw new ExecutionException(e);
                 }
 
@@ -294,6 +303,11 @@ public class CoprocessorJobScheduler implements JobScheduler<OperationJob>{
                 }
                 throw new ExecutionException(e);
             }
+        }
+
+        @Override
+        public String getTaskId() {
+            return context.getTaskNode();
         }
     }
 }
