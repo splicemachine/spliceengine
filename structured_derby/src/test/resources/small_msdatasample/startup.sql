@@ -9,7 +9,7 @@ CREATE TABLE category (
 	cat_name_ja		VARCHAR(128),
 	cat_name_sch		VARCHAR(128),
 	cat_name_ko		VARCHAR(128));
-call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CATEGORY', null, null, '/home/ryan/splice/spliceengine/structured_derby/src/test/resources/small_msdatasample/category.csv', ',', '"', null);
+call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CATEGORY', null, null, '${basedir}/src/test/resources/small_msdatasample/category.csv', ',', '"', null);
 
 CREATE TABLE category_sub (
 	sbc_id			INT,
@@ -23,7 +23,7 @@ CREATE TABLE category_sub (
 	sbc_desc_ja		VARCHAR(128),
 	sbc_desc_sch		VARCHAR(128),
 	sbc_desc_ko		VARCHAR(128));
-call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CATEGORY_SUB', null, null, '/home/ryan/splice/spliceengine/structured_derby/src/test/resources/small_msdatasample/category_sub.csv', ',', '"', null);
+call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CATEGORY_SUB', null, null, '${basedir}/src/test/resources/small_msdatasample/category_sub.csv', ',', '"', null);
 
 CREATE TABLE customer (
 	cst_id 			INT, 
@@ -48,7 +48,7 @@ CREATE TABLE customer (
 	cst_tenure		INT,
 	cst_recency		INT,
 	cst_status_id		INT);
-call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CUSTOMER', null, null, '/home/ryan/splice/spliceengine/structured_derby/src/test/resources/small_msdatasample/customer_iso.csv', ',', '"', null);
+call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CUSTOMER', null, null, '${basedir}/src/test/resources/small_msdatasample/customer_iso.csv', ',', '"', null);
 
 
 CREATE TABLE item (
@@ -81,7 +81,7 @@ CREATE TABLE item (
 	itm_itm_long_desc_ja	VARCHAR(32672),
 	itm_long_desc_sch	VARCHAR(32672),
 	itm_long_desc_ko	VARCHAR(32672));
-call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ITEM', null, null, '/home/ryan/splice/spliceengine/structured_derby/src/test/resources/small_msdatasample/item.csv', ',', '"', null);
+call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ITEM', null, null, '${basedir}/src/test/resources/small_msdatasample/item.csv', ',', '"', null);
 
 
 CREATE TABLE order_header (
@@ -93,7 +93,7 @@ CREATE TABLE order_header (
 	orh_qty			FLOAT, 
 	orh_ship_date		TIMESTAMP,
 	orh_rush		INT);
-call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_HEADER', null, null, '/home/ryan/splice/spliceengine/structured_derby/src/test/resources/small_msdatasample/order_header.csv', ',', '"', null);
+call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_HEADER', null, null, '${basedir}/src/test/resources/small_msdatasample/order_header.csv', ',', '"', null);
 
 CREATE TABLE order_line (
 	orl_order_id 		VARCHAR(50), 
@@ -107,4 +107,4 @@ CREATE TABLE order_line (
 	orl_unit_cost 		FLOAT, 
 	orl_discount 		FLOAT, 
 	orl_customer_id 	INT);
-call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_LINE', null, null, '/home/ryan/splice/spliceengine/structured_derby/src/test/resources/small_msdatasample/order_line.csv', ',', '"', null);
+call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_LINE', null, null, '${basedir}/src/test/resources/small_msdatasample/order_line.csv', ',', '"', null);

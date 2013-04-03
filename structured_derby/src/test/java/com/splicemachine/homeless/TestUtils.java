@@ -4,23 +4,25 @@ import org.apache.commons.io.IOUtils;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 public class TestUtils {
-    public static String getBaseDirectory() {
-        String dir = System.getProperty("user.dir");
-        if(!dir.endsWith("structured_derby"))
-            dir = dir+"/structured_derby";
-        return dir+"/src/test/resources/";
+
+    public static URL getClasspathResource(String path){
+        return TestUtils.class.getClassLoader().getResource(path);
     }
 
     public static void executeSqlFile(Connection conn, String fileSuffix){
 
         String sqlStatementStrings = null;
         try {
-            sqlStatementStrings = IOUtils.toString(new FileInputStream( getBaseDirectory() + fileSuffix));
+
+            URL pathToFile = getClasspathResource(fileSuffix);
+            sqlStatementStrings = IOUtils.toString(pathToFile);
+
         } catch (IOException e) {
             throw new RuntimeException("Unable to open file " + fileSuffix, e);
         }

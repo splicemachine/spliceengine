@@ -116,10 +116,17 @@
 	</dependencies>
 	<build>
 	  <resources>
-    <resource>
-      <directory>src/main/resources</directory>
-    </resource>
-  </resources>
+        <resource>
+            <directory>src/main/resources</directory>
+        </resource>
+      </resources>
+      <testResources>
+          <testResource>
+            <directory>src/test/resources</directory>
+            <filtering>true</filtering>
+          </testResource>
+      </testResources>
+
 		<!-- Some plugins (javadoc for example) can be used in the normal build-
 			and the site phase. These plugins inherit their options from the <reporting> 
 			section below. These settings can be overwritten here. -->

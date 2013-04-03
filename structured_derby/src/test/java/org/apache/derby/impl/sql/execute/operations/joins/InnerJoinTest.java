@@ -37,7 +37,6 @@ public class InnerJoinTest extends BaseJoinTest {
 	@AfterClass
 	public static void shutdown() throws Exception{
 		rule.dropTables();
-        String sqlStatementStrings = IOUtils.toString(new FileInputStream(TestUtils.getBaseDirectory() + "small_msdatasample/shutdown.sql"));
         TestUtils.executeSqlFile(rule.getConnection(), "small_msdatasample/shutdown.sql");
 		DerbyTestRule.shutdown();
 	}
