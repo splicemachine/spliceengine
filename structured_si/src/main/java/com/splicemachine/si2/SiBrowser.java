@@ -4,6 +4,7 @@ import com.splicemachine.si.utils.SIConstants;
 import com.splicemachine.si2.si.impl.TransactionStatus;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -25,13 +26,19 @@ public class SiBrowser {
         Scan scan = new Scan();
         ResultScanner scanner = transactionTable.getScanner(scan);
         Iterator<Result> results = scanner.iterator();
-        Map<Long,Object> x = new HashMap<Long,Object>();
+        Map<Long, Object> x = new HashMap<Long, Object>();
+        Long idToFind = null;
+        //idToFind = 486L;
+        Result toFind = null;
         while (results.hasNext()) {
             Result r = results.next();
             final byte[] value = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN_BYTES);
             final long beginTimestamp = Bytes.toLong(value);
             final byte[] statusValue = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_STATUS_COLUMN_BYTES);
-            TransactionStatus status = TransactionStatus.values()[Bytes.toInt(statusValue)];
+            TransactionStatus status = null;
+            if (statusValue != null) {
+                status = TransactionStatus.values()[Bytes.toInt(statusValue)];
+            }
             final byte[] endValue = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
             Long commitTimestamp = null;
             if (endValue != null) {
@@ -47,25 +54,40 @@ public class SiBrowser {
             if (writesValue != null) {
                 writes = Bytes.toBoolean(writesValue);
             }
-            x.put(beginTimestamp, new Object[] {parent, writes, status, commitTimestamp});
+            x.put(beginTimestamp, new Object[]{parent, writes, status, commitTimestamp});
+            if (idToFind != null && beginTimestamp == idToFind) {
+                toFind = r;
+            }
             //System.out.println(beginTimestamp + " " + status + " " + commitTimestamp);
         }
-        final ArrayList<Long> list = new ArrayList<Long>(x.keySet());
-        Collections.sort(list);
-        System.out.println("transaction parent writesAllowed status commitTimestamp");
-        for (Long k : list) {
-            Object[] v = (Object[]) x.get(k);
-            System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3]);
+
+        if (toFind != null) {
+            System.out.println("killing transaction " + idToFind);
+            Put put = new Put(toFind.getRow());
+            KeyValue kv = new KeyValue(toFind.getRow(), SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_STATUS_COLUMN_BYTES,
+                    Bytes.toBytes(TransactionStatus.ERROR.ordinal()));
+            put.add(kv);
+            transactionTable.put(put);
+        } else {
+            final ArrayList<Long> list = new ArrayList<Long>(x.keySet());
+            Collections.sort(list);
+            System.out.println("transaction parent writesAllowed status commitTimestamp");
+            for (Long k : list) {
+                Object[] v = (Object[]) x.get(k);
+                System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3]);
+            }
+
+            //dumpTable("conglomerates", "16");
+            //dumpTable("SYCOLUMNS_INDEX2", "161");
+
+            //dumpTable("p", "1184");
         }
-
-        //dumpTable("conglomerates", "16");
-        //dumpTable("SYCOLUMNS_INDEX2", "161");
-
-        //dumpTable("p", "1184");
     }
 
     private static void dumpTable(String tableName, String tableId) throws IOException {
-        Scan scan;ResultScanner scanner;Iterator<Result> results;
+        Scan scan;
+        ResultScanner scanner;
+        Iterator<Result> results;
         System.out.println("------------------");
         System.out.println(tableName);
         HTable cTable = new HTable(tableId);
@@ -95,7 +117,7 @@ public class SiBrowser {
                     String v2 = Bytes.toString(v);
                     char qualifier = (char) q[0];
                     String byteValue = "" + v.length + "[";
-                    for(byte b : v) {
+                    for (byte b : v) {
                         if (b >= 32 && b <= 122) {
                             char c = (char) b;
                             byteValue += c;
@@ -105,7 +127,7 @@ public class SiBrowser {
                         }
                     }
                     byteValue += "]";
-                    System.out.println( Bytes.toString(row) + " " + family + " " + qualifier + " @ " + ts + " " + byteValue + " " + v2);
+                    System.out.println(Bytes.toString(row) + " " + family + " " + qualifier + " @ " + ts + " " + byteValue + " " + v2);
                 }
             }
             i++;
