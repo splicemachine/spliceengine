@@ -70,6 +70,9 @@ public class SpliceDerbyTest {
 	    //Connection
 	    try {
 	        if (conn != null) {
+                if (!conn.getAutoCommit()) {
+                    conn.rollback();
+                }
 	            conn.close();
 	            conn = null;
 	        }
