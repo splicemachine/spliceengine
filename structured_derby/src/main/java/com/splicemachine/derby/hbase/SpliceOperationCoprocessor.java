@@ -1,9 +1,9 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.derby.error.SpliceStandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.error.SpliceStandardException;
 import com.splicemachine.si2.txn.TransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;

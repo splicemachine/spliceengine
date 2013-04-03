@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import com.splicemachine.derby.error.SpliceStandardException;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.error.SpliceStandardException;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
