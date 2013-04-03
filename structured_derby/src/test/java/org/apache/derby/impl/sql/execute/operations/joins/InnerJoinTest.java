@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.homeless.TestUtils;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.dbutils.BasicRowProcessor;
+import org.apache.commons.dbutils.DbUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.junit.*;
@@ -76,18 +79,16 @@ public class InnerJoinTest extends BaseJoinTest {
 		Assert.assertEquals(9, j);
 	}
 
-    private Map<String, List<String>> toResultMap(ResultSet rs) throws SQLException{
+    private List<Map> resultSetToMaps(ResultSet rs) throws SQLException{
 
-        Map<String, List<String>> map = new HashMap<String, List<String>>();
+        List<Map> results = new ArrayList<Map>();
+        BasicRowProcessor brp = new BasicRowProcessor();
 
         while(rs.next()){
-            List<String> row = new ArrayList<String>();
-            row.add(rs.getString(2));
-            row.add(rs.getString(3));
-            map.put(rs.getString(1), row);
+            results.add(brp.toMap(rs));
         }
 
-        return map;
+        return results;
     }
 
     @Test
@@ -97,46 +98,19 @@ public class InnerJoinTest extends BaseJoinTest {
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id");
 
 
-        Map<String, List<String>> results = toResultMap(rs);
-
+        List<Map> results = resultSetToMaps(rs);
         Assert.assertEquals(10, results.size());
 
-        Assert.assertEquals("143", results.get("10058_325_1").get(0));
-        Assert.assertEquals("143", results.get("10058_7_1").get(0));
-        Assert.assertEquals("327", results.get("10059_274_1").get(0));
-        Assert.assertEquals("327", results.get("10059_25_1").get(0));
-        Assert.assertEquals("327", results.get("10059_323_1").get(0));
-        Assert.assertEquals("338", results.get("10060_65_1").get(0));
-        Assert.assertEquals("338", results.get("10060_244_1").get(0));
-        Assert.assertEquals("338", results.get("10060_192_1").get(0));
-        Assert.assertEquals("338", results.get("10060_315_1").get(0));
+        Map zero = results.get(0);
+        Map fifth = results.get(5);
 
-        Assert.assertEquals("325", results.get("10058_325_1").get(1));
-        Assert.assertEquals("7", results.get("10058_7_1").get(1));
-        Assert.assertEquals("274", results.get("10059_274_1").get(1));
-        Assert.assertEquals("25", results.get("10059_25_1").get(1));
-        Assert.assertEquals("323", results.get("10059_323_1").get(1));
-        Assert.assertEquals("65", results.get("10060_65_1").get(1));
-        Assert.assertEquals("244", results.get("10060_244_1").get(1));
-        Assert.assertEquals("192", results.get("10060_192_1").get(1));
-        Assert.assertEquals("315", results.get("10060_315_1").get(1));
-        Assert.assertEquals("336", results.get("10060_336_1").get(1));
-    }
+        Assert.assertEquals("10058_7_1", zero.get("ORL_ORDER_ID"));
+        Assert.assertEquals(143, zero.get("CST_ID"));
+        Assert.assertEquals(7, zero.get("ITM_ID"));
 
-
-    private Map<String, List<String>> toFullResultMap(ResultSet rs) throws SQLException{
-
-        Map<String, List<String>> map = new HashMap<String, List<String>>();
-
-        while(rs.next()){
-            List<String> row = new ArrayList<String>();
-            row.add(rs.getString(2));
-            row.add(rs.getString(3));
-            row.add(rs.getString(4));
-            map.put(rs.getString(1), row);
-        }
-
-        return map;
+        Assert.assertEquals("10059_274_1", fifth.get("ORL_ORDER_ID"));
+        Assert.assertEquals(327, fifth.get("CST_ID"));
+        Assert.assertEquals(274, fifth.get("ITM_ID"));
     }
 
     @Test
@@ -145,17 +119,21 @@ public class InnerJoinTest extends BaseJoinTest {
                     "from order_line t1, customer t2, item t3 " +
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id");
 
-        Map<String, List<String>> results = toFullResultMap(rs);
+        List<Map> results = resultSetToMaps(rs);
 
         Assert.assertEquals(10, results.size());
 
+        Map favRooms = results.get(0);
+        Map seal = results.get(5);
 
-        Assert.assertEquals("Deutsch", results.get("10058_325_1").get(0));
-        Assert.assertEquals("Leslie", results.get("10058_325_1").get(1));
-        Assert.assertEquals("Waiting to Exhale: The Soundtrack", results.get("10058_325_1").get(2));
+        Assert.assertEquals("10058_7_1", favRooms.get("ORL_ORDER_ID"));
+        Assert.assertEquals("Deutsch", favRooms.get("CST_LAST_NAME"));
+        Assert.assertEquals("Leslie", favRooms.get("CST_FIRST_NAME"));
+        Assert.assertEquals("50 Favorite Rooms", favRooms.get("ITM_NAME"));
 
-        Assert.assertEquals("Merritt", results.get("10060_336_1").get(0));
-        Assert.assertEquals("Betsy", results.get("10060_336_1").get(1));
-        Assert.assertEquals("Road Tested", results.get("10060_336_1").get(2));
+        Assert.assertEquals("10059_274_1", seal.get("ORL_ORDER_ID"));
+        Assert.assertEquals("Marko", seal.get("CST_LAST_NAME"));
+        Assert.assertEquals("Shelby", seal.get("CST_FIRST_NAME"));
+        Assert.assertEquals("Seal (94)", seal.get("ITM_NAME"));
     }
 }
