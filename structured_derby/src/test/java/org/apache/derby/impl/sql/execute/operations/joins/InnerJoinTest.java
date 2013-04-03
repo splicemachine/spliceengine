@@ -7,11 +7,7 @@ import java.util.Map;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.DerbyTestRule;
@@ -42,7 +38,7 @@ public class InnerJoinTest extends BaseJoinTest {
         TestUtils.executeSqlFile(rule.getConnection(), "small_msdatasample/shutdown.sql");
 		DerbyTestRule.shutdown();
 	}
-	
+
 	@Test
 	public void testScrollableInnerJoin() throws SQLException {
 		ResultSet rs = rule.executeQuery("select cc.si, dd.si from cc inner join dd on cc.si = dd.si");
@@ -59,7 +55,7 @@ public class InnerJoinTest extends BaseJoinTest {
 		}	
 		Assert.assertEquals(9, j);
 	}		
-	
+
 	@Test
 	public void testSinkableInnerJoin() throws SQLException {			
 		ResultSet rs = rule.executeQuery("select cc.si, count(*) from cc inner join dd on cc.si = dd.si group by cc.si");
@@ -78,10 +74,10 @@ public class InnerJoinTest extends BaseJoinTest {
 		Assert.assertEquals(9, j);
 	}
 
-    @Test(expected = java.sql.SQLException.class)
+    @Test
     public void testThreeTableJoin() throws SQLException {
-        rule.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name " +
-                "from order_line t1, customer t2, item t3 " +
+        ResultSet rs = rule.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name " +
+                    "from order_line t1, customer t2, item t3 " +
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id");
     }
 }
