@@ -2,6 +2,9 @@ package org.apache.derby.impl.sql.execute.operations.joins;
 
 import java.io.FileInputStream;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.homeless.TestUtils;
@@ -74,10 +77,86 @@ public class InnerJoinTest extends BaseJoinTest {
 		Assert.assertEquals(9, j);
 	}
 
+    private Map<String, List<String>> toResultMap(ResultSet rs) throws SQLException{
+
+        Map<String, List<String>> map = new HashMap<String, List<String>>();
+
+        while(rs.next()){
+            List<String> row = new ArrayList<String>();
+            row.add(rs.getString(2));
+            row.add(rs.getString(3));
+            map.put(rs.getString(1), row);
+        }
+
+        return map;
+    }
+
     @Test
-    public void testThreeTableJoin() throws SQLException {
+     public void testThreeTableJoin() throws SQLException {
+        ResultSet rs = rule.executeQuery("select t1.orl_order_id, t2.cst_id, t3.itm_id " +
+                "from order_line t1, customer t2, item t3 " +
+                "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id");
+
+
+        Map<String, List<String>> results = toResultMap(rs);
+
+        Assert.assertEquals(10, results.size());
+
+        Assert.assertEquals("143", results.get("10058_325_1").get(0));
+        Assert.assertEquals("143", results.get("10058_7_1").get(0));
+        Assert.assertEquals("327", results.get("10059_274_1").get(0));
+        Assert.assertEquals("327", results.get("10059_25_1").get(0));
+        Assert.assertEquals("327", results.get("10059_323_1").get(0));
+        Assert.assertEquals("338", results.get("10060_65_1").get(0));
+        Assert.assertEquals("338", results.get("10060_244_1").get(0));
+        Assert.assertEquals("338", results.get("10060_192_1").get(0));
+        Assert.assertEquals("338", results.get("10060_315_1").get(0));
+
+        Assert.assertEquals("325", results.get("10058_325_1").get(1));
+        Assert.assertEquals("7", results.get("10058_7_1").get(1));
+        Assert.assertEquals("274", results.get("10059_274_1").get(1));
+        Assert.assertEquals("25", results.get("10059_25_1").get(1));
+        Assert.assertEquals("323", results.get("10059_323_1").get(1));
+        Assert.assertEquals("65", results.get("10060_65_1").get(1));
+        Assert.assertEquals("244", results.get("10060_244_1").get(1));
+        Assert.assertEquals("192", results.get("10060_192_1").get(1));
+        Assert.assertEquals("315", results.get("10060_315_1").get(1));
+        Assert.assertEquals("336", results.get("10060_336_1").get(1));
+    }
+
+
+    private Map<String, List<String>> toFullResultMap(ResultSet rs) throws SQLException{
+
+        Map<String, List<String>> map = new HashMap<String, List<String>>();
+
+        while(rs.next()){
+            List<String> row = new ArrayList<String>();
+            row.add(rs.getString(2));
+            row.add(rs.getString(3));
+            row.add(rs.getString(4));
+            map.put(rs.getString(1), row);
+        }
+
+        return map;
+    }
+
+    @Test
+    public void testThreeTableJoinExtraProjections() throws SQLException {
         ResultSet rs = rule.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name " +
                     "from order_line t1, customer t2, item t3 " +
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id");
+
+        Map<String, List<String>> results = toFullResultMap(rs);
+
+        Assert.assertEquals(10, results.size());
+
+
+        Assert.assertEquals("Deutsch", results.get("10058_325_1").get(0));
+        Assert.assertEquals("Leslie", results.get("10058_325_1").get(1));
+        Assert.assertEquals("Waiting to Exhale: The Soundtrack", results.get("10058_325_1").get(2));
+
+        Assert.assertEquals("Merritt", results.get("10060_336_1").get(0));
+        Assert.assertEquals("Betsy", results.get("10060_336_1").get(1));
+        Assert.assertEquals("Road Tested", results.get("10060_336_1").get(2));
     }
 }
