@@ -100,8 +100,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
                 final TransactionStruct childTransaction = transactionStore.getTransactionStatus(childId);
                 final TransactionStatus childStatus = childTransaction.getEffectiveStatus();
                 if (childStatus == TransactionStatus.ACTIVE
-                        || childStatus == TransactionStatus.COMMITED
-                        || childStatus == TransactionStatus.COMMITTING) {
+                        || childTransaction.dependent
+                        && (childStatus == TransactionStatus.COMMITED
+                        || childStatus == TransactionStatus.COMMITTING)) {
                     commitChild(childId, endId);
                 }
             }
@@ -449,7 +450,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     private Object[] filterHandleUnknownTransactionStatus(SiFilterState siFilterState, Object keyValue,
-                                                      long beginTimestamp, Long commitTimestamp) throws IOException {
+                                                          long beginTimestamp, Long commitTimestamp) throws IOException {
         TransactionStruct transactionStruct = transactionStore.getTransactionStatus(beginTimestamp);
         Boolean stillRunning = false;
         switch (transactionStruct.getEffectiveStatus()) {
@@ -469,7 +470,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
                 commitTimestamp = transactionStruct.commitTimestamp;
                 break;
         }
-        return new Object[] {commitTimestamp, stillRunning};
+        return new Object[]{commitTimestamp, stillRunning};
     }
 
     private void rollForward(SiFilterState siFilterState, Object keyValue, TransactionStruct transactionStruct) {
