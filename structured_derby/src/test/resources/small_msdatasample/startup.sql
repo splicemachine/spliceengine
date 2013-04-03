@@ -97,10 +97,10 @@ call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_HEADER', null, null, '/home/ryan
 
 CREATE TABLE order_line (
 	orl_order_id 		VARCHAR(50), 
-	orl_item_id 		INT, 
-	orl_amt 		INT, 
-	orl_date 		TIMESTAMP, 
-	orl_emp_id 		INT, 
+	orl_amt 		INT,
+	orl_item_id 		INT,
+	orl_date 		TIMESTAMP,
+	orl_emp_id 		INT,
 	orl_promotion_id 	INT, 
 	orl_qty_sold 		INT, 
 	orl_unit_price 		FLOAT, 
