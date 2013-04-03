@@ -175,6 +175,11 @@ public class HdfsImport extends ParallelVTI {
 		}
 	}
 
+    @Override
+    public int[] getRootAccessedCols() {
+        throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement getRootAccessedCols");
+    }
+
 	@Override
 	public void executeShuffle() throws StandardException {
 		CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
