@@ -294,7 +294,12 @@ public class MergeSortJoinOperation extends JoinOperation {
                 wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
 	}
-	
+ 
+   @Override
+    public int[] getRootAccessedCols() {
+        return leftResultSet.getRootAccessedCols();
+    }
+
 	@Override
 	public List<NodeType> getNodeTypes() {
 		SpliceLogUtils.trace(LOG, "getNodeTypes");
