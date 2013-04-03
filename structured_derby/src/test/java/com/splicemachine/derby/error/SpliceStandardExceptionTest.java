@@ -1,9 +1,11 @@
-package com.splicemachine.error;
+package com.splicemachine.derby.error;
 
 import junit.framework.Assert;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.junit.Test;
+
+import com.splicemachine.derby.error.SpliceStandardException;
 
 public class SpliceStandardExceptionTest {
 	@Test 
