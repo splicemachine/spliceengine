@@ -77,18 +77,6 @@ public class InnerJoinTest extends BaseJoinTest {
 			}
 		}	
 		Assert.assertEquals(9, j);
-	}
-
-    private List<Map> resultSetToMaps(ResultSet rs) throws SQLException{
-
-        List<Map> results = new ArrayList<Map>();
-        BasicRowProcessor brp = new BasicRowProcessor();
-
-        while(rs.next()){
-            results.add(brp.toMap(rs));
-        }
-
-        return results;
     }
 
     @Test
@@ -98,7 +86,7 @@ public class InnerJoinTest extends BaseJoinTest {
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id");
 
 
-        List<Map> results = resultSetToMaps(rs);
+        List<Map> results = TestUtils.resultSetToMaps(rs);
         Assert.assertEquals(10, results.size());
 
         Map zero = results.get(0);
@@ -119,7 +107,7 @@ public class InnerJoinTest extends BaseJoinTest {
                     "from order_line t1, customer t2, item t3 " +
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id");
 
-        List<Map> results = resultSetToMaps(rs);
+        List<Map> results = TestUtils.resultSetToMaps(rs);
 
         Assert.assertEquals(10, results.size());
 
