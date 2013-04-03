@@ -9,6 +9,7 @@ import com.splicemachine.si2.si.api.FilterState;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.SiTransactor;
+import com.splicemachine.si2.si.impl.TransactionStruct;
 import junit.framework.Assert;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.junit.After;
@@ -201,8 +202,12 @@ public class SiTransactorTest {
     }
 
     private void dumpStore() {
+        dumpStore("");
+    }
+
+    private void dumpStore(String label) {
         if (useSimple) {
-            System.out.println("store=" + storeSetup.getStore());
+            System.out.println("store " + label + " =" + storeSetup.getStore());
         }
     }
 
@@ -813,6 +818,102 @@ public class SiTransactorTest {
 
         TransactionId t4 = transactor.beginTransaction(false, false, false);
         Assert.assertEquals("joe30 age=21 job=null", read(t4, "joe30"));
+    }
+
+    @Test
+    public void commitParentOfCommittedDependent() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe32", 20);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        insertAge(t2, "joe32", 21);
+        transactor.commit(t2);
+        final TransactionStruct transactionStatusA = transactorSetup.transactionStore.getTransactionStatus(t2);
+        Assert.assertNull("committing a dependent child does not set a commit timestamp", transactionStatusA.commitTimestamp);
+        transactor.commit(t1);
+        final TransactionStruct transactionStatusB = transactorSetup.transactionStore.getTransactionStatus(t2);
+        Assert.assertNotNull("committing parent of dependent transaction should set the commit time of the child",
+                transactionStatusB.commitTimestamp);
+    }
+
+    @Test
+    public void commitParentOfCommittedIndependent() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe32", 20);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
+        insertAge(t2, "joe32", 21);
+        transactor.commit(t2);
+        final TransactionStruct transactionStatusA = transactorSetup.transactionStore.getTransactionStatus(t2);
+        transactor.commit(t1);
+        final TransactionStruct transactionStatusB = transactorSetup.transactionStore.getTransactionStatus(t2);
+        Assert.assertEquals("committing parent of independent transaction should not change the commit time of the child",
+                transactionStatusA.commitTimestamp, transactionStatusB.commitTimestamp);
+    }
+
+    @Test
+    public void independentWriteOverlapWithReadCommittedWriter() throws IOException {
+        TransactionId parent = transactor.beginTransaction(true, false, false);
+
+        TransactionId other = transactor.beginTransaction(true, false, true);
+
+        TransactionId child = transactor.beginChildTransaction(parent, false, true, null, null);
+        insertAge(child, "joe33", 22);
+        transactor.commit(child);
+
+        try {
+            // TODO: make this test pass, writes should be allowed on top of committed transactions in READ_COMMITTED mode
+            insertAge(other, "joe33", 21);
+            Assert.fail();
+        } catch (RuntimeException e) {
+            // TODO: expected write/write conflict
+            //DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
+            //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
+        }
+    }
+
+    @Test
+    public void dependentWriteFollowedByReadCommittedWriter() throws IOException {
+        TransactionId parent = transactor.beginTransaction(true, false, false);
+
+        TransactionId child = transactor.beginChildTransaction(parent, false, true, null, null);
+        insertAge(child, "joe34", 22);
+        transactor.commit(child);
+
+        TransactionId other = transactor.beginTransaction(true, false, true);
+        insertAge(other, "joe34", 21);
+        transactor.commit(other);
+    }
+
+    @Test
+    public void independentWriteFollowedByReadCommittedWriter() throws IOException {
+        TransactionId parent = transactor.beginTransaction(true, false, false);
+
+        TransactionId child = transactor.beginChildTransaction(parent, false, true, null, null);
+        insertAge(child, "joe35", 22);
+        transactor.commit(child);
+
+        TransactionId other = transactor.beginTransaction(true, false, true);
+        insertAge(other, "joe35", 21);
+        transactor.commit(other);
+    }
+
+    @Test
+    public void dependentWriteOverlapWithReadCommittedWriter() throws IOException {
+        TransactionId parent = transactor.beginTransaction(true, false, false);
+
+        TransactionId other = transactor.beginTransaction(true, false, true);
+
+        TransactionId child = transactor.beginChildTransaction(parent, false, true, null, null);
+        insertAge(child, "joe36", 22);
+        transactor.commit(child);
+
+        try {
+            insertAge(other, "joe36", 21);
+            Assert.fail();
+        } catch (RuntimeException e) {
+            // TODO: expected write/write conflict
+            //DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
+            //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
+        }
     }
 
     @Test
