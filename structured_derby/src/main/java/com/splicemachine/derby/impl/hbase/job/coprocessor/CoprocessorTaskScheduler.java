@@ -17,14 +17,14 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/3/13
  */
 public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements SpliceSchedulerProtocol{
-    private TaskScheduler<OperationTask> taskScheduler;
+    private TaskScheduler<SinkTask> taskScheduler;
     private RecoverableZooKeeper zooKeeper;
 
     @Override
     public TaskFutureContext submit(OperationJob job) throws IOException {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         try {
-            TaskFuture future = taskScheduler.submit(new OperationTask(job,zooKeeper,rce.getRegion()));
+            TaskFuture future = taskScheduler.submit(new SinkTask(job,zooKeeper,rce.getRegion()));
             return new TaskFutureContext(future.getTaskId(),future.getEstimatedCost());
         } catch (ExecutionException e) {
             Throwable t = Throwables.getRootCause(e);

@@ -267,7 +267,9 @@ public class CoprocessorJobScheduler implements JobScheduler<OperationJob>{
                         throw new CancellationException();
                 }
                 //put thread to sleep until status has changed
-                context.wait();
+                synchronized (context){
+                    context.wait();
+                }
             }
         }
 
@@ -279,7 +281,9 @@ public class CoprocessorJobScheduler implements JobScheduler<OperationJob>{
         @Override
         public void process(WatchedEvent event) {
             refresh=true;
-            context.notifyAll();
+            synchronized (context){
+                context.notifyAll();
+            }
             jobFuture.changedFutures.offer(this);
         }
 
@@ -293,8 +297,11 @@ public class CoprocessorJobScheduler implements JobScheduler<OperationJob>{
                     return;
             }
             status = TaskStatus.cancelled();
+            /*
+             * Delete the status node for this task to signal that we've cancelled the task
+             */
             try {
-                zooKeeper.delete(context.getTaskNode(),-1);
+                zooKeeper.delete(context.getTaskNode()+"/status",-1);
             } catch (InterruptedException e) {
                 throw new ExecutionException(e);
             } catch (KeeperException e) {
