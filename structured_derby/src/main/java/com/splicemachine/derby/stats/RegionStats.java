@@ -93,8 +93,6 @@ public class RegionStats {
          *  The detail level will log out the statistics for each region
          */
         boolean showDetail = log.isTraceEnabled();
-        boolean showSummary = log.isDebugEnabled();
-        if(!showSummary) return; //nothing to do, we don't want to record stats
         if(processStats.size()<=0){
             log.debug("No Regions reported statistics");
         }
@@ -105,6 +103,9 @@ public class RegionStats {
                 .append(writeSummaryStats(processStats, false))
                 .append("\nSink Summary:\n")
                 .append(writeSummaryStats(sinkStats, true)).toString();
+
+        boolean showSummary = log.isDebugEnabled();
+        if(!showSummary) return; //nothing to do, we don't want to record stats
         log.debug(sb);
 
         if(!showDetail) return; //no more to log
