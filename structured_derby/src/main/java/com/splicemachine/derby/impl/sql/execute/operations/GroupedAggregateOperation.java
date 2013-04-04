@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 
+import com.splicemachine.derby.utils.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -39,10 +40,6 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.stats.TimingStats;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class GroupedAggregateOperation extends GenericAggregateOperation {	
@@ -173,7 +170,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	}
 
 	@Override		
-	public SinkStats sink() {
+	public SinkStats sink() throws IOException{
 		/*
 		 * Sorts the data by sinking into the TEMP table. From there, the 
 		 * getNextRowCore() method can be used to pull the data out in sequence and perform 
@@ -206,10 +203,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			tempTable.flushCommits();
 			tempTable.close();
 		}catch (StandardException se){
-			SpliceLogUtils.logAndThrowRuntime(LOG,se);
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		}finally{
+			SpliceLogUtils.logAndThrow(LOG, Exceptions.getIOException(se));
+		} finally{
 			try {
 				if(tempTable!=null)
 					tempTable.close();

@@ -5,14 +5,27 @@ import com.splicemachine.job.Job;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 /**
  * @author Scott Fines
  *         Created on: 4/3/13
  */
-public class OperationJob implements Job {
+public class OperationJob implements Job,Externalizable {
     private Scan scan;
     private SpliceObserverInstructions instructions;
     private HTableInterface table;
+
+    public OperationJob(){}
+
+    public OperationJob(Scan scan, SpliceObserverInstructions instructions, HTableInterface table) {
+        this.scan = scan;
+        this.instructions = instructions;
+        this.table = table;
+    }
 
     @Override
     public String getJobId() {
@@ -29,5 +42,18 @@ public class OperationJob implements Job {
 
     public HTableInterface getTable(){
         return table;
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        scan.write(out);
+        out.writeObject(instructions);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        scan = new Scan();
+        scan.readFields(in);
+        instructions = (SpliceObserverInstructions)in.readObject();
     }
 }

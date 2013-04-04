@@ -2,10 +2,16 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJobScheduler;
+import com.splicemachine.derby.impl.job.coprocessor.SinkTask;
+import com.splicemachine.derby.impl.job.scheduler.ThreadedTaskScheduler;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.ZkUtils;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.TableWriter;
+import com.splicemachine.job.JobScheduler;
+import com.splicemachine.job.TaskScheduler;
 import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.drda.NetworkServerControl;
@@ -13,9 +19,12 @@ import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.jdbc.EmbeddedDriver;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.regionserver.SplitLogWorker;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 
 import javax.management.*;
@@ -41,6 +50,8 @@ public class SpliceDriver {
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     private static final int DEFAULT_PORT = 1527;
     private static final String DEFAULT_SERVER_ADDRESS = "0.0.0.0";
+    private static final int DEFAULT_MAX_CONCURRENT_TASKS = 10;
+
 
     public static enum State{
         NOT_STARTED,
@@ -70,6 +81,8 @@ public class SpliceDriver {
 
     private ExecutorService executor;
     private ConnectionPool embeddedConnections;
+    private ThreadedTaskScheduler threadTaskScheduler;
+    private JobScheduler jobScheduler;
 
     private SpliceDriver(){
         ThreadFactory factory = new ThreadFactoryBuilder()
@@ -83,7 +96,12 @@ public class SpliceDriver {
 
             embeddedConnections = ConnectionPool.create(SpliceUtils.config);
 
+            int numTaskThreads = SpliceUtils.config.getInt("splice.sink.maxConcurrentTasks",DEFAULT_MAX_CONCURRENT_TASKS);
+            SpliceLogUtils.trace(LOG,"Enabling %d tasks to run concurrently",numTaskThreads);
+            threadTaskScheduler = ThreadedTaskScheduler.create(numTaskThreads);
+            threadTaskScheduler.start();
 
+            jobScheduler = new CoprocessorJobScheduler(ZkUtils.getRecoverableZooKeeper());
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
@@ -95,6 +113,14 @@ public class SpliceDriver {
 
     public Properties getProperties() {
         return props;
+    }
+
+    public TaskScheduler getTaskScheduler() {
+        return threadTaskScheduler;
+    }
+
+    public JobScheduler getJobScheduler(){
+        return jobScheduler;
     }
 
     public ConnectionPool embedConnPool(){

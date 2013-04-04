@@ -9,4 +9,6 @@ import java.util.concurrent.ExecutionException;
 public interface JobScheduler<J extends Job> {
 
     JobFuture submit(J job) throws ExecutionException;
+
+    void cleanupJob(JobFuture future) throws ExecutionException;
 }

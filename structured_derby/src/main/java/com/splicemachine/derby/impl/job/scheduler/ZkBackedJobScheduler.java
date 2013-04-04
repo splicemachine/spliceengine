@@ -1,9 +1,10 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import com.splicemachine.job.*;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.impl.job.coprocessor.TaskStatus;
+import com.splicemachine.job.*;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.*;
 
@@ -23,7 +25,7 @@ import java.util.concurrent.*;
  * Created on: 4/3/13
  */
 public abstract class ZkBackedJobScheduler<J extends Job> implements JobScheduler<J>{
-    private final RecoverableZooKeeper zooKeeper;
+    protected final RecoverableZooKeeper zooKeeper;
 
     public ZkBackedJobScheduler(RecoverableZooKeeper zooKeeper) {
         this.zooKeeper = zooKeeper;
@@ -41,6 +43,15 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         }
     }
 
+    @Override
+    public void cleanupJob(JobFuture future) throws ExecutionException {
+        //make sure that we CAN clean up this job
+        Preconditions.checkArgument(WatchingFuture.class.isAssignableFrom(future.getClass()),"unknown JobFuture type: "+ future.getClass());
+
+        WatchingFuture futureToClean = (WatchingFuture)future;
+        futureToClean.cleanup();
+    }
+
     protected abstract Set<WatchingTask> submitTasks(J job) throws ExecutionException;
 
     protected class WatchingFuture implements JobFuture{
@@ -56,9 +67,9 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
             this.taskFutures = taskFutures;
 
             this.changedFutures = new LinkedBlockingQueue<TaskFuture>();
-            this.completedFutures = new ConcurrentSkipListSet<TaskFuture>();
-            this.failedFutures = new ConcurrentSkipListSet<TaskFuture>();
-            this.cancelledFutures = new ConcurrentSkipListSet<TaskFuture>();
+            this.completedFutures = Collections.newSetFromMap(new ConcurrentHashMap<TaskFuture, Boolean>());
+            this.failedFutures = Collections.newSetFromMap(new ConcurrentHashMap<TaskFuture, Boolean>());
+            this.cancelledFutures = Collections.newSetFromMap(new ConcurrentHashMap<TaskFuture, Boolean>());
         }
 
         private void attachWatchers() throws ExecutionException {
@@ -72,12 +83,16 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                 switch (status) {
                     case FAILED:
                         failedFutures.add(taskFuture);
+                        break;
                     case COMPLETED:
                         completedFutures.add(taskFuture);
+                        break;
                     case EXECUTING:
                         currentStatus = Status.EXECUTING;
+                        break;
                     case CANCELLED:
                         cancelledFutures.add(taskFuture);
+                        break;
                 }
             }
         }
@@ -92,7 +107,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
 
         @Override
         public void completeAll() throws ExecutionException, InterruptedException,CancellationException {
-            while(getOutstandingCount()<taskFutures.size()){
+            while(getOutstandingCount()>0){
                 completeNext();
             }
         }
@@ -178,6 +193,12 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         public int getNumCancelledTasks() throws ExecutionException {
             return cancelledFutures.size();
         }
+
+        public void cleanup() throws ExecutionException{
+            for(WatchingTask task:taskFutures){
+               task.cleanup();
+            }
+        }
     }
 
     protected class WatchingTask implements TaskFuture,Watcher {
@@ -210,7 +231,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
             if(!refresh) return status.getStatus();
             else{
                 try {
-                    byte[] data = zooKeeper.getData(context.getTaskNode(),this,new Stat());
+                    byte[] data = zooKeeper.getData(context.getTaskNode()+"/status",this,new Stat());
                     ByteArrayInputStream bais = new ByteArrayInputStream(data);
                     ObjectInput in = new ObjectInputStream(bais);
                     status = (TaskStatus)in.readObject();
@@ -259,10 +280,10 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         @Override
         public void process(WatchedEvent event) {
             refresh=true;
+            jobFuture.changedFutures.offer(this);
             synchronized (context){
                 context.notifyAll();
             }
-            jobFuture.changedFutures.offer(this);
         }
 
         @Override
@@ -278,21 +299,42 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
             /*
              * Delete the status node for this task to signal that we've cancelled the task
              */
-            try {
-                zooKeeper.delete(context.getTaskNode()+"/status",-1);
-            } catch (InterruptedException e) {
-                throw new ExecutionException(e);
-            } catch (KeeperException e) {
-                if(e.code()== KeeperException.Code.NONODE){
-                    //ignore, cause it's already been removed
-                }
-                throw new ExecutionException(e);
-            }
+//            try {
+//                zooKeeper.delete(context.getTaskNode()+"/status",-1);
+//            } catch (InterruptedException e) {
+//                throw new ExecutionException(e);
+//            } catch (KeeperException e) {
+//                if(e.code()== KeeperException.Code.NONODE){
+//                    //ignore, cause it's already been removed
+//                }
+//                throw new ExecutionException(e);
+//            }
         }
 
         @Override
         public String getTaskId() {
             return context.getTaskNode();
+        }
+
+        public void cleanup() throws ExecutionException {
+            try{
+            zooKeeper.delete(context.getTaskNode()+"/status",-1);
+            }catch(KeeperException e){
+                //ignore it if it's already deleted
+               if(e.code()!= KeeperException.Code.NONODE)
+                  throw new ExecutionException(e);
+            } catch (InterruptedException e) {
+                throw new ExecutionException(e);
+            }
+            try{
+                zooKeeper.delete(context.getTaskNode(),-1);
+            } catch (InterruptedException e) {
+                throw new ExecutionException(e);
+            } catch (KeeperException e) {
+                //ignore the error if the node isn't present
+                if(e.code()!= KeeperException.Code.NONODE)
+                    throw new ExecutionException(e);
+            }
         }
     }
 }

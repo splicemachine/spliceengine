@@ -4,9 +4,11 @@ import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.job.TaskScheduler;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
+import org.apache.zookeeper.data.Stat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -23,15 +25,12 @@ import java.util.concurrent.*;
 public class ZkBackedTaskScheduler<T extends ZooKeeperTask> implements TaskScheduler<T> {
     private static final Logger LOG = Logger.getLogger(ZkBackedTaskScheduler.class);
     private final RecoverableZooKeeper zooKeeper;
-    private final String baseQueueNode;
     private final TaskScheduler<T> delegate;
     private final ExecutorService cancellationThreads;
 
-    public ZkBackedTaskScheduler(String baseQueueNode,
-                                 RecoverableZooKeeper zooKeeper,
+    public ZkBackedTaskScheduler( RecoverableZooKeeper zooKeeper,
                                  TaskScheduler<T> delegate) {
         this.zooKeeper = zooKeeper;
-        this.baseQueueNode = baseQueueNode;
         this.delegate = delegate;
         this.cancellationThreads = new ThreadPoolExecutor(1,4,60, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>());
     }
@@ -47,25 +46,28 @@ public class ZkBackedTaskScheduler<T extends ZooKeeperTask> implements TaskSched
             byte[] data = baos.toByteArray();
 
             String taskId = task.getTaskId();
-            taskId = zooKeeper.create(baseQueueNode+"/"+taskId,data,
+            taskId = zooKeeper.create(taskId,data,
                     ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
             task.setTaskId(taskId);
 
             //write out a status node to ensure that it's properly serialized
             byte[] statusData = task.statusToBytes();
-            zooKeeper.create(taskId + "/status", statusData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+            String statusNode = zooKeeper.create(taskId + "/status", statusData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
             final TaskFuture future = delegate.submit(task);
 
             //call exists() on status to make sure that we notice cancellations
             try{
-                zooKeeper.exists(taskId+"/status",new Watcher() {
+                Stat stat = zooKeeper.exists(statusNode,new Watcher() {
                     @Override
                     public void process(WatchedEvent event) {
-                        cancellationThreads.submit(new Callable<Void>(){
+                        if(event.getType() != Event.EventType.NodeDeleted)
+                            return; //nothing to do
 
+                        cancellationThreads.submit(new Callable<Void>(){
                             @Override
                             public Void call() throws Exception {
+                                SpliceLogUtils.debug(LOG,"cancelling task %s",future.getTaskId());
                                 Status status = future.getStatus();
                                 //only actually cancel the future if the task is still running
                                 switch (status) {
@@ -84,11 +86,14 @@ public class ZkBackedTaskScheduler<T extends ZooKeeperTask> implements TaskSched
                         });
                     }
                 });
-            }catch(KeeperException ke){
-                if(ke.code()== KeeperException.Code.NONODE){
+                if(stat==null){
+                    SpliceLogUtils.info(LOG,"task %s was cancelled before existence could be checked",task.getTaskId());
                     //somebody canceled it before we even had a chance to listen for it!
                     future.cancel();
                 }
+            }catch(KeeperException ke){
+                SpliceLogUtils.error(LOG,"Unexpected error checking existence of status for task "+ task.getTaskId(),ke);
+                throw new ExecutionException(ke);
             }
 
             return future;

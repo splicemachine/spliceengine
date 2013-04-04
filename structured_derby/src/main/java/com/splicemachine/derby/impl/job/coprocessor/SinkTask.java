@@ -9,12 +9,14 @@ import com.splicemachine.derby.impl.job.OperationJob;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.si2.txn.TransactionManager;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -28,9 +30,10 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/3/13
  */
 public class SinkTask extends ZooKeeperTask {
+    private static final long serialVersionUID = 1l;
+    private static final Logger LOG = Logger.getLogger(SinkTask.class);
     private HRegion region;
 
-    private volatile String taskId;
     private Scan scan;
     private SpliceObserverInstructions instructions;
 
@@ -44,19 +47,21 @@ public class SinkTask extends ZooKeeperTask {
     public SinkTask(Scan scan,
                     SpliceObserverInstructions instructions,
                     RecoverableZooKeeper zooKeeper,
-                    HRegion region) {
-        super(buildTaskId(region),zooKeeper);
+                    HRegion region,
+                    String baseQueueNode) {
+        super(baseQueueNode+"/"+buildTaskId(region),zooKeeper);
         this.region = region;
         this.scan = scan;
         this.instructions = instructions;
     }
 
-    public SinkTask(OperationJob job, RecoverableZooKeeper zooKeeper, HRegion region){
-        this(job.getScan(), job.getInstructions(), zooKeeper,region);
+    public SinkTask(OperationJob job, RecoverableZooKeeper zooKeeper, HRegion region,String baseQueueNode){
+        this(job.getScan(), job.getInstructions(), zooKeeper,region,baseQueueNode);
     }
 
     @Override
     public void execute() throws ExecutionException, InterruptedException {
+        SpliceLogUtils.trace(LOG,"executing task %s",getTaskId());
         TransactionManager.setParentTransactionId(instructions.getTransactionId());
 
         Connection runningConnection = null;
@@ -70,17 +75,23 @@ public class SinkTask extends ZooKeeperTask {
             SpliceOperationContext opContext = new SpliceOperationContext(region,
                     scan,activation,instructions.getStatement(),runningConnection);
             SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),opContext);
+
+            SpliceLogUtils.trace(LOG,"sinking task %s",getTaskId());
             spliceScanner.sink();
+            SpliceLogUtils.trace(LOG,"task %s sunk successfully, closing",getTaskId());
             spliceScanner.close();
         } catch (SQLException e) {
+            SpliceLogUtils.error(LOG,"Exception encountered dealing with Connection pool",e);
             throw new ExecutionException(e);
         } catch (IOException e) {
+            SpliceLogUtils.error(LOG,"Exception encountered dealing with Connection pool",e);
             throw new ExecutionException(e);
         }finally{
             TransactionManager.setParentTransactionId(null);
             try {
                 SpliceDriver.driver().closeConnection(runningConnection);
             } catch (SQLException e) {
+                SpliceLogUtils.error(LOG,"Exception encountered dealing with Connection pool",e);
                 throw new ExecutionException(e);
             }
         }
@@ -100,15 +111,11 @@ public class SinkTask extends ZooKeeperTask {
     }
 
     private static String buildTaskId(HRegion region) {
-        return region.getTableDesc().getNameAsString()+"/"+region.getRegionNameAsString();
+        return region.getTableDesc().getNameAsString()+"/"+region.getRegionNameAsString()+"/task-";
     }
 
     public HRegion getRegion() {
         return region;
-    }
-
-    public void setTaskId(String taskId) {
-        this.taskId = taskId;
     }
 
     @Override

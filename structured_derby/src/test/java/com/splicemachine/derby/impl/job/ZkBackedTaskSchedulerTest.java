@@ -1,12 +1,12 @@
-package com.splicemachine.derby.impl.job.scheduler;
+package com.splicemachine.derby.impl.job;
 
 import com.google.common.collect.Maps;
+import com.splicemachine.derby.impl.job.coprocessor.TaskStatus;
+import com.splicemachine.derby.impl.job.scheduler.ZkBackedTaskScheduler;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.Task;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.job.TaskScheduler;
-import com.splicemachine.derby.impl.job.ZooKeeperTask;
-import com.splicemachine.derby.impl.job.coprocessor.TaskStatus;
 import junit.framework.Assert;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.zookeeper.CreateMode;
@@ -41,9 +41,9 @@ public class ZkBackedTaskSchedulerTest {
     public void testSubmissionWritesToZooKeeperProperly() throws Exception{
         RecoverableZooKeeper keeper = getMockZooKeeper();
         TaskScheduler delegateScheduler = getMockScheduler();
-        ZkBackedTaskScheduler scheduler = new ZkBackedTaskScheduler("/test",keeper,delegateScheduler);
+        ZkBackedTaskScheduler scheduler = new ZkBackedTaskScheduler(keeper,delegateScheduler);
 
-        DurableCountingTask task = new DurableCountingTask("queue/task-",keeper);
+        DurableCountingTask task = new DurableCountingTask("/test/queue/task-",keeper);
         TaskFuture future = scheduler.submit(task);
 
         //ensure that no errors happened during execution e.g by some ZooKeeper problem
@@ -86,9 +86,9 @@ public class ZkBackedTaskSchedulerTest {
     public void testFailedTaskPropagatesErrorMessage() throws Exception{
         RecoverableZooKeeper keeper = getMockZooKeeper();
         TaskScheduler delegate = getMockScheduler();
-        ZkBackedTaskScheduler scheduler = new ZkBackedTaskScheduler("/test",keeper,delegate);
+        ZkBackedTaskScheduler scheduler = new ZkBackedTaskScheduler(keeper,delegate);
 
-        FailCountingTask task = new FailCountingTask("queue/task-","testFailure",keeper);
+        FailCountingTask task = new FailCountingTask("/test/queue/task-","testFailure",keeper);
         TaskFuture future = scheduler.submit(task);
 
         //check that future throws an exception

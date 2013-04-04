@@ -174,12 +174,21 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T> 
                     nextTask.markCompleted();
 
                     SpliceLogUtils.trace(LOG,"Task has completed successfully");
+                }catch(CancellationException ce){
+                    SpliceLogUtils.info(LOG,"task %s was cancelled",nextTask.getTaskId());
                 }catch(ExecutionException ee){
                     LOG.error("task "+ nextTask.toString()+" had an unexpected error during processing",ee.getCause());
                     try {
                         nextTask.markFailed(ee.getCause());
                     } catch (ExecutionException e) {
                         LOG.error("task " + nextTask.toString() + " had an unexpected error marking failed", ee.getCause());
+                    }
+                }catch(Throwable t){
+                    LOG.error("task "+ nextTask.toString()+" had an unexpected error during processing",t);
+                    try {
+                        nextTask.markFailed(t);
+                    } catch (Throwable e) {
+                        LOG.error("task " + nextTask.toString() + " had an unexpected error marking failed", e);
                     }
                 }
             }
@@ -348,14 +357,21 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T> 
         }
     }
 
-    private class NamedThreadFactory implements ThreadFactory {
+    private static class NamedThreadFactory implements ThreadFactory {
         private final AtomicInteger threadCount = new AtomicInteger(0);
         @Override
         public Thread newThread(Runnable r) {
             Thread t = new Thread(r);
             t.setName("taskScheduler-workerThread-"+threadCount);
-            //TODO -sf- set an uncaught exception handler
+            t.setUncaughtExceptionHandler(uncaughtErrorHandler);
             return t;
         }
     }
+
+    private static final Thread.UncaughtExceptionHandler uncaughtErrorHandler = new Thread.UncaughtExceptionHandler() {
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+            SpliceLogUtils.error(LOG,"Unexpected, uncaught exception thrown on thread "+t.getName()+", will likely cause deadlocks",e);
+        }
+    };
 }
