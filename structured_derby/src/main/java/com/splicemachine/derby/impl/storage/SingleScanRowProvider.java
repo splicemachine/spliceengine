@@ -81,12 +81,12 @@ public abstract class SingleScanRowProvider  implements RowProvider {
             throw baseError;
         }finally{
             if(future!=null){
-//                try{
-//                    SpliceDriver.driver().getJobScheduler().cleanupJob(future);
-//                } catch (ExecutionException e) {
-//                    if(baseError==null)
-//                        baseError = Exceptions.parseException(e.getCause());
-//                }
+                try{
+                    SpliceDriver.driver().getJobScheduler().cleanupJob(future);
+                } catch (ExecutionException e) {
+                    if(baseError==null)
+                        baseError = Exceptions.parseException(e.getCause());
+                }
             }
             if(baseError!=null){
                 SpliceLogUtils.logAndThrow(LOG,baseError);
