@@ -34,6 +34,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 
+@Ignore
 public class DerbyBytesUtilTest {
 	protected static J2SEDataValueFactory dvf = new J2SEDataValueFactory();
 

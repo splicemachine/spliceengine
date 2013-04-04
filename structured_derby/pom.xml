@@ -113,13 +113,26 @@
             <artifactId>slf4j-log4j12</artifactId>
             <version>1.7.1</version>
         </dependency>
+        <dependency>
+            <groupId>commons-dbutils</groupId>
+            <artifactId>commons-dbutils</artifactId>
+            <version>1.5</version>
+            <scope>test</scope>
+        </dependency>
 	</dependencies>
 	<build>
 	  <resources>
-    <resource>
-      <directory>src/main/resources</directory>
-    </resource>
-  </resources>
+        <resource>
+            <directory>src/main/resources</directory>
+        </resource>
+      </resources>
+      <testResources>
+          <testResource>
+            <directory>src/test/resources</directory>
+            <filtering>true</filtering>
+          </testResource>
+      </testResources>
+
 		<!-- Some plugins (javadoc for example) can be used in the normal build-
 			and the site phase. These plugins inherit their options from the <reporting> 
 			section below. These settings can be overwritten here. -->

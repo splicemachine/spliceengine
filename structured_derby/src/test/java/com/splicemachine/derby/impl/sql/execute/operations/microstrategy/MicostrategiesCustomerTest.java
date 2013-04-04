@@ -5,11 +5,13 @@ import com.google.common.collect.Sets;
 import com.splicemachine.derby.test.DerbyTestRule;
 import junit.framework.Assert;
 import org.apache.log4j.Logger;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -59,6 +61,12 @@ public class MicostrategiesCustomerTest {
     public static void setup() throws Exception{
         DerbyTestRule.start();
         createTables();
+    }
+
+    @AfterClass
+    public static void shutdown() throws Exception {
+        rule.dropTable("CUSTOMER");
+        DerbyTestRule.shutdown();
     }
 
     private static void createTables() throws SQLException {

@@ -19,7 +19,9 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
  */
 
 public interface SpliceOperation extends NoPutResultSet {
-	/**
+    int[] getRootAccessedCols();
+
+    /**
 	 * 
 	 * Enumeration with the following types:
 	 * 
