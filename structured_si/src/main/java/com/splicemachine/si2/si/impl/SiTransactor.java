@@ -219,6 +219,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
             try {
                 checkForConflict(transaction, table, lock, rowKey);
                 Object newPut = dataStore.newLockWithPut(transactionId, put, lock);
+                flagPutAsNotNeedingIndexTreatment(newPut);
                 dataStore.addTransactionIdToPut(newPut, transactionId);
                 dataWriter.write(table, newPut, lock);
             } finally {
@@ -228,6 +229,10 @@ public class SiTransactor implements Transactor, ClientTransactor {
         } else {
             return false;
         }
+    }
+
+    private void flagPutAsNotNeedingIndexTreatment(Object newPut) {
+        dataLib.addAttribute(newPut, "iu", new byte[] {});
     }
 
     private void checkForConflict(TransactionStruct putTransaction, STable table, SRowLock lock, Object rowKey) throws IOException {
