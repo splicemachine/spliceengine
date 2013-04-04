@@ -1,8 +1,8 @@
-package com.splicemachine.derby.impl.hbase.job.scheduler;
+package com.splicemachine.derby.impl.job.scheduler;
 
-import com.splicemachine.derby.hbase.job.Status;
-import com.splicemachine.derby.hbase.job.Task;
-import com.splicemachine.derby.hbase.job.TaskFuture;
+import com.splicemachine.job.Status;
+import com.splicemachine.job.Task;
+import com.splicemachine.job.TaskFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import junit.framework.Assert;
 import org.apache.log4j.Logger;

@@ -1,12 +1,12 @@
-package com.splicemachine.derby.impl.hbase.job.coprocessor;
+package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
-import com.splicemachine.derby.hbase.job.Status;
+import com.splicemachine.job.Status;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.hbase.job.OperationJob;
-import com.splicemachine.derby.impl.hbase.job.ZooKeeperTask;
+import com.splicemachine.derby.impl.job.OperationJob;
+import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.si2.txn.TransactionManager;
 import org.apache.derby.iapi.sql.Activation;

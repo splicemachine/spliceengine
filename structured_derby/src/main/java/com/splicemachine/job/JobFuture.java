@@ -1,4 +1,4 @@
-package com.splicemachine.derby.hbase.job;
+package com.splicemachine.job;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;

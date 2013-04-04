@@ -1,8 +1,8 @@
-package com.splicemachine.derby.impl.hbase.job;
+package com.splicemachine.derby.impl.job;
 
-import com.splicemachine.derby.hbase.job.Status;
-import com.splicemachine.derby.hbase.job.Task;
-import com.splicemachine.derby.impl.hbase.job.coprocessor.TaskStatus;
+import com.splicemachine.job.Status;
+import com.splicemachine.job.Task;
+import com.splicemachine.derby.impl.job.coprocessor.TaskStatus;
 
 import java.io.*;
 import java.util.concurrent.CancellationException;

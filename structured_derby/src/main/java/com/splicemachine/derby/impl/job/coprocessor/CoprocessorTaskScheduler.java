@@ -1,9 +1,9 @@
-package com.splicemachine.derby.impl.hbase.job.coprocessor;
+package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.google.common.base.Throwables;
-import com.splicemachine.derby.hbase.job.TaskFuture;
-import com.splicemachine.derby.hbase.job.TaskScheduler;
-import com.splicemachine.derby.impl.hbase.job.OperationJob;
+import com.splicemachine.job.TaskFuture;
+import com.splicemachine.job.TaskScheduler;
+import com.splicemachine.derby.impl.job.OperationJob;
 import com.splicemachine.derby.utils.Exceptions;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;

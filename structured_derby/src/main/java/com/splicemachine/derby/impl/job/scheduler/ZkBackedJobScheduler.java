@@ -1,14 +1,9 @@
-package com.splicemachine.derby.impl.hbase.job.coprocessor;
+package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.base.Throwables;
-import com.splicemachine.derby.hbase.job.JobFuture;
-import com.splicemachine.derby.hbase.job.JobScheduler;
-import com.splicemachine.derby.hbase.job.Status;
-import com.splicemachine.derby.hbase.job.TaskFuture;
-import com.splicemachine.derby.impl.hbase.job.OperationJob;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import com.splicemachine.job.*;
+import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
+import com.splicemachine.derby.impl.job.coprocessor.TaskStatus;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -27,37 +22,18 @@ import java.util.concurrent.*;
  * @author Scott Fines
  * Created on: 4/3/13
  */
-public class CoprocessorJobScheduler implements JobScheduler<OperationJob>{
+public abstract class ZkBackedJobScheduler<J extends Job> implements JobScheduler<J>{
     private final RecoverableZooKeeper zooKeeper;
 
-    public CoprocessorJobScheduler(RecoverableZooKeeper zooKeeper) {
+    public ZkBackedJobScheduler(RecoverableZooKeeper zooKeeper) {
         this.zooKeeper = zooKeeper;
     }
 
     @Override
-    public JobFuture submit(final OperationJob job) throws ExecutionException {
-        Scan scan = job.getScan();
-        HTableInterface table = job.getTable();
-
-        final Set<WatchingTask> futures = new ConcurrentSkipListSet<WatchingTask>();
+    public JobFuture submit(final J job) throws ExecutionException {
         try {
-            table.coprocessorExec(SpliceSchedulerProtocol.class,
-                    scan.getStartRow(),scan.getStopRow(),new Batch.Call<SpliceSchedulerProtocol, TaskFutureContext>() {
-                @Override
-                public TaskFutureContext call(SpliceSchedulerProtocol instance) throws IOException {
-                    return instance.submit(job);
-                }
-            },new Batch.Callback<TaskFutureContext>() {
-                        @Override
-                        public void update(byte[] region, byte[] row, TaskFutureContext result) {
-                            futures.add(new WatchingTask(result,zooKeeper));
-                        }
-                    });
-
-            WatchingFuture future = new WatchingFuture(futures);
-
+            WatchingFuture future = new WatchingFuture(submitTasks(job));
             future.attachWatchers();
-
             return future;
         } catch (Throwable throwable) {
             Throwable root = Throwables.getRootCause(throwable);
@@ -65,7 +41,9 @@ public class CoprocessorJobScheduler implements JobScheduler<OperationJob>{
         }
     }
 
-    private static class WatchingFuture implements JobFuture{
+    protected abstract Set<WatchingTask> submitTasks(J job) throws ExecutionException;
+
+    protected class WatchingFuture implements JobFuture{
         private final Collection<WatchingTask> taskFutures;
         private final BlockingQueue<TaskFuture> changedFutures;
         private final Set<TaskFuture> completedFutures;
@@ -83,7 +61,7 @@ public class CoprocessorJobScheduler implements JobScheduler<OperationJob>{
             this.cancelledFutures = new ConcurrentSkipListSet<TaskFuture>();
         }
 
-        public void attachWatchers() throws ExecutionException {
+        private void attachWatchers() throws ExecutionException {
             for(WatchingTask taskFuture:taskFutures){
                 taskFuture.attachJobFuture(this);
                 /*
@@ -202,7 +180,7 @@ public class CoprocessorJobScheduler implements JobScheduler<OperationJob>{
         }
     }
 
-    private class WatchingTask implements TaskFuture,Watcher {
+    protected class WatchingTask implements TaskFuture,Watcher {
         private final TaskFutureContext context;
         private final RecoverableZooKeeper zooKeeper;
         private WatchingFuture jobFuture;

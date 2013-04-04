@@ -1,9 +1,9 @@
-package com.splicemachine.derby.impl.hbase.job.scheduler;
+package com.splicemachine.derby.impl.job.scheduler;
 
-import com.splicemachine.derby.hbase.job.Status;
-import com.splicemachine.derby.hbase.job.TaskFuture;
-import com.splicemachine.derby.hbase.job.TaskScheduler;
-import com.splicemachine.derby.impl.hbase.job.ZooKeeperTask;
+import com.splicemachine.job.Status;
+import com.splicemachine.job.TaskFuture;
+import com.splicemachine.job.TaskScheduler;
+import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;

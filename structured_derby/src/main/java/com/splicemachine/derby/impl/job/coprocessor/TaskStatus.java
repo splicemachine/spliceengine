@@ -1,6 +1,6 @@
-package com.splicemachine.derby.impl.hbase.job.coprocessor;
+package com.splicemachine.derby.impl.job.coprocessor;
 
-import com.splicemachine.derby.hbase.job.Status;
+import com.splicemachine.job.Status;
 
 import java.io.*;
 

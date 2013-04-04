@@ -1,6 +1,6 @@
-package com.splicemachine.derby.impl.hbase.job;
+package com.splicemachine.derby.impl.job;
 
-import com.splicemachine.derby.hbase.job.Status;
+import com.splicemachine.job.Status;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.zookeeper.KeeperException;
 

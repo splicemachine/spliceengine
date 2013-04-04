@@ -1,6 +1,5 @@
-package com.splicemachine.derby.hbase.job;
+package com.splicemachine.job;
 
-import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 /**

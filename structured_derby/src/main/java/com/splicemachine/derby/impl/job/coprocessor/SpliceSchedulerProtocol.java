@@ -1,6 +1,6 @@
-package com.splicemachine.derby.impl.hbase.job.coprocessor;
+package com.splicemachine.derby.impl.job.coprocessor;
 
-import com.splicemachine.derby.impl.hbase.job.OperationJob;
+import com.splicemachine.derby.impl.job.OperationJob;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 
 import java.io.IOException;

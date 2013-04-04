@@ -1,7 +1,7 @@
-package com.splicemachine.derby.impl.hbase.job;
+package com.splicemachine.derby.impl.job;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.job.Job;
+import com.splicemachine.job.Job;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 
