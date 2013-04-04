@@ -1,19 +1,22 @@
 package org.apache.derby.impl.sql.execute.operations.joins;
 
-import java.io.FileInputStream;
-import java.sql.*;
-import java.util.*;
-
-import com.splicemachine.homeless.TestUtils;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.dbutils.BasicRowProcessor;
-import org.apache.commons.dbutils.DbUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.log4j.Logger;
-import org.junit.*;
-
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.DerbyTestRule;
+import com.splicemachine.homeless.TestUtils;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 public class InnerJoinTest extends BaseJoinTest {
 	private static Logger LOG = Logger.getLogger(InnerJoinTest.class);
