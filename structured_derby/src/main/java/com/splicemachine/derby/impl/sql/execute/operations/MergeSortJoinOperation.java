@@ -244,7 +244,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                 start = System.nanoTime();
                 SpliceLogUtils.trace(LOG, "sinking row %s",row);
                 byte[] rowKey = hasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors);
-                put = Puts.buildInsert(rowKey, row.getRowArray(),null, null,serializer, additionalDescriptors);
+                put = Puts.buildInsert(rowKey, row.getRowArray(),null, SpliceUtils.NA_TRANSACTION_ID, serializer, additionalDescriptors);
                 put.setWriteToWAL(false); // Seeing if this speeds stuff up a bit...
                 tempTable.put(put);
                 stats.sinkAccumulator().tick(System.nanoTime()-start);

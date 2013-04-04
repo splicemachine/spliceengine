@@ -34,9 +34,7 @@ public class Mutations {
      * @return a transactionally-aware delete.
      */
     public static Delete createDelete(String transactionId, byte[] row) throws IOException {
-        Delete delete = new Delete(row);
-        SpliceUtils.attachTransaction(delete,transactionId);
-        return delete;
+        return SpliceUtils.createDelete(transactionId, row);
     }
 
     /**
@@ -53,15 +51,22 @@ public class Mutations {
      * instance. E.g. (getDeleteOp() instanceof Delete) is not guaranteed to be true
      * @throws IOException if something goes wrong.
      */
-    public static Mutation getDeleteOp(String transactionId,byte[] row) throws IOException{
+    public static Mutation getDeleteOp(String transactionId, byte[] row) throws IOException{
         if(SpliceUtils.useSi){
-            final ClientTransactor clientTransactor = TransactorFactory.getDefaultClientTransactor();
-            return (Mutation)clientTransactor.newDeletePut(clientTransactor.transactionIdFromString(transactionId),row);
+            return SpliceUtils.createDeletePut(transactionId, row);
         }else{
             Delete delete = new Delete(row);
             if(transactionId!=null)
                 delete.setAttribute(TxnConstants.TRANSACTION_ID,transactionId.getBytes());
             return delete;
+        }
+    }
+
+    public static Mutation getDeleteOp(Mutation mutation, byte[] row) throws IOException{
+        if (SpliceUtils.useSi) {
+            return SpliceUtils.createDeletePut(mutation, row);
+        } else {
+            return getDeleteOp(SpliceUtils.getTransactionId(mutation), row);
         }
     }
 
@@ -76,9 +81,8 @@ public class Mutations {
      * @throws IOException if something goes wrong.
      */
     public static Mutation translateToDelete(Mutation mutation, byte[] newRowKey) throws IOException {
-        String txnId = mutation instanceof Put? SpliceUtils.getTransactionGetsPuts().getTransactionIdForPut((Put)mutation):
-                SpliceUtils.getTransactionGetsPuts().getTransactionIdForDelete((Delete)mutation);
-        return getDeleteOp(txnId,newRowKey!=null?newRowKey:mutation.getRow());
+        final byte[] rowKey = newRowKey != null ? newRowKey : mutation.getRow();
+        return getDeleteOp(mutation, rowKey);
     }
 
     /**
@@ -89,19 +93,13 @@ public class Mutations {
      *                  passed in mutation is to be used.
      * @return a transactionally-aware Put operation.
      */
-    public static Put translateToPut(Mutation mutation, byte[] newRowKey){
-        Put put = newRowKey!=null?new Put(newRowKey): new Put(mutation.getRow());
-        String txnId = SpliceUtils.getTransactionId(mutation);
-        SpliceUtils.getTransactionGetsPuts().prepPut(txnId,put);
-        return put;
+    public static Put translateToPut(Mutation mutation, byte[] newRowKey) throws IOException {
+        byte[] rowKey = newRowKey==null ? mutation.getRow() : newRowKey;
+        return SpliceUtils.createPut(rowKey, mutation);
     }
 
     public static boolean isDelete(Mutation mutation){
-        if(mutation instanceof Delete) return true;
-        if(TransactorFactory.getDefaultClientTransactor()!=null)
-            return TransactorFactory.getDefaultClientTransactor().isDeletePut(mutation);
-
-        return false;
+        return SpliceUtils.isDelete(mutation);
     }
 
     public static Collection<Mutation> filterDeletes(Collection<Mutation> mutations){

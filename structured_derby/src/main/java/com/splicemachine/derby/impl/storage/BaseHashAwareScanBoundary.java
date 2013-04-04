@@ -2,8 +2,11 @@ package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 
 /**
  * Abstract implementation of a ScanBoundary which does skip-forward and look-aheads

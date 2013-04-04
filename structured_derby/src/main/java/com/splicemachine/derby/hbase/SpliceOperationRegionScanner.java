@@ -118,7 +118,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 stats.processAccumulator().tick(System.nanoTime()-start);
 
                 start = System.nanoTime();
-				Put put = Puts.buildInsert(nextRow.getRowArray(), null,serializer); //todo -sf- add transaction id
+				Put put = Puts.buildInsert(nextRow.getRowArray(), SpliceUtils.NA_TRANSACTION_ID,serializer);
 				Map<byte[],List<KeyValue>> family = put.getFamilyMap();
 				for(byte[] bytes: family.keySet()){
 					results.addAll(family.get(bytes));

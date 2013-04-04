@@ -174,8 +174,7 @@ public class IndexManager {
                 System.arraycopy(indexCol,0,finalIndexRow,offset,indexCol.length);
                 offset+=indexCol.length;
             }
-            Put indexPut = new Put(finalIndexRow);
-            SpliceUtils.attachTransaction(indexPut,transactionId);
+            Put indexPut = SpliceUtils.createPut(finalIndexRow, transactionId);
             for(int dataPos=0;dataPos<indexRowData.length;dataPos++){
                 byte[] putPos = Integer.toString(dataPos).getBytes();
                 indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
@@ -227,10 +226,7 @@ public class IndexManager {
          * To delete an entry, we'll need to first get the row, then construct
          * the index row key from the row, then delete it
          */
-        Get get;
-        final String txnId = SpliceUtils.getTransactionId(mutation);
-        get = new Get(mutation.getRow());
-        SpliceUtils.attachTransaction(get,txnId);
+        Get get = SpliceUtils.createGet(mutation, mutation.getRow());
 
         for(byte[] mainColumn:mainColPos){
             get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColumn);
@@ -251,7 +247,7 @@ public class IndexManager {
         final byte[] indexRowKey = convert(rowKeyBuilder,size);
 
         if(isUnique){
-            writeBuffer.add(Mutations.getDeleteOp(txnId, indexRowKey));
+            writeBuffer.add(Mutations.getDeleteOp(mutation, indexRowKey));
         }else{
             /*
              * Because index keys in non-null indices have a postfix appended to them,
@@ -265,7 +261,7 @@ public class IndexManager {
                 table.coprocessorExec(BatchProtocol.class,indexRowKey,indexStop,new Batch.Call<BatchProtocol, Void>() {
                     @Override
                     public Void call(BatchProtocol instance) throws IOException {
-                        instance.deleteFirstAfter(txnId,indexRowKey,indexStop);
+                        instance.deleteFirstAfter(SpliceUtils.getTransactionId(mutation),indexRowKey,indexStop);
                         return null;
                     }
                 });
@@ -321,8 +317,7 @@ public class IndexManager {
 
         byte[] indexRowKey = convert(rowKeyBuilder,size);
 
-        Put indexPut = new Put(indexRowKey);
-        SpliceUtils.attachTransaction(indexPut,SpliceUtils.getTransactionId(mainPut));
+        Put indexPut = SpliceUtils.createPut(indexRowKey, mainPut);
         for(int i=0;i<indexColsToMainColMap.length;i++){
             byte[] indexPos = Integer.toString(i).getBytes();
             indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos,rowKeyBuilder[i]);
@@ -361,8 +356,7 @@ public class IndexManager {
         if(!indexNeedsUpdating) return null; //nothing changed that we indexed, whoo!
 
         //bummer, have to update the index
-        Get oldGet = new Get(mainPut.getRow());
-        SpliceUtils.attachTransaction(oldGet,SpliceUtils.getTransactionId(mainPut));
+        Get oldGet = SpliceUtils.createGet(mainPut, mainPut.getRow());
         for(byte[] indexColPos:mainColPos){
             oldGet.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,indexColPos);
         }

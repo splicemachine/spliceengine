@@ -97,7 +97,7 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
                 processTime = System.nanoTime();
                 SpliceLogUtils.trace(LOG, "row="+row);
                 byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
-                put = Puts.buildInsert(rowKey,row.getRowArray(),null,serializer);
+                put = Puts.buildTempTableInsert(rowKey, row.getRowArray(), null, serializer);
                 tempTable.put(put);
 
                 stats.sinkAccumulator().tick(System.nanoTime()-processTime);

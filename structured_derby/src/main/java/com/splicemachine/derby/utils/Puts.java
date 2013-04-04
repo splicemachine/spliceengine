@@ -47,8 +47,7 @@ public class Puts {
                                   String transactionID, Serializer serializer, DataValueDescriptor...extraColumns)
             throws IOException{
         try {
-            Put put = new Put(location.getBytes());
-            SpliceUtils.attachTransaction(put,transactionID);
+            Put put = SpliceUtils.createPut(location.getBytes(), transactionID);
             put.setAttribute(PUT_TYPE,FOR_UPDATE);
             if(validColumns!=null){
                 for(int pos = validColumns.anySetBit();pos!=-1;pos=validColumns.anySetBit(pos)){
@@ -131,16 +130,21 @@ public class Puts {
         return buildInsert(rowKey, row, validColumns, transactionID, new Serializer(), extraColumns);
 	}
 
-    public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row,
-                                  FormatableBitSet validColumns, Serializer serializer) throws IOException {
-        return buildInsert(rowKey,row,validColumns,null,serializer);
+    public static Put buildTempTableInsert(byte[] rowKey, DataValueDescriptor[] row,
+                                           FormatableBitSet validColumns, Serializer serializer) throws IOException {
+        return buildInsert(rowKey,row,validColumns,SpliceUtils.NA_TRANSACTION_ID,serializer);
+    }
+
+    public static Put buildInsertWithoutTransactionId(byte[] rowKey, DataValueDescriptor[] row,
+                                           FormatableBitSet validColumns, Serializer serializer) throws IOException {
+        // TODO: this method needs to be removed, code using it should be providing a transaction ID
+        return buildInsert(rowKey,row,validColumns,SpliceUtils.NA_TRANSACTION_ID,serializer);
     }
 
     public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row, FormatableBitSet validColumns,
                                   String transactionID, Serializer serializer, DataValueDescriptor...extraColumns)
             throws IOException{
-        Put put = new Put(rowKey);
-        SpliceUtils.attachTransaction(put,transactionID);
+        Put put = SpliceUtils.createPut(rowKey, transactionID);
 
         if (validColumns!=null) {
             for(int i=validColumns.anySetBit(); i!=-1; i=validColumns.anySetBit(i)){

@@ -15,6 +15,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.hbase.txn.ZkTransactionGetsPuts;
 import com.splicemachine.si.utils.SIConstants;
 import com.splicemachine.si2.data.hbase.TransactorFactory;
+import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.txn.SiGetsPuts;
 import com.splicemachine.si2.txn.TransactionTableCreator;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -62,6 +63,8 @@ public class SpliceUtils {
 	private static Logger LOG = Logger.getLogger(SpliceUtils.class);
 
     public static final boolean useSi = false;
+    public static final String NA_TRANSACTION_ID = "NA_TRANSACTION_ID";
+    private static final String SI_EXEMPT = "si-exempt";
 
     /**
      * Populates an array of DataValueDescriptors with a default value based on their type.
@@ -98,15 +101,14 @@ public class SpliceUtils {
     }
 
     public static Scan createScan(String transactionId) {
-        Scan scan = new Scan();
-        if (transactionId != null) {
-            getTransactionGetsPuts().prepScan(transactionId, scan);
+        try {
+            return (Scan) attachTransaction(new Scan(), transactionId);
+        } catch (IOException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG, e);
         }
-        return scan;
+        // can't reach this point
+        throw new RuntimeException("Cannot reach this state.");
     }
-
-
-
 
     public enum SpliceConglomerate {HEAP,BTREE}
 	public static Configuration config = SpliceConfiguration.create();
@@ -167,12 +169,12 @@ public class SpliceUtils {
 		return gson.fromJson(json, instanceClass);
 	}
 
+    public static Get createGet(Mutation mutation, byte[] row) throws IOException {
+        return createGet(getTransactionId(mutation), row);
+    }
+
     public static Get createGet(String transactionId, byte[] row) throws IOException {
-        Get get = new Get(row);
-        if (transactionId != null) {
-            getTransactionGetsPuts().prepGet(transactionId, get);
-        }
-        return get;
+        return (Get) attachTransaction(new Get(row), transactionId);
     }
 
     public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
@@ -217,17 +219,12 @@ public class SpliceUtils {
             table.delete((Delete)mutation);
     }
 
-    /**
-     * Get the transaction information from the specified mutation.
-     *
-     * @param mutation the mutation to get transaction information from
-     * @return the transaction id specified by the given mutation.
-     */
-    public static String getTransactionId(Mutation mutation) {
-        if(mutation instanceof Put)
-            return getTransactionGetsPuts().getTransactionIdForPut((Put)mutation);
-        else
-            return getTransactionGetsPuts().getTransactionIdForDelete((Delete)mutation);
+    public static Put createPut(byte[] newRowKey, Mutation mutation) throws IOException {
+        return createPut( newRowKey, getTransactionId(mutation));
+    }
+
+    public static Put createPut(byte[] newRowKey, String transactionID) throws IOException {
+        return (Put) attachTransaction(new Put(newRowKey), transactionID);
     }
 
     /**
@@ -236,17 +233,63 @@ public class SpliceUtils {
      * @param op the operation to attach to.
      * @param txnId the transaction id to attach.
      */
-    public static void attachTransaction(OperationWithAttributes op, String txnId) throws IOException {
-        if (txnId != null) {
-        if(op instanceof Get)
-            getTransactionGetsPuts().prepGet(txnId,(Get)op);
-        else if(op instanceof Put)
-            getTransactionGetsPuts().prepPut(txnId,(Put)op);
-        else if (op instanceof Delete)
-            getTransactionGetsPuts().prepDelete(txnId,(Delete)op);
-        else
-            getTransactionGetsPuts().prepScan(txnId, (Scan) op);
+    public static OperationWithAttributes attachTransaction(OperationWithAttributes op, String txnId) throws IOException {
+        if (txnId == null) {
+            throw new RuntimeException("Cannot create operation with a null transactionId");
         }
+        if (txnId.equals(NA_TRANSACTION_ID)) {
+            op.setAttribute(SI_EXEMPT, Bytes.toBytes(true));
+        } else {
+            if (op instanceof Get)
+                getTransactionGetsPuts().prepGet(txnId, (Get) op);
+            else if (op instanceof Put)
+                getTransactionGetsPuts().prepPut(txnId, (Put) op);
+            else if (op instanceof Delete)
+                getTransactionGetsPuts().prepDelete(txnId, (Delete) op);
+            else
+                getTransactionGetsPuts().prepScan(txnId, (Scan) op);
+        }
+        return op;
+    }
+
+    public static Delete createDelete(String transactionId, byte[] row) throws IOException {
+        return (Delete) attachTransaction(new Delete(row), transactionId);
+    }
+
+    public static Put createDeletePut(Mutation mutation, byte[] rowKey) {
+        return createDeletePut(getTransactionId(mutation), rowKey);
+    }
+
+    public static Put createDeletePut(String transactionId, byte[] rowKey) {
+        final ClientTransactor clientTransactor = TransactorFactory.getDefaultClientTransactor();
+        return (Put) clientTransactor.newDeletePut(clientTransactor.transactionIdFromString(transactionId), rowKey);
+    }
+
+    public static boolean isDelete(Mutation mutation) {
+        if(mutation instanceof Delete) {
+            return true;
+        } else if (useSi) {
+            return TransactorFactory.getDefaultClientTransactor().isDeletePut(mutation);
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Get the transaction information from the specified mutation.
+     *
+     * @param mutation the mutation to get transaction information from
+     * @return the transaction id specified by the given mutation.
+     */
+    public static String getTransactionId(Mutation mutation) {
+        final byte[] exempt = mutation.getAttribute(SI_EXEMPT);
+        if (exempt != null && Bytes.toBoolean(exempt)) {
+            return NA_TRANSACTION_ID;
+        }
+        if(mutation instanceof Put)
+            return getTransactionGetsPuts().getTransactionIdForPut((Put)mutation);
+        else
+            return getTransactionGetsPuts().getTransactionIdForDelete((Delete)mutation);
     }
 
     public static void handleNullsInUpdate(Put put, DataValueDescriptor[] row, FormatableBitSet validColumns) {
@@ -623,7 +666,7 @@ public class SpliceUtils {
 		return transID;
 	}
 
-    public static ITransactionGetsPuts getTransactionGetsPuts() {
+    private static ITransactionGetsPuts getTransactionGetsPuts() {
         if (useSi) {
             return new SiGetsPuts(TransactorFactory.getDefaultClientTransactor());
         } else {

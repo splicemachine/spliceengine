@@ -30,18 +30,6 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.utils.SpliceLogUtils;
-
 public class RowCountOperation extends SpliceBaseOperation {
 	private static final long serialVersionUID = 11111;
 	private static Logger LOG = Logger.getLogger(RowCountOperation.class);
@@ -366,7 +354,7 @@ public class RowCountOperation extends SpliceBaseOperation {
                 start = System.nanoTime();
                 SpliceLogUtils.trace(LOG, "row="+row);
                 byte[] rowKey = DerbyBytesUtil.generateSortedHashKey(row.getRowArray(),sequence[0],null,null);
-                put = Puts.buildInsert(rowKey,row.getRowArray(),null,serializer);
+                put = Puts.buildTempTableInsert(rowKey, row.getRowArray(), null, serializer);
 
                 tempTable.put(put);
 

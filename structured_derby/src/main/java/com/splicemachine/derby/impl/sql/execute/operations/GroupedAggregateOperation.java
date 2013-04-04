@@ -198,7 +198,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
                 long processStart = System.nanoTime();
                 SpliceLogUtils.trace(LOG, "sinking row %s",row);
-                put = Puts.buildInsert(hasher.generateSortedHashKey(row.getRowArray()),row.getRowArray(),null,serializer);
+                put = Puts.buildTempTableInsert(hasher.generateSortedHashKey(row.getRowArray()), row.getRowArray(), null, serializer);
                 tempTable.put(put);
 
                 sinkAccumulator.tick(System.nanoTime() - processStart);

@@ -9,15 +9,12 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
 
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -212,7 +209,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
                     row.getColumn(line.length).setValue(line[line.length-1]);
                 }
             }
-            Put put = Puts.buildInsert(rowSerializer.serialize(row.getRowArray()),row.getRowArray(), null,serializer); //TODO -sf- add transaction stuff
+            Put put = Puts.buildInsertWithoutTransactionId(rowSerializer.serialize(row.getRowArray()), row.getRowArray(), null, serializer); //TODO -sf- add transaction stuff
             writeBuffer.add(put);
         }catch(StandardException se){
             throw new DoNotRetryIOException(se.getMessageId());

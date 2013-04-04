@@ -267,7 +267,7 @@ public class HashScanOperation extends ScanOperation {
                     tempRowKey = hasher.generateSortedHashKey(currentRow.getRowArray());
                 }
                 SpliceLogUtils.trace(LOG, "row to hash =%s, key=%s", currentRow, Arrays.toString(tempRowKey));
-                put = Puts.buildInsert(tempRowKey,currentRow.getRowArray(),null,serializer);
+                put = Puts.buildTempTableInsert(tempRowKey, currentRow.getRowArray(), null, serializer);
                 tempTable.put(put);	// TODO Buffer via list or configuration. JL
 
                 stats.sinkAccumulator().tick(System.nanoTime()-start);

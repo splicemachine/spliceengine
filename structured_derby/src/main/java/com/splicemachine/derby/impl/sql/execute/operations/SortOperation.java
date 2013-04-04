@@ -241,7 +241,7 @@ public class SortOperation extends SpliceBaseOperation {
                 } else {
                     tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),SpliceUtils.getUniqueKey());
                 }
-                put = Puts.buildInsert(tempRowKey,row.getRowArray(),null,serializer);
+                put = Puts.buildTempTableInsert(tempRowKey, row.getRowArray(), null, serializer);
                 tempTable.put(put);
 
                 stats.sinkAccumulator().tick(System.nanoTime()-start);

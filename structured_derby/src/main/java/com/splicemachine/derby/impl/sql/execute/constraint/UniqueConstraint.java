@@ -39,15 +39,13 @@ public class UniqueConstraint implements Constraint {
     private static final Function<? super Mutation, Get> validator = new Function<Mutation, Get>() {
         @Override
         public Get apply(@Nullable Mutation input) {
-            Get get = new Get(input.getRow());
             try {
-                SpliceUtils.attachTransaction(get,SpliceUtils.getTransactionId(input));
+                Get get = SpliceUtils.createGet(input, input.getRow());
+                get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+                return get;
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
-
-            return get;
         }
     };
 
