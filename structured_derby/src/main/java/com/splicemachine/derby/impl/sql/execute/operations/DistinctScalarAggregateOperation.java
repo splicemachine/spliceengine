@@ -93,7 +93,7 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
     }
 	
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG,"init");
 		super.init(context);
 		order = (ColumnOrdering[])

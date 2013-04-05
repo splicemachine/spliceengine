@@ -143,10 +143,9 @@ public class MergeSortJoinOperation extends JoinOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG, "init");
 		super.init(context);
-		try {
             SpliceLogUtils.trace(LOG,"leftHashkeyItem=%d,rightHashKeyItem=%d",leftHashKeyItem,rightHashKeyItem);
             emptyRightRowsReturned = 0;
 			leftHashKeys = generateHashKeys(leftHashKeyItem, (SpliceBaseOperation) this.leftResultSet);
@@ -164,11 +163,6 @@ public class MergeSortJoinOperation extends JoinOperation {
 				serverProvider = new MergeSortRegionAwareRowProvider(getTransactionID(), context.getRegion(),SpliceOperationCoprocessor.TEMP_TABLE,HBaseConstants.DEFAULT_FAMILY_BYTES,
 						start,finish,leftHasher,leftRow,rightHasher,rightRow,null,rowType);		
 				serverProvider.open();
-			}
-			} catch (IOException e) {
-				SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to create reduce scan", e);
-			} catch (StandardException e) {
-				SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to create reduce scan", e);
 			}
 	}
 	
@@ -288,7 +282,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 	}
 
 	@Override
-	public ExecRow getExecRowDefinition() {
+	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 		JoinUtils.getMergedRow((this.leftResultSet).getExecRowDefinition(),(this.rightResultSet).getExecRowDefinition(),
                 wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);

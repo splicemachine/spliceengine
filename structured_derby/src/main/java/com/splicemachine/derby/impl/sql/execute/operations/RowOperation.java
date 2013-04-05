@@ -71,7 +71,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 
 
     @Override
-    public void init(SpliceOperationContext context) {
+    public void init(SpliceOperationContext context) throws StandardException {
         super.init(context);
         next = false;
         if(row==null && rowMethodName!=null){
@@ -188,13 +188,13 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	}
 
 	@Override
-	public NoPutResultSet executeScan() {
+	public NoPutResultSet executeScan() throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeScan");
 		return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getExecRowDefinition()));
 	}
 	
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow rowTemplate){
+	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow rowTemplate) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getMapRowProvider,top="+top);
 		top.init(SpliceOperationContext.newContext(activation));
 		return RowProviders.sourceProvider(top, LOG);

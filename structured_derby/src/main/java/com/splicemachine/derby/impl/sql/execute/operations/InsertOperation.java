@@ -47,7 +47,7 @@ public class InsertOperation extends DMLWriteOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		super.init(context);
 		heapConglom = ((InsertConstantAction)constants).getConglomerateId();
 

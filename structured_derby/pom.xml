@@ -148,6 +148,8 @@
                     <includes>
                         <include>${runClass}</include>
                     </includes>
+   				<parallel>classes</parallel>
+            	<threadCount>3</threadCount>
 				</configuration>
 				<dependencies>
 					<dependency>
@@ -189,6 +191,46 @@
                                 <argument>-cp</argument>
                                 <classpath>${maven.runtime.classpath}</classpath>
                                 <argument>-Xdebug</argument>
+                                <argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
+                                <argument>-Xmx2g</argument>
+                                <argument>-Xms1g</argument>
+                                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
+                                <argument>com.splicemachine.test.SpliceTestPlatform</argument>
+                                <argument>${project.build.directory}/zookeeper</argument>
+                                <argument>${project.build.directory}/hbase</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+		</build>
+	</profile>
+
+        <profile>
+            <id>spliceFast</id>
+            <activation><property><name>spliceFast</name></property></activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.2.1</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <classpathScope>compile</classpathScope>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-cp</argument>
+                                <classpath>${maven.runtime.classpath}</classpath>
+                                <argument>-Xdebug</argument>
+                                <argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
+                                <argument>-Xmx2g</argument>
+                                <argument>-Xms1g</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
                                 <argument>com.splicemachine.test.SpliceTestPlatform</argument>
                                 <argument>${project.build.directory}/zookeeper</argument>
@@ -255,9 +297,25 @@
 	</build>
 	
 	</profile>
+
+	<profile>
+      <id>info</id>
+  	<activation><property><name>info</name></property></activation>
+      <properties>
+        <log4j.location>${basedir}/src/main/resources/info-log4j.properties</log4j.location>
+      </properties>
+	</profile>
+
 	
-	
-	
+	<profile>
+      <id>trace</id>
+      		 <activation>
+      		<activeByDefault>true</activeByDefault>
+    	</activation>
+      <properties>
+        <log4j.location>${basedir}/src/main/resources/trace-log4j.properties</log4j.location>
+      </properties>
+	</profile>
 	</profiles>
 	
 </project>

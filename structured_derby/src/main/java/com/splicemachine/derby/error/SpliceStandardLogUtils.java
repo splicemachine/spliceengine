@@ -5,6 +5,8 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 
 public class SpliceStandardLogUtils {
+	public static final String OPEN_BRACE = "{";
+	public static final String CLOSE_BRACE = "}";
 	protected static Gson gson = new Gson();
 
 	public static SpliceDoNotRetryIOException generateSpliceDoNotRetryIOException(Logger logger, String message, Throwable throwable) {
@@ -23,13 +25,18 @@ public class SpliceStandardLogUtils {
 
 	public static StandardException logAndReturnStandardException(Logger logger, String message, Exception exception) {
 		logger.error(message, exception);
-		if (exception instanceof SpliceDoNotRetryIOException || exception instanceof SpliceIOException)
-			return (gson.fromJson(exception.getMessage(), SpliceStandardException.class)).generateStandardException();
+		if (exception instanceof SpliceDoNotRetryIOException || exception instanceof SpliceIOException) {
+			return (gson.fromJson(parseMessage(exception.getMessage()), SpliceStandardException.class)).generateStandardException();
+		}
 		return StandardException.unexpectedUserException(exception);
 	}		
 	
 	public static String generateSpliceStandardExceptionString(StandardException standardException) {
 		return gson.toJson(new SpliceStandardException(standardException));
+	}
+	
+	public static String parseMessage(String fullMessageWithStack) {
+		return fullMessageWithStack.substring(fullMessageWithStack.indexOf(OPEN_BRACE),fullMessageWithStack.indexOf(CLOSE_BRACE)+1);
 	}
 	
 }

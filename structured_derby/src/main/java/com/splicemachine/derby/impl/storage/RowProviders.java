@@ -26,7 +26,6 @@ public class RowProviders {
 	private static final SingleScanRowProvider EMPTY_PROVIDER = new SingleScanRowProvider(){
 		@Override public boolean hasNext() { return false; }
 		@Override public ExecRow next() { return null; }
-		@Override public void remove() { throw new UnsupportedOperationException(); }
 		@Override public void open() { }
 		@Override public void close() { }
 		@Override public RowLocation getCurrentRowLocation() { return null; }
@@ -62,8 +61,7 @@ public class RowProviders {
 //		@Override public Scan toScan() { return provider.toScan(); }
 		@Override public byte[] getTableName() { return provider.getTableName(); }
 		@Override public int getModifiedRowCount() { return provider.getModifiedRowCount(); }
-		@Override public boolean hasNext() { return provider.hasNext(); }
-		@Override public void remove() { provider.remove(); }
+		@Override public boolean hasNext() throws StandardException { return provider.hasNext(); }
 
         @Override
         public void shuffleRows(SpliceObserverInstructions instructions,
@@ -106,7 +104,6 @@ public class RowProviders {
 			return 0;
 		}
 
-		@Override public void remove() { throw new UnsupportedOperationException("Remove not supported"); }
     }
 
 	public static class SourceRowProvider extends SingleScanRowProvider{
@@ -141,7 +138,6 @@ public class RowProviders {
 		@Override public RowLocation getCurrentRowLocation() { return null; }
 		@Override public Scan toScan() { return null; }
 		@Override public byte[] getTableName() { return null; }
-		@Override public void remove() { throw new UnsupportedOperationException(); }
 
 		@Override
 		public int getModifiedRowCount() {

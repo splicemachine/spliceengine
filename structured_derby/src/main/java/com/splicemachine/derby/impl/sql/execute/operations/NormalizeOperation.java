@@ -77,7 +77,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		super.init(context);
 		((SpliceOperation)source).init(context);
 		this.resultDescription = 

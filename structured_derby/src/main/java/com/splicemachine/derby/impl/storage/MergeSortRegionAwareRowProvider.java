@@ -171,8 +171,6 @@ public class MergeSortRegionAwareRowProvider extends SingleScanRowProvider {
         return joinSideRow;
     }
 
-    @Override public void remove() { throw new UnsupportedOperationException(); }
-
     @Override
     public void open() {
     	SpliceLogUtils.trace(LOG, "open");

@@ -7,7 +7,7 @@ import com.splicemachine.si2.data.helper.RelationHelper;
 import com.splicemachine.si2.data.light.LDataLib;
 import com.splicemachine.si2.data.light.LStore;
 import com.splicemachine.si2.data.light.ManualClock;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;

@@ -126,7 +126,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG, "UnionOperation init called,whichSource="+whichSource);
 		super.init(context);
 		
@@ -439,7 +439,7 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
 	@Override
-	public ExecRow getExecRowDefinition() {
+	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 
 //		currentRow = ((SpliceOperation)source1).getExecRowDefinition();

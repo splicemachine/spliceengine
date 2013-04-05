@@ -37,7 +37,7 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
 		super.init(context);
 		

@@ -1,7 +1,7 @@
 package com.splicemachine.si;
 
 import java.io.IOException;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;

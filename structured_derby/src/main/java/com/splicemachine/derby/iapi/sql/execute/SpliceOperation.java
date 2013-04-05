@@ -38,7 +38,7 @@ public interface SpliceOperation extends NoPutResultSet {
 	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
 	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
 	 */
-	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow outputRowFormat);
+	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow outputRowFormat) throws StandardException;
 	
 	/**
 	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
@@ -64,8 +64,9 @@ public interface SpliceOperation extends NoPutResultSet {
 	 * 
 	 * @param statement
 	 * @param llc
+	 * @throws StandardException 
 	 */
-	public void init(SpliceOperationContext operationContext);
+	public void init(SpliceOperationContext operationContext) throws StandardException;
 
 	/**
 	 * Cleanup any node external connections or resources.
@@ -158,6 +159,7 @@ public interface SpliceOperation extends NoPutResultSet {
 	 * The outgoing field definition of the record.  Do we need incoming as well?
 	 * 
 	 * @return
+	 * @throws StandardException 
 	 */
-	public ExecRow getExecRowDefinition();
+	public ExecRow getExecRowDefinition() throws StandardException;
 }

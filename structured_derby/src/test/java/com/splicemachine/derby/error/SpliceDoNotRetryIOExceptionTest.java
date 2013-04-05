@@ -1,8 +1,7 @@
 package com.splicemachine.derby.error;
 
 import java.io.IOException;
-
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.junit.Test;

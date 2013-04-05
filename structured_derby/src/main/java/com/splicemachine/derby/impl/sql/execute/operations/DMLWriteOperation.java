@@ -118,7 +118,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
 		super.init(context);
 		((SpliceOperation)source).init(context);
@@ -167,7 +167,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public ExecRow getExecRowDefinition() {
+	public ExecRow getExecRowDefinition() throws StandardException {
 		ExecRow row = ((SpliceOperation)source).getExecRowDefinition();
 		SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
 		return row;
@@ -193,8 +193,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		@Override public boolean hasNext() { return false; }
 
 		@Override public ExecRow next() { return null; }
-
-		@Override public void remove() { throw new UnsupportedOperationException(); }
 
 		@Override
 		public void open()  {

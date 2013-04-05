@@ -159,7 +159,7 @@ public class RegionStats {
                 largestRegion = region;
             }
             
-            LOG.info(">>>region="+region+",regionTotalTime="+regionTotalTime+",regionTotalRecords="+regionTotalRecords);
+            LOG.debug(">>>region="+region+",regionTotalTime="+regionTotalTime+",regionTotalRecords="+regionTotalRecords);
 
             totalTime+=regionTotalTime;
             totalRecords += regionTotalRecords;
@@ -167,7 +167,7 @@ public class RegionStats {
             records[pos] = regionTotalRecords;
             pos++;
             
-            LOG.info(">>>region="+region+",totalTime="+regionTotalTime+",totalRecords="+regionTotalRecords);
+            LOG.debug(">>>region="+region+",totalTime="+regionTotalTime+",totalRecords="+regionTotalRecords);
         }
         
         if (isSunk)

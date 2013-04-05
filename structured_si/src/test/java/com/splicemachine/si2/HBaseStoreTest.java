@@ -10,7 +10,7 @@ import com.splicemachine.si2.data.hbase.HStore;
 import com.splicemachine.si2.data.hbase.HTableReaderAdapter;
 import com.splicemachine.si2.data.hbase.HTableWriterAdapter;
 import com.splicemachine.si2.data.helper.RelationHelper;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Test;

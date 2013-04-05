@@ -2,39 +2,104 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-
-import org.apache.log4j.Logger;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.splicemachine.derby.test.DerbyTestRule;
-import com.splicemachine.derby.test.SpliceDerbyTest;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 
+public class SortOperationTest extends SpliceUnitTest {
+	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+	public static final String CLASS_NAME = SortOperationTest.class.getSimpleName().toUpperCase();
+	public static final String TABLE_NAME_1 = "FOOD";
+	public static final String TABLE_NAME_2 = "PERSON";
 
-public class SortOperationTest {
-	private static final Logger LOG = Logger.getLogger(SortOperationTest.class);
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(name varchar(255),value1 varchar(255),value2 varchar(255))");
+	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(name varchar(255), age float)");
+		
+	@ClassRule 
+	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+		.around(spliceSchemaWatcher)
+		.around(spliceTableWatcher1)
+		.around(spliceTableWatcher2)
+		.around(new SpliceDataWatcher(){
+			@Override
+			protected void starting(Description description) {
+				try {
+				spliceClassWatcher.setAutoCommit(true);
+				Triplet triple = new Triplet("jzhang","pickles","greens");
+				PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (name,value1,value2) values (?,?,?)",CLASS_NAME,TABLE_NAME_1));
+				ps.setString(1, triple.k1);
+				ps.setString(2, triple.k2);
+				ps.setString(3, triple.k3);
+				ps.executeUpdate();
+				correctByValue1.add(triple);
+				correctByAscDesc.add(triple);
+				correctByDescAsc.add(triple);
+				correctByName.add(triple);
+				if(!distinctCorrectByValue1.contains(triple)) distinctCorrectByValue1.add(triple); 
+				if(!distinctCorrectByName.contains(triple)) distinctCorrectByName.add(triple);
+
+				Triplet t2 = new Triplet("sfines","turkey","apples");
+				ps.setString(1, t2.k1);
+				ps.setString(2, t2.k2);
+				ps.setString(3, t2.k3);
+				ps.executeUpdate();
+				correctByValue1.add(t2);
+				correctByAscDesc.add(t2);
+				correctByDescAsc.add(t2);
+				correctByName.add(t2);
+				if(!distinctCorrectByValue1.contains(t2)) distinctCorrectByValue1.add(t2); 
+				if(!distinctCorrectByName.contains(t2)) distinctCorrectByName.add(t2);
+
+				Triplet t3 = new Triplet("jleach","roast beef","tacos");
+				ps.setString(1, t3.k1);
+				ps.setString(2, t3.k2);
+				ps.setString(3, t3.k3);
+				ps.executeUpdate();
+				correctByValue1.add(t3);
+				correctByAscDesc.add(t3);
+				correctByDescAsc.add(t3);
+				correctByName.add(t3);
+				if(!distinctCorrectByValue1.contains(t3)) distinctCorrectByValue1.add(t3); 
+				if(!distinctCorrectByName.contains(t3)) distinctCorrectByName.add(t3);
+				Collections.sort(correctByValue1,k2Comparator);
+				Collections.sort(correctByName,k1Comparator);
+				Collections.sort(distinctCorrectByValue1,k2Comparator);
+				Collections.sort(distinctCorrectByName,k1Comparator);
+				Collections.sort(correctByAscDesc,ascDescComparator);
+				Collections.sort(correctByDescAsc,descAscComparator);
+
+				// add row to person
+				spliceClassWatcher.prepareStatement(format("insert into %s.%s values ('joe', 5.5)",CLASS_NAME,TABLE_NAME_2)).executeUpdate();
+				spliceClassWatcher.prepareStatement(format("insert into %s.%s values ('bob', 1.2)",CLASS_NAME,TABLE_NAME_2)).executeUpdate();
+				spliceClassWatcher.prepareStatement(format("insert into %s.%s values ('tom', 13.4667)",CLASS_NAME,TABLE_NAME_2)).executeUpdate();
+				spliceClassWatcher.commit();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+				finally {
+					spliceClassWatcher.closeAll();
+				}
+			}
+			
+		});
 	
-	private static Map<String,String> tableSchemaMap = Maps.newHashMap();
-	static{
-		tableSchemaMap.put("food", "name varchar(255),value1 varchar(255),value2 varchar(255)");
-		tableSchemaMap.put("person", "name varchar(255), age float");
-	}
-	
-	@Rule public static DerbyTestRule  rule = new DerbyTestRule(tableSchemaMap,false,LOG);
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 	
 	private static List<Triplet> correctByValue1 = Lists.newArrayList();
  	private static List<Triplet> distinctCorrectByValue1 = Lists.newArrayList();
@@ -77,236 +142,94 @@ public class SortOperationTest {
 	};
 	
 
-	@BeforeClass
-	public static void startup() throws Exception {
-		DerbyTestRule.start();
-		rule.createTables();
-		insertData();
-	}
-
-	@AfterClass
-	public static void shutdown() throws Exception {
-		rule.dropTables();
-		DerbyTestRule.shutdown();
-	}
-
-	private static void insertData() throws SQLException {
-		rule.setAutoCommit(true);
-		Triplet triple = new Triplet("jzhang","pickles","greens");
-		PreparedStatement ps = rule.prepareStatement("insert into food (name,value1,value2) values (?,?,?)");
-		ps.setString(1, triple.k1);
-		ps.setString(2, triple.k2);
-		ps.setString(3, triple.k3);
-		ps.executeUpdate();
-		correctByValue1.add(triple);
-		correctByAscDesc.add(triple);
-		correctByDescAsc.add(triple);
-		correctByName.add(triple);
-		if(!distinctCorrectByValue1.contains(triple)) distinctCorrectByValue1.add(triple); 
-		if(!distinctCorrectByName.contains(triple)) distinctCorrectByName.add(triple);
-
-		Triplet t2 = new Triplet("sfines","turkey","apples");
-		ps.setString(1, t2.k1);
-		ps.setString(2, t2.k2);
-		ps.setString(3, t2.k3);
-		ps.executeUpdate();
-		correctByValue1.add(t2);
-		correctByAscDesc.add(t2);
-		correctByDescAsc.add(t2);
-		correctByName.add(t2);
-		if(!distinctCorrectByValue1.contains(t2)) distinctCorrectByValue1.add(t2); 
-		if(!distinctCorrectByName.contains(t2)) distinctCorrectByName.add(t2);
-
-		Triplet t3 = new Triplet("jleach","roast beef","tacos");
-		ps.setString(1, t3.k1);
-		ps.setString(2, t3.k2);
-		ps.setString(3, t3.k3);
-		ps.executeUpdate();
-		correctByValue1.add(t3);
-		correctByAscDesc.add(t3);
-		correctByDescAsc.add(t3);
-		correctByName.add(t3);
-		if(!distinctCorrectByValue1.contains(t3)) distinctCorrectByValue1.add(t3); 
-		if(!distinctCorrectByName.contains(t3)) distinctCorrectByName.add(t3);
-		Collections.sort(correctByValue1,k2Comparator);
-		Collections.sort(correctByName,k1Comparator);
-		Collections.sort(distinctCorrectByValue1,k2Comparator);
-		Collections.sort(distinctCorrectByName,k1Comparator);
-		Collections.sort(correctByAscDesc,ascDescComparator);
-		Collections.sort(correctByDescAsc,descAscComparator);
-
-		// add row to person
-		rule.prepareStatement("insert into person values ('joe', 5.5)").executeUpdate();
-		rule.prepareStatement("insert into person values ('bob', 1.2)").executeUpdate();
-		rule.prepareStatement("insert into person values ('tom', 13.4667)").executeUpdate();
-		rule.commit();
-	}
+	
 
 	@Test
 	public void testSortOperationByKey1Ascending() throws Exception {
-		Statement s = null;
-		ResultSet rs = null;
-//		try{
-			s = rule.getStatement();
-			rs = s.executeQuery("select name,value1,value2 from food order by name");
-			//need to check that elements are in order
-
-			List<Triplet> returnedByName = new ArrayList<Triplet>();
-			while(rs.next()){
-				Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
-				SpliceLogUtils.info(LOG, "triple=%s",triple);
-				returnedByName.add(triple);
-			}
-			SpliceLogUtils.info(LOG, "returnedByName=%s",returnedByName);
-			Assert.assertEquals("Incorrect name ordering!",correctByName,returnedByName);
-//		}finally{
-//			if(rs !=null) rs.close();
-//			if(s !=null) s.close();
-//		}
+		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by name",this.getTableReference(TABLE_NAME_1)));
+		List<Triplet> returnedByName = new ArrayList<Triplet>();
+		while(rs.next()){
+			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
+			returnedByName.add(triple);
+		}
+		Assert.assertEquals("Incorrect name ordering!",correctByName,returnedByName);
 	}
 
 	@Test
 	public void testSortOperationByKey2Ascending() throws Exception {
-		Statement s = null;
-		ResultSet rs = null;
-		try{
-			s = rule.getStatement();
-			rs = s.executeQuery("select name,value1,value2 from food order by value1");
-			//need to check that elements are in order
-
-			List<Triplet> returnedByValue = new ArrayList<Triplet>();
-			while(rs.next()){
-				Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
-				SpliceLogUtils.info(LOG, "triple=%s",triple);
-				returnedByValue.add(triple);
-			}
-			SpliceLogUtils.info(LOG, "returnedByValue=%s",returnedByValue);
-			Assert.assertEquals("Incorrect name ordering!",correctByValue1,returnedByValue);
-		}finally{
-			if(rs !=null) rs.close();
-			if(s !=null) s.close();
+		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by value1",this.getTableReference(TABLE_NAME_1)));
+		List<Triplet> returnedByValue = new ArrayList<Triplet>();
+		while(rs.next()){
+			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
+			returnedByValue.add(triple);
 		}
+		Assert.assertEquals("Incorrect name ordering!",correctByValue1,returnedByValue);
 	}
 
 	@Test
 	public void testSortOperationByKey1Descending() throws Exception {
-		Statement s = null;
-		ResultSet rs = null;
-		try{
-			s = rule.getStatement();
-			rs = s.executeQuery("select name,value1,value2 from food order by name desc");
-			//need to check that elements are in order
-
-			List<Triplet> returnedByName = new ArrayList<Triplet>();
-			while(rs.next()){
-				Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
-				SpliceLogUtils.info(LOG, "triple=%s",triple);
-				returnedByName.add(triple);
-			}
-			List<Triplet> reversedByName = new ArrayList<Triplet>(correctByName.size());
-			for(int i=correctByName.size()-1;i>=0;i--){
-				reversedByName.add(correctByName.get(i));
-			}
-			SpliceLogUtils.info(LOG, "returnedByName=%s",returnedByName);
-			Assert.assertEquals("Incorrect name ordering!",reversedByName,returnedByName);
-		}finally{
-			if(rs !=null) rs.close();
-			if(s !=null) s.close();
+		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by name desc",this.getTableReference(TABLE_NAME_1)));
+		List<Triplet> returnedByName = new ArrayList<Triplet>();
+		while(rs.next()){
+			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
+			returnedByName.add(triple);
 		}
+		List<Triplet> reversedByName = new ArrayList<Triplet>(correctByName.size());
+		for(int i=correctByName.size()-1;i>=0;i--){
+			reversedByName.add(correctByName.get(i));
+		}
+		Assert.assertEquals("Incorrect name ordering!",reversedByName,returnedByName);
 	}
 
 	@Test
 	public void testSortOperationByKey2Descending() throws Exception {
-		Statement s = null;
-		ResultSet rs = null;
-		try{
-			s = rule.getStatement();
-			rs = s.executeQuery("select name,value1,value2 from food order by value1 desc");
-			//need to check that elements are in order
-
-			List<Triplet> returnedByValue = new ArrayList<Triplet>();
-			while(rs.next()){
-				Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
-				SpliceLogUtils.info(LOG, "triple=%s",triple);
-				returnedByValue.add(triple);
-			}
-			List<Triplet> reversedByValue = new ArrayList<Triplet>(correctByValue1.size());
-			for(int i=correctByValue1.size()-1;i>=0;i--){
-				reversedByValue.add(correctByValue1.get(i));
-			}
-			SpliceLogUtils.info(LOG, "returnedByValue=%s",returnedByValue);
-			Assert.assertEquals("Incorrect name ordering!",reversedByValue,returnedByValue);
-		}finally{
-			if(rs !=null) rs.close();
-			if(s !=null) s.close();
+		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by value1 desc",this.getTableReference(TABLE_NAME_1)));
+		List<Triplet> returnedByValue = new ArrayList<Triplet>();
+		while(rs.next()){
+			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
+			returnedByValue.add(triple);
 		}
+		List<Triplet> reversedByValue = new ArrayList<Triplet>(correctByValue1.size());
+		for(int i=correctByValue1.size()-1;i>=0;i--){
+			reversedByValue.add(correctByValue1.get(i));
+		}
+		Assert.assertEquals("Incorrect name ordering!",reversedByValue,returnedByValue);
 	}
 
 	@Test
 	public void testSortOperationByKey1DescendingKey2Ascending() throws Exception {
-		Statement s = null;
-		ResultSet rs = null;
-		try{
-			s = rule.getStatement();
-			rs = s.executeQuery("select name,value1,value2 from food order by name desc, value1 asc");
-			//need to check that elements are in order
-
-			List<Triplet> returnedByName = new ArrayList<Triplet>();
-			while(rs.next()){
-				Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
-				SpliceLogUtils.info(LOG, "triple=%s",triple);
-				returnedByName.add(triple);
-			}
-			List<Triplet> reversedByName = new ArrayList<Triplet>(correctByName.size());
-			for(int i=correctByName.size()-1;i>=0;i--){
-				reversedByName.add(correctByName.get(i));
-			}
-			SpliceLogUtils.info(LOG, "returnedByName=%s",returnedByName);
-			Assert.assertEquals("Incorrect name ordering!",reversedByName,returnedByName);
-		}finally{
-			if(rs !=null) rs.close();
-			if(s !=null) s.close();
+		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by name desc, value1 asc",this.getTableReference(TABLE_NAME_1)));
+		List<Triplet> returnedByName = new ArrayList<Triplet>();
+		while(rs.next()){
+			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
+			returnedByName.add(triple);
 		}
+		List<Triplet> reversedByName = new ArrayList<Triplet>(correctByName.size());
+		for(int i=correctByName.size()-1;i>=0;i--){
+			reversedByName.add(correctByName.get(i));
+		}
+		Assert.assertEquals("Incorrect name ordering!",reversedByName,returnedByName);
 	}
 
 	@Test
 	public void testSortOperationByKey1AscendingKey2Descending() throws Exception {
-		Statement s = null;
-		ResultSet rs = null;
-		try{
-			s = rule.getStatement();
-			rs = s.executeQuery("select name,value1,value2 from food order by name asc, value1 desc");
-			//need to check that elements are in order
-
-			List<Triplet> returnedByValue = new ArrayList<Triplet>();
-			while(rs.next()){
-				Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
-				SpliceLogUtils.info(LOG, "triple=%s",triple);
-				returnedByValue.add(triple);
-			}
-			SpliceLogUtils.info(LOG, "returnedByValue=%s",returnedByValue);
-			Assert.assertEquals("Incorrect name ordering!",correctByAscDesc,returnedByValue);
-		}finally{
-			if(rs !=null) rs.close();
-			if(s !=null) s.close();
+		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by name asc, value1 desc",this.getTableReference(TABLE_NAME_1)));
+		List<Triplet> returnedByValue = new ArrayList<Triplet>();
+		while(rs.next()){
+			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
+			returnedByValue.add(triple);
 		}
+		Assert.assertEquals("Incorrect name ordering!",correctByAscDesc,returnedByValue);
 	}
 
 	@Test
 	public void testOrderByFloat() throws Exception {
-		Statement s = null;
-		ResultSet rs = null;
-		s = rule.getStatement();
-		s = rule.getStatement();
-		rs = s.executeQuery("select * from person order by age");
-
+		ResultSet rs = methodWatcher.executeQuery(format("select * from %s order by age",this.getTableReference(TABLE_NAME_2)));
 		List<String> returnedByName = new ArrayList<String>();
 		while(rs.next()){
 			String v = rs.getString(1) + "," + rs.getFloat(2);
-			SpliceLogUtils.info(LOG, "v=%s",v);
 			returnedByName.add(v);
 		}
-		SpliceLogUtils.info(LOG, "returnedByName=%s",returnedByName);
 		Assert.assertEquals("results are wrong", Arrays.asList("bob,1.2", "joe,5.5", "tom,13.4667"), returnedByName);
 	}
 

@@ -1,21 +1,20 @@
 package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.splicemachine.derby.test.DerbyTestRule;
-import junit.framework.Assert;
-import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.tables.SpliceCustomerTable;
+import com.splicemachine.test.suites.MicrostrategiesTests;
+import org.junit.Assert;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-
-import java.sql.Connection;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -23,83 +22,31 @@ import java.util.Set;
  * Created on: 2/24/13
  */
 @Category(MicrostrategiesTests.class)
-public class MicostrategiesCustomerTest {
-    private static final Logger LOG = Logger.getLogger(MicostrategiesCustomerTest.class);
-
-    private static final Map<String,String> tableSchemas = Maps.newHashMap();
-
-    private static final String CUSTOMER_SCHEMA = "customer_id int, " +
-            "cust_last_name varchar(255), " +
-            "cust_first_name varchar(255)," +
-            "gender_id smallint, " +
-            "cust_birthdate timestamp, " +
-            "email varchar(255), " +
-            "address varchar(255), " +
-            "zipcode varchar(10), " +
-            "income_id int, " +
-            "cust_city_id int, " +
-            "age_years int, " +
-            "agerange_id int, " +
-            "maritalstatus_id int, " +
-            "education_id int, " +
-            "housingtype_id int, " +
-            "householdcount_id int," +
-            "plan_id int, " +
-            "first_order timestamp, " +
-            "last_order timestamp, " +
-            "tenure int, " +
-            "recency int, " +
-            "status_id int";
-
-    static{
-        tableSchemas.put("customer",CUSTOMER_SCHEMA);
-    }
-
-    @Rule public static DerbyTestRule rule = new DerbyTestRule(tableSchemas,false,LOG);
-
-    @BeforeClass
-    public static void setup() throws Exception{
-        DerbyTestRule.start();
-        createTables();
-    }
-
-    @AfterClass
-    public static void shutdown() throws Exception {
-        rule.dropTable("CUSTOMER");
-        DerbyTestRule.shutdown();
-    }
-
-    private static void createTables() throws SQLException {
-        ResultSet rs = rule.executeQuery("select tablename from sys.systables where tablename = 'CUSTOMER'");
-        boolean hasSmall = false;
-        while(rs.next()){
-            String table =rs.getString(1);
-            if("CUSTOMER".equalsIgnoreCase(table))hasSmall=true;
-        }
-        if(!hasSmall){
-            rule.createTable("CUSTOMER",CUSTOMER_SCHEMA);
-            importData("CUSTOMER","customer_iso.csv");
-        }
-    }
-
-    private static void importData(String table, String filename) throws SQLException {
-        String userDir = System.getProperty("user.dir");
-        if(!userDir.endsWith("structured_derby"))
-            userDir = userDir+"/structured_derby/";
-        PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, ?, null,null," +
-                "?,',',null,null)");
-        ps.setString(1,table);
-        ps.setString(2,userDir+"/src/test/resources/"+filename);
-        ps.executeUpdate();
-    }
+public class MicostrategiesCustomerTest extends SpliceUnitTest {
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+	public static final String CLASS_NAME = MicostrategiesCustomerTest.class.getSimpleName().toUpperCase();
+	public static final String TABLE_NAME = "A";
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	protected static SpliceCustomerTable spliceTableWatcher = new SpliceCustomerTable(TABLE_NAME,CLASS_NAME); 	
+	@ClassRule 
+	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+		.around(spliceSchemaWatcher)
+		.around(spliceTableWatcher);
+	
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
     public void testSelectDistinctSelectsDistincts() throws Exception{
-        /*
-         * Regression Test for Bug #242. Confirm that no exceptions are thrown, and that
-         * the returned data is in fact distinct
-         */
-        ResultSet rs = rule.executeQuery("select distinct cust_city_id from customer");
+	    String userDir = System.getProperty("user.dir");
+	    if(!userDir.endsWith("structured_derby"))
+	    	userDir = userDir+"/structured_derby/";
+	    PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,null)");
+	    ps.setString(1,CLASS_NAME);
+	    ps.setString(2,TABLE_NAME);  
+	    ps.setString(3,userDir+"/src/test/resources/customer_iso.csv");
+	    ps.executeUpdate();
+	    
+        ResultSet rs = methodWatcher.executeQuery(format("select distinct cst_city_id from %s",this.getTableReference(TABLE_NAME)));
         Set<Integer> cityIds = Sets.newHashSet();
         while(rs.next()){
             int city = rs.getInt(1);

@@ -100,7 +100,6 @@ public class TableScanOperation extends ScanOperation {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-//        SpliceLogUtils.trace(LOG,"readExternal");
         super.readExternal(in);
 		tableName = in.readUTF();
 		indexColItem = in.readInt();
@@ -110,7 +109,6 @@ public class TableScanOperation extends ScanOperation {
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-//		SpliceLogUtils.trace(LOG,"writeExternal");
 		super.writeExternal(out);
 		out.writeUTF(tableName);
 		out.writeInt(indexColItem);
@@ -120,8 +118,7 @@ public class TableScanOperation extends ScanOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
-//		SpliceLogUtils.trace(LOG,"init called for tableName %s",mapTableName);
+	public void init(SpliceOperationContext context) throws StandardException{
 		super.init(context);
 	}
 

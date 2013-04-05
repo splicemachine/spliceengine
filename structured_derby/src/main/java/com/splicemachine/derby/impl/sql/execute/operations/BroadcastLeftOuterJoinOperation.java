@@ -81,7 +81,7 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 	}
 	
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG, "init");
 		super.init(context);
 		try {

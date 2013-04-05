@@ -1,43 +1,39 @@
 package org.apache.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.test.DerbyTestRule;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.util.Collections;
+import org.junit.Assert;
 
 /**
  * @author Scott Fines
  *         Created on: 3/8/13
  */
-public class EmbeddedCallStatementOperationTest {
+public class EmbeddedCallStatementOperationTest extends SpliceUnitTest {
+	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final Logger LOG = Logger.getLogger(EmbeddedCallStatementOperationTest.class);
-
-    @Rule
-    public DerbyTestRule rule = new DerbyTestRule(Collections.singletonMap("t", "i int"),LOG);
-
-    @BeforeClass
-    public static void startup() throws Exception{
-        DerbyTestRule.start();
-    }
-
-    @AfterClass
-    public static void shutdown() throws Exception{
-        DerbyTestRule.shutdown();
-    }
+	@ClassRule public static TestRule chain = RuleChain.outerRule(spliceClassWatcher);
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
     public void testCallGetIndexInfo() throws Exception{
-        DatabaseMetaData dmd = rule.getConnection().getMetaData();
-        ResultSet resultSet = dmd.getIndexInfo(null, "SYS", "SYSSCHEMAS", false, true);
-        while(resultSet.next()){
-            LOG.info(resultSet.getString(1));
+        DatabaseMetaData dmd = methodWatcher.getOrCreateConnection().getMetaData();
+        ResultSet rs = dmd.getIndexInfo(null, "SYS", "SYSSCHEMAS", false, true);
+        int count = 0;
+        while(rs.next()){
+        	count++;
+            LOG.trace(rs.getString(1));
         }
+        Assert.assertTrue(count > 0);
+        DbUtils.closeQuietly(rs);
     }
 
 }

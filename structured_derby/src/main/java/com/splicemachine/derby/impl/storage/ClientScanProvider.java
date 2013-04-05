@@ -1,7 +1,10 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -36,8 +39,12 @@ public class ClientScanProvider extends AbstractScanProvider {
 	}
 
 	@Override
-	protected Result getResult() throws IOException {
-		return scanner.next();
+	protected Result getResult() throws StandardException {
+		try {
+			return scanner.next();
+		} catch (IOException e) {
+			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "getResult Error", e);
+		}
 	}
 
 	@Override

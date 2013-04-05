@@ -1,7 +1,6 @@
 package com.splicemachine.derby.error;
 
-import junit.framework.Assert;
-
+import org.junit.Assert;
 import org.apache.derby.iapi.error.StandardException;
 import org.junit.Test;
 

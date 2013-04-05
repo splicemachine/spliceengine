@@ -1,5 +1,6 @@
-package org.apache.derby.impl.sql.execute.operations;
+package com.splicemachine.test.suites;
 
+import org.apache.derby.impl.sql.execute.operations.CallStatementOperationTest;
 import org.junit.experimental.categories.Categories;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;

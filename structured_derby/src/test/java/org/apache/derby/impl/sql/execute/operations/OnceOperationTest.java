@@ -1,5 +1,6 @@
 package org.apache.derby.impl.sql.execute.operations;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -9,71 +10,74 @@ import com.google.common.base.Throwables;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.log4j.Logger;
 import org.junit.*;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+
 import com.splicemachine.derby.test.DerbyTestRule;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 
-public class OnceOperationTest  {
+public class OnceOperationTest extends SpliceUnitTest {
 	private static Logger LOG = Logger.getLogger(OnceOperationTest.class);
-	private static final Map<String,String> tableMap;
-	static{
-		Map<String,String> tMap = new HashMap<String,String>();
-		tMap.put("t2","k int, l int");
-		tableMap = tMap;
-	}
-	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,false,LOG);
-
-	@BeforeClass
-	public static void startup() throws Exception{
-		DerbyTestRule.start();
-		rule.createTables();
-		createData();
-	}
+	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+	public static final String CLASS_NAME = OnceOperationTest.class.getSimpleName().toUpperCase();
+	public static final String TABLE_NAME = "A";
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(k int, l int)");
 	
-	@AfterClass
-	public static void shutdown() throws Exception{
-		rule.dropTables();
-		DerbyTestRule.shutdown();
-	}
+	@ClassRule 
+	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+		.around(spliceSchemaWatcher)
+		.around(spliceTableWatcher)
+		.around(new SpliceDataWatcher(){
+			@Override
+			protected void starting(Description description) {
+				try {
+				PreparedStatement statement = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?, ?)",CLASS_NAME,TABLE_NAME));
+				statement.setInt(1, 1);
+				statement.setInt(2, 2);
+				statement.execute();
+				statement.setInt(1, 3);
+				statement.setInt(2, 4);
+				statement.execute();
+				statement.setInt(1, 3);
+				statement.setInt(2, 4);
+				statement.execute();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+				finally {
+					spliceClassWatcher.closeAll();
+				}
+			}
+			
+		});
 	
-	
-	
-	public static void createData() throws SQLException {
-		java.sql.PreparedStatement statement = rule.prepareStatement("insert into t2 values (?, ?)");
-		statement.setInt(1, 1);
-		statement.setInt(2, 2);
-		statement.execute();
-		statement.setInt(1, 3);
-		statement.setInt(2, 4);
-		statement.execute();
-		statement.setInt(1, 3);
-		statement.setInt(2, 4);
-		statement.execute();
-	}
-	
-	
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+		
 	@Test
-	public void testValuesStatement() throws SQLException {
-		ResultSet rs = rule.executeQuery("values (select k from t2 where k = 1)");
+	public void testValuesStatement() throws Exception {
+		ResultSet rs = methodWatcher.executeQuery(format("values (select k from %s where k = 1)",this.getTableReference(TABLE_NAME)));
 		rs.next();
 		Assert.assertNotNull(rs.getInt(1));
 	}
 
-	@Test
-	@Ignore("Causes some weird issue where the table doesn't get dropped correctly")
-	public void testValuesStatementBlowUp() throws Throwable{
-		try{
-			ResultSet rs = rule.executeQuery("values (select k from t2 where k = 3)");
+	@Test(expected=SQLException.class)
+	public void testValuesStatementNonScalarError() throws Exception{
+		try {
+			ResultSet rs = methodWatcher.executeQuery(format("values (select k from %s where k = 3)",this.getTableReference(TABLE_NAME)));
 			rs.next();
-			Assert.assertNotNull(rs.getInt(1));
-		}catch(Throwable t){
-			LOG.info("Caught Exception as expected",t);
+		} catch (Exception t) {
 			Throwable root = Throwables.getRootCause(t);
 			if(root instanceof StandardException){
 				StandardException se = (StandardException)root;
 				Assert.assertEquals("Incorrect error code returned!", 21000, se.getErrorCode());
-			}else{
-				//we failed, for some reason, so blow off
-				throw t;
 			}
+			throw t;
 		}
 	}
 }

@@ -110,7 +110,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG, "init");
 		super.init(context);
 		try {
@@ -123,7 +123,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 	}
 	
 	@Override
-	public ExecRow getExecRowDefinition() {
+	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 		mergedRow = JoinUtils.getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition(),wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
