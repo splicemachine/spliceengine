@@ -76,6 +76,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 		threadLocalEnvironment.set(getEnvironment());
         Connection runningConnection = null;
         final String oldParentTransactionId = TransactionManager.getParentTransactionId();
+        IOException exception = null;
 		try {
             TransactionManager.setParentTransactionId(instructions.getTransactionId());
 
@@ -98,9 +99,11 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 			spliceScanner.close();
 			return out;
 		} catch (InterruptedException e) {
-            throw new IOException(e);
+            exception = new IOException(e);
+            throw exception;
         } catch (SQLException e) {
-            throw new IOException(e);
+            exception = new IOException(e);
+            throw exception;
         } finally {
             TransactionManager.setParentTransactionId(oldParentTransactionId);
             threadLocalEnvironment.set(null);
@@ -108,7 +111,11 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
                 SpliceDriver.driver().closeConnection(runningConnection);
             }catch(SQLException e){
                 //should never happen in a pooled operation
-                throw new IOException(e);
+                if (exception == null) {
+                    throw new IOException(e);
+                } else {
+                    throw exception;
+                }
             }
 		}
 	}
