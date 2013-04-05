@@ -28,6 +28,7 @@ import org.apache.derby.iapi.services.classfile.VMOpcode;
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.FormatableHashtable;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.compile.*;
@@ -59,6 +60,9 @@ public class JoinNode extends TableOperatorNode {
 	public static final int RIGHTOUTERJOIN = 4;
 	public static final int FULLOUTERJOIN = 5;
 	public static final int UNIONJOIN = 6;
+    public static final String TABLE_NAME_KEY = "TableNameString";
+    public static final String TABLE_NUMBER_KEY = "TableNumberIntHolder";
+    public static final String HASH_KEYS_ARRAY_KEY = "HashKeysIntArrayHolder";
 
     /** If this flag is true, this node represents a natural join. */
     private boolean naturalJoin;
@@ -1675,7 +1679,13 @@ public class JoinNode extends TableOperatorNode {
                 }
                 PredicateList nonStoreRestrictionList = table.nonStoreRestrictionList;
                 FormatableBitSet leftHashBits = new FormatableBitSet(nonStoreRestrictionList.size());
+                String leftTableName = null;
+                int leftTableNumber = -1;
+
                 FormatableBitSet rightHashBits = new FormatableBitSet(nonStoreRestrictionList.size());
+                String rightTableName = null;
+                int rightTableNumber = -1;
+
                 for(int i=0;i<nonStoreRestrictionList.size();i++){
                     Predicate op = (Predicate)nonStoreRestrictionList.getOptPredicate(i);
                     BinaryRelationalOperatorNode opNode = (BinaryRelationalOperatorNode)op.getAndNode().getLeftOperand();
@@ -1684,6 +1694,9 @@ public class JoinNode extends TableOperatorNode {
                      */
                     if(opNode.getLeftOperand() instanceof ColumnReference){
                         ColumnReference leftCol = (ColumnReference)opNode.getLeftOperand();
+
+                        leftTableName = leftCol.getTableName();
+                        leftTableNumber = leftCol.getTableNumber();
                         /*
                          * if this column belongs to the left table, set it on the left bits, otherwise
                          * set it on the right bits.
@@ -1697,7 +1710,7 @@ public class JoinNode extends TableOperatorNode {
                         }else{
                             rightHashBits.grow(leftCol.getColumnNumber()+1);
                             rightHashBits.set(leftCol.getColumnNumber());
-				}
+				        }
                     }
                     /*
                      * Deal with the right side of the predicate operand.
@@ -1714,29 +1727,18 @@ public class JoinNode extends TableOperatorNode {
 			}
 		}
 
-                //Build the hashKey array from the leftHashBits
-                int[] leftHash = new int[leftHashBits.getNumBitsSet()];
-                for(int pos=0, next = leftHashBits.anySetBit();next!=-1;pos++,next = leftHashBits.anySetBit(next)){
-                    leftHash[pos] = next;
-                }
-                FormatableIntHolder[] fihArray = FormatableIntHolder.getFormatableIntHolders(leftHash);
-                FormatableArrayHolder leftKeyHolder = new FormatableArrayHolder(fihArray);
+                FormatableHashtable leftHashTable = createFormatableHashtable(leftTableName, leftTableNumber, leftHashBits);
 
                 //add the left hash array to the method call
-                int leftHashKeyItem = acb.addItem(leftKeyHolder);
+//                int leftHashKeyItem = acb.addItem(leftKeyHolder);
+                int leftHashKeyItem = acb.addItem(leftHashTable);
                 mb.push(leftHashKeyItem);
                 numArgs++;
 
-                //build the hash key array from the rightHashBits
-                int[] rightHash = new int[rightHashBits.getNumBitsSet()];
-                for(int pos=0, next = rightHashBits.anySetBit();next!=-1;pos++,next = rightHashBits.anySetBit(next)){
-                    rightHash[pos] = next;
-                }
-                fihArray = FormatableIntHolder.getFormatableIntHolders(rightHash);
-                FormatableArrayHolder rightKeyHolder = new FormatableArrayHolder(fihArray);
+                FormatableHashtable rightHashTable = createFormatableHashtable(rightTableName, rightTableNumber, rightHashBits);
 
                 //add the right hash array to the method call
-                int rightHashKeyItem = acb.addItem(rightKeyHolder);
+                int rightHashKeyItem = acb.addItem(rightHashTable);
                 mb.push(rightHashKeyItem);
                 numArgs++;
             }
@@ -1818,7 +1820,44 @@ public class JoinNode extends TableOperatorNode {
 
 	}
 
-	/**
+    /**
+     * Build an integer array of column indexes to hash
+     *
+     * @param leftHashBits
+     * @return
+     */
+    private int[] convertToIntArray(FormatableBitSet leftHashBits) {
+        int[] leftHash = new int[leftHashBits.getNumBitsSet()];
+        for(int pos=0, next = leftHashBits.anySetBit();next!=-1;pos++,next = leftHashBits.anySetBit(next)){
+            leftHash[pos] = next;
+        }
+        return leftHash;
+    }
+
+    /**
+     * Create a FormatableHashtable with the indexes of the columns to hash, the table number and table name containing
+     * those columns.
+     *
+     * @param rightTableName
+     * @param rightTableNumber
+     * @param hashBits
+     * @return
+     */
+    private FormatableHashtable createFormatableHashtable(String rightTableName, int rightTableNumber, FormatableBitSet hashBits) {
+
+        int[] hashColsArray = convertToIntArray(hashBits);
+        FormatableIntHolder[] fihArray = FormatableIntHolder.getFormatableIntHolders(hashColsArray);
+        FormatableArrayHolder hashColsHolder = new FormatableArrayHolder(fihArray);
+
+        FormatableHashtable fHashTable = new FormatableHashtable();
+        fHashTable.put(TABLE_NAME_KEY, rightTableName);
+        fHashTable.put(TABLE_NUMBER_KEY, new FormatableIntHolder(rightTableNumber));
+        fHashTable.put(HASH_KEYS_ARRAY_KEY, hashColsHolder);
+
+        return fHashTable;
+    }
+
+    /**
 	 * @see ResultSetNode#getFinalCostEstimate
 	 *
 	 * Get the final CostEstimate for this JoinNode.
