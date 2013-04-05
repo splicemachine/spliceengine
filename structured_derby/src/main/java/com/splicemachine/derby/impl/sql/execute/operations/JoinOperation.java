@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableHashtable;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -133,9 +134,15 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	}
 
     protected int[] generateHashKeys(int hashKeyItem, SpliceBaseOperation resultSet) {
-		FormatableArrayHolder fah = (FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(hashKeyItem));
-		FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
-        int[] rootAccessedCols = resultSet.getRootAccessedCols();
+
+        FormatableHashtable hashKeyInfo =  (FormatableHashtable) activation.getPreparedStatement().getSavedObject(hashKeyItem);
+
+        FormatableArrayHolder fah = (FormatableArrayHolder) hashKeyInfo.get("HashKeysIntArrayHolder");
+        FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
+
+        FormatableIntHolder tableNumber = (FormatableIntHolder) hashKeyInfo.get("TableNumberIntHolder");
+
+        int[] rootAccessedCols = resultSet.getRootAccessedCols(tableNumber.getInt());
         int[] keyColumns = new int[fihArray.length];
         for(int i=0;i<fihArray.length;i++){
             keyColumns[i] = rootAccessedCols[fihArray[i].getInt()-1];

@@ -719,7 +719,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 	
 	@Override
-    public int[] getRootAccessedCols() {
+    public int[] getRootAccessedCols(int tableNumber) {
 		throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement getRootAccessedCols");
 	}
 	

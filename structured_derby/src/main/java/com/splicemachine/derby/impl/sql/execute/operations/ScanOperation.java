@@ -254,7 +254,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     }
 
     @Override
-	public int[] getRootAccessedCols() {
+	public int[] getRootAccessedCols(int tableNumber) {
         return baseColumnMap;
 	}
     

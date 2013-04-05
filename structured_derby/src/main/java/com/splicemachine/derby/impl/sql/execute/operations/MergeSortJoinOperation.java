@@ -282,10 +282,27 @@ public class MergeSortJoinOperation extends JoinOperation {
                 wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
 	}
+
+    private boolean areChildrenLeaves(){
+        return leftResultSet instanceof ScanOperation && rightResultSet instanceof ScanOperation;
+    }
  
    @Override
-    public int[] getRootAccessedCols() {
-        return leftResultSet.getRootAccessedCols();
+    public int[] getRootAccessedCols(int tableNumber) {
+       if(!areChildrenLeaves()){
+
+           ScanOperation leftSO = (ScanOperation) leftResultSet;
+           String tableNumberStr = String.valueOf(tableNumber);
+
+           if(leftSO.tableName.equals(tableNumberStr)){
+            return leftSO.getRootAccessedCols(tableNumber);
+           }else{
+            ScanOperation rightSO = (ScanOperation) rightResultSet;
+            return rightSO.getRootAccessedCols(tableNumber);
+           }
+       } else{
+        return leftResultSet.getRootAccessedCols(tableNumber);
+       }
     }
 
 	@Override
