@@ -1,9 +1,7 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
-import com.splicemachine.job.Status;
-import com.splicemachine.job.Task;
-import com.splicemachine.job.TaskFuture;
-import com.splicemachine.job.TaskScheduler;
+import com.splicemachine.derby.impl.job.coprocessor.TaskStatus;
+import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -217,110 +215,42 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T> 
         }
 
         public TaskFuture addTask(Task task) {
-            WrappedTask wTask = new WrappedTask(task,new ThreadTaskFuture(task.getTaskId(),tasks.size()+1));
-            tasks.offer(wTask);
+            ThreadTaskFuture future = new ThreadTaskFuture(task,tasks.size()+1);
+            task.getTaskStatus().attachListener(future);
+            tasks.offer(task);
 
-            return wTask.taskFuture;
-        }
-
-    }
-
-    /*
-     * Makes sure that the returned Future and the underlying Task keep their state in sync properly
-     */
-    private static class WrappedTask implements Task{
-        private Task delegate;
-        private ThreadTaskFuture taskFuture;
-        private Thread executingThread;
-
-        public WrappedTask(Task task, ThreadTaskFuture threadTaskFuture) {
-            this.delegate = task;
-            this.taskFuture = threadTaskFuture;
-            taskFuture.task = this;
-        }
-
-        @Override
-        public void markStarted() throws ExecutionException, CancellationException {
-            taskFuture.setStatus(Status.EXECUTING);
-            executingThread = Thread.currentThread();
-            delegate.markStarted();
-        }
-
-        @Override
-        public void markCompleted() throws ExecutionException {
-            taskFuture.setStatus(Status.COMPLETED);
-            delegate.markCompleted();
-        }
-
-        @Override
-        public void markFailed(Throwable error) throws ExecutionException {
-            taskFuture.setStatus(Status.FAILED);
-            taskFuture.setError(error);
-            delegate.markFailed(error);
-        }
-
-        @Override
-        public void markCancelled() throws ExecutionException {
-            taskFuture.setStatus(Status.CANCELLED);
-            executingThread.interrupt();
-            delegate.markCancelled();
-        }
-
-        @Override
-        public void execute() throws ExecutionException, InterruptedException {
-            try{
-                delegate.execute();
-            }catch(RuntimeException e){
-                throw new ExecutionException(e);
-            }
-        }
-
-        @Override
-        public boolean isCancelled() throws ExecutionException {
-            boolean cancelled = delegate.isCancelled();
-            if(cancelled){
-                taskFuture.setStatus(Status.CANCELLED);
-            }
-            return cancelled;
-        }
-
-        @Override
-        public String getTaskId() {
-            return delegate.getTaskId();
+            return future;
         }
     }
 
-
-    private static class ThreadTaskFuture implements TaskFuture {
-        private volatile Status status = Status.PENDING;
-        private volatile Throwable error;
+    private static class ThreadTaskFuture implements TaskFuture, TaskStatus.StatusListener {
+        private volatile Task task;
         private final double cost;
-        private final String taskId;
-        private volatile WrappedTask task;
+        private volatile Thread executingThread;
 
-        private ThreadTaskFuture(String taskId,double cost) {
+        private ThreadTaskFuture(Task task,double cost) {
+            this.task = task;
             this.cost = cost;
-            this.taskId = taskId;
         }
 
         @Override
         public Status getStatus() throws ExecutionException {
-            return status;
+            return task.getTaskStatus().getStatus();
         }
 
         @Override
         public void complete() throws ExecutionException, CancellationException, InterruptedException {
-            synchronized (taskId){
-                while(true){
-                    switch (status) {
-                        case FAILED:
-                            throw new ExecutionException(error);
-                        case CANCELLED:
-                            throw new CancellationException();
-                        case COMPLETED:
-                            return;
-                    }
-                    taskId.wait();
+            while(true){
+                switch (task.getTaskStatus().getStatus()) {
+                    case FAILED:
+                        throw new ExecutionException(task.getTaskStatus().getError());
+                    case CANCELLED:
+                        throw new CancellationException();
+                    case COMPLETED:
+                        return;
+                }
+                synchronized (task){
+                    task.wait();
                 }
             }
         }
@@ -337,23 +267,37 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T> 
 
         @Override
         public String getTaskId() {
-            return taskId;
+            return task.getTaskId();
         }
 
-        public void setStatus(Status status) {
-            this.status = status;
-            switch (status) {
+        @Override
+        public void statusChanged(Status oldStatus, Status newStatus,TaskStatus taskStatus) {
+            /*
+             * If newStatus = EXECUTING, then task just began. Set self
+             * up to watch for cancellation or failure/completion
+             * if newStatus = CANCELLED, then task was cancelled. interrupt
+             * the running thread if necessary, and notify anyone waiting
+             * to check their state again
+             * if newStatus = FAILED, then task failed. Notify anyone waiting
+             * to check their state again
+             * if newStatus = COMPLETED, then task is finished. Notify anyone waiting
+             * to check their state again
+             */
+            switch (newStatus) {
+                case EXECUTING:
+                    executingThread = Thread.currentThread();
+                    return;
+                case CANCELLED:
+                    if(executingThread!=null){
+                        executingThread.interrupt();
+                    }
+                    //fall through here to ensure notification of waiting threads
                 case FAILED:
                 case COMPLETED:
-                case CANCELLED:
-                    synchronized (taskId){
-                        taskId.notifyAll();
+                    synchronized (task){
+                        task.notifyAll();
                     }
             }
-        }
-
-        public void setError(Throwable error) {
-            this.error = error;
         }
     }
 

@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.job;
 
+import com.splicemachine.derby.impl.job.coprocessor.TaskStatus;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.Task;
-import com.splicemachine.derby.impl.job.coprocessor.TaskStatus;
 
 import java.io.*;
 import java.util.concurrent.CancellationException;
@@ -63,6 +63,11 @@ public abstract class DurableTask implements Task,Externalizable {
     @Override
     public String getTaskId() {
         return taskId;
+    }
+
+    @Override
+    public TaskStatus getTaskStatus() {
+        return status;
     }
 
     public void setTaskId(String taskId){

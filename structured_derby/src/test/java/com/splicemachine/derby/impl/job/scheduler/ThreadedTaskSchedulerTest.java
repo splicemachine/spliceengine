@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.splicemachine.derby.impl.job.coprocessor.TaskStatus;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.Task;
 import com.splicemachine.job.TaskFuture;
@@ -51,7 +52,7 @@ public class ThreadedTaskSchedulerTest {
         Assert.assertEquals("Task never entered the completed state!", 1, task.completed.get());
         Assert.assertEquals("Task entered the failed state!", 0, task.failed.get());
         Assert.assertEquals("Task entered the cancelled state!", 0, task.cancelled.get());
-        Assert.assertNull("Task has an Error!",task.error);
+        Assert.assertNull("Task has an Error!",task.getTaskStatus().getError());
 
         SpliceLogUtils.trace(LOG,"State Transitions were correct!");
 
@@ -81,7 +82,7 @@ public class ThreadedTaskSchedulerTest {
         Assert.assertEquals("Task never entered the completed state!", 0, task.completed.get());
         Assert.assertEquals("Task entered the failed state!", 1, task.failed.get());
         Assert.assertEquals("Task entered the cancelled state!", 0, task.cancelled.get());
-        Assert.assertNotNull("Task does not have an Error!", task.error);
+        Assert.assertNotNull("Task does not have an Error!", task.getTaskStatus().getError());
 
         SpliceLogUtils.trace(LOG,"State Transitions were correct!");
 
@@ -111,7 +112,7 @@ public class ThreadedTaskSchedulerTest {
         Assert.assertEquals("Task never entered the completed state!", 0, task.completed.get());
         Assert.assertEquals("Task entered the failed state!", 0, task.failed.get());
         Assert.assertEquals("Task entered the cancelled state!", 1, task.cancelled.get());
-        Assert.assertNull("Task has an Error!", task.error);
+        Assert.assertNull("Task has an Error!", task.getTaskStatus().getError());
 
         SpliceLogUtils.trace(LOG,"State Transitions were correct!");
 
@@ -145,7 +146,7 @@ public class ThreadedTaskSchedulerTest {
         Assert.assertEquals("Task never entered the completed state!", 0, task.completed.get());
         Assert.assertEquals("Task entered the failed state!", 0, task.failed.get());
         Assert.assertEquals("Task entered the cancelled state!", 1, task.cancelled.get());
-        Assert.assertNull("Task has an Error!",task.error);
+        Assert.assertNull("Task has an Error!",task.getTaskStatus().getError());
 
         SpliceLogUtils.trace(LOG,"State Transitions were correct!");
 
@@ -161,7 +162,7 @@ public class ThreadedTaskSchedulerTest {
         AtomicInteger failed = new AtomicInteger(0);
         AtomicInteger executed = new AtomicInteger(0);
         private final String taskString;
-        Throwable error;
+        private final TaskStatus taskStatus = new TaskStatus(Status.PENDING,null);
 
         private CountDownTask(String taskString) {
             this.taskString = taskString;
@@ -170,22 +171,26 @@ public class ThreadedTaskSchedulerTest {
         @Override
         public void markStarted() throws ExecutionException, CancellationException {
             this.started.incrementAndGet();
+            taskStatus.setStatus(Status.EXECUTING);
         }
 
         @Override
         public void markCompleted() throws ExecutionException {
             completed.incrementAndGet();
+            taskStatus.setStatus(Status.COMPLETED);
         }
 
         @Override
         public void markFailed(Throwable error) throws ExecutionException {
             failed.incrementAndGet();
-            this.error =error;
+            taskStatus.setError(error);
+            taskStatus.setStatus(Status.FAILED);
         }
 
         @Override
         public void markCancelled() throws ExecutionException {
             cancelled.incrementAndGet();
+            taskStatus.setStatus(Status.CANCELLED);
         }
 
         @Override
@@ -201,6 +206,11 @@ public class ThreadedTaskSchedulerTest {
         @Override
         public String getTaskId() {
             return taskString;
+        }
+
+        @Override
+        public TaskStatus getTaskStatus() {
+            return taskStatus;
         }
     }
 

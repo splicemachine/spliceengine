@@ -1,22 +1,33 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
+import com.splicemachine.derby.impl.job.scheduler.ThreadedTaskScheduler;
 import com.splicemachine.job.Status;
 
 import java.io.*;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Scott Fines
  *         Created on: 4/3/13
  */
 public class TaskStatus implements Externalizable{
+    public static interface StatusListener{
+       void statusChanged(Status oldStatus,Status newStatus,TaskStatus taskStatus);
+    }
+    private AtomicReference<Status> status;
+    private volatile Throwable error;
+    private final Set<StatusListener> listeners;
 
-    private Status status;
-    private Throwable error;
-
-    public TaskStatus(){}
+    public TaskStatus(){
+       this.listeners = Collections.newSetFromMap(new ConcurrentHashMap<StatusListener, Boolean>());
+    }
 
     public TaskStatus(Status status, Throwable error) {
-        this.status = status;
+        this();
+        this.status = new AtomicReference<Status>(status);
         this.error = error;
     }
 
@@ -25,7 +36,7 @@ public class TaskStatus implements Externalizable{
     }
 
     public Status getStatus(){
-        return status;
+        return status.get();
     }
 
     public byte[] toBytes() throws IOException {
@@ -46,8 +57,15 @@ public class TaskStatus implements Externalizable{
         return new TaskStatus(Status.CANCELLED,null);
     }
 
+    /**
+     * @param status the new status to set
+     * @return the old status
+     */
     public void setStatus(Status status) {
-        this.status = status;
+        Status oldStatus = this.status.getAndSet(status);
+        for(StatusListener listener:listeners){
+            listener.statusChanged(oldStatus,status,this);
+        }
     }
 
     public void setError(Throwable error) {
@@ -56,7 +74,7 @@ public class TaskStatus implements Externalizable{
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeUTF(status.name());
+        out.writeUTF(status.get().name());
         out.writeBoolean(error!=null);
         if(error!=null)
             out.writeObject(error);
@@ -64,9 +82,18 @@ public class TaskStatus implements Externalizable{
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        status = Status.valueOf(in.readUTF());
+        status = new AtomicReference<Status>(Status.valueOf(in.readUTF()));
         if(in.readBoolean()){
             error = (Throwable)in.readObject();
         }
     }
+
+    public void attachListener(StatusListener listener) {
+        this.listeners.add(listener);
+    }
+
+    public void detachListener(StatusListener listener){
+        this.listeners.remove(listener);
+    }
+
 }

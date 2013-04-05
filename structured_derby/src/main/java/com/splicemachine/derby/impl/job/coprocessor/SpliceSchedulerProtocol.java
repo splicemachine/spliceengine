@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
-import com.splicemachine.derby.impl.job.OperationJob;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 
 import java.io.IOException;
@@ -11,5 +10,5 @@ import java.io.IOException;
  */
 public interface SpliceSchedulerProtocol extends CoprocessorProtocol {
 
-    public TaskFutureContext submit(OperationJob job) throws IOException;
+    public TaskFutureContext submit(RegionTask task) throws IOException;
 }

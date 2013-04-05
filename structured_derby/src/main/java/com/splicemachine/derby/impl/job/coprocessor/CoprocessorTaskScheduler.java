@@ -2,25 +2,24 @@ package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.scheduler.ZkBackedTaskScheduler;
-import com.splicemachine.derby.utils.ZkUtils;
-import com.splicemachine.job.TaskFuture;
-import com.splicemachine.job.TaskScheduler;
-import com.splicemachine.derby.impl.job.OperationJob;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.si2.data.hbase.HbRegion;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.ZkUtils;
+import com.splicemachine.job.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -29,28 +28,30 @@ import java.util.concurrent.ExecutionException;
  */
 public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements SpliceSchedulerProtocol{
     private static final String DEFAULT_BASE_TASK_QUEUE_NODE = "/spliceTasks";
-    private TaskScheduler<SinkTask> taskScheduler;
+    private TaskScheduler<RegionTask> taskScheduler;
     private RecoverableZooKeeper zooKeeper;
     private volatile String baseTaskQueueNode;
+    private Set<Task> runningTasks = Collections.newSetFromMap(new ConcurrentHashMap<Task, Boolean>());
+    public static String baseQueueNode;
+
+    static{
+         baseQueueNode = SpliceUtils.config.get("splice.sink.baseTaskQueueNode",DEFAULT_BASE_TASK_QUEUE_NODE);
+    }
 
     @Override
     public void start(CoprocessorEnvironment env) {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)env;
         zooKeeper = rce.getRegionServerServices().getZooKeeper().getRecoverableZooKeeper();
-        Configuration configuration = env.getConfiguration();
-
-        baseTaskQueueNode = configuration.get("splice.sink.baseTaskQueueNode",DEFAULT_BASE_TASK_QUEUE_NODE);
         try {
-
             HRegion region = rce.getRegion();
-            String regionQueueNode = baseTaskQueueNode+"/"+region.getTableDesc().getNameAsString()+"/"+region.getRegionNameAsString();
+            String regionQueueNode = baseQueueNode+"/"+region.getTableDesc().getNameAsString()+"/"+region.getRegionNameAsString();
             ZkUtils.recursiveSafeCreate(regionQueueNode,new byte[]{},ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
         } catch (KeeperException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        taskScheduler = new ZkBackedTaskScheduler<SinkTask>(zooKeeper, SpliceDriver.driver().getTaskScheduler());
+        taskScheduler = SpliceDriver.driver().getTaskScheduler();
 
         //TODO -sf- read the existing tasks for the region, and schedule them
         super.start(env);
@@ -65,10 +66,30 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     }
 
     @Override
-    public TaskFutureContext submit(OperationJob job) throws IOException {
+    public TaskFutureContext submit(final RegionTask task) throws IOException {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         try {
-            TaskFuture future = taskScheduler.submit(new SinkTask(job,zooKeeper,rce.getRegion(),baseTaskQueueNode));
+            runningTasks.add(task);
+            /*
+             * Here we attach a listener so that when the task completes, fails, or otherwise
+             * becomes invalid, we can remove it from our Region set and thus avoid memory leaks
+             */
+            task.getTaskStatus().attachListener(new TaskStatus.StatusListener() {
+                @Override
+                public void statusChanged(Status oldStatus, Status newStatus,TaskStatus status) {
+                    switch (newStatus) {
+                        case FAILED:
+                        case COMPLETED:
+                        case CANCELLED:
+                            runningTasks.remove(task);
+                            break;
+                    }
+                }
+            });
+
+            //prepare the task for this specific region
+            task.prepareTask(rce.getRegion(),zooKeeper);
+            TaskFuture future = taskScheduler.submit(task);
             return new TaskFutureContext(future.getTaskId(),future.getEstimatedCost());
         } catch (ExecutionException e) {
             Throwable t = Throwables.getRootCause(e);

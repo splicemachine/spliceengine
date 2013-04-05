@@ -37,11 +37,12 @@ public class CoprocessorJobScheduler extends ZkBackedJobScheduler<OperationJob>{
             table.coprocessorExec(SpliceSchedulerProtocol.class,scan.getStartRow(),scan.getStartRow(),new Batch.Call<SpliceSchedulerProtocol, TaskFutureContext>() {
                 @Override
                 public TaskFutureContext call(SpliceSchedulerProtocol instance) throws IOException {
-                    return instance.submit(job);
+                    return instance.submit(new SinkTask(job.getScan(),job.getInstructions()));
                 }
             },new Batch.Callback<TaskFutureContext>() {
                         @Override
                         public void update(byte[] region, byte[] row, TaskFutureContext result) {
+                            //TODO -sf- deal with invalidated tasks that require resubmission
                             tasks.add(new WatchingTask(result,zooKeeper));
                         }
                     });

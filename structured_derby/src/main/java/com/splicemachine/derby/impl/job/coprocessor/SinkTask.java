@@ -44,19 +44,17 @@ public class SinkTask extends ZooKeeperTask {
         super();
     }
 
-    public SinkTask(Scan scan,
-                    SpliceObserverInstructions instructions,
-                    RecoverableZooKeeper zooKeeper,
-                    HRegion region,
-                    String baseQueueNode) {
-        super(baseQueueNode+"/"+buildTaskId(region),zooKeeper);
-        this.region = region;
+    public SinkTask(Scan scan, SpliceObserverInstructions instructions) {
         this.scan = scan;
         this.instructions = instructions;
     }
 
-    public SinkTask(OperationJob job, RecoverableZooKeeper zooKeeper, HRegion region,String baseQueueNode){
-        this(job.getScan(), job.getInstructions(), zooKeeper,region,baseQueueNode);
+    @Override
+    public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
+        //make sure that our task id is properly set
+        this.taskId = buildTaskId(region);
+        this.region = region;
+        super.prepareTask(region, zooKeeper);
     }
 
     @Override
@@ -111,7 +109,7 @@ public class SinkTask extends ZooKeeperTask {
     }
 
     private static String buildTaskId(HRegion region) {
-        return region.getTableDesc().getNameAsString()+"/"+region.getRegionNameAsString()+"/task-";
+        return CoprocessorTaskScheduler.baseQueueNode+"/"+region.getTableDesc().getNameAsString()+"/"+region.getRegionNameAsString()+"/task-";
     }
 
     public HRegion getRegion() {

@@ -3,28 +3,19 @@ package com.splicemachine.derby.hbase;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJobScheduler;
-import com.splicemachine.derby.impl.job.coprocessor.SinkTask;
 import com.splicemachine.derby.impl.job.scheduler.ThreadedTaskScheduler;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.ZkUtils;
-import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.job.JobScheduler;
+import com.splicemachine.job.Task;
 import com.splicemachine.job.TaskScheduler;
 import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.drda.NetworkServerControl;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.impl.jdbc.EmbedConnection;
-import org.apache.derby.jdbc.EmbeddedDriver;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.regionserver.SplitLogWorker;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 
 import javax.management.*;
@@ -115,8 +106,8 @@ public class SpliceDriver {
         return props;
     }
 
-    public TaskScheduler getTaskScheduler() {
-        return threadTaskScheduler;
+    public <T extends Task> TaskScheduler<T> getTaskScheduler() {
+        return (TaskScheduler<T>)threadTaskScheduler;
     }
 
     public JobScheduler getJobScheduler(){
