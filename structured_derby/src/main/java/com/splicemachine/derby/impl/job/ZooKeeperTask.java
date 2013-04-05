@@ -102,6 +102,12 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
     }
 
     @Override
+    public void markInvalid() throws ExecutionException {
+        status.setStatus(Status.INVALID);
+        updateStatus(false);
+    }
+
+    @Override
     public void updateStatus(boolean cancelOnError) throws CancellationException, ExecutionException {
         assert zooKeeper!=null;
         try{

@@ -92,7 +92,7 @@ public class SpliceDriver {
             threadTaskScheduler = ThreadedTaskScheduler.create(numTaskThreads);
             threadTaskScheduler.start();
 
-            jobScheduler = new CoprocessorJobScheduler(ZkUtils.getRecoverableZooKeeper());
+            jobScheduler = new CoprocessorJobScheduler(ZkUtils.getRecoverableZooKeeper(),SpliceUtils.config);
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }

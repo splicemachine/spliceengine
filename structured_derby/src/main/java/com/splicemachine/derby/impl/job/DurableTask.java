@@ -70,6 +70,11 @@ public abstract class DurableTask implements Task,Externalizable {
         return status;
     }
 
+    @Override
+    public void markInvalid() throws ExecutionException {
+        status.setStatus(Status.INVALID);
+    }
+
     public void setTaskId(String taskId){
         this.taskId = taskId;
     }

@@ -26,4 +26,6 @@ public interface Task {
     String getTaskId();
 
     TaskStatus getTaskStatus();
+
+    void markInvalid() throws ExecutionException;
 }

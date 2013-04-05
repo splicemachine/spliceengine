@@ -52,10 +52,10 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         futureToClean.cleanup();
     }
 
-    protected abstract Set<WatchingTask> submitTasks(J job) throws ExecutionException;
+    protected abstract Set<? extends WatchingTask> submitTasks(J job) throws ExecutionException;
 
     protected class WatchingFuture implements JobFuture{
-        private final Collection<WatchingTask> taskFutures;
+        private final Collection<? extends WatchingTask> taskFutures;
         private final BlockingQueue<TaskFuture> changedFutures;
         private final Set<TaskFuture> completedFutures;
         private final Set<TaskFuture> failedFutures;
@@ -63,7 +63,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
 
         private volatile Status currentStatus = Status.PENDING;
 
-        private WatchingFuture(Collection<WatchingTask> taskFutures) {
+        private WatchingFuture(Collection<? extends WatchingTask> taskFutures) {
             this.taskFutures = taskFutures;
 
             this.changedFutures = new LinkedBlockingQueue<TaskFuture>();
@@ -201,12 +201,12 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         }
     }
 
-    protected class WatchingTask implements TaskFuture,Watcher {
-        private final TaskFutureContext context;
+    protected abstract class WatchingTask implements TaskFuture,Watcher {
+        protected final TaskFutureContext context;
         private final RecoverableZooKeeper zooKeeper;
         private WatchingFuture jobFuture;
 
-        private volatile TaskStatus status = new TaskStatus(Status.PENDING,null);
+        protected volatile TaskStatus status = new TaskStatus(Status.PENDING,null);
         private volatile boolean refresh = true;
 
         public WatchingTask(TaskFutureContext result,RecoverableZooKeeper zooKeeper) {
@@ -223,6 +223,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
             //these three status are permanent--once they have been entered, they cannot be escaped
             //so no reason to refresh even if fired (which it should never be)
             switch (status.getStatus()) {
+                case INVALID:
                 case COMPLETED:
                 case FAILED:
                 case CANCELLED:
@@ -258,6 +259,8 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
             while(true){
                 Status runningStatus = getStatus();
                 switch (runningStatus) {
+                    case INVALID:
+                        manageInvalidated();
                     case FAILED:
                         throw new ExecutionException(status.getError());
                     case COMPLETED:
@@ -271,6 +274,8 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                 }
             }
         }
+
+        protected abstract void manageInvalidated() throws ExecutionException;
 
         @Override
         public double getEstimatedCost() {
@@ -293,6 +298,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                 case FAILED:
                 case COMPLETED:
                 case CANCELLED:
+                case INVALID:
                     return;
             }
             status = TaskStatus.cancelled();

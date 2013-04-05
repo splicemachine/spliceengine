@@ -163,6 +163,7 @@ public class ThreadedTaskSchedulerTest {
         AtomicInteger executed = new AtomicInteger(0);
         private final String taskString;
         private final TaskStatus taskStatus = new TaskStatus(Status.PENDING,null);
+        private AtomicInteger invalid = new AtomicInteger(0);
 
         private CountDownTask(String taskString) {
             this.taskString = taskString;
@@ -211,6 +212,11 @@ public class ThreadedTaskSchedulerTest {
         @Override
         public TaskStatus getTaskStatus() {
             return taskStatus;
+        }
+
+        @Override
+        public void markInvalid() {
+            invalid.incrementAndGet();
         }
     }
 
