@@ -4,13 +4,12 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -32,10 +31,13 @@ public class UniqueConstraint implements Constraint {
     private static final Predicate<? super Mutation> stripDeletes = new Predicate<Mutation>() {
         @Override
         public boolean apply(@Nullable Mutation input) {
-            if (!(input instanceof Put)) return false;
+            if(Mutations.isDelete(input)) {
+                return false;
+            }
             return !Arrays.equals(input.getAttribute(Puts.PUT_TYPE), Puts.FOR_UPDATE);
         }
     };
+
     private static final Function<? super Mutation, Get> validator = new Function<Mutation, Get>() {
         @Override
         public Get apply(@Nullable Mutation input) {
