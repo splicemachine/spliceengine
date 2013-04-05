@@ -6,6 +6,7 @@ import java.sql.SQLException;
 
 import com.splicemachine.derby.error.SpliceStandardException;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -118,10 +119,12 @@ public class SpliceOperationContext {
         }finally{
             try {
                 getLanguageConnectionContext().popStatementContext(getLanguageConnectionContext().getStatementContext(), null);
-                if (commit) {
-                    connection.commit();
-                } else {
-                    connection.rollback();
+                if (SpliceUtils.useSi) {
+                    if (commit) {
+                        connection.commit();
+                    } else {
+                        connection.rollback();
+                    }
                 }
                 SpliceDriver.driver().closeConnection(connection);
             } catch (SQLException e) {
