@@ -1,14 +1,10 @@
 package com.splicemachine.derby.iapi.storage;
 
-import java.util.Iterator;
-
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.stats.RegionStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Scan;
 
 /**
  * Provides ExecRows for later stages in the execution computation.
@@ -18,7 +14,7 @@ import org.apache.hadoop.hbase.client.Scan;
  *  a small collection of rows). To alleviate this issue, while still providing for
  * a mechanism for when Scans <em>are</em> useable, This interface exists.
  */
-public interface RowProvider extends Iterator<ExecRow>  {
+public interface RowProvider extends RowProviderIterator<ExecRow>  {
 
 	/**
 	 * Calling multiple times should result in a safe re-opening

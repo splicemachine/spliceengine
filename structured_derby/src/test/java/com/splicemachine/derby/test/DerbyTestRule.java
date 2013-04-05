@@ -8,12 +8,10 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ConglomerateUtils;
-import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -24,7 +22,13 @@ import org.junit.rules.TestWatchman;
 import org.junit.runners.model.FrameworkMethod;
 
 import com.splicemachine.utils.SpliceLogUtils;
-
+/**
+ * 
+ * This should not be used...
+ * 
+ *
+ */
+@Deprecated()
 public class DerbyTestRule extends TestWatchman{
 	public final Logger LOG;
 	public final Map<String,String> tableSchemas;

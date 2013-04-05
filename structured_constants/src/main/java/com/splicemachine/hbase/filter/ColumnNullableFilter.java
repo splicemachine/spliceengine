@@ -107,12 +107,10 @@ public class ColumnNullableFilter extends FilterBase {
 	}
 
 	public ReturnCode filterKeyValue(KeyValue keyValue) {
-		LOG.info("foundColumn="+foundColumn);
 		if (this.foundColumn) 
 			return ReturnCode.NEXT_ROW;
 
 		if (!keyValue.matchingColumn(this.columnFamily, this.columnQualifier)) {
-			LOG.info("keyValue="+keyValue.getKeyString());
 			this.foundColumn = false;
 			return ReturnCode.INCLUDE;
 		}
@@ -124,7 +122,6 @@ public class ColumnNullableFilter extends FilterBase {
 	public boolean filterRow() {
 		// If column was found, return false if it was filterIfMissing, true if it was not
 		// If column not found, return true if filterMissing, false if not
-		LOG.info("filterRow="+(this.filterIfMissing ? !this.foundColumn : this.foundColumn));
 		return this.filterIfMissing ? !this.foundColumn : this.foundColumn;
 	}
 

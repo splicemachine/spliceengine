@@ -32,8 +32,6 @@ public abstract class MultiScanExecRowProvider extends MultiScanRowProvider{
         this.fbt = fbt;
     }
 
-    @Override public void remove() { throw new UnsupportedOperationException(); }
-
     @Override
     public ExecRow next() {
         if(!hasNext()) throw new NoSuchElementException();

@@ -56,8 +56,6 @@ public class MiscOperation extends NoRowsOperation
 
 		@Override public ExecRow next() { return null; }
 
-		@Override public void remove() { throw new UnsupportedOperationException(); }
-
 		@Override
 		public void open() {
 			SpliceLogUtils.trace(LOG, "open");

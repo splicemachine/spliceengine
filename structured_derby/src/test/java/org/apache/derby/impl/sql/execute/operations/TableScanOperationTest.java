@@ -2,64 +2,65 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.List;
-import java.util.Map;
-
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.splicemachine.derby.test.DerbyTestRule;
 import org.apache.log4j.Logger;
 import org.junit.*;
-
-import com.splicemachine.derby.test.SpliceDerbyTest;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
  * This tests basic table scans with and without projection/restriction
  */
-public class TableScanOperationTest {
+public class TableScanOperationTest extends SpliceUnitTest {
 	private static Logger LOG = Logger.getLogger(TableScanOperationTest.class);
-
-	private static final Map<String,String> tableSchemas = Maps.newHashMap();
-	static{
-		tableSchemas.put("a","si varchar(40),sa character varying(40),sc varchar(40),sd int,se float");
-	}
-
-	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableSchemas,false,LOG);
-
-	@BeforeClass 
-	public static void startup() throws Exception {
-		DerbyTestRule.start();
-		rule.createTables();
-		insertData();
-	}
-
-	private static void insertData() throws SQLException {
-		PreparedStatement ps = rule.prepareStatement("insert into a (si, sa, sc,sd,se) values (?,?,?,?,?)");
-		for (int i =0; i< 10; i++) {
-			ps.setString(1, "" + i);
-			ps.setString(2, "i");
-			ps.setString(3, "" + i*10);
-			ps.setInt(4, i);
-			ps.setFloat(5,10.0f*i);
-			ps.executeUpdate();
-		}
-	}
-
-	@AfterClass 
-	public static void shutdown() throws Exception {
-		rule.dropTables();
-		DerbyTestRule.shutdown();
-	}
+	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+	public static final String CLASS_NAME = TableScanOperationTest.class.getSimpleName().toUpperCase();
+	public static final String TABLE_NAME = "A";
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float)");
+	
+	@ClassRule 
+	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+		.around(spliceSchemaWatcher)
+		.around(spliceTableWatcher)
+		.around(new SpliceDataWatcher(){
+			@Override
+			protected void starting(Description description) {
+				try {
+				PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (si, sa, sc,sd,se) values (?,?,?,?,?)",CLASS_NAME, TABLE_NAME));
+				for (int i =0; i< 10; i++) {
+					ps.setString(1, "" + i);
+					ps.setString(2, "i");
+					ps.setString(3, "" + i*10);
+					ps.setInt(4, i);
+					ps.setFloat(5,10.0f*i);
+					ps.executeUpdate();
+				}
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+				finally {
+					spliceClassWatcher.closeAll();
+				}
+			}
+			
+		});
+	
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 	@Test
-	public void testSimpleTableScan() throws SQLException {			
-			ResultSet rs = rule.executeQuery("select * from a");
+	public void testSimpleTableScan() throws Exception {			
+			ResultSet rs = methodWatcher.executeQuery(format("select * from %s",this.getTableReference(TABLE_NAME)));
 			int i = 0;
 			while (rs.next()) {
 				i++;
-				LOG.info("a.si="+rs.getString(1)+",b.si="+rs.getString(2)+"c.si="+rs.getString(3));
 				Assert.assertNotNull(rs.getString(1));
 				Assert.assertNotNull(rs.getString(2));				
 				Assert.assertNotNull(rs.getString(3));				
@@ -68,9 +69,8 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanForNullEntries() throws SQLException{
-		ResultSet rs = rule.executeQuery("select si from a where si is null");
-
+	public void testScanForNullEntries() throws Exception{
+		ResultSet rs = methodWatcher.executeQuery(format("select si from %s where si is null",this.getTableReference(TABLE_NAME)));
 		boolean hasRows = false;
 		List<String> results = Lists.newArrayList();
 		while(rs.next()){
@@ -87,8 +87,8 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testQualifierTableScanPreparedStatement() throws SQLException {
-		PreparedStatement stmt = rule.prepareStatement("select * from a where si = ?");
+	public void testQualifierTableScanPreparedStatement() throws Exception {
+		PreparedStatement stmt = methodWatcher.prepareStatement(format("select * from %s where si = ?", this.getTableReference(TABLE_NAME)));
 		stmt.setString(1,"5");
 		ResultSet rs = stmt.executeQuery();
 		int i = 0;
@@ -103,8 +103,8 @@ public class TableScanOperationTest {
 	}
 
     @Test
-	public void testOrQualifiedTableScanPreparedStatement() throws SQLException {
-		PreparedStatement stmt = rule.prepareStatement("select * from a where si = ? or si = ?");
+	public void testOrQualifiedTableScanPreparedStatement() throws Exception {
+		PreparedStatement stmt = methodWatcher.prepareStatement(format("select * from %s where si = ? or si = ?",this.getTableReference(TABLE_NAME)));
 		stmt.setString(1,"5");
         stmt.setString(2,"4");
 		ResultSet rs = stmt.executeQuery();
@@ -120,8 +120,8 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testQualifierTableScan() throws SQLException {
-		ResultSet rs = rule.executeQuery("select * from a where si = '5'");
+	public void testQualifierTableScan() throws Exception {
+		ResultSet rs = methodWatcher.executeQuery(format("select * from %s where si = '5'",this.getTableReference(TABLE_NAME)));
 		int i = 0;
 		while (rs.next()) {
 			i++;
@@ -134,8 +134,8 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testRestrictedTableScan() throws SQLException{
-		ResultSet rs = rule.executeQuery("select si,sc from a");
+	public void testRestrictedTableScan() throws Exception{
+		ResultSet rs = methodWatcher.executeQuery("select si,sc from" + this.getPaddedTableReference("A"));
 		int i = 0;
 		while (rs.next()) {
 			i++;
@@ -147,8 +147,8 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanIntWithLessThanOperator() throws SQLException{
-		ResultSet rs = rule.executeQuery("select  sd from a where sd < 5");
+	public void testScanIntWithLessThanOperator() throws Exception{
+		ResultSet rs = methodWatcher.executeQuery("select  sd from" + this.getPaddedTableReference("A") +"where sd < 5");
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
 			int sd = rs.getInt(1);
@@ -162,8 +162,8 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanIntWithLessThanEqualOperator() throws SQLException{
-		ResultSet rs = rule.executeQuery("select  sd from a where sd <= 5");
+	public void testScanIntWithLessThanEqualOperator() throws Exception{
+		ResultSet rs = methodWatcher.executeQuery("select  sd from" + this.getPaddedTableReference("A") +"where sd <= 5");
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
 			int sd = rs.getInt(1);
@@ -177,8 +177,8 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanIntWithGreaterThanOperator() throws SQLException{
-		ResultSet rs = rule.executeQuery("select  sd from a where sd > 5");
+	public void testScanIntWithGreaterThanOperator() throws Exception{
+		ResultSet rs = methodWatcher.executeQuery("select  sd from" + this.getPaddedTableReference("A") +"where sd > 5");
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
 			int sd = rs.getInt(1);
@@ -192,8 +192,8 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanIntWithGreaterThanEqualsOperator() throws SQLException{
-		ResultSet rs = rule.executeQuery("select  sd from a where sd >= 5");
+	public void testScanIntWithGreaterThanEqualsOperator() throws Exception{
+		ResultSet rs = methodWatcher.executeQuery("select  sd from" + this.getPaddedTableReference("A") +"where sd >= 5");
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
 			int sd = rs.getInt(1);
@@ -207,8 +207,8 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanIntWithNotEqualsOperator() throws SQLException{
-		ResultSet rs = rule.executeQuery("select  sd from a where sd != 5");
+	public void testScanIntWithNotEqualsOperator() throws Exception{
+		ResultSet rs = methodWatcher.executeQuery("select  sd from" + this.getPaddedTableReference("A") +"where sd != 5");
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
 			int sd = rs.getInt(1);
@@ -223,9 +223,9 @@ public class TableScanOperationTest {
 
 
 	@Test
-	public void testScanFloatWithLessThanOperator() throws SQLException{
+	public void testScanFloatWithLessThanOperator() throws Exception{
 		float correctCompare = 50f;
-		ResultSet rs = rule.executeQuery("select se from a where se < "+correctCompare);
+		ResultSet rs = methodWatcher.executeQuery("select se from" + this.getPaddedTableReference("A") +"where se < "+correctCompare);
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
 			float se = rs.getFloat(1);
@@ -239,9 +239,9 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanFloatWithLessThanEqualOperator() throws SQLException{
+	public void testScanFloatWithLessThanEqualOperator() throws Exception{
 		float correctCompare = 50f;
-		ResultSet rs = rule.executeQuery("select  se from a where se <= "+correctCompare);
+		ResultSet rs = methodWatcher.executeQuery("select  se from" + this.getPaddedTableReference("A") +"where se <= "+correctCompare);
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
 			float se = rs.getFloat(1);
@@ -255,9 +255,9 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanFloatWithGreaterThanOperator() throws SQLException{
+	public void testScanFloatWithGreaterThanOperator() throws Exception{
 		float correctCompare = 50f;
-		ResultSet rs = rule.executeQuery("select  se from a where se > "+correctCompare);
+		ResultSet rs = methodWatcher.executeQuery("select  se from" + this.getPaddedTableReference("A") +"where se > "+correctCompare);
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
 			float se = rs.getFloat(1);
@@ -271,9 +271,9 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanFloatWithGreaterThanEqualsOperator() throws SQLException{
+	public void testScanFloatWithGreaterThanEqualsOperator() throws Exception{
 		float correctCompare = 50f;
-		ResultSet rs = rule.executeQuery("select  se from a where se >= "+correctCompare);
+		ResultSet rs = methodWatcher.executeQuery("select  se from" + this.getPaddedTableReference("A") +"where se >= "+correctCompare);
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
 			float se = rs.getFloat(1);
@@ -287,9 +287,9 @@ public class TableScanOperationTest {
 	}
 
 	@Test
-	public void testScanFloatWithNotEqualsOperator() throws SQLException{
+	public void testScanFloatWithNotEqualsOperator() throws Exception{
 		float correctCompare = 50f;
-		ResultSet rs = rule.executeQuery("select  se from a where se != "+correctCompare);
+		ResultSet rs = methodWatcher.executeQuery("select  se from" + this.getPaddedTableReference("A") +"where se != "+correctCompare);
 		List<String> results  = Lists.newArrayList();
 		while(rs.next()){
 			float se = rs.getFloat(1);

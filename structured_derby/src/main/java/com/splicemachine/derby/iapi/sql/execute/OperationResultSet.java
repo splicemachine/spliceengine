@@ -69,7 +69,7 @@ public class OperationResultSet implements NoPutResultSet {
         topOperation.openCore();
 
         operationTree.traverse(topOperation);
-        delegate = (NoPutResultSet)operationTree.execute();
+        delegate = operationTree.execute();
         //open the delegate
         delegate.openCore();
     }
@@ -82,7 +82,12 @@ public class OperationResultSet implements NoPutResultSet {
     @Override
     public ExecRow getNextRowCore() throws StandardException {
         checkDelegate();
-        return delegate.getNextRowCore();
+        try {
+        	return delegate.getNextRowCore();
+        } catch (StandardException s) {
+        	LOG.trace("XXXXX - getNextRowCore failed with standard exception " + s.getErrorCode());
+        	throw s;
+        }
     }
 
     @Override

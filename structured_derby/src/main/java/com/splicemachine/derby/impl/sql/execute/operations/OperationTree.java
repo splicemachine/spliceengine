@@ -7,12 +7,14 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation.NodeType;
+import com.splicemachine.derby.iapi.sql.execute.operations.IOperationTree;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public class OperationTree {
+public class OperationTree implements IOperationTree {
 	private static Logger LOG = Logger.getLogger(OperationTree.class);
 	public enum OperationTreeStatus {
 		CREATED, WAITING, ACTIVE, FINISHED
@@ -20,11 +22,11 @@ public class OperationTree {
 	protected HashMap<SpliceOperation,List<SpliceOperation>> operationTree;
 	protected SpliceOperation currentExecutionOperation;
 	protected LinkedList<SpliceOperation> allWaits = new LinkedList<SpliceOperation>();
-	protected Object object;
+	protected NoPutResultSet output;
 	public OperationTree() {
 		this.operationTree = new LinkedHashMap<SpliceOperation,List<SpliceOperation>>();
 	}
-
+	@Override
 	public void traverse(SpliceOperation operation) {
 		SpliceLogUtils.trace(LOG, "traversing parent operation: " + operation);
 		currentExecutionOperation = operation;
@@ -70,8 +72,8 @@ public class OperationTree {
 	public void schedule() {
 		
 	}
-	
-	public Object execute() throws StandardException{	
+	@Override
+	public NoPutResultSet execute() throws StandardException{	
 		SpliceLogUtils.trace(LOG, "execute with operationTree with  " + operationTree.keySet().size() + " execution stacks");
 		SpliceOperation operation = null;
 		while (operationTree.keySet().size() > 0) {
@@ -82,15 +84,15 @@ public class OperationTree {
 						op.executeShuffle();
 						//if we are also a scan, AND we are the last operationTree to execute, then create the scan
 						if(op.getNodeTypes().contains(NodeType.SCAN)&&operationTree.keySet().size()==1)
-							object = op.executeScan();
+							output = op.executeScan();
 					}else
-						object = op.executeScan();
+						output = op.executeScan();
 					operation = op;
 					operationFinished(op.getUniqueSequenceID());
 				}			
 		}	
-		SpliceLogUtils.trace(LOG,"Execution Tree Finalized: %s with object %s", operation,object); 
-		return object;
+		SpliceLogUtils.trace(LOG,"Execution Tree Finalized: %s with object %s", operation,output); 
+		return output;
 	}
 	
 	private void operationFinished(String uniqueID) {

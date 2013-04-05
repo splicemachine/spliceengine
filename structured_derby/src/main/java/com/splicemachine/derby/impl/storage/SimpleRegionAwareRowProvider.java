@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.storage;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.sql.execute.operations.Hasher;
+
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Result;
@@ -43,7 +45,7 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
 	}
 
     @Override
-    protected Result getResult() throws IOException {
+    protected Result getResult() throws StandardException {
         return scanner.getNextResult();
     }
 

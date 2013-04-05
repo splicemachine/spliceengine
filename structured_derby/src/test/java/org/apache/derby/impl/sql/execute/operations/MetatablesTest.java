@@ -1,33 +1,19 @@
 package org.apache.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.test.DerbyTestRule;
-import junit.framework.Assert;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import org.junit.Assert;
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-
 import java.sql.ResultSet;
-import java.util.Collections;
 
 /**
  * @author Scott Fines
  *         Created on: 2/23/13
  */
 public class MetatablesTest {
-    private static final Logger LOG = Logger.getLogger(MetatablesTest.class);
-    @Rule public static DerbyTestRule rule = new DerbyTestRule(Collections.<String,String>emptyMap(),false,LOG);
-
-    @BeforeClass
-    public static void beforeClass() throws Exception{
-        DerbyTestRule.start();
-    }
-
-    @AfterClass
-    public static void afterClass() throws Exception{
-        DerbyTestRule.shutdown();
-    }
+    private static final Logger LOG = Logger.getLogger(MetatablesTest.class);	
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
     public void testSelectWithOr() throws Exception{
@@ -36,7 +22,7 @@ public class MetatablesTest {
          */
         String aliasTable = "SYSALIASES";
         String checksTable = "SYSCHECKS";
-        ResultSet rs = rule.executeQuery("select * from sys.systables where tablename = 'SYSALIASES' or tablename = 'SYSCHECKS'");
+        ResultSet rs = methodWatcher.executeQuery("select * from sys.systables where tablename = 'SYSALIASES' or tablename = 'SYSCHECKS'");
         int count = 0;
         while(rs.next()){
             count++;

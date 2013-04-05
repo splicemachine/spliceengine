@@ -103,9 +103,8 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 		return operations;
 	}
 
-
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG, "init called");
 		super.init(context);
 		((SpliceOperation)source).init(context);

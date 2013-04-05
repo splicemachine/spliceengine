@@ -92,8 +92,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	
 	@Override
     public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-//        if (LOG.isTraceEnabled())
-//            LOG.trace("readExternal");
+		SpliceLogUtils.trace(LOG, "readExternal");
         super.readExternal(in);
         restrictionMethodName = readNullableString(in);
         projectionMethodName = readNullableString(in);
@@ -109,8 +108,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-//        if (LOG.isTraceEnabled())
-//            LOG.trace("writeExternal");
+		SpliceLogUtils.trace(LOG, "writeExternal");
         super.writeExternal(out);
         writeNullableString(restrictionMethodName, out);
         writeNullableString(projectionMethodName, out);
@@ -125,12 +123,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
     }
 
 	@Override
-	public void init(SpliceOperationContext context){
-//		SpliceLogUtils.trace(LOG,"init called");
+	public void init(SpliceOperationContext context) throws StandardException{
+		SpliceLogUtils.trace(LOG, "init");
 		super.init(context);
 		source.init(context);
-		try {
-			// Allocate a result row if all of the columns are mapped from the source			
 
 			GenericStorablePreparedStatement statement = context.getPreparedStatement();
 			projectMapping = ((ReferencedColumnsDescriptorImpl) statement.getSavedObject(mapRefItem)).getReferencedColumnPositions();
@@ -147,39 +143,31 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				restriction = statement.getActivationClass().getMethod(restrictionMethodName);
 			if (projectionMethodName != null)
 				projection = statement.getActivationClass().getMethod(projectionMethodName);
-
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "init operation failed",e);
-		}
 	}
 
 
 	@Override
 	public List<SpliceOperation> getSubOperations() {
-//		if (LOG.isTraceEnabled()) LOG.trace("getSubOperations");
+		SpliceLogUtils.trace(LOG, "getSubOperations");
 		return Arrays.asList(source);
 	}
 
 
 	@Override
 	public SpliceOperation getLeftOperation() {
-//        SpliceLogUtils.trace(LOG,"getLeftOperation "+ (this.source).getClass());
-////		if (LOG.isTraceEnabled())
-//			LOG.trace("getLeftOperation " + (this.source).getClass());
-		return this.source;
+		SpliceLogUtils.trace(LOG, "getLeftOperation %s",source);
+		return source;
 	}
 	
 	@Override
 	public List<NodeType> getNodeTypes() {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("getNodeTypes");
+		SpliceLogUtils.trace(LOG, "getNodeTypes");
 		return nodeTypes;
 	}
 
-	private ExecRow doProjection(ExecRow sourceRow) {
-//		SpliceLogUtils.trace(LOG, "doProjection for %s utilizing projection method %s",sourceRow,projectionMethodName);
+	private ExecRow doProjection(ExecRow sourceRow) throws StandardException {
+		SpliceLogUtils.trace(LOG, "doProjection");
 		ExecRow result;
-		try {
 			if (projection != null) {
 				result = (ExecRow) projection.invoke(activation);
 			}
@@ -203,10 +191,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 			setCurrentRow(result);
 			/* Remember the result if reusing it */
 			return result;
-		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,"Error performing projection",e);
-			return null;
-		}
 	}
 	
 	@Override
@@ -248,21 +232,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
     @Override
 	public ExecRow getNextRowCore() throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("getNextRowCore");
 		ExecRow candidateRow = null;
 		ExecRow result = null;
 		boolean restrict = false;
 		DataValueDescriptor restrictBoolean;
 		long beginRT = 0;
-
-
-		/* Return null if open was short circuited by false constant expression */
-//		if (shortCircuitOpen)
-//		{
-//			SpliceLogUtils.trace(LOG,"short circuited");
-//			return result;
-//		}
 
 		beginTime = getCurrentTimeMillis();
 		do {
@@ -322,7 +296,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public ExecRow getExecRowDefinition() {
+	public ExecRow getExecRowDefinition() throws StandardException {
 //		SpliceLogUtils.trace(LOG, "getExecRowDefinition with source %s",source);
 		ExecRow def = source.getExecRowDefinition();
         try {
@@ -331,7 +305,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
         }
         source.setCurrentRow(def);
-		return doProjection(def);
+        return doProjection(def);
 	}
 	
 	@Override

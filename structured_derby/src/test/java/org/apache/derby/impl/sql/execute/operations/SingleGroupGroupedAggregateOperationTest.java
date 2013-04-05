@@ -6,16 +6,20 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-
-import com.google.common.collect.Maps;
-import com.splicemachine.derby.test.DerbyTestRule;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.suites.Stats;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -23,67 +27,63 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @author Scott Fines
  *
  */
-public class SingleGroupGroupedAggregateOperationTest {
+public class SingleGroupGroupedAggregateOperationTest extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(SingleGroupGroupedAggregateOperationTest.class);
+	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    public static final String CLASS_NAME = SingleGroupGroupedAggregateOperationTest.class.getSimpleName().toUpperCase();
+	public static final String TABLE_NAME_1 = "T";
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(username varchar(40),i int)");
+		
+	@ClassRule 
+	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+		.around(spliceSchemaWatcher)
+		.around(spliceTableWatcher)
+		.around(new SpliceDataWatcher(){
+			@Override
+			protected void starting(Description description) {
+				try {
+					spliceClassWatcher.setAutoCommit(false);
+			        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (username, i) values (?,?)",CLASS_NAME,TABLE_NAME_1));
+			        List<String> users = Arrays.asList("jzhang","sfines","jleach");
+			        for(int i=0;i< size;i++){
+			            for(String user:users){
+			                int value = i*10;
 
-    static Map<String,String> tableSchemaMap = Maps.newHashMap();
-    static{
-        tableSchemaMap.put("t","username varchar(40),i int");
-    }
+				            if(!unameStats.containsKey(user))
+				                unameStats.put(user,new Stats());
+				            unameStats.get(user).add(value);
 
-    @Rule public static DerbyTestRule rule = new DerbyTestRule(tableSchemaMap,false,LOG);
-
-    @BeforeClass
-    public static void setup() throws Exception{
-        DerbyTestRule.start();
-        rule.createTables();
-        insertData();
-    }
-
-    @AfterClass
-    public static void shutdown() throws Exception {
-        rule.dropTables();
-        DerbyTestRule.shutdown();
-    }
-
+				            ps.setString(1, user);
+				            ps.setInt(2, value);
+				            SpliceLogUtils.trace(LOG,"user="+user+",value="+value);
+				            ps.executeUpdate();
+			            }
+			        }
+			        spliceClassWatcher.commit();
+			        spliceClassWatcher.splitTable(TABLE_NAME_1,CLASS_NAME,size/3);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+				finally {
+					spliceClassWatcher.closeAll();
+				}
+			}
+			
+		});
+	
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
     private static Map<String,Stats> unameStats = new HashMap<String,Stats>();
-
     private static final int size = 10;
-
-    public static void insertData() throws Exception{
-    	rule.setAutoCommit(false);
-        PreparedStatement ps = rule.prepareStatement("insert into t (username, i) values (?,?)");
-        List<String> users = Arrays.asList("jzhang","sfines","jleach");
-        for(int i=0;i< size;i++){
-            for(String user:users){
-                int value = i*10;
-
-	            if(!unameStats.containsKey(user))
-	                unameStats.put(user,new Stats());
-	            unameStats.get(user).add(value);
-
-	            ps.setString(1, user);
-	            ps.setInt(2, value);
-	            SpliceLogUtils.trace(LOG,"user="+user+",value="+value);
-	            ps.executeUpdate();
-            }
-        }
-        rule.commit();
-
-        rule.splitTable("t",size/3);
-    }
 
     @Test
     public void testGroupedWithInOperator() throws Exception{
-        String query = "select username, count(i) from t where username in ('sfines','jzhang') group by username";
-
-        ResultSet rs = rule.executeQuery(query);
+        ResultSet rs = methodWatcher.executeQuery(format("select username, count(i) from %s where username in ('sfines','jzhang') group by username",this.getTableReference(TABLE_NAME_1)));
         int row =0;
         while(rs.next()){
             String uname = rs.getString(1);
             int count = rs.getInt(2);
             int correctCount = unameStats.get(uname).getCount();
-            SpliceLogUtils.trace(LOG, "uname=%s, count=%d, correctCount=%d",uname,count,correctCount);
             Assert.assertEquals("Incorrect count for uname "+ uname,correctCount,count);
             row++;
         }
@@ -92,13 +92,12 @@ public class SingleGroupGroupedAggregateOperationTest {
 
     @Test
 	public void testGroupedCountOperation() throws Exception{
-			ResultSet rs = rule.executeQuery("select username,count(i) from t group by username");
+			ResultSet rs = methodWatcher.executeQuery(format("select username,count(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
 			int row =0;
 			while(rs.next()){
 				String uname = rs.getString(1);
 				int count = rs.getInt(2);
 				int correctCount = unameStats.get(uname).getCount();
-				SpliceLogUtils.trace(LOG, "uname=%s, count=%d, correctCount=%d",uname,count,correctCount);
 				Assert.assertEquals("Incorrect count for uname "+ uname,correctCount,count);
 				row++;
 			}
@@ -107,13 +106,12 @@ public class SingleGroupGroupedAggregateOperationTest {
 
     @Test
 	public void testGroupedMinOperation() throws Exception{
-			ResultSet rs = rule.executeQuery("select username,min(i) from t group by username");
+			ResultSet rs = methodWatcher.executeQuery(format("select username,min(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
 			int row =0;
 			while(rs.next()){
 				String uname = rs.getString(1);
 				int min = rs.getInt(2);
 				int correctMin = unameStats.get(uname).getMin();
-				SpliceLogUtils.trace(LOG, "uname=%s, min=%d, correctMin=%d",uname,min,correctMin);
 				Assert.assertEquals("Incorrect min for uname "+ uname,correctMin,min);
 				row++;
 			}
@@ -122,13 +120,12 @@ public class SingleGroupGroupedAggregateOperationTest {
 
 	@Test
 	public void testGroupedMaxOperation() throws Exception{
-			ResultSet rs = rule.executeQuery("select username,max(i) from t group by username");
+			ResultSet rs = methodWatcher.executeQuery(format("select username,max(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
 			int row =0;
 			while(rs.next()){
 				String uname = rs.getString(1);
 				int max = rs.getInt(2);
 				int correctMax = unameStats.get(uname).getMax();
-				SpliceLogUtils.trace(LOG, "uname=%s, max=%d, correctMax=%d",uname,max,correctMax);
 				Assert.assertEquals("Incorrect max for uname "+ uname,correctMax,max);
 				row++;
 			}
@@ -137,14 +134,12 @@ public class SingleGroupGroupedAggregateOperationTest {
 	
 	@Test
 	public void testGroupedAvgOperation() throws Exception{
-			ResultSet rs =rule.executeQuery("select username,avg(i) from t group by username");
+			ResultSet rs = methodWatcher.executeQuery(format("select username,avg(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
 			int row =0;
 			while(rs.next()){
 				String uname = rs.getString(1);
 				int avg = rs.getInt(2);
 				int correctAvg = unameStats.get(uname).getAvg();
-				SpliceLogUtils.trace(LOG, "uname=%s, avg=%d, correctSum=%d,correctAvg=%d",
-                                                    uname,avg,unameStats.get(uname).getSum(),correctAvg);
 				Assert.assertEquals("Incorrect count for uname "+ uname,correctAvg,avg);
 				row++;
 			}
@@ -153,12 +148,11 @@ public class SingleGroupGroupedAggregateOperationTest {
 	
 	@Test
 	public void testGroupedSumOperation() throws Exception{
-			ResultSet rs =rule.executeQuery("select username,sum(i) from t group by username");
+			ResultSet rs = methodWatcher.executeQuery(format("select username,sum(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
 			int row =0;
 			while(rs.next()){
 				String uname = rs.getString(1);
 				int sum = rs.getInt(2);
-				LOG.info("uname="+uname+",sum="+sum);
 				int correctSum = unameStats.get(uname).getSum();
 				Assert.assertEquals("Incorrect count for uname "+ uname,correctSum,sum);
 				row++;

@@ -33,7 +33,7 @@
 	</distributionManagement>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<junit.version>4.8.1</junit.version>
+		<junit.version>4.11</junit.version>
 		<surefire.junit4.version>2.6</surefire.junit4.version>
 		<gson.version>1.6</gson.version>
 		<maven.compiler.source>1.6</maven.compiler.source>
@@ -583,4 +583,11 @@
 </profile>
 		</profiles>
 						
+	<dependencies>
+		<dependency>
+			<groupId>commons-dbutils</groupId>
+			<artifactId>commons-dbutils</artifactId>
+			<version>1.5</version>
+		</dependency>
+	</dependencies>
 </project>

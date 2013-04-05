@@ -20,6 +20,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
@@ -318,7 +319,6 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getNextRowCore");
-        try{
             if(rowProvider.hasNext()){
                 execRow = rowProvider.next();
                 SpliceLogUtils.trace(LOG, "nextRow=%s", execRow);
@@ -326,9 +326,6 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
             }else {
                 return null;
             }
-        }catch(Throwable t){
-            throw Exceptions.parseException(t);
-        }
 	}
 
 	@Override

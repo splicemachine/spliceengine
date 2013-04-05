@@ -3,7 +3,7 @@ package com.splicemachine.hbase;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;

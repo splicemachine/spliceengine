@@ -79,7 +79,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 //		SpliceLogUtils.trace(LOG,"init called");
 		super.init(context);
 		mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
@@ -103,7 +103,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	}
 	
 	@Override
-	public ExecRow getExecRowDefinition() {
+	public ExecRow getExecRowDefinition() throws StandardException {
 		JoinUtils.getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition(),false,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
 	}

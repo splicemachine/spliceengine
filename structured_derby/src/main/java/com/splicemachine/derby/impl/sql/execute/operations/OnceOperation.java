@@ -187,18 +187,18 @@ public class OnceOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public ExecRow getExecRowDefinition() {
+	public ExecRow getExecRowDefinition() throws StandardException {
 		return source.getExecRowDefinition();
 	}
 
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow rowTemplate){
+	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow rowTemplate) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getMapRowProvider");
 		return RowProviders.singletonProvider(getExecRowDefinition());
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow rowTemplate){
+	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow rowTemplate) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getReduceRowProvider");
 		return RowProviders.singletonProvider(getExecRowDefinition());
 	}

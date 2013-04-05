@@ -1,15 +1,13 @@
 package com.splicemachine.si2.txn;
 
-import com.splicemachine.si2.HStoreSetup;
 import com.splicemachine.si2.LStoreSetup;
 import com.splicemachine.si2.StoreSetup;
 import com.splicemachine.si2.TransactorSetup;
-import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.TransactionStatus;
 import com.splicemachine.si2.si.impl.TransactionStruct;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

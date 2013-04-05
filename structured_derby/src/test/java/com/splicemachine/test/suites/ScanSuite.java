@@ -2,17 +2,17 @@ package com.splicemachine.test.suites;
 
 import org.apache.derby.impl.sql.execute.operations.DistinctScanOperationTest;
 import org.apache.derby.impl.sql.execute.operations.MetatablesTest;
-import org.apache.derby.impl.sql.execute.operations.OperationCategories;
 import org.apache.derby.impl.sql.execute.operations.ProjectRestrictOperationTest;
 import org.apache.derby.impl.sql.execute.operations.RowCountOperationTest;
 import org.apache.derby.impl.sql.execute.operations.SortOperationTest;
 import org.apache.derby.impl.sql.execute.operations.TableScanOperationTest;
 import org.apache.derby.impl.sql.execute.operations.TimeTableScanTest;
 import org.apache.derby.impl.sql.execute.operations.UnionOperationTest;
-import org.apache.derby.impl.sql.execute.operations.OperationCategories.Transactional;
 import org.junit.experimental.categories.Categories;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
+
+import com.splicemachine.test.suites.OperationCategories.Transactional;
 
 /**
  * @author Scott Fines

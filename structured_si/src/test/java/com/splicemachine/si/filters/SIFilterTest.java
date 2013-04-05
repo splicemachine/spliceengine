@@ -2,7 +2,7 @@ package com.splicemachine.si.filters;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.Filter.ReturnCode;
 import org.apache.hadoop.hbase.util.Bytes;

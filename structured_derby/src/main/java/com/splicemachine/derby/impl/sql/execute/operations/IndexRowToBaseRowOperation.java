@@ -143,7 +143,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 //		SpliceLogUtils.trace(LOG,"init called");
 		super.init(context);
 		source.init(context);

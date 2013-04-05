@@ -1,5 +1,6 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
@@ -154,7 +155,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
             topOperation.close();
             success = true;
         } catch (StandardException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
+        	SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "close direct failed", e);
         }finally{
             if (regionScanner != null)
                 regionScanner.close();

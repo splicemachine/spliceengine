@@ -118,7 +118,7 @@ public class SortOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG,"init");
 		super.init(context);
 		((SpliceOperation)source).init(context);
@@ -167,7 +167,7 @@ public class SortOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public ExecRow getExecRowDefinition() {
+	public ExecRow getExecRowDefinition() throws StandardException {
 //		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 		ExecRow def = ((SpliceOperation)source).getExecRowDefinition();
 		source.setCurrentRow(def);

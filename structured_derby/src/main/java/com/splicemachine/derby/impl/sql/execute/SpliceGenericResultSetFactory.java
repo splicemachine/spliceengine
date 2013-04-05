@@ -10,10 +10,8 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.GenericResultSetFactory;
-import org.apache.derby.impl.sql.execute.ScrollInsensitiveResultSet;
 import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.BulkTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.CallStatementOperation;

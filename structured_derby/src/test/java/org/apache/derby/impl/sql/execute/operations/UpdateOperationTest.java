@@ -2,60 +2,65 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.test.DerbyTestRule;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.apache.log4j.Logger;
 import org.junit.*;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
-public class UpdateOperationTest {
+public class UpdateOperationTest extends SpliceUnitTest {
 	private static Logger LOG = Logger.getLogger(UpdateOperationTest.class);
-
-	private static final Map<String,String> tableSchemas = new HashMap<String, String>();
-	static{
-		tableSchemas.put("locationup","num int, addr varchar(50), zip char(5)");
-		//tableSchemas.put("t1","int_col int, smallint_col smallint, char_30_col char(30), varchar_50_col varchar(50)");
-	}
-	@Rule public static DerbyTestRule rule = new DerbyTestRule(tableSchemas,false,LOG);
-
-	@BeforeClass
-	public static void startup() throws Exception{
-		DerbyTestRule.start();
-		rule.createTables();
-		insertData(rule);
-	}
-	@AfterClass
-	public static void shutdown() throws Exception{
-		rule.dropTables();
-		DerbyTestRule.shutdown();
-	}
+	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(UpdateOperationTest.class.getSimpleName());	
+	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("LOCATION",UpdateOperationTest.class.getSimpleName(),"(num int, addr varchar(50), zip char(5))");
 	
-	public static void insertData(DerbyTestRule rule) throws Exception{
-		PreparedStatement insertPs = rule.prepareStatement("insert into locationup values(?,?,?)");
-		insertPs.setInt(1,100);
-		insertPs.setString(2,"100");
-		insertPs.setString(3, "94114");
-		insertPs.executeUpdate();
+	@ClassRule 
+	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+		.around(spliceSchemaWatcher)
+		.around(spliceTableWatcher)
+		.around(new SpliceDataWatcher(){
+			@Override
+			protected void starting(Description description) {
+				try {
+					PreparedStatement insertPs = spliceClassWatcher.prepareStatement("insert into "+UpdateOperationTest.class.getSimpleName() + ".LOCATION values(?,?,?)");
+					insertPs.setInt(1,100);
+					insertPs.setString(2,"100");
+					insertPs.setString(3, "94114");
+					insertPs.executeUpdate();
 
-		insertPs.setInt(1,200);
-		insertPs.setString(2,"200");
-		insertPs.setString(3, "94509");
-		insertPs.executeUpdate();
+					insertPs.setInt(1,200);
+					insertPs.setString(2,"200");
+					insertPs.setString(3, "94509");
+					insertPs.executeUpdate();
 
-		insertPs.setInt(1,300);
-		insertPs.setString(2,"300");
-		insertPs.setString(3, "34166");
-		insertPs.executeUpdate();		
-	}
+					insertPs.setInt(1,300);
+					insertPs.setString(2,"300");
+					insertPs.setString(3, "34166");
+					insertPs.executeUpdate();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+				finally {
+					spliceClassWatcher.closeAll();
+				}
+			}
+			
+		});
+	
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 	@Test
-	public void testUpdate() throws SQLException {
-		int updated= rule.getStatement().executeUpdate("update locationup set addr='240' where num=100");
+	public void testUpdate() throws Exception {
+		int updated= methodWatcher.getStatement().executeUpdate("update"+this.getPaddedTableReference("LOCATION")+"set addr='240' where num=100");
 		Assert.assertEquals("Incorrect num rows updated!",1,updated);
-		ResultSet rs = rule.executeQuery("select * from locationup where num = 100");
+		ResultSet rs = methodWatcher.executeQuery("select * from"+this.getPaddedTableReference("LOCATION")+"where num = 100");
 		List<String> results = Lists.newArrayListWithCapacity(1);
 		while(rs.next()){
 			Integer num = rs.getInt(1);
@@ -74,9 +79,9 @@ public class UpdateOperationTest {
 
 	@Test
 	public void testUpdateMultipleColumns() throws Exception{
-		int updated = rule.getStatement().executeUpdate("update locationup set addr='900',zip='63367' where num=300");
+		int updated = methodWatcher.getStatement().executeUpdate("update"+this.getPaddedTableReference("LOCATION")+"set addr='900',zip='63367' where num=300");
 		Assert.assertEquals("incorrect number of records updated!",1,updated);
-		ResultSet rs = rule.executeQuery("select * from locationup where num=300");
+		ResultSet rs = methodWatcher.executeQuery("select * from"+this.getPaddedTableReference("LOCATION")+"where num=300");
 		List<String>results = Lists.newArrayList();
 		while(rs.next()){
 			Integer num = rs.getInt(1);
