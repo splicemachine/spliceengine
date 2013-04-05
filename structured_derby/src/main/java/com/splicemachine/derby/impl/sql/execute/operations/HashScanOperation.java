@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.hbase.SpliceOperationProtocol;
@@ -139,10 +140,9 @@ public class HashScanOperation extends ScanOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG, "init called");
 		super.init(context);
-		try {
 			GenericStorablePreparedStatement statement = context.getPreparedStatement();
 			GeneratedMethod generatedMethod = statement.getActivationClass().getMethod(resultRowAllocatorMethodName);
 			ExecRow candidate = (ExecRow) generatedMethod.invoke(activation);
@@ -155,15 +155,16 @@ public class HashScanOperation extends ScanOperation {
 				keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(accessedCols, fihArray[index].getInt());
 			}
 			LOG.info("activation.getClass()="+activation.getClass()+",aactivation="+activation);
+			try {
 			if (scanQualifiersField != null)
 				scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
 			this.mapScan = Scans.setupScan(startPosition==null?null:startPosition.getRowArray(), startSearchOperator,
 					stopPosition==null?null:stopPosition.getRowArray(), stopSearchOperator,
 					scanQualifiers, null, accessedCols, transactionID);
-//			this.mapScan = SpliceUtils.setupScan(Bytes.toBytes(transactionID), accessedCols,scanQualifiers, startPosition == null ? null : startPosition.getRowArray(), startSearchOperator, stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator, null);
-		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
-		} 
+			} catch (Exception e) {
+				throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "Error initializing HashScanOperation", e);
+			}
+
 	}
 	
 	@Override

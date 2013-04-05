@@ -71,7 +71,7 @@ public class TxnLogger extends LogConstants {
 			Put put = writeActions.get(sequenceNum).generateLogPut(logType, beginKey, endKey, sequenceNum);
 			logPuts.add(put);
 		}
-		SpliceLogUtils.info(LOG,"Generated " + logPuts.size() + " puts to be operated on table " + txnTable.getTableDescriptor().getNameAsString());
+		SpliceLogUtils.debug(LOG,"Generated " + logPuts.size() + " puts to be operated on table " + txnTable.getTableDescriptor().getNameAsString());
 		txnTable.put(logPuts);
 	}
 

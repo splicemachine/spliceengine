@@ -10,6 +10,7 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import com.gotometrics.orderly.*;
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -215,15 +216,19 @@ public class DerbyBytesUtil {
 		return builder.toRowKey().serialize(values);
 	}
 	
-	public static byte[] generateBeginKeyForTemp(DataValueDescriptor uniqueString) throws StandardException, IOException {
-		SpliceLogUtils.trace(LOG,"generateBeginKeyForTemp is %s",uniqueString.getTraceString());
-		StructBuilder builder = new StructBuilder();
-		Object[] values = new Object[1];
-		RowKey rowKey;
-		rowKey = getRowKey(uniqueString);
-		builder.add(rowKey);
-		values[0] = uniqueString.getString();
-		return builder.toRowKey().serialize(values);
+	public static byte[] generateBeginKeyForTemp(DataValueDescriptor uniqueString) throws StandardException {
+		try {
+			SpliceLogUtils.trace(LOG,"generateBeginKeyForTemp is %s",uniqueString.getTraceString());
+			StructBuilder builder = new StructBuilder();
+			Object[] values = new Object[1];
+			RowKey rowKey;
+			rowKey = getRowKey(uniqueString);
+			builder.add(rowKey);
+			values[0] = uniqueString.getString();
+			return builder.toRowKey().serialize(values);
+		} catch (Exception e) {
+			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "generateBeginKeyForTemp Failed", e);
+		}
 	}
 
 	public static byte[] generateEndKeyForTemp(DataValueDescriptor uniqueString) throws StandardException, IOException {

@@ -48,12 +48,10 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 	}
 
 	@Override
-    public boolean hasNext() {
+    public boolean hasNext() throws StandardException {
         if(populated)return true;
         called++;
         SpliceLogUtils.trace(LOG, "hasNext");
-
-        try{
             Result result = getResult();
             if(result!=null && !result.isEmpty()){
                 SpliceLogUtils.trace(LOG,"result!=null. currentRow=%s",currentRow);
@@ -65,24 +63,16 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
             }
             SpliceLogUtils.trace(LOG,"no result returned");
             return false;
-        } catch (StandardException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        }
-        //should never happen
-        return false;
 	}
 
-	protected abstract Result getResult() throws IOException;
+	protected abstract Result getResult() throws StandardException;
 
 	@Override
-	public ExecRow next() {
+	public ExecRow next() throws StandardException{
 		SpliceLogUtils.trace(LOG, "next");
 		if(!hasNext()) throw new NoSuchElementException();
 		populated =false;
 		return currentRow;
 	}
 
-	@Override public void remove() { throw new UnsupportedOperationException(); }
 }

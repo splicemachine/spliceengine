@@ -1,5 +1,7 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.derby.error.SpliceDoNotRetryIOException;
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
@@ -24,6 +26,7 @@ import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
@@ -58,7 +61,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     private SpliceOperationContext context;
 
     public SpliceOperationRegionScanner(SpliceOperation topOperation,
-                                        SpliceOperationContext context){
+                                        SpliceOperationContext context) throws IOException{
     	stats.start();
     	SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
         this.topOperation = topOperation;
@@ -69,12 +72,12 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
             activation = context.getActivation();//((GenericActivationHolder) statement.getActivation(lcc, false)).ac;
             topOperation.init(context);
-        }catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, e);
+        }catch (Exception e) {
+        	throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "Operation Region Scanner Init failed", e);
         }
     }
 
-	public SpliceOperationRegionScanner(RegionScanner regionScanner, Scan scan,HRegion region) {
+	public SpliceOperationRegionScanner(RegionScanner regionScanner, Scan scan,HRegion region) throws IOException {
 		SpliceLogUtils.trace(LOG, "instantiated with "+regionScanner+", and scan "+scan);
 		stats.start();
 		SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
@@ -102,7 +105,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			SpliceLogUtils.trace(LOG,"Ready to execute stack %s",opStack);
 
 		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
+			throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "Operation Region Scanner Init failed", e);
 		} finally {
             TransactionManager.setParentTransactionId(oldParentTransactionId);
         }
@@ -116,7 +119,6 @@ public class SpliceOperationRegionScanner implements RegionScanner {
             long start = System.nanoTime();
 			if ( (nextRow = topOperation.getNextRowCore()) != null) {
                 stats.processAccumulator().tick(System.nanoTime()-start);
-
                 start = System.nanoTime();
 				Put put = Puts.buildInsert(nextRow.getRowArray(), SpliceUtils.NA_TRANSACTION_ID,serializer);
 				Map<byte[],List<KeyValue>> family = put.getFamilyMap();
@@ -128,14 +130,14 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 				return true;
 			}
 		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,"error during next call: ",e);
+			throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "next failed", e);
 		}
 		return false;
 	}
 
 	@Override
 	public boolean next(List<KeyValue> result, int limit) throws IOException {
-		throw new RuntimeException("Not Implemented");
+		throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "not implemented", new DoNotRetryIOException("Not Implemented"));
 	}
 
 	@Override
@@ -144,7 +146,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		try {
 			topOperation.close();
 		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
+			throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "next failed", e);
 		}finally{
             if (regionScanner != null)
                 regionScanner.close();

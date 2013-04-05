@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.iapi.types.J2SEDataValueFactory;

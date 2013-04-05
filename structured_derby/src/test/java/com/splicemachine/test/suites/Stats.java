@@ -1,4 +1,4 @@
-package org.apache.derby.impl.sql.execute.operations;
+package com.splicemachine.test.suites;
 
 public final class Stats {
 	private int count;

@@ -4,144 +4,114 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
-
-import junit.framework.Assert;
-
+import org.junit.Assert;
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.splicemachine.derby.test.DerbyTestRule;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
  * @author Scott Fines
  *         Created on: 3/1/13
  */
-public class PrimaryKeyTest {
+public class PrimaryKeyTest extends SpliceUnitTest {
     private static final Logger LOG = Logger.getLogger(PrimaryKeyTest.class);
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+	public static final String CLASS_NAME = PrimaryKeyTest.class.getSimpleName().toUpperCase();
+	public static final String TABLE_NAME = "A";
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(name varchar(50),val int, PRIMARY KEY(name))");
+	protected static String INSERT = String.format("insert into %s.%s (name, val) values (?,?)",CLASS_NAME, TABLE_NAME);
+	protected static String SELECT_BY_NAME = String.format("select * from %s.%s where name = ?",CLASS_NAME, TABLE_NAME);
+	protected static String SELECT_NAME_BY_NAME = String.format("select name from %s.%s where name = ?",CLASS_NAME, TABLE_NAME);	
+	protected static String UPDATE_NAME_BY_NAME = String.format("update %s.%s set name = ? where name = ?",CLASS_NAME, TABLE_NAME);
+	protected static String UPDATE_VALUE_BY_NAME = String.format("update %s.%s set val = ? where name = ?",CLASS_NAME, TABLE_NAME);
+	
+	@ClassRule 
+	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+		.around(spliceSchemaWatcher)
+		.around(spliceTableWatcher)
+		.around(new SpliceDataWatcher(){
+		@Override
+		protected void starting(Description description) {
+			try {
+				PreparedStatement ps = spliceClassWatcher.prepareStatement(INSERT);
+				ps.setString(1,"sfines");
+				ps.setInt(2,1);
+				ps.executeUpdate();
+				ps.setString(1,"jleach");
+				ps.setInt(2,2);
+				ps.executeUpdate();
+				ps.setString(1,"mzweben");
+				ps.setInt(2,3);
+				ps.executeUpdate();				
+				ps.setString(1,"gdavis");
+				ps.setInt(2,4);
+				ps.executeUpdate();				
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+			finally {
+				spliceClassWatcher.closeAll();
+			}
+		}
+		
+	});
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    private static final Map<String,String> tableMap = Maps.newHashMap();
-    private static String tName = PrimaryKeyTest.class.getSimpleName()+"_t";
-    static{
-        tableMap.put(tName,"name varchar(50),val int, PRIMARY KEY(name)");
-//        tableMap.put("multi_pk","name varchar(50),fruit varchar(30),val int, PRIMARY KEY(name,fruit)");
-    }
-
-    @Rule public static DerbyTestRule rule = new DerbyTestRule(tableMap,LOG);
-
-    @BeforeClass
-    public static void startup() throws Exception{
-        DerbyTestRule.start();
-    }
-
-    @AfterClass
-    public static void shutdown() throws Exception{
-        DerbyTestRule.shutdown();
-    }
-
-    @Test
+   
+    @Test(expected=SQLException.class)
     public void cannotInsertDuplicatePks() throws Exception{
-        /*
-         * Test to ensure that duplicate Primary Key combinations are not allowed.
-         */
-        PreparedStatement ps = rule.prepareStatement("insert into "+tName+" (name, val) values (?,?)");
-
-        //insert the first entry in the row
-        ps.setString(1,"sfines");
-        ps.setInt(2,1);
-        ps.executeUpdate();
-
-        LOG.info("First insertion completed without error, checking that it succeeded");
-        //validate that a single row exists
-        PreparedStatement validator = rule.prepareStatement("select * from "+tName+" where name = ?");
-        validator.setString(1,"sfines");
-        ResultSet rs = validator.executeQuery();
-        int matchCount=0;
-        while(rs.next()){
-            if("sfines".equalsIgnoreCase(rs.getString(1))){
-                matchCount++;
-            }
-        }
-        Assert.assertEquals("Incorrect number of matching rows found!",1,matchCount);
-
-        LOG.info("Attempting second insertion");
-        //try and insert it again
-        boolean failed=false;
-        try{
-            ps.executeUpdate();
-        }catch(SQLException se){
-            LOG.info(se.getMessage());
-            failed=true;
-        }
-        Assert.assertTrue("Insert of duplicate records succeeded!",failed);
-
-        LOG.info("Validating second insertion failed");
-        //make sure that it didn't get inserted anyway
-        rs = validator.executeQuery();
-        matchCount=0;
-        while(rs.next()){
-            if("sfines".equalsIgnoreCase(rs.getString(1))){
-                matchCount++;
-            }
-        }
-        Assert.assertEquals("Incorrect number of matching rows found!",1,matchCount);
-        LOG.info("Validation succeeded");
+    	try {
+    		PreparedStatement ps = methodWatcher.prepareStatement(INSERT);
+    		ps.setString(1,"sfines");
+    		ps.setInt(2,1);
+    		ps.executeUpdate();
+    		Assert.assertTrue("Did not throw an exception on duplicate records on primary key",false);
+    	} catch (SQLException e) {
+    		 PreparedStatement validator = methodWatcher.prepareStatement(SELECT_BY_NAME);
+    		 validator.setString(1,"sfines");
+    	        ResultSet rs = validator.executeQuery();
+    	        int matchCount=0;
+    	        while(rs.next()){
+    	            if("sfines".equalsIgnoreCase(rs.getString(1))){
+    	                matchCount++;
+    	            }
+    	        }
+    	        Assert.assertEquals("Incorrect number of matching rows found!",1,matchCount);
+    	        throw e;
+    	}
     }
 
     @Test
     public void canUpdatePrimaryKeyCorrectly() throws Exception{
-        PreparedStatement ps = rule.prepareStatement("insert into "+tName+" (name, val) values (?,?)");
-
-        //insert the first entry in the row
-        ps.setString(1,"sfines");
-        ps.setInt(2,1);
-        ps.executeUpdate();
-
-        LOG.info("First insertion completed without error, checking that it succeeded");
-        //validate that a single row exists
-        PreparedStatement validator = rule.prepareStatement("select * from "+tName+" where name = ?");
-        validator.setString(1,"sfines");
-        ResultSet rs = validator.executeQuery();
-        int matchCount=0;
-        while(rs.next()){
-            if("sfines".equalsIgnoreCase(rs.getString(1))){
-                matchCount++;
-            }
-        }
-        rs.close();
-        Assert.assertEquals("Incorrect number of matching rows found!",1,matchCount);
-
-        //update it to change the primary key
-        PreparedStatement updateStatement = rule.prepareStatement("update "+tName+" set name = ? where name = ?");
+        PreparedStatement updateStatement = methodWatcher.prepareStatement(UPDATE_NAME_BY_NAME);
         updateStatement.setString(1,"jzhang");
-        updateStatement.setString(2,"sfines");
+        updateStatement.setString(2,"jleach");
         updateStatement.executeUpdate();
-
-        LOG.info("Update completed without error, checking success");
-
-        validator = rule.prepareStatement("select * from "+tName+" where name = ?");
-        validator.setString(1,"sfines");
-        rs = validator.executeQuery();
+        PreparedStatement validator = methodWatcher.prepareStatement(SELECT_BY_NAME);
+        validator.setString(1,"jleach");
+        ResultSet rs = validator.executeQuery();
         while(rs.next()){
             Assert.fail("Should have returned nothing");
         }
-        rs.close();
-
-        validator = rule.prepareStatement("select * from "+tName+" where name = ?");
         validator.setString(1,"jzhang");
         rs = validator.executeQuery();
-        matchCount =0;
+        int matchCount = 0;
         while(rs.next()){
             if("jzhang".equalsIgnoreCase(rs.getString(1))){
                 matchCount++;
-                int val = rs.getInt(2);
-                Assert.assertEquals("Column incorrect!",1,val);
+                Assert.assertEquals("Column incorrect!",2,rs.getInt(2));
             }
         }
         Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
@@ -149,41 +119,17 @@ public class PrimaryKeyTest {
 
     @Test
     public void canUpdateNonPrimaryKeyCorrectly() throws Exception{
-        PreparedStatement ps = rule.prepareStatement("insert into "+tName+" (name, val) values (?,?)");
-
-        //insert the first entry in the row
-        ps.setString(1,"sfines");
-        ps.setInt(2,1);
-        ps.executeUpdate();
-
-        LOG.info("First insertion completed without error, checking that it succeeded");
-        //validate that a single row exists
-        PreparedStatement validator = rule.prepareStatement("select * from "+tName+" where name = ?");
-        validator.setString(1,"sfines");
-        ResultSet rs = validator.executeQuery();
-        int matchCount=0;
-        while(rs.next()){
-            if("sfines".equalsIgnoreCase(rs.getString(1))){
-                matchCount++;
-            }
-        }
-        rs.close();
-        Assert.assertEquals("Incorrect number of matching rows found!",1,matchCount);
-
-        //update it to change the primary key
-        PreparedStatement updateStatement = rule.prepareStatement("update "+tName+" set val = ? where name = ?");
+        PreparedStatement updateStatement = methodWatcher.prepareStatement(UPDATE_VALUE_BY_NAME);
         updateStatement.setInt(1,20);
-        updateStatement.setString(2,"sfines");
+        updateStatement.setString(2,"mzweben");
         updateStatement.executeUpdate();
 
-        LOG.info("Update completed without error, checking success");
-
-        validator = rule.prepareStatement("select * from "+tName+" where name = ?");
-        validator.setString(1,"sfines");
-        rs = validator.executeQuery();
-        matchCount =0;
+        PreparedStatement validator = methodWatcher.prepareStatement(SELECT_BY_NAME);
+        validator.setString(1,"mzweben");
+        ResultSet rs = validator.executeQuery();
+        int matchCount =0;
         while(rs.next()){
-            if("sfines".equalsIgnoreCase(rs.getString(1))){
+            if("mzweben".equalsIgnoreCase(rs.getString(1))){
                 matchCount++;
                 int val = rs.getInt(2);
                 Assert.assertEquals("Column incorrect!",20,val);
@@ -193,24 +139,27 @@ public class PrimaryKeyTest {
     }
 
     @Test
-    public void scanningPrimaryKeyTable() throws Exception{
-        PreparedStatement test = rule.prepareStatement("select * from "+tName+" where name = ?");
+    public void scanningPrimaryKeyTableWithBaseRowLookup() throws Exception{
+        PreparedStatement test = methodWatcher.prepareStatement(SELECT_BY_NAME);
         test.setString(1,"sfines");
         ResultSet rs = test.executeQuery();
-        if(rs.next());
+        if (!rs.next())
+        	Assert.assertTrue("Cannot lookup sfines by primary key",false);
     }
 
     @Test
-    public void scanningPrimaryKeyTableByPk() throws Exception{
-        PreparedStatement test = rule.prepareStatement("select name from "+tName+" where name = ?");
+    @Ignore("Bug 336")
+    public void scanningPrimaryKeyTableByPkOnly() throws Exception{
+        PreparedStatement test = methodWatcher.prepareStatement(SELECT_NAME_BY_NAME);
         test.setString(1,"sfines");
         ResultSet rs = test.executeQuery();
-        if(rs.next());
+        if(!rs.next());
+    		Assert.assertTrue("Cannot lookup sfines by primary key",false);        
     }
 
     @Test
     public void testCanRetrievePrimaryKeysFromMetadata() throws Exception{
-        ResultSet rs = rule.getConnection().getMetaData().getPrimaryKeys(null,null,tName.toUpperCase());
+        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getPrimaryKeys(null,CLASS_NAME,TABLE_NAME);
         List<String> results = Lists.newArrayList();
         while(rs.next()){
             String tableCat = rs.getString(1);
@@ -219,27 +168,20 @@ public class PrimaryKeyTest {
             String colName = rs.getString(4);
             short keySeq = rs.getShort(5);
             String pkName = rs.getString(6);
-
             Assert.assertNotNull("No Table name returned",tableName);
             Assert.assertNotNull("No Column name returned",colName);
             Assert.assertNotNull("No Pk Name returned",pkName);
-
             results.add(String.format("cat:%s,schema:%s,table:%s,column:%s,pk:%s,seqNum:%d",
                     tableCat,tableSchem,tableName,colName,pkName,keySeq));
         }
-        for(String result:results){
-            LOG.info(result);
-        }
-
         Assert.assertTrue("No Pks returned!",results.size()>0);
     }
 
     @Test
     public void testCall() throws Exception{
-        PreparedStatement ps = rule.prepareStatement("SELECT CAST ('' AS VARCHAR(128)) AS TABLE_CAT, " +
+        PreparedStatement ps = methodWatcher.prepareStatement("SELECT CAST ('' AS VARCHAR(128)) AS TABLE_CAT, " +
                 "                   S.SCHEMANAME AS TABLE_SCHEM, T.TABLENAME AS TABLE_NAME, " +
                 "                   COLS.COLUMNNAME AS COLUMN_NAME, " +
-//                "                   CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) AS KEY_SEQ, " +
                 "                   CONS.CONSTRAINTNAME AS PK_NAME " +
                 "        FROM --DERBY-PROPERTIES joinOrder=FIXED \n " +
                 "                        SYS.SYSTABLES T --DERBY-PROPERTIES index='SYSTABLES_INDEX1' \n" +
@@ -253,13 +195,10 @@ public class PrimaryKeyTest {
                 "                  T.TABLEID = COLS.REFERENCEID AND T.TABLEID = CONGLOMS.TABLEID AND " +
                 "                  CONS.TABLEID = T.TABLEID AND CONS.TYPE = 'P' AND " +
                 "                  CONS.CONSTRAINTID = KEYS.CONSTRAINTID AND " +
-//                "                  (CASE WHEN CONGLOMS.DESCRIPTOR IS NOT NULL THEN " +
-//                "                                CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) ELSE " +
-//                "                                0 END) <> 0 AND " +
                 "                  KEYS.CONGLOMERATEID = CONGLOMS.CONGLOMERATEID ");
         ps.setString(1,"%");
-        ps.setString(2,"%");
-        ps.setString(3,tName.toUpperCase());
+        ps.setString(2,CLASS_NAME);
+        ps.setString(3,TABLE_NAME);
         ResultSet rs = ps.executeQuery();
         List<String> results = Lists.newArrayList();
         while(rs.next()){
@@ -268,18 +207,12 @@ public class PrimaryKeyTest {
             String tableName = rs.getString(3);
             String colName = rs.getString(4);
             String pkName = rs.getString(5);
-
             Assert.assertNotNull("No Table name returned",tableName);
             Assert.assertNotNull("No Column name returned",colName);
             Assert.assertNotNull("No Pk Name returned",pkName);
-
             results.add(String.format("cat:%s,schema:%s,table:%s,column:%s,pk:%s",
                     tableCat,tableSchem,tableName,colName,pkName));
         }
-        for(String result:results){
-            LOG.info(result);
-        }
-
         Assert.assertTrue("No Pks returned!",results.size()>0);
     }
 }

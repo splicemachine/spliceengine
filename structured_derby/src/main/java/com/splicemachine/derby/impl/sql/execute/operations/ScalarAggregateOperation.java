@@ -106,7 +106,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		super.init(context);
 		ExecutionFactory factory = activation.getExecutionFactory();
 		try {

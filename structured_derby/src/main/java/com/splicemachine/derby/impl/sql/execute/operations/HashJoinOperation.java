@@ -71,15 +71,11 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG, "init");
 		super.init(context);
-		try {
-			mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
-			rightResultSet.init(context);
-		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Error initiliazing node", e);
-		}
+		mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
+		rightResultSet.init(context);
 	}
 	
 	
@@ -130,22 +126,16 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 		this.generateLeftOperationStack(operationStack);
 		SpliceOperation regionOperation = operationStack.get(0);
 		final RowProvider rowProvider;
-		final String table;
-		final Scan scan;
 		final ExecRow template = getExecRowDefinition();
 		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
 			rowProvider = regionOperation.getReduceRowProvider(this,template);
-//			table = Bytes.toString(SpliceOperationCoprocessor.TEMP_TABLE);
-//			scan = regionOperation.getReduceScan();			
 		} else {
 			rowProvider =regionOperation.getMapRowProvider(this,template);
-//			table = regionOperation.getMapTable();
-//			scan = regionOperation.getMapScan();
 		}
 		return new SpliceNoPutResultSet(activation,this, rowProvider);
 	}
 	@Override
-	public ExecRow getExecRowDefinition() {
+	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 		getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition());
 		return mergedRow;

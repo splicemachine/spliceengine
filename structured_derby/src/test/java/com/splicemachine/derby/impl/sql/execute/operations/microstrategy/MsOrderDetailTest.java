@@ -1,19 +1,18 @@
 package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.splicemachine.derby.test.DerbyTestRule;
-import junit.framework.Assert;
-import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.tables.SpliceOrderDetailTable;
+import org.junit.Assert;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -27,71 +26,35 @@ import java.util.Set;
  * @author Scott Fines
  *         Created on: 2/23/13
  */
-public class MsOrderDetailTest {
-    private static final Logger LOG = Logger.getLogger(MsOrderDetailTest.class);
+public class MsOrderDetailTest extends SpliceUnitTest {
 
-    private static final Map<String,String> tableSchemas = Maps.newHashMap();
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+	public static final String CLASS_NAME = MsOrderDetailTest.class.getSimpleName().toUpperCase();
+	public static final String TABLE_NAME = "A";
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	protected static SpliceOrderDetailTable spliceTableWatcher = new SpliceOrderDetailTable(TABLE_NAME,CLASS_NAME); 	
+	@ClassRule 
+	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+		.around(spliceSchemaWatcher)
+		.around(spliceTableWatcher);
+	
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    private static final String ORDER_DETAIL_SCHEMA = "order_id varchar(50), item_id INT, order_amt INT," +
-            "order_date TIMESTAMP, emp_id INT, promotion_id INT, qty_sold INT," +
-            "unit_price FLOAT, unit_cost FLOAT, discount FLOAT, customer_id INT";
-    static{
-        tableSchemas.put("order_detail_small",ORDER_DETAIL_SCHEMA);
-        tableSchemas.put("order_detail_med",ORDER_DETAIL_SCHEMA);
-    }
-
-    @Rule public static DerbyTestRule rule = new DerbyTestRule(tableSchemas,false,LOG);
-
-    @BeforeClass
-    public static void setup() throws Exception{
-        DerbyTestRule.start();
-        createTables();
-    }
-
-
-    @AfterClass
-    public static void shutdown() throws Exception{
-//        rule.dropTables();
-        DerbyTestRule.shutdown();
-    }
-
-    private static void createTables() throws SQLException {
-        ResultSet rs = rule.executeQuery("select tablename from sys.systables where tablename = 'ORDER_DETAIL_SMALL' or tablename = 'ORDER_DETAIL_MED'");
-        boolean hasSmall = false;
-        boolean hasMed = false;
-        while(rs.next()){
-            String table =rs.getString(1);
-            if("ORDER_DETAIL_SMALL".equalsIgnoreCase(table))hasSmall=true;
-            else if("ORDER_DETAIL_MED".equalsIgnoreCase(table))hasMed=true;
-        }
-        if(!hasSmall){
-            rule.createTable("ORDER_DETAIL_SMALL",ORDER_DETAIL_SCHEMA);
-            importData("ORDER_DETAIL_SMALL","order_detail_small.csv");
-        }
-        if(!hasMed){
-            rule.createTable("ORDER_DETAIL_MED",ORDER_DETAIL_SCHEMA);
-            importData("ORDER_DETAIL_MED","order_detail_med.csv");
-        }
-    }
-
-    private static void importData(String table, String filename) throws SQLException {
+    /**
+     * Test for Bug #230. The idea is to make sure that
+     * when grouping up by a specific key, that there is only one entry per key.
+     */
+    @Test
+    public void testGroupedAggregationsGroupUniquely() throws Exception{
         String userDir = System.getProperty("user.dir");
         if(!userDir.endsWith("structured_derby"))
             userDir = userDir+"/structured_derby/";
-        PreparedStatement ps = rule.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, ?, null,null," +
-                "?,',',null,null)");
-        ps.setString(1,table);
-        ps.setString(2,userDir+"/src/test/resources/"+filename);
+        PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,null)");
+        ps.setString(1,CLASS_NAME);
+        ps.setString(2,TABLE_NAME);        
+        ps.setString(3,userDir+"/src/test/resources/order_detail_small.csv");
         ps.executeUpdate();
-    }
-
-    @Test
-    public void testGroupedAggregationsGroupUniquely() throws Exception{
-        /*
-         * Test for Bug #230. The idea is to make sure that
-         * when grouping up by a specific key, that there is only one entry per key.
-         */
-        ResultSet groupedRs = rule.executeQuery("select customer_id, count(*) from order_detail_med group by customer_id");
+        ResultSet groupedRs = methodWatcher.executeQuery(format("select customer_id, count(*) from %s group by customer_id",this.getTableReference(TABLE_NAME)));
         Set<String> uniqueGroups = Sets.newHashSet();
         while(groupedRs.next()){
             String groupKey = groupedRs.getString(1);

@@ -129,7 +129,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG,"init");
 		super.init(context);
 		((SpliceOperation)source).init(context);
@@ -242,73 +242,12 @@ public class RowCountOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public ExecRow getExecRowDefinition() {
+	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
 		ExecRow def = ((SpliceOperation)source).getExecRowDefinition();
 		source.setCurrentRow(def);
 		return def;
 	}
-
-	/*
-	@Override
-	public void executeShuffle() throws StandardException {
-		SpliceLogUtils.trace(LOG,"executeShuffle - SHOULD NOT BE CALLED?");
-		final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
-		generateLeftOperationStack(opStack);
-		SpliceLogUtils.trace(LOG,"operationStack="+opStack);
-		final SpliceOperation regionOperation = opStack.get(opStack.size()-1);
-		SpliceLogUtils.trace(LOG,"regionOperation="+regionOperation);
-		SpliceLogUtils.trace(LOG,"regionOperation=this?"+(this==regionOperation));
-		final byte[] table;
-		final Scan scan;
-		if(this == regionOperation){
-			table = Bytes.toBytes(regionOperation.getMapTable());
-			scan = regionOperation.getMapScan();
-		}else {
-			table = SpliceOperationCoprocessor.TEMP_TABLE;
-			scan = regionOperation.getReduceScan();
-		}
-		HTableInterface htable = null;
-		try{
-			htable = SpliceAccessManager.getHTable(table);
-			long numberCreated = 0;
-			Map<byte[], Long> results = htable.coprocessorExec(SpliceOperationProtocol.class,
-																scan.getStartRow(),scan.getStopRow(),
-																new Batch.Call<SpliceOperationProtocol,Long>(){
-				@Override
-				public Long call(
-						SpliceOperationProtocol instance)
-								throws IOException {
-					try{
-						return instance.run((GenericStorablePreparedStatement)activation.getPreparedStatement(), scan, regionOperation);
-					}catch(StandardException se){
-						SpliceLogUtils.logAndThrow(LOG,"Unexpected error executing coprocessor",new IOException(se));
-						return null;
-					}
-				}
-			});
-			for(Long returnedRow : results.values()){
-				numberCreated +=returnedRow;
-			}
-			SpliceLogUtils.trace(LOG, "sunk "+ numberCreated+" rows");
-			executed = true;
-		} catch (IOException ioe){
-			if(ioe.getCause() instanceof StandardException)
-				SpliceLogUtils.logAndThrow(LOG,(StandardException)ioe.getCause());
-			else
-				SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
-		}catch (Throwable e) {
-			SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
-		}finally{
-			if (htable != null){
-				try {
-					htable.close();
-				}catch(IOException e){
-					SpliceLogUtils.logAndThrow(LOG,"Unable to close HBase table",StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
-				}
-			}
-		}
-	}*/
 
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {
@@ -317,17 +256,11 @@ public class RowCountOperation extends SpliceBaseOperation {
 		this.generateLeftOperationStack(operationStack);
 		SpliceOperation regionOperation = operationStack.get(0);
 		SpliceLogUtils.trace(LOG,"regionOperation="+regionOperation);
-//		final String table;
-//		final Scan scan;
 		RowProvider provider;
 		if(regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation){
 			provider = regionOperation.getReduceRowProvider(this,getExecRowDefinition());
-//			table = SpliceOperationCoprocessor.TEMP_TABLE_STR;
-//			scan = regionOperation.getReduceScan();
 		}else {
 			provider = regionOperation.getMapRowProvider(this,getExecRowDefinition());
-//			table = regionOperation.getMapTable();
-//			scan = regionOperation.getMapScan();
 		}
 		return new SpliceNoPutResultSet(activation,this,provider);
 	}

@@ -109,7 +109,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG, "init called");
 		super.init(context);
 		((SpliceOperation)source).init(context);
@@ -137,13 +137,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		if(numDistinctAggs>0)
 			distinctValues = (HashSet<String>[][])new HashSet[resultRows.length][aggregates.length];
 
-		try {
             byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
             byte[] finish = BytesUtil.copyAndIncrement(start);
 			if(regionScanner==null){
 				reduceScan = Scans.newScan(start,finish,transactionID);
-//				reduceScan = SpliceUtils.generateScan(sequence[0],start,finish,transactionID);
-//                rowProvider = new ScanRowProvider(regionScanner,sourceExecIndexRow);
 			}else{
 				Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
 				rowProvider = new SimpleRegionAwareRowProvider(
@@ -155,11 +152,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						sourceExecIndexRow,null);
 				rowProvider.open();
 			}
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to create reduce scan", e);
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to create reduce scan", e);
-		}
 	}
 
 	@Override

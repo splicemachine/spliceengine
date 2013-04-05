@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
+package com.splicemachine.test.suites;
 
 /**
  * Test Suite category interface for Microstrategies tests

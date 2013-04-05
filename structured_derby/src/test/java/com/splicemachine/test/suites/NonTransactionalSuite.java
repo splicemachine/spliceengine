@@ -1,8 +1,8 @@
 package com.splicemachine.test.suites;
 
-import org.apache.derby.impl.sql.execute.operations.OperationCategories;
-import org.apache.derby.impl.sql.execute.operations.OperationCategories.Transactional;
 import org.junit.experimental.categories.Categories;
+
+import com.splicemachine.test.suites.OperationCategories.Transactional;
 
 
 /**

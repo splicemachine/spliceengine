@@ -1,12 +1,9 @@
 package com.splicemachine.derby.utils.test;
 
 import com.splicemachine.derby.utils.ConglomerateUtils;
-import junit.framework.Assert;
-
+import org.junit.Assert;
 import org.junit.Test;
-
 import com.splicemachine.derby.utils.SpliceUtils;
-
 import java.io.IOException;
 
 public class SpliceUtilsTest {

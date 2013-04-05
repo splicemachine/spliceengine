@@ -4,15 +4,17 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
-
-import com.splicemachine.utils.SpliceLogUtils;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
  * Transaction operation test cases
@@ -20,618 +22,295 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @author jessiezhang
  */
 
-public class TransactionTest extends SpliceDerbyTest {
-	private static Logger LOG = Logger.getLogger(TransactionTest.class);
+public class TransactionTest extends SpliceUnitTest {
+	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+	public static final String CLASS_NAME = TransactionTest.class.getSimpleName().toUpperCase();
+	public static final String TABLE_NAME_1 = "A";
+	public static final String TABLE_NAME_2 = "B";
+	public static final String TABLE_NAME_3 = "C";
+	public static final String TABLE_NAME_4 = "D";
+	public static final String TABLE_NAME_5 = "E";
+	public static final String TABLE_NAME_6 = "F";
+	public static final String TABLE_NAME_7 = "G";
+	public static final String TABLE_NAME_8 = "H";
+	public static final String TABLE_NAME_9 = "I";
+	public static final String TABLE_NAME_10 = "J";
+	public static final String TABLE_NAME_11 = "K";
+	public static final String TABLE_NAME_12 = "L";
+	
+	
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	
+	@ClassRule 
+	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+		.around(spliceSchemaWatcher);
+	
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-	@BeforeClass 
-	public static void startup() throws Exception {
-		startConnection();		
-	}
+	private static Logger LOG = Logger.getLogger(TransactionTest.class);
 	
 	@Test
 	public void testPreparedStatementAutoCommitOn() throws Exception {
-		conn.setAutoCommit(true);
-		
-		Statement s = null;
-		try {
-			s = conn.createStatement();
-			s.execute("create table c(i int, j varchar(10))");
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (s!=null)
-				s.close();
+		methodWatcher.setAutoCommit(true);
+		Statement s = methodWatcher.getStatement();
+		s.execute(format("create table %s (i int, j varchar(10))", this.getTableReference(TABLE_NAME_1)));
+		PreparedStatement psc = methodWatcher.prepareStatement(format("insert into %s values (?,?)",this.getTableReference(TABLE_NAME_1)));
+		for (int i =0; i< 2; i++) {
+			psc.setInt(1, i);
+			psc.setString(2, "i");
+			psc.executeUpdate();
 		}
-		
-		PreparedStatement psc = null;
-		ResultSet rs = null;
-		try {
-			psc = conn.prepareStatement("insert into c values (?,?)");
-			for (int i =0; i< 2; i++) {
-				psc.setInt(1, i);
-				psc.setString(2, "i");
-				psc.executeUpdate();
-			}
-			
-			s = conn.createStatement();
-			rs = s.executeQuery("select count(*) from c");
-			rs.next();
-			Assert.assertEquals(2, rs.getInt(1));	
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if(s!=null)
-				s.close();
-			if (psc != null)
-				psc.close();
-			dropTable("c");
-		}
+		ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s", this.getTableReference(TABLE_NAME_1)));
+		rs.next();
+		Assert.assertEquals(2, rs.getInt(1));	
 	}
 	
 	@Test
 	public void testPreparedStatementAutoCommitOff() throws Exception {
-		conn.setAutoCommit(false);
-		
-		Statement s = null;
-		try {
-			s = conn.createStatement();
-			s.execute("create table c(i int, j varchar(10))");
-			conn.commit();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (s!=null)
-				s.close();
+		methodWatcher.setAutoCommit(false);
+		Statement s = methodWatcher.getStatement();
+		s.execute(format("create table %s (i int, j varchar(10))", this.getTableReference(TABLE_NAME_2)));
+		methodWatcher.commit();
+		PreparedStatement psc = methodWatcher.prepareStatement(format("insert into %s values (?,?)",this.getTableReference(TABLE_NAME_2)));
+		for (int i =0; i< 2; i++) {
+			psc.setInt(1, i);
+			psc.setString(2, "i");
+			psc.executeUpdate();
 		}
-		
-		PreparedStatement psc = null;
-		ResultSet rs = null;
-		try {
-			psc = conn.prepareStatement("insert into c values (?,?)");
-			for (int i =0; i< 2; i++) {
-				psc.setInt(1, i);
-				psc.setString(2, "i");
-				psc.executeUpdate();
-			}
-			conn.commit();
-			
-			s = conn.createStatement();
-			rs = s.executeQuery("select count(*) from c");
-			rs.next();
-			Assert.assertEquals(2, rs.getInt(1));	
-			conn.commit();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if(s!=null)
-				s.close();
-			if (psc != null)
-				psc.close();
-			dropTable("c");
-		}
+		methodWatcher.commit();
+		ResultSet rs = s.executeQuery(format("select count(*) from %s",this.getTableReference(TABLE_NAME_2)));
+		rs.next();
+		Assert.assertEquals(2, rs.getInt(1));	
+		methodWatcher.commit();
 	}
 	
 	@Test
-	public void testCreateDrop() throws SQLException {
-		Statement s = null;
-		try {
-			conn.setAutoCommit(false);
-			LOG.info("start testing testCreateDrop in a transaction");
-			s = conn.createStatement();
-			s.execute("create table locationCD(i int)");
-			s.execute("drop table locationCD");	
-			conn.commit();
-		} catch (SQLException e) {
-			LOG.error("error during create and drop table-"+e.getMessage(), e);
-		} finally {
-			try {
-				if (s!=null)
-					s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
+	public void testCreateDrop() throws Exception {
+		methodWatcher.setAutoCommit(false);
+		Statement s = methodWatcher.getStatement();
+		s.execute(format("create table %s (i int, j varchar(10))", this.getTableReference(TABLE_NAME_3)));
+		s.execute(format("drop table %s", this.getTableReference(TABLE_NAME_3)));
+		ResultSet rs = methodWatcher.createConnection().getMetaData().getTables(null, CLASS_NAME, TABLE_NAME_3, null);
+		if (rs.next())
+			Assert.assertTrue("The rolled back table exists in the dictionary!",false);
 	}
 
 	@Test
-	public void testCommitCreate() throws SQLException {
-		Statement s = null;
-		try {
-			conn.setAutoCommit(false);
-			LOG.info("start testing testCommitCreate for table locationTran");
-			s = conn.createStatement();
-			s.execute("create table locationTran(num int, addr varchar(50), zip char(5))");
-			conn.commit();
-		} catch (SQLException e) {
-			LOG.error("error during create table-"+e.getMessage(), e);
-		} finally {
-			try {
-				if (s!=null)
-					s.close();				
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
+	public void testCommitCreate() throws Exception { // TODO What is it that we are testing?
+		methodWatcher.setAutoCommit(false);
+		Statement s = methodWatcher.getStatement();
+		s.execute(format("create table %s (num int, addr varchar(50), zip char(5))",this.getTableReference(TABLE_NAME_4)));
+		methodWatcher.commit();
+		ResultSet rs = methodWatcher.createConnection().getMetaData().getTables(null, CLASS_NAME, TABLE_NAME_4, null);
+		if (!rs.next())
+			Assert.assertTrue("The table does not exist in the dictionary!",false);
 	}	
 	
 	@Test
-	public void testCommitInsert() throws SQLException {	
-		Statement s = null;
-		ResultSet rs = null;
-		try {
-			conn.setAutoCommit(false);
-			LOG.info("start testing testCommitInsert for table locationTran");
-			s = conn.createStatement();
-			s.execute("insert into locationTran values(100, '100: 101 Califronia St', '94114')");
-			s.execute("insert into locationTran values(200, '200: 908 Glade Ct.', '94509')");
-			s.execute("insert into locationTran values(300, '300: my addr', '34166')");
-			s.execute("insert into locationTran values(400, '400: 182 Second St.', '94114')");
-			s.execute("insert into locationTran(num) values(500)");
-			s.execute("insert into locationTran values(600, 'new addr', '34166')");
-			s.execute("insert into locationTran(num) values(700)");
-			
-			rs = s.executeQuery("select * from locationTran");
+	public void testCommitNonCommitInsert() throws Exception {	
+			methodWatcher.setAutoCommit(false);
+			Statement s = methodWatcher.getStatement();
+			s.execute(format("create table %s (num int, addr varchar(50), zip char(5))", this.getTableReference(TABLE_NAME_5)));
+			s.execute(format("insert into %s values(100, '100: 101 Califronia St', '94114')",this.getTableReference(TABLE_NAME_5)));
+			s.execute(format("insert into %s values(200, '200: 908 Glade Ct.', '94509')",this.getTableReference(TABLE_NAME_5)));
+			s.execute(format("insert into %s values(300, '300: my addr', '34166')",this.getTableReference(TABLE_NAME_5)));
+			s.execute(format("insert into %s values(400, '400: 182 Second St.', '94114')",this.getTableReference(TABLE_NAME_5)));
+			s.execute(format("insert into %s(num) values(500)",this.getTableReference(TABLE_NAME_5)));
+			s.execute(format("insert into %s values(600, 'new addr', '34166')",this.getTableReference(TABLE_NAME_5)));
+			methodWatcher.commit();
+			s.execute(format("insert into %s(num) values(700)",this.getTableReference(TABLE_NAME_5)));			
+			ResultSet rs = s.executeQuery(format("select * from %s",this.getTableReference(TABLE_NAME_5)));
 			int i = 0;
 			while (rs.next()) {
-				LOG.info("num="+rs.getInt(1)+",addr="+rs.getString(2)+",zip="+rs.getString(3));
 				i++;
 			}	
-			conn.commit();
-			Assert.assertEquals(7, i);		
-		} catch (SQLException e) {
-			conn.rollback();
-			LOG.error("error during insert table-"+e.getMessage(), e);
-		} finally {
-			try {
-				if (rs!=null)
-					rs.close();
-				if (s!=null)
-					s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
+			Assert.assertEquals(7, i);					
 	} 
 	
-	/**
-	 * FIXME: Table will not be rolled back since we do not intercept DDL statements and do not do undo right now
-	 * @throws SQLException
-	 */
-	@Test
-	public void testRollbackCreate() throws SQLException {
-		Statement s = null;
-		try {
-			conn.setAutoCommit(false);
-			LOG.info("start testing testRollbackCreate for table locationTran1");
-			s = conn.createStatement();
-			s.execute("create table locationTranR(num int)");
-			conn.rollback();
-		} catch (SQLException e) {
-			Assert.assertTrue(false);
-			LOG.error("error during rolling back the table-"+e.getMessage());
-			e.printStackTrace();;
-		} finally {
-			try {
-				s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
+	@Test(expected=SQLException.class)
+	@Ignore("Bug 337")
+	public void testRollbackCreate() throws Exception { 
+			methodWatcher.setAutoCommit(false);
+			Statement s = methodWatcher.getStatement();
+			s.execute(format("create table %s (num int)",this.getTableReference(TABLE_NAME_6)));
+			methodWatcher.rollback();
+			ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, CLASS_NAME, TABLE_NAME_6, null);
+			if (rs.next())
+				Assert.assertTrue("The rolled back table exists in the dictionary!",false);
+			s.execute(format("insert into %s values(100)",this.getTableReference(TABLE_NAME_6)));
 	}
-	
-	/**
-	 * This will fail since we do not intercept DDL statement and do not do undo right now
-	 * @throws SQLException
-	 */
+		
 	@Test
-	public void testInsertToRollbackTable() throws SQLException {
-		Statement s = null;
-		try {
-			conn.setAutoCommit(false);
-			LOG.info("start testing testInsertToRollbackTable");
-			s = conn.createStatement();
-			s.execute("insert into locationTranR values(100)");
-			s.execute("insert into locationTranR values(200)");
-			conn.commit();
-		} catch (Exception e) {
-			LOG.info("Success: data can not be inserted into a rolled back table");
-		} finally {
-			try {
-				s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
-	} 
-	
-	@Test
-	public void testUpdateRollback() throws SQLException {
-		Statement s = null;
-		ResultSet rs = null;
-		LOG.info("start testing testUpdateRollback for table locationTran record");
-		try {
-			conn.setAutoCommit(false);
-			s = conn.createStatement();
-			s.executeUpdate("update locationTran set addr='rolled back address' where num=400");
-			
-			rs = s.executeQuery("select addr from locationTran where num=400");
+	public void testUpdateRollback() throws Exception {
+			methodWatcher.setAutoCommit(false);
+			Statement s = methodWatcher.getStatement();
+			s.execute(format("create table %s (num int, addr varchar(50), zip char(5))", this.getTableReference(TABLE_NAME_7)));
+			s.execute(format("insert into %s values(100, '100: 101 Califronia St', '94114')",this.getTableReference(TABLE_NAME_7)));
+			s.execute(format("insert into %s values(200, '200: 908 Glade Ct.', '94509')",this.getTableReference(TABLE_NAME_7)));
+			s.execute(format("insert into %s values(300, '300: my addr', '34166')",this.getTableReference(TABLE_NAME_7)));
+			s.execute(format("insert into %s values(400, '400: 182 Second St.', '94114')",this.getTableReference(TABLE_NAME_7)));
+			s.execute(format("insert into %s(num) values(500)",this.getTableReference(TABLE_NAME_7)));
+			s.execute(format("insert into %s values(600, 'new addr', '34166')",this.getTableReference(TABLE_NAME_7)));
+			methodWatcher.commit();
+			s.executeUpdate(format("update %s set addr='rolled back address' where num=400",this.getTableReference(TABLE_NAME_7)));
+			ResultSet rs = methodWatcher.executeQuery(format("select addr from %s where num=400",this.getTableReference(TABLE_NAME_7)));
 			if (rs.next()) {
 				Assert.assertTrue("rolled back address".equals(rs.getString(1)));
 			}	
-			conn.rollback();
-			
-			rs = s.executeQuery("select addr from locationTran where num=400");
+			methodWatcher.rollback();
+			rs = methodWatcher.executeQuery(format("select addr from %s where num=400",this.getTableReference(TABLE_NAME_7)));
 			if (rs.next()) {
 				Assert.assertTrue(!"rolled back address".equals(rs.getString(1)));
 			}	
-		} catch (SQLException e) {
-			conn.rollback();
-			LOG.error("error during create and insert table-"+e.getMessage(), e);
-		} finally {
-			try {
-				if (rs!=null)
-					rs.close();
-				if (s!=null)
-					s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
 	}	
 
-	/**
-	 * FIXME: this will only roll back DML statements for now. Need to do undo for DDL later
-	 */
+
 	@Test
-	public void testRollbackCreateInsert() throws SQLException {
-		Statement s = null;
-		LOG.info("start testing testRollbackCreateInsert for rollback transaction");
-		try {
-			conn.setAutoCommit(false);
-			s = conn.createStatement();
-			s.execute("create table locationTranRR(num int, addr varchar(50))");
-			s.execute("insert into locationTranRR values(100, '100RB: 101 Califronia St')");
-			s.execute("insert into locationTranRR values(200, '200RB: 908 Glade Ct.')");
-			s.execute("insert into locationTranRR values(300, '300RB: my addr')");
-			s.execute("insert into locationTranRR values(400, '400RB: 182 Second St.')");
-			s.execute("insert into locationTranRR(num) values(500)");
-			s.execute("insert into locationTranRR values(600, 'new addr')");
-			s.execute("insert into locationTranRR(num) values(700)");
-			conn.rollback();
-		} catch (SQLException e) {
-			LOG.error("error during roll back create and insert table-"+e.getMessage(), e);
-		} finally {
-			try {
-				if (s!=null)
-					s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
+	@Ignore("Bug 337")
+	public void testRollbackCreateInsert() throws Exception { 
+			methodWatcher.setAutoCommit(false);
+			Statement s = methodWatcher.getStatement();
+			s.execute(format("create table %s (num int, addr varchar(50))",this.getTableReference(TABLE_NAME_8)));
+			s.execute(format("insert into %s values(100, '100RB: 101 Califronia St')",this.getTableReference(TABLE_NAME_8)));
+			s.execute(format("insert into %s values(200, '200RB: 908 Glade Ct.')",this.getTableReference(TABLE_NAME_8)));
+			s.execute(format("insert into %s values(300, '300RB: my addr')",this.getTableReference(TABLE_NAME_8)));;
+			s.execute(format("insert into %s values(400, '400RB: 182 Second St.')",this.getTableReference(TABLE_NAME_8)));
+			s.execute(format("insert into %s(num) values(500)",this.getTableReference(TABLE_NAME_8)));
+			s.execute(format("insert into %s values(600, 'new addr')",this.getTableReference(TABLE_NAME_8)));
+			s.execute(format("insert into %s(num) values(700)",this.getTableReference(TABLE_NAME_8)));
+			methodWatcher.rollback();
+			ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, CLASS_NAME, TABLE_NAME_8, null);
+			if (rs.next())
+				Assert.assertTrue("The rolled back table exists in the dictionary!",false);
 	}	
 	
-	@Test
-	public void testSelectRollbackData() throws SQLException {
-		Statement s = null;
-		ResultSet rs = null;
-		LOG.info("start testing testSelectRollbackData for rollback transaction");
-		try {
-			conn.setAutoCommit(true);
-			s = conn.createStatement();
-			rs = s.executeQuery("select * from locationTranRR");
-			
-			Assert.assertFalse(rs.next());
-			
-		} catch (SQLException e) {
-			SpliceLogUtils.info(LOG, "should not be able to select the data from rollback table");
-		} finally {
-			try {
-				if (rs!=null)
-					rs.close();
-				if (s!=null)
-					s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
-	}	
 	
 	@Test
-	public void testTransactionalSelectString() throws SQLException {	
-		Statement s = null;
-		ResultSet rs = null;
-		try {
-			conn.setAutoCommit(true);
-			try {
-				s = conn.createStatement();
-				s.execute("create table foobar (name varchar(40), empId int)");
-				s.execute("insert into foobar values('Mulgrew, Kate', 1)");
-				s.execute("insert into foobar values('Shatner, William', 2)");
-				s.execute("insert into foobar values('Nimoy, Leonard', 3)");
-				s.execute("insert into foobar values('Stewart, Patrick', 4)");
-				s.execute("insert into foobar values('Spiner, Brent', 5)");
-				s.execute("insert into foobar values('Duncan, Rebort', 6)");
-				s.execute("insert into foobar values('Nimoy, Leonard', 7)");
-				s.execute("insert into foobar values('Ryan, Jeri', 8)");
-			} catch (Exception e) {
-				e.printStackTrace();
-			} finally {
-				try {
-					if (s != null)
-						s.close();
-				} catch (SQLException e) {
-					//no need to print out
-				}
-			}
-			
-			conn.setAutoCommit(false);
-			s = conn.createStatement();
-			s.execute("insert into foobar values('Noncommitted, Noncommitted', 9)");
-			
-			rs = s.executeQuery("select name from foobar");
-			
-			int j = 0;
-			while (rs.next()) {
-				j++;
-				LOG.info("before rollback, select person name="+rs.getString(1));
-				Assert.assertNotNull(rs.getString(1));
-			}	
-			Assert.assertEquals(9, j);
-			
-			conn.rollback();
-			
-			rs = s.executeQuery("select name from foobar");
-			j = 0;
-			while (rs.next()) {
-				j++;
-				LOG.info("after rollback, select person name="+rs.getString(1));
-				Assert.assertNotNull(rs.getString(1));
-			}	
-			Assert.assertEquals(8, j);
-			
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				if (rs!=null)
-					rs.close();
-				if (s!=null)
-					s.close();
-				dropTable("foobar");
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
+	public void testTransactionalSelectString() throws Exception {	
+		methodWatcher.setAutoCommit(false);
+		Statement s = methodWatcher.getStatement();
+		s.execute(format("create table %s (name varchar(40), empId int)",this.getTableReference(TABLE_NAME_9)));
+		s.execute(format("insert into %s values('Mulgrew, Kate', 1)",this.getTableReference(TABLE_NAME_9)));
+		s.execute(format("insert into %s values('Shatner, William', 2)",this.getTableReference(TABLE_NAME_9)));
+		s.execute(format("insert into %s values('Nimoy, Leonard', 3)",this.getTableReference(TABLE_NAME_9)));
+		s.execute(format("insert into %s values('Stewart, Patrick', 4)",this.getTableReference(TABLE_NAME_9)));
+		s.execute(format("insert into %s values('Spiner, Brent', 5)",this.getTableReference(TABLE_NAME_9)));
+		s.execute(format("insert into %s values('Duncan, Rebort', 6)",this.getTableReference(TABLE_NAME_9)));
+		s.execute(format("insert into %s values('Nimoy, Leonard', 7)",this.getTableReference(TABLE_NAME_9)));
+		s.execute(format("insert into %s values('Ryan, Jeri', 8)",this.getTableReference(TABLE_NAME_9)));	
+		methodWatcher.commit();
+		s.execute(format("insert into %s values('Noncommitted, Noncommitted', 9)",this.getTableReference(TABLE_NAME_9)));
+		ResultSet rs = s.executeQuery(format("select name from %S",this.getTableReference(TABLE_NAME_9)));
+		
+		int j = 0;
+		while (rs.next()) {
+			j++;
+			Assert.assertNotNull(rs.getString(1));
+		}	
+		Assert.assertEquals(9, j);
+		methodWatcher.rollback();	
+		rs = s.executeQuery(format("select name from %s",this.getTableReference(TABLE_NAME_9)));
+		j = 0;
+		while (rs.next()) {
+			j++;
+			Assert.assertNotNull(rs.getString(1));
+		}	
+		Assert.assertEquals(8, j);
 	}		
 	
 	
 	@Test
-	public void testTransactionalSinkOperationResultSets() throws SQLException {	
-		Statement s = null;
-		ResultSet rs = null;
-		try {
-			conn.setAutoCommit(true);
-			try {
-				s = conn.createStatement();
-				s.execute("create table foobar (name varchar(40), empId int)");
-				s.execute("insert into foobar values('Mulgrew, Kate', 1)");
-				s.execute("insert into foobar values('Shatner, William', 2)");
-				s.execute("insert into foobar values('Nimoy, Leonard', 3)");
-				s.execute("insert into foobar values('Stewart, Patrick', 4)");
-				s.execute("insert into foobar values('Spiner, Brent', 5)");
-				s.execute("insert into foobar values('Duncan, Rebort', 6)");
-				s.execute("insert into foobar values('Nimoy, Leonard', 7)");
-				s.execute("insert into foobar values('Ryan, Jeri', 8)");
-			} catch (Exception e) {
-				e.printStackTrace();
-			} finally {
-				try {
-					if (s != null)
-						s.close();
-				} catch (SQLException e) {
-					//no need to print out
-				}
-			}
-			
-			conn.setAutoCommit(false);
-			s = conn.createStatement();
-			//testing distinct
-			s.execute("insert into foobar values('Noncommitted, Noncommitted', 9)");
-			rs = s.executeQuery("select distinct name from foobar");
+	public void testTransactionalSinkOperationResultSets() throws Exception {	
+			methodWatcher.setAutoCommit(false);
+			Statement s = methodWatcher.getStatement();
+			s.execute(format("create table %s (name varchar(40), empId int)",this.getTableReference(TABLE_NAME_10)));
+			s.execute(format("insert into %s values('Mulgrew, Kate', 1)",this.getTableReference(TABLE_NAME_10)));
+			s.execute(format("insert into %s values('Shatner, William', 2)",this.getTableReference(TABLE_NAME_10)));
+			s.execute(format("insert into %s values('Nimoy, Leonard', 3)",this.getTableReference(TABLE_NAME_10)));
+			s.execute(format("insert into %s values('Stewart, Patrick', 4)",this.getTableReference(TABLE_NAME_10)));
+			s.execute(format("insert into %s values('Spiner, Brent', 5)",this.getTableReference(TABLE_NAME_10)));
+			s.execute(format("insert into %s values('Duncan, Rebort', 6)",this.getTableReference(TABLE_NAME_10)));
+			s.execute(format("insert into %s values('Nimoy, Leonard', 7)",this.getTableReference(TABLE_NAME_10)));
+			s.execute(format("insert into %s values('Ryan, Jeri', 8)",this.getTableReference(TABLE_NAME_10)));
+			methodWatcher.commit();
+			s = methodWatcher.getStatement();
+			s.execute(format("insert into %s values('Noncommitted, Noncommitted', 9)", this.getTableReference(TABLE_NAME_10)));
+			ResultSet rs = s.executeQuery(format("select distinct name from %s",this.getTableReference(TABLE_NAME_10)));
 			int j = 0;
 			while (rs.next()) {
 				j++;
-				LOG.info("before rollback, distinct person name="+rs.getString(1));
 				Assert.assertNotNull(rs.getString(1));
 			}	
 			Assert.assertEquals(8, j);
-			
-			//testing count and group by before commit/rollback
-			s.execute("insert into foobar values('Nimoy, Leonard', 10)");
-			rs = s.executeQuery("select name, count(empId) from foobar group by name");
+			s.execute(format("insert into %s values('Nimoy, Leonard', 10)",this.getTableReference(TABLE_NAME_10)));
+			rs = s.executeQuery(format("select name, count(empId) from %s group by name",this.getTableReference(TABLE_NAME_10)));
 			j = 0;
 			while (rs.next()) {
 				j++;
-				LOG.info("before rollback, person name="+rs.getString(1)+",and count="+rs.getInt(2));
 				Assert.assertNotNull(rs.getString(1));
 				if ("Nimoy, Leonard".equals(rs.getString(1)))
 					Assert.assertEquals(3, rs.getInt(2));
 			}	
 			Assert.assertEquals(8, j);
-			
-			conn.rollback();
-			
-			//testing rollback
-			rs = s.executeQuery("select distinct name from foobar");
+			methodWatcher.rollback();			
+			rs = methodWatcher.executeQuery(format("select distinct name from %s",this.getTableReference(TABLE_NAME_10)));
 			j = 0;
 			while (rs.next()) {
 				j++;
-				LOG.info("after rollback, person name="+rs.getString(1));
 				Assert.assertNotNull(rs.getString(1));
 			}	
-			Assert.assertEquals(7, j);
-			
-			rs = s.executeQuery("select name, count(empId) from foobar group by name");
+			Assert.assertEquals(7, j);			
+			rs = s.executeQuery(format("select name, count(empId) from %s group by name", this.getTableReference(TABLE_NAME_10)));
 			j = 0;
 			while (rs.next()) {
 				j++;
-				LOG.info("after rollback, person name="+rs.getString(1)+",and count="+rs.getInt(2));
 				Assert.assertNotNull(rs.getString(1));
 				if ("Nimoy, Leonard".equals(rs.getString(1)))
 					Assert.assertEquals(2, rs.getInt(2));
 			}	
 			Assert.assertEquals(7, j);
-			
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				if (rs!=null)
-					rs.close();
-				if (s!=null)
-					s.close();
-				dropTable("foobar");
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
 	}
 	
 	
 	@Test
-	public void testFailedInsert() throws SQLException {
-		Statement s = null;
-		LOG.info("start testing testFailedInsert for failed transaction");
+	//@Ignore()
+	public void testFailedInsert() throws Exception {
 		try {
-			conn.setAutoCommit(false);
-			s = conn.createStatement();
-			s.execute("create table locationFailed(num int, addr varchar(50), zip char(5))");	
-			s.execute("insert into locationFailed values(100, '100F: 101 Califronia St', '94114')");
-			s.execute("insert into locationFailed values(200, '200F: 908 Glade Ct.', '94509')");
-			s.execute("insert into locationFailed values(300, '300F: my addr', '34166')");
-			s.execute("insert into locationFailed values(400, '400F: 182 Second St.', '94114')");
-			s.execute("insert into locationFailed(num) values(500c)");
-			s.execute("insert into locationFailed values(600, 'new addr', '34166')");
-			s.execute("insert into locationFailed(num) values(700)");
-			conn.commit();		
+			methodWatcher.setAutoCommit(false);
+			Statement s = methodWatcher.getStatement();
+			s.execute(format("create table %s(num int, addr varchar(50), zip char(5))",this.getTableReference(TABLE_NAME_11)));	
+			s.execute(format("insert into %s values(100, '100F: 101 Califronia St', '94114')",this.getTableReference(TABLE_NAME_11)));
+			s.execute(format("insert into %s values(200, '200F: 908 Glade Ct.', '94509')",this.getTableReference(TABLE_NAME_11)));
+			s.execute(format("insert into %s values(300, '300F: my addr', '34166')",this.getTableReference(TABLE_NAME_11)));
+			s.execute(format("insert into %s values(400, '400F: 182 Second St.', '94114')",this.getTableReference(TABLE_NAME_11)));
+			s.execute(format("insert into %s(num) values('500c')",this.getTableReference(TABLE_NAME_11)));
 		} catch (SQLException e) {
-			conn.rollback();
-			LOG.info("we should not be able to insert string into int, so rollback the transaction -"+e.getMessage());
-		} catch (Exception e) { 
-			conn.rollback();
-			LOG.info("we should not be able to insert string into int, so rollback the transaction -"+e.getMessage());
-		} finally {
-			try {
-				if (s!=null)
-					s.close();
-				dropTable("locationFailed");
-			} catch (SQLException e) {
-				//no need to print out
-			}
+			methodWatcher.rollback();
 		}
 	} 
 	
 	@Test
-	public void testAlterTableAddColumn() throws SQLException {
-		Statement s = null;
-		ResultSet rs = null;
-		LOG.info("start testing testAlterTableAddColumn for success transaction");
-		try {
-			conn.setAutoCommit(false);
-			s = conn.createStatement();
-			s.execute("Alter table locationTran add column salary float default 0.0");	
-			s.execute("update locationTran set salary=1000.0 where zip='94114'");
-			s.execute("update locationTran set salary=5000.85 where zip='94509'");
-			rs = s.executeQuery("select zip, salary from locationTran");
+	public void testAlterTableAddColumn() throws Exception {
+			methodWatcher.setAutoCommit(false);
+			Statement s = methodWatcher.getStatement();
+			s.execute(format("create table %s(num int, addr varchar(50), zip char(5))",this.getTableReference(TABLE_NAME_12)));	
+			s.execute(format("insert into %s values(100, '100F: 101 Califronia St', '94114')",this.getTableReference(TABLE_NAME_12)));
+			s.execute(format("insert into %s values(200, '200F: 908 Glade Ct.', '94509')",this.getTableReference(TABLE_NAME_12)));
+			s.execute(format("insert into %s values(300, '300F: my addr', '34166')",this.getTableReference(TABLE_NAME_12)));
+			s.execute(format("insert into %s values(400, '400F: 182 Second St.', '94114')",this.getTableReference(TABLE_NAME_12)));
+			s.execute(format("insert into %s(num) values(500)",this.getTableReference(TABLE_NAME_12)));
+			methodWatcher.commit();
+			s.execute(format("Alter table %s add column salary float default 0.0",this.getTableReference(TABLE_NAME_12)));	
+			s.execute(format("update %s set salary=1000.0 where zip='94114'",this.getTableReference(TABLE_NAME_12)));	
+			s.execute(format("update %s set salary=5000.85 where zip='94509'",this.getTableReference(TABLE_NAME_12)));	
+			ResultSet rs = s.executeQuery(format("select zip, salary from %s where salary > 0",this.getTableReference(TABLE_NAME_12)));
+			int count = 0;
 			while (rs.next()) {
-				LOG.info("zip="+rs.getString(1)+",salary="+rs.getFloat(2));
+				count++;
+				Assert.assertNotNull("Salary is null!",rs.getFloat(2));
 			}
-			conn.commit();		
-		} catch (SQLException e) {
-			conn.rollback();
-			LOG.error("error during testAlterTableAddColumn-"+e.getMessage());
-		} catch (Exception e) { 
-			conn.rollback();
-			LOG.error("error during testAlterTableAddColumn-"+e.getMessage());
-		} finally {
-			try {
-				if (rs != null)
-					rs.close();
-				if (s!=null)
-					s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
+			Assert.assertEquals("Salary Cannot Be Queried after added!", 3,count);
 	}
-	
-	/*
-	 * From Derby's documentation, we cannot directly alter column's data type except altering the length of
-	 * varch, clob and blob. So the following test case will fail. If we want to alter column data type, we
-	 * have to use a workaround: 
-	 * add new column, 
-	 * copy data from old column to new column, 
-	 * drop old column,
-	 * then rename the new column to old column.
-	 */
-	@Test
-	public void testAlterTableModifyColumn() throws SQLException {
-		Statement s = null;
-		LOG.info("start testing testAlterTableModifyColumn for failed transaction");
-		try {
-			conn.setAutoCommit(false);
-			s = conn.createStatement();
-			s.execute("Alter table locationTran alter column salary set data type int");	
-			conn.commit();	
-			LOG.info("testAlterTableModifyColumn failed: we should not be able to insert float value into int value");
-		} catch (SQLException e) {
-			SpliceLogUtils.info(LOG,"testAlterTableModifyColumn: Derby does not allow alter column type from float to int");
-		} catch (Exception e) { 
-			SpliceLogUtils.error(LOG,"testAlterTableModifyColumn: insert float value into int value-",e);
-		} finally {
-			try {
-				if (s!=null)
-					s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
-	}
-	
-	@Test
-	public void testAlterTableDropColumn() throws SQLException {
-		Statement s = null;
-		ResultSet rs = null;
-		LOG.info("start testing testAlterTableDropColumn");
-		try {
-			conn.setAutoCommit(false);
-			s = conn.createStatement();
-			s.execute("Alter table locationTran drop column addr");
-			conn.commit();
-			rs = s.executeQuery("select addr from locationTran");
-			conn.commit();
-		} catch (SQLException e) {
-			SpliceLogUtils.info(LOG,"testAlterTableDropColumn column has been dropped and cannot be accessed-"+e.getMessage());
-		} catch (Exception e) { 
-			SpliceLogUtils.error(LOG,"testAlterTableDropColumn error",e);
-		} finally {
-			try {
-				if (s!= null)
-					s.close();
-				if (rs!=null)
-					rs.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}
-	} 
+ 
 
-	@AfterClass 
-	public static void shutdown() throws SQLException {
-		dropTable("locationTranRR");
-		dropTable("locationTranR");
-		dropTable("locationTran");
-		stopConnection();		
-	}
 }

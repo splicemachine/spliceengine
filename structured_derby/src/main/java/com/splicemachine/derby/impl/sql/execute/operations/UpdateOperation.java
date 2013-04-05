@@ -51,7 +51,7 @@ public class UpdateOperation extends DMLWriteOperation{
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
 		super.init(context);
         UpdateConstantAction constantAction = (UpdateConstantAction)constants;

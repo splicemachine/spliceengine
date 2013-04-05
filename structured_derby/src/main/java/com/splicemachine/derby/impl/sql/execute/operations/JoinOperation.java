@@ -119,10 +119,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG, "init called");
 		super.init(context);
-		try {
             GenericStorablePreparedStatement statement = context.getPreparedStatement();
 			restriction = (restrictionMethodName == null) ? null : statement.getActivationClass().getMethod(restrictionMethodName);
 			leftResultSet.init(context);
@@ -131,9 +130,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 			leftRow = ((SpliceOperation)this.leftResultSet).getExecRowDefinition();
 			rightRow = ((SpliceOperation)this.rightResultSet).getExecRowDefinition();
             SpliceLogUtils.trace(LOG,"leftRow=%s,rightRow=%s",leftRow,rightRow);
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
-		}
 	}
 
     protected int[] generateHashKeys(int hashKeyItem, SpliceBaseOperation resultSet) {

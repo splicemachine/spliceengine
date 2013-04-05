@@ -176,7 +176,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     }
 
     @Override
-    public void init(SpliceOperationContext context) {
+    public void init(SpliceOperationContext context) throws StandardException {
         super.init(context);
     }
 

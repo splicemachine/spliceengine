@@ -138,7 +138,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	}
 	
 	@Override
-    public void init(SpliceOperationContext context){
+    public void init(SpliceOperationContext context) throws StandardException{
         SpliceLogUtils.trace(LOG, "init called");
         super.init(context);
         GenericStorablePreparedStatement statement = context.getPreparedStatement();

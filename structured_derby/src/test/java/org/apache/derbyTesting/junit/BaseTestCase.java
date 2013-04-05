@@ -20,10 +20,10 @@
 package org.apache.derbyTesting.junit;
 
 import org.apache.derbyTesting.functionTests.util.PrivilegedFileOpsForTests;
-import junit.framework.Assert;
-import junit.framework.TestCase;
-import junit.framework.AssertionFailedError;
+import org.junit.Assert;
 
+import junit.framework.AssertionFailedError;
+import junit.framework.TestCase;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -41,7 +41,6 @@ import java.sql.SQLException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
-
 import java.security.PrivilegedActionException;
 import java.util.ArrayList;
 

@@ -5,7 +5,7 @@ import java.io.IOException;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.Xid;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.AfterClass;

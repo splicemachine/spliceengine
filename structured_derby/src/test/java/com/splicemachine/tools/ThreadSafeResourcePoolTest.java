@@ -1,9 +1,7 @@
 package com.splicemachine.tools;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Scott Fines

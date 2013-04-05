@@ -25,7 +25,7 @@ import org.junit.Test;
  */
 
 public class DerbyTestSetupTest extends SpliceDerbyTest {
-	private static Logger LOG = Logger.getLogger(DataOperationTest.class);
+	private static Logger LOG = Logger.getLogger(DerbyTestSetupTest.class);
 
     public static final String[] GET_TABLES_TABLE = new String[] {"TABLE"};
     /**

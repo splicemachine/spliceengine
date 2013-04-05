@@ -538,7 +538,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	@Override
-	public void init(SpliceOperationContext context){
+	public void init(SpliceOperationContext context) throws StandardException{
 		this.activation = context.getActivation();
 		sequence = new DataValueDescriptor[1];
         sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
@@ -560,7 +560,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow template) {
+	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
 		throw new UnsupportedOperationException("MapRowProviders not implemented for this node: "+ this.getClass());
 	}
 
@@ -709,7 +709,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	@Override
-	public ExecRow getExecRowDefinition() {
+	public ExecRow getExecRowDefinition() throws StandardException {
 		throw new RuntimeException("No ExecRow Definition for this node " + this.getClass());														
 	}
 
