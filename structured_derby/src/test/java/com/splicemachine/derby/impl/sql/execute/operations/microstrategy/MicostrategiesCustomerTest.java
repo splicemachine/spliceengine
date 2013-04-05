@@ -46,7 +46,7 @@ public class MicostrategiesCustomerTest extends SpliceUnitTest {
 	    ps.setString(3,userDir+"/src/test/resources/customer_iso.csv");
 	    ps.executeUpdate();
 	    
-        ResultSet rs = methodWatcher.executeQuery(format("select distinct cust_city_id from %s",this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(format("select distinct cst_city_id from %s",this.getTableReference(TABLE_NAME)));
         Set<Integer> cityIds = Sets.newHashSet();
         while(rs.next()){
             int city = rs.getInt(1);

@@ -54,7 +54,7 @@ public class MsOrderDetailTest extends SpliceUnitTest {
         ps.setString(2,TABLE_NAME);        
         ps.setString(3,userDir+"/src/test/resources/order_detail_small.csv");
         ps.executeUpdate();
-        ResultSet groupedRs = methodWatcher.executeQuery(format("select customer_id, count(*) from %s group by customer_id",this.getTableReference(TABLE_NAME)));
+        ResultSet groupedRs = methodWatcher.executeQuery(format("select orl_customer_id, count(*) from %s group by orl_customer_id",this.getTableReference(TABLE_NAME)));
         Set<String> uniqueGroups = Sets.newHashSet();
         while(groupedRs.next()){
             String groupKey = groupedRs.getString(1);
