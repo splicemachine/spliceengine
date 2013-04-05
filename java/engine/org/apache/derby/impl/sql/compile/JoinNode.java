@@ -1723,14 +1723,13 @@ public class JoinNode extends TableOperatorNode {
                         }else{
                             rightHashBits.grow(rightCol.getColumnNumber()+1);
                             rightHashBits.set(rightCol.getColumnNumber());
-				}				
-			}
-		}
+				        }
+			        }
+		        }
 
                 FormatableHashtable leftHashTable = createFormatableHashtable(leftTableName, leftTableNumber, leftHashBits);
 
                 //add the left hash array to the method call
-//                int leftHashKeyItem = acb.addItem(leftKeyHolder);
                 int leftHashKeyItem = acb.addItem(leftHashTable);
                 mb.push(leftHashKeyItem);
                 numArgs++;
