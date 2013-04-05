@@ -11,10 +11,8 @@ import com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
-import com.splicemachine.derby.impl.load.SpliceImportCoprocessor;
 import com.splicemachine.hbase.txn.coprocessor.region.TransactionalManagerRegionObserver;
 import com.splicemachine.hbase.txn.coprocessor.region.TransactionalRegionObserver;
-import com.splicemachine.si.coprocessor.SIObserver;
 
 public class SpliceTestPlatform extends TestConstants {
 	private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(SpliceTestPlatform.class);
@@ -77,8 +75,7 @@ public class SpliceTestPlatform extends TestConstants {
 		configuration.set("hbase.coprocessor.region.classes", 
 				SpliceOperationRegionObserver.class.getCanonicalName() + "," +
 				SpliceOperationCoprocessor.class.getCanonicalName() + "," + 
-				SpliceImportCoprocessor.class.getCanonicalName() + "," + 
-				SpliceIndexObserver.class.getCanonicalName() + "," + 
+				SpliceIndexObserver.class.getCanonicalName() + "," +
 				SpliceDerbyCoprocessor.class.getCanonicalName() + "," + 
 				SpliceIndexManagementEndpoint.class.getCanonicalName() + "," + 
 				SpliceIndexEndpoint.class.getCanonicalName() + "," + 

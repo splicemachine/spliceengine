@@ -1,7 +1,8 @@
-package com.splicemachine.derby.impl.load;
+package com.splicemachine.derby.impl.job.load;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.derby.impl.job.load.load.HdfsImport;
 import com.splicemachine.derby.test.DerbyTestRule;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -55,7 +56,7 @@ public class HdfsImportTest {
     }
 
 	private void testImport(String tableName,String location,String colList) throws Exception {
-		HdfsImport.importData(rule.getConnection(), null, tableName.toUpperCase(), colList, location, ",","\"");
+		HdfsImport.importData(rule.getConnection(), null, tableName.toUpperCase(), colList, location, ",", "\"");
 
 		ResultSet rs = rule.executeQuery("select * from "+tableName);
 		List<String> results = Lists.newArrayList();

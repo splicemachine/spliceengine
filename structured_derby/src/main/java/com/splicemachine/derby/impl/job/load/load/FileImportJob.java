@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.load;
+package com.splicemachine.derby.impl.job.load.load;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
