@@ -1,19 +1,22 @@
 package org.apache.derby.impl.sql.execute.operations.joins;
 
-import java.io.FileInputStream;
-import java.sql.*;
-import java.util.*;
-
-import com.splicemachine.homeless.TestUtils;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.dbutils.BasicRowProcessor;
-import org.apache.commons.dbutils.DbUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.log4j.Logger;
-import org.junit.*;
-
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.DerbyTestRule;
+import com.splicemachine.homeless.TestUtils;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 public class InnerJoinTest extends BaseJoinTest {
 	private static Logger LOG = Logger.getLogger(InnerJoinTest.class);
@@ -214,4 +217,18 @@ public class InnerJoinTest extends BaseJoinTest {
         Assert.assertEquals(10, results.size());
 
     }
+
+    @Ignore("Currently failing, written up as bug 338")
+    @Test
+    public void testSelfJoin() throws SQLException {
+
+        ResultSet rs = rule.executeQuery("select t1.cst_first_name, t1.cst_last_name, t2.cst_first_name as fn2, t2.cst_last_name as ln2, t1.cst_age_years " +
+                "from customer t1, customer t2 " +
+                "where t1.cst_age_years = t2.cst_age_years and t1.cst_id != t2.cst_id");
+
+        List<Map> results = TestUtils.resultSetToMaps(rs);
+
+        Assert.assertEquals(2, results.size());
+    }
+
 }
