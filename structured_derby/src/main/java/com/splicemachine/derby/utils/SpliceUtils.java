@@ -62,7 +62,7 @@ import java.util.Properties;
 public class SpliceUtils {
 	private static Logger LOG = Logger.getLogger(SpliceUtils.class);
 
-    public static final boolean useSi = false;
+    public static final boolean useSi = true;
     public static final String NA_TRANSACTION_ID = "NA_TRANSACTION_ID";
     private static final String SI_EXEMPT = "si-exempt";
 

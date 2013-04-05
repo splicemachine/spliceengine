@@ -7,6 +7,7 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.tools.ConnectionPool;
+import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -102,7 +103,8 @@ public class SpliceDriver {
     }
 
     public Connection acquireConnection() throws SQLException, InterruptedException {
-        final Connection connection = embeddedConnections.acquire();
+        //final Connection connection = embeddedConnections.acquire();
+        final Connection connection = new EmbedConnectionMaker().createNew();
         connection.setAutoCommit(!SpliceUtils.useSi);
         return connection;
     }
@@ -112,7 +114,7 @@ public class SpliceDriver {
             try {
                 if (!connection.isClosed()) {
                     if (!connection.getAutoCommit()) {
-                        connection.commit();
+                        connection.rollback();
                     }
                     connection.close();
                 }
