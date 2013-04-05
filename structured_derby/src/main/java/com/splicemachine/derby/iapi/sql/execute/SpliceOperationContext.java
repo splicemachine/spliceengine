@@ -108,7 +108,7 @@ public class SpliceOperationContext {
         return null;
     }
 
-    public void close() throws IOException {
+    public void close(boolean commit) throws IOException {
         try{
         if(activation!=null) try {
             activation.close();
@@ -118,6 +118,11 @@ public class SpliceOperationContext {
         }finally{
             try {
                 getLanguageConnectionContext().popStatementContext(getLanguageConnectionContext().getStatementContext(), null);
+                if (commit) {
+                    connection.commit();
+                } else {
+                    connection.rollback();
+                }
                 SpliceDriver.driver().closeConnection(connection);
             } catch (SQLException e) {
                 throw new DoNotRetryIOException(e.getMessage(), e);

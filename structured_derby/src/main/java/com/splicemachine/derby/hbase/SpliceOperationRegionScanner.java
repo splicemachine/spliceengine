@@ -138,22 +138,32 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		throw new RuntimeException("Not Implemented");
 	}
 
+    public void closeAndCommit() throws IOException {
+        closeDirect(true);
+    }
+
 	@Override
 	public void close() throws IOException {
-		SpliceLogUtils.trace(LOG, "close");
-		try {
-			topOperation.close();
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		}finally{
+        closeDirect(false);
+	}
+
+    private void closeDirect(boolean commit) throws IOException {
+        SpliceLogUtils.trace(LOG, "close");
+        boolean success = false;
+        try {
+            topOperation.close();
+            success = true;
+        } catch (StandardException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG,e);
+        }finally{
             if (regionScanner != null)
                 regionScanner.close();
             finalStats = stats.finish();
             ((SpliceBaseOperation)topOperation).nextTime +=finalStats.getTotalTime();
             SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SpliceOperationRegionScanner at "+stats.getFinishTime());
-            context.close();
+            context.close(commit && success);
         }
-	}
+    }
 
 	@Override
 	public HRegionInfo getRegionInfo() {

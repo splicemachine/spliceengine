@@ -77,7 +77,9 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
         Connection runningConnection = null;
         final String oldParentTransactionId = TransactionManager.getParentTransactionId();
         IOException exception = null;
-		try {
+        boolean success = false;
+        SpliceOperationContext context = null;
+        try {
             TransactionManager.setParentTransactionId(instructions.getTransactionId());
 
 			SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
@@ -90,13 +92,14 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 			SpliceUtils.setThreadContext(lcc);
 			Activation activation = instructions.getActivation(lcc);
 
-			SpliceOperationContext context = new SpliceOperationContext(region,scan,
+			context = new SpliceOperationContext(region,scan,
                     activation, instructions.getStatement(),runningConnection);
 			SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
 			SpliceLogUtils.trace(LOG,"performing sink");
 			SinkStats out = spliceScanner.sink();
 			SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getSinkStats().getTotalRecords());
-			spliceScanner.close();
+			spliceScanner.closeAndCommit();
+            success = true;
 			return out;
 		} catch (InterruptedException e) {
             exception = new IOException(e);
@@ -108,9 +111,10 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
             TransactionManager.setParentTransactionId(oldParentTransactionId);
             threadLocalEnvironment.set(null);
             try{
-                SpliceDriver.driver().closeConnection(runningConnection);
-            }catch(SQLException e){
-                //should never happen in a pooled operation
+                if (!success && (context != null)) {
+                    context.close(false);
+                }
+            }catch(Throwable e){
                 if (exception == null) {
                     throw new IOException(e);
                 } else {
