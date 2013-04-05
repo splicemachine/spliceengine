@@ -4,7 +4,7 @@ import com.google.common.collect.Sets;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.tables.SpliceOrderDetailTable;
+import com.splicemachine.derby.test.framework.tables.SpliceOrderLineTable;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -32,7 +32,7 @@ public class MsOrderDetailTest extends SpliceUnitTest {
 	public static final String CLASS_NAME = MsOrderDetailTest.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME = "A";
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
-	protected static SpliceOrderDetailTable spliceTableWatcher = new SpliceOrderDetailTable(TABLE_NAME,CLASS_NAME); 	
+	protected static SpliceOrderLineTable spliceTableWatcher = new SpliceOrderLineTable(TABLE_NAME,CLASS_NAME); 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)

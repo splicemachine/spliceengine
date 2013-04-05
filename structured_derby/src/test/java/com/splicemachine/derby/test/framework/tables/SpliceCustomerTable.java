@@ -12,28 +12,29 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 
 public class SpliceCustomerTable extends SpliceTableWatcher {	
 	public static final String TABLE_NAME = "CUSTOMER";
-	public static final String CREATE_STRING = "(customer_id int, " +
-            "cust_last_name varchar(255), " +
-            "cust_first_name varchar(255)," +
-            "gender_id smallint, " +
-            "cust_birthdate timestamp, " +
-            "email varchar(255), " +
-            "address varchar(255), " +
-            "zipcode varchar(10), " +
-            "income_id int, " +
-            "cust_city_id int, " +
-            "age_years int, " +
-            "agerange_id int, " +
-            "maritalstatus_id int, " +
-            "education_id int, " +
-            "housingtype_id int, " +
-            "householdcount_id int," +
-            "plan_id int, " +
-            "first_order timestamp, " +
-            "last_order timestamp, " +
-            "tenure int, " +
-            "recency int, " +
-            "status_id int)";
+	
+	public static final String CREATE_STRING = "(cst_id int, " +
+            "cst_last_name varchar(255), " +
+            "cst_first_name varchar(255)," +
+            "cst_gender_id smallint, " +
+            "cst_birthdate timestamp, " +
+            "cst_email varchar(255), " +
+            "cst_address varchar(255), " +
+            "cst_zipcode varchar(10), " +
+            "cst_income_id int, " +
+            "cst_city_id int, " +
+            "cst_age_years int, " +
+            "cst_agerange_id int, " +
+            "cst_maritalstatus_id int, " +
+            "cst_education_id int, " +
+            "cst_housingtype_id int, " +
+            "cst_householdcount_id int," +
+            "cst_plan_id int, " +
+            "cst_first_order timestamp, " +
+            "cst_last_order timestamp, " +
+            "cst_tenure int, " +
+            "cst_recency int, " +
+            "cst_status_id int)";
 	
 	public SpliceCustomerTable(String schemaName) {
 		this(TABLE_NAME,schemaName);

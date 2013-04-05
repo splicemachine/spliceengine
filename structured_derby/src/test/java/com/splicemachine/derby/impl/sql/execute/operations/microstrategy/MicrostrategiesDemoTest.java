@@ -21,6 +21,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.tables.SpliceCustomerTable;
+import com.splicemachine.derby.test.framework.tables.SpliceOrderLineTable;
 
 /**
  * 
@@ -43,7 +44,7 @@ public class MicrostrategiesDemoTest extends SpliceUnitTest {
 			importData(getResourceDirectory()+"customer_iso.csv");
 		}
 	}; 	
-	protected static SpliceCustomerTable spliceTableWatcher2 = new SpliceCustomerTable(TABLE_NAME_2,CLASS_NAME) {
+	protected static SpliceOrderLineTable spliceTableWatcher2 = new SpliceOrderLineTable(TABLE_NAME_2,CLASS_NAME) {
 		@Override
 		protected void starting(Description description) {
 			super.starting(description);
@@ -68,7 +69,7 @@ public class MicrostrategiesDemoTest extends SpliceUnitTest {
 		while (rs.next()) {
 			count++;
 		}	
-		Assert.assertEquals(566, count);
+		Assert.assertEquals(217, count);
 	}
 	
 	@Test
