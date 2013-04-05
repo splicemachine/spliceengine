@@ -313,7 +313,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     private void ensureTransactionActive(TransactionId transactionId) throws IOException {
         TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
         if (!transaction.getEffectiveStatus().equals(TransactionStatus.ACTIVE)) {
-            throw new DoNotRetryIOException("transaction is not ACTIVE");
+            throw new DoNotRetryIOException("transaction is not ACTIVE: " + transactionId.getTransactionID());
         }
     }
 

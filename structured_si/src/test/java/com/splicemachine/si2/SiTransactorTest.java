@@ -284,7 +284,7 @@ public class SiTransactorTest {
             transactor.commit(t2);
             Assert.fail();
         } catch (DoNotRetryIOException dnrio) {
-            Assert.assertEquals("transaction is not ACTIVE", dnrio.getMessage());
+            Assert.assertTrue(dnrio.getMessage().startsWith("transaction is not ACTIVE"));
         }
     }
 
@@ -474,7 +474,7 @@ public class SiTransactorTest {
             transactor.commit(t2);
             Assert.fail();
         } catch (DoNotRetryIOException dnrio) {
-            Assert.assertEquals("transaction is not ACTIVE", dnrio.getMessage());
+            Assert.assertTrue(dnrio.getMessage().startsWith("transaction is not ACTIVE"));
         }
     }
 
@@ -510,7 +510,7 @@ public class SiTransactorTest {
             transactor.commit(t2);
             Assert.fail();
         } catch (DoNotRetryIOException dnrio) {
-            Assert.assertEquals("transaction is not ACTIVE", dnrio.getMessage());
+            Assert.assertTrue(dnrio.getMessage().startsWith("transaction is not ACTIVE"));
         }
 
         TransactionId t3 = transactor.beginTransaction(true, false, false);
