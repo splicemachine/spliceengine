@@ -159,7 +159,7 @@ public class HashScanOperation extends ScanOperation {
 				scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
 			this.mapScan = Scans.setupScan(startPosition==null?null:startPosition.getRowArray(), startSearchOperator,
 					stopPosition==null?null:stopPosition.getRowArray(), stopSearchOperator,
-					scanQualifiers, null, accessedCols, transactionID);
+					scanQualifiers, null, accessedCols, getTransactionID());
 //			this.mapScan = SpliceUtils.setupScan(Bytes.toBytes(transactionID), accessedCols,scanQualifiers, startPosition == null ? null : startPosition.getRowArray(), startSearchOperator, stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator, null);
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
@@ -312,7 +312,7 @@ public class HashScanOperation extends ScanOperation {
 			sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
 			Qualifier[][] probe = (Qualifier[][]) activation.getClass().getField(nextQualifierField).get(activation);
 			Scan scan = Scans.newScan(DerbyBytesUtil.generateSortedHashScan(probe,sequence[0]),
-																DerbyBytesUtil.generateIncrementedSortedHashScan(probe,sequence[0]),transactionID);
+																DerbyBytesUtil.generateIncrementedSortedHashScan(probe,sequence[0]), getTransactionID());
 //			Scan scan = SpliceUtils.generateScan(sequence[0], DerbyBytesUtil.generateSortedHashScan(probe, sequence[0]),
 //					DerbyBytesUtil.generateIncrementedSortedHashScan(probe, sequence[0]), transactionID);
 			return new SpliceNoPutResultSet(scan,Bytes.toString(SpliceOperationCoprocessor.TEMP_TABLE),activation,this, currentRow);

@@ -4,7 +4,6 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.Mutations;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -51,7 +50,7 @@ public class DeleteOperation extends DMLWriteOperation{
 
 	@Override
 	public SinkStats sink() throws IOException {
-		SpliceLogUtils.trace(LOG,"sink on transactinID="+transactionID);
+		SpliceLogUtils.trace(LOG,"sink on transactinID="+ getTransactionID());
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for DeleteOperation at "+stats.getStartTime());
@@ -68,7 +67,7 @@ public class DeleteOperation extends DMLWriteOperation{
                 //there is a row to delete, so delete it
                 SpliceLogUtils.trace(LOG, "DeleteOperation sink, nextRow=" + nextRow);
                 RowLocation locToDelete = (RowLocation) nextRow.getColumn(nextRow.nColumns()).getObject();
-                writeBuffer.add(Mutations.getDeleteOp(transactionID,locToDelete.getBytes()));
+                writeBuffer.add(Mutations.getDeleteOp(getTransactionID(),locToDelete.getBytes()));
 
                 stats.sinkAccumulator().tick(System.nanoTime()-processStart);
             }while(nextRow!=null);

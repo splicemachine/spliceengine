@@ -26,7 +26,6 @@ import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
@@ -273,7 +272,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 			SpliceLogUtils.trace(LOG,"<%s> retrieved index row %s",indexName,sourceRow);
 			if(sourceRow!=null){
 				baseRowLocation = (RowLocation)sourceRow.getColumn(sourceRow.nColumns());
-				Get get =  SpliceUtils.createGet(baseRowLocation, rowArray, heapOnlyCols, transactionID);
+				Get get =  SpliceUtils.createGet(baseRowLocation, rowArray, heapOnlyCols, getTransactionID());
 				boolean rowExists = false;
 				try{
 					Result result = table.get(get);

@@ -24,7 +24,6 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -97,7 +96,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	@Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
         try {
-            reduceScan = Scans.buildPrefixRangeScan(sequence[0],transactionID);
+            reduceScan = Scans.buildPrefixRangeScan(sequence[0], getTransactionID());
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -260,7 +259,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 //                SpliceLogUtils.trace(LOG,"row=%s, key.length=%d, afterPrefix?%b,beforeEnd?%b",
 //                        row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
 //                        Bytes.compareTo(key,reduceScan.getStopRow())<0);
-                put = Puts.buildInsert(key,row.getRowArray(), transactionID,serializer);
+                put = Puts.buildInsert(key,row.getRowArray(), getTransactionID(),serializer);
                 SpliceLogUtils.trace(LOG, "put=%s",put);
                 tempTable.put(put);
 

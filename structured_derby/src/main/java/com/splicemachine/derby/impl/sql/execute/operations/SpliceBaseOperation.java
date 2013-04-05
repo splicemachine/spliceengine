@@ -57,8 +57,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	
 	protected Activation activation;
 	protected int resultSetNumber;
-	protected String transactionID;
-	protected Transaction trans;
+    private Transaction originalTransaction;
+    private String originalTransactionId;
+    private String transactionID;
 	protected boolean isTopResultSet = false;
 	protected String uniqueSequenceID;
 	protected ExecRow currentRow;
@@ -103,10 +104,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		this.optimizerEstimatedRowCount = optimizerEstimatedRowCount;
 		this.activation = activation;
 		this.resultSetNumber = resultSetNumber;
-		this.trans = (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
-		//SpliceLogUtils.trace(LOG,"before seting active, transaction="+trans+",state="+((ZookeeperTransaction)trans).getTransactionStatus()
-		//		+",transactionId="+transactionID);
-		this.transactionID = (trans == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
+        if (!SpliceUtils.useSi) {
+            this.originalTransaction = (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
+            this.originalTransactionId = (originalTransaction == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
+        }
 		sequence = new DataValueDescriptor[1];
 		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
 		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
@@ -126,14 +127,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			subqueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();
 	}
 	
-	public String getTransactioID() {
-		return this.transactionID;
-	}
-	
-	public void setTransactionID(String newTransID) {
-		this.transactionID = newTransID;
-	}
-	
 	public ExecutionFactory getExecutionFactory(){
 		return activation.getExecutionFactory();
 	}
@@ -144,8 +137,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		optimizerEstimatedCost = in.readDouble();
 		optimizerEstimatedRowCount = in.readDouble();
 		resultSetNumber = in.readInt();
-		transactionID = readNullableString(in);
-		isTopResultSet = in.readBoolean();
+        originalTransactionId = readNullableString(in);
+        transactionID = readNullableString(in);
+        isTopResultSet = in.readBoolean();
 		uniqueSequenceID = in.readUTF();
 		statisticsTimingOn = in.readBoolean();
 		constructorTime = in.readLong();
@@ -167,7 +161,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		out.writeDouble(optimizerEstimatedCost);
 		out.writeDouble(optimizerEstimatedRowCount);		
 		out.writeInt(resultSetNumber);
-		writeNullableString(transactionID, out);
+        writeNullableString(originalTransactionId, out);
+        writeNullableString(getTransactionID(), out);
 		out.writeBoolean(isTopResultSet);
 		out.writeUTF(uniqueSequenceID);
 		out.writeBoolean(statisticsTimingOn);
@@ -896,4 +891,32 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	{
 		return constructorTime + openTime + nextTime + closeTime;
 	}
+
+    protected Transaction getTrans() {
+        if (SpliceUtils.useSi) {
+            return (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
+        } else {
+            return originalTransaction;
+        }
+    }
+
+    protected String getTransactionID() {
+        if (SpliceUtils.useSi) {
+            if (activation == null) {
+                return transactionID;
+            } else {
+                return (getTrans() == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
+            }
+        } else {
+            return originalTransactionId;
+        }
+    }
+
+    protected void setOriginalTransactionId(String id) {
+        if (SpliceUtils.useSi) {
+            throw new RuntimeException("originalTransactionId is no longer used in SI mode");
+        } else {
+            this.originalTransactionId = id;
+        }
+    }
 }

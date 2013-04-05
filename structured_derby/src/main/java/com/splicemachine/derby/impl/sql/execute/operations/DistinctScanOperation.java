@@ -75,7 +75,7 @@ public class DistinctScanOperation extends HashScanOperation
     @Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template){
         try {
-            reduceScan = Scans.buildPrefixRangeScan(sequence[0], transactionID);
+            reduceScan = Scans.buildPrefixRangeScan(sequence[0], getTransactionID());
         } catch (IOException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
         }

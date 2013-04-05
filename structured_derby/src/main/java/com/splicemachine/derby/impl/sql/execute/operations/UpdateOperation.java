@@ -22,7 +22,6 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.google.common.base.Throwables;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
@@ -65,7 +64,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
 	@Override
 	public SinkStats sink() throws IOException {
-		SpliceLogUtils.trace(LOG,"sink on transactionID="+transactionID);
+		SpliceLogUtils.trace(LOG,"sink on transactionID="+ getTransactionID());
         SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for UpdateOperation at "+stats.getStartTime());
@@ -140,7 +139,7 @@ public class UpdateOperation extends DMLWriteOperation{
                  */
                 if(!modifiedPrimaryKeys){
                     SpliceLogUtils.trace(LOG, "UpdateOperation sink, nextRow=%s, validCols=%s,colPositionMap=%s", nextRow, heapList, Arrays.toString(colPositionMap));
-                    Put put = Puts.buildUpdate(location, nextRow.getRowArray(), heapList, colPositionMap, this.transactionID, serializer);
+                    Put put = Puts.buildUpdate(location, nextRow.getRowArray(), heapList, colPositionMap, this.getTransactionID(), serializer);
                     put.setAttribute(Puts.PUT_TYPE, Puts.FOR_UPDATE);
                     writeBuffer.add(put);
                 }else{
@@ -155,13 +154,13 @@ public class UpdateOperation extends DMLWriteOperation{
                      * That means we have to do a Get to get the full row, then merge it with the update values,
                      * re-insert it in the new location, and then delete the old location.
                      */
-                    Get remoteGet = SpliceUtils.createGet(transactionID, location.getBytes());
+                    Get remoteGet = SpliceUtils.createGet(getTransactionID(), location.getBytes());
                     remoteGet.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
                     Result result = htable.get(remoteGet);
 
                     //convert Result into put under the new row key
                     byte[] newRowKey = rowInsertSerializer.serialize(nextRow.getRowArray());
-                    Put newPut = SpliceUtils.createPut(newRowKey, transactionID);
+                    Put newPut = SpliceUtils.createPut(newRowKey, getTransactionID());
                     NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
                     for(byte[] qualifier:familyMap.keySet()){
                         int position = Integer.parseInt(Bytes.toString(qualifier));
@@ -175,7 +174,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     writeBuffer.add(newPut);
 
                     //now delete the old entry
-                    writeBuffer.add(Mutations.getDeleteOp(transactionID,location.getBytes()));
+                    writeBuffer.add(Mutations.getDeleteOp(getTransactionID(),location.getBytes()));
                 }
 
                 stats.sinkAccumulator().tick(System.nanoTime() - start);

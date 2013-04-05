@@ -425,7 +425,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	@Override
 	public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
         try {
-            reduceScan = Scans.buildPrefixRangeScan(sequence[0],transactionID);
+            reduceScan = Scans.buildPrefixRangeScan(sequence[0], getTransactionID());
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

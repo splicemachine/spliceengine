@@ -141,13 +141,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
             byte[] finish = BytesUtil.copyAndIncrement(start);
 			if(regionScanner==null){
-				reduceScan = Scans.newScan(start,finish,transactionID);
+				reduceScan = Scans.newScan(start,finish, getTransactionID());
 //				reduceScan = SpliceUtils.generateScan(sequence[0],start,finish,transactionID);
 //                rowProvider = new ScanRowProvider(regionScanner,sourceExecIndexRow);
 			}else{
 				Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
 				rowProvider = new SimpleRegionAwareRowProvider(
-						transactionID,
+                        getTransactionID(),
                         context.getRegion(),
 						regionScanner.getRegionInfo().getTableName(),
 						HBaseConstants.DEFAULT_FAMILY_BYTES,

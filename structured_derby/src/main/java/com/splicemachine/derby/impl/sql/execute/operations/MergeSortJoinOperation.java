@@ -159,9 +159,9 @@ public class MergeSortJoinOperation extends JoinOperation {
 			Hasher leftHasher = new Hasher(leftRow.getRowArray(),leftHashKeys,null,sequence[0]); 
 			Hasher rightHasher = new Hasher(rightRow.getRowArray(),rightHashKeys,null,sequence[0]); 
 			if(regionScanner==null){
-				reduceScan = Scans.newScan(start,finish,transactionID);
+				reduceScan = Scans.newScan(start,finish, getTransactionID());
 			}else{
-				serverProvider = new MergeSortRegionAwareRowProvider(transactionID, context.getRegion(),SpliceOperationCoprocessor.TEMP_TABLE,HBaseConstants.DEFAULT_FAMILY_BYTES,
+				serverProvider = new MergeSortRegionAwareRowProvider(getTransactionID(), context.getRegion(),SpliceOperationCoprocessor.TEMP_TABLE,HBaseConstants.DEFAULT_FAMILY_BYTES,
 						start,finish,leftHasher,leftRow,rightHasher,rightRow,null,rowType);		
 				serverProvider.open();
 			}

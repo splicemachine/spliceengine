@@ -211,20 +211,23 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
 			if(!getNodeTypes().contains(NodeType.REDUCE)){
-				//For PreparedStatement inserts, on autocommit on, every execute/executeUpdate commits the changes. After 
-				//commit, transaction state will be set as IDLE. However since we do not recreate the operations for next 
-				//set of values, we stuck with the same idled  transaction. I simply made the transaction active so that 
-				//next executeUpdate can be committed. Note setting transaction active is called on caller/client's derby, 
-				//not on hbase derby. Thus executeUpdate from caller can trigger another commit. So on and so forth. See
-				//Bug 185 - jz
-				try {
-					if (trans.isIdle()) {
-						((SpliceTransaction)trans).setActiveState(false, false, false, null);
-						transactionID = SpliceUtils.getTransIDString(trans);
-					}
-				} catch (Exception e) {
-					SpliceLogUtils.logAndThrowRuntime(LOG, e);
-				}
+                if (!SpliceUtils.useSi) {
+                    //For PreparedStatement inserts, on autocommit on, every execute/executeUpdate commits the changes. After
+                    //commit, transaction state will be set as IDLE. However since we do not recreate the operations for next
+                    //set of values, we stuck with the same idled  transaction. I simply made the transaction active so that
+                    //next executeUpdate can be committed. Note setting transaction active is called on caller/client's derby,
+                    //not on hbase derby. Thus executeUpdate from caller can trigger another commit. So on and so forth. See
+                    //Bug 185 - jz
+                    try {
+                        SpliceTransaction originalTransaction = (SpliceTransaction) getTrans();
+                        if (originalTransaction.isIdle()) {
+                            ((SpliceTransaction)getTrans()).setActiveState(false, false, false, null);
+                             setOriginalTransactionId(SpliceUtils.getTransIDString(originalTransaction));
+                        }
+                    } catch (Exception e) {
+                        SpliceLogUtils.logAndThrowRuntime(LOG, e);
+                    }
+                }
                 try{
                     SinkStats stats = sink();
                     rowsModified = (int)stats.getProcessStats().getTotalRecords();
