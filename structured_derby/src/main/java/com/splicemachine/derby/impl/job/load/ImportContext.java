@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.job.load.load;
+package com.splicemachine.derby.impl.job.load;
 
 import com.google.common.base.Preconditions;
 import com.splicemachine.derby.utils.StringUtils;

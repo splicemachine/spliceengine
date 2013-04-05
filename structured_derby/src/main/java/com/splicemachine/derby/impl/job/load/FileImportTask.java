@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.job.load.load;
+package com.splicemachine.derby.impl.job.load;
 
 import au.com.bytecode.opencsv.CSVReader;
 import com.splicemachine.derby.impl.sql.execute.Serializer;

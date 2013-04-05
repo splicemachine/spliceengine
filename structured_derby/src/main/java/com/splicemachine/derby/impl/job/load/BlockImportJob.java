@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.job.load.load;
+package com.splicemachine.derby.impl.job.load;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;

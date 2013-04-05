@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
-import com.splicemachine.derby.impl.job.load.load.HdfsImport;
+import com.splicemachine.derby.impl.job.load.HdfsImport;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.store.access.TransactionController;
