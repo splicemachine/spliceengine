@@ -38,6 +38,11 @@ public class HdfsImportTest {
 		DerbyTestRule.shutdown();
 	}
 
+    @After
+    public void tearDownTest() throws Exception{
+        rule.dropTables();
+    }
+
 	@Test
 	public void testHdfsImport() throws Exception{
 		String baseDir = System.getProperty("user.dir");

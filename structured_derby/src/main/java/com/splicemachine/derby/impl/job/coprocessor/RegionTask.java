@@ -14,4 +14,9 @@ public interface RegionTask extends Task {
 
     void prepareTask(HRegion region,
                      RecoverableZooKeeper zooKeeper ) throws ExecutionException;
+
+    /**
+     * @return true if task should be invalidated when a region closes.
+     */
+    boolean invalidateOnClose();
 }

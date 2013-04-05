@@ -1,14 +1,15 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.ZkUtils;
-import com.splicemachine.job.*;
+import com.splicemachine.job.Status;
+import com.splicemachine.job.Task;
+import com.splicemachine.job.TaskFuture;
+import com.splicemachine.job.TaskScheduler;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -21,7 +22,6 @@ import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -36,7 +36,8 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     private TaskScheduler<RegionTask> taskScheduler;
     private RecoverableZooKeeper zooKeeper;
     private volatile String baseTaskQueueNode;
-    private Set<Task> runningTasks = Collections.newSetFromMap(new ConcurrentHashMap<Task, Boolean>());
+    private Set<RegionTask> runningTasks =
+            Collections.newSetFromMap(new ConcurrentHashMap<RegionTask, Boolean>());
     public static String baseQueueNode;
 
     static{
@@ -68,9 +69,10 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
          * We are stopping. Either The region is moving to a different region, or it's splitting. Either way,
          * we need to resubmit our tasks to the correct locations.
          */
-        for(Task task:runningTasks){
+        for(RegionTask task:runningTasks){
             try {
-                task.markInvalid();
+                if(task.invalidateOnClose())
+                    task.markInvalid();
             } catch (ExecutionException e) {
                 SpliceLogUtils.error(LOG,"Unexpected error invalidating task "+
                         task.getTaskId()+", corresponding job may fail",e.getCause());

@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJobScheduler;
 import com.splicemachine.derby.impl.job.scheduler.ThreadedTaskScheduler;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
@@ -110,8 +111,8 @@ public class SpliceDriver {
         return (TaskScheduler<T>)threadTaskScheduler;
     }
 
-    public JobScheduler getJobScheduler(){
-        return jobScheduler;
+    public <J extends CoprocessorJob> JobScheduler<J> getJobScheduler(){
+        return (JobScheduler<J>)jobScheduler;
     }
 
     public ConnectionPool embedConnPool(){

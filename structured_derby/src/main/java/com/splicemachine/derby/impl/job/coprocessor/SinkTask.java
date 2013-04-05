@@ -58,6 +58,11 @@ public class SinkTask extends ZooKeeperTask {
     }
 
     @Override
+    public boolean invalidateOnClose() {
+        return true;
+    }
+
+    @Override
     public void execute() throws ExecutionException, InterruptedException {
         SpliceLogUtils.trace(LOG,"executing task %s",getTaskId());
         TransactionManager.setParentTransactionId(instructions.getTransactionId());
@@ -109,7 +114,7 @@ public class SinkTask extends ZooKeeperTask {
     }
 
     private static String buildTaskId(HRegion region) {
-        return CoprocessorTaskScheduler.baseQueueNode+"/"+region.getTableDesc().getNameAsString()+"/"+region.getRegionNameAsString()+"/task-";
+        return CoprocessorTaskScheduler.baseQueueNode+"/"+region.getTableDesc().getNameAsString()+"/"+region.getRegionNameAsString()+"/sinkTask-";
     }
 
     public HRegion getRegion() {
