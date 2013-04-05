@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job;
 
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.ByteDataOutput;
 import com.splicemachine.job.Status;
@@ -36,6 +37,7 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
     @Override
     public void prepareTask(HRegion region,
                             RecoverableZooKeeper zooKeeper) throws ExecutionException {
+        this.taskId = buildTaskId(region,getTaskType());
         this.zooKeeper = zooKeeper;
         //write out the payload to a durable node
         ByteDataOutput byteOut = new ByteDataOutput();
@@ -76,6 +78,8 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
             throw new ExecutionException(e);
         }
     }
+
+    protected abstract String getTaskType();
 
     @Override
     public void markCancelled() throws ExecutionException {
@@ -136,5 +140,11 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
         status.setStatus(Status.CANCELLED);
         if(propagate)
             updateStatus(false);
+    }
+
+    private static String buildTaskId(HRegion region,String taskType) {
+        return CoprocessorTaskScheduler.baseQueueNode+
+                "/"+region.getTableDesc().getNameAsString()+
+                "/"+region.getRegionNameAsString()+"/"+taskType+"-";
     }
 }

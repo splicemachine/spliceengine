@@ -1,11 +1,11 @@
-package com.splicemachine.derby.impl.job.coprocessor;
+package com.splicemachine.derby.impl.job.operation;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.job.Status;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.job.OperationJob;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.si2.txn.TransactionManager;
@@ -52,7 +52,6 @@ public class SinkTask extends ZooKeeperTask {
     @Override
     public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
         //make sure that our task id is properly set
-        this.taskId = buildTaskId(region);
         this.region = region;
         super.prepareTask(region, zooKeeper);
     }
@@ -106,15 +105,8 @@ public class SinkTask extends ZooKeeperTask {
     }
 
     @Override
-    public String getTaskId() {
-        if(taskId==null){
-            taskId = buildTaskId(region);
-        }
-        return taskId;
-    }
-
-    private static String buildTaskId(HRegion region) {
-        return CoprocessorTaskScheduler.baseQueueNode+"/"+region.getTableDesc().getNameAsString()+"/"+region.getRegionNameAsString()+"/sinkTask-";
+    protected String getTaskType() {
+        return "sinkTask";
     }
 
     public HRegion getRegion() {

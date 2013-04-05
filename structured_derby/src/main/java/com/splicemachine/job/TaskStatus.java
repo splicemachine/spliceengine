@@ -1,7 +1,4 @@
-package com.splicemachine.derby.impl.job.coprocessor;
-
-import com.splicemachine.derby.impl.job.scheduler.ThreadedTaskScheduler;
-import com.splicemachine.job.Status;
+package com.splicemachine.job;
 
 import java.io.*;
 import java.util.Collections;

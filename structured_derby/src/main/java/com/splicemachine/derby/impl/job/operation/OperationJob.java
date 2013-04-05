@@ -1,10 +1,8 @@
-package com.splicemachine.derby.impl.job;
+package com.splicemachine.derby.impl.job.operation;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.coprocessor.SinkTask;
-import com.splicemachine.job.Job;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;

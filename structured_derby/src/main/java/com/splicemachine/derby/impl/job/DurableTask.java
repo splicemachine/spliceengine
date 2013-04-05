@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.job;
 
-import com.splicemachine.derby.impl.job.coprocessor.TaskStatus;
+import com.splicemachine.job.TaskStatus;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.Task;
 

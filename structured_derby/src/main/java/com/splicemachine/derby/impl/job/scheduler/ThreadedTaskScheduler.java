@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
-import com.splicemachine.derby.impl.job.coprocessor.TaskStatus;
+import com.splicemachine.job.TaskStatus;
 import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;

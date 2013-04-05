@@ -44,6 +44,11 @@ public abstract class AbstractImportTask extends ZooKeeperTask{
     }
 
     @Override
+    protected String getTaskType() {
+        return "importTask";
+    }
+
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(importContext);
     }

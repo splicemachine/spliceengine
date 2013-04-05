@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.job.scheduler;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
-import com.splicemachine.derby.impl.job.coprocessor.TaskStatus;
+import com.splicemachine.job.TaskStatus;
 import com.splicemachine.job.*;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.zookeeper.KeeperException;

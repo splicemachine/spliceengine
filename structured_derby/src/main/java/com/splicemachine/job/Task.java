@@ -1,7 +1,5 @@
 package com.splicemachine.job;
 
-import com.splicemachine.derby.impl.job.coprocessor.TaskStatus;
-
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
