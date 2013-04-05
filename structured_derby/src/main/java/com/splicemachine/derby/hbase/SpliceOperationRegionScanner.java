@@ -59,7 +59,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     private SpliceOperationContext context;
 
     public SpliceOperationRegionScanner(SpliceOperation topOperation,
-                                        SpliceOperationContext context){
+                                        SpliceOperationContext context) throws StandardException {
     	stats.start();
     	SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
         this.topOperation = topOperation;
