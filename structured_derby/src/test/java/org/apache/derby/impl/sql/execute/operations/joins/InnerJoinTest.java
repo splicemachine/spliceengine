@@ -217,4 +217,18 @@ public class InnerJoinTest extends BaseJoinTest {
         Assert.assertEquals(10, results.size());
 
     }
+
+    @Ignore("Currently failing, written up as bug 338")
+    @Test
+    public void testSelfJoin() throws SQLException {
+
+        ResultSet rs = rule.executeQuery("select t1.cst_first_name, t1.cst_last_name, t2.cst_first_name as fn2, t2.cst_last_name as ln2, t1.cst_age_years " +
+                "from customer t1, customer t2 " +
+                "where t1.cst_age_years = t2.cst_age_years and t1.cst_id != t2.cst_id");
+
+        List<Map> results = TestUtils.resultSetToMaps(rs);
+
+        Assert.assertEquals(2, results.size());
+    }
+
 }
