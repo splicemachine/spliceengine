@@ -15,26 +15,6 @@ import java.io.IOException;
 public interface SpliceIndexProtocol extends CoprocessorProtocol{
 
     /**
-     * Build an index using the specified fields.
-     *
-     * When an index is first created, it's possible (likely, even) that there is
-     * already data in the table itself. Thus, we call this method to construct the
-     * index in a parallel fashion.
-     *
-     *
-     *
-     * @param transactionId
-     * @param indexConglomId the conglomerate id of the index to build
-     * @param baseConglomId the conglomerate id of the main table
-     * @param indexColsToBaseColMap a mapping between index columns and the base column mapping
-     * @return Statistics information about how long this region took to update the index
-     * @throws IOException if something goes wrong
-     */
-    public SinkStats buildIndex(String transactionId, long indexConglomId,
-                                long baseConglomId,
-                                int[] indexColsToBaseColMap, boolean isUnique) throws IOException;
-
-    /**
      * Drop the specified index from the specified table.
      *
      * @param indexConglomId the conglomerate id of the index to drop
