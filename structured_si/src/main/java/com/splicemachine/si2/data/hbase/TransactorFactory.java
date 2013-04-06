@@ -1,5 +1,10 @@
 package com.splicemachine.si2.data.hbase;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
+import com.splicemachine.impl.si.txn.Transaction;
 import com.splicemachine.si.utils.SIConstants;
 import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.STableReader;
@@ -10,10 +15,15 @@ import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.DataStore;
 import com.splicemachine.si2.si.impl.SiTransactor;
 import com.splicemachine.si2.si.impl.TransactionSchema;
+import com.splicemachine.si2.si.impl.TransactionStatus;
 import com.splicemachine.si2.si.impl.TransactionStore;
+import com.splicemachine.si2.si.impl.TransactionStruct;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.HTablePool;
+
+import java.util.concurrent.TimeUnit;
 
 public class TransactorFactory {
     private static Transactor defaultTransactor;
@@ -65,7 +75,8 @@ public class TransactorFactory {
                 SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES,
                 SIConstants.TRANSACTION_READ_COMMITTED_COLUMN_BYTES,
                 SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN, SIConstants.TRANSACTION_STATUS_COLUMN);
-        final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer);
+        final Cache<Long,TransactionStruct> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+        final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, cache);
 
         final DataStore rowStore = new DataStore(dataLib, reader, writer, "si-needed",
                 "si-transaction-id", "si-delete-put", SIConstants.SNAPSHOT_ISOLATION_FAMILY,
