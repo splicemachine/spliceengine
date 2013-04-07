@@ -77,12 +77,8 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     @Override
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,
                           Delete delete, WALEdit edit, boolean writeToWAL) throws IOException {
-        if (SpliceUtils.useSi) {
-            throw new RuntimeException("deletes not expected in SI mode");
-        } else {
-            indexSet.update(delete, e.getEnvironment());
-            super.preDelete(e, delete, edit, writeToWAL);
-        }
+        indexSet.update(delete, e.getEnvironment());
+        super.preDelete(e, delete, edit, writeToWAL);
     }
 
 /*******************************************************************************************************************/
