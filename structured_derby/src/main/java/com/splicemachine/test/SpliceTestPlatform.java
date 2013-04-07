@@ -1,6 +1,8 @@
 package com.splicemachine.test;
 
 import java.io.File;
+
+import com.splicemachine.si2.coprocessors.SIObserver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
@@ -14,7 +16,6 @@ import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.impl.load.SpliceImportCoprocessor;
 import com.splicemachine.hbase.txn.coprocessor.region.TransactionalManagerRegionObserver;
 import com.splicemachine.hbase.txn.coprocessor.region.TransactionalRegionObserver;
-import com.splicemachine.si.coprocessor.SIObserver;
 
 public class SpliceTestPlatform extends TestConstants {
 	private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(SpliceTestPlatform.class);
@@ -82,12 +83,12 @@ public class SpliceTestPlatform extends TestConstants {
 				SpliceDerbyCoprocessor.class.getCanonicalName() + "," + 
 				SpliceIndexManagementEndpoint.class.getCanonicalName() + "," + 
 				SpliceIndexEndpoint.class.getCanonicalName() + "," + 
-				TransactionalManagerRegionObserver.class.getCanonicalName() + "," + 
-				TransactionalRegionObserver.class.getCanonicalName() 
+				//TransactionalManagerRegionObserver.class.getCanonicalName() + "," +
+				//TransactionalRegionObserver.class.getCanonicalName()
 				//comment out SIObserver for now, and when SI is ready, 
 				//uncomment it out and comment out the above old transaction observers
 				//+ "," +
-				//SIObserver.class.getCanonicalName()
+				SIObserver.class.getCanonicalName()
 				);
 	
 	
