@@ -110,7 +110,7 @@ public class SinkTask extends ZooKeeperTask {
 
     @Override
     protected String getTaskType() {
-        return "sinkTask";
+        return instructions.getTopOperation().getClass().getSimpleName();
     }
 
     public HRegion getRegion() {
