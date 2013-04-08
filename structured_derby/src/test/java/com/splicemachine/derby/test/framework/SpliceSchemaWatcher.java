@@ -50,11 +50,11 @@ public class SpliceSchemaWatcher extends TestWatcher {
 			connection = SpliceNetConnection.getConnection();
 			ResultSet resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, null);
 			while (resultSet.next()) {
-				SpliceTableWatcher.executeDrop(schemaName, resultSet.getString("TABLE_NAME"));
+				//SpliceTableWatcher.executeDrop(schemaName, resultSet.getString("TABLE_NAME"));
 			}
 			
 			statement = connection.createStatement();
-			statement.execute("drop schema " + schemaName + " RESTRICT");
+			//statement.execute("drop schema " + schemaName + " RESTRICT");
 			connection.commit();
 		} catch (Exception e) {
 			LOG.error("error Dropping " + e.getMessage());
