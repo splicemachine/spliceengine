@@ -195,12 +195,12 @@ public class IndexSet {
     private void checkState() throws IOException, InterruptedException {
         switch (state.get()) {
             case WAITING_TO_START:
-                SpliceLogUtils.warn(LOG, "Index management for conglomerate %d " +
+                SpliceLogUtils.trace(LOG, "Index management for conglomerate %d " +
                         "has not completed, indices may not be correctly updated, " +
                         "and constraints may not be correct!", conglomId);
                 break;
             case READY_TO_START:
-                SpliceLogUtils.warn(LOG, "Index management for conglomerate %d " +
+                SpliceLogUtils.trace(LOG, "Index management for conglomerate %d " +
                         "has not completed, indices may not be correctly updated, " +
                         "and constraints may not be correct!", conglomId);
                 start();
