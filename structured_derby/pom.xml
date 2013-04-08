@@ -142,7 +142,7 @@
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
+					<forkedProcessTimeoutInSeconds>7200</forkedProcessTimeoutInSeconds>
 					<argLine>-Xms1g -Xmx2g</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <includes>
