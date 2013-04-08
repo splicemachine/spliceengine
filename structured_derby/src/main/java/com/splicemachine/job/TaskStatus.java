@@ -1,5 +1,7 @@
 package com.splicemachine.job;
 
+import com.splicemachine.derby.stats.TaskStats;
+
 import java.io.*;
 import java.util.Collections;
 import java.util.Set;
@@ -17,6 +19,7 @@ public class TaskStatus implements Externalizable{
     private AtomicReference<Status> status;
     private volatile Throwable error;
     private final Set<StatusListener> listeners;
+    private volatile TaskStats stats;
 
     public TaskStatus(){
        this.listeners = Collections.newSetFromMap(new ConcurrentHashMap<StatusListener, Boolean>());
@@ -34,6 +37,14 @@ public class TaskStatus implements Externalizable{
 
     public Status getStatus(){
         return status.get();
+    }
+
+    /**
+     * @return stats if the task has then, or {@code null}. Usually, stats are only
+     * present when the state is COMPLETED.
+     */
+    public TaskStats getStats(){
+        return this.stats;
     }
 
     public byte[] toBytes() throws IOException {
@@ -69,12 +80,19 @@ public class TaskStatus implements Externalizable{
         this.error = error;
     }
 
+    public void setStats(TaskStats stats){
+        this.stats = stats;
+    }
+
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeUTF(status.get().name());
         out.writeBoolean(error!=null);
         if(error!=null)
             out.writeObject(error);
+        out.writeBoolean(stats!=null);
+        if(stats!=null)
+            out.writeObject(stats);
     }
 
     @Override
@@ -82,6 +100,9 @@ public class TaskStatus implements Externalizable{
         status = new AtomicReference<Status>(Status.valueOf(in.readUTF()));
         if(in.readBoolean()){
             error = (Throwable)in.readObject();
+        }
+        if(in.readBoolean()){
+            stats = (TaskStats)in.readObject();
         }
     }
 

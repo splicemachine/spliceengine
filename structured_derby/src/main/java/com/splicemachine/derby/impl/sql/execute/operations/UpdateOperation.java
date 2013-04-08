@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.NavigableMap;
 
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -22,12 +23,10 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.google.common.base.Throwables;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -64,9 +63,9 @@ public class UpdateOperation extends DMLWriteOperation{
 	}
 
 	@Override
-	public SinkStats sink() throws IOException {
+	public TaskStats sink() throws IOException {
 		SpliceLogUtils.trace(LOG,"sink on transactionID="+transactionID);
-        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for UpdateOperation at "+stats.getStartTime());
 		ExecRow nextRow;
@@ -127,7 +126,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     }
 
                 }
-                stats.processAccumulator().tick(System.nanoTime()-start);
+                stats.readAccumulator().tick(System.nanoTime()-start);
 
                 start = System.nanoTime();
                 RowLocation location= (RowLocation)nextRow.getColumn(nextRow.nColumns()).getObject(); //the location to update is always at the end
@@ -179,7 +178,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     writeBuffer.add(Mutations.getDeleteOp(transactionID,location.getBytes()));
                 }
 
-                stats.sinkAccumulator().tick(System.nanoTime() - start);
+                stats.writeAccumulator().tick(System.nanoTime() - start);
             }while(nextRow!=null);
             writeBuffer.flushBuffer();
             writeBuffer.close();
@@ -190,7 +189,7 @@ public class UpdateOperation extends DMLWriteOperation{
                 throw Exceptions.getIOException(e);
 		}
         //return stats.finish();
-		SinkStats ss = stats.finish();
+		TaskStats ss = stats.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for UpdateOperation at "+stats.getFinishTime());
         return ss;
 	}

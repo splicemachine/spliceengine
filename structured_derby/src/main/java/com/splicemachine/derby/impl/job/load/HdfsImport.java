@@ -6,7 +6,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
@@ -217,7 +217,7 @@ public class HdfsImport extends ParallelVTI {
 	@Override public void open() throws StandardException { openCore(); }
 
 	/*no op methods*/
-	@Override public SinkStats sink() { return null; }
+	@Override public TaskStats sink() { return null; }
 	@Override public ExecRow getExecRowDefinition() { return null; }
 	@Override public boolean next() { return false; }
     @Override public SpliceOperation getRightOperation() { return null; } //noop

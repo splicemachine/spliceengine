@@ -3,7 +3,7 @@ package com.splicemachine.derby.hbase;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimeUtils;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -11,7 +11,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -31,15 +30,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.stats.TimeUtils;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
 
 
 public class SpliceOperationRegionScanner implements RegionScanner {
@@ -52,8 +43,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     protected Activation activation; // has to be passed by reference... jl
     private Serializer serializer = new Serializer();
 
-    private SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
-    private SinkStats finalStats;
+    private TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
+    private TaskStats finalStats;
     private SpliceOperationContext context;
 
     public SpliceOperationRegionScanner(SpliceOperation topOperation,
@@ -110,7 +101,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			ExecRow nextRow;
             long start = System.nanoTime();
 			if ( (nextRow = topOperation.getNextRowCore()) != null) {
-                stats.processAccumulator().tick(System.nanoTime()-start);
+                stats.readAccumulator().tick(System.nanoTime()-start);
 
                 start = System.nanoTime();
 				Put put = Puts.buildInsert(nextRow.getRowArray(), null,serializer); //todo -sf- add transaction id
@@ -119,7 +110,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 					results.addAll(family.get(bytes));
 				}
 				SpliceLogUtils.trace(LOG,"next returns results: "+ nextRow);
-                stats.sinkAccumulator().tick(System.nanoTime()-start);
+                stats.writeAccumulator().tick(System.nanoTime()-start);
 				return true;
 			}
 		} catch (Exception e) {
@@ -162,7 +153,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		return regionScanner.isFilterDone();
 	}
 
-	public SinkStats sink() throws IOException{
+	public TaskStats sink() throws IOException{
 		SpliceLogUtils.trace(LOG,"sink");
 		return topOperation.sink();
 	}
@@ -178,9 +169,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 .append("\t").append("Region name: ").append(regionScanner.getRegionInfo().getRegionNameAsString())
                 .append("\n")
                 .append("ProcessStats:\n")
-                .append("\t").append(finalStats.getProcessStats())
+                .append("\t").append(finalStats.getReadStats())
                 .append("\nWriteStats:\n")
-                .append("\t").append(finalStats.getSinkStats());
+                .append("\t").append(finalStats.getWriteStats());
         logger.debug(summaryBuilder.toString());
     }
 }

@@ -1,5 +1,7 @@
 package com.splicemachine.job;
 
+import com.splicemachine.derby.stats.TaskStats;
+
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
@@ -18,4 +20,6 @@ public interface TaskFuture {
     void cancel() throws ExecutionException;
 
     String getTaskId();
+
+    TaskStats getTaskStats();
 }

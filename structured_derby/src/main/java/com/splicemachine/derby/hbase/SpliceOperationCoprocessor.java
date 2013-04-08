@@ -1,9 +1,8 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.error.SpliceStandardException;
 import com.splicemachine.si2.txn.TransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
@@ -24,10 +23,6 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
 /**
  * 
  * HBase Endpoint coprocessor handling sink operations from the OperationTree.
@@ -72,7 +67,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	 * 
 	 */
 	@Override
-	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException {
+	public TaskStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException {
 		threadLocalEnvironment.set(getEnvironment());
         TransactionManager.setParentTransactionId(instructions.getTransactionId());
         Connection runningConnection = null;
@@ -91,8 +86,8 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
                     activation, instructions.getStatement(),runningConnection);
 			SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
 			SpliceLogUtils.trace(LOG,"performing sink");
-			SinkStats out = spliceScanner.sink();
-			SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getSinkStats().getTotalRecords());
+			TaskStats out = spliceScanner.sink();
+			SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getWriteStats().getTotalRecords());
 			spliceScanner.close();
 			return out;
 		} catch (InterruptedException e) {

@@ -9,10 +9,11 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -21,6 +22,8 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -34,23 +37,23 @@ public abstract class SingleScanRowProvider  implements RowProvider {
     private static final Logger LOG = Logger.getLogger(SingleScanRowProvider.class);
 
     @Override
-    public void shuffleRows(SpliceObserverInstructions instructions,
-                            RegionStats stats) throws StandardException {
+    public JobStats shuffleRows(SpliceObserverInstructions instructions ) throws StandardException {
         Scan scan = toScan();
         if(scan==null){
             //operate locally
             SpliceOperation op = instructions.getTopOperation();
             op.init(SpliceOperationContext.newContext(op.getActivation()));
             try{
-                op.sink();
+                return new LocalTaskJobStats(op.sink());
             } catch (IOException e) {
                 throw Exceptions.parseException(e);
             }
         }else{
             HTableInterface table = SpliceAccessManager.getHTable(getTableName());
-            doShuffle(table, instructions, stats, scan);
+            return doShuffle(table, instructions, scan);
         }
     }
+
 
     /**
      * @return a scan representation of the row provider, or {@code null} if the operation
@@ -61,9 +64,8 @@ public abstract class SingleScanRowProvider  implements RowProvider {
 /********************************************************************************************************************/
     /*private helper methods*/
 
-    private void doShuffle(HTableInterface table,
-                           SpliceObserverInstructions instructions,
-                           RegionStats stats, Scan scan) throws StandardException {
+    private JobStats doShuffle(HTableInterface table,
+                           SpliceObserverInstructions instructions, Scan scan) throws StandardException {
         //TODO -sf- attach statistics
         SpliceUtils.setInstructions(scan,instructions);
         OperationJob job = new OperationJob(scan,instructions,table);
@@ -73,6 +75,8 @@ public abstract class SingleScanRowProvider  implements RowProvider {
             future = SpliceDriver.driver().getJobScheduler().submit(job);
             //wait for everyone to complete, or somebody to error out
             future.completeAll();
+
+            return future.getJobStats();
         } catch (ExecutionException ee) {
             baseError = Exceptions.parseException(ee.getCause());
             throw baseError;
@@ -97,7 +101,7 @@ public abstract class SingleScanRowProvider  implements RowProvider {
     /*
      * Convenience wrapper to update statistics
      */
-    private static class Callback implements Batch.Callback<SinkStats>{
+    private static class Callback implements Batch.Callback<TaskStats>{
         private final RegionStats stats;
 
         private Callback(RegionStats stats) {
@@ -105,7 +109,7 @@ public abstract class SingleScanRowProvider  implements RowProvider {
         }
 
         @Override
-        public void update(byte[] region, byte[] row, SinkStats result) {
+        public void update(byte[] region, byte[] row, TaskStats result) {
             this.stats.addRegionStats(region,result);
         }
     }
@@ -113,7 +117,7 @@ public abstract class SingleScanRowProvider  implements RowProvider {
     /*
      * Convenience wrapper around the execution phase
      */
-    private static class Call implements Batch.Call<SpliceOperationProtocol,SinkStats>{
+    private static class Call implements Batch.Call<SpliceOperationProtocol,TaskStats>{
         private final Scan scan;
         private final SpliceObserverInstructions instructions;
 
@@ -123,12 +127,65 @@ public abstract class SingleScanRowProvider  implements RowProvider {
         }
 
         @Override
-        public SinkStats call(SpliceOperationProtocol instance) throws IOException {
+        public TaskStats call(SpliceOperationProtocol instance) throws IOException {
             try {
                 return instance.run(scan,instructions);
             } catch (StandardException e) {
                 throw new IOException(e);
             }
+        }
+    }
+
+    private class LocalTaskJobStats implements JobStats {
+        private final TaskStats stats;
+
+        public LocalTaskJobStats(TaskStats stats) {
+            this.stats = stats;
+        }
+
+        @Override
+        public int getNumTasks() {
+            return 1;
+        }
+
+        @Override
+        public int getNumSubmittedTasks() {
+            return 1;
+        }
+
+        @Override
+        public int getNumCompletedTasks() {
+            return 1;
+        }
+
+        @Override
+        public int getNumFailedTasks() {
+            return 0;
+        }
+
+        @Override
+        public int getNumInvalidatedTasks() {
+            return 0;
+        }
+
+        @Override
+        public int getNumCancelledTasks() {
+            return 0;
+        }
+
+        @Override
+        public long getTotalTime() {
+            return stats.getTotalTime();
+        }
+
+        @Override
+        public String getJobName() {
+            return "localJob";
+        }
+
+        @Override
+        public Map<String, TaskStats> getTaskStats() {
+            return Collections.singletonMap("localTask",stats);
         }
     }
 }

@@ -6,7 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -226,8 +226,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 					SpliceLogUtils.logAndThrowRuntime(LOG, e);
 				}
                 try{
-                    SinkStats stats = sink();
-                    rowsModified = (int)stats.getProcessStats().getTotalRecords();
+                    TaskStats stats = sink();
+                    rowsModified = (int)stats.getReadStats().getTotalRecords();
                 }catch(IOException ioe){
                     if(Exceptions.shouldLogStackTrace(ioe)){
                         SpliceLogUtils.logAndThrowRuntime(LOG,ioe);

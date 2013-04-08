@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
@@ -38,7 +39,6 @@ import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.Accumulator;
-import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -170,13 +170,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	}
 
 	@Override		
-	public SinkStats sink() throws IOException{
+	public TaskStats sink() throws IOException{
 		/*
 		 * Sorts the data by sinking into the TEMP table. From there, the 
 		 * getNextRowCore() method can be used to pull the data out in sequence and perform 
 		 * the aggregation
 		 */
-        SinkStats.SinkAccumulator statsAccumulator = SinkStats.uniformAccumulator();
+        TaskStats.SinkAccumulator statsAccumulator = TaskStats.uniformAccumulator();
         statsAccumulator.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for GroupedAggregation at "+statsAccumulator.getStartTime());
 		SpliceLogUtils.trace(LOG, "sink");
@@ -187,9 +187,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
             Serializer serializer = new Serializer();
-            Accumulator sinkAccumulator = statsAccumulator.sinkAccumulator();
+            Accumulator sinkAccumulator = statsAccumulator.writeAccumulator();
             do{
-                row = doAggregation(false,statsAccumulator.processAccumulator());
+                row = doAggregation(false,statsAccumulator.readAccumulator());
 
                 if(row==null)continue;
 
@@ -213,7 +213,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			}
 		}
 		
-		SinkStats ss = statsAccumulator.finish();
+		TaskStats ss = statsAccumulator.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for GroupedAggregation at "+statsAccumulator.getFinishTime());
         return ss;
 	}

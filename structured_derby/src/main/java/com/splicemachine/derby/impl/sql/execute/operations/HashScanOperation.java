@@ -12,7 +12,7 @@ import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -194,9 +194,9 @@ public class HashScanOperation extends ScanOperation {
 			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,regionOperation);
 			htable.coprocessorExec(SpliceOperationProtocol.class,
 					mapScan.getStartRow(), mapScan.getStopRow(),
-					new Batch.Call<SpliceOperationProtocol, SinkStats>() {
+					new Batch.Call<SpliceOperationProtocol, TaskStats>() {
 						@Override
-						public SinkStats call(SpliceOperationProtocol instance) throws IOException {
+						public TaskStats call(SpliceOperationProtocol instance) throws IOException {
 							try {
 								return instance.run(mapScan,soi);
 							} catch (StandardException e) {
@@ -204,9 +204,9 @@ public class HashScanOperation extends ScanOperation {
 					}
 					return null;
 				}
-			},new Batch.Callback<SinkStats>() {
+			},new Batch.Callback<TaskStats>() {
                         @Override
-                        public void update(byte[] region, byte[] row, SinkStats result) {
+                        public void update(byte[] region, byte[] row, TaskStats result) {
                             regionStats.addRegionStats(region,result);
                         }
                     });
@@ -232,8 +232,8 @@ public class HashScanOperation extends ScanOperation {
 	}
 
 	@Override		
-	public SinkStats sink() {
-        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+	public TaskStats sink() {
+        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for HashScan at "+stats.getStartTime());
 		SpliceLogUtils.trace(LOG, "sink called on" + regionScanner.getRegionInfo().getTableNameAsString());
@@ -252,7 +252,7 @@ public class HashScanOperation extends ScanOperation {
                 keyValues = new ArrayList<KeyValue>(currentRow.nColumns());
                 regionScanner.next(keyValues);
                 if(keyValues==null) continue;
-                stats.processAccumulator().tick(System.nanoTime()-start);
+                stats.readAccumulator().tick(System.nanoTime()-start);
 
                 //sink the row by hashing
                 start = System.nanoTime();
@@ -270,7 +270,7 @@ public class HashScanOperation extends ScanOperation {
                 put = Puts.buildInsert(tempRowKey,currentRow.getRowArray(),null,serializer);
                 tempTable.put(put);	// TODO Buffer via list or configuration. JL
 
-                stats.sinkAccumulator().tick(System.nanoTime()-start);
+                stats.writeAccumulator().tick(System.nanoTime()-start);
 
             }while(!keyValues.isEmpty());
 
@@ -288,7 +288,7 @@ public class HashScanOperation extends ScanOperation {
 			}
 		}
         //return stats.finish();
-		SinkStats ss = stats.finish();
+		TaskStats ss = stats.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for HashScan at "+stats.getFinishTime());
         return ss;
 	}

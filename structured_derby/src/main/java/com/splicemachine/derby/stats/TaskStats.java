@@ -11,22 +11,22 @@ import java.io.ObjectOutput;
  * @author Scott Fines
  * Created on: 2/26/13
  */
-public class SinkStats implements Externalizable{
+public class TaskStats implements Externalizable{
     private static final long serialVersionUID = 1l;
     private Stats processStats;
     private Stats sinkStats;
     
     private long totalTime;
 
-    public SinkStats(){}
+    public TaskStats(){}
     
-    public Stats getProcessStats(){return processStats;}
+    public Stats getReadStats(){return processStats;}
 
-    public Stats getSinkStats(){return sinkStats;}
+    public Stats getWriteStats(){return sinkStats;}
 
     public long getTotalTime(){ return totalTime;}
 
-    public SinkStats(Stats processStats,Stats sinkStats,long totalTime){
+    public TaskStats(Stats processStats, Stats sinkStats, long totalTime){
         this.processStats = processStats;
         this.sinkStats = sinkStats;
         this.totalTime = totalTime;
@@ -62,11 +62,11 @@ public class SinkStats implements Externalizable{
             this.sinkAccumulator = sinkAccumulator;
         }
 
-        public Accumulator processAccumulator(){
+        public Accumulator readAccumulator(){
             return processAccumulator;
         }
 
-        public Accumulator sinkAccumulator(){
+        public Accumulator writeAccumulator(){
             return sinkAccumulator;
         }
 
@@ -76,11 +76,11 @@ public class SinkStats implements Externalizable{
             sinkAccumulator.start();
         }
 
-        public SinkStats finish(){
+        public TaskStats finish(){
             Stats processStats = processAccumulator.finish();
             Stats sinkStats = sinkAccumulator.finish();
             finishTime = System.nanoTime()-startTime;
-            return new SinkStats(processStats,sinkStats,finishTime);
+            return new TaskStats(processStats,sinkStats,finishTime);
         }
         
         public long getStartTime() {

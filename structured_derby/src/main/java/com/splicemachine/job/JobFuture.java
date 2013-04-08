@@ -46,18 +46,5 @@ public interface JobFuture {
 
     double getEstimatedCost() throws ExecutionException;
 
-    int getNumTasks() throws ExecutionException;
-
-    int getNumCompletedTasks() throws ExecutionException;
-
-    int getNumFailedTasks() throws ExecutionException;
-
-    /**
-     * When a Job is cancelled, some tasks within that job may have already completed or failed. This number
-     * is the number of jobs that were cancelled <em>before</em> completing or failing.
-     *
-     * @return
-     * @throws ExecutionException
-     */
-    int getNumCancelledTasks() throws ExecutionException;
+    JobStats getJobStats();
 }

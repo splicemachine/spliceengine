@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.job.scheduler;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.job.*;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
@@ -17,8 +18,10 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Scott Fines
@@ -34,7 +37,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
     @Override
     public JobFuture submit(final J job) throws ExecutionException {
         try {
-            WatchingFuture future = new WatchingFuture(submitTasks(job));
+            WatchingFuture future = new WatchingFuture(job.getJobId(),submitTasks(job));
             future.attachWatchers();
             return future;
         } catch (Throwable throwable) {
@@ -60,16 +63,19 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         private final Set<TaskFuture> completedFutures;
         private final Set<TaskFuture> failedFutures;
         private final Set<TaskFuture> cancelledFutures;
+        private final AtomicInteger invalidatedCount = new AtomicInteger(0);
+        private final ZkJobStats stats;
 
         private volatile Status currentStatus = Status.PENDING;
 
-        private WatchingFuture(Collection<? extends WatchingTask> taskFutures) {
+        private WatchingFuture(String jobName,Collection<? extends WatchingTask> taskFutures) {
             this.taskFutures = taskFutures;
 
             this.changedFutures = new LinkedBlockingQueue<TaskFuture>();
             this.completedFutures = Collections.newSetFromMap(new ConcurrentHashMap<TaskFuture, Boolean>());
             this.failedFutures = Collections.newSetFromMap(new ConcurrentHashMap<TaskFuture, Boolean>());
             this.cancelledFutures = Collections.newSetFromMap(new ConcurrentHashMap<TaskFuture, Boolean>());
+            this.stats = new ZkJobStats(jobName,this);
         }
 
         private void attachWatchers() throws ExecutionException {
@@ -81,6 +87,10 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                  */
                 Status status = taskFuture.getStatus();
                 switch (status) {
+                    case INVALID:
+                        invalidatedCount.incrementAndGet();
+                        taskFuture.manageInvalidated();
+                        break;
                     case FAILED:
                         failedFutures.add(taskFuture);
                         break;
@@ -139,6 +149,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                             changedFuture.complete(); //will throw an ExecutionException immediately
                             break;
                         case COMPLETED:
+                            this.stats.taskStatsMap.put(changedFuture.getTaskId(),changedFuture.getTaskStats());
                             completedFutures.add(changedFuture); //found the next completed task
                             return;
                         case CANCELLED:
@@ -175,29 +186,71 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         }
 
         @Override
-        public int getNumTasks() throws ExecutionException {
-            return taskFutures.size();
-        }
-
-        @Override
-        public int getNumCompletedTasks() throws ExecutionException {
-            return completedFutures.size();
-        }
-
-        @Override
-        public int getNumFailedTasks() throws ExecutionException {
-            return failedFutures.size();
-        }
-
-        @Override
-        public int getNumCancelledTasks() throws ExecutionException {
-            return cancelledFutures.size();
+        public JobStats getJobStats() {
+            return stats;
         }
 
         public void cleanup() throws ExecutionException{
             for(WatchingTask task:taskFutures){
                task.cleanup();
             }
+        }
+    }
+
+    protected class ZkJobStats implements JobStats{
+        private final WatchingFuture future;
+        private final Map<String,TaskStats> taskStatsMap = new ConcurrentHashMap<String, TaskStats>();
+        private final long start = System.nanoTime();
+        private final String jobName;
+
+        public ZkJobStats(String jobName,WatchingFuture future) {
+            this.future = future;
+            this.jobName = jobName;
+        }
+
+        @Override
+        public int getNumTasks() {
+            return future.taskFutures.size();
+        }
+
+        @Override
+        public long getTotalTime() {
+            return System.nanoTime()-start;
+        }
+
+        @Override
+        public int getNumSubmittedTasks()  {
+            return future.taskFutures.size()-getNumInvalidatedTasks();
+        }
+
+        @Override
+        public int getNumCompletedTasks(){
+            return future.completedFutures.size();
+        }
+
+        @Override
+        public int getNumFailedTasks() {
+            return future.failedFutures.size();
+        }
+
+        @Override
+        public int getNumInvalidatedTasks() {
+            return future.invalidatedCount.get();
+        }
+
+        @Override
+        public int getNumCancelledTasks() {
+            return future.cancelledFutures.size();
+        }
+
+        @Override
+        public Map<String, TaskStats> getTaskStats() {
+            return taskStatsMap;
+        }
+
+        @Override
+        public String getJobName() {
+            return jobName;
         }
     }
 
@@ -260,6 +313,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                 Status runningStatus = getStatus();
                 switch (runningStatus) {
                     case INVALID:
+                        jobFuture.invalidatedCount.incrementAndGet();
                         manageInvalidated();
                     case FAILED:
                         throw new ExecutionException(status.getError());
@@ -305,16 +359,21 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
             /*
              * Delete the status node for this task to signal that we've cancelled the task
              */
-//            try {
-//                zooKeeper.delete(context.getTaskNode()+"/status",-1);
-//            } catch (InterruptedException e) {
-//                throw new ExecutionException(e);
-//            } catch (KeeperException e) {
-//                if(e.code()== KeeperException.Code.NONODE){
-//                    //ignore, cause it's already been removed
-//                }
-//                throw new ExecutionException(e);
-//            }
+            try {
+                zooKeeper.delete(context.getTaskNode()+"/status",-1);
+            } catch (InterruptedException e) {
+                throw new ExecutionException(e);
+            } catch (KeeperException e) {
+                if(e.code()== KeeperException.Code.NONODE){
+                    //ignore, cause it's already been removed
+                }
+                throw new ExecutionException(e);
+            }
+        }
+
+        @Override
+        public TaskStats getTaskStats() {
+            return status.getStats();
         }
 
         @Override
@@ -324,7 +383,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
 
         public void cleanup() throws ExecutionException {
             try{
-            zooKeeper.delete(context.getTaskNode()+"/status",-1);
+                zooKeeper.delete(context.getTaskNode()+"/status",-1);
             }catch(KeeperException e){
                 //ignore it if it's already deleted
                if(e.code()!= KeeperException.Code.NONODE)

@@ -2,12 +2,9 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.index.CreateIndexJob;
-import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
@@ -25,12 +22,9 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 

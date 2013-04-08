@@ -14,7 +14,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -29,18 +29,6 @@ import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.utils.SpliceLogUtils;
 
 public class RowCountOperation extends SpliceBaseOperation {
 	private static final long serialVersionUID = 11111;
@@ -345,8 +333,8 @@ public class RowCountOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public SinkStats sink() { // gd not sure I want any of this, or at least the sorted part
-        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+	public TaskStats sink() { // gd not sure I want any of this, or at least the sorted part
+        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for RowCountOperation at "+stats.getStartTime());
 		SpliceLogUtils.trace(LOG, "sink");
@@ -361,7 +349,7 @@ public class RowCountOperation extends SpliceBaseOperation {
                 long start = System.nanoTime();
                 row = getNextRowCore();
                 if(row ==null)continue;
-                stats.processAccumulator().tick(System.nanoTime()-start);
+                stats.readAccumulator().tick(System.nanoTime()-start);
 
                 start = System.nanoTime();
                 SpliceLogUtils.trace(LOG, "row="+row);
@@ -370,7 +358,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 
                 tempTable.put(put);
 
-                stats.sinkAccumulator().tick(System.nanoTime()-start);
+                stats.writeAccumulator().tick(System.nanoTime()-start);
             }while(row!=null);
             tempTable.flushCommits();
 			tempTable.close();
@@ -387,7 +375,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 			}
 		}
         //return stats.finish();
-		SinkStats ss = stats.finish();
+		TaskStats ss = stats.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for RowCountOperation at "+stats.getFinishTime());
         return ss;
 	}

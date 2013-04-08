@@ -8,10 +8,11 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -20,8 +21,10 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -33,16 +36,18 @@ import java.util.concurrent.ExecutionException;
  */
 public abstract class MultiScanRowProvider implements RowProvider {
     private static final Logger LOG = Logger.getLogger(MultiScanRowProvider.class);
+
     @Override
-    public void shuffleRows( SpliceObserverInstructions instructions,
-                            RegionStats stats) throws StandardException {
+    public JobStats shuffleRows( SpliceObserverInstructions instructions) throws StandardException {
         List<Scan> scans = getScans();
         HTableInterface table = SpliceAccessManager.getHTable(getTableName());
         LinkedList<JobFuture> jobs = Lists.newLinkedList();
         LinkedList<JobFuture> completedJobs = Lists.newLinkedList();
+        List<JobStats> stats = Lists.newArrayList();
         try{
+            long start = System.nanoTime();
             for(Scan scan:scans){
-                jobs.add(doShuffle(table, instructions, stats, scan));
+                jobs.add(doShuffle(table, instructions, scan));
             }
 
             //we have to wait for all of them to complete, so just wait in order
@@ -52,7 +57,12 @@ public abstract class MultiScanRowProvider implements RowProvider {
                     JobFuture next = jobs.pop();
                     next.completeAll();
                     completedJobs.add(next);
+                    stats.add(next.getJobStats());
                 }
+
+                long stop = System.nanoTime();
+                //construct the job stats to return
+                return new CompositeJobStats(stats,stop-start);
             } catch (InterruptedException e) {
                 error = e;
                 throw Exceptions.parseException(e);
@@ -107,7 +117,7 @@ public abstract class MultiScanRowProvider implements RowProvider {
     /*private helper methods*/
     private JobFuture doShuffle(HTableInterface table,
                            SpliceObserverInstructions instructions,
-                           RegionStats stats, Scan scan) throws StandardException {
+                           Scan scan) throws StandardException {
         SpliceUtils.setInstructions(scan, instructions);
         OperationJob job = new OperationJob(scan,instructions,table);
         try {
@@ -117,35 +127,86 @@ public abstract class MultiScanRowProvider implements RowProvider {
         }
     }
 
-    private static class Callback implements Batch.Callback<SinkStats>{
-        private final RegionStats stats;
+    private class CompositeJobStats implements JobStats {
+        private final List<JobStats> stats;
+        private final long totalTime;
 
-        private Callback(RegionStats stats) {
-            this.stats = stats;
+        public CompositeJobStats(List<JobStats> stats, long totalTime) {
+            this.stats= stats;
+            this.totalTime = totalTime;
         }
 
         @Override
-        public void update(byte[] region, byte[] row, SinkStats result) {
-            this.stats.addRegionStats(region,result);
-        }
-    }
-
-    private static class Call implements Batch.Call<SpliceOperationProtocol,SinkStats>{
-        private final Scan scan;
-        private final SpliceObserverInstructions instructions;
-
-        private Call(Scan scan, SpliceObserverInstructions instructions) {
-            this.scan = scan;
-            this.instructions = instructions;
-        }
-
-        @Override
-        public SinkStats call(SpliceOperationProtocol instance) throws IOException {
-            try {
-                return instance.run(scan,instructions);
-            } catch (StandardException e) {
-                throw new IOException(e);
+        public int getNumTasks() {
+            int numTasks=0;
+            for(JobStats stat:stats){
+                numTasks+=stat.getNumTasks();
             }
+            return numTasks;
+        }
+
+        @Override
+        public long getTotalTime() {
+            return totalTime;
+        }
+
+        @Override
+        public int getNumSubmittedTasks() {
+            int numTasks=0;
+            for(JobStats stat:stats){
+                numTasks+=stat.getNumSubmittedTasks();
+            }
+            return numTasks;
+        }
+
+        @Override
+        public int getNumCompletedTasks() {
+            int numTasks=0;
+            for(JobStats stat:stats){
+                numTasks+=stat.getNumCompletedTasks();
+            }
+            return numTasks;
+        }
+
+        @Override
+        public int getNumFailedTasks() {
+            int numTasks=0;
+            for(JobStats stat:stats){
+                numTasks+=stat.getNumFailedTasks();
+            }
+            return numTasks;
+        }
+
+        @Override
+        public int getNumInvalidatedTasks() {
+            int numTasks=0;
+            for(JobStats stat:stats){
+                numTasks+=stat.getNumInvalidatedTasks();
+            }
+            return numTasks;
+        }
+
+        @Override
+        public int getNumCancelledTasks() {
+            int numTasks=0;
+            for(JobStats stat:stats){
+                numTasks+=stat.getNumCancelledTasks();
+            }
+            return numTasks;
+        }
+
+        @Override
+        public Map<String, TaskStats> getTaskStats() {
+            Map<String,TaskStats> allTaskStats = new HashMap<String,TaskStats>();
+            for(JobStats stat:stats){
+                allTaskStats.putAll(stat.getTaskStats());
+            }
+            return allTaskStats;
+        }
+
+        @Override
+        public String getJobName() {
+            return "multiScanJob"; //TODO -sf- use a better name here
         }
     }
 }

@@ -7,21 +7,18 @@ import java.util.concurrent.CountDownLatch;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.job.JobStats;
+import com.splicemachine.job.JobStatsUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.hbase.SpliceOperationProtocol;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation.NodeType;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class OperationBranch {
@@ -80,33 +77,10 @@ public class OperationBranch {
 
 		HTableInterface htable = null;
 		try{
-            SpliceLogUtils.debug(LOG,"Exec Coprocessor against table=%s",Bytes.toString(table));
-            final RegionStats regionStats = new RegionStats(opName);
-            regionStats.start();
-			final SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
-            rowProvider.shuffleRows(instructions,regionStats);
-            /*
-			htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),
-                    new Batch.Call<SpliceOperationProtocol,SinkStats>(){
-				@Override
-				public SinkStats call( SpliceOperationProtocol instance)
-								throws IOException {
-					try{
-						return instance.run(scan,instructions);
-					}catch(StandardException se){
-						SpliceLogUtils.logAndThrow(LOG, "Unexpected error executing coprocessor",new IOException(se));
-					}
-                    return null;
-				}
-			},new Batch.Callback<SinkStats>() {
-                        @Override
-                        public void update(byte[] region, byte[] row, SinkStats result) {
-                            regionStats.addRegionStats(region,result);
-                        }
-                    });
-            regionStats.finish();
-            regionStats.recordStats(LOG);
-            */
+            SpliceLogUtils.debug(LOG, "Exec Coprocessor against table=%s", Bytes.toString(table));
+			final SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation, topOperation);
+            JobStats stats = rowProvider.shuffleRows(instructions);
+            JobStatsUtils.logStats(stats,LOG);
 		}finally{
 			if(htable !=null ){
 				try{

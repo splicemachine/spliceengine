@@ -11,7 +11,7 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -209,8 +209,8 @@ public class MergeSortJoinOperation extends JoinOperation {
 
 	
 	@Override		
-	public SinkStats sink() {
-        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+	public TaskStats sink() {
+        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for MergeSortJoin at "+stats.getStartTime());
 		SpliceLogUtils.trace(LOG, "sink with joinSide= %s",joinSide);
@@ -239,7 +239,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 
                 row = resultSet.getNextRowCore();
                 if(row==null)continue;
-                stats.processAccumulator().tick(System.nanoTime()-start);
+                stats.readAccumulator().tick(System.nanoTime()-start);
 
                 start = System.nanoTime();
                 SpliceLogUtils.trace(LOG, "sinking row %s",row);
@@ -247,7 +247,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                 put = Puts.buildInsert(rowKey, row.getRowArray(),null, null,serializer, additionalDescriptors);
                 put.setWriteToWAL(false); // Seeing if this speeds stuff up a bit...
                 tempTable.put(put);
-                stats.sinkAccumulator().tick(System.nanoTime()-start);
+                stats.writeAccumulator().tick(System.nanoTime()-start);
             }while(row!=null);
 			tempTable.flushCommits();
 			tempTable.close();
@@ -264,7 +264,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 			}
 		}
         //return stats.finish();
-		SinkStats ss = stats.finish();
+		TaskStats ss = stats.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for MergeSortJoin at "+stats.getFinishTime());
         return ss;
 	}

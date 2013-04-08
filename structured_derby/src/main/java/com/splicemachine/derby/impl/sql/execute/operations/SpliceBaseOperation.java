@@ -8,9 +8,11 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.job.JobStats;
+import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
@@ -555,7 +557,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	@Override		
-	public SinkStats sink() throws IOException {
+	public TaskStats sink() throws IOException {
 		throw new RuntimeException("Sink Not Implemented for this node " + this.getClass());					
 	}
 
@@ -599,17 +601,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         nextTime+= System.currentTimeMillis()-start;
         HTableInterface htable = null;
         try{
-            regionStats = new RegionStats(this.getClass().getName());
-            regionStats.start();
 
             SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),topOperation);
-            rowProvider.shuffleRows(soi,regionStats);
-
-            regionStats.finish();
-            regionStats.recordStats(LOG);
-            nextTime += regionStats.getTotalTimeTakenMs();
-            rowsSunk=regionStats.getTotalSunkRecords();
-            SpliceLogUtils.trace(LOG,"Sunk %d records",regionStats.getTotalSunkRecords());
+            JobStats stats = rowProvider.shuffleRows(soi);
+            JobStatsUtils.logStats(stats,LOG);
         }finally{
             if(htable!=null){
                 try {
@@ -646,10 +641,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 //
 //			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), topOperation);
 //			htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),
-//													new Batch.Call<SpliceOperationProtocol,SinkStats>(){
+//													new Batch.Call<SpliceOperationProtocol,TaskStats>(){
 //
 //				@Override
-//				public SinkStats call(
+//				public TaskStats call(
 //						SpliceOperationProtocol instance)
 //								throws IOException {
 //					try{
@@ -659,10 +654,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 //						return null;
 //					}
 //				}
-//			},new Batch.Callback<SinkStats>(){
+//			},new Batch.Callback<TaskStats>(){
 //
 //						@Override
-//						public void update(byte[] region, byte[] row, SinkStats result) {
+//						public void update(byte[] region, byte[] row, TaskStats result) {
 //                            regionStats.addRegionStats(region,result);
 //						}
 //					});

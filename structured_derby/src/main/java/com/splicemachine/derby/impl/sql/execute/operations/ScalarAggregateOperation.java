@@ -8,7 +8,7 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.Accumulator;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -24,7 +24,6 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -242,8 +241,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 	
 	@Override
-	public SinkStats sink() throws IOException {
-        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+	public TaskStats sink() throws IOException {
+        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for ScalaAggregation at "+stats.getStartTime());
 		ExecRow row;
@@ -252,7 +251,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 			HTableInterface tempTable = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
             Serializer serializer = new Serializer();
             do{
-                row = doAggregation(false,stats.processAccumulator());
+                row = doAggregation(false,stats.readAccumulator());
                 if(row==null)continue;
 
                 long pTs = System.nanoTime();
@@ -264,7 +263,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                 SpliceLogUtils.trace(LOG, "put=%s",put);
                 tempTable.put(put);
 
-                stats.sinkAccumulator().tick(System.nanoTime() - pTs);
+                stats.writeAccumulator().tick(System.nanoTime() - pTs);
             }while(row!=null);
 			tempTable.flushCommits();
 			tempTable.close();
@@ -272,7 +271,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             throw Exceptions.getIOException(se);
 		}
         //return stats.finish();
-		SinkStats ss = stats.finish();
+		TaskStats ss = stats.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for ScalarAggregation at "+stats.getFinishTime());
         return ss;
 	}

@@ -4,10 +4,12 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.Status;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si2.txn.TransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.sql.Activation;
@@ -79,7 +81,9 @@ public class SinkTask extends ZooKeeperTask {
             SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),opContext);
 
             SpliceLogUtils.trace(LOG,"sinking task %s",getTaskId());
-            spliceScanner.sink();
+            TaskStats stats = spliceScanner.sink();
+            status.setStats(stats);
+
             SpliceLogUtils.trace(LOG,"task %s sunk successfully, closing",getTaskId());
             spliceScanner.close();
         } catch (SQLException e) {

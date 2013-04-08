@@ -4,6 +4,7 @@ import java.util.Iterator;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.stats.RegionStats;
+import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
@@ -40,11 +41,9 @@ public interface RowProvider extends Iterator<ExecRow>  {
      * Execute the constructed instructions against all the rows provided by this row provider.
      *
      * @param instructions the instructions to execute
-     * @param stats the statistics table to gather
      * @throws StandardException if something goes wrong during the shuffle phase
      */
-    void shuffleRows(SpliceObserverInstructions instructions,
-                     RegionStats stats) throws StandardException;
+    JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException;
 
     /**
      * Gets the "table name" of the backing storage, or {@code null} if there is none.

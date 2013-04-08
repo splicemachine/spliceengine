@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -393,6 +394,11 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T>,
         @Override
         public String getTaskId() {
             return task.getTaskId();
+        }
+
+        @Override
+        public TaskStats getTaskStats() {
+            return task.getTaskStatus().getStats();
         }
 
         @Override

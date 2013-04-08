@@ -1,7 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import com.splicemachine.derby.stats.SinkStats;
-import org.apache.derby.iapi.sql.Activation;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 
 import java.io.IOException;
