@@ -58,4 +58,9 @@ public class TransactionStruct {
         }
         return parent.getRootBeginTimestamp();
     }
+
+    public boolean isCacheable() {
+        return (status != null && (status.equals(TransactionStatus.ERROR) || status.equals(TransactionStatus.ABORT) ||
+                (status.equals(TransactionStatus.COMMITED) && commitTimestamp != null)));
+    }
 }

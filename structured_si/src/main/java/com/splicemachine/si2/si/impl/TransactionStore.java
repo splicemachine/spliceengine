@@ -1,5 +1,6 @@
 package com.splicemachine.si2.si.impl;
 
+import com.google.common.cache.Cache;
 import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.STable;
@@ -20,17 +21,19 @@ public class TransactionStore {
 
     private final SDataLib dataLib;
     private final STableReader reader;
+    private final Cache<Long, TransactionStruct> transactionCache;
     private final STableWriter writer;
 
     private final TransactionSchema transactionSchema;
     private final TransactionSchema encodedSchema;
 
     public TransactionStore(TransactionSchema transactionSchema, SDataLib dataLib,
-                            STableReader reader, STableWriter writer) {
+                            STableReader reader, STableWriter writer, Cache<Long,TransactionStruct> transactionCache) {
         this.transactionSchema = transactionSchema;
         this.encodedSchema = transactionSchema.encodedSchema(dataLib);
         this.dataLib = dataLib;
         this.reader = reader;
+        this.transactionCache = transactionCache;
         this.writer = writer;
     }
 
@@ -64,6 +67,10 @@ public class TransactionStore {
     }
 
     public TransactionStruct getTransactionStatus(TransactionId transactionId) throws IOException {
+        final TransactionStruct cachedTransactionStruct = transactionCache.getIfPresent(transactionId.getId());
+        if (cachedTransactionStruct != null) {
+            return cachedTransactionStruct;
+        }
         Object tupleKey = dataLib.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
 
         STable transactionSTable = reader.open(transactionSchema.tableName);
@@ -89,13 +96,17 @@ public class TransactionStore {
                     children.add(Long.valueOf((String) dataLib.decode(child, String.class)));
                 }
 
-                return new TransactionStruct(transactionId.getId(),
+                final TransactionStruct result = new TransactionStruct(transactionId.getId(),
                         parent, children,
                         getBooleanFieldFromResult(resultTuple, encodedSchema.dependentQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.allowWritesQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.readUncommittedQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.readCommittedQualifier),
                         status, commitTimestamp);
+                if (result.isCacheable()) {
+                    transactionCache.put(transactionId.getId(), result);
+                }
+                return result;
             }
         } finally {
             reader.close(transactionSTable);

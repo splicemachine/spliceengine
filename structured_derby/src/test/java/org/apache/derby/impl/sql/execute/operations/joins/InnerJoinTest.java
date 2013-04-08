@@ -159,7 +159,7 @@ public class InnerJoinTest extends SpliceUnitTest {
         List<Map> results = TestUtils.resultSetToMaps(rs);
 
         Assert.assertEquals(2, results.size());
-
+                                                                                       Si
         Map first = results.get(0);
         Map second = results.get(1);
 
