@@ -148,9 +148,11 @@
                     <includes>
                         <include>${runClass}</include>
                     </includes>
+   				<!--
    				<parallel>classes</parallel>
             	<threadCount>3</threadCount>
-				</configuration>
+            	-->
+                </configuration>
 				<dependencies>
 					<dependency>
 						<groupId>com.splicemachine</groupId>
