@@ -5,7 +5,10 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.ByteDataOutput;
 import com.splicemachine.job.Status;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.MD5Hash;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
@@ -22,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
     protected final Logger LOG;
     protected RecoverableZooKeeper zooKeeper;
+    private String statusNode;
 
     protected ZooKeeperTask(){
         super(null);
@@ -51,25 +55,10 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
             setTaskId(taskId);
 
             byte[] statusData = status.toBytes();
-            String statusNode = zooKeeper.create(taskId+"/status",statusData,ZooDefs.Ids.OPEN_ACL_UNSAFE,
+            statusNode = zooKeeper.create(taskId+"/status",statusData,ZooDefs.Ids.OPEN_ACL_UNSAFE,
                     CreateMode.PERSISTENT);
-            //call exists() on status to make sure that we notice cancellations
-            Stat stat = zooKeeper.exists(statusNode,new Watcher() {
-                @Override
-                public void process(WatchedEvent event) {
-                    if(event.getType()!=Event.EventType.NodeDeleted)
-                        return; //nothing to do
-                    try{
-                        markCancelled(false);
-                    }catch(ExecutionException ee){
-                        SpliceLogUtils.error(LOG,"Unable to cancel task with id "+ getTaskId(),ee.getCause());
-                    }
-                }
-            });
-            if(stat==null){
-                //we've already been cancelled!
-                markCancelled(true);
-            }
+            checkNotCancelled();
+
         } catch (IOException e) {
             throw new ExecutionException(e);
         } catch (InterruptedException e) {
@@ -83,23 +72,39 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
 
     @Override
     public void markCancelled() throws ExecutionException {
+        SpliceLogUtils.trace(LOG,"Marking task %s cancelled",taskId);
         markCancelled(true);
     }
 
     @Override
     public void markStarted() throws ExecutionException, CancellationException {
+        SpliceLogUtils.trace(LOG,"Marking task %s started",taskId);
         status.setStatus(Status.EXECUTING);
         updateStatus(true);
+        //reset the cancellation watch to notify us if the node is deleted
+        checkNotCancelled();
+
     }
 
     @Override
     public void markCompleted() throws ExecutionException {
+        SpliceLogUtils.trace(LOG,"Marking task %s completed",taskId);
         status.setStatus(Status.COMPLETED);
         updateStatus(false);
+
     }
 
     @Override
     public void markFailed(Throwable error) throws ExecutionException {
+        switch (status.getStatus()) {
+            case INVALID:
+            case FAILED:
+            case COMPLETED:
+                SpliceLogUtils.warn(LOG,"Received task error after entering "+status.getStatus()+" state, ignoring",error);
+                return;
+        }
+
+        SpliceLogUtils.trace(LOG,"Marking task %s failed",taskId);
         status.setError(error);
         status.setStatus(Status.FAILED);
         updateStatus(false);
@@ -107,6 +112,7 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
 
     @Override
     public void markInvalid() throws ExecutionException {
+        SpliceLogUtils.trace(LOG,"Marking task %s invalid",taskId);
         status.setStatus(Status.INVALID);
         updateStatus(false);
     }
@@ -130,6 +136,7 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
     }
 
     private void markCancelled(boolean propagate) throws ExecutionException{
+        SpliceLogUtils.trace(LOG,"cancelling task %s "+(propagate ? ", propagating cancellation state":"not propagating state"),taskId);
         switch (status.getStatus()) {
             case FAILED:
             case COMPLETED:
@@ -143,8 +150,37 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
     }
 
     private static String buildTaskId(HRegion region,String taskType) {
-        return CoprocessorTaskScheduler.baseQueueNode+
-                "/"+region.getTableDesc().getNameAsString()+
-                "/"+region.getRegionNameAsString()+"/"+taskType+"-";
+        HRegionInfo regionInfo = region.getRegionInfo();
+        return CoprocessorTaskScheduler.getRegionQueue(regionInfo)+"/"+taskType+"-";
     }
+
+    private void checkNotCancelled()throws ExecutionException {
+        SpliceLogUtils.trace(LOG,"Attaching existence watcher to task %s",taskId);
+        //call exists() on status to make sure that we notice cancellations
+        Stat stat;
+        try {
+            stat = zooKeeper.exists(statusNode,new Watcher() {
+                @Override
+                public void process(WatchedEvent event) {
+                    SpliceLogUtils.trace(LOG,"Received WatchedEvent "+ event.getType());
+                    if(event.getType()!=Event.EventType.NodeDeleted)
+                        return; //nothing to do
+                    try{
+                        markCancelled(false);
+                    }catch(ExecutionException ee){
+                        SpliceLogUtils.error(LOG, "Unable to cancel task with id " + getTaskId(), ee.getCause());
+                    }
+                }
+            });
+            if(stat==null){
+                //we've already been cancelled!
+                markCancelled(false);
+            }
+        } catch (KeeperException e) {
+            throw new ExecutionException(e);
+        } catch (InterruptedException e) {
+            throw new ExecutionException(e);
+        }
+    }
+
 }

@@ -1,6 +1,7 @@
 package com.splicemachine.job;
 
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.*;
 import java.util.Collections;

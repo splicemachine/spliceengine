@@ -4,14 +4,13 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJobScheduler;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.ThreadedTaskScheduler;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.ZkUtils;
 import com.splicemachine.hbase.TableWriter;
-import com.splicemachine.job.JobScheduler;
-import com.splicemachine.job.Task;
-import com.splicemachine.job.TaskScheduler;
+import com.splicemachine.job.*;
 import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.drda.NetworkServerControl;
@@ -75,6 +74,7 @@ public class SpliceDriver {
     private ConnectionPool embeddedConnections;
     private ThreadedTaskScheduler threadTaskScheduler;
     private JobScheduler jobScheduler;
+    private TaskMonitor taskMonitor;
 
     private SpliceDriver(){
         ThreadFactory factory = new ThreadFactoryBuilder()
@@ -94,6 +94,8 @@ public class SpliceDriver {
             threadTaskScheduler.start();
 
             jobScheduler = new CoprocessorJobScheduler(ZkUtils.getRecoverableZooKeeper(),SpliceUtils.config);
+
+            taskMonitor = new ZkTaskMonitor(CoprocessorTaskScheduler.baseQueueNode,ZkUtils.getRecoverableZooKeeper());
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
@@ -257,6 +259,10 @@ public class SpliceDriver {
             //register TaskScheduler
             ObjectName taskSchedulerName = new ObjectName("com.splicemachine.task:type=TaskSchedulerManagement");
             mbs.registerMBean(threadTaskScheduler,taskSchedulerName);
+
+            //register TaskMonitor
+            ObjectName taskMonitorName = new ObjectName("com.splicemachine.task:type=TaskMonitor");
+            mbs.registerMBean(taskMonitor,taskMonitorName);
 
         } catch (MalformedObjectNameException e) {
             //we want to log the message, but this shouldn't affect startup

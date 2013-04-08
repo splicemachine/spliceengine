@@ -419,6 +419,7 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T>,
                     executingThread = Thread.currentThread();
                     return;
                 case CANCELLED:
+                    SpliceLogUtils.trace(LOG,"Task "+ task.getTaskId()+" has been cancelled");
                     if(executingThread!=null){
                         executingThread.interrupt();
                     }

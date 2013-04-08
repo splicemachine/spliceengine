@@ -8,9 +8,11 @@ import com.splicemachine.derby.utils.ZkUtils;
 import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.MD5Hash;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -32,7 +34,6 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     private static final Logger LOG = Logger.getLogger(CoprocessorTaskScheduler.class);
     private TaskScheduler<RegionTask> taskScheduler;
     private RecoverableZooKeeper zooKeeper;
-    private volatile String baseTaskQueueNode;
     private Set<RegionTask> runningTasks =
             Collections.newSetFromMap(new ConcurrentHashMap<RegionTask, Boolean>());
     public static String baseQueueNode;
@@ -47,8 +48,8 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         zooKeeper = rce.getRegionServerServices().getZooKeeper().getRecoverableZooKeeper();
         try {
             HRegion region = rce.getRegion();
-            String regionQueueNode = baseQueueNode+"/"+region.getTableDesc().getNameAsString()+"/"+region.getRegionNameAsString();
-            ZkUtils.recursiveSafeCreate(regionQueueNode,new byte[]{},ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
+            String regionQueueNode = getRegionQueue(region.getRegionInfo());
+            ZkUtils.recursiveSafeCreate(regionQueueNode, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         } catch (KeeperException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
@@ -96,6 +97,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
                         case FAILED:
                         case COMPLETED:
                         case CANCELLED:
+                            LOG.trace("Removing task "+task.getTaskId()+" from running task list");
                             runningTasks.remove(task);
                             break;
                     }
@@ -109,6 +111,19 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         } catch (ExecutionException e) {
             Throwable t = Throwables.getRootCause(e);
             throw Exceptions.getIOException(t);
+        }
+    }
+
+    public static String getRegionQueue(HRegionInfo info){
+        String queue = CoprocessorTaskScheduler.baseQueueNode+"/"+info.getTableNameAsString();
+
+        byte[] startKey = info.getStartKey();
+        if(startKey==null)
+            return queue+"/_";
+        else{
+            byte[] regionName = new byte[startKey.length];
+            System.arraycopy(startKey,0,regionName,0,startKey.length);
+            return queue+"/"+ MD5Hash.getMD5AsHex(regionName);
         }
     }
 }
