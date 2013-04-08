@@ -33,7 +33,7 @@ public class SpliceWatcher extends TestWatcher {
 	}
 
 	public Connection getOrCreateConnection() throws Exception {
-		if (currentConnection == null)
+		if (currentConnection == null || !currentConnection.isValid(10))
 			createConnection();
 		return currentConnection;
 	}
@@ -107,6 +107,7 @@ public class SpliceWatcher extends TestWatcher {
 		closeResultSets();
 		closeStatements();
 		closeConnections();
+        currentConnection = null;
 	}
 
 	public ResultSet executeQuery(String sql) throws Exception {
