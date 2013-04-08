@@ -149,7 +149,7 @@
                         <include>${runClass}</include>
                     </includes>
    				<!--
-   				<parallel>classes</parallel>
+   	    		<parallel>classes</parallel>
             	<threadCount>3</threadCount>
             	-->
                 </configuration>
