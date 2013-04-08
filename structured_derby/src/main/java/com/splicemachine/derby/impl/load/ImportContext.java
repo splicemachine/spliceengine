@@ -26,6 +26,9 @@ public class ImportContext implements Externalizable{
 	private static final long serialVersionUID = 3l;
 	protected static final String DEFAULT_COLUMN_DELIMITTER = ",";
 	protected static final String DEFAULT_STRIP_STRING = "\"";
+    
+    private String transactionId;
+    
 	//the path to the file to import
 	private Path filePath;
 	//the delimiter which separates columns
@@ -61,7 +64,8 @@ public class ImportContext implements Externalizable{
 
     public ImportContext(){}
 
-    private ImportContext(Path filePath,
+    private ImportContext(String transactionId,
+                          Path filePath,
                           long destTableId,
                           String columnDelimiter,
                           String stripString,
@@ -69,6 +73,7 @@ public class ImportContext implements Externalizable{
                           FormatableBitSet activeCols,
                           FormatableBitSet pkCols,
                           String timestampFormat){
+        this.transactionId = transactionId;
 		this.filePath = filePath;
 		this.columnDelimiter = columnDelimiter!= null?columnDelimiter:DEFAULT_COLUMN_DELIMITTER;
 		this.stripString = stripString!=null?stripString:DEFAULT_STRIP_STRING;
@@ -113,7 +118,8 @@ public class ImportContext implements Externalizable{
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeUTF(filePath.toString());
+		out.writeUTF(transactionId);
+        out.writeUTF(filePath.toString());
 		out.writeLong(tableId);
 		out.writeUTF(columnDelimiter);
 		out.writeBoolean(stripString!=null);
@@ -136,6 +142,7 @@ public class ImportContext implements Externalizable{
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        transactionId = in.readUTF();
 		filePath = new Path(in.readUTF());
 		tableId = in.readLong();
 		columnDelimiter = in.readUTF();
@@ -156,7 +163,8 @@ public class ImportContext implements Externalizable{
 	@Override
 	public String toString() {
 		return "ImportContext{" +
-				"filePath=" + filePath +
+                "transactionId=" + transactionId +
+				", filePath=" + filePath +
 				", columnDelimiter='" + columnDelimiter + '\'' +
 				", stripString='" + stripString + '\'' +
 				", columnTypes=" + Arrays.toString(columnTypes) +
@@ -170,6 +178,10 @@ public class ImportContext implements Externalizable{
         return pkCols;
     }
 
+    public String getTransactionId() {
+        return transactionId;
+    }
+
     public static class Builder{
 		private Path filePath;
 		private Long tableId;
@@ -180,6 +192,7 @@ public class ImportContext implements Externalizable{
 		private String timestampFormat;
 		private int numCols = -1;
         private FormatableBitSet pkCols;
+        private String transactionId;
 
         public Builder path(Path filePath) {
 			this.filePath = filePath;
@@ -232,6 +245,10 @@ public class ImportContext implements Externalizable{
             return this;
         }
 
+        public Builder transactionId(String transactionId) {
+            this.transactionId = transactionId;
+            return this;
+        }
 		public ImportContext build() throws StandardException {
 			Preconditions.checkNotNull(filePath,"No File specified!");
 			Preconditions.checkNotNull(tableId,"No destination table specified!");
@@ -264,7 +281,7 @@ public class ImportContext implements Externalizable{
                 }
             }
 
-            return new ImportContext(filePath,tableId,
+            return new ImportContext(transactionId, filePath,tableId,
                     columnDelimiter,stripString,
                     colTypes,activeCols,pkCols,
                     timestampFormat);

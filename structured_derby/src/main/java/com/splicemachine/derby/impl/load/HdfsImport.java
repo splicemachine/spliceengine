@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
 import com.splicemachine.derby.stats.SinkStats;
@@ -11,7 +13,9 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
 import org.apache.derby.shared.common.reference.SQLState;
@@ -68,30 +72,48 @@ public class HdfsImport extends ParallelVTI {
 	private final ImportContext context;
 	private HBaseAdmin admin;
 
-    public static void SYSCS_IMPORT_DATA(String schemaName,String tableName,
-                                              String insertColumnList, String columnIndexes,
-                                              String fileName,String columnDelimiter,
-                                              String characterDelimiter,
-                                              String timestampFormat) throws SQLException{
-        Connection conn = getDefaultConn();
-        try{
-            importData(conn,schemaName,tableName,
-                    insertColumnList,fileName,columnDelimiter,
-                    characterDelimiter,timestampFormat);
-        }catch(SQLException se){
-           try{
-               conn.rollback();
-           }catch(SQLException e){
-               se.setNextException(e);
-           }
-            throw se;
-        }
+    public static void SYSCS_IMPORT_DATA(String schemaName, String tableName,
+                                         String insertColumnList, String columnIndexes,
+                                         String fileName, String columnDelimiter,
+                                         String characterDelimiter,
+                                         String timestampFormat) throws SQLException {
 
-        conn.commit();
+        Connection conn = null;
+        try {
+            try {
+                conn = SpliceDriver.driver().acquireConnection();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+            final String transactionId = SpliceObserverInstructions.getTransactionId(lcc);
+            try {
+                importData(transactionId, conn, schemaName, tableName,
+                        insertColumnList, fileName, columnDelimiter,
+                        characterDelimiter, timestampFormat);
+            } catch (SQLException se) {
+                try {
+                    conn.rollback();
+                } catch (SQLException e) {
+                    se.setNextException(e);
+                }
+                throw se;
+            }
+
+            conn.commit();
+        } finally {
+            try {
+                if (conn != null) {
+                    SpliceDriver.driver().closeConnection(conn);
+                }
+            } catch (SQLException e) {
+                SpliceLogUtils.error(LOG, "Unable to close index connection", e);
+            }
+        }
     }
 
 
-    public static ResultSet importData(Connection connection,
+    public static ResultSet importData(String transactionId, Connection connection,
                                        String schemaName,String tableName,
                                        String insertColumnList,String inputFileName,
                                        String delimiter,String charDelimiter) throws SQLException{
@@ -121,7 +143,7 @@ public class HdfsImport extends ParallelVTI {
 		return importer;
 	}
 
-	public static ResultSet importData(Connection connection,
+	public static ResultSet importData(String transactionId, Connection connection,
 								String schemaName,String tableName,
 								String insertColumnList,String inputFileName,
 								String delimiter,String charDelimiter,String timestampFormat) throws SQLException{
@@ -135,7 +157,8 @@ public class HdfsImport extends ParallelVTI {
                     .path(inputFileName)
                     .stripCharacters(charDelimiter)
                     .colDelimiter(delimiter)
-                    .timestampFormat(timestampFormat);
+                    .timestampFormat(timestampFormat)
+                    .transactionId(transactionId);
 
 
 		buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder);

@@ -2,12 +2,16 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.test.framework.SpliceEmbedConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.apache.commons.dbutils.DbUtils;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -68,8 +72,11 @@ public class HdfsImportTest extends SpliceUnitTest {
 	private void testImport(String schemaName, String tableName,String location,String colList) throws Exception {
 		Connection connection = null;
 		try {
-			connection = SpliceEmbedConnection.getConnection();
-			HdfsImport.importData(connection, schemaName, tableName.toUpperCase(), colList, location, ",","\"");
+			connection = SpliceDriver.driver().acquireConnection();
+            LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
+            final String transactionId = SpliceObserverInstructions.getTransactionId(lcc);
+
+            HdfsImport.importData(transactionId, connection, schemaName, tableName.toUpperCase(), colList, location, ",","\"");
 			ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",schemaName,tableName));
 			List<String> results = Lists.newArrayList();
 			while(rs.next()){
@@ -85,7 +92,9 @@ public class HdfsImportTest extends SpliceUnitTest {
 			Assert.assertTrue("no rows imported!",results.size()>0);
 		} catch (Exception e) {
 			DbUtils.closeQuietly(connection);
-		}
+		} finally {
+            SpliceDriver.driver().closeConnection(connection);
+        }
 	}
 
 	@Test

@@ -125,7 +125,12 @@ public class SpliceObserverInstructions implements Externalizable {
 	}
 
     private static String getTransactionId(Activation activation) {
-        final ContextManager contextManager = activation.getLanguageConnectionContext().getContextManager();
+        final LanguageConnectionContext languageConnectionContext = activation.getLanguageConnectionContext();
+        return getTransactionId(languageConnectionContext);
+    }
+
+    public static String getTransactionId(LanguageConnectionContext languageConnectionContext) {
+        final ContextManager contextManager = languageConnectionContext.getContextManager();
         SpliceTransactionManagerContext stmc = (SpliceTransactionManagerContext) contextManager.getContext(AccessFactoryGlobals.RAMXACT_CONTEXT_ID);
         final SpliceTransactionManager transactionManager = stmc.getTransactionManager();
         final SpliceTransaction transaction = (SpliceTransaction) transactionManager.getRawStoreXact();

@@ -113,7 +113,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 					SpliceLogUtils.trace(LOG,"inserting line %s",text);
 					pos+=newSize;
                     String[] cols = csvParser.parseLine(text.toString());
-                    doImportRow(cols, context.getActiveCols(), row, writeBuffer,rowSerializer,serializer);
+                    doImportRow(context.getTransactionId(), cols, context.getActiveCols(), row, writeBuffer,rowSerializer,serializer);
 					numImported++;
 				}
 			}
@@ -150,7 +150,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
             CSVReader csvReader = getCsvReader(reader,context);
             String[] line;
 			while((line = csvReader.readNext())!=null){
-                doImportRow(line,context.getActiveCols(), row,writeBuffer,rowSerializer,serializer);
+                doImportRow(context.getTransactionId(), line,context.getActiveCols(), row,writeBuffer,rowSerializer,serializer);
 
 				numImported++;
                 if(numImported%100==0){
@@ -192,7 +192,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
         return delimiter.charAt(0);
     }
 
-    private void doImportRow(String[] line,FormatableBitSet activeCols, ExecRow row,
+    private void doImportRow(String transactionId, String[] line,FormatableBitSet activeCols, ExecRow row,
                              CallBuffer<Mutation> writeBuffer,
                              RowSerializer rowSerializer,Serializer serializer) throws IOException {
         try{
@@ -209,7 +209,8 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
                     row.getColumn(line.length).setValue(line[line.length-1]);
                 }
             }
-            Put put = Puts.buildInsertWithoutTransactionId(rowSerializer.serialize(row.getRowArray()), row.getRowArray(), null, serializer); //TODO -sf- add transaction stuff
+            Put put = Puts.buildInsertWithSerializer(rowSerializer.serialize(row.getRowArray()), row.getRowArray(),
+                    null, transactionId, serializer);
             writeBuffer.add(put);
         }catch(StandardException se){
             throw new DoNotRetryIOException(se.getMessageId());

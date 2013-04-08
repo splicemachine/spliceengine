@@ -135,10 +135,9 @@ public class Puts {
         return buildInsert(rowKey,row,validColumns,SpliceUtils.NA_TRANSACTION_ID,serializer);
     }
 
-    public static Put buildInsertWithoutTransactionId(byte[] rowKey, DataValueDescriptor[] row,
-                                           FormatableBitSet validColumns, Serializer serializer) throws IOException {
-        // TODO: this method needs to be removed, code using it should be providing a transaction ID
-        return buildInsert(rowKey,row,validColumns,SpliceUtils.NA_TRANSACTION_ID,serializer);
+    public static Put buildInsertWithSerializer(byte[] rowKey, DataValueDescriptor[] row,
+                                                FormatableBitSet validColumns, String transactionId, Serializer serializer) throws IOException {
+        return buildInsert(rowKey,row,validColumns,transactionId,serializer);
     }
 
     public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row, FormatableBitSet validColumns,
