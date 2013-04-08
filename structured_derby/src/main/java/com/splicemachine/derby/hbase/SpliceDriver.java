@@ -247,14 +247,17 @@ public class SpliceDriver {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         try{
             //register ConnectionPool
-            ObjectName connPoolName = new ObjectName("com.splicemachine.execution:type=PoolStatus");
-
+            ObjectName connPoolName = new ObjectName("com.splicemachine.connection:type=ConnectionPoolStatus");
             mbs.registerMBean(embeddedConnections,connPoolName);
 
             //register TableWriter
             ObjectName writerName = new ObjectName("com.splicemachine.writer:type=WriterStatus");
-
             mbs.registerMBean(writerPool,writerName);
+
+            //register TaskScheduler
+            ObjectName taskSchedulerName = new ObjectName("com.splicemachine.task:type=TaskSchedulerManagement");
+            mbs.registerMBean(threadTaskScheduler,taskSchedulerName);
+
         } catch (MalformedObjectNameException e) {
             //we want to log the message, but this shouldn't affect startup
             SpliceLogUtils.error(LOG,"Unable to register JMX entries",e);

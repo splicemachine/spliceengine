@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -29,12 +30,14 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Scott Fines
  * Created on: 4/3/13
  */
-public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T> {
+public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T>,TaskSchedulerManagement {
     private static final Logger LOG = Logger.getLogger(ThreadedTaskScheduler.class);
     private final int numWorkers;
     private AtomicReference< Worker> nextWorker = new AtomicReference<Worker>();
     private final ExecutorService executor;
     private volatile boolean started = false;
+
+    private final StatsListener stats = new StatsListener();
 
     private ThreadedTaskScheduler(int numWorkers) {
         this.numWorkers = numWorkers;
@@ -81,6 +84,7 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T> 
 
     @Override
     public TaskFuture submit(T task) throws ExecutionException {
+        stats.submittedCount.incrementAndGet();
         boolean success = false;
         Worker worker = null;
         while(!success){
@@ -88,6 +92,8 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T> 
             Worker next = worker.next;
             success = nextWorker.compareAndSet(worker,next);
         }
+        stats.numPending.incrementAndGet();
+        task.getTaskStatus().attachListener(stats);
         return worker.addTask(task);
     }
 
@@ -102,8 +108,120 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T> 
         return new ThreadedTaskScheduler<T>(numWorkers);
     }
 
+    @Override
+    public int getNumPendingTasks() {
+        return stats.numPending.get();
+    }
+
+    @Override
+    public int getNumWorkers() {
+        return numWorkers; //TODO -sf- make this JMX manageable
+    }
+
+    @Override
+    public long getTotalSubmittedTasks() {
+        return stats.submittedCount.get();
+    }
+
+    @Override
+    public long getTotalCompletedTasks() {
+        return stats.completedCount.get();
+    }
+
+    @Override
+    public long getTotalFailedTasks() {
+        return stats.failedCount.get();
+    }
+
+    @Override
+    public long getTotalCancelledTasks() {
+        return stats.cancelledCount.get();
+    }
+
+    @Override
+    public long getTotalInvalidatedTasks() {
+        return stats.invalidatedCount.get();
+    }
+
+    @Override
+    public int getNumRunningTasks() {
+        return stats.numExecuting.get();
+    }
+
+    @Override
+    public int getHighestWorkerLoad() {
+        Worker start = nextWorker.get();
+        int maxWorkerLoad = start.tasks.size();
+        Worker next = start.next;
+        while(next!=start){
+            int size = next.tasks.size();
+            if(maxWorkerLoad < size)
+                maxWorkerLoad = size;
+            next = next.next;
+        }
+        return maxWorkerLoad;
+    }
+
+    @Override
+    public int getLowestWorkerLoad() {
+        Worker start = nextWorker.get();
+        int minWorkerLoad = start.tasks.size();
+        Worker next = start.next;
+        while(next!=start){
+            int size = next.tasks.size();
+            if(minWorkerLoad > size)
+                minWorkerLoad = size;
+            next = next.next;
+        }
+        return minWorkerLoad;
+    }
+
     /*********************************************************************************************************************/
     /*private helper methods*/
+
+    private class StatsListener implements TaskStatus.StatusListener{
+        /*Statistics for management and monitoring*/
+        private final AtomicLong submittedCount = new AtomicLong(0l);
+        private final AtomicLong completedCount = new AtomicLong(0l);
+        private final AtomicLong failedCount = new AtomicLong(0l);
+        private final AtomicLong cancelledCount = new AtomicLong(0l);
+        private final AtomicLong invalidatedCount = new AtomicLong(0l);
+
+        private final AtomicInteger numPending = new AtomicInteger(0);
+        private final AtomicInteger numExecuting = new AtomicInteger(0);
+
+        @Override
+        public void statusChanged(Status oldStatus, Status newStatus, TaskStatus taskStatus) {
+            switch (oldStatus) {
+                case PENDING:
+                    numPending.decrementAndGet();
+                    break;
+                case EXECUTING:
+                    numExecuting.decrementAndGet();
+                    break;
+            }
+            switch (newStatus) {
+                case FAILED:
+                    failedCount.incrementAndGet();
+                    taskStatus.detachListener(this);
+                    return;
+                case COMPLETED:
+                    completedCount.incrementAndGet();
+                    taskStatus.detachListener(this);
+                    return;
+                case CANCELLED:
+                    cancelledCount.incrementAndGet();
+                    taskStatus.detachListener(this);
+                case INVALID:
+                    invalidatedCount.incrementAndGet();
+                    taskStatus.detachListener(this);
+                    return;
+                case EXECUTING:
+                    numExecuting.incrementAndGet();
+            }
+        }
+    }
+
 
     /*
      * Worker abstraction. Does the actual Task execution in a big loop
@@ -141,6 +259,9 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T> 
                         SpliceLogUtils.trace(LOG,"task has been cancelled already, no need to execute it");
                         //this task has been cancelled! time to try again
                         continue;
+                    }else if(nextTask.isInvalidated()){
+                        SpliceLogUtils.trace(LOG,"Task has been invalidated, skipping execution");
+                        continue;
                     }
                 } catch (ExecutionException e) {
                     LOG.error("task "+ nextTask.toString()+"had an unexpected error while checking cancellation",e.getCause());
@@ -152,6 +273,7 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T> 
                 try{
                     SpliceLogUtils.trace(LOG,"Marking task as executing");
                     nextTask.markStarted();
+
                     try{
                         SpliceLogUtils.trace(LOG,"Executing task");
                         nextTask.execute();
@@ -166,6 +288,9 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T> 
                         //been cancelled in some way
                         //so make sure the task is marked, and then cycle back to the next task
                         nextTask.markCancelled();
+                        //clear the interruption flag because an interruption here indicates that
+                        //the task needed to be cancelled
+                        Thread.interrupted();
                         continue;
                     }
                     //we made it!

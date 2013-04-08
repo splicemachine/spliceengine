@@ -75,6 +75,11 @@ public abstract class DurableTask implements Task,Externalizable {
         status.setStatus(Status.INVALID);
     }
 
+    @Override
+    public boolean isInvalidated() {
+        return status.getStatus()==Status.INVALID;
+    }
+
     public void setTaskId(String taskId){
         this.taskId = taskId;
     }

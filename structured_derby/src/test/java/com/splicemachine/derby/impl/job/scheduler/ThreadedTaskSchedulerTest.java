@@ -218,6 +218,11 @@ public class ThreadedTaskSchedulerTest {
         public void markInvalid() {
             invalid.incrementAndGet();
         }
+
+        @Override
+        public boolean isInvalidated() {
+            return taskStatus.getStatus().equals(Status.INVALID);
+        }
     }
 
     private class FailTask extends CountDownTask{

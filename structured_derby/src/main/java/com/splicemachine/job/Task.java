@@ -26,4 +26,6 @@ public interface Task {
     TaskStatus getTaskStatus();
 
     void markInvalid() throws ExecutionException;
+
+    boolean isInvalidated();
 }
