@@ -51,7 +51,7 @@ public class TaskStatus implements Externalizable{
     public byte[] toBytes() throws IOException {
         ByteArrayOutputStream baos= new ByteArrayOutputStream();
         ObjectOutput oo = new ObjectOutputStream(baos);
-        writeExternal(oo);
+        oo.writeObject(this);
         oo.flush();
         return baos.toByteArray();
     }

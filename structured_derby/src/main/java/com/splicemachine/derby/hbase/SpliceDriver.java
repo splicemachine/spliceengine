@@ -5,7 +5,8 @@ import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJobScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
-import com.splicemachine.derby.impl.job.scheduler.ThreadedTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.WorkStealingThreadedTaskScheduler;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.ZkUtils;
@@ -72,7 +73,7 @@ public class SpliceDriver {
 
     private ExecutorService executor;
     private ConnectionPool embeddedConnections;
-    private ThreadedTaskScheduler threadTaskScheduler;
+    private TaskScheduler threadTaskScheduler;
     private JobScheduler jobScheduler;
     private TaskMonitor taskMonitor;
 
@@ -88,11 +89,12 @@ public class SpliceDriver {
 
             embeddedConnections = ConnectionPool.create(SpliceUtils.config);
 
-            int numTaskThreads = SpliceUtils.config.getInt("splice.sink.maxConcurrentTasks",DEFAULT_MAX_CONCURRENT_TASKS);
-            SpliceLogUtils.trace(LOG,"Enabling %d tasks to run concurrently",numTaskThreads);
-            threadTaskScheduler = ThreadedTaskScheduler.create(numTaskThreads);
-            threadTaskScheduler.start();
+//            int numTaskThreads = SpliceUtils.config.getInt("splice.sink.maxConcurrentTasks",DEFAULT_MAX_CONCURRENT_TASKS);
+//            SpliceLogUtils.trace(LOG,"Enabling %d tasks to run concurrently",numTaskThreads);
+//            threadTaskScheduler = WorkStealingThreadedTaskScheduler.create(numTaskThreads);
+//            ((WorkStealingThreadedTaskScheduler)threadTaskScheduler).start();
 
+            threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
             jobScheduler = new CoprocessorJobScheduler(ZkUtils.getRecoverableZooKeeper(),SpliceUtils.config);
 
             taskMonitor = new ZkTaskMonitor(CoprocessorTaskScheduler.baseQueueNode,ZkUtils.getRecoverableZooKeeper());

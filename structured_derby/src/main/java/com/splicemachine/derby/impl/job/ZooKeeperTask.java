@@ -54,7 +54,7 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
                     ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
             setTaskId(taskId);
 
-            byte[] statusData = status.toBytes();
+            byte[] statusData = statusToBytes();
             statusNode = zooKeeper.create(taskId+"/status",statusData,ZooDefs.Ids.OPEN_ACL_UNSAFE,
                     CreateMode.PERSISTENT);
             checkNotCancelled();

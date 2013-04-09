@@ -31,8 +31,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Scott Fines
  * Created on: 4/3/13
  */
-public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T>,TaskSchedulerManagement {
-    private static final Logger LOG = Logger.getLogger(ThreadedTaskScheduler.class);
+public class WorkStealingThreadedTaskScheduler<T extends Task> implements TaskScheduler<T>,TaskSchedulerManagement {
+    private static final Logger LOG = Logger.getLogger(WorkStealingThreadedTaskScheduler.class);
     private final int numWorkers;
     private AtomicReference< Worker> nextWorker = new AtomicReference<Worker>();
     private final ExecutorService executor;
@@ -40,7 +40,7 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T>,
 
     private final StatsListener stats = new StatsListener();
 
-    private ThreadedTaskScheduler(int numWorkers) {
+    private WorkStealingThreadedTaskScheduler(int numWorkers) {
         this.numWorkers = numWorkers;
 
         this.executor = Executors.newFixedThreadPool(numWorkers,new NamedThreadFactory());
@@ -103,10 +103,10 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T>,
      *
      * @param numWorkers the number of worker threads to use
      * @param <T> the type of TaskScheduler to create
-     * @return a ThreadedTaskScheduler with the specified number of workers.
+     * @return a WorkStealingThreadedTaskScheduler with the specified number of workers.
      */
-    public static <T extends Task> ThreadedTaskScheduler<T> create(int numWorkers) {
-        return new ThreadedTaskScheduler<T>(numWorkers);
+    public static <T extends Task> WorkStealingThreadedTaskScheduler<T> create(int numWorkers) {
+        return new WorkStealingThreadedTaskScheduler<T>(numWorkers);
     }
 
     @Override
@@ -115,8 +115,13 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T>,
     }
 
     @Override
-    public int getNumWorkers() {
-        return numWorkers; //TODO -sf- make this JMX manageable
+    public int getCurrentWorkers() {
+        return numWorkers;
+    }
+
+    @Override
+    public int getMaxWorkers() {
+        return numWorkers;
     }
 
     @Override
@@ -175,6 +180,12 @@ public class  ThreadedTaskScheduler<T extends Task> implements TaskScheduler<T>,
             next = next.next;
         }
         return minWorkerLoad;
+    }
+
+    @Override
+    public void setMaxWorkers(int newMaxWorkers) {
+        //TODO -sf- implement!
+        throw new UnsupportedOperationException();
     }
 
     /*********************************************************************************************************************/

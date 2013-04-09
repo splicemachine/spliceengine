@@ -6,12 +6,14 @@ import javax.management.MXBean;
  * @author Scott Fines
  * Created on: 4/5/13
  */
-@MXBean
+@MXBean(true)
 public interface TaskSchedulerManagement {
 
     int getNumPendingTasks();
 
-    int getNumWorkers();
+    int getCurrentWorkers();
+
+    int getMaxWorkers();
 
     long getTotalSubmittedTasks();
 
@@ -28,4 +30,7 @@ public interface TaskSchedulerManagement {
     int getHighestWorkerLoad();
 
     int getLowestWorkerLoad();
+
+    void setMaxWorkers(int maxWorkers);
+
 }

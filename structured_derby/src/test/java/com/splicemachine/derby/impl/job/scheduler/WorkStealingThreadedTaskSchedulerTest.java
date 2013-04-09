@@ -21,13 +21,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Scott Fines
  * Created on: 4/3/13
  */
-public class ThreadedTaskSchedulerTest {
-    private static final Logger LOG = Logger.getLogger(ThreadedTaskSchedulerTest.class);
-    private ThreadedTaskScheduler scheduler = ThreadedTaskScheduler.create(4);
+public class WorkStealingThreadedTaskSchedulerTest {
+    private static final Logger LOG = Logger.getLogger(WorkStealingThreadedTaskSchedulerTest.class);
+    private WorkStealingThreadedTaskScheduler scheduler = WorkStealingThreadedTaskScheduler.create(4);
 
     @Before
     public void setUpTest() throws Exception{
-        scheduler = ThreadedTaskScheduler.create(1);
+        scheduler = WorkStealingThreadedTaskScheduler.create(1);
         scheduler.start();
     }
 

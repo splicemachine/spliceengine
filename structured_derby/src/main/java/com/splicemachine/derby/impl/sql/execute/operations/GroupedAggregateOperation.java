@@ -171,6 +171,11 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
 	@Override		
 	public TaskStats sink() throws IOException{
+        try{
+            Thread.sleep(Long.MAX_VALUE);
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
 		/*
 		 * Sorts the data by sinking into the TEMP table. From there, the 
 		 * getNextRowCore() method can be used to pull the data out in sequence and perform 
