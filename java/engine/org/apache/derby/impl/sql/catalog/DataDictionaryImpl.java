@@ -181,9 +181,6 @@ import java.security.NoSuchAlgorithmException;
 
 import java.sql.Types;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import org.apache.derby.iapi.store.access.FileResource;
 import org.apache.derby.impl.sql.execute.JarUtil;
 
@@ -8086,88 +8083,6 @@ public class DataDictionaryImpl
 
 		@exception StandardException Standard Derby error policy
 	*/
-	
-
-	
-	protected class NonCoreCreation implements Runnable { 
-		private int noncoreCtr;
-		private TransactionController tc;
-		private ExecutionContext ec;
-		public NonCoreCreation(int noncoreCtr, TransactionController tc,ExecutionContext ec) {
-			this.noncoreCtr = noncoreCtr;
-			this.tc = tc;
-			this.ec = ec;
-		}
-		public void run() {
-			try {
-				ContextManager cm  = ContextService.getFactory().newContextManager();
-				cm.pushContext(ec);	
-				ContextService.getFactory().setCurrentContextManager(cm);
-				int catalogNumber = noncoreCtr + NUM_CORE;
-				boolean isDummy = (catalogNumber == SYSDUMMY1_CATALOG_NUM);
-				TabInfoImpl ti = getNonCoreTIByNumber(catalogNumber);
-				makeCatalog(ti, isDummy ? sysIBMSchemaDesc : systemSchemaDesc, tc );
-				if (isDummy)
-					populateSYSDUMMY1(tc);
-				// Clear the table entry for this non-core table,
-				// to allow it to be garbage-collected. The idea
-				// is that a running database might never need to
-				// reference a non-core table after it was created.
-				clearNoncoreTable(noncoreCtr);
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.out.println("Dictionary Table Failure - exiting");
-				System.exit(1);
-			}
-		}
-		
-	
-	}
-
-	
-	
-	protected class CoreCreation implements Runnable { 
-		private int coreCtr;
-		private TransactionController tc;
-		private DataDescriptorGenerator ddg;
-		private ExecutionContext ec;
-		public CoreCreation(int coreCtr, TransactionController tc, DataDescriptorGenerator ddg, ExecutionContext ec) {
-			this.coreCtr = coreCtr;
-			this.tc = tc;
-			this.ddg = ddg;
-			this.ec = ec;
-		}
-		public void run() {
-			try {
-				ContextManager cm  = ContextService.getFactory().newContextManager();
-				cm.pushContext(ec);	
-				ContextService.getFactory().setCurrentContextManager(cm);
-				TabInfoImpl	ti = coreInfo[coreCtr];
-				Properties	heapProperties = ti.getCreateHeapProperties();
-				ti.setHeapConglomerate(
-					createConglomerate(
-								ti.getTableName(),
-								tc,
-								ti.getCatalogRowFactory().makeEmptyRow(),
-								heapProperties
-								)
-					);
-	
-				// bootstrap indexes on core tables before bootstraping the tables themselves
-				if (coreInfo[coreCtr].getNumberOfIndexes() > 0)
-				{
-					bootStrapSystemIndexes(systemSchemaDesc, tc, ddg, ti);
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.out.println("Dictionary Table Failure - exiting " + coreCtr);
-				System.exit(1);
-			}
-		}
-		
-	
-	}
-	
 	protected void createDictionaryTables(Properties params, TransactionController tc,
 			DataDescriptorGenerator ddg)
 					throws StandardException
@@ -8187,20 +8102,31 @@ public class DataDictionaryImpl
 		 * RESOLVE - This loop will eventually drive all of the
 		 * work for creating the core tables.
 		 */
-		ExecutionContext ec = (ExecutionContext)
-				ContextService.getContext(ExecutionContext.CONTEXT_ID);
-				
-		ExecutorService executor = Executors.newFixedThreadPool(4);
-		for (int coreCtr = 0; coreCtr < NUM_CORE; coreCtr++) {
-			executor.execute(new CoreCreation(coreCtr,tc,ddg,ec));
+		for (int coreCtr = 0; coreCtr < NUM_CORE; coreCtr++)
+		{
+			TabInfoImpl	ti = coreInfo[coreCtr];
+
+			Properties	heapProperties = ti.getCreateHeapProperties();
+
+			ti.setHeapConglomerate(
+				createConglomerate(
+							ti.getTableName(),
+							tc,
+							ti.getCatalogRowFactory().makeEmptyRow(),
+							heapProperties
+							)
+				);
+
+			// bootstrap indexes on core tables before bootstraping the tables themselves
+			if (coreInfo[coreCtr].getNumberOfIndexes() > 0)
+			{
+				bootStrapSystemIndexes(systemSchemaDesc, tc, ddg, ti);
+			}
 		}
-		executor.shutdown();
-	    // Wait until all threads are finish
-	    while (!executor.isTerminated()) {
-	    }
-		
+
 		// bootstrap the core tables into the data dictionary
-		for ( int ictr = 0; ictr < NUM_CORE; ictr++ ) {
+		for ( int ictr = 0; ictr < NUM_CORE; ictr++ )
+		{
 			/* RESOLVE - need to do something with COLUMNTYPE in following table creating code */
 			TabInfoImpl			ti = coreInfo[ictr];
 
@@ -8280,16 +8206,25 @@ public class DataDictionaryImpl
 		 * RESOLVE - This loop will eventually drive all of the
 		 * work for creating the non-core tables.
 		 */
-		ExecutorService nonCoreExecutor = Executors.newFixedThreadPool(10);
-		for (int noncoreCtr = 0; noncoreCtr < NUM_NONCORE; noncoreCtr++) {
-			nonCoreExecutor.execute(new NonCoreCreation(noncoreCtr,tc,ec));
+		for (int noncoreCtr = 0; noncoreCtr < NUM_NONCORE; noncoreCtr++)
+		{
+			int catalogNumber = noncoreCtr + NUM_CORE;
+			boolean isDummy = (catalogNumber == SYSDUMMY1_CATALOG_NUM);
+
+			TabInfoImpl ti = getNonCoreTIByNumber(catalogNumber);
+
+			makeCatalog(ti, isDummy ? sysIBMSchemaDesc : systemSchemaDesc, tc );
+
+			if (isDummy)
+				populateSYSDUMMY1(tc);
+
+			// Clear the table entry for this non-core table,
+			// to allow it to be garbage-collected. The idea
+			// is that a running database might never need to
+			// reference a non-core table after it was created.
+			clearNoncoreTable(noncoreCtr);
 		}
 
-		nonCoreExecutor.shutdown();
-	    while (!nonCoreExecutor.isTerminated()) {
-
-	    }
-		
 		//Add ths System Schema
 		addDescriptor(
                 systemSchemaDesc, null, SYSSCHEMAS_CATALOG_NUM, false, tc);
@@ -8350,7 +8285,8 @@ public class DataDictionaryImpl
                                         SchemaDescriptor.STD_DEFAULT_SCHEMA_NAME,
                                         SchemaDescriptor.DEFAULT_USER_NAME,
                                         uuidFactory.recreateUUID( SchemaDescriptor.DEFAULT_SCHEMA_UUID),
-                                        false);  
+                                        false);
+  
   		addDescriptor(appSchemaDesc, null, SYSSCHEMAS_CATALOG_NUM, false, tc);
 	}
 
