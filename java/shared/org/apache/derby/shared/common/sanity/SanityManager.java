@@ -58,8 +58,8 @@ public class SanityManager {
 	 * of the code.
 	 */
 
-	public static final boolean ASSERT = SanityState.ASSERT; // code should use DEBUG
-	public static final boolean DEBUG = SanityState.DEBUG;
+	public static final boolean ASSERT = false;
+	public static final boolean DEBUG = false;
 	
 	public static final String DEBUGDEBUG = "DumpSanityDebug";
 	
