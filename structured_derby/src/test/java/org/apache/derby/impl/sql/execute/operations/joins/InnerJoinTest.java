@@ -1,6 +1,7 @@
 package org.apache.derby.impl.sql.execute.operations.joins;
 
 import com.google.common.collect.Maps;
+import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -22,6 +23,7 @@ import org.junit.runner.Description;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,19 +35,16 @@ public class InnerJoinTest extends SpliceUnitTest {
 	private static Logger LOG = Logger.getLogger(InnerJoinTest.class);
 	private static final Map<String,String> tableMap = Maps.newHashMap();
 
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	public static final String CLASS_NAME = InnerJoinTest.class.getSimpleName().toUpperCase() + "_13";
+	public static final String CLASS_NAME = InnerJoinTest.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME_1 = "A";
 	public static final String TABLE_NAME_2 = "CC";
 	public static final String TABLE_NAME_3 = "DD";
 
-
-
+    protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float)");
 	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(si varchar(40), sa varchar(40))");
 	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME,"(si varchar(40), sa varchar(40))");
-
 
 	@ClassRule
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -87,34 +86,22 @@ public class InnerJoinTest extends SpliceUnitTest {
                         spliceClassWatcher.closeAll();
                     }
                 }
+            }).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+
+                    try {
+                        TestUtils.executeSqlFile(spliceClassWatcher, "small_msdatasample/startup.sql", CLASS_NAME);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
             });
-	
-	@Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-	
-//    static {
-//        tableMap.put("cc", "si varchar(40), sa varchar(40)");
-//        tableMap.put("dd", "si varchar(40), sa varchar(40)");
-//    }
-
-//	@BeforeClass
-//	public static void startup() throws Exception{
-//		DerbyTestRule.start();
-//		rule.createTables();
-//		insertData("cc","dd",rule);
-//        TestUtils.executeSqlFile(rule.getConnection(), "small_msdatasample/startup.sql");
-//	}
-//
-//	@AfterClass
-//	public static void shutdown() throws Exception{
-//		rule.dropTables();
-//        TestUtils.executeSqlFile(rule.getConnection(), "small_msdatasample/shutdown.sql");
-//		DerbyTestRule.shutdown();
-//	}
+    @Rule
+    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
     public static void insertData(String t1,String t2,SpliceWatcher spliceWatcher) throws Exception {
-//        spliceWatcher.setAutoCommit(true);
         PreparedStatement psC = spliceWatcher.prepareStatement("insert into "+t1+" values (?,?)");
         PreparedStatement psD = spliceWatcher.prepareStatement("insert into "+t2+" values (?,?)");
         for (int i =0; i< 10; i++) {
@@ -173,9 +160,9 @@ public class InnerJoinTest extends SpliceUnitTest {
 		Assert.assertEquals(9, j);
     }
 
- /*   @Test
-     public void testThreeTableJoin() throws SQLException {
-        ResultSet rs = rule.executeQuery("select t1.orl_order_id, t2.cst_id, t3.itm_id " +
+    @Test
+     public void testThreeTableJoin() throws Exception {
+        ResultSet rs = executeQuery("select t1.orl_order_id, t2.cst_id, t3.itm_id " +
                 "from order_line t1, customer t2, item t3 " +
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id");
 
@@ -196,9 +183,9 @@ public class InnerJoinTest extends SpliceUnitTest {
     }
 
     @Test
-    public void testThreeTableJoinExtraProjections() throws SQLException {
-        ResultSet rs = rule.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name " +
-                    "from order_line t1, customer t2, item t3 " +
+    public void testThreeTableJoinExtraProjections() throws Exception {
+        ResultSet rs = executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name " +
+                "from order_line t1, customer t2, item t3 " +
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id");
 
         List<Map> results = TestUtils.resultSetToMaps(rs);
@@ -220,8 +207,8 @@ public class InnerJoinTest extends SpliceUnitTest {
     }
 
     @Test
-    public void testThreeTableJoinWithCriteria() throws SQLException {
-        ResultSet rs = rule.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name " +
+    public void testThreeTableJoinWithCriteria() throws Exception {
+        ResultSet rs = executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name " +
                 "from order_line t1, customer t2, item t3 " +
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id" +
                 "      and t2.cst_last_name = 'Deutsch'");
@@ -229,7 +216,7 @@ public class InnerJoinTest extends SpliceUnitTest {
         List<Map> results = TestUtils.resultSetToMaps(rs);
 
         Assert.assertEquals(2, results.size());
-                                                                                       Si
+
         Map first = results.get(0);
         Map second = results.get(1);
 
@@ -245,13 +232,13 @@ public class InnerJoinTest extends SpliceUnitTest {
     }
 
     @Test
-    public void testThreeTableJoinWithSorting() throws SQLException {
-        ResultSet rs1 = rule.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name " +
+    public void testThreeTableJoinWithSorting() throws Exception {
+        ResultSet rs1 = executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name " +
                 "from order_line t1, customer t2, item t3 " +
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id " +
                 "order by orl_order_id asc");
 
-        ResultSet rs2 = rule.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name " +
+        ResultSet rs2 = executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name " +
                 "from order_line t1, customer t2, item t3 " +
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id " +
                 "order by orl_order_id desc");
@@ -272,8 +259,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 
     @Ignore("Throws ArrayIndexOutOfBoundsException might be related to bug 333")
     @Test
-    public void testThreeTableJoinOnItems() throws SQLException{
-        ResultSet rs = rule.executeQuery("select t1.itm_name, t2.sbc_desc, t3.cat_name " +
+    public void testThreeTableJoinOnItems() throws Exception{
+        ResultSet rs = executeQuery("select t1.itm_name, t2.sbc_desc, t3.cat_name " +
                 "from item t1, category_sub t2, category t3 " +
                 "where t1.itm_subcat_id = t2.sbc_id and t2.sbc_category_id = t3.cat_id");
 
@@ -286,8 +273,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 
     @Ignore("Throws ArrayIndexOutOfBoundsException - logged as 333")
     @Test
-    public void testFourTableJoin() throws SQLException {
-        ResultSet rs = rule.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name, t4.sbc_desc " +
+    public void testFourTableJoin() throws Exception {
+        ResultSet rs = executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name, t4.sbc_desc " +
                 "from order_line t1, customer t2, item t3, category_sub t4 " +
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id" +
                 "      and t3.itm_subcat_id = t4.sbc_id");
@@ -300,8 +287,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 
     @Ignore("Throws ArrayIndexOutOfBoundsException - logged as 333")
     @Test
-    public void testFiveTableJoin() throws SQLException {
-        ResultSet rs = rule.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name, t5.cat_name, t4.sbc_desc " +
+    public void testFiveTableJoin() throws Exception {
+        ResultSet rs = executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name, t5.cat_name, t4.sbc_desc " +
                 "from order_line t1, customer t2, item t3, category_sub t4, category t5 " +
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id" +
                 "      and t3.itm_subcat_id = t4.sbc_id and t4.sbc_category_id = t5.cat_id");
@@ -314,9 +301,9 @@ public class InnerJoinTest extends SpliceUnitTest {
 
     @Ignore("Currently failing, written up as bug 338")
     @Test
-    public void testSelfJoin() throws SQLException {
+    public void testSelfJoin() throws Exception {
 
-        ResultSet rs = rule.executeQuery("select t1.cst_first_name, t1.cst_last_name, t2.cst_first_name as fn2, t2.cst_last_name as ln2, t1.cst_age_years " +
+        ResultSet rs = executeQuery("select t1.cst_first_name, t1.cst_last_name, t2.cst_first_name as fn2, t2.cst_last_name as ln2, t1.cst_age_years " +
                 "from customer t1, customer t2 " +
                 "where t1.cst_age_years = t2.cst_age_years and t1.cst_id != t2.cst_id");
 
@@ -324,7 +311,7 @@ public class InnerJoinTest extends SpliceUnitTest {
 
         Assert.assertEquals(2, results.size());
     }
-*/
+
 	@Test
 	public void testScrollableCrossJoin() throws Exception {
 		ResultSet rs = executeQuery("select cc.si, dd.si from cc cross join dd");
