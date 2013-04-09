@@ -9,6 +9,7 @@ import com.splicemachine.si2.data.api.STableWriter;
 import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.DataStore;
+import com.splicemachine.si2.si.impl.ImmutableTransactionStruct;
 import com.splicemachine.si2.si.impl.SiTransactor;
 import com.splicemachine.si2.si.impl.SimpleTimestampSource;
 import com.splicemachine.si2.si.impl.TransactionSchema;
@@ -41,7 +42,8 @@ public class TransactorSetup {
         jobQualifier = dataLib.encode("job");
 
         final Cache<Long,TransactionStruct> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-        transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, cache);
+        final Cache<Long,ImmutableTransactionStruct> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+        transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, cache, immutableCache);
         SiTransactor siTransactor = new SiTransactor(new SimpleTimestampSource(), dataLib, writer,
                 new DataStore(dataLib, reader, writer, "si-needed", "si-transaction-id", "si-delete-put",
                         "_si", "commit", "tombstone", -1, userColumnsFamilyName),

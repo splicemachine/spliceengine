@@ -5,30 +5,21 @@ import com.splicemachine.si2.si.api.TransactionId;
 import java.util.List;
 import java.util.Set;
 
-public class TransactionStruct {
-    public final long beginTimestamp;
-    public final TransactionStruct parent;
+public class TransactionStruct extends ImmutableTransactionStruct {
     public final Set<Long> children;
-    public final Boolean dependent;
-    public final boolean allowWrites;
-    public final Boolean readUncommitted;
-    public final Boolean readCommitted;
     public final TransactionStatus status;
     public final Long commitTimestamp;
+    public final TransactionStruct parent;
 
     public TransactionStruct(long beginTimestamp, TransactionStruct parent, Set<Long> children,
                              Boolean dependent, boolean allowWrites,
                              Boolean readUncommitted, Boolean readCommitted, TransactionStatus status,
                              Long commitTimestamp) {
-        this.beginTimestamp = beginTimestamp;
-        this.parent = parent;
+        super(dependent, allowWrites, readCommitted, parent, readUncommitted, beginTimestamp);
         this.children = children;
-        this.dependent = dependent;
-        this.allowWrites = allowWrites;
-        this.readUncommitted = readUncommitted;
-        this.readCommitted = readCommitted;
         this.status = status;
         this.commitTimestamp = commitTimestamp;
+        this.parent = parent;
     }
 
     public TransactionStatus getEffectiveStatus() {
@@ -36,27 +27,6 @@ public class TransactionStruct {
             return parent.getEffectiveStatus();
         }
         return status;
-    }
-
-    public boolean getEffectiveReadUncommitted() {
-        if (readUncommitted == null) {
-            return parent.getEffectiveReadUncommitted();
-        }
-        return readUncommitted;
-    }
-
-    public boolean getEffectiveReadCommitted() {
-        if (readCommitted == null) {
-            return parent.getEffectiveReadCommitted();
-        }
-        return readCommitted;
-    }
-
-    public long getRootBeginTimestamp() {
-        if (parent == null) {
-            return beginTimestamp;
-        }
-        return parent.getRootBeginTimestamp();
     }
 
     public boolean isCacheable() {

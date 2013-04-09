@@ -211,8 +211,8 @@ public class SiTransactor implements Transactor, ClientTransactor {
         Boolean siNeeded = dataStore.getSiNeededAttribute(put);
         if (siNeeded != null && siNeeded) {
             SiTransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
-            final TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
-            ensureTransactionAllowsWrites(transactionId);
+            final ImmutableTransactionStruct transaction = transactionStore.getImmutableTransaction(transactionId);
+            ensureTransactionAllowsWrites(transaction);
             Object rowKey = dataLib.getPutKey(put);
             SRowLock lock = dataWriter.lockRow(table, rowKey);
             try {
@@ -234,7 +234,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         dataLib.addAttribute(newPut, "iu", new byte[]{});
     }
 
-    private void checkForConflict(TransactionStruct putTransaction, STable table, SRowLock lock, Object rowKey) throws IOException {
+    private void checkForConflict(ImmutableTransactionStruct putTransaction, STable table, SRowLock lock, Object rowKey) throws IOException {
         Long rootId = putTransaction.getRootBeginTimestamp();
         TransactionId transactionId = new SiTransactionId(putTransaction.beginTimestamp);
         List keyValues = dataStore.getCommitTimestamp(table, rowKey);
@@ -317,8 +317,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         return transaction;
     }
 
-    private void ensureTransactionAllowsWrites(TransactionId transactionId) throws IOException {
-        TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
+    private void ensureTransactionAllowsWrites(ImmutableTransactionStruct transaction) throws IOException {
         if (!transaction.allowWrites) {
             throw new DoNotRetryIOException("transaction is read only");
         }
@@ -335,7 +334,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     @Override
     public FilterState newFilterState(STable table, TransactionId transactionId) throws IOException {
-        return new SiFilterState(table, ensureTransactionActive(transactionId));
+        final ImmutableTransactionStruct immutableTransaction = transactionStore.getImmutableTransaction(transactionId);
+        return new SiFilterState(table, transactionId, immutableTransaction.getEffectiveReadUncommitted(),
+                immutableTransaction.getEffectiveReadCommitted());
     }
 
     @Override
@@ -413,11 +414,11 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     private boolean readDirtyAndActive(SiFilterState siFilterState, Boolean stillRunning) {
-        return siFilterState.transactionStruct.getEffectiveReadUncommitted() && stillRunning;
+        return siFilterState.getEffectiveReadUncommitted() && stillRunning;
     }
 
     private boolean readCommittedAndCommitted(SiFilterState siFilterState, Long commitTimestamp) {
-        return siFilterState.transactionStruct.getEffectiveReadCommitted() && (commitTimestamp != null);
+        return siFilterState.getEffectiveReadCommitted() && (commitTimestamp != null);
     }
 
     private boolean isCommittedBeforeThisTransaction(SiFilterState siFilterState, Long commitTimestamp) {

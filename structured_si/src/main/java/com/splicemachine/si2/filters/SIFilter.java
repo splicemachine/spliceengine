@@ -29,8 +29,6 @@ public class SIFilter extends FilterBase {
         this.transactor = transactor;
         this.startTimestamp = transactionId.getId();
         this.region = region;
-        // this call is so that the filter will fail fast if the transaction is no longer active
-        transactor.newFilterState(region, new SiTransactionId(startTimestamp));
     }
 
     @Override

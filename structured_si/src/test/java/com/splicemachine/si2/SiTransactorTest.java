@@ -270,14 +270,6 @@ public class SiTransactorTest {
             //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
         }
         Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
-        try {
-            read(t2, "joe2");
-            Assert.fail();
-        } catch (RuntimeException e) {
-            DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
-            Assert.assertTrue(dnrio.getMessage().indexOf("transaction is not ACTIVE") >= 0);
-        }
-        Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
         transactor.commit(t1);
         try {
             transactor.commit(t2);
@@ -288,17 +280,11 @@ public class SiTransactorTest {
     }
 
     @Test
-    public void noReadAfterCommit() throws IOException {
+    public void readAfterCommit() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe3", 20);
         transactor.commit(t1);
-        try {
-            read(t1, "joe3");
-            Assert.fail();
-        } catch (RuntimeException e) {
-            DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
-            Assert.assertTrue(dnrio.getMessage().indexOf("transaction is not ACTIVE") >= 0);
-        }
+        Assert.assertEquals("joe3 age=20 job=null", read(t1, "joe3"));
     }
 
     @Test
@@ -460,13 +446,6 @@ public class SiTransactorTest {
             //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
         }
         Assert.assertEquals("joe12 age=20 job=null", read(t1, "joe12"));
-        try {
-            read(t2, "joe12");
-            Assert.fail();
-        } catch (RuntimeException e) {
-            DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
-            Assert.assertTrue(dnrio.getMessage().indexOf("transaction is not ACTIVE") >= 0);
-        }
         Assert.assertEquals("joe12 age=20 job=null", read(t1, "joe12"));
         transactor.commit(t1);
         try {
@@ -494,14 +473,6 @@ public class SiTransactorTest {
             // TODO: expected write/write conflict
             //DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
             //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
-        }
-        Assert.assertEquals("joe13 age=null job=null", read(t1, "joe13"));
-        try {
-            read(t2, "joe13");
-            Assert.fail();
-        } catch (RuntimeException e) {
-            DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
-            Assert.assertTrue(dnrio.getMessage().indexOf("transaction is not ACTIVE") >= 0);
         }
         Assert.assertEquals("joe13 age=null job=null", read(t1, "joe13"));
         transactor.commit(t1);

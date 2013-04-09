@@ -13,6 +13,7 @@ import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.TimestampSource;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.DataStore;
+import com.splicemachine.si2.si.impl.ImmutableTransactionStruct;
 import com.splicemachine.si2.si.impl.SiTransactor;
 import com.splicemachine.si2.si.impl.TransactionSchema;
 import com.splicemachine.si2.si.impl.TransactionStatus;
@@ -76,7 +77,9 @@ public class TransactorFactory {
                 SIConstants.TRANSACTION_READ_COMMITTED_COLUMN_BYTES,
                 SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN, SIConstants.TRANSACTION_STATUS_COLUMN);
         final Cache<Long,TransactionStruct> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-        final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, cache);
+        final Cache<Long,ImmutableTransactionStruct> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+        final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, cache,
+                immutableCache);
 
         final DataStore rowStore = new DataStore(dataLib, reader, writer, "si-needed",
                 "si-transaction-id", "si-delete-put", SIConstants.SNAPSHOT_ISOLATION_FAMILY,
