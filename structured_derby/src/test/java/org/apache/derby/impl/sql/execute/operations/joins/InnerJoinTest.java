@@ -1,32 +1,63 @@
 package org.apache.derby.impl.sql.execute.operations.joins;
 
-import org.junit.Ignore;
-
+import com.google.common.collect.Maps;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
-@Ignore("Ryan")
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+
 public class InnerJoinTest extends SpliceUnitTest {
-	/*
+
 	private static Logger LOG = Logger.getLogger(InnerJoinTest.class);
 	private static final Map<String,String> tableMap = Maps.newHashMap();
 
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	public static final String CLASS_NAME = InnerJoinTest.class.getSimpleName().toUpperCase();
+	public static final String CLASS_NAME = InnerJoinTest.class.getSimpleName().toUpperCase() + "_13";
 	public static final String TABLE_NAME_1 = "A";
-	public static final String TABLE_NAME_2 = "B";
-	
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float)");
-	
-	@ClassRule 
+	public static final String TABLE_NAME_2 = "CC";
+	public static final String TABLE_NAME_3 = "DD";
+
+
+
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float)");
+	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(si varchar(40), sa varchar(40))");
+	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME,"(si varchar(40), sa varchar(40))");
+
+
+	@ClassRule
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher)
+		.around(spliceTableWatcher1)
+        .around(spliceTableWatcher2)
+        .around(spliceTableWatcher3)
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
 				try {
-				PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (si, sa, sc,sd,se) values (?,?,?,?,?)",CLASS_NAME, TABLE_NAME));
+				PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (si, sa, sc,sd,se) values (?,?,?,?,?)",CLASS_NAME, TABLE_NAME_1));
 				for (int i =0; i< 10; i++) {
 					ps.setString(1, "" + i);
 					ps.setString(2, "i");
@@ -43,34 +74,73 @@ public class InnerJoinTest extends SpliceUnitTest {
 				}
 			}
 			
-		});
+		}).around(new SpliceDataWatcher(){
+
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        insertData(CLASS_NAME + ".CC", CLASS_NAME + ".DD", spliceClassWatcher);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    finally {
+                        spliceClassWatcher.closeAll();
+                    }
+                }
+            });
 	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+	@Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 	
-    static {
-        tableMap.put("cc", "si varchar(40), sa varchar(40)");
-        tableMap.put("dd", "si varchar(40), sa varchar(40)");
+//    static {
+//        tableMap.put("cc", "si varchar(40), sa varchar(40)");
+//        tableMap.put("dd", "si varchar(40), sa varchar(40)");
+//    }
+
+//	@BeforeClass
+//	public static void startup() throws Exception{
+//		DerbyTestRule.start();
+//		rule.createTables();
+//		insertData("cc","dd",rule);
+//        TestUtils.executeSqlFile(rule.getConnection(), "small_msdatasample/startup.sql");
+//	}
+//
+//	@AfterClass
+//	public static void shutdown() throws Exception{
+//		rule.dropTables();
+//        TestUtils.executeSqlFile(rule.getConnection(), "small_msdatasample/shutdown.sql");
+//		DerbyTestRule.shutdown();
+//	}
+
+    public static void insertData(String t1,String t2,SpliceWatcher spliceWatcher) throws Exception {
+//        spliceWatcher.setAutoCommit(true);
+        PreparedStatement psC = spliceWatcher.prepareStatement("insert into "+t1+" values (?,?)");
+        PreparedStatement psD = spliceWatcher.prepareStatement("insert into "+t2+" values (?,?)");
+        for (int i =0; i< 10; i++) {
+            psC.setString(1, "" + i);
+            psC.setString(2, "i");
+            psC.executeUpdate();
+            if (i!=9) {
+                psD.setString(1, "" + i);
+                psD.setString(2, "i");
+                psD.executeUpdate();
+            }
+        }
+        spliceWatcher.commit();
     }
 
-	@BeforeClass
-	public static void startup() throws Exception{
-		DerbyTestRule.start();
-		rule.createTables();
-		insertData("cc","dd",rule);
-        TestUtils.executeSqlFile(rule.getConnection(), "small_msdatasample/startup.sql");
-	}
-	
-	@AfterClass
-	public static void shutdown() throws Exception{
-		rule.dropTables();
-        TestUtils.executeSqlFile(rule.getConnection(), "small_msdatasample/shutdown.sql");
-		DerbyTestRule.shutdown();
-	}
+    private String schemafy(String s){
+        return s.replaceAll("cc", CLASS_NAME + ".cc").replaceAll("dd", CLASS_NAME + ".dd");
+    }
+
+    private ResultSet executeQuery(String query) throws Exception{
+        return methodWatcher.executeQuery(schemafy(query));
+    }
 
 	@Test
-	public void testScrollableInnerJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select cc.si, dd.si from cc inner join dd on cc.si = dd.si");
+	public void testScrollableInnerJoin() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, dd.si from cc inner join dd on cc.si = dd.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -86,8 +156,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}
 
 	@Test
-	public void testSinkableInnerJoin() throws SQLException {			
-		ResultSet rs = rule.executeQuery("select cc.si, count(*) from cc inner join dd on cc.si = dd.si group by cc.si");
+	public void testSinkableInnerJoin() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, count(*) from cc inner join dd on cc.si = dd.si group by cc.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -103,7 +173,7 @@ public class InnerJoinTest extends SpliceUnitTest {
 		Assert.assertEquals(9, j);
     }
 
-    @Test
+ /*   @Test
      public void testThreeTableJoin() throws SQLException {
         ResultSet rs = rule.executeQuery("select t1.orl_order_id, t2.cst_id, t3.itm_id " +
                 "from order_line t1, customer t2, item t3 " +
@@ -241,7 +311,6 @@ public class InnerJoinTest extends SpliceUnitTest {
         Assert.assertEquals(10, results.size());
 
     }
-<<<<<<< HEAD
 
     @Ignore("Currently failing, written up as bug 338")
     @Test
@@ -255,11 +324,10 @@ public class InnerJoinTest extends SpliceUnitTest {
 
         Assert.assertEquals(2, results.size());
     }
-
-=======
+*/
 	@Test
-	public void testScrollableCrossJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select cc.si, dd.si from cc cross join dd");
+	public void testScrollableCrossJoin() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, dd.si from cc cross join dd");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -277,8 +345,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 	
 	@Test
         @Ignore("Bug 324")
-	public void testSinkableCrossJoin() throws SQLException {			
-		ResultSet rs = rule.executeQuery("select cc.si, count(*) from cc cross join dd group by cc.si");
+	public void testSinkableCrossJoin() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, count(*) from cc cross join dd group by cc.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -290,8 +358,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}	
 	
 	@Test
-	public void testScrollableVarcharLeftOuterJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select cc.si, dd.si from cc left outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
+	public void testScrollableVarcharLeftOuterJoinWithJoinStrategy() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, dd.si from cc left outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -307,8 +375,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}
 
 	@Test
-	public void testSinkableVarcharLeftOuterJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select cc.si, count(*) from cc left outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
+	public void testSinkableVarcharLeftOuterJoinWithJoinStrategy() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, count(*) from cc left outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -322,16 +390,16 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}
 
 	@Test
-	public void testReturnOutOfOrderJoin() throws SQLException{
-		ResultSet rs = rule.executeQuery("select cc.sa, dd.sa,cc.si from cc inner join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
+	public void testReturnOutOfOrderJoin() throws Exception{
+		ResultSet rs = executeQuery("select cc.sa, dd.sa,cc.si from cc inner join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
 		while(rs.next()){
 			LOG.info(String.format("cc.sa=%s,dd.sa=%s",rs.getString(1),rs.getString(2)));
 		}
 	}
 
 	@Test
-	public void testScrollableInnerJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select cc.si, dd.si from cc inner join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
+	public void testScrollableInnerJoinWithJoinStrategy() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, dd.si from cc inner join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -347,8 +415,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}
 
 	@Test
-	public void testSinkableInnerJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select cc.si, count(*) from cc inner join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
+	public void testSinkableInnerJoinWithJoinStrategy() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, count(*) from cc inner join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -366,8 +434,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 
 	@Test
 	@Ignore ("Bug 325")
-	public void testScrollableVarcharRightOuterJoin() throws SQLException {			
-		ResultSet rs = rule.executeQuery("select cc.si, dd.si from cc right outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
+	public void testScrollableVarcharRightOuterJoinWithJoinStrategy() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, dd.si from cc right outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -384,8 +452,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}	
 	@Test
 	@Ignore ("Bug 325")
-	public void testSinkableVarcharRightOuterJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select cc.si, count(*) from cc right outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
+	public void testSinkableVarcharRightOuterJoinWithJoinStrategy() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, count(*) from cc right outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -399,8 +467,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 		Assert.assertEquals(9, j);
 	}
 	@Test
-	public void testScrollableNaturalJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select cc.si, dd.si from cc natural join dd");
+	public void testScrollableNaturalJoin() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, dd.si from cc natural join dd");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -416,8 +484,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}		
 	
 	@Test
-	public void testSinkableNaturalJoin() throws SQLException {			
-		ResultSet rs = rule.executeQuery("select cc.si, count(*) from cc natural join dd group by cc.si");
+	public void testSinkableNaturalJoin() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, count(*) from cc natural join dd group by cc.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -433,8 +501,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 		Assert.assertEquals(9, j);
 	}	
 	@Test
-	public void testScrollableVarcharLeftOuterJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select f.si, g.si from f left outer join g on f.si = g.si");
+	public void testScrollableVarcharLeftOuterJoin() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, dd.si from cc left outer join dd on cc.si = dd.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -450,8 +518,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}		
 
 	@Test
-	public void testSinkableVarcharLeftOuterJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select f.si, count(*) from f left outer join g on f.si = g.si group by f.si");
+	public void testSinkableVarcharLeftOuterJoin() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, count(*) from cc left outer join dd on cc.si = dd.si group by cc.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -464,8 +532,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}		
 	
 	@Test
-	public void testScrollableVarcharRightOuterJoin() throws SQLException {			
-		ResultSet rs = rule.executeQuery("select f.si, g.si from f right outer join g on f.si = g.si");
+	public void testScrollableVarcharRightOuterJoin() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, dd.si from cc right outer join dd on cc.si = dd.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -481,8 +549,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 		Assert.assertEquals(9, j);
 	}	
 	@Test
-	public void testSinkableVarcharRightOuterJoin() throws SQLException {
-		ResultSet rs = rule.executeQuery("select f.si, count(*) from f right outer join g on f.si = g.si group by f.si");
+	public void testSinkableVarcharRightOuterJoin() throws Exception {
+		ResultSet rs = executeQuery("select cc.si, count(*) from cc right outer join dd on cc.si = dd.si group by cc.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -495,5 +563,5 @@ public class InnerJoinTest extends SpliceUnitTest {
 		}	
 		Assert.assertEquals(9, j);
 	}
-	*/
+
 }
