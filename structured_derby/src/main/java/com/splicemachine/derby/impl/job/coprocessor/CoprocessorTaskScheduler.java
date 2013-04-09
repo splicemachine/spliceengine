@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.ByteDataInput;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.ZkUtils;
@@ -18,10 +19,13 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
@@ -37,6 +41,8 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     private Set<RegionTask> runningTasks =
             Collections.newSetFromMap(new ConcurrentHashMap<RegionTask, Boolean>());
     public static String baseQueueNode;
+
+    private volatile LoadingTask loader;
 
     static{
          baseQueueNode = SpliceUtils.config.get("splice.sink.baseTaskQueueNode",DEFAULT_BASE_TASK_QUEUE_NODE);
@@ -56,8 +62,14 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
             throw new RuntimeException(e);
         }
         taskScheduler = SpliceDriver.driver().getTaskScheduler();
+        loader = new LoadingTask();
 
-        //TODO -sf- read the existing tasks for the region, and schedule them
+        //submit a task to load any outstanding tasks from the zookeeper region queue
+        try {
+            doSubmit(loader,rce);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         super.start(env);
     }
 
@@ -84,6 +96,10 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     @Override
     public TaskFutureContext submit(final RegionTask task) throws IOException {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
+        return doSubmit(task, rce);
+    }
+
+    private TaskFutureContext doSubmit(final RegionTask task, RegionCoprocessorEnvironment rce) throws IOException {
         try {
             runningTasks.add(task);
             /*
@@ -124,6 +140,111 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
             byte[] regionName = new byte[startKey.length];
             System.arraycopy(startKey,0,regionName,0,startKey.length);
             return queue+"/"+ MD5Hash.getMD5AsHex(regionName);
+        }
+    }
+
+    private class LoadingTask implements RegionTask{
+        private HRegion regionToLoad;
+        private volatile TaskStatus status = new TaskStatus(Status.PENDING,null);
+        private RecoverableZooKeeper zooKeeper;
+        private String taskID;
+
+
+        @Override
+        public void markStarted() throws ExecutionException, CancellationException {
+            status.setStatus(Status.EXECUTING);
+        }
+
+        @Override
+        public void markCompleted() throws ExecutionException {
+            status.setStatus(Status.COMPLETED);
+        }
+
+        @Override
+        public void markFailed(Throwable error) throws ExecutionException {
+            status.setError(error);
+            status.setStatus(Status.FAILED);
+        }
+
+        @Override
+        public void markCancelled() throws ExecutionException {
+            status.setStatus(Status.CANCELLED);
+        }
+
+        @Override
+        public void execute() throws ExecutionException, InterruptedException {
+            //get List of Tasks that are waiting on this region's queue
+            String regionQueue = getRegionQueue(regionToLoad.getRegionInfo());
+            List<String> tasks;
+            try{
+                tasks = zooKeeper.getChildren(regionQueue, false);
+            } catch (KeeperException e) {
+                if(e.code()== KeeperException.Code.NONODE){
+                    //probably won't happen, but still
+                    //there are obviously no tasks to load, so no worries there
+                    return;
+                }
+                throw new ExecutionException(e);
+            }
+            for(String taskNode:tasks){
+                try{
+                    ByteDataInput bdi = new ByteDataInput(zooKeeper.getData(regionQueue+"/"+taskNode,false,new Stat()));
+                    Task task = (Task)bdi.readObject();
+                    if(task instanceof RegionTask){
+                        RegionTask regionTask = (RegionTask)task;
+                        regionTask.prepareTask(regionToLoad, zooKeeper);
+                        taskScheduler.submit(regionTask);
+                    }
+                } catch (KeeperException e) {
+                    //skip any tasks which were cancelled on us
+                    if(e.code()!= KeeperException.Code.NONODE){
+                       throw new ExecutionException(e);
+                    }
+                } catch (ClassNotFoundException e) {
+                    throw new ExecutionException(e);
+                } catch (IOException e) {
+                    throw new ExecutionException(e);
+                }
+            }
+        }
+
+        @Override
+        public boolean isCancelled() throws ExecutionException {
+            return status.getStatus()==Status.CANCELLED;
+        }
+
+        @Override
+        public String getTaskId() {
+            if(taskID ==null){
+                taskID = getRegionQueue(regionToLoad.getRegionInfo())+"/loadingTask";
+            }
+            return taskID;
+        }
+
+        @Override
+        public TaskStatus getTaskStatus() {
+            return status;
+        }
+
+        @Override
+        public void markInvalid() throws ExecutionException {
+            status.setStatus(Status.INVALID);
+        }
+
+        @Override
+        public boolean isInvalidated() {
+            return status.getStatus()==Status.INVALID;
+        }
+
+        @Override
+        public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
+            this.regionToLoad =region;
+            this.zooKeeper = zooKeeper;
+        }
+
+        @Override
+        public boolean invalidateOnClose() {
+            return true;
         }
     }
 }
