@@ -347,11 +347,18 @@ public class IndexChanger
                 // they can delete the base rows by dropping the system objects
                 // like stored statements.
 
+
+                 /*
+                 dem 2013/04/10 - temporarily comment this out while
+                 we are getting snapshot isolation DDL support in
+                 place
+
 				if (SanityManager.DEBUG)
 					SanityManager.THROWASSERT(
                         "Index row "+RowUtil.toString(ourIndexRow)+
                         " not found in conglomerateid " + indexCID +
                         "Current scan = " + indexSC);
+                */
 
                 Object[] args = new Object[2];
                 args[0] = ourIndexRow.getRowArray()[ourIndexRow.getRowArray().length - 1];
