@@ -85,8 +85,13 @@ public class SpliceOperationContext {
                     scanner = region.getScanner(scan);
 //								scanner = region.getCoprocessorHost().postScannerOpen(scan,scanner);
                 }
-            }else
-                scanner = region.getScanner(scan);
+            } else {
+                scanner = region.getCoprocessorHost().preScannerOpen(scan);
+                if (scanner == null) {
+                    scanner = region.getScanner(scan);
+                }
+            }
+
         }
         return scanner;
     }
