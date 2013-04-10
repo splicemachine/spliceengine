@@ -431,7 +431,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         return ((dataStatus == TransactionStatus.ACTIVE
                 || dataStatus == TransactionStatus.COMMITTING
                 || dataStatus == TransactionStatus.COMMITED)
-                && dataTransaction.getRootBeginTimestamp() == siFilterState.immutableTransactionStruct.beginTimestamp);
+                && dataTransaction.getRootBeginTimestamp() == siFilterState.immutableTransactionStruct.getRootBeginTimestamp());
     }
 
     private void filterProcessCommitTimestamp(Object keyValue, SiFilterState siFilterState) throws IOException {

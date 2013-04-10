@@ -660,6 +660,22 @@ public class SiTransactorTest {
     }
 
     @Test
+    public void childDependentSeesParentWrites() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe40", 20);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        Assert.assertEquals("joe40 age=20 job=null", read(t2, "joe40"));
+    }
+
+    @Test
+    public void childIndependentSeesParentWrites() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe41", 20);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
+        Assert.assertEquals("joe41 age=20 job=null", read(t2, "joe41"));
+    }
+
+    @Test
     public void childDependentTransactionWriteRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe25", 20);
