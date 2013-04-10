@@ -43,59 +43,22 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
     public TaskFuture submit(T task) throws ExecutionException {
         ListeningFuture future = new ListeningFuture(task,statsListener.numPending.incrementAndGet());
         task.getTaskStatus().attachListener(statsListener);
-        future.future = executor.submit(new TaskCallable<T>(task));
+        future.future = executor.submit(new TaskCallable<T>(task, statsListener));
         return future;
     }
 
-    @Override
-    public int getNumPendingTasks() {
-        return statsListener.numPending.get();
-    }
-
-    @Override
-    public int getCurrentWorkers() {
-        return executor.getPoolSize();
-    }
-
-    @Override
-    public int getMaxWorkers() {
-        return executor.getCorePoolSize();
-    }
-
-    @Override
-    public void setMaxWorkers(int newMaxWorkers) {
-        executor.setCorePoolSize(newMaxWorkers);
-    }
-
-    @Override
-    public long getTotalSubmittedTasks() {
-        return executor.getTaskCount();
-    }
-
-    @Override
-    public long getTotalCompletedTasks() {
-        return statsListener.completedCount.get();
-    }
-
-    @Override
-    public long getTotalFailedTasks() {
-        return statsListener.failedCount.get();
-    }
-
-    @Override
-    public long getTotalCancelledTasks() {
-        return statsListener.cancelledCount.get();
-    }
-
-    @Override
-    public long getTotalInvalidatedTasks() {
-        return statsListener.invalidatedCount.get();
-    }
-
-    @Override
-    public int getNumRunningTasks() {
-        return statsListener.numExecuting.get();
-    }
+/*********************************************************************************************************************/
+    /*Statistics gathering*/
+    @Override public int getNumPendingTasks() { return statsListener.numPending.get(); }
+    @Override public int getCurrentWorkers() { return executor.getPoolSize(); }
+    @Override public int getMaxWorkers() { return executor.getCorePoolSize(); }
+    @Override public void setMaxWorkers(int newMaxWorkers) { executor.setCorePoolSize(newMaxWorkers); }
+    @Override public long getTotalSubmittedTasks() { return executor.getTaskCount(); }
+    @Override public long getTotalCompletedTasks() { return statsListener.completedCount.get(); }
+    @Override public long getTotalFailedTasks() { return statsListener.failedCount.get(); }
+    @Override public long getTotalCancelledTasks() { return statsListener.cancelledCount.get(); }
+    @Override public long getTotalInvalidatedTasks() { return statsListener.invalidatedCount.get(); }
+    @Override public int getNumRunningTasks() { return statsListener.numExecuting.get(); }
 
     @Override
     public int getHighestWorkerLoad() {
@@ -111,9 +74,11 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
 
     private static class TaskCallable<T extends Task> implements Callable<Void> {
         private final T task;
+        private final StatsListener listener;
 
-        public TaskCallable(T task) {
+        public TaskCallable(T task, StatsListener listener) {
             this.task = task;
+            this.listener = listener;
         }
 
         @Override
@@ -130,9 +95,11 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
                         return null;
                     case COMPLETED:
                         SpliceLogUtils.trace(WORKER_LOG, "Task %s has completed, but was not removed from the queue, removing now and skipping", task.getTaskId());
+                        cleanUpTask(task);
                         return null;
                     case CANCELLED:
                         SpliceLogUtils.trace(WORKER_LOG,"task %s has been cancelled, not executing",task.getTaskId());
+                        cleanUpTask(task);
                         return null;
                 }
             }catch(ExecutionException ee){
@@ -181,6 +148,8 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
         }
 
         private void cleanUpTask(T task)  throws ExecutionException{
+            //if we clean up the task, then we never got a chance to decrement the pending count
+            listener.numPending.decrementAndGet();
             task.cleanup();
         }
     }
@@ -262,7 +231,7 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
         }
     }
 
-    private class StatsListener implements TaskStatus.StatusListener{
+    private static class StatsListener implements TaskStatus.StatusListener{
         /*Statistics for management and monitoring*/
         private final AtomicLong completedCount = new AtomicLong(0l);
         private final AtomicLong failedCount = new AtomicLong(0l);
