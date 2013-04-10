@@ -679,6 +679,60 @@ public class SiTransactorTest {
     }
 
     @Test
+    public void childDependentTransactionWithOtherCommitBetweenParentAndChild() throws IOException {
+        TransactionId t0 = transactor.beginTransaction(true, false, false);
+        insertAge(t0, "joe37", 20);
+        transactor.commit(t0);
+
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+
+        TransactionId otherTransaction = transactor.beginTransaction(true, false, false);
+        insertAge(otherTransaction, "joe37", 30);
+        transactor.commit(otherTransaction);
+
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        Assert.assertEquals("joe37 age=20 job=null", read(t2, "joe37"));
+        transactor.commit(t2);
+        transactor.commit(t1);
+    }
+
+    @Test
+    public void childIndependentTransactionWithOtherCommitBetweenParentAndChild() throws IOException {
+        TransactionId t0 = transactor.beginTransaction(true, false, false);
+        insertAge(t0, "joe38", 20);
+        transactor.commit(t0);
+
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+
+        TransactionId otherTransaction = transactor.beginTransaction(true, false, false);
+        insertAge(otherTransaction, "joe38", 30);
+        transactor.commit(otherTransaction);
+
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, true);
+        Assert.assertEquals("joe38 age=30 job=null", read(t2, "joe38"));
+        transactor.commit(t2);
+        transactor.commit(t1);
+    }
+
+    @Test
+    public void childIndependentTransactionWithReadCommittedOffWithOtherCommitBetweenParentAndChild() throws IOException {
+        TransactionId t0 = transactor.beginTransaction(true, false, false);
+        insertAge(t0, "joe39", 20);
+        transactor.commit(t0);
+
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+
+        TransactionId otherTransaction = transactor.beginTransaction(true, false, false);
+        insertAge(otherTransaction, "joe39", 30);
+        transactor.commit(otherTransaction);
+
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
+        Assert.assertEquals("joe39 age=20 job=null", read(t2, "joe39"));
+        transactor.commit(t2);
+        transactor.commit(t1);
+    }
+
+    @Test
     public void multipleChildDependentTransactionWriteRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe26", 20);

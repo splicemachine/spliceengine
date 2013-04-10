@@ -10,9 +10,7 @@ import java.util.Set;
 
 public class SiFilterState implements FilterState {
     final STable table;
-    final TransactionId transactionId;
-    final boolean effectiveReadUncommitted;
-    final boolean effectiveReadCommitted;
+    final ImmutableTransactionStruct immutableTransactionStruct;
 
     Object currentRowKey;
     Map<Long, TransactionStruct> committedTransactions;
@@ -21,21 +19,11 @@ public class SiFilterState implements FilterState {
     Object lastValidQualifier; // used to emulate the INCLUDE_AND_NEXT_COLUMN ReturnCode that is in later HBase versions
     Long tombstoneTimestamp = null;
 
-    public SiFilterState(STable table, TransactionId transactionId, boolean effectiveReadUncommitted,boolean effectiveReadCommitted) {
+    public SiFilterState(STable table, ImmutableTransactionStruct immutableTransactionStruct) {
         this.table = table;
-        this.transactionId = transactionId;
-        this.effectiveReadCommitted = effectiveReadCommitted;
-        this.effectiveReadUncommitted = effectiveReadUncommitted;
+        this.immutableTransactionStruct = immutableTransactionStruct;
         committedTransactions = new HashMap<Long, TransactionStruct>();
         stillRunningTransactions = new HashMap<Long, TransactionStruct>();
         failedTransactions = new HashMap<Long, TransactionStruct>();
-    }
-
-    public boolean getEffectiveReadUncommitted() {
-        return effectiveReadUncommitted;
-    }
-
-    public boolean getEffectiveReadCommitted() {
-        return effectiveReadCommitted;
     }
 }

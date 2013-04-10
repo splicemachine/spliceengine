@@ -335,8 +335,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public FilterState newFilterState(STable table, TransactionId transactionId) throws IOException {
         final ImmutableTransactionStruct immutableTransaction = transactionStore.getImmutableTransaction(transactionId);
-        return new SiFilterState(table, transactionId, immutableTransaction.getEffectiveReadUncommitted(),
-                immutableTransaction.getEffectiveReadCommitted());
+        return new SiFilterState(table, immutableTransaction);
     }
 
     @Override
@@ -414,15 +413,15 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     private boolean readDirtyAndActive(SiFilterState siFilterState, Boolean stillRunning) {
-        return siFilterState.getEffectiveReadUncommitted() && stillRunning;
+        return siFilterState.immutableTransactionStruct.getEffectiveReadUncommitted() && stillRunning;
     }
 
     private boolean readCommittedAndCommitted(SiFilterState siFilterState, Long commitTimestamp) {
-        return siFilterState.getEffectiveReadCommitted() && (commitTimestamp != null);
+        return siFilterState.immutableTransactionStruct.getEffectiveReadCommitted() && (commitTimestamp != null);
     }
 
     private boolean isCommittedBeforeThisTransaction(SiFilterState siFilterState, Long commitTimestamp) {
-        return (commitTimestamp != null && commitTimestamp < siFilterState.transactionId.getId());
+        return (commitTimestamp != null && commitTimestamp < siFilterState.immutableTransactionStruct.getRootBeginTimestamp());
     }
 
     private boolean isThisTransactionsData(SiFilterState siFilterState, long dataTimestamp)
@@ -432,7 +431,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         return ((dataStatus == TransactionStatus.ACTIVE
                 || dataStatus == TransactionStatus.COMMITTING
                 || dataStatus == TransactionStatus.COMMITED)
-                && dataTransaction.getRootBeginTimestamp() == siFilterState.transactionId.getId());
+                && dataTransaction.getRootBeginTimestamp() == siFilterState.immutableTransactionStruct.beginTimestamp);
     }
 
     private void filterProcessCommitTimestamp(Object keyValue, SiFilterState siFilterState) throws IOException {
