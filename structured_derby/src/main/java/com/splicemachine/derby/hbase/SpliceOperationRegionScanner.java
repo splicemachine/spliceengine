@@ -52,6 +52,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     protected Iterator<ExecRow> currentRows;
     protected List<KeyValue> currentResult;
     protected Activation activation; // has to be passed by reference... jl
+    private String parentTransactionId;
     private Serializer serializer = new Serializer();
 
     private SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
@@ -84,7 +85,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
         final String oldParentTransactionId = TransactionManager.getParentTransactionId();
         try {
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
-            TransactionManager.setParentTransactionId(soi.getTransactionId());
+            parentTransactionId = soi.getTransactionId();
+            TransactionManager.setParentTransactionId(parentTransactionId);
 			statement = soi.getStatement();
 			topOperation = soi.getTopOperation();
 
@@ -112,7 +114,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	@Override
 	public boolean next(List<KeyValue> results) throws IOException {
 		SpliceLogUtils.trace(LOG, "next ");
+        final String oldParentTransactionId = TransactionManager.getParentTransactionId();
 		try {
+            TransactionManager.setParentTransactionId(parentTransactionId);
 			ExecRow nextRow;
             long start = System.nanoTime();
 			if ( (nextRow = topOperation.getNextRowCore()) != null) {
@@ -130,7 +134,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 			}
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,"error during next call: ",e);
-		}
+        } finally {
+            TransactionManager.setParentTransactionId(oldParentTransactionId);
+        }
 		return false;
 	}
 
