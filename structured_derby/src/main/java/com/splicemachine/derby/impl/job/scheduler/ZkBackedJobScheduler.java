@@ -275,6 +275,16 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         }
 
         public void cleanup() throws ExecutionException{
+            //delete the job node
+            try {
+                zooKeeper.delete(jobPath,-1);
+            } catch (InterruptedException e) {
+                throw new ExecutionException(e);
+            } catch (KeeperException e) {
+                if(e.code()!= KeeperException.Code.NONODE)
+                    throw new ExecutionException(e);
+            }
+
             for(WatchingTask task:taskFutures){
                task.cleanup();
             }
