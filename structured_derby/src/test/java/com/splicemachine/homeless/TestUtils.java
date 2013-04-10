@@ -1,5 +1,6 @@
 package com.splicemachine.homeless;
 
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.apache.commons.dbutils.BasicRowProcessor;
 import org.apache.commons.io.IOUtils;
 
@@ -20,7 +21,7 @@ public class TestUtils {
         return TestUtils.class.getClassLoader().getResource(path);
     }
 
-    public static void executeSqlFile(Connection conn, String fileSuffix){
+    public static void executeSqlFile(SpliceWatcher spliceWatcher, String fileSuffix, String schema){
 
         String sqlStatementStrings = null;
         try {
@@ -32,15 +33,14 @@ public class TestUtils {
             throw new RuntimeException("Unable to open file " + fileSuffix, e);
         }
 
-        for( String s : sqlStatementStrings.split(";")){
-            Statement stmt = null;
-            try {
-                stmt = conn.createStatement();
+        try {
+            for( String s : sqlStatementStrings.replaceAll("<SCHEMA>", "'" + schema + "'").split(";")){
+                Statement stmt = spliceWatcher.getStatement();
                 stmt.execute(s);
-                conn.commit();
-            } catch (SQLException e) {
-                throw new RuntimeException("Error loading SQL file at path : " + fileSuffix, e);
+                spliceWatcher.commit();
             }
+        } catch (Exception e) {
+            throw new RuntimeException("Error loading SQL file at path : " + fileSuffix, e);
         }
     }
 
