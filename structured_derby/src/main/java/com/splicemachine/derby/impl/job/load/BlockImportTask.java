@@ -32,8 +32,8 @@ public class BlockImportTask extends AbstractImportTask{
 
     public BlockImportTask() { }
 
-    public BlockImportTask(ImportContext importContext, Collection<BlockLocation> locations) {
-        super(importContext);
+    public BlockImportTask(String jobId,ImportContext importContext, Collection<BlockLocation> locations) {
+        super(jobId,importContext);
         this.locations = locations;
     }
 

@@ -46,7 +46,7 @@ public class OperationJob implements CoprocessorJob,Externalizable {
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() {
-        return Collections.singletonMap(new SinkTask(scan,instructions),Pair.newPair(scan.getStartRow(),scan.getStartRow()));
+        return Collections.singletonMap(new SinkTask(getJobId(),scan,instructions),Pair.newPair(scan.getStartRow(),scan.getStartRow()));
     }
 
     public HTableInterface getTable(){

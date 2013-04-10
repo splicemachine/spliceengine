@@ -35,18 +35,22 @@ import java.util.concurrent.ExecutionException;
  */
 public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements SpliceSchedulerProtocol{
     private static final String DEFAULT_BASE_TASK_QUEUE_NODE = "/spliceTasks";
+    private static final String DEFAULT_BASE_JOB_QUEUE_NODE = "/spliceJobs";
     private static final Logger LOG = Logger.getLogger(CoprocessorTaskScheduler.class);
     private TaskScheduler<RegionTask> taskScheduler;
     private RecoverableZooKeeper zooKeeper;
     private Set<RegionTask> runningTasks =
             Collections.newSetFromMap(new ConcurrentHashMap<RegionTask, Boolean>());
     public static String baseQueueNode;
+    private static String jobQueueNode;
 
     private volatile LoadingTask loader;
 
     static{
          baseQueueNode = SpliceUtils.config.get("splice.sink.baseTaskQueueNode",DEFAULT_BASE_TASK_QUEUE_NODE);
+        jobQueueNode = SpliceUtils.config.get("splice.sink.baseJobQueueNode",DEFAULT_BASE_JOB_QUEUE_NODE);
     }
+
 
     @Override
     public void start(CoprocessorEnvironment env) {
@@ -141,6 +145,10 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
             System.arraycopy(startKey,0,regionName,0,startKey.length);
             return queue+"/"+ MD5Hash.getMD5AsHex(regionName);
         }
+    }
+
+    public static String getJobPath() {
+        return jobQueueNode;
     }
 
     private class LoadingTask implements RegionTask{

@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Created on: 4/9/13
  */
 public class SimpleThreadedTaskScheduler<T extends Task> implements TaskScheduler<T>,TaskSchedulerManagement {
+    private static final Logger WORKER_LOG = Logger.getLogger(TaskCallable.class);
     private static final int DEFAULT_MAX_WORKERS = 10;
     private static final int DEFAULT_MIN_WORKERS = 1;
 
@@ -107,7 +108,6 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
     }
 
     private static class TaskCallable<T extends Task> implements Callable<Void> {
-        private static final Logger WORKER_LOG = Logger.getLogger(TaskCallable.class);
         private final T task;
 
         public TaskCallable(T task) {
@@ -125,10 +125,17 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
             }catch(ExecutionException ee){
                 SpliceLogUtils.error(WORKER_LOG,
                         "task "+ task.getTaskId()+" had an unexpected error while checking status, unable to execute",ee.getCause());
+                return null;
             }
+
             try{
                 SpliceLogUtils.trace(WORKER_LOG,"executing task %s",task.getTaskId());
-                task.markStarted();
+                try{
+                    task.markStarted();
+                }catch(CancellationException ce){
+                    SpliceLogUtils.trace(WORKER_LOG,"task %s was cancelled",task.getTaskId());
+                    return null;
+                }
                 task.execute();
                 SpliceLogUtils.trace(WORKER_LOG,"task %s finished executing, marking completed",task.getTaskId());
                 task.markCompleted();
@@ -139,7 +146,6 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
                 }catch(ExecutionException failEx){
                     SpliceLogUtils.error(WORKER_LOG,"Unable to indicate task failure",failEx.getCause());
                 }
-                throw ee;
             }catch(Throwable t){
                 SpliceLogUtils.error(WORKER_LOG, "task " + task.getTaskId() + " had an unexpected error while setting state", t);
                 try{
@@ -147,7 +153,6 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
                 }catch(ExecutionException failEx){
                     SpliceLogUtils.error(WORKER_LOG,"Unable to indicate task failure",failEx.getCause());
                 }
-                throw new Exception(t);
             }
             return null;
         }
@@ -155,12 +160,21 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
 
     private static class NamedThreadFactory implements ThreadFactory {
         private final AtomicLong threadCount = new AtomicLong(0l);
+        private final Thread.UncaughtExceptionHandler eh = new ExceptionLogger();
         @Override
         public Thread newThread(Runnable r) {
             Thread t = new Thread(r);
             t.setName("taskWorker-"+threadCount.incrementAndGet());
             t.setDaemon(true);
+            t.setUncaughtExceptionHandler(eh);
             return t;
+        }
+    }
+
+    private static final class ExceptionLogger implements Thread.UncaughtExceptionHandler{
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+            WORKER_LOG.error("Worker Thread t failed with unexpected exception: ",e);
         }
     }
 

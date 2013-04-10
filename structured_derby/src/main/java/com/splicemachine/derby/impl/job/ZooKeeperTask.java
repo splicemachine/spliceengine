@@ -15,6 +15,8 @@ import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
@@ -23,18 +25,27 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/4/13
  */
 public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
+    private static final long serialVersionUID=1l;
     protected final Logger LOG;
     protected RecoverableZooKeeper zooKeeper;
     private String statusNode;
+    protected String jobId;
 
     protected ZooKeeperTask(){
         super(null);
         this.LOG = Logger.getLogger(this.getClass());
     }
 
-    protected ZooKeeperTask(String taskId,RecoverableZooKeeper zooKeeper) {
+    protected ZooKeeperTask(String jobId){
+        super(null);
+        this.jobId = jobId.replaceAll("/","_");
+        this.LOG = Logger.getLogger(this.getClass());
+    }
+
+    protected ZooKeeperTask(String taskId,String jobId,RecoverableZooKeeper zooKeeper) {
         super(taskId);
         this.zooKeeper = zooKeeper;
+        this.jobId = jobId;
         this.LOG = Logger.getLogger(this.getClass());
     }
 
@@ -78,7 +89,7 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
 
     @Override
     public void markStarted() throws ExecutionException, CancellationException {
-        SpliceLogUtils.trace(LOG,"Marking task %s started",taskId);
+        SpliceLogUtils.trace(LOG, "Marking task %s started", taskId);
         status.setStatus(Status.EXECUTING);
         updateStatus(true);
         //reset the cancellation watch to notify us if the node is deleted
@@ -88,7 +99,7 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
 
     @Override
     public void markCompleted() throws ExecutionException {
-        SpliceLogUtils.trace(LOG,"Marking task %s completed",taskId);
+        SpliceLogUtils.trace(LOG, "Marking task %s completed", taskId);
         status.setStatus(Status.COMPLETED);
         updateStatus(false);
 
@@ -159,7 +170,7 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
         //call exists() on status to make sure that we notice cancellations
         Stat stat;
         try {
-            stat = zooKeeper.exists(statusNode,new Watcher() {
+            stat = zooKeeper.exists(CoprocessorTaskScheduler.getJobPath()+"/"+jobId,new Watcher() {
                 @Override
                 public void process(WatchedEvent event) {
                     SpliceLogUtils.trace(LOG,"Received WatchedEvent "+ event.getType());
@@ -183,4 +194,13 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
         }
     }
 
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        jobId = in.readUTF();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeUTF(jobId);
+    }
 }

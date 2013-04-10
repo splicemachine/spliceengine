@@ -39,7 +39,8 @@ public abstract class AbstractImportTask extends ZooKeeperTask{
 
     public AbstractImportTask() { }
 
-    public AbstractImportTask(ImportContext importContext) {
+    public AbstractImportTask(String jobId,ImportContext importContext) {
+        super(jobId);
         this.importContext = importContext;
     }
 
@@ -50,11 +51,13 @@ public abstract class AbstractImportTask extends ZooKeeperTask{
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
         out.writeObject(importContext);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
         importContext = (ImportContext)in.readObject();
     }
 

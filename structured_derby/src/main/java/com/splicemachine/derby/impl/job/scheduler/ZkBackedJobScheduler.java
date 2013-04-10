@@ -2,14 +2,18 @@ package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceZooKeeperManager;
+import com.splicemachine.derby.utils.ZkUtils;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.job.*;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
+import org.apache.log4j.Logger;
+import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.Stat;
 
 import java.io.ByteArrayInputStream;
@@ -37,7 +41,8 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
     @Override
     public JobFuture submit(final J job) throws ExecutionException {
         try {
-            WatchingFuture future = new WatchingFuture(job.getJobId(),submitTasks(job));
+            String jobPath = createJobNode(job);
+            WatchingFuture future = new WatchingFuture(jobPath,submitTasks(job));
             future.attachWatchers();
             return future;
         } catch (Throwable throwable) {
@@ -46,10 +51,23 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         }
     }
 
+    private String createJobNode(J job) throws KeeperException, InterruptedException {
+        String jobId = job.getJobId();
+        jobId = jobId.replaceAll("/","_");
+
+        String path = CoprocessorTaskScheduler.getJobPath()+"/"+jobId;
+        ZkUtils.recursiveSafeCreate(path,
+                new byte[]{},ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.EPHEMERAL);
+
+        return path;
+    }
+
     @Override
     public void cleanupJob(JobFuture future) throws ExecutionException {
         //make sure that we CAN clean up this job
-        Preconditions.checkArgument(WatchingFuture.class.isAssignableFrom(future.getClass()),"unknown JobFuture type: "+ future.getClass());
+        Preconditions.checkArgument(
+                WatchingFuture.class.isAssignableFrom(future.getClass()),
+                "unknown JobFuture type: "+ future.getClass());
 
         WatchingFuture futureToClean = (WatchingFuture)future;
         futureToClean.cleanup();
@@ -65,17 +83,18 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         private final Set<TaskFuture> cancelledFutures;
         private final AtomicInteger invalidatedCount = new AtomicInteger(0);
         private final ZkJobStats stats;
+        private final String jobPath;
 
         private volatile Status currentStatus = Status.PENDING;
 
-        private WatchingFuture(String jobName,Collection<? extends WatchingTask> taskFutures) {
+        private WatchingFuture(String jobPath,Collection<? extends WatchingTask> taskFutures) {
             this.taskFutures = taskFutures;
-
+            this.jobPath = jobPath;
             this.changedFutures = new LinkedBlockingQueue<TaskFuture>();
             this.completedFutures = Collections.newSetFromMap(new ConcurrentHashMap<TaskFuture, Boolean>());
             this.failedFutures = Collections.newSetFromMap(new ConcurrentHashMap<TaskFuture, Boolean>());
             this.cancelledFutures = Collections.newSetFromMap(new ConcurrentHashMap<TaskFuture, Boolean>());
-            this.stats = new ZkJobStats(jobName,this);
+            this.stats = new ZkJobStats(jobPath,this);
         }
 
         private void attachWatchers() throws ExecutionException {
@@ -104,6 +123,25 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                         cancelledFutures.add(taskFuture);
                         break;
                 }
+            }
+
+            //attach job watcher to watch for job cancellation from JMX
+            try {
+                zooKeeper.exists(jobPath,new Watcher() {
+                    @Override
+                    public void process(WatchedEvent event) {
+                        //only events that happen to it are node-deleted events
+                        try {
+                            cancel();
+                        } catch (ExecutionException e) {
+                            throw new RuntimeException(Exceptions.parseException(e.getCause()));
+                        }
+                    }
+                });
+            } catch (KeeperException e) {
+                throw new ExecutionException(e);
+            } catch (InterruptedException e) {
+                throw new ExecutionException(e);
             }
         }
 
@@ -172,6 +210,8 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         public void cancel() throws ExecutionException {
             for(TaskFuture future:taskFutures){
                 future.cancel();
+                if(future.getStatus()==Status.CANCELLED)
+                    changedFutures.offer(future);
             }
         }
 
@@ -250,7 +290,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
 
         @Override
         public String getJobName() {
-            return jobName;
+            return jobName.substring(jobName.lastIndexOf('/')+1);
         }
     }
 
@@ -356,19 +396,6 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                     return;
             }
             status = TaskStatus.cancelled();
-            /*
-             * Delete the status node for this task to signal that we've cancelled the task
-             */
-            try {
-                zooKeeper.delete(context.getTaskNode()+"/status",-1);
-            } catch (InterruptedException e) {
-                throw new ExecutionException(e);
-            } catch (KeeperException e) {
-                if(e.code()== KeeperException.Code.NONODE){
-                    //ignore, cause it's already been removed
-                }
-                throw new ExecutionException(e);
-            }
         }
 
         @Override

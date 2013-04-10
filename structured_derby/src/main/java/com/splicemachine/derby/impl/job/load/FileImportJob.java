@@ -50,6 +50,6 @@ public class FileImportJob extends ImportJob{
             end = endRow;
         }
 
-        return Collections.singletonMap(new FileImportTask(context),Pair.newPair(start,end));
+        return Collections.singletonMap(new FileImportTask(getJobId(),context),Pair.newPair(start,end));
     }
 }

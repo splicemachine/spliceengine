@@ -1,5 +1,6 @@
 package com.splicemachine.job;
 
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
@@ -75,8 +76,8 @@ public class ZkTaskMonitor implements TaskMonitor{
     }
 
     @Override
-    public void cancelTask(String tableId, String regionId, String taskId) {
-        String path = baseQueueNode+"/"+tableId+"/"+regionId+"/"+taskId+"/status";
+    public void cancelJob(String jobId) {
+        String path = CoprocessorTaskScheduler.getJobPath()+"/"+jobId;
         try{
             zooKeeper.delete(path,-1);
         } catch (InterruptedException e) {
@@ -87,6 +88,22 @@ public class ZkTaskMonitor implements TaskMonitor{
                 return; //already cancelled! whoo!
             }
             LOG.debug("Error cancelling task:"+e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public List<String> getRunningJobs() {
+        try {
+            return zooKeeper.getChildren(CoprocessorTaskScheduler.getJobPath(),false);
+        } catch (KeeperException e) {
+            if(e.code() ==KeeperException.Code.NONODE){
+                SpliceLogUtils.info(LOG,"No tasks have been submitted to this cluster. Ever");
+                return Collections.emptyList();
+            }
+            SpliceLogUtils.error(LOG,"Unable to get running jobs!"+e.getMessage(),e);
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }

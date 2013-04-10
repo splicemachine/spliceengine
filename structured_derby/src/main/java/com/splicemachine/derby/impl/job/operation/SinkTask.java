@@ -46,7 +46,8 @@ public class SinkTask extends ZooKeeperTask {
         super();
     }
 
-    public SinkTask(Scan scan, SpliceObserverInstructions instructions) {
+    public SinkTask(String jobId,Scan scan, SpliceObserverInstructions instructions) {
+        super(jobId);
         this.scan = scan;
         this.instructions = instructions;
     }
@@ -119,12 +120,14 @@ public class SinkTask extends ZooKeeperTask {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
         scan.write(out);
         out.writeObject(instructions);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
         scan  = new Scan();
         scan.readFields(in);
 

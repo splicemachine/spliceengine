@@ -23,8 +23,8 @@ public class FileImportTask extends AbstractImportTask{
 
     public FileImportTask() { }
 
-    public FileImportTask(ImportContext importContext) {
-        super(importContext);
+    public FileImportTask(String jobId,ImportContext importContext) {
+        super(jobId,importContext);
     }
 
     @Override

@@ -18,7 +18,9 @@ public interface TaskMonitor {
 
     List<String> getTasks(String tableId, String regionId);
 
-    void cancelTask(String tableId, String regionId, String taskId);
+    void cancelJob(String jobId);
+
+    List<String> getRunningJobs();
 
     String getStatus(String tableId, String regionId, String taskId);
 }

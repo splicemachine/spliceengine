@@ -10,11 +10,12 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 public abstract class ImportJob implements CoprocessorJob {
     protected ImportContext context;
     private final HTableInterface table;
-    private final String jobId =""; //TODO -sf- implement job ids!
+    private final String jobId;
 
     protected ImportJob(HTableInterface table, ImportContext context) {
         this.table = table;
         this.context = context;
+        this.jobId = "import-"+context.getTableName()+"-"+context.getFilePath().getName();
     }
 
     @Override
