@@ -26,13 +26,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Scott Fines
  * Created on: 4/3/13
  */
-public abstract class ZkBackedJobScheduler<J extends Job> implements JobScheduler<J>{
+public abstract class ZkBackedJobScheduler<J extends Job> implements JobScheduler<J>,JobSchedulerManagement{
     protected final RecoverableZooKeeper zooKeeper;
+
+    private final AtomicLong totalSubmitted = new AtomicLong(0l);
+    private final AtomicLong totalCompleted = new AtomicLong(0l);
+    private final AtomicLong totalFailed = new AtomicLong(0l);
+    private final AtomicLong totalCancelled = new AtomicLong(0l);
+    private final AtomicInteger numRunning = new AtomicInteger(0);
 
     public ZkBackedJobScheduler(RecoverableZooKeeper zooKeeper) {
         this.zooKeeper = zooKeeper;
@@ -40,10 +47,12 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
 
     @Override
     public JobFuture submit(final J job) throws ExecutionException {
+        totalSubmitted.incrementAndGet();
         try {
             String jobPath = createJobNode(job);
             WatchingFuture future = new WatchingFuture(jobPath,submitTasks(job));
             future.attachWatchers();
+            numRunning.incrementAndGet();
             return future;
         } catch (Throwable throwable) {
             Throwable root = Throwables.getRootCause(throwable);
@@ -71,6 +80,31 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
 
         WatchingFuture futureToClean = (WatchingFuture)future;
         futureToClean.cleanup();
+    }
+
+    @Override
+    public long getTotalSubmittedJobs() {
+        return totalSubmitted.get();
+    }
+
+    @Override
+    public long getTotalCompletedJobs() {
+        return totalCompleted.get();
+    }
+
+    @Override
+    public long getTotalFailedJobs() {
+        return totalFailed.get();
+    }
+
+    @Override
+    public long getTotalCancelledJobs() {
+        return totalCancelled.get();
+    }
+
+    @Override
+    public int getNumRunningJobs() {
+        return numRunning.get();
     }
 
     protected abstract Set<? extends WatchingTask> submitTasks(J job) throws ExecutionException;
@@ -183,14 +217,20 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                     Status status = changedFuture.getStatus();
                     switch (status) {
                         case FAILED:
+                            numRunning.decrementAndGet();
+                            totalFailed.incrementAndGet();
                             failedFutures.add(changedFuture);
                             changedFuture.complete(); //will throw an ExecutionException immediately
                             break;
                         case COMPLETED:
+                            numRunning.decrementAndGet();
+                            totalCompleted.incrementAndGet();
                             this.stats.taskStatsMap.put(changedFuture.getTaskId(),changedFuture.getTaskStats());
                             completedFutures.add(changedFuture); //found the next completed task
                             return;
                         case CANCELLED:
+                            numRunning.decrementAndGet();
+                            totalCancelled.incrementAndGet();
                             cancelledFutures.add(changedFuture);
                             throw new CancellationException();
                         default:

@@ -259,12 +259,16 @@ public class SpliceDriver {
             mbs.registerMBean(writerPool,writerName);
 
             //register TaskScheduler
-            ObjectName taskSchedulerName = new ObjectName("com.splicemachine.task:type=TaskSchedulerManagement");
+            ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=TaskSchedulerManagement");
             mbs.registerMBean(threadTaskScheduler,taskSchedulerName);
 
             //register TaskMonitor
-            ObjectName taskMonitorName = new ObjectName("com.splicemachine.task:type=TaskMonitor");
+            ObjectName taskMonitorName = new ObjectName("com.splicemachine.job:type=TaskMonitor");
             mbs.registerMBean(taskMonitor,taskMonitorName);
+
+            //register JobScheduler
+            ObjectName jobSchedulerName = new ObjectName("com.splicemachine.job:type=JobSchedulerManagement");
+            mbs.registerMBean(jobScheduler,jobSchedulerName);
 
         } catch (MalformedObjectNameException e) {
             //we want to log the message, but this shouldn't affect startup
