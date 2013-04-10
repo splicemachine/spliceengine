@@ -1,9 +1,11 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.google.common.base.Throwables;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.log4j.Logger;
 
 import java.util.concurrent.*;
@@ -117,10 +119,21 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
         @Override
         public Void call() throws Exception {
             try{
-                if(task.isCancelled()){
-                    SpliceLogUtils.trace(WORKER_LOG,"task %s has been cancelled, not executing",task.getTaskId());
-                }else if(task.isInvalidated()){
-                    SpliceLogUtils.trace(WORKER_LOG,"task %s has been invalidated, skipping execution",task.getTaskId());
+                switch (task.getTaskStatus().getStatus()) {
+                    case INVALID:
+                        SpliceLogUtils.trace(WORKER_LOG, "Task %s has been invalidated, cleaning up and skipping", task.getTaskId());
+                        cleanUpTask(task);
+                        return null;
+                    case FAILED:
+                        SpliceLogUtils.trace(WORKER_LOG,"Task %s has failed, but was not removed from the queue, removing now and skipping",task.getTaskId());
+                        cleanUpTask(task);
+                        return null;
+                    case COMPLETED:
+                        SpliceLogUtils.trace(WORKER_LOG, "Task %s has completed, but was not removed from the queue, removing now and skipping", task.getTaskId());
+                        return null;
+                    case CANCELLED:
+                        SpliceLogUtils.trace(WORKER_LOG,"task %s has been cancelled, not executing",task.getTaskId());
+                        return null;
                 }
             }catch(ExecutionException ee){
                 SpliceLogUtils.error(WORKER_LOG,
@@ -140,11 +153,21 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
                 SpliceLogUtils.trace(WORKER_LOG,"task %s finished executing, marking completed",task.getTaskId());
                 task.markCompleted();
             }catch(ExecutionException ee){
-                SpliceLogUtils.error(WORKER_LOG,"task "+ task.getTaskId()+" had an unexpected error",ee.getCause());
-                try{
-                    task.markFailed(ee.getCause());
-                }catch(ExecutionException failEx){
-                    SpliceLogUtils.error(WORKER_LOG,"Unable to indicate task failure",failEx.getCause());
+                Throwable t = Throwables.getRootCause(ee);
+                if(t instanceof NotServingRegionException){
+                    /*
+                     * We were accidentally assigned this task, but we aren't responsible for it, so we need
+                     * to invalidate it and send it back to the client to re-submit
+                     */
+                    SpliceLogUtils.trace(WORKER_LOG,"task %s was assigned to the incorrect region, invalidating:%s",task.getTaskId(),t.getMessage());
+                    task.markInvalid();
+                }else{
+                    SpliceLogUtils.error(WORKER_LOG,"task "+ task.getTaskId()+" had an unexpected error",ee.getCause());
+                    try{
+                        task.markFailed(ee.getCause());
+                    }catch(ExecutionException failEx){
+                        SpliceLogUtils.error(WORKER_LOG,"Unable to indicate task failure",failEx.getCause());
+                    }
                 }
             }catch(Throwable t){
                 SpliceLogUtils.error(WORKER_LOG, "task " + task.getTaskId() + " had an unexpected error while setting state", t);
@@ -155,6 +178,10 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
                 }
             }
             return null;
+        }
+
+        private void cleanUpTask(T task)  throws ExecutionException{
+            task.cleanup();
         }
     }
 

@@ -245,6 +245,11 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         }
 
         @Override
+        public void cleanup() throws ExecutionException {
+            //no-op
+        }
+
+        @Override
         public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
             this.regionToLoad =region;
             this.zooKeeper = zooKeeper;

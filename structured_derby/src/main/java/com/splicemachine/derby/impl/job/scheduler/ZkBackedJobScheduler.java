@@ -192,6 +192,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
             while(getOutstandingCount()>0){
                 completeNext();
             }
+            numRunning.decrementAndGet();
         }
 
         @Override
@@ -217,26 +218,29 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                     Status status = changedFuture.getStatus();
                     switch (status) {
                         case FAILED:
-                            numRunning.decrementAndGet();
-                            totalFailed.incrementAndGet();
                             failedFutures.add(changedFuture);
                             changedFuture.complete(); //will throw an ExecutionException immediately
                             break;
                         case COMPLETED:
-                            numRunning.decrementAndGet();
-                            totalCompleted.incrementAndGet();
                             this.stats.taskStatsMap.put(changedFuture.getTaskId(),changedFuture.getTaskStats());
                             completedFutures.add(changedFuture); //found the next completed task
                             return;
                         case CANCELLED:
-                            numRunning.decrementAndGet();
-                            totalCancelled.incrementAndGet();
                             cancelledFutures.add(changedFuture);
                             throw new CancellationException();
                         default:
                             found=false; //circle around because we aren't finished yet
                     }
                 }
+            }
+            if(getOutstandingCount()<=0){
+                numRunning.decrementAndGet();
+                if(failedFutures.size()>0){
+                    totalFailed.incrementAndGet();
+                } else if(cancelledFutures.size()>0){
+                    totalCancelled.incrementAndGet();
+                }else
+                    totalCompleted.incrementAndGet();
             }
         }
 

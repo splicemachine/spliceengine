@@ -146,6 +146,27 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
         }
     }
 
+    @Override
+    public void cleanup() throws ExecutionException {
+        //delete the task node and status node
+        try {
+            zooKeeper.delete(taskId+"/status",-1);
+        } catch (InterruptedException e) {
+            throw new ExecutionException(e);
+        } catch (KeeperException e) {
+            if(e.code()!= KeeperException.Code.NONODE)
+                throw new ExecutionException(e);
+        }
+        try {
+            zooKeeper.delete(taskId,-1);
+        } catch (InterruptedException e) {
+            throw new ExecutionException(e);
+        } catch (KeeperException e) {
+            if(e.code()!= KeeperException.Code.NONODE)
+                throw new ExecutionException(e);
+        }
+    }
+
     private void markCancelled(boolean propagate) throws ExecutionException{
         SpliceLogUtils.trace(LOG,"cancelling task %s "+(propagate ? ", propagating cancellation state":"not propagating state"),taskId);
         switch (status.getStatus()) {

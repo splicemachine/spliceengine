@@ -223,6 +223,11 @@ public class WorkStealingThreadedTaskSchedulerTest {
         public boolean isInvalidated() {
             return taskStatus.getStatus().equals(Status.INVALID);
         }
+
+        @Override
+        public void cleanup() throws ExecutionException {
+            //no-op
+        }
     }
 
     private class FailTask extends CountDownTask{

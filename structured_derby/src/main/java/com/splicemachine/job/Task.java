@@ -28,4 +28,6 @@ public interface Task {
     void markInvalid() throws ExecutionException;
 
     boolean isInvalidated();
+
+    void cleanup() throws ExecutionException;
 }
