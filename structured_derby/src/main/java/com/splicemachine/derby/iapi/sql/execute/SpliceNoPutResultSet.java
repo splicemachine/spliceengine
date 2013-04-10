@@ -179,7 +179,11 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 		SpliceLogUtils.trace(LOG, "close="+closed);
 		if(closed) return; //nothing to do;
 
-		rowProvider.close();
+        try{
+            rowProvider.close();
+        }catch(RuntimeException r){
+            throw Exceptions.parseException(r);
+        }
 		topOperation.close();
 		closed =true;
 	}

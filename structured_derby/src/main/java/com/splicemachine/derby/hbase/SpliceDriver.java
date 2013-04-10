@@ -11,6 +11,7 @@ import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.ZkUtils;
 import com.splicemachine.hbase.TableWriter;
+import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
 import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -45,6 +46,7 @@ public class SpliceDriver {
     private static final int DEFAULT_MAX_CONCURRENT_TASKS = 10;
 
 
+
     public static enum State{
         NOT_STARTED,
         INITIALIZING,
@@ -76,6 +78,7 @@ public class SpliceDriver {
     private TaskScheduler threadTaskScheduler;
     private JobScheduler jobScheduler;
     private TaskMonitor taskMonitor;
+    private TempCleaner tempCleaner;
 
     private SpliceDriver(){
         ThreadFactory factory = new ThreadFactoryBuilder()
@@ -89,15 +92,12 @@ public class SpliceDriver {
 
             embeddedConnections = ConnectionPool.create(SpliceUtils.config);
 
-//            int numTaskThreads = SpliceUtils.config.getInt("splice.sink.maxConcurrentTasks",DEFAULT_MAX_CONCURRENT_TASKS);
-//            SpliceLogUtils.trace(LOG,"Enabling %d tasks to run concurrently",numTaskThreads);
-//            threadTaskScheduler = WorkStealingThreadedTaskScheduler.create(numTaskThreads);
-//            ((WorkStealingThreadedTaskScheduler)threadTaskScheduler).start();
-
             threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
             jobScheduler = new CoprocessorJobScheduler(ZkUtils.getRecoverableZooKeeper(),SpliceUtils.config);
 
             taskMonitor = new ZkTaskMonitor(CoprocessorTaskScheduler.baseQueueNode,ZkUtils.getRecoverableZooKeeper());
+
+            tempCleaner = new TempCleaner();
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
@@ -109,6 +109,10 @@ public class SpliceDriver {
 
     public Properties getProperties() {
         return props;
+    }
+
+    public TempCleaner getTempCleaner() {
+        return tempCleaner;
     }
 
     public <T extends Task> TaskScheduler<T> getTaskScheduler() {

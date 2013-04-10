@@ -61,7 +61,17 @@ public abstract class SingleScanRowProvider  implements RowProvider {
      */
     protected abstract Scan toScan();
 
-/********************************************************************************************************************/
+    @Override
+    public void close() {
+        Scan scan = toScan();
+        try {
+            SpliceDriver.driver().getTempCleaner().deleteRange(SpliceUtils.getUniqueKeyString(),scan.getStartRow(),scan.getStopRow());
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /********************************************************************************************************************/
     /*private helper methods*/
 
     private JobStats doShuffle(HTableInterface table,

@@ -11,6 +11,7 @@ import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -113,7 +114,20 @@ public abstract class MultiScanRowProvider implements RowProvider {
     protected abstract List<Scan> getScans() throws StandardException;
 
 
-/********************************************************************************************************************/
+    @Override
+    public void close() {
+        try {
+            List<Scan> scans = getScans();
+            TempCleaner cleaner = SpliceDriver.driver().getTempCleaner();
+            for(Scan scan:scans){
+                cleaner.deleteRange(SpliceUtils.getUniqueKeyString(),scan.getStartRow(),scan.getStopRow());
+            }
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /********************************************************************************************************************/
     /*private helper methods*/
     private JobFuture doShuffle(HTableInterface table,
                            SpliceObserverInstructions instructions,
