@@ -957,6 +957,20 @@ public class SiTransactorTest {
     }
 
     @Test
+    public void rollbackUpdate() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe43", 20);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction(true, false, false);
+        insertAge(t2, "joe43", 21);
+        transactor.abort(t2);
+
+        TransactionId t3 = transactor.beginTransaction(true, false, false);
+        Assert.assertEquals("joe43 age=20 job=null", read(t3, "joe43"));
+    }
+
+    @Test
     public void readWriteMechanics() throws Exception {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
