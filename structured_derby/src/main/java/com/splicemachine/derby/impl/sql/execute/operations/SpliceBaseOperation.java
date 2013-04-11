@@ -411,7 +411,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 	@Override
 	public void openCore() throws StandardException {
-        this.uniqueSequenceID = SpliceUtils.generateQueryNodeSequence();
+        this.uniqueSequenceID = SpliceUtils.getUniqueKeyString();
         sequence[0].setValue(uniqueSequenceID);
         init(SpliceOperationContext.newContext(activation));
 	}
