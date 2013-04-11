@@ -23,7 +23,7 @@ public class TransactionStruct extends ImmutableTransactionStruct {
     }
 
     public TransactionStatus getEffectiveStatus() {
-        if (status == null) {
+        if (status == null || (parent != null && status != null && status.equals(TransactionStatus.COMMITED) && dependent)) {
             return parent.getEffectiveStatus();
         }
         return status;
