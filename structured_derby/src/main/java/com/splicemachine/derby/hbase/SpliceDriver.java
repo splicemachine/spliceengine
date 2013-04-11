@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.job.scheduler.WorkStealingThreadedTaskSchedu
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.ZkUtils;
+import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
@@ -119,8 +120,17 @@ public class SpliceDriver {
         return (TaskScheduler<T>)threadTaskScheduler;
     }
 
+    public TaskSchedulerManagement getTaskSchedulerManagement() {
+        //this only works IF threadTaskScheduler implements the interface!
+        return (TaskSchedulerManagement)threadTaskScheduler;
+    }
+
     public <J extends CoprocessorJob> JobScheduler<J> getJobScheduler(){
         return (JobScheduler<J>)jobScheduler;
+    }
+
+    public JobSchedulerManagement getJobSchedulerManagement() {
+        return (JobSchedulerManagement)jobScheduler;
     }
 
     public ConnectionPool embedConnPool(){
@@ -175,6 +185,9 @@ public class SpliceDriver {
                 public Void call() throws Exception {
 
                     writerPool.start();
+
+                    //all we have to do is create it, it will register itself for us
+                    SpliceMetrics metrics = new SpliceMetrics();
 
                     //register JMX items
                     registerJMX();
