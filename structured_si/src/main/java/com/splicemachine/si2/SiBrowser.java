@@ -49,12 +49,17 @@ public class SiBrowser {
             if (parentValue != null) {
                 parent = Bytes.toLong(parentValue);
             }
+            final byte[] dependentValue = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_DEPENDENT_COLUMN_BYTES);
+            Boolean dependent = null;
+            if (dependentValue != null) {
+                dependent = Bytes.toBoolean(dependentValue);
+            }
             final byte[] writesValue = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_ALLOW_WRITES_COLUMN_BYTES);
             Boolean writes = null;
             if (writesValue != null) {
                 writes = Bytes.toBoolean(writesValue);
             }
-            x.put(beginTimestamp, new Object[]{parent, writes, status, commitTimestamp});
+            x.put(beginTimestamp, new Object[]{parent, dependent, writes, status, commitTimestamp});
             if (idToFind != null && beginTimestamp == idToFind) {
                 toFind = r;
             }
@@ -71,16 +76,16 @@ public class SiBrowser {
         } else {
             final ArrayList<Long> list = new ArrayList<Long>(x.keySet());
             Collections.sort(list);
-            System.out.println("transaction parent writesAllowed status commitTimestamp");
+            System.out.println("transaction parent dependent writesAllowed status commitTimestamp");
             for (Long k : list) {
                 Object[] v = (Object[]) x.get(k);
-                System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3]);
+                System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3] + " " + v[4]);
             }
 
             //dumpTable("conglomerates", "16");
             //dumpTable("SYCOLUMNS_INDEX2", "161");
 
-            //dumpTable("p", "1184");
+            //dumpTable("p", "1168");
         }
     }
 
