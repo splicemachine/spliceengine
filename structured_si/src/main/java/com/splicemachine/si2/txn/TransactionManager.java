@@ -36,6 +36,7 @@ public class TransactionManager implements ITransactionManager {
         if (!nested && parentPerThreadLocal != null) {
             parentTransactionID = parentPerThreadLocal;
             nested = true;
+            dependent = true;
         }
         if (nested) {
             final TransactionId parentTransaction = ((ClientTransactor) transactor).transactionIdFromString(parentTransactionID);
