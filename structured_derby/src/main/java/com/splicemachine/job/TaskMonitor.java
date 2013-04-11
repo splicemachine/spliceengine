@@ -1,6 +1,7 @@
 package com.splicemachine.job;
 
 import javax.management.MXBean;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -10,17 +11,11 @@ import java.util.List;
 @MXBean
 public interface TaskMonitor {
 
-    int getNumRegions(String tableId);
-
-    List<String> getRegions(String tableId);
-
-    List<String> getTables();
-
-    List<String> getTasks(String tableId, String regionId);
+    List<String> getRunningTasks();
 
     void cancelJob(String jobId);
 
     List<String> getRunningJobs();
 
-    String getStatus(String tableId, String regionId, String taskId);
+    String getStatus(String taskId);
 }

@@ -39,8 +39,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     private static final Logger LOG = Logger.getLogger(CoprocessorTaskScheduler.class);
     private TaskScheduler<RegionTask> taskScheduler;
     private RecoverableZooKeeper zooKeeper;
-    private Set<RegionTask> runningTasks =
-            Collections.newSetFromMap(new ConcurrentHashMap<RegionTask, Boolean>());
+    private Set<RegionTask> runningTasks;
     public static String baseQueueNode;
     private static String jobQueueNode;
 
@@ -51,15 +50,14 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         jobQueueNode = SpliceUtils.config.get("splice.sink.baseJobQueueNode",DEFAULT_BASE_JOB_QUEUE_NODE);
     }
 
-
     @Override
     public void start(CoprocessorEnvironment env) {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)env;
         zooKeeper = rce.getRegionServerServices().getZooKeeper().getRecoverableZooKeeper();
         try {
             HRegion region = rce.getRegion();
-            String regionQueueNode = getRegionQueue(region.getRegionInfo());
-            ZkUtils.recursiveSafeCreate(regionQueueNode, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+            runningTasks = SpliceDriver.driver().getTaskMonitor().registerRegion(region.getRegionInfo().getRegionNameAsString());
+            ZkUtils.recursiveSafeCreate(CoprocessorTaskScheduler.baseQueueNode, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         } catch (KeeperException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
@@ -93,6 +91,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
             }
         }
         runningTasks.clear();
+        SpliceDriver.driver().getTaskMonitor().deregisterRegion(((RegionCoprocessorEnvironment)env).getRegion().getRegionNameAsString());
 
         super.stop(env);
     }
@@ -139,11 +138,11 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
 
         byte[] startKey = info.getStartKey();
         if(startKey==null)
-            return queue+"/_";
+            return queue;
         else{
             byte[] regionName = new byte[startKey.length];
             System.arraycopy(startKey,0,regionName,0,startKey.length);
-            return queue+"/"+ MD5Hash.getMD5AsHex(regionName);
+            return queue+"_"+ MD5Hash.getMD5AsHex(regionName);
         }
     }
 

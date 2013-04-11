@@ -52,7 +52,7 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
     @Override
     public void prepareTask(HRegion region,
                             RecoverableZooKeeper zooKeeper) throws ExecutionException {
-        this.taskId = buildTaskId(region,getTaskType());
+        this.taskId = buildTaskId(region,jobId ,getTaskType());
         this.zooKeeper = zooKeeper;
         //write out the payload to a durable node
         ByteDataOutput byteOut = new ByteDataOutput();
@@ -181,9 +181,9 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
             updateStatus(false);
     }
 
-    private static String buildTaskId(HRegion region,String taskType) {
+    private static String buildTaskId(HRegion region,String jobId,String taskType) {
         HRegionInfo regionInfo = region.getRegionInfo();
-        return CoprocessorTaskScheduler.getRegionQueue(regionInfo)+"/"+taskType+"-";
+        return CoprocessorTaskScheduler.getRegionQueue(regionInfo)+"_"+jobId+"_"+taskType+"-";
     }
 
     private void checkNotCancelled()throws ExecutionException {

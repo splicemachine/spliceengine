@@ -104,6 +104,10 @@ public class SpliceDriver {
         }
     }
 
+    public ZkTaskMonitor getTaskMonitor() {
+        return (ZkTaskMonitor)taskMonitor;
+    }
+
     public TableWriter getTableWriter() {
         return writerPool;
     }

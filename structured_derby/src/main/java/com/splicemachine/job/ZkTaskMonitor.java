@@ -1,18 +1,24 @@
 package com.splicemachine.job;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.collections.PredicateUtils;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
+import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Scott Fines
@@ -22,57 +28,43 @@ public class ZkTaskMonitor implements TaskMonitor{
     private static final Logger LOG = Logger.getLogger(ZkTaskMonitor.class);
     private final RecoverableZooKeeper zooKeeper;
     private final String baseQueueNode;
+    private final Map<String,Set<? extends Task>> runningTaskMap = new ConcurrentHashMap<String, Set<? extends Task>>();
 
     public ZkTaskMonitor(String baseQueueNode,RecoverableZooKeeper zooKeeper) {
         this.zooKeeper = zooKeeper;
         this.baseQueueNode = baseQueueNode;
     }
 
-    @Override
-    public int getNumRegions(String tableId) {
-        return getRegions(tableId).size();
+    public <T extends Task> Set<T> registerRegion(String region){
+        Set<T> taskSet = Collections.newSetFromMap(new ConcurrentHashMap<T, Boolean>());
+        runningTaskMap.put(region,taskSet);
+        return taskSet;
     }
 
-    @Override
-    public List<String> getRegions(String tableId) {
-        try {
-            return zooKeeper.getChildren(baseQueueNode+"/"+tableId,false);
-        } catch (KeeperException e) {
-            if(e.code()== KeeperException.Code.NONODE)
-                return Collections.emptyList();
-            LOG.debug("Error getting task regions:"+e.getMessage());
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+    public void deregisterRegion(String region){
+        runningTaskMap.remove(region);
     }
 
-    @Override
-    public List<String> getTables() {
-        try{
-            return zooKeeper.getChildren(baseQueueNode,false);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } catch (KeeperException e) {
-            if(e.code()== KeeperException.Code.NONODE)
-                return Collections.emptyList(); //should never happen, but just in case
-            LOG.debug("Error getting task regions:"+e.getMessage());
-            throw new RuntimeException(e);
+    private static final Predicate<Task> executingFilter = new Predicate<Task>() {
+        @Override
+        public boolean apply(@Nullable Task input) {
+            return input.getTaskStatus().getStatus() == Status.EXECUTING;
         }
-    }
+    };
 
-    @Override
-    public List<String> getTasks(String tableId, String regionId) {
-        try{
-            return zooKeeper.getChildren(baseQueueNode+"/"+tableId+"/"+regionId,false);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } catch (KeeperException e) {
-            if(e.code()== KeeperException.Code.NONODE)
-                return Collections.emptyList();
-            LOG.debug("Error getting tasks:"+e.getMessage());
-            throw new RuntimeException(e);
+    private static final Function<Task,String> taskIdMapper = new Function<Task, String>() {
+        @Override
+        public String apply(@Nullable Task input) {
+            return input.getTaskId();
         }
+    };
+    @Override
+    public List<String> getRunningTasks() {
+        List<String> runningTasks = Lists.newArrayList();
+        for(String region:runningTaskMap.keySet()){
+            runningTasks.addAll(Collections2.transform(Collections2.filter(runningTaskMap.get(region),executingFilter),taskIdMapper));
+        }
+        return runningTasks;
     }
 
     @Override
@@ -109,13 +101,13 @@ public class ZkTaskMonitor implements TaskMonitor{
     }
 
     @Override
-    public String getStatus(String tableId, String regionId, String taskId) {
-        return getTaskStatus(tableId, regionId, taskId).getStatus().name();
+    public String getStatus(String taskId) {
+        return getTaskStatus(taskId).getStatus().name();
     }
 
-    private TaskStatus getTaskStatus(String tableId, String regionId, String taskId) {
+    private TaskStatus getTaskStatus(String taskId) {
         try{
-            byte[] data = zooKeeper.getData(baseQueueNode+"/"+tableId+"/"+regionId+"/"+taskId+"/status",false, new Stat());
+            byte[] data = zooKeeper.getData(taskId+"/status",false, new Stat());
             ByteArrayInputStream bais = new ByteArrayInputStream(data);
             ObjectInput in = new ObjectInputStream(bais);
             return (TaskStatus)in.readObject();
