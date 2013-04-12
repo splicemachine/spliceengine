@@ -39,8 +39,8 @@ public abstract class AbstractImportTask extends ZooKeeperTask{
 
     public AbstractImportTask() { }
 
-    public AbstractImportTask(String jobId,ImportContext importContext) {
-        super(jobId);
+    public AbstractImportTask(String jobId,ImportContext importContext,int priority) {
+        super(jobId,priority);
         this.importContext = importContext;
     }
 

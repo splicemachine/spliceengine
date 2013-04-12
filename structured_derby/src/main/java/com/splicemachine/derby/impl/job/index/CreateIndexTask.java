@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
+import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.index.IndexManager;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -45,7 +46,7 @@ public class CreateIndexTask extends ZooKeeperTask {
                            long baseConglomId,
                            int[] indexColsToBaseColMap,
                            boolean unique,String jobId ) {
-        super(jobId);
+        super(jobId, OperationJob.operationTaskPriority);
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
         this.baseConglomId = baseConglomId;

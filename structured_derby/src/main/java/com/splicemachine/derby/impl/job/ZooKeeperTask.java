@@ -25,8 +25,9 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/4/13
  */
 public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
-    private static final long serialVersionUID=1l;
+    private static final long serialVersionUID=2l;
     protected final Logger LOG;
+    private int priority;
     protected RecoverableZooKeeper zooKeeper;
     private String statusNode;
     protected String jobId;
@@ -36,17 +37,16 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
         this.LOG = Logger.getLogger(this.getClass());
     }
 
-    protected ZooKeeperTask(String jobId){
+    protected ZooKeeperTask(String jobId,int priority){
         super(null);
+        this.priority = priority;
         this.jobId = jobId.replaceAll("/","_");
         this.LOG = Logger.getLogger(this.getClass());
     }
 
-    protected ZooKeeperTask(String taskId,String jobId,RecoverableZooKeeper zooKeeper) {
-        super(taskId);
-        this.zooKeeper = zooKeeper;
-        this.jobId = jobId;
-        this.LOG = Logger.getLogger(this.getClass());
+    @Override
+    public int getPriority() {
+        return priority;
     }
 
     @Override
@@ -218,10 +218,12 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         jobId = in.readUTF();
+        priority = in.readInt();
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeUTF(jobId);
+        out.writeInt(priority);
     }
 }

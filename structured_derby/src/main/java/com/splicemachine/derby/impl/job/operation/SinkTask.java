@@ -46,8 +46,11 @@ public class SinkTask extends ZooKeeperTask {
         super();
     }
 
-    public SinkTask(String jobId,Scan scan, SpliceObserverInstructions instructions) {
-        super(jobId);
+    public SinkTask(String jobId,
+                    Scan scan,
+                    SpliceObserverInstructions instructions,
+                    int priority) {
+        super(jobId,priority);
         this.scan = scan;
         this.instructions = instructions;
     }
@@ -107,6 +110,11 @@ public class SinkTask extends ZooKeeperTask {
     @Override
     public boolean isCancelled() throws ExecutionException {
         return status.getStatus()==Status.CANCELLED;
+    }
+
+    @Override
+    public int getPriority() {
+        return 0;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     @Override

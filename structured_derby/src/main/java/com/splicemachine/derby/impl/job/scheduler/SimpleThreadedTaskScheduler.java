@@ -1,13 +1,16 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.*;
+import com.splicemachine.tools.BalancedBlockingQueue;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -19,7 +22,18 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SimpleThreadedTaskScheduler<T extends Task> implements TaskScheduler<T>,TaskSchedulerManagement {
     private static final Logger WORKER_LOG = Logger.getLogger(TaskCallable.class);
     private static final int DEFAULT_MAX_WORKERS = 10;
-    private static final int DEFAULT_MIN_WORKERS = 1;
+    private static final int DEFAULT_PRIORITY_LEVELS = 5;
+    private static final int DEFAULT_INTERLEAVE_COUNT = 10;
+
+    private static final Function<Runnable,Integer> priorityMapper = new Function<Runnable, Integer>() {
+        @Override
+        public Integer apply(@Nullable Runnable input) {
+            if(input instanceof PriorityRunnable){
+                return ((PriorityRunnable)input).getPriority();
+            }
+            return 1;
+        }
+    };
 
     private final ThreadPoolExecutor executor;
 
@@ -31,9 +45,12 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
 
     public static <T extends Task> SimpleThreadedTaskScheduler<T> create(Configuration configuration){
         int maxWorkers = configuration.getInt("splice.task.maxWorkers",DEFAULT_MAX_WORKERS);
+        int numPriorityLevels = configuration.getInt("splice.task.priorityLevels", DEFAULT_PRIORITY_LEVELS);
+        int tasksPerLevel = configuration.getInt("splice.task.priorityInterleave", DEFAULT_INTERLEAVE_COUNT);
 
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(maxWorkers,maxWorkers,
-                60,TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(),new NamedThreadFactory());
+        ThreadPoolExecutor executor = new TaskThreadPool(maxWorkers,maxWorkers,60,TimeUnit.SECONDS,
+                new BalancedBlockingQueue<Runnable>(numPriorityLevels,tasksPerLevel,priorityMapper),
+                new NamedThreadFactory());
         executor.allowCoreThreadTimeOut(true);
 
         return new SimpleThreadedTaskScheduler<T>(executor);
@@ -270,6 +287,38 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
                 case EXECUTING:
                     numExecuting.incrementAndGet();
             }
+        }
+    }
+
+    private static class TaskThreadPool extends ThreadPoolExecutor{
+
+        public TaskThreadPool(int corePoolSize, int maximumPoolSize,
+                              long keepAliveTime, TimeUnit unit,
+                              BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory) {
+            super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory);
+        }
+
+        @Override
+        protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
+            if(callable instanceof TaskCallable)
+                return new PriorityTaskRunnableFuture<T>(callable,((TaskCallable)callable).task.getPriority());
+            //when in doubt, just default to the original
+            return super.newTaskFor(callable);
+        }
+    }
+
+    private static class PriorityTaskRunnableFuture<T> extends FutureTask<T> implements PriorityRunnable<T>{
+
+        private final int priority;
+
+        public PriorityTaskRunnableFuture(Callable<T> callable,int priority) {
+            super(callable);
+            this.priority = priority;
+        }
+
+        @Override
+        public int getPriority() {
+            return priority;
         }
     }
 }

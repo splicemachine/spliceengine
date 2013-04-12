@@ -30,4 +30,6 @@ public interface Task {
     boolean isInvalidated();
 
     void cleanup() throws ExecutionException;
+
+    int getPriority();
 }

@@ -249,6 +249,11 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         }
 
         @Override
+        public int getPriority() {
+            return 100; //run this task before anything else
+        }
+
+        @Override
         public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
             this.regionToLoad =region;
             this.zooKeeper = zooKeeper;

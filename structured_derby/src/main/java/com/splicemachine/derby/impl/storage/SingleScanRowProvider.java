@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutionException;
  */
 public abstract class SingleScanRowProvider  implements RowProvider {
 
+
     private static final Logger LOG = Logger.getLogger(SingleScanRowProvider.class);
 
     @Override
@@ -108,44 +109,6 @@ public abstract class SingleScanRowProvider  implements RowProvider {
         }
     }
 
-    /*
-     * Convenience wrapper to update statistics
-     */
-    private static class Callback implements Batch.Callback<TaskStats>{
-        private final RegionStats stats;
-
-        private Callback(RegionStats stats) {
-            this.stats = stats;
-        }
-
-        @Override
-        public void update(byte[] region, byte[] row, TaskStats result) {
-            this.stats.addRegionStats(region,result);
-        }
-    }
-
-    /*
-     * Convenience wrapper around the execution phase
-     */
-    private static class Call implements Batch.Call<SpliceOperationProtocol,TaskStats>{
-        private final Scan scan;
-        private final SpliceObserverInstructions instructions;
-
-        private Call(Scan scan, SpliceObserverInstructions instructions) {
-            this.scan = scan;
-            this.instructions = instructions;
-        }
-
-        @Override
-        public TaskStats call(SpliceOperationProtocol instance) throws IOException {
-            try {
-                return instance.run(scan,instructions);
-            } catch (StandardException e) {
-                throw new IOException(e);
-            }
-        }
-    }
-
     private class LocalTaskJobStats implements JobStats {
         private final TaskStats stats;
 
@@ -153,45 +116,14 @@ public abstract class SingleScanRowProvider  implements RowProvider {
             this.stats = stats;
         }
 
-        @Override
-        public int getNumTasks() {
-            return 1;
-        }
-
-        @Override
-        public int getNumSubmittedTasks() {
-            return 1;
-        }
-
-        @Override
-        public int getNumCompletedTasks() {
-            return 1;
-        }
-
-        @Override
-        public int getNumFailedTasks() {
-            return 0;
-        }
-
-        @Override
-        public int getNumInvalidatedTasks() {
-            return 0;
-        }
-
-        @Override
-        public int getNumCancelledTasks() {
-            return 0;
-        }
-
-        @Override
-        public long getTotalTime() {
-            return stats.getTotalTime();
-        }
-
-        @Override
-        public String getJobName() {
-            return "localJob";
-        }
+        @Override public int getNumTasks() { return 1; }
+        @Override public int getNumSubmittedTasks() { return 1; }
+        @Override public int getNumCompletedTasks() { return 1; }
+        @Override public int getNumFailedTasks() { return 0; }
+        @Override public int getNumInvalidatedTasks() { return 0; }
+        @Override public int getNumCancelledTasks() { return 0; }
+        @Override public long getTotalTime() { return stats.getTotalTime(); }
+        @Override public String getJobName() { return "localJob"; }
 
         @Override
         public Map<String, TaskStats> getTaskStats() {

@@ -228,6 +228,11 @@ public class WorkStealingThreadedTaskSchedulerTest {
         public void cleanup() throws ExecutionException {
             //no-op
         }
+
+        @Override
+        public int getPriority() {
+            return 1;
+        }
     }
 
     private class FailTask extends CountDownTask{

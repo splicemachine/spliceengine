@@ -12,6 +12,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -41,19 +42,22 @@ import java.util.concurrent.*;
  */
 public class TempCleaner {
     private static final Logger LOG = Logger.getLogger(TempCleaner.class);
+    private static final int DEFAULT_CLEAN_TASK_PRIORITY = 2;
     private final ExecutorService cleanWatcher;
+    private final int taskPriority;
 
-    public TempCleaner() {
+    public TempCleaner(Configuration configuration) {
         ThreadFactory factory = new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("tempCleaner")
                 .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
                     @Override
                     public void uncaughtException(Thread t, Throwable e) {
-                        SpliceLogUtils.error(LOG,"Unexpected error cleaning temp table",e);
+                        SpliceLogUtils.error(LOG, "Unexpected error cleaning temp table", e);
                     }
                 }).build();
         cleanWatcher = Executors.newSingleThreadExecutor(factory);
+        this.taskPriority = configuration.getInt("splice.temp.cleanTaskPriority",DEFAULT_CLEAN_TASK_PRIORITY);
     }
 
     /**
@@ -63,7 +67,7 @@ public class TempCleaner {
      * @param finish the finish row to be deleted
      */
     public void deleteRange(String uid, byte[] start, byte[] finish) throws StandardException {
-        TempCleanJob job = new TempCleanJob(uid,start,finish);
+        TempCleanJob job = new TempCleanJob(uid,start,finish,taskPriority);
         try {
             final JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
             cleanWatcher.submit(new Callable<Void>() {
@@ -87,12 +91,12 @@ public class TempCleaner {
         private TempCleanTask task;
         private final String jobId;
 
-        public TempCleanJob(String uid,byte[] start, byte[] finish){
+        public TempCleanJob(String uid,byte[] start, byte[] finish,int taskPriority){
             this.jobId = uid;
             Scan scan = new Scan();
             scan.setStartRow(start);
             scan.setStopRow(finish);
-            this.task = new TempCleanTask(uid,scan);
+            this.task = new TempCleanTask(uid,scan,taskPriority);
         }
 
         @Override
@@ -118,8 +122,8 @@ public class TempCleaner {
 
         public TempCleanTask(){}
 
-        public TempCleanTask(String jobId,Scan scan){
-            super(jobId);
+        public TempCleanTask(String jobId,Scan scan,int priority){
+            super(jobId,priority);
             this.scan = scan;
         }
 

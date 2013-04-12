@@ -98,7 +98,7 @@ public class SpliceDriver {
 
             taskMonitor = new ZkTaskMonitor(CoprocessorTaskScheduler.baseQueueNode,ZkUtils.getRecoverableZooKeeper());
 
-            tempCleaner = new TempCleaner();
+            tempCleaner = new TempCleaner(SpliceUtils.config);
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
