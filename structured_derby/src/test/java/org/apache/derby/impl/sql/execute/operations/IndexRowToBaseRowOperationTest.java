@@ -25,8 +25,9 @@ public class IndexRowToBaseRowOperationTest extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	private static final Logger LOG = Logger.getLogger(IndexRowToBaseRowOperationTest.class);
 
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(IndexRowToBaseRowOperationTest.class.getSimpleName());	
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("ORDER_FACT",IndexRowToBaseRowOperationTest.class.getSimpleName(),"(i int)");
+    private static final String CLASSNAME = IndexRowToBaseRowOperationTest.class.getSimpleName();
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASSNAME);
+	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("ORDER_FACT", CLASSNAME,"(i int)");
 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -35,7 +36,7 @@ public class IndexRowToBaseRowOperationTest extends SpliceUnitTest {
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-	@Ignore ("Bug  209 ")
+    @Ignore ("Bug  209 ")
 	@Test
 	public void testScanSysTables() throws Exception{
 		ResultSet rs = methodWatcher.executeQuery("select tablename from sys.systables where tablename like 'ORDER_FACT'");
@@ -403,7 +404,7 @@ public class IndexRowToBaseRowOperationTest extends SpliceUnitTest {
 
     @Test
     public void testRestrictColumns() throws Exception{
-        ResultSet rs = methodWatcher.executeQuery("select " +
+        final String sql = "select " +
                 "c.columnname," +
                 "t.tablename," +
                 "s.schemaname " +
@@ -414,8 +415,10 @@ public class IndexRowToBaseRowOperationTest extends SpliceUnitTest {
                 "where " +
                 "c.referenceid = t.tableid " +
                 "and s.schemaid = t.schemaid " +
-                "and s.schemaname like 'SYS' " +
-                "and c.columnname like '%'");// +
+                "and t.tablename = 'ORDER_FACT' " +
+                "and s.schemaname like 'INDEX%' " +
+                "and c.columnname like '%'";
+        ResultSet rs = methodWatcher.executeQuery(sql);
         int count =0;
         while(rs.next()){
             LOG.info(rs.getString(1));
