@@ -71,6 +71,7 @@ public class HdfsImportTest extends SpliceUnitTest {
 
 	private void testImport(String schemaName, String tableName,String location,String colList) throws Exception {
 		Connection connection = null;
+        boolean success = false;
 		try {
 			connection = SpliceDriver.driver().acquireConnection();
             LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
@@ -90,9 +91,14 @@ public class HdfsImportTest extends SpliceUnitTest {
 				results.add(String.format("name:%s,title:%s,age:%d",name,title,age));
 			}
 			Assert.assertTrue("no rows imported!",results.size()>0);
+            connection.commit();
+            success = true;
 		} catch (Exception e) {
 			DbUtils.closeQuietly(connection);
 		} finally {
+            if (!success) {
+                connection.rollback();
+            }
             SpliceDriver.driver().closeConnection(connection);
         }
 	}
