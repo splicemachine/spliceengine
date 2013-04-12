@@ -1,4 +1,4 @@
-ij> -- MODULE DML020
+splice> -- MODULE DML020
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml020.sql
 -- 59-byte ID
@@ -7,12 +7,12 @@ ij> -- MODULE DML020
 -- AUTHORIZATION HU
    set schema HU;
 0 rows inserted/updated/deleted
-ij> --O   SELECT USER FROM HU.ECCO;
+splice> --O   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 HU                                                                                                                              
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 
 -- date_time print
 
@@ -33,7 +33,7 @@ E3 |Carmen              |13   |Vienna         |IRM                 |Vienna
 E4 |Don                 |12   |Deale          |MXSS                |Deale          
 E4 |Don                 |12   |Deale          |PAYR                |Deale          
 E4 |Don                 |12   |Deale          |SDP                 |Deale          
-ij> -- PASS:0080 If 10 rows are selected with EMPNAMEs:'Alice', 'Betty', ?
+splice> -- PASS:0080 If 10 rows are selected with EMPNAMEs:'Alice', 'Betty', ?
 -- PASS:0080 'Carmen', and 'Don' but not 'Ed'?
 
 -- END TEST >>> 0080 <<< END TEST
@@ -54,7 +54,7 @@ E2 |Betty               |10   |Vienna         |P2 |CALM                |Code  |3
 E2 |Betty               |10   |Vienna         |P5 |IRM                 |Test  |10000     |Vienna         
 E3 |Carmen              |13   |Vienna         |P2 |CALM                |Code  |30000     |Vienna         
 E3 |Carmen              |13   |Vienna         |P5 |IRM                 |Test  |10000     |Vienna         
-ij> -- PASS:0081 If 4 rows selected with EMPNAMEs 'Betty' and 'Carmen' ?
+splice> -- PASS:0081 If 4 rows selected with EMPNAMEs 'Betty' and 'Carmen' ?
 
 -- END TEST >>> 0081 <<< END TEST
 -- ************************************************************** 
@@ -72,7 +72,7 @@ Deale          |Tampa
 Deale          |Vienna         
 Vienna         |Deale          
 Vienna         |Vienna         
-ij> -- PASS:0082 If 5 distinct rows are selected ?
+splice> -- PASS:0082 If 5 distinct rows are selected ?
 
 -- END TEST >>> 0082 <<< END TEST
 -- ************************************************************
@@ -87,10 +87,10 @@ EM&|EM&
 -------
 E1 |E4 
 E2 |E3 
-ij> -- PASS:0083 If 2 rows are selected and ?
+splice> -- PASS:0083 If 2 rows are selected and ?
 -- PASS:0083 If EMPNUM pairs are 'E1'/'E4' and 'E2'/'E3'?
 
 -- END TEST >>> 0083 <<< END TEST
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 

@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE  DML148  
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE  DML148  
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml148.sql
 -- 59-byte ID
@@ -8,14 +8,14 @@ ij> -- MODULE  DML148
 -- AUTHORIZATION FLATER
    set schema FLATER;
 0 rows inserted/updated/deleted
-ij> --O   SELECT USER FROM HU.ECCO;
+splice> --O   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 FLATER                                                                                                                          
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
    ROLLBACK WORK;
-ij> -- date_time print
+splice> -- date_time print
 
 -- TEST:0843 Ordering of column names in joins !
 
@@ -41,7 +41,7 @@ E1 |P3 |80    |P3 |SDP                 |Test  |30000     |Tampa
 E1 |P4 |20    |P4 |SDP                 |Design|20000     |Deale          
 E1 |P5 |12    |P5 |IRM                 |Test  |10000     |Vienna         
 E1 |P6 |12    |P6 |PAYR                |Design|50000     |Deale          
-ij> -- PASS:0843 If 12 rows selected?
+splice> -- PASS:0843 If 12 rows selected?
 -- PASS:0843 If ordered row and column values for first two rows are: ?
 -- PASS:0843    P2  E4  20  CALM  Code    30000  Vienna ?
 -- PASS:0843    P4  E4  40  SDP   Design  20000  Deale  ?
@@ -66,7 +66,7 @@ E1 |P3 |80    |P3 |SDP                 |Test  |30000     |Tampa
 E1 |P4 |20    |P4 |SDP                 |Design|20000     |Deale          
 E1 |P5 |12    |P5 |IRM                 |Test  |10000     |Vienna         
 E1 |P6 |12    |P6 |PAYR                |Design|50000     |Deale          
-ij> -- PASS:0843 If 12 rows selected?
+splice> -- PASS:0843 If 12 rows selected?
 -- PASS:0843 If ordered row and column values for first two rows are: ?
 -- PASS:0843    P2  E4  20  CALM  Code    30000  Vienna ?
 -- PASS:0843    P4  E4  40  SDP   Design  20000  Deale  ?
@@ -96,13 +96,13 @@ E1 |P3 |80    |P3 |SDP                 |Test  |30000     |Tampa
 E1 |P4 |20    |P4 |SDP                 |Design|20000     |Deale          
 E1 |P5 |12    |P5 |IRM                 |Test  |10000     |Vienna         
 E1 |P6 |12    |P6 |PAYR                |Design|50000     |Deale          
-ij> -- PASS:0843 If 12 rows selected?
+splice> -- PASS:0843 If 12 rows selected?
 -- PASS:0843 If ordered row and column values for first two rows are: ?
 -- PASS:0843    E4  P2  20  P2  CALM  Code    30000  Vienna ?
 -- PASS:0843    E4  P4  40  P4  SDP   Design  20000  Deale  ?
 
    ROLLBACK WORK;
-ij> -- END TEST >>> 0843 <<< END TEST
+splice> -- END TEST >>> 0843 <<< END TEST
 
 -- *********************************************
 
@@ -118,22 +118,22 @@ ij> -- END TEST >>> 0843 <<< END TEST
        T_FLOAT   FLOAT,
        T_DOUBLE  DOUBLE PRECISION);
 0 rows inserted/updated/deleted
-ij> COMMIT WORK;
-ij> -- setup
+splice> COMMIT WORK;
+splice> -- setup
    DELETE FROM SEVEN_TYPES;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> INSERT INTO SEVEN_TYPES VALUES (1, 'E1',-11,   2,  3,   4,   5);
+splice> INSERT INTO SEVEN_TYPES VALUES (1, 'E1',-11,   2,  3,   4,   5);
 1 row inserted/updated/deleted
-ij> INSERT INTO SEVEN_TYPES VALUES (2, 'E2', -5,  13, 33,-444, -55);
+splice> INSERT INTO SEVEN_TYPES VALUES (2, 'E2', -5,  13, 33,-444, -55);
 1 row inserted/updated/deleted
-ij> INSERT INTO SEVEN_TYPES VALUES (3, 'E6', -3,-222,333,  44, 555);
+splice> INSERT INTO SEVEN_TYPES VALUES (3, 'E6', -3,-222,333,  44, 555);
 1 row inserted/updated/deleted
-ij> INSERT INTO SEVEN_TYPES VALUES (12,'DUP', 0,   0, -1,   1,1E+1);
+splice> INSERT INTO SEVEN_TYPES VALUES (12,'DUP', 0,   0, -1,   1,1E+1);
 1 row inserted/updated/deleted
-ij> INSERT INTO SEVEN_TYPES VALUES (12,'DUP', 0,   0, -1,   1,1E+1);
+splice> INSERT INTO SEVEN_TYPES VALUES (12,'DUP', 0,   0, -1,   1,1E+1);
 1 row inserted/updated/deleted
-ij> --
+splice> --
 -- NOTE:0844 BETWEEN predicate
    SELECT EMPNAME, CITY, T_DECIMAL
      FROM HU.STAFF LEFT OUTER JOIN SEVEN_TYPES 
@@ -147,7 +147,7 @@ Betty               |Vienna         |0.00
 Carmen              |Vienna         |NULL        
 Don                 |Deale          |NULL        
 Ed                  |Akron          |NULL        
-ij> -- PASS:0844 If 6 rows selected with ordered rows and column values ?
+splice> -- PASS:0844 If 6 rows selected with ordered rows and column values ?
 -- PASS:0844    Alice  Deale  NULL  ?
 -- PASS:0844    Betty  Vienna    0  ?
 -- PASS:0844    Betty  Vienna    0  ?
@@ -169,7 +169,7 @@ NULL       |NULL      |Alice               |E1 |12
 NULL       |NULL      |Carmen              |E3 |13   
 NULL       |NULL      |Don                 |E4 |12   
 NULL       |NULL      |Ed                  |E5 |13   
-ij> -- PASS:0844 If 5 rows selected with ordered rows and column values ?
+splice> -- PASS:0844 If 5 rows selected with ordered rows and column values ?
 -- PASS:0844    NULL NULL Alice  E1 12  ?
 -- PASS:0844       2 E2   Betty  E2 10  ?
 -- PASS:0844    NULL NULL Carmen E3 13  ?
@@ -193,7 +193,7 @@ Deale          |Alice               |PAYR                |50000
 Deale          |Don                 |NULL                |NULL      
 Vienna         |Betty               |NULL                |NULL      
 Vienna         |Carmen              |NULL                |NULL      
-ij> -- PASS:0844 If 6 rows selected with ordered rows and column values ?
+splice> -- PASS:0844 If 6 rows selected with ordered rows and column values ?
 -- PASS:0844    Akron   Ed     NULL NULL   ?
 -- PASS:0844    Deale   Alice  SDP  20000  ?
 -- PASS:0844    Deale   Alice  PAYR 50000  ?
@@ -218,7 +218,7 @@ Deale          |Alice               |SDP                 |20000
 Deale          |Alice               |PAYR                |50000     
 Vienna         |Betty               |NULL                |NULL      
 Vienna         |Carmen              |NULL                |NULL      
-ij> -- PASS:0844 If 5 rows selected with ordered rows and column values ?
+splice> -- PASS:0844 If 5 rows selected with ordered rows and column values ?
 -- PASS:0844    Akron   Ed     NULL NULL   ?
 -- PASS:0844    Deale   Alice  SDP  20000  ?
 -- PASS:0844    Deale   Alice  PAYR 50000  ?
@@ -238,7 +238,7 @@ T_INT      |T_INT
 NULL       |3          
 NULL       |12         
 NULL       |12         
-ij> -- PASS:0844 If 5 rows selected with ordered rows and column values ?
+splice> -- PASS:0844 If 5 rows selected with ordered rows and column values ?
 -- PASS:0844    2      1  ?
 -- PASS:0844    3      2  ?
 -- PASS:0844    NULL   3  ?
@@ -260,7 +260,7 @@ GRADE|T_FLOAT               |T_DOUBLE
 12   |NULL                  |NULL                  
 13   |44.0                  |555.0                 
 13   |44.0                  |555.0                 
-ij> -- PASS:0844 If 5 rows selected with ordered rows and column values ?
+splice> -- PASS:0844 If 5 rows selected with ordered rows and column values ?
 -- PASS:0844    10 -444 (approximately)  -55 (approximately) ?
 -- PASS:0844    12 NULL                 NULL                 ?
 -- PASS:0844    12 NULL                 NULL                 ?
@@ -268,12 +268,12 @@ ij> -- PASS:0844 If 5 rows selected with ordered rows and column values ?
 -- PASS:0844    13   44 (approximately)  555 (approximately) ?
 
 ROLLBACK WORK;
-ij> --ODROP TABLE SEVEN_TYPES CASCADE;
+splice> --ODROP TABLE SEVEN_TYPES CASCADE;
 DROP TABLE SEVEN_TYPES ;
 0 rows inserted/updated/deleted
-ij> COMMIT WORK;
-ij> -- END TEST >>> 0844 <<< END TEST
+splice> COMMIT WORK;
+splice> -- END TEST >>> 0844 <<< END TEST
 
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 

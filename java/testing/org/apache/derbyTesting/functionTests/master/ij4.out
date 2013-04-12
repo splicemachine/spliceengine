@@ -1,4 +1,4 @@
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -19,16 +19,16 @@ values cast('1' as varchar(512));
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 1                                                                                                                               
-ij> maximumdisplaywidth 40;
-ij> values cast('1' as varchar(512));
+splice> maximumdisplaywidth 40;
+splice> values cast('1' as varchar(512));
 1                                       
 ----------------------------------------
 1                                       
-ij> maximumdisplaywidth 400;
-ij> values cast('1' as varchar(512));
+splice> maximumdisplaywidth 400;
+splice> values cast('1' as varchar(512));
 1                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 1                                                                                                                                                                                                                                                                                                                                                                                                               
-ij> maximumdisplaywidth 128;
-ij> -- and, the exit command:
+splice> maximumdisplaywidth 128;
+splice> -- and, the exit command:
 exit;

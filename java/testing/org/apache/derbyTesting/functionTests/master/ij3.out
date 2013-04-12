@@ -1,4 +1,4 @@
-ij(CONNECTION1)> --
+splice(CONNECTION1)> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -14,12 +14,12 @@ ij(CONNECTION1)> --
 --   See the License for the specific language governing permissions and
 --   limitations under the License.
 --
--- this test shows that ij can detect the driver from the URL.
--- the ij.properties file sets ij.database and nothing else.
+-- this test shows that splice can detect the driver from the URL.
+-- the splice.properties file sets splice.database and nothing else.
 
 values 'PASS';
 1   
 ----
 PASS
-ij(CONNECTION1)> -- this test also exercises the shutdown on exit code
+splice(CONNECTION1)> -- this test also exercises the shutdown on exit code
 exit;

@@ -1,4 +1,4 @@
-ij(CONNECTION1)> --
+splice(CONNECTION1)> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -16,30 +16,30 @@ ij(CONNECTION1)> --
 --
 
 -- show multiconnect ability; db name is wombat, reuse it...
--- assumes ij.protocol is appropriately set...
+-- assumes splice.protocol is appropriately set...
 
 connect 'wombat' as wombat;
-ij(WOMBAT)> show connections;
+splice(WOMBAT)> show connections;
 CONNECTION0 - 	jdbc:derby:wombat
 CONNECTION1 - 	jdbc:derby:wombat1
 WOMBAT* - 	jdbc:derby:wombat
 * = current connection
 WARNING 01J01: Database 'wombat' not created, connection made to existing database instead.
-ij(WOMBAT)> set connection connection0;
-ij(CONNECTION0)> show connections;
+splice(WOMBAT)> set connection connection0;
+splice(CONNECTION0)> show connections;
 CONNECTION0* - 	jdbc:derby:wombat
 CONNECTION1 - 	jdbc:derby:wombat1
 WOMBAT - 	jdbc:derby:wombat
 * = current connection
-ij(CONNECTION0)> set connection wombat;
-ij(WOMBAT)> disconnect;
-ij> show connections;
+splice(CONNECTION0)> set connection wombat;
+splice(WOMBAT)> disconnect;
+splice> show connections;
 CONNECTION0 - 	jdbc:derby:wombat
 CONNECTION1 - 	jdbc:derby:wombat1
 No current connection
-ij> set connection connection0;
-ij(CONNECTION0)> show connections;
+splice> set connection connection0;
+splice(CONNECTION0)> show connections;
 CONNECTION0* - 	jdbc:derby:wombat
 CONNECTION1 - 	jdbc:derby:wombat1
 * = current connection
-ij(CONNECTION0)> 
+splice(CONNECTION0)> 

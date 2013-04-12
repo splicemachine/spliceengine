@@ -1,6 +1,6 @@
 -- Unit Test T_Like starting
 -- Unit Test T_Like finished
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -21,4 +21,4 @@ values 1;
 1          
 -----------
 1          
-ij> 
+splice> 

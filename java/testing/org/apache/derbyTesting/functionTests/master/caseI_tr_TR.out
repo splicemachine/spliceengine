@@ -1,6 +1,6 @@
 CONNECTION0* -  EnC:>9< jdbc:derby:trdb
 * = current connection
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -21,24 +21,24 @@ EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.Formatters.format'
 NO SQL
 LANGUAGE JAVA PARAMETER STYLE JAVA;
 0 rows inserted/updated/deleted
-ij> values FMTUNICODE(UCASE('i'));
+splice> values FMTUNICODE(UCASE('i'));
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 \u0130                                                                                                                          
 1 row selected
-ij> values FMTUNICODE(UCASE('I'));
+splice> values FMTUNICODE(UCASE('I'));
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 I                                                                                                                               
 1 row selected
-ij> values FMTUNICODE(LCASE('i'));
+splice> values FMTUNICODE(LCASE('i'));
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 i                                                                                                                               
 1 row selected
-ij> values FMTUNICODE(LCASE('I'));
+splice> values FMTUNICODE(LCASE('I'));
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 \u0131                                                                                                                          
 1 row selected
-ij> 
+splice> 

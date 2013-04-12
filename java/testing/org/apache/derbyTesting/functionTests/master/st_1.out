@@ -1,4 +1,4 @@
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -20,63 +20,63 @@ ij> --
 -- means function called with no errors.  Other tests will check if
 -- function did the right thing.
 autocommit off;
-ij> maximumdisplaywidth 9000;
-ij> create table foo(a int);
+splice> maximumdisplaywidth 9000;
+splice> create table foo(a int);
 0 rows inserted/updated/deleted
-ij> -- check if unqualified schema call works.
+splice> -- check if unqualified schema call works.
 set schema SYSCS_UTIL;
 0 rows inserted/updated/deleted
-ij> call SYSCS_FREEZE_DATABASE();
+splice> call SYSCS_FREEZE_DATABASE();
 0 rows inserted/updated/deleted
-ij> call SYSCS_UNFREEZE_DATABASE();
+splice> call SYSCS_UNFREEZE_DATABASE();
 0 rows inserted/updated/deleted
-ij> call SYSCS_CHECKPOINT_DATABASE();
+splice> call SYSCS_CHECKPOINT_DATABASE();
 0 rows inserted/updated/deleted
-ij> call SYSCS_SET_DATABASE_PROPERTY('foo', 'bar');
+splice> call SYSCS_SET_DATABASE_PROPERTY('foo', 'bar');
 0 rows inserted/updated/deleted
-ij> commit;
-ij> call SYSCS_BACKUP_DATABASE('extinout/mybackup');
+splice> commit;
+splice> call SYSCS_BACKUP_DATABASE('extinout/mybackup');
 0 rows inserted/updated/deleted
-ij> call SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE('extinout/mybackup2', 0);
+splice> call SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE('extinout/mybackup2', 0);
 0 rows inserted/updated/deleted
-ij> call SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE('extinout/mybackup2', 1);
+splice> call SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE('extinout/mybackup2', 1);
 0 rows inserted/updated/deleted
-ij> call SYSCS_DISABLE_LOG_ARCHIVE_MODE(0);
+splice> call SYSCS_DISABLE_LOG_ARCHIVE_MODE(0);
 0 rows inserted/updated/deleted
-ij> call SYSCS_DISABLE_LOG_ARCHIVE_MODE(1);
+splice> call SYSCS_DISABLE_LOG_ARCHIVE_MODE(1);
 0 rows inserted/updated/deleted
-ij> call SYSCS_COMPRESS_TABLE('APP', 'FOO', 0);
+splice> call SYSCS_COMPRESS_TABLE('APP', 'FOO', 0);
 0 rows inserted/updated/deleted
-ij> call SYSCS_COMPRESS_TABLE('APP', 'FOO', 1);
+splice> call SYSCS_COMPRESS_TABLE('APP', 'FOO', 1);
 0 rows inserted/updated/deleted
-ij> -- system funtions
+splice> -- system funtions
 set schema SYSCS_UTIL;
 0 rows inserted/updated/deleted
-ij> values SYSCS_GET_DATABASE_PROPERTY('foo');
+splice> values SYSCS_GET_DATABASE_PROPERTY('foo');
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 bar                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
-ij> values SYSCS_CHECK_TABLE('APP', 'FOO');
+splice> values SYSCS_CHECK_TABLE('APP', 'FOO');
 1          
 -----------
 1          
-ij> call SYSCS_SET_RUNTIMESTATISTICS(1);
+splice> call SYSCS_SET_RUNTIMESTATISTICS(1);
 0 rows inserted/updated/deleted
-ij> call SYSCS_SET_STATISTICS_TIMING(1);
+splice> call SYSCS_SET_STATISTICS_TIMING(1);
 0 rows inserted/updated/deleted
-ij> select * from APP.foo;
+splice> select * from APP.foo;
 A          
 -----------
-ij> -- TODO, figure out how to test with a master file, that timings are non-zero,
+splice> -- TODO, figure out how to test with a master file, that timings are non-zero,
 -- without having them diff everytime.  Ran this once and hand checked that
 -- it was working.
 -- values SYSCS_GET_RUNTIMESTATISTICS();
 call SYSCS_SET_STATISTICS_TIMING(0);
 0 rows inserted/updated/deleted
-ij> select * from APP.foo;
+splice> select * from APP.foo;
 A          
 -----------
-ij> values SYSCS_GET_RUNTIMESTATISTICS();
+splice> values SYSCS_GET_RUNTIMESTATISTICS();
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Statement Name: 
@@ -116,14 +116,14 @@ scan information:
 		null
 	qualifiers:
 		None
-ij> call SYSCS_SET_RUNTIMESTATISTICS(0);
+splice> call SYSCS_SET_RUNTIMESTATISTICS(0);
 0 rows inserted/updated/deleted
-ij> call SYSCS_SET_STATISTICS_TIMING(0);
+splice> call SYSCS_SET_STATISTICS_TIMING(0);
 0 rows inserted/updated/deleted
-ij> select * from APP.foo;
+splice> select * from APP.foo;
 A          
 -----------
-ij> values SYSCS_GET_RUNTIMESTATISTICS();
+splice> values SYSCS_GET_RUNTIMESTATISTICS();
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Statement Name: 
@@ -148,59 +148,59 @@ Rows returned = 1
 	open time (milliseconds) = 0
 	next time (milliseconds) = 0
 	close time (milliseconds) = 0
-ij> -- check if qualified schema call works.
+splice> -- check if qualified schema call works.
 set schema APP;
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_FREEZE_DATABASE();
+splice> call SYSCS_UTIL.SYSCS_FREEZE_DATABASE();
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_UNFREEZE_DATABASE();
+splice> call SYSCS_UTIL.SYSCS_UNFREEZE_DATABASE();
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_CHECKPOINT_DATABASE();
+splice> call SYSCS_UTIL.SYSCS_CHECKPOINT_DATABASE();
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('foo', 'bar');
+splice> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('foo', 'bar');
 0 rows inserted/updated/deleted
-ij> -- backup procedures will work only in new transaction, commit the work so far.
+splice> -- backup procedures will work only in new transaction, commit the work so far.
 commit;
-ij> call SYSCS_UTIL.SYSCS_BACKUP_DATABASE('extinout/mybackup');
+splice> call SYSCS_UTIL.SYSCS_BACKUP_DATABASE('extinout/mybackup');
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE('extinout/mybackup3', 0);
+splice> call SYSCS_UTIL.SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE('extinout/mybackup3', 0);
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE('extinout/mybackup3', 1);
+splice> call SYSCS_UTIL.SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE('extinout/mybackup3', 1);
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_DISABLE_LOG_ARCHIVE_MODE(0);
+splice> call SYSCS_UTIL.SYSCS_DISABLE_LOG_ARCHIVE_MODE(0);
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_DISABLE_LOG_ARCHIVE_MODE(1);
+splice> call SYSCS_UTIL.SYSCS_DISABLE_LOG_ARCHIVE_MODE(1);
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'FOO', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'FOO', 0);
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'FOO', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'FOO', 1);
 0 rows inserted/updated/deleted
-ij> -- the following does not work yet.
+splice> -- the following does not work yet.
 values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('foo');
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 bar                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
-ij> values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'FOO');
+splice> values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'FOO');
 1          
 -----------
 1          
-ij> call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);
+splice> call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1);
+splice> call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1);
 0 rows inserted/updated/deleted
-ij> select * from APP.foo;
+splice> select * from APP.foo;
 A          
 -----------
-ij> -- TODO, figure out how to test with a master file, that timings are non-zero,
+splice> -- TODO, figure out how to test with a master file, that timings are non-zero,
 -- without having them diff everytime.  Ran this once and hand checked that
 -- it was working.
 -- values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0);
 0 rows inserted/updated/deleted
-ij> select * from APP.foo;
+splice> select * from APP.foo;
 A          
 -----------
-ij> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
+splice> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Statement Name: 
@@ -240,14 +240,14 @@ scan information:
 		null
 	qualifiers:
 		None
-ij> call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0);
+splice> call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0);
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0);
+splice> call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0);
 0 rows inserted/updated/deleted
-ij> select * from APP.foo;
+splice> select * from APP.foo;
 A          
 -----------
-ij> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
+splice> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Statement Name: 
@@ -272,7 +272,7 @@ Rows returned = 1
 	open time (milliseconds) = 0
 	next time (milliseconds) = 0
 	close time (milliseconds) = 0
-ij> drop table foo;
+splice> drop table foo;
 0 rows inserted/updated/deleted
-ij> commit;
-ij> 
+splice> commit;
+splice> 

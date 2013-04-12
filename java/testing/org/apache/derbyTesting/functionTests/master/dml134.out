@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE  DML134  
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE  DML134  
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml134.sql
 -- 59-byte ID
@@ -8,12 +8,12 @@ ij> -- MODULE  DML134
 -- AUTHORIZATION FLATER
    set schema FLATER;
 0 rows inserted/updated/deleted
-ij> --O   SELECT USER FROM HU.ECCO;
+splice> --O   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 FLATER                                                                                                                          
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 --O   ROLLBACK WORK;
 
 -- date_time print
@@ -30,24 +30,24 @@ ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
   COSTCODE INT NOT NULL UNIQUE,
   COSTTEXT VARCHAR (50) NOT NULL);
 0 rows inserted/updated/deleted
-ij> -- PASS:0689 If table is created?
+splice> -- PASS:0689 If table is created?
 
    COMMIT;
-ij> CREATE TABLE CONDITION_CODES (
+splice> CREATE TABLE CONDITION_CODES (
   CONDCODE INT NOT NULL UNIQUE,
   CONDTEXT VARCHAR (50) NOT NULL);
 0 rows inserted/updated/deleted
-ij> -- PASS:0689 If table is created?
+splice> -- PASS:0689 If table is created?
 
    COMMIT;
-ij> CREATE TABLE ITEM_CODES (
+splice> CREATE TABLE ITEM_CODES (
   ITEMCODE INT NOT NULL PRIMARY KEY,
   ITEMTEXT VARCHAR (50) NOT NULL);
 0 rows inserted/updated/deleted
-ij> -- PASS:0689 If table is created?
+splice> -- PASS:0689 If table is created?
 
    COMMIT;
-ij> CREATE TABLE INVENTORY (
+splice> CREATE TABLE INVENTORY (
 --O  COSTCODE INT REFERENCES COST_CODES (COSTCODE),
 --O  CONDCODE INT REFERENCES CONDITION_CODES (CONDCODE),
 --O  ITEMCODE INT REFERENCES ITEM_CODES);
@@ -55,7 +55,7 @@ ij> CREATE TABLE INVENTORY (
   CONDCODE INT ,
   ITEMCODE INT );
 0 rows inserted/updated/deleted
-ij> -- PASS:0689 If table is created?
+splice> -- PASS:0689 If table is created?
 
 --O   COMMIT;
 
@@ -92,99 +92,99 @@ ij> -- PASS:0689 If table is created?
    NULL,
    RTRIM ('No cost code assigned                             '));
 ERROR 23502: Column 'COSTCODE'  cannot accept a NULL value.
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO COST_CODES VALUES (
    0,
    RTRIM ('Expensive                                         '));
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO COST_CODES VALUES (
    1,
    RTRIM ('Absurdly expensive                                '));
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO COST_CODES VALUES (
    2,
    RTRIM ('Outrageously expensive                            '));
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO COST_CODES VALUES (
    3,
    RTRIM ('Robbery; a complete and total rip-off             '));
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO CONDITION_CODES VALUES (
    NULL,
    RTRIM ('Unknown                                           '));
 ERROR 23502: Column 'CONDCODE'  cannot accept a NULL value.
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO CONDITION_CODES VALUES (
    1,
    RTRIM ('Slightly used                                     '));
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO CONDITION_CODES VALUES (
    2,
    RTRIM ('Returned as defective                             '));
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO CONDITION_CODES VALUES (
    3,
    RTRIM ('Visibly damaged (no returns)                      '));
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO ITEM_CODES VALUES (
    1,
    RTRIM ('Lousy excuse for a tape deck                      '));
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO ITEM_CODES VALUES (
    3,
    RTRIM ('World''s worst VCR                                 '));
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO ITEM_CODES VALUES (
    4,
    RTRIM ('Irreparable intermittent CD player                '));
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO ITEM_CODES VALUES (
    7,
    RTRIM ('Self-destruct VGA monitor w/ critical need detect '));
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO INVENTORY VALUES (3, NULL, 4);
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO INVENTORY VALUES (1, 2, 3);
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO INVENTORY VALUES (2, 3, 7);
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO INVENTORY VALUES (0, 3, 1);
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
    INSERT INTO INVENTORY VALUES (3, 1, 7);
 1 row inserted/updated/deleted
-ij> -- PASS:0689 If 1 row is inserted?
+splice> -- PASS:0689 If 1 row is inserted?
 
 --O   SELECT COUNT(*) FROM VERBOSE_INV;
 -- PASS:0689 If count = 5?
@@ -228,31 +228,31 @@ ij> -- PASS:0689 If 1 row is inserted?
 -- PASS:0689 If count = 1?
 
    COMMIT;
-ij> --O   DROP TABLE INVENTORY CASCADE;
+splice> --O   DROP TABLE INVENTORY CASCADE;
    DROP TABLE INVENTORY ;
 0 rows inserted/updated/deleted
-ij> -- PASS:0689 If table and 3 views are dropped?
+splice> -- PASS:0689 If table and 3 views are dropped?
 
    COMMIT;
-ij> --O   DROP TABLE COST_CODES CASCADE;
+splice> --O   DROP TABLE COST_CODES CASCADE;
    DROP TABLE COST_CODES ;
 0 rows inserted/updated/deleted
-ij> -- PASS:0689 If table is dropped?
+splice> -- PASS:0689 If table is dropped?
 
    COMMIT;
-ij> --O   DROP TABLE CONDITION_CODES CASCADE;
+splice> --O   DROP TABLE CONDITION_CODES CASCADE;
    DROP TABLE CONDITION_CODES ;
 0 rows inserted/updated/deleted
-ij> -- PASS:0689 If table is dropped?
+splice> -- PASS:0689 If table is dropped?
 
    COMMIT;
-ij> --O   DROP TABLE ITEM_CODES CASCADE;
+splice> --O   DROP TABLE ITEM_CODES CASCADE;
    DROP TABLE ITEM_CODES ;
 0 rows inserted/updated/deleted
-ij> -- PASS:0689 If table is dropped?
+splice> -- PASS:0689 If table is dropped?
 
    COMMIT;
-ij> -- END TEST >>> 0689 <<< END TEST
+splice> -- END TEST >>> 0689 <<< END TEST
 
 -- *********************************************
 
@@ -468,11 +468,11 @@ C1 IS NOT NULL AND C1 IS NOT NULL AND C1 IS NOT NULL AND
 C1 IS NOT NULL AND C1 IS NOT NULL AND C1 IS NOT NULL AND
 C1 IS NOT NULL AND C1 IS NOT NULL AND C1 IS NOT NULL));
 0 rows inserted/updated/deleted
-ij> -- PASS:0691 If WARNING:  search condition too long for information schema?
+splice> -- PASS:0691 If WARNING:  search condition too long for information schema?
 -- PASS:0691 OR successful completion?
 
    ROLLBACK WORK;
-ij> CREATE VIEW LONG2 AS
+splice> CREATE VIEW LONG2 AS
   SELECT * FROM USIG WHERE
 C1 IS NOT NULL AND C1 IS NOT NULL AND C1 IS NOT NULL AND
 C1 IS NOT NULL AND C1 IS NOT NULL AND C1 IS NOT NULL AND
@@ -515,12 +515,12 @@ C1 IS NOT NULL AND C1 IS NOT NULL AND C1 IS NOT NULL AND
 C1 IS NOT NULL AND C1 IS NOT NULL AND C1 IS NOT NULL AND
 C1 IS NOT NULL AND C1 IS NOT NULL AND C1 IS NOT NULL;
 0 rows inserted/updated/deleted
-ij> -- PASS:0691 If WARNING:  query expression too long for information schema?
+splice> -- PASS:0691 If WARNING:  query expression too long for information schema?
 -- PASS:0691 OR successful completion?
 
    ROLLBACK WORK;
-ij> -- END TEST >>> 0691 <<< END TEST
+splice> -- END TEST >>> 0691 <<< END TEST
 
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 

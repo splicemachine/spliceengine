@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE DML009
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE DML009
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml009.sql
 -- 59-byte ID
@@ -8,12 +8,12 @@ ij> -- MODULE DML009
 -- AUTHORIZATION HU
    set schema HU;
 0 rows inserted/updated/deleted
-ij> --O   SELECT USER FROM HU.ECCO;
+splice> --O   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 HU                                                                                                                              
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 
 -- date_time print
 
@@ -23,7 +23,7 @@ ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
      INSERT INTO WORKS(PNUM,EMPNUM,HOURS)
             VALUES ('P22','E22',NULL);
 1 row inserted/updated/deleted
-ij> -- PASS:0022 If 1 row inserted?
+splice> -- PASS:0022 If 1 row inserted?
 
       SELECT EMPNUM,PNUM
            FROM   WORKS
@@ -31,11 +31,11 @@ ij> -- PASS:0022 If 1 row inserted?
 EM&|PN&
 -------
 E22|P22
-ij> -- PASS:0022 If EMPNUM = 'E22'?
+splice> -- PASS:0022 If EMPNUM = 'E22'?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0022 <<< END TEST
+splice> -- END TEST >>> 0022 <<< END TEST
 -- **************************************************************
 
 -- TEST:0023 DEC precision >= col.def.: ERROR if left-truncate!
@@ -44,12 +44,12 @@ ij> -- END TEST >>> 0022 <<< END TEST
      DELETE FROM TEMP_S;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> COMMIT WORK;
-ij> -- setup
+splice> COMMIT WORK;
+splice> -- setup
      INSERT INTO TEMP_S(EMPNUM,GRADE,CITY)
           VALUES('E23',2323.4,'China');
 1 row inserted/updated/deleted
-ij> -- PASS:0023 If 1 row inserted?
+splice> -- PASS:0023 If 1 row inserted?
 
 --O     SELECT COUNT(*)
      SELECT *
@@ -57,13 +57,13 @@ ij> -- PASS:0023 If 1 row inserted?
 EMP&|GRADE|CITY           
 --------------------------
 E23 |2323 |China          
-ij> -- PASS:0023 If count = 1?
+splice> -- PASS:0023 If count = 1?
 
 -- setup
      INSERT INTO TEMP_S
             VALUES('E23',23234,'China');
 ERROR 22003: The resulting value is outside the range for the data type DECIMAL/NUMERIC(4,0).
-ij> -- PASS:0023 If 1 row inserted or ?
+splice> -- PASS:0023 If 1 row inserted or ?
 -- PASS:0023 insert fails due to precision of 23234?
 
 --O      SELECT COUNT(*)
@@ -72,11 +72,11 @@ ij> -- PASS:0023 If 1 row inserted or ?
 EMP&|GRADE|CITY           
 --------------------------
 E23 |2323 |China          
-ij> -- PASS:0023 If count = 1 or 2 (depending on previous insertion)?
+splice> -- PASS:0023 If count = 1 or 2 (depending on previous insertion)?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0023 <<< END TEST
+splice> -- END TEST >>> 0023 <<< END TEST
 -- ***************************************************************
 
 -- TEST:0024 INSERT:<query spec.> is empty: SQLCODE = 100!
@@ -87,24 +87,24 @@ ij> -- END TEST >>> 0023 <<< END TEST
                  FROM STAFF
                  WHERE GRADE > 13;
 0 rows inserted/updated/deleted
-ij> -- PASS:0024 If 0 rows selected, SQLCODE = 100, end of data?
+splice> -- PASS:0024 If 0 rows selected, SQLCODE = 100, end of data?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0024 <<< END TEST
+splice> -- END TEST >>> 0024 <<< END TEST
 -- *************************************************************
 
 -- TEST:0025 INSERT:<query spec.> is not empty!
      DELETE FROM TEMP_S;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> -- setup
+splice> -- setup
      INSERT INTO TEMP_S(EMPNUM,GRADE,CITY)
             SELECT EMPNUM,GRADE,CITY
                  FROM STAFF
                  WHERE GRADE > 12;
 2 rows inserted/updated/deleted
-ij> -- PASS:0025 If 2 rows are inserted?
+splice> -- PASS:0025 If 2 rows are inserted?
 
 --O      SELECT COUNT(*)
       SELECT *
@@ -113,11 +113,11 @@ EMP&|GRADE|CITY
 --------------------------
 E3  |13   |Vienna         
 E5  |13   |Akron          
-ij> -- PASS:0025 If count = 2?
+splice> -- PASS:0025 If count = 2?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0025 <<< END TEST
+splice> -- END TEST >>> 0025 <<< END TEST
 -- *************************************************************
 
 -- TEST:0026 INSERT into view with check option and unique violation!
@@ -142,4 +142,4 @@ ij> -- END TEST >>> 0025 <<< END TEST
 -- END TEST >>> 0026 <<< END TEST
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 

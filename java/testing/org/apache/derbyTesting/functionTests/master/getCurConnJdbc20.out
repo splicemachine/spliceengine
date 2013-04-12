@@ -1,4 +1,4 @@
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -22,17 +22,17 @@ ij> --
 -- method alias and table used later
 create procedure newToJdbc20Method() PARAMETER STYLE JAVA LANGUAGE JAVA EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.Jdbc20Test.newToJdbc20Method';
 0 rows inserted/updated/deleted
-ij> create table T (a int NOT NULL primary key);
+splice> create table T (a int NOT NULL primary key);
 0 rows inserted/updated/deleted
-ij> insert into T values (1);
+splice> insert into T values (1);
 1 row inserted/updated/deleted
-ij> -- now lets try a variety of errors
+splice> -- now lets try a variety of errors
 call newToJdbc20Method();
 0 rows inserted/updated/deleted
-ij> ------------------------------------------------------------
+splice> ------------------------------------------------------------
 -- drop the table
 drop table T;
 0 rows inserted/updated/deleted
-ij> drop procedure newToJdbc20Method;
+splice> drop procedure newToJdbc20Method;
 0 rows inserted/updated/deleted
-ij> 
+splice> 

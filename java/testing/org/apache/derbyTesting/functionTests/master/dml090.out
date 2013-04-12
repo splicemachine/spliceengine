@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE DML090  
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE DML090  
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml090.sql
 -- 59-byte ID
@@ -8,12 +8,12 @@ ij> -- MODULE DML090
 -- AUTHORIZATION HU
    set schema HU;
 0 rows inserted/updated/deleted
-ij> --0   SELECT USER FROM HU.ECCO;
+splice> --0   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 HU                                                                                                                              
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 
 -- date_time print
 
@@ -28,7 +28,7 @@ ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 1                   
 --------------------
 CALM                
-ij> -- PASS:0512 If PNAME = 'CALM'?
+splice> -- PASS:0512 If PNAME = 'CALM'?
 
    SELECT CITY, COUNT(*)
          FROM PROJ
@@ -40,12 +40,12 @@ CITY           |2
 ---------------------------
 Vienna         |2          
 Deale          |3          
-ij> -- PASS:0512 If in first row: CITY = 'Vienna' AND count = 2?
+splice> -- PASS:0512 If in first row: CITY = 'Vienna' AND count = 2?
 -- PASS:0512 AND in second row: CITY = 'Deale' AND count = 3?
      
 -- restore
    ROLLBACK WORK;
-ij> -- END TEST >>> 0512 <<< END TEST
+splice> -- END TEST >>> 0512 <<< END TEST
 -- *********************************************;
 
 -- TEST:0513 NUMERIC(4) implies CHECK BETWEEN -9999 AND 9999!
@@ -93,7 +93,7 @@ ij> -- END TEST >>> 0512 <<< END TEST
 1          
 -----------
 3          
-ij> -- PASS:0523 If count = 3?
+splice> -- PASS:0523 If count = 3?
 
    SELECT PNAME
          FROM PROJ
@@ -102,7 +102,7 @@ ij> -- PASS:0523 If count = 3?
 PNAME               
 --------------------
 IRM                 
-ij> -- PASS:0523 If PNAME = 'IRM'?
+splice> -- PASS:0523 If PNAME = 'IRM'?
 
 SELECT CITY, COUNT(*)
       FROM PROJ
@@ -111,11 +111,11 @@ SELECT CITY, COUNT(*)
 CITY           |2          
 ---------------------------
 Deale          |3          
-ij> -- PASS:0523 If CITY = 'Deale' and count = 3?
+splice> -- PASS:0523 If CITY = 'Deale' and count = 3?
  
 -- restore
    ROLLBACK WORK;
-ij> -- END TEST >>> 0523 <<< END TEST
+splice> -- END TEST >>> 0523 <<< END TEST
 -- *********************************************;
 
 -- TEST:0564 Outer ref. directly contained in HAVING clause!
@@ -132,12 +132,12 @@ ij> -- END TEST >>> 0523 <<< END TEST
 EM&|2              
 -------------------
 E3 |13000          
-ij> -- PASS:0564 If EMPNUM = E3 and GRADE * 1000 = 13000?
+splice> -- PASS:0564 If EMPNUM = E3 and GRADE * 1000 = 13000?
 
 -- restore
    ROLLBACK WORK;
-ij> -- END TEST >>> 0564 <<< END TEST
+splice> -- END TEST >>> 0564 <<< END TEST
 -- *************************************************////END-OF-MODULE;
 
 ;
-ij> 
+splice> 

@@ -1,4 +1,4 @@
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -15,53 +15,53 @@ ij> --
 --   limitations under the License.
 --
 driver 'org.apache.derby.jdbc.ClientDriver';
-ij> --Bug 4632  Make the db italian to make sure string selects  are working
-connect 'testij;create=true;territory=it' USER 'dbadmin' PASSWORD 'dbadmin';
-ij(CONNECTION1)> connect 'testij' USER 'dbadmin' PASSWORD 'dbadbmin';
-ij(CONNECTION2)> -- this is a comment, a comment in front of a select should not cause an error
+splice> --Bug 4632  Make the db italian to make sure string selects  are working
+connect 'testsplice;create=true;territory=it' USER 'dbadmin' PASSWORD 'dbadmin';
+splice(CONNECTION1)> connect 'testsplice' USER 'dbadmin' PASSWORD 'dbadbmin';
+splice(CONNECTION2)> -- this is a comment, a comment in front of a select should not cause an error
 select * from sys.systables where 1=0;
 TABLEID                             |TABLENAME                                                                                                                       |&|SCHEMAID                            |&
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ij(CONNECTION2)> -- this is a comment, a comment in front of a values clauses should not cause an error
+splice(CONNECTION2)> -- this is a comment, a comment in front of a values clauses should not cause an error
 values(1);
 1          
 -----------
 1          
-ij(CONNECTION2)> -- Try some URL attributes
+splice(CONNECTION2)> -- Try some URL attributes
 disconnect all;
-ij> connect 'testij2;create=true' USER 'dbadmin' PASSWORD 'dbadbmin';
-ij> select * from APP.notthere;
+splice> connect 'testsplice2;create=true' USER 'dbadmin' PASSWORD 'dbadbmin';
+splice> select * from APP.notthere;
 ERROR 42X05: Table/View 'APP.NOTTHERE' does not exist.
-ij> -- examples from the docs
+splice> -- examples from the docs
 
-connect 'testij2;create=true;user=judy;password=judy';
-ij(CONNECTION1)> connect './testij2;user=judy;password=judy';
-ij(CONNECTION2)> connect 'toursDB';
+connect 'testsplice2;create=true;user=judy;password=judy';
+splice(CONNECTION1)> connect './testsplice2;user=judy;password=judy';
+splice(CONNECTION2)> connect 'toursDB';
 ERROR 08004: The connection was refused because the database toursDB was not found.
-ij(CONNECTION2)> connect 'toursDB' USER 'dbadmin' PASSWORD 'dbadbmin';
+splice(CONNECTION2)> connect 'toursDB' USER 'dbadmin' PASSWORD 'dbadbmin';
 ERROR 08004: The connection was refused because the database toursDB was not found.
-ij(CONNECTION2)> connect 'wombat' USER 'APP' PASSWORD 'APP';
-ij(CONNECTION3)> connect  'testij2;create=true;user=usr;password=pwd';
-ij(CONNECTION4)> connect 'testij2;upgrade=true;user=usr;password=pwd';
-ij(CONNECTION5)> connect 'testij2;shutdown=true;user=usr;password=pwd';
-ERROR 08006: DERBY SQL error: SQLCODE: -1, SQLSTATE: 08006, SQLERRMC: Database 'testij2' shutdown.
-ij(CONNECTION5)> connect './testij2;create=true;user=usr;password=pwd';
-ij(CONNECTION6)> connect './testij2;create=true;user=usr;password=pwd';
-ij(CONNECTION7)> connect  'testij2;create=true;user=usr;password=pwd';
-ij(CONNECTION8)> connect 'testij2;upgrade=true;user=usr;password=pwd';
-ij(CONNECTION9)> connect 'testij2;shutdown=true;user=usr;password=pwd';
-ERROR 08006: DERBY SQL error: SQLCODE: -1, SQLSTATE: 08006, SQLERRMC: Database 'testij2' shutdown.
-ij(CONNECTION9)> -- retrieveMessageText Testing
-connect 'testij2;create=true;user=usr;password=pwd;retrieveMessageText=false';
-ij(CONNECTION10)> -- Should not get message text
+splice(CONNECTION2)> connect 'wombat' USER 'APP' PASSWORD 'APP';
+splice(CONNECTION3)> connect  'testsplice2;create=true;user=usr;password=pwd';
+splice(CONNECTION4)> connect 'testsplice2;upgrade=true;user=usr;password=pwd';
+splice(CONNECTION5)> connect 'testsplice2;shutdown=true;user=usr;password=pwd';
+ERROR 08006: DERBY SQL error: SQLCODE: -1, SQLSTATE: 08006, SQLERRMC: Database 'testsplice2' shutdown.
+splice(CONNECTION5)> connect './testsplice2;create=true;user=usr;password=pwd';
+splice(CONNECTION6)> connect './testsplice2;create=true;user=usr;password=pwd';
+splice(CONNECTION7)> connect  'testsplice2;create=true;user=usr;password=pwd';
+splice(CONNECTION8)> connect 'testsplice2;upgrade=true;user=usr;password=pwd';
+splice(CONNECTION9)> connect 'testsplice2;shutdown=true;user=usr;password=pwd';
+ERROR 08006: DERBY SQL error: SQLCODE: -1, SQLSTATE: 08006, SQLERRMC: Database 'testsplice2' shutdown.
+splice(CONNECTION9)> -- retrieveMessageText Testing
+connect 'testsplice2;create=true;user=usr;password=pwd;retrieveMessageText=false';
+splice(CONNECTION10)> -- Should not get message text
 select * from APP.notthere;
 ERROR 42X05: DERBY SQL error: SQLCODE: -1, SQLSTATE: 42X05, SQLERRMC: APP.NOTTHERE42X05
-ij(CONNECTION10)> connect 'testij2;create=true;user=usr;password=pwd;retrieveMessageText=true';
-ij(CONNECTION11)> -- Should see message text
+splice(CONNECTION10)> connect 'testsplice2;create=true;user=usr;password=pwd;retrieveMessageText=true';
+splice(CONNECTION11)> -- Should see message text
 select * from APP.notthere;
 ERROR 42X05: Table/View 'APP.NOTTHERE' does not exist.
-ij(CONNECTION11)> -- just user security mechanism
-connect 'testij2;create=true;user=usr;retrieveMessageText=true';
-ij(CONNECTION12)> connect 'wombat' USER 'APP';
-ij(CONNECTION13)> disconnect all;
-ij> 
+splice(CONNECTION11)> -- just user security mechanism
+connect 'testsplice2;create=true;user=usr;retrieveMessageText=true';
+splice(CONNECTION12)> connect 'wombat' USER 'APP';
+splice(CONNECTION13)> disconnect all;
+splice> 

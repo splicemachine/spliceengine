@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE   XTS730
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE   XTS730
 
 -- SQL Test Suite, V6.0, Interactive SQL, xts730.sql
 -- 59-byte ID
@@ -8,43 +8,43 @@ ij> -- MODULE   XTS730
 -- AUTHORIZATION CTS1
    set schema HU;
 0 rows inserted/updated/deleted
-ij> --O   SELECT USER FROM HU.ECCO;
+splice> --O   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 CTS1                                                                                                                            
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
    ROLLBACK WORK;
-ij> -- date_time print
+splice> -- date_time print
 
 -- TEST:7030 Table name with 19 characters - delimited!
 
    CREATE TABLE "LONGIDENTIFIERSAAAA" (TNUM NUMERIC(5));
 0 rows inserted/updated/deleted
-ij> -- PASS:7030 If table created successfully?
+splice> -- PASS:7030 If table created successfully?
 
    COMMIT WORK;
-ij> CREATE TABLE "longidentifiersaaab" (TNUM NUMERIC(5));
+splice> CREATE TABLE "longidentifiersaaab" (TNUM NUMERIC(5));
 0 rows inserted/updated/deleted
-ij> -- PASS:7030 If table created successfully?
+splice> -- PASS:7030 If table created successfully?
 
    COMMIT WORK;
-ij> CREATE TABLE "0""LONGIDENTIFIERS_1" (TNUM NUMERIC(5));
+splice> CREATE TABLE "0""LONGIDENTIFIERS_1" (TNUM NUMERIC(5));
 0 rows inserted/updated/deleted
-ij> -- PASS:7030 If table created successfully?
+splice> -- PASS:7030 If table created successfully?
 
    COMMIT WORK;
-ij> CREATE TABLE "0""LONGIDENTIFIERS_2" (TNUM NUMERIC(5));
+splice> CREATE TABLE "0""LONGIDENTIFIERS_2" (TNUM NUMERIC(5));
 0 rows inserted/updated/deleted
-ij> -- PASS:7030 If table created successfully?
+splice> -- PASS:7030 If table created successfully?
 
    COMMIT WORK;
-ij> CREATE TABLE "lngIDENTIFIER% .,()" (TNUM NUMERIC(5));
+splice> CREATE TABLE "lngIDENTIFIER% .,()" (TNUM NUMERIC(5));
 0 rows inserted/updated/deleted
-ij> -- PASS:7030 If table created successfully?
+splice> -- PASS:7030 If table created successfully?
 
    COMMIT WORK;
-ij> --O   SELECT  COUNT(*)  
+splice> --O   SELECT  COUNT(*)  
    SELECT   CAST(tablename AS VARCHAR(128))
 --O         FROM INFORMATION_SCHEMA.TABLES
 	from sys.systables
@@ -69,7 +69,7 @@ longidentifiersaaab
 0"LONGIDENTIFIERS_1                                                                                                             
 0"LONGIDENTIFIERS_2                                                                                                             
 lngIDENTIFIER% .,()                                                                                                             
-ij> -- PASS:7030 If COUNT = 5?
+splice> -- PASS:7030 If COUNT = 5?
 
 --O   SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
 --O         WHERE TABLE_SCHEMA = 'CTS1' AND TABLE_TYPE = 'BASE TABLE'
@@ -89,34 +89,34 @@ ij> -- PASS:7030 If COUNT = 5?
 -- PASS:7030 If   longidentifiersaaab?
 
    ROLLBACK WORK;
-ij> --O   DROP TABLE "LONGIDENTIFIERSAAAA" CASCADE;
+splice> --O   DROP TABLE "LONGIDENTIFIERSAAAA" CASCADE;
    DROP TABLE "LONGIDENTIFIERSAAAA" ;
 0 rows inserted/updated/deleted
-ij> -- PASS:7030 If table dropped successfully?
+splice> -- PASS:7030 If table dropped successfully?
 
 --O   DROP TABLE "longidentifiersaaab" CASCADE;
    DROP TABLE "longidentifiersaaab" ;
 0 rows inserted/updated/deleted
-ij> -- PASS:7030 If table dropped successfully?
+splice> -- PASS:7030 If table dropped successfully?
 
 --O   DROP TABLE "0""LONGIDENTIFIERS_1" CASCADE;
    DROP TABLE "0""LONGIDENTIFIERS_1" ;
 0 rows inserted/updated/deleted
-ij> -- PASS:7030 If table dropped successfully?
+splice> -- PASS:7030 If table dropped successfully?
 
 --O   DROP TABLE "0""LONGIDENTIFIERS_2" CASCADE;
    DROP TABLE "0""LONGIDENTIFIERS_2" ;
 0 rows inserted/updated/deleted
-ij> -- PASS:7030 If table dropped successfully?
+splice> -- PASS:7030 If table dropped successfully?
 
 --O   DROP TABLE "lngIDENTIFIER% .,()" CASCADE;
    DROP TABLE "lngIDENTIFIER% .,()" ;
 0 rows inserted/updated/deleted
-ij> -- PASS:7030 If table dropped successfully?
+splice> -- PASS:7030 If table dropped successfully?
 
    COMMIT WORK;
-ij> -- END TEST >>> 7030 <<< END TEST
+splice> -- END TEST >>> 7030 <<< END TEST
 -- *********************************************
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 

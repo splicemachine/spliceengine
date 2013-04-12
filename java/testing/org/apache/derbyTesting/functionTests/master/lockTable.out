@@ -1,4 +1,4 @@
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -16,28 +16,28 @@ ij> --
 --
 -- multiuser lock table tests
 disconnect;
-ij> connect 'wombat;user=U1' AS C1;
-ij> autocommit off;
-ij> connect 'wombat;user=U2' AS C2;
-ij(C2)> autocommit off;
-ij(C2)> set connection C1;
-ij(C1)> -- create a table and populate it
+splice> connect 'wombat;user=U1' AS C1;
+splice> autocommit off;
+splice> connect 'wombat;user=U2' AS C2;
+splice(C2)> autocommit off;
+splice(C2)> set connection C1;
+splice(C1)> -- create a table and populate it
 create table t1 (c1 int);
 0 rows inserted/updated/deleted
-ij(C1)> insert into t1 values 1;
+splice(C1)> insert into t1 values 1;
 1 row inserted/updated/deleted
-ij(C1)> commit;
-ij(C1)> -- test TX vs TX locks
+splice(C1)> commit;
+splice(C1)> -- test TX vs TX locks
 lock table u1.t1 in exclusive mode;
 0 rows inserted/updated/deleted
-ij(C1)> set connection C2;
-ij(C2)> lock table u1.t1 in exclusive mode;
+splice(C1)> set connection C2;
+splice(C2)> lock table u1.t1 in exclusive mode;
 ERROR X0X02: Table 'U1.T1' cannot be locked in 'EXCLUSIVE' mode.
 ERROR 40XL1: A lock could not be obtained within the time requested
-ij(C2)> set connection C1;
-ij(C1)> -- verify that we still have the lock
+splice(C2)> set connection C1;
+splice(C1)> -- verify that we still have the lock
 run resource 'LockTableQuery.subsql';
-ij(C1)> --
+splice(C1)> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -71,26 +71,26 @@ order by
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
 U1      |UserTransaction|TABLE   |1   |X   |T1          |Tablelock |GRANT|ACTIVE  
-ij(C1)> -- verify that we can insert into the table
+splice(C1)> -- verify that we can insert into the table
 insert into t1 values 2;
 1 row inserted/updated/deleted
-ij(C1)> select * from t1;
+splice(C1)> select * from t1;
 C1         
 -----------
 1          
 2          
-ij(C1)> commit;
-ij(C1)> -- test TX vs TS locks
+splice(C1)> commit;
+splice(C1)> -- test TX vs TS locks
 lock table t1 in exclusive mode;
 0 rows inserted/updated/deleted
-ij(C1)> set connection C2;
-ij(C2)> lock table u1.t1 in share mode;
+splice(C1)> set connection C2;
+splice(C2)> lock table u1.t1 in share mode;
 ERROR X0X02: Table 'U1.T1' cannot be locked in 'SHARE' mode.
 ERROR 40XL1: A lock could not be obtained within the time requested
-ij(C2)> set connection C1;
-ij(C1)> -- verify that we still have the lock
+splice(C2)> set connection C1;
+splice(C1)> -- verify that we still have the lock
 run resource 'LockTableQuery.subsql';
-ij(C1)> --
+splice(C1)> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -124,27 +124,27 @@ order by
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
 U1      |UserTransaction|TABLE   |1   |X   |T1          |Tablelock |GRANT|ACTIVE  
-ij(C1)> -- verify that we can insert into the table
+splice(C1)> -- verify that we can insert into the table
 insert into t1 values 3;
 1 row inserted/updated/deleted
-ij(C1)> select * from t1;
+splice(C1)> select * from t1;
 C1         
 -----------
 1          
 2          
 3          
-ij(C1)> commit;
-ij(C1)> -- test TS vs TX locks
+splice(C1)> commit;
+splice(C1)> -- test TS vs TX locks
 lock table t1 in share mode;
 0 rows inserted/updated/deleted
-ij(C1)> set connection C2;
-ij(C2)> lock table u1.t1 in exclusive mode;
+splice(C1)> set connection C2;
+splice(C2)> lock table u1.t1 in exclusive mode;
 ERROR X0X02: Table 'U1.T1' cannot be locked in 'EXCLUSIVE' mode.
 ERROR 40XL1: A lock could not be obtained within the time requested
-ij(C2)> set connection C1;
-ij(C1)> -- verify that we still have the lock
+splice(C2)> set connection C1;
+splice(C1)> -- verify that we still have the lock
 run resource 'LockTableQuery.subsql';
-ij(C1)> --
+splice(C1)> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -178,27 +178,27 @@ order by
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
 U1      |UserTransaction|TABLE   |1   |S   |T1          |Tablelock |GRANT|ACTIVE  
-ij(C1)> -- verify that we can insert into the table
+splice(C1)> -- verify that we can insert into the table
 insert into t1 values 4;
 1 row inserted/updated/deleted
-ij(C1)> select * from t1;
+splice(C1)> select * from t1;
 C1         
 -----------
 1          
 2          
 3          
 4          
-ij(C1)> commit;
-ij(C1)> -- test TS vs TS locks
+splice(C1)> commit;
+splice(C1)> -- test TS vs TS locks
 lock table t1 in share mode;
 0 rows inserted/updated/deleted
-ij(C1)> set connection C2;
-ij(C2)> lock table u1.t1 in share mode;
+splice(C1)> set connection C2;
+splice(C2)> lock table u1.t1 in share mode;
 0 rows inserted/updated/deleted
-ij(C2)> set connection C1;
-ij(C1)> -- verify that we still have the lock
+splice(C2)> set connection C1;
+splice(C1)> -- verify that we still have the lock
 run resource 'LockTableQuery.subsql';
-ij(C1)> --
+splice(C1)> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -233,37 +233,37 @@ USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS
 ----------------------------------------------------------------------------------
 U2      |UserTransaction|TABLE   |1   |S   |T1          |Tablelock |GRANT|ACTIVE  
 U1      |UserTransaction|TABLE   |1   |S   |T1          |Tablelock |GRANT|ACTIVE  
-ij(C1)> -- verify that we cannot insert into the table
+splice(C1)> -- verify that we cannot insert into the table
 insert into t1 values 5;
 ERROR 40XL1: A lock could not be obtained within the time requested
-ij(C1)> select * from t1;
+splice(C1)> select * from t1;
 C1         
 -----------
 1          
 2          
 3          
 4          
-ij(C1)> commit;
-ij(C1)> set connection C2;
-ij(C2)> commit;
-ij(C2)> set connection C1;
-ij(C1)> -- create another table
+splice(C1)> commit;
+splice(C1)> set connection C2;
+splice(C2)> commit;
+splice(C2)> set connection C1;
+splice(C1)> -- create another table
 create table t2(c1 int);
 0 rows inserted/updated/deleted
-ij(C1)> commit;
-ij(C1)> -- verify that user getting error on lock table doesn't get rolled back
+splice(C1)> commit;
+splice(C1)> -- verify that user getting error on lock table doesn't get rolled back
 lock table t1 in share mode;
 0 rows inserted/updated/deleted
-ij(C1)> set connection C2;
-ij(C2)> lock table u1.t2 in share mode;
+splice(C1)> set connection C2;
+splice(C2)> lock table u1.t2 in share mode;
 0 rows inserted/updated/deleted
-ij(C2)> lock table u1.t1 in exclusive mode;
+splice(C2)> lock table u1.t1 in exclusive mode;
 ERROR X0X02: Table 'U1.T1' cannot be locked in 'EXCLUSIVE' mode.
 ERROR 40XL1: A lock could not be obtained within the time requested
-ij(C2)> set connection C1;
-ij(C1)> -- verify that other user still has the lock
+splice(C2)> set connection C1;
+splice(C1)> -- verify that other user still has the lock
 run resource 'LockTableQuery.subsql';
-ij(C1)> --
+splice(C1)> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -298,8 +298,8 @@ USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS
 ----------------------------------------------------------------------------------
 U1      |UserTransaction|TABLE   |1   |S   |T1          |Tablelock |GRANT|ACTIVE  
 U2      |UserTransaction|TABLE   |1   |S   |T2          |Tablelock |GRANT|ACTIVE  
-ij(C1)> commit;
-ij(C1)> disconnect;
-ij> set connection C2;
-ij> disconnect;
-ij> 
+splice(C1)> commit;
+splice(C1)> disconnect;
+splice> set connection C2;
+splice> disconnect;
+splice> 

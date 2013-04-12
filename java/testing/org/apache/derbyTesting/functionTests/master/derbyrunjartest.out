@@ -1,5 +1,5 @@
-ij --help:
-Usage: java org.apache.derby.tools.ij [-p propertyfile] [inputfile]
+splice --help:
+Usage: java org.apache.derby.tools.splice [-p propertyfile] [inputfile]
 sysinfo -cp help:
 USAGE: java org.apache.derby.tools.sysinfo -cp [ [ embedded ][ server ][ client] [ tools ] [ anyClass.class ] ]
 dblook:

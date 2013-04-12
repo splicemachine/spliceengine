@@ -1,4 +1,4 @@
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -24,22 +24,22 @@ ij> --
 -- create some tables and indexes
 CREATE TABLE t1 (i int, d DECIMAL(5,2), test VARCHAR(20));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE t2 (pk int primary key, v VARCHAR(20));
+splice> CREATE TABLE t2 (pk int primary key, v VARCHAR(20));
 0 rows inserted/updated/deleted
-ij> CREATE INDEX idx1 ON APP.t1 (test ASC);
+splice> CREATE INDEX idx1 ON APP.t1 (test ASC);
 0 rows inserted/updated/deleted
-ij> CREATE INDEX idx2 ON APP.t2 (v);
+splice> CREATE INDEX idx2 ON APP.t2 (v);
 0 rows inserted/updated/deleted
-ij> -- show all the indexes in the schema 
+splice> -- show all the indexes in the schema 
 SHOW INDEXES IN APP;
 TABLE_NAME          |COLUMN_NAME         |NON_U&|TYPE|ASC&|CARDINA&|PAGES   
 ----------------------------------------------------------------------------
 T1                  |TEST                |true  |3   |A   |NULL    |NULL    
 T2                  |PK                  |false |3   |A   |NULL    |NULL    
 T2                  |V                   |true  |3   |A   |NULL    |NULL    
-ij> -- show only indexes in table t1
+splice> -- show only indexes in table t1
 SHOW INDEXES FROM APP.t1;
 TABLE_NAME          |COLUMN_NAME         |NON_U&|TYPE|ASC&|CARDINA&|PAGES   
 ----------------------------------------------------------------------------
 T1                  |TEST                |true  |3   |A   |NULL    |NULL    
-ij> 
+splice> 

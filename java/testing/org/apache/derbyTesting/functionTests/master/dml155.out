@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE  DML155  
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE  DML155  
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml155.sql
 -- 59-byte ID
@@ -8,14 +8,14 @@ ij> -- MODULE  DML155
 -- AUTHORIZATION FLATER
    set schema FLATER;
 0 rows inserted/updated/deleted
-ij> --O   SELECT USER FROM HU.ECCO;
+splice> --O   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 FLATER                                                                                                                          
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
    ROLLBACK WORK;
-ij> -- date_time print
+splice> -- date_time print
 
 -- TEST:0850 Comparing fixed vs. variable length caracter strings!
 
@@ -26,23 +26,23 @@ ij> -- date_time print
      T850VC  VARCHAR (10),
      T850LVC VARCHAR (20));
 0 rows inserted/updated/deleted
-ij> -- PASS:0850 If table created successfully?
+splice> -- PASS:0850 If table created successfully?
 
    COMMIT WORK;
-ij> INSERT INTO T850 VALUES (
+splice> INSERT INTO T850 VALUES (
      10, '1234567890', '1234567890', '1234567890   ');
 1 row inserted/updated/deleted
-ij> -- PASS:0850 If 1 row inserted successfully?
+splice> -- PASS:0850 If 1 row inserted successfully?
 
    INSERT INTO T850 VALUES (
      5, '12345     ', '12345', '12345');
 1 row inserted/updated/deleted
-ij> -- PASS:0850 If 1 row inserted successfully?
+splice> -- PASS:0850 If 1 row inserted successfully?
 
    INSERT INTO T850 VALUES (
      0, '          ', '', '                    ');
 1 row inserted/updated/deleted
-ij> -- PASS:0850 If 1 row inserted successfully?
+splice> -- PASS:0850 If 1 row inserted successfully?
 
 --O   SELECT COUNT(*) 
    SELECT * 
@@ -52,21 +52,21 @@ T850KEY    |T850C      |T850VC    |T850LVC
 10         |1234567890 |1234567890|1234567890          
 5          |12345      |12345     |12345               
 0          |           |          |                    
-ij> -- PASS:0850 If COUNT = 3?
+splice> -- PASS:0850 If COUNT = 3?
 
    SELECT T850KEY 
      FROM T850 WHERE T850VC = '1234567890     ';
 T850KEY    
 -----------
 10         
-ij> -- PASS:0850 If T850KEY = 10?
+splice> -- PASS:0850 If T850KEY = 10?
 
    SELECT T850KEY 
      FROM T850 WHERE T850VC = '12345  ';
 T850KEY    
 -----------
 5          
-ij> -- PASS:0850 If T850KEY = 5?
+splice> -- PASS:0850 If T850KEY = 5?
 
    SELECT T850KEY 
 --N     FROM T850 WHERE T850VC = '1234567890     '; error in NIST test
@@ -74,7 +74,7 @@ ij> -- PASS:0850 If T850KEY = 5?
 T850KEY    
 -----------
 0          
-ij> --N this corresponds to the esql/c test
+splice> --N this corresponds to the esql/c test
 -- PASS:0850 If T850KEY = 0?
 
 --O   SELECT COUNT(*)
@@ -83,7 +83,7 @@ ij> --N this corresponds to the esql/c test
 T850KEY    |T850C      |T850VC    |T850LVC             
 -------------------------------------------------------
 10         |1234567890 |1234567890|1234567890          
-ij> -- INFORMATIONAL
+splice> -- INFORMATIONAL
 
 --O   SELECT COUNT(*) 
    SELECT *
@@ -91,7 +91,7 @@ ij> -- INFORMATIONAL
 T850KEY    |T850C      |T850VC    |T850LVC             
 -------------------------------------------------------
 5          |12345      |12345     |12345               
-ij> -- INFORMATIONAL
+splice> -- INFORMATIONAL
 
 --O   SELECT COUNT(*) 
    SELECT * 
@@ -101,7 +101,7 @@ T850KEY    |T850C      |T850VC    |T850LVC
 10         |1234567890 |1234567890|1234567890          
 5          |12345      |12345     |12345               
 0          |           |          |                    
-ij> -- PASS:0850 If COUNT = 3?
+splice> -- PASS:0850 If COUNT = 3?
 
 --O   SELECT COUNT(*) 
    SELECT * 
@@ -109,7 +109,7 @@ ij> -- PASS:0850 If COUNT = 3?
 T850KEY    |T850C      |T850VC    |T850LVC             
 -------------------------------------------------------
 5          |12345      |12345     |12345               
-ij> -- PASS:0850 If COUNT = 1?
+splice> -- PASS:0850 If COUNT = 1?
 
 --O   SELECT COUNT(*) 
    SELECT * 
@@ -117,7 +117,7 @@ ij> -- PASS:0850 If COUNT = 1?
 T850KEY    |T850C      |T850VC    |T850LVC             
 -------------------------------------------------------
 5          |12345      |12345     |12345               
-ij> -- PASS:0850 If COUNT = 1?
+splice> -- PASS:0850 If COUNT = 1?
 
 --O   SELECT COUNT(*)
    SELECT * 
@@ -125,7 +125,7 @@ ij> -- PASS:0850 If COUNT = 1?
 T850KEY    |T850C      |T850VC    |T850LVC             
 -------------------------------------------------------
 5          |12345      |12345     |12345               
-ij> -- PASS:0850 If COUNT = 1?
+splice> -- PASS:0850 If COUNT = 1?
 
 --O   SELECT COUNT(*) 
    SELECT * 
@@ -133,7 +133,7 @@ ij> -- PASS:0850 If COUNT = 1?
 T850KEY    |T850C      |T850VC    |T850LVC             
 -------------------------------------------------------
 5          |12345      |12345     |12345               
-ij> -- PASS:0850 If COUNT = 1?
+splice> -- PASS:0850 If COUNT = 1?
 
 --O   SELECT COUNT(*) 
    SELECT * 
@@ -141,7 +141,7 @@ ij> -- PASS:0850 If COUNT = 1?
 T850KEY    |T850C      |T850VC    |T850LVC             
 -------------------------------------------------------
 5          |12345      |12345     |12345               
-ij> -- PASS:0850 If COUNT = 1?
+splice> -- PASS:0850 If COUNT = 1?
 
 --O   SELECT COUNT(*) 
    SELECT * 
@@ -149,15 +149,15 @@ ij> -- PASS:0850 If COUNT = 1?
 T850KEY    |T850C      |T850VC    |T850LVC             
 -------------------------------------------------------
 5          |12345      |12345     |12345               
-ij> -- PASS:0850 If COUNT = 1?
+splice> -- PASS:0850 If COUNT = 1?
 
    ROLLBACK WORK;
-ij> --O   DROP TABLE T850 CASCADE;
+splice> --O   DROP TABLE T850 CASCADE;
    DROP TABLE T850 ;
 0 rows inserted/updated/deleted
-ij> COMMIT WORK;
-ij> -- END TEST >>> 0850 <<< END TEST
+splice> COMMIT WORK;
+splice> -- END TEST >>> 0850 <<< END TEST
 -- *********************************************
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 

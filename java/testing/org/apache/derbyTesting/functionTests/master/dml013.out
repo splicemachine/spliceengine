@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE DML013
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE DML013
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml013.sql
 -- 59-byte ID
@@ -8,12 +8,12 @@ ij> -- MODULE DML013
 -- AUTHORIZATION HU
    set schema HU;
 0 rows inserted/updated/deleted
-ij> --0   SELECT USER FROM HU.ECCO;
+splice> --0   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 HU                                                                                                                              
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 
 -- date_time print
 
@@ -23,7 +23,7 @@ ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
      INSERT INTO WORKS
             VALUES('E5','P5',NULL);
 1 row inserted/updated/deleted
-ij> -- PASS:0039 If 1 row inserted?
+splice> -- PASS:0039 If 1 row inserted?
 
      SELECT COUNT(DISTINCT HOURS)
           FROM WORKS;
@@ -31,11 +31,11 @@ ij> -- PASS:0039 If 1 row inserted?
 -----------
 4          
 WARNING 01003: Null values were eliminated from the argument of a column function.
-ij> -- PASS:0039 If count = 4?
+splice> -- PASS:0039 If count = 4?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0039 <<< END TEST
+splice> -- END TEST >>> 0039 <<< END TEST
 -- ************************************************************
 
 -- TEST:0167 SUM ALL function!
@@ -44,7 +44,7 @@ ij> -- END TEST >>> 0039 <<< END TEST
      INSERT INTO WORKS
             VALUES('E5','P5',NULL);
 1 row inserted/updated/deleted
-ij> -- PASS:0167 If 1 row is inserted?
+splice> -- PASS:0167 If 1 row is inserted?
 
      SELECT SUM(ALL HOURS)
           FROM WORKS;
@@ -52,11 +52,11 @@ ij> -- PASS:0167 If 1 row is inserted?
 -----------
 464        
 WARNING 01003: Null values were eliminated from the argument of a column function.
-ij> -- PASS:0167 If SUM(ALL HOURS) = 464?
+splice> -- PASS:0167 If SUM(ALL HOURS) = 464?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0167 <<< END TEST
+splice> -- END TEST >>> 0167 <<< END TEST
 -- ************************************************************
 
 -- TEST:0168 SUM function!
@@ -65,7 +65,7 @@ ij> -- END TEST >>> 0167 <<< END TEST
      INSERT INTO WORKS
             VALUES('E5','P5',NULL);
 1 row inserted/updated/deleted
-ij> -- PASS:0168 If 1 row is inserted?
+splice> -- PASS:0168 If 1 row is inserted?
 
      SELECT SUM(HOURS)
           FROM WORKS;
@@ -73,11 +73,11 @@ ij> -- PASS:0168 If 1 row is inserted?
 -----------
 464        
 WARNING 01003: Null values were eliminated from the argument of a column function.
-ij> -- PASS:0168 If SUM(HOURS) = 464?
+splice> -- PASS:0168 If SUM(HOURS) = 464?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0168 <<< END TEST
+splice> -- END TEST >>> 0168 <<< END TEST
 -- ***********************************************************
 
 -- TEST:0169 COUNT(*) function !
@@ -86,18 +86,18 @@ ij> -- END TEST >>> 0168 <<< END TEST
      INSERT INTO WORKS
             VALUES('E5','P5',NULL);
 1 row inserted/updated/deleted
-ij> -- PASS:0169 If 1 row is inserted?
+splice> -- PASS:0169 If 1 row is inserted?
 
      SELECT COUNT(*)
           FROM WORKS;
 1          
 -----------
 13         
-ij> -- PASS:0169 If count = 13?
+splice> -- PASS:0169 If count = 13?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0169 <<< END TEST
+splice> -- END TEST >>> 0169 <<< END TEST
 -- *************************************************************
 
 -- TEST:0040 SUM function with WHERE clause!
@@ -107,7 +107,7 @@ ij> -- END TEST >>> 0169 <<< END TEST
 1          
 -----------
 140        
-ij> -- PASS:0040 If SUM(HOURS) = 140?
+splice> -- PASS:0040 If SUM(HOURS) = 140?
 
 -- END TEST >>> 0040 <<< END TEST
 -- ***************************************************************
@@ -119,7 +119,7 @@ ij> -- PASS:0040 If SUM(HOURS) = 140?
 1          
 -----------
 100        
-ij> -- PASS:0170 If SUM(DISTINCT HOURS) = 100?
+splice> -- PASS:0170 If SUM(DISTINCT HOURS) = 100?
 
 -- END TEST >>> 0170 <<< END TEST
 -- **************************************************************
@@ -131,7 +131,7 @@ ij> -- PASS:0170 If SUM(DISTINCT HOURS) = 100?
 1           
 ------------
 150         
-ij> -- PASS:0171 If SUM(HOURS)+10 = 150?
+splice> -- PASS:0171 If SUM(HOURS)+10 = 150?
 
 -- END TEST >>> 0171 <<< END TEST
 -- ***************************************************************
@@ -145,7 +145,7 @@ EM&
 ---
 E3 
 E5 
-ij> -- PASS:0041 If 2 rows are selected and EMPNUMs = 'E3' and 'E5'?
+splice> -- PASS:0041 If 2 rows are selected and EMPNUMs = 'E3' and 'E5'?
 
 -- END TEST >>> 0041 <<< END TEST
 -- ***************************************************************
@@ -158,7 +158,7 @@ ij> -- PASS:0041 If 2 rows are selected and EMPNUMs = 'E3' and 'E5'?
 EM&
 ---
 E2 
-ij> -- PASS:0042 If EMPNUM = 'E2'?
+splice> -- PASS:0042 If EMPNUM = 'E2'?
 
 -- END TEST >>> 0042 <<< END TEST
 -- ***************************************************************
@@ -169,7 +169,7 @@ ij> -- PASS:0042 If EMPNUM = 'E2'?
 1           
 ------------
 12.0000     
-ij> -- PASS:0043 If AVG(GRADE) = 12?
+splice> -- PASS:0043 If AVG(GRADE) = 12?
 
 -- END TEST >>> 0043 <<< END TEST
 -- ***************************************************************
@@ -178,14 +178,14 @@ ij> -- PASS:0043 If AVG(GRADE) = 12?
      DELETE FROM TEMP_S;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> SELECT AVG(GRADE)
+splice> SELECT AVG(GRADE)
          FROM   TEMP_S;
 1           
 ------------
 NULL        
-ij> -- PASS:0044 If AVG(GRADE) is NULL?
+splice> -- PASS:0044 If AVG(GRADE) is NULL?
 
 -- END TEST >>> 0044 <<< END TEST
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 

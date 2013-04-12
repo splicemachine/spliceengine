@@ -1,4 +1,4 @@
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -18,7 +18,7 @@ ij> --
 -- Test multi user lock interaction of ddl. 
 --------------------------------------------------------------------------------
 run resource 'createTestProcedures.subsql';
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -36,21 +36,21 @@ ij> --
 --
 CREATE FUNCTION  PADSTRING (DATA VARCHAR(32000), LENGTH INTEGER) RETURNS VARCHAR(32000) EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.Formatters.padString' LANGUAGE JAVA PARAMETER STYLE JAVA;
 0 rows inserted/updated/deleted
-ij> CREATE PROCEDURE WAIT_FOR_POST_COMMIT() DYNAMIC RESULT SETS 0 LANGUAGE JAVA EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.T_Access.waitForPostCommitToFinish' PARAMETER STYLE JAVA;
+splice> CREATE PROCEDURE WAIT_FOR_POST_COMMIT() DYNAMIC RESULT SETS 0 LANGUAGE JAVA EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.T_Access.waitForPostCommitToFinish' PARAMETER STYLE JAVA;
 0 rows inserted/updated/deleted
-ij> autocommit off;
-ij> connect 'wombat' as deleter;
-ij(DELETER)> -- by default, holdability of ResultSet objects created using this Connection object is true. Following will set it to false for this connection.
+splice> autocommit off;
+splice> connect 'wombat' as deleter;
+splice(DELETER)> -- by default, holdability of ResultSet objects created using this Connection object is true. Following will set it to false for this connection.
 NoHoldForConnection;
-ij(DELETER)> connect 'wombat' as scanner;
-ij(SCANNER)> -- by default, holdability of ResultSet objects created using this Connection object is true. Following will set it to false for this connection.
+splice(DELETER)> connect 'wombat' as scanner;
+splice(SCANNER)> -- by default, holdability of ResultSet objects created using this Connection object is true. Following will set it to false for this connection.
 NoHoldForConnection;
-ij(SCANNER)> -- set up
+splice(SCANNER)> -- set up
 set connection scanner;
-ij(SCANNER)> set isolation CS;
+splice(SCANNER)> set isolation CS;
 0 rows inserted/updated/deleted
-ij(SCANNER)> run resource 'LockTableQuery.subsql';
-ij(SCANNER)> --
+splice(SCANNER)> run resource 'LockTableQuery.subsql';
+splice(SCANNER)> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -81,7 +81,7 @@ from
     syscs_diag.lock_table l  right outer join syscs_diag.transaction_table t
 on l.xid = t.xid where l.tableType <> 'S' and t.type='UserTransaction';
 0 rows inserted/updated/deleted
-ij(SCANNER)> --on l.xid = t.xid where l.tableType <> 'S' or l.tableType is null
+splice(SCANNER)> --on l.xid = t.xid where l.tableType <> 'S' or l.tableType is null
 -- order by
 --     tabname, type desc, mode, cnt, lockname
 -- lock table with system catalog locks included.
@@ -100,7 +100,7 @@ from
     syscs_diag.lock_table l right outer join syscs_diag.transaction_table t
 on l.xid = t.xid where l.tableType <> 'S' ;
 0 rows inserted/updated/deleted
-ij(SCANNER)> -- lock table with no join.
+splice(SCANNER)> -- lock table with no join.
 create view lock_table2 as
 select 
     cast(l.xid as char(8)) as xid,
@@ -114,44 +114,44 @@ from
     syscs_diag.lock_table l  
 where l.tableType <> 'S' ;
 0 rows inserted/updated/deleted
-ij(SCANNER)> -- transaction table with no join.
+splice(SCANNER)> -- transaction table with no join.
 create view tran_table as
 select 
     *
 from 
     syscs_diag.transaction_table;
 0 rows inserted/updated/deleted
-ij(SCANNER)> autocommit off;
-ij(SCANNER)> drop table data;
+splice(SCANNER)> autocommit off;
+splice(SCANNER)> drop table data;
 ERROR 42Y55: 'DROP TABLE' cannot be performed on 'DATA' because it does not exist.
-ij(SCANNER)> -- create a table with 2 rows per page.
+splice(SCANNER)> -- create a table with 2 rows per page.
 create table data (keycol int, data varchar(2000)) ;
 0 rows inserted/updated/deleted
-ij(SCANNER)> insert into data values (0, PADSTRING('0',2000));
+splice(SCANNER)> insert into data values (0, PADSTRING('0',2000));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (10, PADSTRING('100',2000));
+splice(SCANNER)> insert into data values (10, PADSTRING('100',2000));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (20, PADSTRING('200',2000));
+splice(SCANNER)> insert into data values (20, PADSTRING('200',2000));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (30, PADSTRING('300',2000));
+splice(SCANNER)> insert into data values (30, PADSTRING('300',2000));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (40, PADSTRING('400',2000));
+splice(SCANNER)> insert into data values (40, PADSTRING('400',2000));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (50, PADSTRING('100',2000));
+splice(SCANNER)> insert into data values (50, PADSTRING('100',2000));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (60, PADSTRING('200',2000));
+splice(SCANNER)> insert into data values (60, PADSTRING('200',2000));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (70, PADSTRING('300',2000));
+splice(SCANNER)> insert into data values (70, PADSTRING('300',2000));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (80, PADSTRING('400',2000));
+splice(SCANNER)> insert into data values (80, PADSTRING('400',2000));
 1 row inserted/updated/deleted
-ij(SCANNER)> commit;
-ij(SCANNER)> set connection deleter;
-ij(DELETER)> set current isolation = cursor stability;
+splice(SCANNER)> commit;
+splice(SCANNER)> set connection deleter;
+splice(DELETER)> set current isolation = cursor stability;
 0 rows inserted/updated/deleted
-ij(DELETER)> autocommit off;
-ij(DELETER)> commit;
-ij(DELETER)> --------------------------------------------------------------------------------
+splice(DELETER)> autocommit off;
+splice(DELETER)> commit;
+splice(DELETER)> --------------------------------------------------------------------------------
 -- Test 0: position scanner in the middle of the dataset using group commit
 --         in a read commited scan which uses zero duration locks, then have
 --         deleter remove all the rows in the table except for the last one, 
@@ -160,28 +160,28 @@ ij(DELETER)> -------------------------------------------------------------------
 --         and verify the scanner goes to the last page.
 --------------------------------------------------------------------------------
 set connection scanner;
-ij(SCANNER)> create table just_to_block_on (a int);
+splice(SCANNER)> create table just_to_block_on (a int);
 0 rows inserted/updated/deleted
-ij(SCANNER)> CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault','2');
+splice(SCANNER)> CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault','2');
 0 rows inserted/updated/deleted
-ij(SCANNER)> get cursor scan_cursor as
+splice(SCANNER)> get cursor scan_cursor as
     'select keycol from data';
-ij(SCANNER)> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault', '16');
+splice(SCANNER)> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault', '16');
 0 rows inserted/updated/deleted
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 0          
-ij(SCANNER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
+splice(SCANNER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
 APP     |UserTransaction|TABLE   |1   |IS  |DATA        |Tablelock |GRANT|ACTIVE  
 WARNING 01004: Data truncation
 APP     |UserTransaction|TABLE   |1   |X   |JUST_TO_BLOC|Tablelock |GRANT|ACTIVE  
-ij(SCANNER)> -- now delete all rows but the last one, space should be reclaimed before
+splice(SCANNER)> -- now delete all rows but the last one, space should be reclaimed before
 -- the scanner gets a chance to run.
 set connection deleter;
-ij(DELETER)> select 
+splice(DELETER)> select 
     conglomeratename, isindex, 
     numallocatedpages, numfreepages, pagesize, estimspacesaving
 from 
@@ -190,10 +190,10 @@ from
 CONGLOMERATENAME                                                                                                                |ISIND&|NUMALLOCATEDPAGES   |NUMFREEPAGES        |PAGESIZE   |ESTIMSPACESAVING    
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 DATA                                                                                                                            |0     |9                   |0                   |4096       |0                   
-ij(DELETER)> commit;
-ij(DELETER)> delete from data where keycol < 80;
+splice(DELETER)> commit;
+splice(DELETER)> delete from data where keycol < 80;
 8 rows inserted/updated/deleted
-ij(DELETER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
+splice(DELETER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
 APP     |UserTransaction|TABLE   |1   |IS  |DATA        |Tablelock |GRANT|ACTIVE  
@@ -208,12 +208,12 @@ APP     |UserTransaction|ROW     |1   |X   |DATA        |(6,6)     |GRANT|ACTIVE
 APP     |UserTransaction|ROW     |1   |X   |DATA        |(7,6)     |GRANT|ACTIVE  
 APP     |UserTransaction|ROW     |1   |X   |DATA        |(8,6)     |GRANT|ACTIVE  
 APP     |UserTransaction|TABLE   |1   |X   |JUST_TO_BLOC|Tablelock |GRANT|ACTIVE  
-ij(DELETER)> commit;
-ij(DELETER)> -- give post commit a chance to run, by hanging on a lock.
+splice(DELETER)> commit;
+splice(DELETER)> -- give post commit a chance to run, by hanging on a lock.
 drop table just_to_block_on;
 ERROR 40XL1: A lock could not be obtained within the time requested
-ij(DELETER)> commit;
-ij(DELETER)> select 
+splice(DELETER)> commit;
+splice(DELETER)> select 
     conglomeratename, isindex, 
     numallocatedpages, numfreepages, pagesize, estimspacesaving
 from 
@@ -222,34 +222,34 @@ from
 CONGLOMERATENAME                                                                                                                |ISIND&|NUMALLOCATEDPAGES   |NUMFREEPAGES        |PAGESIZE   |ESTIMSPACESAVING    
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 DATA                                                                                                                            |0     |2                   |7                   |4096       |28672               
-ij(DELETER)> commit;
-ij(DELETER)> set connection scanner;
-ij(SCANNER)> -- this will return 10, from the group buffer (this looks wierd as 10 is 
+splice(DELETER)> commit;
+splice(DELETER)> set connection scanner;
+splice(SCANNER)> -- this will return 10, from the group buffer (this looks wierd as 10 is 
 -- deleted at this point - but that is what you get with read committed).
 next scan_cursor;
 KEYCOL     
 -----------
 10         
-ij(SCANNER)> -- this will now go through the code which handles jumping over deleted pages.
+splice(SCANNER)> -- this will now go through the code which handles jumping over deleted pages.
 next scan_cursor;
 KEYCOL     
 -----------
 80         
-ij(SCANNER)> commit;
-ij(SCANNER)> --------------------------------------------------------------------------------
+splice(SCANNER)> commit;
+splice(SCANNER)> --------------------------------------------------------------------------------
 -- cleanup
 --------------------------------------------------------------------------------
 set connection deleter;
-ij(DELETER)> commit;
-ij(DELETER)> disconnect;
-ij> set connection scanner;
-ij(SCANNER)> drop table data;
+splice(DELETER)> commit;
+splice(DELETER)> disconnect;
+splice> set connection scanner;
+splice(SCANNER)> drop table data;
 0 rows inserted/updated/deleted
-ij(SCANNER)> drop table just_to_block_on;
+splice(SCANNER)> drop table just_to_block_on;
 0 rows inserted/updated/deleted
-ij(SCANNER)> commit;
-ij(SCANNER)> disconnect;
-ij> --------------------------------------------------------------------------------
+splice(SCANNER)> commit;
+splice(SCANNER)> disconnect;
+splice> --------------------------------------------------------------------------------
 -- Test 1: position scanner in the middle of the dataset using group commit
 --         in a read commited scan which uses zero duration locks.  Now arrange
 --         for the row the scan is positioned on to be purged by post commit,
@@ -259,79 +259,79 @@ ij> ----------------------------------------------------------------------------
 -- setup
 ---------------
 autocommit off;
-IJ ERROR: Unable to establish connection
-ij> connect 'wombat' as deleter1;
-ij(DELETER1)> connect 'wombat' as deleter2;
-ij(DELETER2)> connect 'wombat' as scanner;
-ij(SCANNER)> connect 'wombat' as lockholder;
-ij(LOCKHOLDER)> -- set up
+Splice ERROR: Unable to establish connection
+splice> connect 'wombat' as deleter1;
+splice(DELETER1)> connect 'wombat' as deleter2;
+splice(DELETER2)> connect 'wombat' as scanner;
+splice(SCANNER)> connect 'wombat' as lockholder;
+splice(LOCKHOLDER)> -- set up
 set connection scanner;
-ij(SCANNER)> set isolation to read committed;
+splice(SCANNER)> set isolation to read committed;
 0 rows inserted/updated/deleted
-ij(SCANNER)> autocommit off;
-ij(SCANNER)> drop table data;
+splice(SCANNER)> autocommit off;
+splice(SCANNER)> drop table data;
 ERROR 42Y55: 'DROP TABLE' cannot be performed on 'DATA' because it does not exist.
-ij(SCANNER)> -- create a table with 4 rows per page.
+splice(SCANNER)> -- create a table with 4 rows per page.
 create table data (keycol int, data varchar(900));
 0 rows inserted/updated/deleted
-ij(SCANNER)> insert into data values (0, PADSTRING('0',900));
+splice(SCANNER)> insert into data values (0, PADSTRING('0',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (10, PADSTRING('100',900));
+splice(SCANNER)> insert into data values (10, PADSTRING('100',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (20, PADSTRING('200',900));
+splice(SCANNER)> insert into data values (20, PADSTRING('200',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (30, PADSTRING('300',900));
+splice(SCANNER)> insert into data values (30, PADSTRING('300',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (40, PADSTRING('400',900));
+splice(SCANNER)> insert into data values (40, PADSTRING('400',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (50, PADSTRING('100',900));
+splice(SCANNER)> insert into data values (50, PADSTRING('100',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (60, PADSTRING('200',900));
+splice(SCANNER)> insert into data values (60, PADSTRING('200',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (70, PADSTRING('300',900));
+splice(SCANNER)> insert into data values (70, PADSTRING('300',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (80, PADSTRING('400',900));
+splice(SCANNER)> insert into data values (80, PADSTRING('400',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> create unique index idx on data (keycol);
+splice(SCANNER)> create unique index idx on data (keycol);
 0 rows inserted/updated/deleted
-ij(SCANNER)> commit;
-ij(SCANNER)> set connection deleter1;
-ij(DELETER1)> set isolation read committed;
+splice(SCANNER)> commit;
+splice(SCANNER)> set connection deleter1;
+splice(DELETER1)> set isolation read committed;
 0 rows inserted/updated/deleted
-ij(DELETER1)> autocommit off;
-ij(DELETER1)> commit;
-ij(DELETER1)> set connection deleter2;
-ij(DELETER2)> set isolation READ COMMITTED;
+splice(DELETER1)> autocommit off;
+splice(DELETER1)> commit;
+splice(DELETER1)> set connection deleter2;
+splice(DELETER2)> set isolation READ COMMITTED;
 0 rows inserted/updated/deleted
-ij(DELETER2)> autocommit off;
-ij(DELETER2)> commit;
-ij(DELETER2)> set connection lockholder;
-ij(LOCKHOLDER)> set CURRENT isolation TO CS;
+splice(DELETER2)> autocommit off;
+splice(DELETER2)> commit;
+splice(DELETER2)> set connection lockholder;
+splice(LOCKHOLDER)> set CURRENT isolation TO CS;
 0 rows inserted/updated/deleted
-ij(LOCKHOLDER)> autocommit off;
-ij(LOCKHOLDER)> commit;
-ij(LOCKHOLDER)> --------------
+splice(LOCKHOLDER)> autocommit off;
+splice(LOCKHOLDER)> commit;
+splice(LOCKHOLDER)> --------------
 -- run the test
 --------------
 set connection lockholder;
-ij(LOCKHOLDER)> create table just_to_block_on (a int);
+splice(LOCKHOLDER)> create table just_to_block_on (a int);
 0 rows inserted/updated/deleted
-ij(LOCKHOLDER)> set connection scanner;
-ij(SCANNER)> CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault','2');
+splice(LOCKHOLDER)> set connection scanner;
+splice(SCANNER)> CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault','2');
 0 rows inserted/updated/deleted
-ij(SCANNER)> get cursor scan_cursor as
+splice(SCANNER)> get cursor scan_cursor as
     'select keycol from data';
-ij(SCANNER)> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault', '16');
+splice(SCANNER)> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault', '16');
 0 rows inserted/updated/deleted
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 0          
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 10         
-ij(SCANNER)> -- scan is now positioned on row (10, 100), as it group fetched 2 rows.
+splice(SCANNER)> -- scan is now positioned on row (10, 100), as it group fetched 2 rows.
 -- in deleter1 thread delete the last row on the page, but don't commit.
 -- in the other deleter thread delete the rest of the rows on the page and
 -- commit it, which will result in a post commit to try and reclaim all the
@@ -339,47 +339,47 @@ ij(SCANNER)> -- scan is now positioned on row (10, 100), as it group fetched 2 r
 -- been committed by deleter1.
 -- delete in this transaction keycol (30, 300).
 set connection deleter1;
-ij(DELETER1)> delete from data where keycol = 30;
+splice(DELETER1)> delete from data where keycol = 30;
 1 row inserted/updated/deleted
-ij(DELETER1)> -- delete in this transaction the rest of rows on the page.
+splice(DELETER1)> -- delete in this transaction the rest of rows on the page.
 set connection deleter2;
-ij(DELETER2)> delete from data where keycol = 0;
+splice(DELETER2)> delete from data where keycol = 0;
 1 row inserted/updated/deleted
-ij(DELETER2)> delete from data where keycol = 10;
+splice(DELETER2)> delete from data where keycol = 10;
 1 row inserted/updated/deleted
-ij(DELETER2)> delete from data where keycol = 20;
+splice(DELETER2)> delete from data where keycol = 20;
 1 row inserted/updated/deleted
-ij(DELETER2)> commit;
-ij(DELETER2)> -- block deleter threads on a lock to give post commit a chance to run.
+splice(DELETER2)> commit;
+splice(DELETER2)> -- block deleter threads on a lock to give post commit a chance to run.
 set connection deleter2;
-ij(DELETER2)> select * from just_to_block_on;
+splice(DELETER2)> select * from just_to_block_on;
 ERROR 40XL1: A lock could not be obtained within the time requested
-ij(DELETER2)> set connection deleter1;
-ij(DELETER1)> select * from just_to_block_on;
+splice(DELETER2)> set connection deleter1;
+splice(DELETER1)> select * from just_to_block_on;
 ERROR 40XL1: A lock could not be obtained within the time requested
-ij(DELETER1)> -- now assume post commit has run, roll back deleter1 so that one non-deleted
+splice(DELETER1)> -- now assume post commit has run, roll back deleter1 so that one non-deleted
 -- row remains on the page.
 set connection deleter1;
-ij(DELETER1)> rollback;
-ij(DELETER1)> -- the scanner gets a chance to run.
+splice(DELETER1)> rollback;
+splice(DELETER1)> -- the scanner gets a chance to run.
 set connection scanner;
-ij(SCANNER)> -- now at this point the scanner will resume and find the row it is positioned
+splice(SCANNER)> -- now at this point the scanner will resume and find the row it is positioned
 -- on has been purged, and it will reposition automatically to (30, 300) on
 -- the same page.
 next scan_cursor;
 KEYCOL     
 -----------
 30         
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 40         
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 50         
-ij(SCANNER)> commit;
-ij(SCANNER)> select * from data;
+splice(SCANNER)> commit;
+splice(SCANNER)> select * from data;
 KEYCOL     |DATA                                                                                                                            
 --------------------------------------------------------------------------------------------------------------------------------------------
 30         |300                                                                                                                            &
@@ -388,19 +388,19 @@ KEYCOL     |DATA
 60         |200                                                                                                                            &
 70         |300                                                                                                                            &
 80         |400                                                                                                                            &
-ij(SCANNER)> commit;
-ij(SCANNER)> --------------------------------------------------------------------------------
+splice(SCANNER)> commit;
+splice(SCANNER)> --------------------------------------------------------------------------------
 -- cleanup
 --------------------------------------------------------------------------------
 set connection scanner;
-ij(SCANNER)> disconnect;
-ij> set connection deleter1;
-ij(DELETER1)> disconnect;
-ij> set connection deleter2;
-ij(DELETER2)> disconnect;
-ij> set connection lockholder;
-ij(LOCKHOLDER)> disconnect;
-ij> --------------------------------------------------------------------------------
+splice(SCANNER)> disconnect;
+splice> set connection deleter1;
+splice(DELETER1)> disconnect;
+splice> set connection deleter2;
+splice(DELETER2)> disconnect;
+splice> set connection lockholder;
+splice(LOCKHOLDER)> disconnect;
+splice> --------------------------------------------------------------------------------
 -- Test 2: position scanner in the middle of the dataset using group commit
 --         in a read commited scan which uses zero duration locks.  Now arrange
 --         for the row the scan is positioned on to be purged by post commit,
@@ -412,77 +412,77 @@ ij> ----------------------------------------------------------------------------
 -- setup
 ---------------
 connect 'wombat' as deleter1;
-ij(DELETER1)> connect 'wombat' as deleter2;
-ij(DELETER2)> connect 'wombat' as scanner;
-ij(SCANNER)> connect 'wombat' as lockholder;
-ij(LOCKHOLDER)> -- set up
+splice(DELETER1)> connect 'wombat' as deleter2;
+splice(DELETER2)> connect 'wombat' as scanner;
+splice(SCANNER)> connect 'wombat' as lockholder;
+splice(LOCKHOLDER)> -- set up
 set connection scanner;
-ij(SCANNER)> set isolation read committed;
+splice(SCANNER)> set isolation read committed;
 0 rows inserted/updated/deleted
-ij(SCANNER)> autocommit off;
-ij(SCANNER)> drop table data;
+splice(SCANNER)> autocommit off;
+splice(SCANNER)> drop table data;
 0 rows inserted/updated/deleted
-ij(SCANNER)> -- create a table with 4 rows per page.
+splice(SCANNER)> -- create a table with 4 rows per page.
 create table data (keycol int, data varchar(900)) ;
 0 rows inserted/updated/deleted
-ij(SCANNER)> insert into data values (0, PADSTRING('0',900));
+splice(SCANNER)> insert into data values (0, PADSTRING('0',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (10, PADSTRING('100',900));
+splice(SCANNER)> insert into data values (10, PADSTRING('100',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (20, PADSTRING('200',900));
+splice(SCANNER)> insert into data values (20, PADSTRING('200',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (30, PADSTRING('300',900));
+splice(SCANNER)> insert into data values (30, PADSTRING('300',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (40, PADSTRING('400',900));
+splice(SCANNER)> insert into data values (40, PADSTRING('400',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (50, PADSTRING('100',900));
+splice(SCANNER)> insert into data values (50, PADSTRING('100',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (60, PADSTRING('200',900));
+splice(SCANNER)> insert into data values (60, PADSTRING('200',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (70, PADSTRING('300',900));
+splice(SCANNER)> insert into data values (70, PADSTRING('300',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (80, PADSTRING('400',900));
+splice(SCANNER)> insert into data values (80, PADSTRING('400',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> create unique index idx on data (keycol);
+splice(SCANNER)> create unique index idx on data (keycol);
 0 rows inserted/updated/deleted
-ij(SCANNER)> commit;
-ij(SCANNER)> set connection deleter1;
-ij(DELETER1)> set isolation read committed;
+splice(SCANNER)> commit;
+splice(SCANNER)> set connection deleter1;
+splice(DELETER1)> set isolation read committed;
 0 rows inserted/updated/deleted
-ij(DELETER1)> autocommit off;
-ij(DELETER1)> commit;
-ij(DELETER1)> set connection deleter2;
-ij(DELETER2)> set isolation read committed;
+splice(DELETER1)> autocommit off;
+splice(DELETER1)> commit;
+splice(DELETER1)> set connection deleter2;
+splice(DELETER2)> set isolation read committed;
 0 rows inserted/updated/deleted
-ij(DELETER2)> autocommit off;
-ij(DELETER2)> commit;
-ij(DELETER2)> set connection lockholder;
-ij(LOCKHOLDER)> set isolation read committed;
+splice(DELETER2)> autocommit off;
+splice(DELETER2)> commit;
+splice(DELETER2)> set connection lockholder;
+splice(LOCKHOLDER)> set isolation read committed;
 0 rows inserted/updated/deleted
-ij(LOCKHOLDER)> autocommit off;
-ij(LOCKHOLDER)> commit;
-ij(LOCKHOLDER)> --------------
+splice(LOCKHOLDER)> autocommit off;
+splice(LOCKHOLDER)> commit;
+splice(LOCKHOLDER)> --------------
 -- run the test
 --------------
 set connection lockholder;
-ij(LOCKHOLDER)> create table just_to_block_on (a int);
+splice(LOCKHOLDER)> create table just_to_block_on (a int);
 0 rows inserted/updated/deleted
-ij(LOCKHOLDER)> set connection scanner;
-ij(SCANNER)> CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault','2');
+splice(LOCKHOLDER)> set connection scanner;
+splice(SCANNER)> CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault','2');
 0 rows inserted/updated/deleted
-ij(SCANNER)> get cursor scan_cursor as
+splice(SCANNER)> get cursor scan_cursor as
     'select keycol from data';
-ij(SCANNER)> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault', '16');
+splice(SCANNER)> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault', '16');
 0 rows inserted/updated/deleted
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 0          
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 10         
-ij(SCANNER)> -- scan is now positioned on row (10, 100), as it group fetched 2 rows.
+splice(SCANNER)> -- scan is now positioned on row (10, 100), as it group fetched 2 rows.
 -- In the deleter1 thread delete the last row on the page, but don't commit.
 -- in the other deleter thread delete the rest of the rows on the page and
 -- commit it, which will result in a post commit to try and reclaim all the
@@ -490,44 +490,44 @@ ij(SCANNER)> -- scan is now positioned on row (10, 100), as it group fetched 2 r
 -- been committed by deleter1.
 -- delete in this transaction keycol (30, 300).
 set connection deleter1;
-ij(DELETER1)> delete from data where keycol = 30;
+splice(DELETER1)> delete from data where keycol = 30;
 1 row inserted/updated/deleted
-ij(DELETER1)> -- delete in this transaction the rest of rows on the page.
+splice(DELETER1)> -- delete in this transaction the rest of rows on the page.
 set connection deleter2;
-ij(DELETER2)> delete from data where keycol = 0;
+splice(DELETER2)> delete from data where keycol = 0;
 1 row inserted/updated/deleted
-ij(DELETER2)> delete from data where keycol = 10;
+splice(DELETER2)> delete from data where keycol = 10;
 1 row inserted/updated/deleted
-ij(DELETER2)> delete from data where keycol = 20;
+splice(DELETER2)> delete from data where keycol = 20;
 1 row inserted/updated/deleted
-ij(DELETER2)> commit;
-ij(DELETER2)> -- block deleter threads on a lock to give post commit a chance to run.
+splice(DELETER2)> commit;
+splice(DELETER2)> -- block deleter threads on a lock to give post commit a chance to run.
 set connection deleter2;
-ij(DELETER2)> select * from just_to_block_on;
+splice(DELETER2)> select * from just_to_block_on;
 ERROR 40XL1: A lock could not be obtained within the time requested
-ij(DELETER2)> -- now assume post commit has run, commit deleter1 so that one deleted
+splice(DELETER2)> -- now assume post commit has run, commit deleter1 so that one deleted
 -- row remains on the page after the positioned row.
 set connection deleter1;
-ij(DELETER1)> commit;
-ij(DELETER1)> -- the scanner gets a chance to run.
+splice(DELETER1)> commit;
+splice(DELETER1)> -- the scanner gets a chance to run.
 set connection scanner;
-ij(SCANNER)> -- now at this point the scanner will resume and find the row it is positioned
+splice(SCANNER)> -- now at this point the scanner will resume and find the row it is positioned
 -- on has been purged, the only rows following it to be deleted and it will 
 -- reposition automatically to (40, 400) on the next page.
 next scan_cursor;
 KEYCOL     
 -----------
 40         
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 50         
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 60         
-ij(SCANNER)> commit;
-ij(SCANNER)> select * from data;
+splice(SCANNER)> commit;
+splice(SCANNER)> select * from data;
 KEYCOL     |DATA                                                                                                                            
 --------------------------------------------------------------------------------------------------------------------------------------------
 40         |400                                                                                                                            &
@@ -535,23 +535,23 @@ KEYCOL     |DATA
 60         |200                                                                                                                            &
 70         |300                                                                                                                            &
 80         |400                                                                                                                            &
-ij(SCANNER)> commit;
-ij(SCANNER)> --------------------------------------------------------------------------------
+splice(SCANNER)> commit;
+splice(SCANNER)> --------------------------------------------------------------------------------
 -- cleanup
 --------------------------------------------------------------------------------
 set connection scanner;
-ij(SCANNER)> disconnect;
-ij> set connection deleter1;
-ij(DELETER1)> disconnect;
-ij> set connection deleter2;
-ij(DELETER2)> disconnect;
-ij> set connection deleter2;
-IJ ERROR: No connection exists with the name DELETER2
-ij> disconnect;
-IJ ERROR: Unable to establish connection
-ij> set connection lockholder;
-ij(LOCKHOLDER)> disconnect;
-ij> --------------------------------------------------------------------------------
+splice(SCANNER)> disconnect;
+splice> set connection deleter1;
+splice(DELETER1)> disconnect;
+splice> set connection deleter2;
+splice(DELETER2)> disconnect;
+splice> set connection deleter2;
+Splice ERROR: No connection exists with the name DELETER2
+splice> disconnect;
+Splice ERROR: Unable to establish connection
+splice> set connection lockholder;
+splice(LOCKHOLDER)> disconnect;
+splice> --------------------------------------------------------------------------------
 -- Test 3: position scanner in the middle of the dataset using group commit
 --         in a read commited scan which uses zero duration locks.  Now arrange
 --         for the row the scan is positioned on, and all rows following it on
@@ -565,93 +565,93 @@ ij> ----------------------------------------------------------------------------
 -- setup
 ---------------
 connect 'wombat' as deleter1;
-ij(DELETER1)> connect 'wombat' as deleter2;
-ij(DELETER2)> connect 'wombat' as scanner;
-ij(SCANNER)> connect 'wombat' as lockholder;
-ij(LOCKHOLDER)> -- set up
+splice(DELETER1)> connect 'wombat' as deleter2;
+splice(DELETER2)> connect 'wombat' as scanner;
+splice(SCANNER)> connect 'wombat' as lockholder;
+splice(LOCKHOLDER)> -- set up
 set connection scanner;
-ij(SCANNER)> set isolation read committed;
+splice(SCANNER)> set isolation read committed;
 0 rows inserted/updated/deleted
-ij(SCANNER)> autocommit off;
-ij(SCANNER)> drop table data;
+splice(SCANNER)> autocommit off;
+splice(SCANNER)> drop table data;
 0 rows inserted/updated/deleted
-ij(SCANNER)> -- create a table with 4 rows per page.
+splice(SCANNER)> -- create a table with 4 rows per page.
 create table data (keycol int, data varchar(900)) ;
 0 rows inserted/updated/deleted
-ij(SCANNER)> insert into data values (0, PADSTRING('0',900));
+splice(SCANNER)> insert into data values (0, PADSTRING('0',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (10, PADSTRING('100',900));
+splice(SCANNER)> insert into data values (10, PADSTRING('100',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (20, PADSTRING('200',900));
+splice(SCANNER)> insert into data values (20, PADSTRING('200',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (30, PADSTRING('300',900));
+splice(SCANNER)> insert into data values (30, PADSTRING('300',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (40, PADSTRING('400',900));
+splice(SCANNER)> insert into data values (40, PADSTRING('400',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (50, PADSTRING('100',900));
+splice(SCANNER)> insert into data values (50, PADSTRING('100',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (60, PADSTRING('200',900));
+splice(SCANNER)> insert into data values (60, PADSTRING('200',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (70, PADSTRING('300',900));
+splice(SCANNER)> insert into data values (70, PADSTRING('300',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (80, PADSTRING('400',900));
+splice(SCANNER)> insert into data values (80, PADSTRING('400',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> create unique index idx on data (keycol);
+splice(SCANNER)> create unique index idx on data (keycol);
 0 rows inserted/updated/deleted
-ij(SCANNER)> commit;
-ij(SCANNER)> set connection deleter1;
-ij(DELETER1)> set isolation read committed;
+splice(SCANNER)> commit;
+splice(SCANNER)> set connection deleter1;
+splice(DELETER1)> set isolation read committed;
 0 rows inserted/updated/deleted
-ij(DELETER1)> autocommit off;
-ij(DELETER1)> commit;
-ij(DELETER1)> set connection deleter2;
-ij(DELETER2)> set isolation read committed;
+splice(DELETER1)> autocommit off;
+splice(DELETER1)> commit;
+splice(DELETER1)> set connection deleter2;
+splice(DELETER2)> set isolation read committed;
 0 rows inserted/updated/deleted
-ij(DELETER2)> autocommit off;
-ij(DELETER2)> commit;
-ij(DELETER2)> set connection lockholder;
-ij(LOCKHOLDER)> set isolation read committed;
+splice(DELETER2)> autocommit off;
+splice(DELETER2)> commit;
+splice(DELETER2)> set connection lockholder;
+splice(LOCKHOLDER)> set isolation read committed;
 0 rows inserted/updated/deleted
-ij(LOCKHOLDER)> autocommit off;
-ij(LOCKHOLDER)> commit;
-ij(LOCKHOLDER)> --------------
+splice(LOCKHOLDER)> autocommit off;
+splice(LOCKHOLDER)> commit;
+splice(LOCKHOLDER)> --------------
 -- run the test
 --------------
 set connection lockholder;
-ij(LOCKHOLDER)> create table just_to_block_on (a int);
+splice(LOCKHOLDER)> create table just_to_block_on (a int);
 0 rows inserted/updated/deleted
-ij(LOCKHOLDER)> set connection scanner;
-ij(SCANNER)> CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault','2');
+splice(LOCKHOLDER)> set connection scanner;
+splice(SCANNER)> CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault','2');
 0 rows inserted/updated/deleted
-ij(SCANNER)> get cursor scan_cursor as
+splice(SCANNER)> get cursor scan_cursor as
     'select keycol from data';
-ij(SCANNER)> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault', '16');
+splice(SCANNER)> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault', '16');
 0 rows inserted/updated/deleted
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 0          
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 10         
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 20         
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 30         
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 40         
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 50         
-ij(SCANNER)> -- scan is now positioned on row (50, 500), as it group fetched in 2 row chunks.
+splice(SCANNER)> -- scan is now positioned on row (50, 500), as it group fetched in 2 row chunks.
 -- In the deleter1 thread delete the 1st row on the page, but don't commit:
 -- (40, 400).
 -- In the deleter2 thread delete the current row and the rows following on the
@@ -661,38 +661,38 @@ ij(SCANNER)> -- scan is now positioned on row (50, 500), as it group fetched in 
 -- the one that has not been committed by deleter1.
 -- delete in this transaction keycol (30, 300).
 set connection deleter1;
-ij(DELETER1)> delete from data where keycol = 40;
+splice(DELETER1)> delete from data where keycol = 40;
 1 row inserted/updated/deleted
-ij(DELETER1)> -- delete in this transaction the rest of rows on the page.
+splice(DELETER1)> -- delete in this transaction the rest of rows on the page.
 set connection deleter2;
-ij(DELETER2)> delete from data where keycol = 50;
+splice(DELETER2)> delete from data where keycol = 50;
 1 row inserted/updated/deleted
-ij(DELETER2)> delete from data where keycol = 60;
+splice(DELETER2)> delete from data where keycol = 60;
 1 row inserted/updated/deleted
-ij(DELETER2)> delete from data where keycol = 70;
+splice(DELETER2)> delete from data where keycol = 70;
 1 row inserted/updated/deleted
-ij(DELETER2)> commit;
-ij(DELETER2)> -- block deleter threads on a lock to give post commit a chance to run.
+splice(DELETER2)> commit;
+splice(DELETER2)> -- block deleter threads on a lock to give post commit a chance to run.
 set connection deleter2;
-ij(DELETER2)> select * from just_to_block_on;
+splice(DELETER2)> select * from just_to_block_on;
 ERROR 40XL1: A lock could not be obtained within the time requested
-ij(DELETER2)> -- now assume post commit has run, commit deleter1 so that one deleted
+splice(DELETER2)> -- now assume post commit has run, commit deleter1 so that one deleted
 -- row remains on the page after the positioned row.
 set connection deleter1;
-ij(DELETER1)> commit;
-ij(DELETER1)> -- the scanner gets a chance to run.
+splice(DELETER1)> commit;
+splice(DELETER1)> -- the scanner gets a chance to run.
 set connection scanner;
-ij(SCANNER)> -- now at this point the scanner will resume and find the row it is positioned
+splice(SCANNER)> -- now at this point the scanner will resume and find the row it is positioned
 -- on has been purged, the only rows following it to be deleted and it will 
 -- reposition automatically to (80, 800) on the next page.
 next scan_cursor;
 KEYCOL     
 -----------
 80         
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 No current row
-ij(SCANNER)> commit;
-ij(SCANNER)> select * from data;
+splice(SCANNER)> commit;
+splice(SCANNER)> select * from data;
 KEYCOL     |DATA                                                                                                                            
 --------------------------------------------------------------------------------------------------------------------------------------------
 0          |0                                                                                                                              &
@@ -700,23 +700,23 @@ KEYCOL     |DATA
 20         |200                                                                                                                            &
 30         |300                                                                                                                            &
 80         |400                                                                                                                            &
-ij(SCANNER)> commit;
-ij(SCANNER)> --------------------------------------------------------------------------------
+splice(SCANNER)> commit;
+splice(SCANNER)> --------------------------------------------------------------------------------
 -- cleanup
 --------------------------------------------------------------------------------
 set connection scanner;
-ij(SCANNER)> disconnect;
-ij> set connection deleter1;
-ij(DELETER1)> disconnect;
-ij> set connection deleter2;
-ij(DELETER2)> disconnect;
-ij> set connection deleter2;
-IJ ERROR: No connection exists with the name DELETER2
-ij> disconnect;
-IJ ERROR: Unable to establish connection
-ij> set connection lockholder;
-ij(LOCKHOLDER)> disconnect;
-ij> --------------------------------------------------------------------------------
+splice(SCANNER)> disconnect;
+splice> set connection deleter1;
+splice(DELETER1)> disconnect;
+splice> set connection deleter2;
+splice(DELETER2)> disconnect;
+splice> set connection deleter2;
+Splice ERROR: No connection exists with the name DELETER2
+splice> disconnect;
+Splice ERROR: Unable to establish connection
+splice> set connection lockholder;
+splice(LOCKHOLDER)> disconnect;
+splice> --------------------------------------------------------------------------------
 -- Test 4: position scanner in the middle of the dataset using group commit
 --         in a read commited scan which uses zero duration locks.  Now arrange
 --         for all rows in the table to be purged.  The reposition code will
@@ -726,133 +726,133 @@ ij> ----------------------------------------------------------------------------
 -- setup
 ---------------
 connect 'wombat' as deleter1;
-ij(DELETER1)> connect 'wombat' as deleter2;
-ij(DELETER2)> connect 'wombat' as scanner;
-ij(SCANNER)> connect 'wombat' as lockholder;
-ij(LOCKHOLDER)> -- set up
+splice(DELETER1)> connect 'wombat' as deleter2;
+splice(DELETER2)> connect 'wombat' as scanner;
+splice(SCANNER)> connect 'wombat' as lockholder;
+splice(LOCKHOLDER)> -- set up
 set connection scanner;
-ij(SCANNER)> set isolation read committed;
+splice(SCANNER)> set isolation read committed;
 0 rows inserted/updated/deleted
-ij(SCANNER)> autocommit off;
-ij(SCANNER)> drop table data;
+splice(SCANNER)> autocommit off;
+splice(SCANNER)> drop table data;
 0 rows inserted/updated/deleted
-ij(SCANNER)> -- create a table with 4 rows per page.
+splice(SCANNER)> -- create a table with 4 rows per page.
 create table data (keycol int, data varchar(900)) ;
 0 rows inserted/updated/deleted
-ij(SCANNER)> insert into data values (0, PADSTRING('0',900));
+splice(SCANNER)> insert into data values (0, PADSTRING('0',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (10, PADSTRING('100',900));
+splice(SCANNER)> insert into data values (10, PADSTRING('100',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (20, PADSTRING('200',900));
+splice(SCANNER)> insert into data values (20, PADSTRING('200',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (30, PADSTRING('300',900));
+splice(SCANNER)> insert into data values (30, PADSTRING('300',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (40, PADSTRING('400',900));
+splice(SCANNER)> insert into data values (40, PADSTRING('400',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (50, PADSTRING('100',900));
+splice(SCANNER)> insert into data values (50, PADSTRING('100',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (60, PADSTRING('200',900));
+splice(SCANNER)> insert into data values (60, PADSTRING('200',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (70, PADSTRING('300',900));
+splice(SCANNER)> insert into data values (70, PADSTRING('300',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> insert into data values (80, PADSTRING('400',900));
+splice(SCANNER)> insert into data values (80, PADSTRING('400',900));
 1 row inserted/updated/deleted
-ij(SCANNER)> create unique index idx on data (keycol);
+splice(SCANNER)> create unique index idx on data (keycol);
 0 rows inserted/updated/deleted
-ij(SCANNER)> commit;
-ij(SCANNER)> set connection deleter1;
-ij(DELETER1)> set isolation read committed;
+splice(SCANNER)> commit;
+splice(SCANNER)> set connection deleter1;
+splice(DELETER1)> set isolation read committed;
 0 rows inserted/updated/deleted
-ij(DELETER1)> autocommit off;
-ij(DELETER1)> commit;
-ij(DELETER1)> set connection deleter2;
-ij(DELETER2)> set isolation read committed;
+splice(DELETER1)> autocommit off;
+splice(DELETER1)> commit;
+splice(DELETER1)> set connection deleter2;
+splice(DELETER2)> set isolation read committed;
 0 rows inserted/updated/deleted
-ij(DELETER2)> autocommit off;
-ij(DELETER2)> commit;
-ij(DELETER2)> set connection lockholder;
-ij(LOCKHOLDER)> set isolation read committed;
+splice(DELETER2)> autocommit off;
+splice(DELETER2)> commit;
+splice(DELETER2)> set connection lockholder;
+splice(LOCKHOLDER)> set isolation read committed;
 0 rows inserted/updated/deleted
-ij(LOCKHOLDER)> autocommit off;
-ij(LOCKHOLDER)> commit;
-ij(LOCKHOLDER)> --------------
+splice(LOCKHOLDER)> autocommit off;
+splice(LOCKHOLDER)> commit;
+splice(LOCKHOLDER)> --------------
 -- run the test
 --------------
 set connection lockholder;
-ij(LOCKHOLDER)> create table just_to_block_on (a int);
+splice(LOCKHOLDER)> create table just_to_block_on (a int);
 0 rows inserted/updated/deleted
-ij(LOCKHOLDER)> set connection scanner;
-ij(SCANNER)> CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault','2');
+splice(LOCKHOLDER)> set connection scanner;
+splice(SCANNER)> CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault','2');
 0 rows inserted/updated/deleted
-ij(SCANNER)> get cursor scan_cursor as
+splice(SCANNER)> get cursor scan_cursor as
     'select keycol from data';
-ij(SCANNER)> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault', '16');
+splice(SCANNER)> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDefault', '16');
 0 rows inserted/updated/deleted
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 0          
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 10         
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 20         
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 30         
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 40         
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 KEYCOL     
 -----------
 50         
-ij(SCANNER)> -- scan is now positioned on row (50, 500), as it group fetched in 2 row chunks.
+splice(SCANNER)> -- scan is now positioned on row (50, 500), as it group fetched in 2 row chunks.
 -- In the deleter1 thread delete all the rows, allowing all rows/pages to be
 -- reclaimed.
 -- delete in this transaction all rows.
 set connection deleter1;
-ij(DELETER1)> delete from data where keycol >= 0 ;
+splice(DELETER1)> delete from data where keycol >= 0 ;
 9 rows inserted/updated/deleted
-ij(DELETER1)> commit;
-ij(DELETER1)> -- block deleter threads on a lock to give post commit a chance to run.
+splice(DELETER1)> commit;
+splice(DELETER1)> -- block deleter threads on a lock to give post commit a chance to run.
 set connection deleter2;
-ij(DELETER2)> select * from just_to_block_on;
+splice(DELETER2)> select * from just_to_block_on;
 ERROR 40XL1: A lock could not be obtained within the time requested
-ij(DELETER2)> -- now assume post commit has run, commit deleter1 so that one deleted
+splice(DELETER2)> -- now assume post commit has run, commit deleter1 so that one deleted
 -- row remains on the page after the positioned row.
 commit;
-ij(DELETER2)> -- the scanner gets a chance to run.
+splice(DELETER2)> -- the scanner gets a chance to run.
 set connection scanner;
-ij(SCANNER)> -- now at this point the scanner will resume and find the row it is positioned
+splice(SCANNER)> -- now at this point the scanner will resume and find the row it is positioned
 -- on has been purged, and no rows or pages remaining in the table.
 next scan_cursor;
 No current row
-ij(SCANNER)> next scan_cursor;
+splice(SCANNER)> next scan_cursor;
 No current row
-ij(SCANNER)> commit;
-ij(SCANNER)> select * from data;
+splice(SCANNER)> commit;
+splice(SCANNER)> select * from data;
 KEYCOL     |DATA                                                                                                                            
 --------------------------------------------------------------------------------------------------------------------------------------------
-ij(SCANNER)> commit;
-ij(SCANNER)> --------------------------------------------------------------------------------
+splice(SCANNER)> commit;
+splice(SCANNER)> --------------------------------------------------------------------------------
 -- cleanup
 --------------------------------------------------------------------------------
 set connection scanner;
-ij(SCANNER)> disconnect;
-ij> set connection deleter1;
-ij(DELETER1)> disconnect;
-ij> set connection deleter2;
-ij(DELETER2)> disconnect;
-ij> set connection deleter2;
-IJ ERROR: No connection exists with the name DELETER2
-ij> disconnect;
-IJ ERROR: Unable to establish connection
-ij> set connection lockholder;
-ij(LOCKHOLDER)> disconnect;
-ij> exit;
+splice(SCANNER)> disconnect;
+splice> set connection deleter1;
+splice(DELETER1)> disconnect;
+splice> set connection deleter2;
+splice(DELETER2)> disconnect;
+splice> set connection deleter2;
+Splice ERROR: No connection exists with the name DELETER2
+splice> disconnect;
+Splice ERROR: Unable to establish connection
+splice> set connection lockholder;
+splice(LOCKHOLDER)> disconnect;
+splice> exit;

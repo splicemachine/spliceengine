@@ -1,4 +1,4 @@
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -18,23 +18,23 @@ ij> --
 -- also notice in the runtimestatistics output that Fetch Size is 16 for various isolation levels ie we are doing bulk fetch for all isolation levels
 -- this will test the fix for bug 5953 - which is to enable bulk fetching for RR and serializable isolation levels as well.
 prepare getIsolation as 'values current isolation';
-ij> autocommit off;
-ij> call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);
+splice> autocommit off;
+splice> call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);
 0 rows inserted/updated/deleted
-ij> maximumdisplaywidth 2000;
-ij> -- create a table
+splice> maximumdisplaywidth 2000;
+splice> -- create a table
 create table t1(c1 int not null constraint asdf primary key);
 0 rows inserted/updated/deleted
-ij> commit;
-ij> -- insert a row
+splice> commit;
+splice> -- insert a row
 insert into t1 values 1;
 1 row inserted/updated/deleted
-ij> -- verify table scan gets row lock at read committed
+splice> -- verify table scan gets row lock at read committed
 select * from t1;
 C1         
 -----------
 1          
-ij> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
+splice> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Statement Name: 
@@ -78,20 +78,20 @@ scan information:
 		None
 	qualifiers:
 		None
-ij> -- verify SET ISOLATION commits and changes isolation level
+splice> -- verify SET ISOLATION commits and changes isolation level
 set isolation RR;
 0 rows inserted/updated/deleted
-ij> execute getIsolation;
+splice> execute getIsolation;
 1   
 ----
 RR  
-ij> -- rollback should find nothing to undo
+splice> -- rollback should find nothing to undo
 rollback;
-ij> select * from t1;
+splice> select * from t1;
 C1         
 -----------
 1          
-ij> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
+splice> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Statement Name: 
@@ -134,25 +134,25 @@ scan information:
 		None
 	qualifiers:
 		None
-ij> set isolation reset;
+splice> set isolation reset;
 0 rows inserted/updated/deleted
-ij> execute getIsolation;
+splice> execute getIsolation;
 1   
 ----
-ij> -- verify SET ISOLATION commits and changes isolation level
+splice> -- verify SET ISOLATION commits and changes isolation level
 set isolation read committed;
 0 rows inserted/updated/deleted
-ij> execute getIsolation;
+splice> execute getIsolation;
 1   
 ----
 CS  
-ij> -- rollback should find nothing to undo
+splice> -- rollback should find nothing to undo
 rollback;
-ij> select * from t1;
+splice> select * from t1;
 C1         
 -----------
 1          
-ij> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
+splice> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Statement Name: 
@@ -195,25 +195,25 @@ scan information:
 		None
 	qualifiers:
 		None
-ij> set current isolation = reset;
+splice> set current isolation = reset;
 0 rows inserted/updated/deleted
-ij> execute getIsolation;
+splice> execute getIsolation;
 1   
 ----
-ij> -- verify SET ISOLATION commits and changes isolation level
+splice> -- verify SET ISOLATION commits and changes isolation level
 set current isolation = RS;
 0 rows inserted/updated/deleted
-ij> execute getIsolation;
+splice> execute getIsolation;
 1   
 ----
 RS  
-ij> -- rollback should find nothing to undo
+splice> -- rollback should find nothing to undo
 rollback;
-ij> select * from t1;
+splice> select * from t1;
 C1         
 -----------
 1          
-ij> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
+splice> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Statement Name: 
@@ -256,25 +256,25 @@ scan information:
 		None
 	qualifiers:
 		None
-ij> set isolation to reset;
+splice> set isolation to reset;
 0 rows inserted/updated/deleted
-ij> execute getIsolation;
+splice> execute getIsolation;
 1   
 ----
-ij> -- verify SET ISOLATION commits and changes isolation level
+splice> -- verify SET ISOLATION commits and changes isolation level
 set isolation = dirty read;
 0 rows inserted/updated/deleted
-ij> execute getIsolation;
+splice> execute getIsolation;
 1   
 ----
 UR  
-ij> -- rollback should find nothing to undo
+splice> -- rollback should find nothing to undo
 rollback;
-ij> select * from t1;
+splice> select * from t1;
 C1         
 -----------
 1          
-ij> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
+splice> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Statement Name: 
@@ -317,18 +317,18 @@ scan information:
 		None
 	qualifiers:
 		None
-ij> -- test WITH ISOLATION clause
+splice> -- test WITH ISOLATION clause
 set isolation serializable;
 0 rows inserted/updated/deleted
-ij> execute getIsolation;
+splice> execute getIsolation;
 1   
 ----
 RR  
-ij> select * from t1 with CS;
+splice> select * from t1 with CS;
 C1         
 -----------
 1          
-ij> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
+splice> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Statement Name: 
@@ -371,17 +371,17 @@ scan information:
 		None
 	qualifiers:
 		None
-ij> set isolation cursor stability;
+splice> set isolation cursor stability;
 0 rows inserted/updated/deleted
-ij> execute getIsolation;
+splice> execute getIsolation;
 1   
 ----
 CS  
-ij> select * from t1 with RR;
+splice> select * from t1 with RR;
 C1         
 -----------
 1          
-ij> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
+splice> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Statement Name: 
@@ -424,17 +424,17 @@ scan information:
 		None
 	qualifiers:
 		None
-ij> set isolation serializable;
+splice> set isolation serializable;
 0 rows inserted/updated/deleted
-ij> execute getIsolation;
+splice> execute getIsolation;
 1   
 ----
 RR  
-ij> select * from t1 with RS;
+splice> select * from t1 with RS;
 C1         
 -----------
 1          
-ij> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
+splice> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Statement Name: 
@@ -477,17 +477,17 @@ scan information:
 		None
 	qualifiers:
 		None
-ij> set current isolation to read committed;
+splice> set current isolation to read committed;
 0 rows inserted/updated/deleted
-ij> execute getIsolation;
+splice> execute getIsolation;
 1   
 ----
 CS  
-ij> select * from t1 with ur;
+splice> select * from t1 with ur;
 C1         
 -----------
 1          
-ij> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
+splice> values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Statement Name: 
@@ -530,49 +530,49 @@ scan information:
 		None
 	qualifiers:
 		None
-ij> -- unknown isolation level
+splice> -- unknown isolation level
 select * from t1 with rw;
 ERROR 42X01: Syntax error: Encountered "rw" at line 2, column 23.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> select * from t1 with DIRTY READ;
+splice> select * from t1 with DIRTY READ;
 ERROR 42X01: Syntax error: Encountered "DIRTY" at line 1, column 23.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> select * from t1 with READ UNCOMMITTED;
+splice> select * from t1 with READ UNCOMMITTED;
 ERROR 42X01: Syntax error: Encountered "READ" at line 1, column 23.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> select * from t1 with READ COMMITTED;
+splice> select * from t1 with READ COMMITTED;
 ERROR 42X01: Syntax error: Encountered "READ" at line 1, column 23.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> select * from t1 with CURSOR STABILITY;
+splice> select * from t1 with CURSOR STABILITY;
 ERROR 42X01: Syntax error: Encountered "CURSOR" at line 1, column 23.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> select * from t1 with REPEATABLE READ;
+splice> select * from t1 with REPEATABLE READ;
 ERROR 42X01: Syntax error: Encountered "REPEATABLE" at line 1, column 23.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> select * from t1 with SERIALIZABLE;
+splice> select * from t1 with SERIALIZABLE;
 ERROR 42X01: Syntax error: Encountered "SERIALIZABLE" at line 1, column 23.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> -- check the db2 isolation levels can be used as identifiers
+splice> -- check the db2 isolation levels can be used as identifiers
 create table db2iso(cs int, rr int, ur int, rs int);
 0 rows inserted/updated/deleted
-ij> select cs, rr, ur, rs from db2iso;
+splice> select cs, rr, ur, rs from db2iso;
 CS         |RR         |UR         |RS         
 -----------------------------------------------
-ij> -- cleanup
+splice> -- cleanup
 drop table t1;
 0 rows inserted/updated/deleted
-ij> 
+splice> 

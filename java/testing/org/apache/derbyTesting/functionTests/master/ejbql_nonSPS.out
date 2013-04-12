@@ -1,4 +1,4 @@
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -20,117 +20,117 @@ ij> --
 -- absolute is not a reserved word any more
 create table absolute( a int );
 0 rows inserted/updated/deleted
-ij> values{ fn abs( NULL ) };
+splice> values{ fn abs( NULL ) };
 ERROR 42X01: Syntax error: Encountered "NULL" at line 1, column 17.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn abs( null ) };
+splice> values{ fn abs( null ) };
 ERROR 42X01: Syntax error: Encountered "null" at line 1, column 17.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn abs( ) };
+splice> values{ fn abs( ) };
 ERROR 42X01: Syntax error: Encountered ")" at line 1, column 17.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> -- Error
+splice> -- Error
 values{ fn concat( ) };
 ERROR 42X01: Syntax error: Encountered ")" at line 2, column 20.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn concat( 'error0' ) };
+splice> values{ fn concat( 'error0' ) };
 ERROR 42X01: Syntax error: Encountered ")" at line 1, column 29.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values  fn concat( 'syntax', ' error1' );
+splice> values  fn concat( 'syntax', ' error1' );
 ERROR 42X01: Syntax error: Encountered "concat" at line 1, column 12.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn concat { 'syntax', ' error2' }};
+splice> values{ fn concat { 'syntax', ' error2' }};
 ERROR 42X01: Syntax error: Encountered "{" at line 1, column 19.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn concat( 'syntax', ' error3' });
+splice> values{ fn concat( 'syntax', ' error3' });
 ERROR 42X01: Syntax error: Encountered "}" at line 1, column 40.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn concat( fn concat( 'nested', ' not ' ), ' allowed!' ) };
+splice> values{ fn concat( fn concat( 'nested', ' not ' ), ' allowed!' ) };
 ERROR 42X01: Syntax error: Encountered "concat" at line 1, column 23.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn concat( values{ fn concat( 'nested', ' not ' ) }, ' allowed!' ) };
+splice> values{ fn concat( values{ fn concat( 'nested', ' not ' ) }, ' allowed!' ) };
 ERROR 42X01: Syntax error: Encountered "values" at line 1, column 20.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn locate( null, null ) };
+splice> values{ fn locate( null, null ) };
 ERROR 42X01: Syntax error: Encountered "null" at line 1, column 20.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn locate( null, ''   ) };
+splice> values{ fn locate( null, ''   ) };
 ERROR 42X01: Syntax error: Encountered "null" at line 1, column 20.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn locate( '', null   ) };
+splice> values{ fn locate( '', null   ) };
 ERROR 42X01: Syntax error: Encountered "null" at line 1, column 24.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn locate( null, null,1) };
+splice> values{ fn locate( null, null,1) };
 ERROR 42X01: Syntax error: Encountered "null" at line 1, column 20.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn locate( null, ''  ,1) };
+splice> values{ fn locate( null, ''  ,1) };
 ERROR 42X01: Syntax error: Encountered "null" at line 1, column 20.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn locate( '', null  ,1) };
+splice> values{ fn locate( '', null  ,1) };
 ERROR 42X01: Syntax error: Encountered "null" at line 1, column 24.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn sqrt( NULL ) };
+splice> values{ fn sqrt( NULL ) };
 ERROR 42X01: Syntax error: Encountered "NULL" at line 1, column 18.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn sqrt( null ) };
+splice> values{ fn sqrt( null ) };
 ERROR 42X01: Syntax error: Encountered "null" at line 1, column 18.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> values{ fn sqrt( ) };
+splice> values{ fn sqrt( ) };
 ERROR 42X01: Syntax error: Encountered ")" at line 1, column 18.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> -- Substring tests. Valid only as escaped function
+splice> -- Substring tests. Valid only as escaped function
 values substring('asdf', 1);
 ERROR 42X80: VALUES clause must contain at least one element. Empty elements are not allowed. 
-ij> values substring(X'101101', 3);
+splice> values substring(X'101101', 3);
 ERROR 42X80: VALUES clause must contain at least one element. Empty elements are not allowed. 
-ij> values substring('asdf', 1, 2);
+splice> values substring('asdf', 1, 2);
 ERROR 42X80: VALUES clause must contain at least one element. Empty elements are not allowed. 
-ij> values {fn substring('asdf', 1)};
+splice> values {fn substring('asdf', 1)};
 1   
 ----
 asdf
-ij> values {fn substring(X'101101', 3)};
+splice> values {fn substring(X'101101', 3)};
 ERROR 42X25: The 'SUBSTR' function is not allowed on the 'CHAR () FOR BIT DATA' type.
-ij> values {fn substring('asdf', 1, 2)};
+splice> values {fn substring('asdf', 1, 2)};
 1   
 ----
 as  
-ij> 
+splice> 

@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE DML076
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE DML076
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml076.sql
 -- 59-byte ID
@@ -8,12 +8,12 @@ ij> -- MODULE DML076
 -- AUTHORIZATION HU
    set schema HU;
 0 rows inserted/updated/deleted
-ij> --O   SELECT USER FROM HU.ECCO;
+splice> --O   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 HU                                                                                                                              
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 
 -- date_time print
 
@@ -27,26 +27,26 @@ ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 
     INSERT INTO BB VALUES(NULL);
 1 row inserted/updated/deleted
-ij> INSERT INTO EE VALUES(NULL);
+splice> INSERT INTO EE VALUES(NULL);
 1 row inserted/updated/deleted
-ij> INSERT INTO GG VALUES(NULL);
+splice> INSERT INTO GG VALUES(NULL);
 1 row inserted/updated/deleted
-ij> INSERT INTO HH VALUES(NULL);
+splice> INSERT INTO HH VALUES(NULL);
 1 row inserted/updated/deleted
-ij> INSERT INTO II VALUES(NULL);
+splice> INSERT INTO II VALUES(NULL);
 1 row inserted/updated/deleted
-ij> INSERT INTO JJ VALUES(NULL);
+splice> INSERT INTO JJ VALUES(NULL);
 1 row inserted/updated/deleted
-ij> INSERT INTO MM VALUES(NULL);
+splice> INSERT INTO MM VALUES(NULL);
 1 row inserted/updated/deleted
-ij> INSERT INTO SS VALUES(NULL);
+splice> INSERT INTO SS VALUES(NULL);
 1 row inserted/updated/deleted
-ij> SELECT CHARTEST 
+splice> SELECT CHARTEST 
       FROM BB;
 CHA&
 ----
 NULL
-ij> -- PASS:0436 If CHARTEST is NULL (Implementor defined print format)?
+splice> -- PASS:0436 If CHARTEST is NULL (Implementor defined print format)?
 
 
     SELECT INTTEST
@@ -54,7 +54,7 @@ ij> -- PASS:0436 If CHARTEST is NULL (Implementor defined print format)?
 INTTEST    
 -----------
 NULL       
-ij> -- PASS:0436 If INTTEST is NULL (Implementor defined print format)?
+splice> -- PASS:0436 If INTTEST is NULL (Implementor defined print format)?
 
 
     SELECT REALTEST 
@@ -62,7 +62,7 @@ ij> -- PASS:0436 If INTTEST is NULL (Implementor defined print format)?
 REALTEST     
 -------------
 NULL         
-ij> -- PASS:0436 If REALTEST is NULL (Implementor defined print format)?
+splice> -- PASS:0436 If REALTEST is NULL (Implementor defined print format)?
 
 
 --O    SELECT COUNT(*)
@@ -72,7 +72,7 @@ ij> -- PASS:0436 If REALTEST is NULL (Implementor defined print format)?
 REALTEST     
 -------------
 NULL         
-ij> -- PASS:0436 If count = 1?
+splice> -- PASS:0436 If count = 1?
 
 
     SELECT SMALLTEST 
@@ -80,7 +80,7 @@ ij> -- PASS:0436 If count = 1?
 SMALL&
 ------
 NULL  
-ij> -- PASS:0436 If SMALLTEST is NULL (Implementor defined print format)?
+splice> -- PASS:0436 If SMALLTEST is NULL (Implementor defined print format)?
 
 
     SELECT DOUBLETEST 
@@ -88,7 +88,7 @@ ij> -- PASS:0436 If SMALLTEST is NULL (Implementor defined print format)?
 DOUBLETEST            
 ----------------------
 NULL                  
-ij> -- PASS:0436 If DOUBLETEST is NULL (Implementor defined print format)?
+splice> -- PASS:0436 If DOUBLETEST is NULL (Implementor defined print format)?
 
 
 --O    SELECT COUNT(*) 
@@ -98,7 +98,7 @@ ij> -- PASS:0436 If DOUBLETEST is NULL (Implementor defined print format)?
 DOUBLETEST            
 ----------------------
 NULL                  
-ij> -- PASS:0436 If count = 1?
+splice> -- PASS:0436 If count = 1?
 
 
     SELECT FLOATTEST 
@@ -106,7 +106,7 @@ ij> -- PASS:0436 If count = 1?
 FLOATTEST             
 ----------------------
 NULL                  
-ij> -- PASS:0436 If FLOATTEST is NULL (Implementor defined print format)?
+splice> -- PASS:0436 If FLOATTEST is NULL (Implementor defined print format)?
 
 
 --O    SELECT COUNT(*) 
@@ -116,7 +116,7 @@ ij> -- PASS:0436 If FLOATTEST is NULL (Implementor defined print format)?
 FLOATTEST             
 ----------------------
 NULL                  
-ij> -- PASS:0436 If count = 1?
+splice> -- PASS:0436 If count = 1?
 
 
     SELECT NUMTEST  
@@ -124,7 +124,7 @@ ij> -- PASS:0436 If count = 1?
 NUMTE&
 ------
 NULL  
-ij> -- PASS:0436 If NUMTEST is NULL (Implementor defined print format)?
+splice> -- PASS:0436 If NUMTEST is NULL (Implementor defined print format)?
 
 
     SELECT NUMTEST 
@@ -132,12 +132,12 @@ ij> -- PASS:0436 If NUMTEST is NULL (Implementor defined print format)?
 NUMTEST        
 ---------------
 NULL           
-ij> -- PASS:0436 If NUMTEST is NULL (Implementor defined print format)?
+splice> -- PASS:0436 If NUMTEST is NULL (Implementor defined print format)?
 
 
 -- restore
     ROLLBACK WORK;
-ij> -- END TEST >>> 0436 <<< END TEST
+splice> -- END TEST >>> 0436 <<< END TEST
 -- *************************************************************
 
 -- NO_TEST:0437 NULL values for various host variable types!
@@ -158,4 +158,4 @@ ij> -- END TEST >>> 0436 <<< END TEST
 
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 

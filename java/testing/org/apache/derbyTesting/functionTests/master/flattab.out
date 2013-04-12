@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- ***************************************************************
+splice> AUTOCOMMIT OFF;
+splice> -- ***************************************************************
 -- ****** THIS FILE SHOULD BE RUN UNDER AUTHORIZATION ID FLATER **
 -- ***************************************************************
 -- MODULE  FLATTAB  
@@ -11,12 +11,12 @@ ij> -- ***************************************************************
 -- AUTHORIZATION FLATER
    set schema FLATER;
 0 rows inserted/updated/deleted
-ij> --0   SELECT USER FROM HU.ECCO;
+splice> --0   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 FLATER                                                                                                                          
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 
 -- date_time print
 
@@ -27,48 +27,48 @@ ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
    DELETE FROM BASE_VS1;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> INSERT INTO BASE_VS1 VALUES (0,1);
+splice> INSERT INTO BASE_VS1 VALUES (0,1);
 1 row inserted/updated/deleted
-ij> INSERT INTO BASE_VS1 VALUES (1,0);
+splice> INSERT INTO BASE_VS1 VALUES (1,0);
 1 row inserted/updated/deleted
-ij> INSERT INTO BASE_VS1 VALUES (0,0);
+splice> INSERT INTO BASE_VS1 VALUES (0,0);
 1 row inserted/updated/deleted
-ij> INSERT INTO BASE_VS1 VALUES (1,1);
+splice> INSERT INTO BASE_VS1 VALUES (1,1);
 1 row inserted/updated/deleted
-ij> SELECT COUNT(*) FROM BASE_VS1;
+splice> SELECT COUNT(*) FROM BASE_VS1;
 1          
 -----------
 4          
-ij> -- PASS:Setup If count = 4?
+splice> -- PASS:Setup If count = 4?
 
    DELETE FROM USIG;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> INSERT INTO USIG VALUES (0,2);
+splice> INSERT INTO USIG VALUES (0,2);
 1 row inserted/updated/deleted
-ij> INSERT INTO USIG VALUES (1,3);
+splice> INSERT INTO USIG VALUES (1,3);
 1 row inserted/updated/deleted
-ij> DELETE FROM U_SIG;
+splice> DELETE FROM U_SIG;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> INSERT INTO U_SIG VALUES (4,6);
+splice> INSERT INTO U_SIG VALUES (4,6);
 1 row inserted/updated/deleted
-ij> INSERT INTO U_SIG VALUES (5,7);
+splice> INSERT INTO U_SIG VALUES (5,7);
 1 row inserted/updated/deleted
-ij> SELECT COUNT(*) FROM USIG;
+splice> SELECT COUNT(*) FROM USIG;
 1          
 -----------
 2          
-ij> -- PASS:Setup If count = 2?
+splice> -- PASS:Setup If count = 2?
 
    SELECT COUNT(*) FROM U_SIG;
 1          
 -----------
 2          
-ij> -- PASS:Setup If count = 2?
+splice> -- PASS:Setup If count = 2?
 
    COMMIT WORK;
-ij> -- *************************************************////END-OF-MODULE
+splice> -- *************************************************////END-OF-MODULE
 
 ;
-ij> 
+splice> 

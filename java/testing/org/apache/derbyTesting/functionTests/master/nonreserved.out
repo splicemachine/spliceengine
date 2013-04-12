@@ -1,4 +1,4 @@
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -20,483 +20,483 @@ ij> --
 -- INTERVAL
 create table interval(interval int);
 0 rows inserted/updated/deleted
-ij> prepare interval as 'select * from interval';
-ij> execute interval;
+splice> prepare interval as 'select * from interval';
+splice> execute interval;
 INTERVAL   
 -----------
-ij> create index interval on interval(interval);
+splice> create index interval on interval(interval);
 0 rows inserted/updated/deleted
-ij> drop table interval;
+splice> drop table interval;
 0 rows inserted/updated/deleted
-ij> remove interval;
-ij> -- MODULE
+splice> remove interval;
+splice> -- MODULE
 create table module(module int);
 0 rows inserted/updated/deleted
-ij> prepare module as 'select * from module';
-ij> execute module;
+splice> prepare module as 'select * from module';
+splice> execute module;
 MODULE     
 -----------
-ij> create index module on module(module);
+splice> create index module on module(module);
 0 rows inserted/updated/deleted
-ij> drop table module;
+splice> drop table module;
 0 rows inserted/updated/deleted
-ij> remove module;
-ij> -- NAMES
+splice> remove module;
+splice> -- NAMES
 create table names(names int);
 0 rows inserted/updated/deleted
-ij> prepare names as 'select * from names';
-ij> execute names;
+splice> prepare names as 'select * from names';
+splice> execute names;
 NAMES      
 -----------
-ij> create index names on names(names);
+splice> create index names on names(names);
 0 rows inserted/updated/deleted
-ij> drop table names;
+splice> drop table names;
 0 rows inserted/updated/deleted
-ij> remove names;
-ij> -- PRECISION
+splice> remove names;
+splice> -- PRECISION
 create table precision(precision int);
 0 rows inserted/updated/deleted
-ij> prepare precision as 'select * from precision';
-ij> execute precision;
+splice> prepare precision as 'select * from precision';
+splice> execute precision;
 PRECISION  
 -----------
-ij> create index precision on precision(precision);
+splice> create index precision on precision(precision);
 0 rows inserted/updated/deleted
-ij> drop table precision;
+splice> drop table precision;
 0 rows inserted/updated/deleted
-ij> remove precision;
-ij> -- POSITION
+splice> remove precision;
+splice> -- POSITION
 create table position(position int);
 0 rows inserted/updated/deleted
-ij> prepare position as 'select * from position';
-ij> execute position;
+splice> prepare position as 'select * from position';
+splice> execute position;
 POSITION   
 -----------
-ij> create index position on position(position);
+splice> create index position on position(position);
 0 rows inserted/updated/deleted
-ij> drop table position;
+splice> drop table position;
 0 rows inserted/updated/deleted
-ij> remove position;
-ij> -- SECTION
+splice> remove position;
+splice> -- SECTION
 create table section(section int);
 0 rows inserted/updated/deleted
-ij> prepare section as 'select * from section';
-ij> execute section;
+splice> prepare section as 'select * from section';
+splice> execute section;
 SECTION    
 -----------
-ij> create index section on section(section);
+splice> create index section on section(section);
 0 rows inserted/updated/deleted
-ij> drop table section;
+splice> drop table section;
 0 rows inserted/updated/deleted
-ij> remove section;
-ij> -- VALUE
+splice> remove section;
+splice> -- VALUE
 create table value(value int);
 0 rows inserted/updated/deleted
-ij> prepare value as 'select * from value';
-ij> execute value;
+splice> prepare value as 'select * from value';
+splice> execute value;
 VALUE      
 -----------
-ij> create index value on value(value);
+splice> create index value on value(value);
 0 rows inserted/updated/deleted
-ij> drop table value;
+splice> drop table value;
 0 rows inserted/updated/deleted
-ij> remove value;
-ij> -- DATE
+splice> remove value;
+splice> -- DATE
 create table date (date date);
 0 rows inserted/updated/deleted
-ij> insert into date(date) values (date('2001-01-01'));
+splice> insert into date(date) values (date('2001-01-01'));
 1 row inserted/updated/deleted
-ij> select date from date;
+splice> select date from date;
 DATE      
 ----------
 2001-01-01
-ij> select date( '2001-02-02'), date "2001-02-02" from date;
+splice> select date( '2001-02-02'), date "2001-02-02" from date;
 1         |2001-02-02
 ---------------------
 2001-02-02|2001-01-01
-ij> select date date from date;
+splice> select date date from date;
 DATE      
 ----------
 2001-01-01
-ij> select date as date from date;
+splice> select date as date from date;
 DATE      
 ----------
 2001-01-01
-ij> select date.date as date from date date;
+splice> select date.date as date from date date;
 DATE      
 ----------
 2001-01-01
-ij> select date.date as date from date as date;
+splice> select date.date as date from date as date;
 DATE      
 ----------
 2001-01-01
-ij> delete from date where date = date('2001-01-01');
+splice> delete from date where date = date('2001-01-01');
 1 row inserted/updated/deleted
-ij> create index date on date(date);
+splice> create index date on date(date);
 0 rows inserted/updated/deleted
-ij> drop table date;
+splice> drop table date;
 0 rows inserted/updated/deleted
-ij> remove date;
-IJ ERROR: Unable to establish prepared statement DATE@CONNECTION0
-ij> -- TIME
+splice> remove date;
+Splice ERROR: Unable to establish prepared statement DATE@CONNECTION0
+splice> -- TIME
 create table time (time time);
 0 rows inserted/updated/deleted
-ij> insert into time(time) values (time('01:01:01'));
+splice> insert into time(time) values (time('01:01:01'));
 1 row inserted/updated/deleted
-ij> select time from time;
+splice> select time from time;
 TIME    
 --------
 01:01:01
-ij> select time( '02:02:02'), time "02:02:02" from time;
+splice> select time( '02:02:02'), time "02:02:02" from time;
 1       |02:02:02
 -----------------
 02:02:02|01:01:01
-ij> select time time from time;
+splice> select time time from time;
 TIME    
 --------
 01:01:01
-ij> select time as time from time;
+splice> select time as time from time;
 TIME    
 --------
 01:01:01
-ij> select time.time as time from time time;
+splice> select time.time as time from time time;
 TIME    
 --------
 01:01:01
-ij> select time.time as time from time as time;
+splice> select time.time as time from time as time;
 TIME    
 --------
 01:01:01
-ij> delete from time where time = time('01:01:01');
+splice> delete from time where time = time('01:01:01');
 1 row inserted/updated/deleted
-ij> create index time on time(time);
+splice> create index time on time(time);
 0 rows inserted/updated/deleted
-ij> drop table time;
+splice> drop table time;
 0 rows inserted/updated/deleted
-ij> remove time;
-IJ ERROR: Unable to establish prepared statement TIME@CONNECTION0
-ij> -- TIMESTAMP
+splice> remove time;
+Splice ERROR: Unable to establish prepared statement TIME@CONNECTION0
+splice> -- TIMESTAMP
 create table timestamp (timestamp timestamp);
 0 rows inserted/updated/deleted
-ij> insert into timestamp(timestamp) values (timestamp('2002-05-22 16:17:34.144'));
+splice> insert into timestamp(timestamp) values (timestamp('2002-05-22 16:17:34.144'));
 1 row inserted/updated/deleted
-ij> select timestamp from timestamp;
+splice> select timestamp from timestamp;
 TIMESTAMP                    
 -----------------------------
 2002-05-22 16:17:34.144      
-ij> select timestamp( '2003-05-22 16:17:34.144'), timestamp "2003-05-22 16:17:34.144" from timestamp;
+splice> select timestamp( '2003-05-22 16:17:34.144'), timestamp "2003-05-22 16:17:34.144" from timestamp;
 1                            |2003-05-22 16:17:34.144      
 -----------------------------------------------------------
 2003-05-22 16:17:34.144      |2002-05-22 16:17:34.144      
-ij> select timestamp timestamp from timestamp;
+splice> select timestamp timestamp from timestamp;
 TIMESTAMP                    
 -----------------------------
 2002-05-22 16:17:34.144      
-ij> select timestamp as timestamp from timestamp;
+splice> select timestamp as timestamp from timestamp;
 TIMESTAMP                    
 -----------------------------
 2002-05-22 16:17:34.144      
-ij> select timestamp.timestamp as timestamp from timestamp timestamp;
+splice> select timestamp.timestamp as timestamp from timestamp timestamp;
 TIMESTAMP                    
 -----------------------------
 2002-05-22 16:17:34.144      
-ij> select timestamp.timestamp as timestamp from timestamp as timestamp;
+splice> select timestamp.timestamp as timestamp from timestamp as timestamp;
 TIMESTAMP                    
 -----------------------------
 2002-05-22 16:17:34.144      
-ij> delete from timestamp where timestamp = timestamp('2002-05-22 16:17:34.144');
+splice> delete from timestamp where timestamp = timestamp('2002-05-22 16:17:34.144');
 1 row inserted/updated/deleted
-ij> create index timestamp on timestamp(timestamp);
+splice> create index timestamp on timestamp(timestamp);
 0 rows inserted/updated/deleted
-ij> drop table timestamp;
+splice> drop table timestamp;
 0 rows inserted/updated/deleted
-ij> remove timestamp;
-IJ ERROR: Unable to establish prepared statement TIMESTAMP@CONNECTION0
-ij> -- 
+splice> remove timestamp;
+Splice ERROR: Unable to establish prepared statement TIMESTAMP@CONNECTION0
+splice> -- 
 create table DOMAIN (domain int);
 0 rows inserted/updated/deleted
-ij> insert into domain values (1);
+splice> insert into domain values (1);
 1 row inserted/updated/deleted
-ij> select domain from domain where domain > 0;
+splice> select domain from domain where domain > 0;
 DOMAIN     
 -----------
 1          
-ij> select domain from domain domain where domain > 0;
+splice> select domain from domain domain where domain > 0;
 DOMAIN     
 -----------
 1          
-ij> select domain.domain from domain domain where domain.domain > 0;
+splice> select domain.domain from domain domain where domain.domain > 0;
 DOMAIN     
 -----------
 1          
-ij> prepare domain as 'select * from domain';
-ij> execute domain;
+splice> prepare domain as 'select * from domain';
+splice> execute domain;
 DOMAIN     
 -----------
 1          
-ij> create index domain on domain(domain);
+splice> create index domain on domain(domain);
 0 rows inserted/updated/deleted
-ij> drop table DOMAIN;
+splice> drop table DOMAIN;
 0 rows inserted/updated/deleted
-ij> remove domain;
-ij> create table CATALOG (catalog int);
+splice> remove domain;
+splice> create table CATALOG (catalog int);
 0 rows inserted/updated/deleted
-ij> insert into catalog values (1);
+splice> insert into catalog values (1);
 1 row inserted/updated/deleted
-ij> select catalog from catalog where catalog > 0;
+splice> select catalog from catalog where catalog > 0;
 CATALOG    
 -----------
 1          
-ij> select catalog from catalog catalog where catalog > 0;
+splice> select catalog from catalog catalog where catalog > 0;
 CATALOG    
 -----------
 1          
-ij> prepare catalog as 'select * from catalog';
-ij> execute catalog;
+splice> prepare catalog as 'select * from catalog';
+splice> execute catalog;
 CATALOG    
 -----------
 1          
-ij> create index catalog on catalog(catalog);
+splice> create index catalog on catalog(catalog);
 0 rows inserted/updated/deleted
-ij> drop table CATALOG;
+splice> drop table CATALOG;
 0 rows inserted/updated/deleted
-ij> remove catalog;
-ij> create table TIME (time int);
+splice> remove catalog;
+splice> create table TIME (time int);
 0 rows inserted/updated/deleted
-ij> insert into time values (1);
+splice> insert into time values (1);
 1 row inserted/updated/deleted
-ij> select time from time where time > 0;
+splice> select time from time where time > 0;
 TIME       
 -----------
 1          
-ij> select time from time time where time > 0;
+splice> select time from time time where time > 0;
 TIME       
 -----------
 1          
-ij> prepare time as 'select * from time';
-ij> execute time;
+splice> prepare time as 'select * from time';
+splice> execute time;
 TIME       
 -----------
 1          
-ij> create index time on time(time);
+splice> create index time on time(time);
 0 rows inserted/updated/deleted
-ij> drop table TIME;
+splice> drop table TIME;
 0 rows inserted/updated/deleted
-ij> remove time;
-ij> create table ACTION (action int);
+splice> remove time;
+splice> create table ACTION (action int);
 0 rows inserted/updated/deleted
-ij> insert into action values (1);
+splice> insert into action values (1);
 1 row inserted/updated/deleted
-ij> select action from action where action > 0;
+splice> select action from action where action > 0;
 ACTION     
 -----------
 1          
-ij> select action from action action where action > 0;
+splice> select action from action action where action > 0;
 ACTION     
 -----------
 1          
-ij> prepare action as 'select * from action';
-ij> create index action on action(action);
+splice> prepare action as 'select * from action';
+splice> create index action on action(action);
 0 rows inserted/updated/deleted
-ij> drop table ACTION;
+splice> drop table ACTION;
 0 rows inserted/updated/deleted
-ij> create table DAY (day int);
+splice> create table DAY (day int);
 0 rows inserted/updated/deleted
-ij> insert into day values (1);
+splice> insert into day values (1);
 1 row inserted/updated/deleted
-ij> select day from day where day > 0;
+splice> select day from day where day > 0;
 DAY        
 -----------
 1          
-ij> select day from day day where day > 0;
+splice> select day from day day where day > 0;
 DAY        
 -----------
 1          
-ij> prepare day as 'select * from day';
-ij> create index day on day(day);
+splice> prepare day as 'select * from day';
+splice> create index day on day(day);
 0 rows inserted/updated/deleted
-ij> drop table DAY;
+splice> drop table DAY;
 0 rows inserted/updated/deleted
-ij> create table MONTH (month int);
+splice> create table MONTH (month int);
 0 rows inserted/updated/deleted
-ij> insert into month values (1);
+splice> insert into month values (1);
 1 row inserted/updated/deleted
-ij> select month from month where month > 0;
+splice> select month from month where month > 0;
 MONTH      
 -----------
 1          
-ij> select month from month month where month > 0;
+splice> select month from month month where month > 0;
 MONTH      
 -----------
 1          
-ij> select month.month from month month where month.month > 0;
+splice> select month.month from month month where month.month > 0;
 MONTH      
 -----------
 1          
-ij> prepare month as 'select * from month';
-ij> execute month;
+splice> prepare month as 'select * from month';
+splice> execute month;
 MONTH      
 -----------
 1          
-ij> create index month on month(month);
+splice> create index month on month(month);
 0 rows inserted/updated/deleted
-ij> drop table MONTH;
+splice> drop table MONTH;
 0 rows inserted/updated/deleted
-ij> remove month;
-ij> create table USAGE (usage int);
+splice> remove month;
+splice> create table USAGE (usage int);
 0 rows inserted/updated/deleted
-ij> insert into usage values (1);
+splice> insert into usage values (1);
 1 row inserted/updated/deleted
-ij> select usage from usage where usage > 0;
+splice> select usage from usage where usage > 0;
 USAGE      
 -----------
 1          
-ij> select usage from usage usage where usage > 0;
+splice> select usage from usage usage where usage > 0;
 USAGE      
 -----------
 1          
-ij> select usage.usage from usage usage where usage.usage > 0;
+splice> select usage.usage from usage usage where usage.usage > 0;
 USAGE      
 -----------
 1          
-ij> prepare usage as 'select * from usage';
-ij> create index usage on usage(usage);
+splice> prepare usage as 'select * from usage';
+splice> create index usage on usage(usage);
 0 rows inserted/updated/deleted
-ij> drop table USAGE;
+splice> drop table USAGE;
 0 rows inserted/updated/deleted
-ij> remove usage;
-ij> create table LANGUAGE (language int);
+splice> remove usage;
+splice> create table LANGUAGE (language int);
 0 rows inserted/updated/deleted
-ij> insert into language values (1);
+splice> insert into language values (1);
 1 row inserted/updated/deleted
-ij> select language from language where language > 0;
+splice> select language from language where language > 0;
 LANGUAGE   
 -----------
 1          
-ij> select language from language language where language > 0;
+splice> select language from language language where language > 0;
 LANGUAGE   
 -----------
 1          
-ij> select language.language from language language where language.language > 0;
+splice> select language.language from language language where language.language > 0;
 LANGUAGE   
 -----------
 1          
-ij> prepare language as 'select * from language';
-ij> create index language on language(language);
+splice> prepare language as 'select * from language';
+splice> create index language on language(language);
 0 rows inserted/updated/deleted
-ij> drop table LANGUAGE;
+splice> drop table LANGUAGE;
 0 rows inserted/updated/deleted
-ij> remove language;
-ij> -- making LOCKS keyword nonreserved as fix for Derby-38
+splice> remove language;
+splice> -- making LOCKS keyword nonreserved as fix for Derby-38
 create table LOCKS (c11 int);
 0 rows inserted/updated/deleted
-ij> drop table LOCKS;
+splice> drop table LOCKS;
 0 rows inserted/updated/deleted
-ij> create table t1 (LOCKS int);
+splice> create table t1 (LOCKS int);
 0 rows inserted/updated/deleted
-ij> drop table t1;
+splice> drop table t1;
 0 rows inserted/updated/deleted
-ij> create table LOCKS (locks int);
+splice> create table LOCKS (locks int);
 0 rows inserted/updated/deleted
-ij> insert into locks values (1);
+splice> insert into locks values (1);
 1 row inserted/updated/deleted
-ij> select locks from locks where locks > 0;
+splice> select locks from locks where locks > 0;
 LOCKS      
 -----------
 1          
-ij> select locks from locks locks where locks > 0;
+splice> select locks from locks locks where locks > 0;
 LOCKS      
 -----------
 1          
-ij> select locks.locks from locks locks where locks.locks > 0;
+splice> select locks.locks from locks locks where locks.locks > 0;
 LOCKS      
 -----------
 1          
-ij> prepare locks as 'select * from locks';
-ij> create index locks on locks(locks);
+splice> prepare locks as 'select * from locks';
+splice> create index locks on locks(locks);
 0 rows inserted/updated/deleted
-ij> drop table LOCKS;
+splice> drop table LOCKS;
 0 rows inserted/updated/deleted
-ij> remove locks;
-ij> -- making COUNT keyword nonreserved as fix for Derby-
+splice> remove locks;
+splice> -- making COUNT keyword nonreserved as fix for Derby-
 create table count(i int);
 0 rows inserted/updated/deleted
-ij> drop table count;
+splice> drop table count;
 0 rows inserted/updated/deleted
-ij> create table t1 (count int);
+splice> create table t1 (count int);
 0 rows inserted/updated/deleted
-ij> drop table t1;
+splice> drop table t1;
 0 rows inserted/updated/deleted
-ij> create table count(count int);
+splice> create table count(count int);
 0 rows inserted/updated/deleted
-ij> insert into count values (1);
+splice> insert into count values (1);
 1 row inserted/updated/deleted
-ij> select * from count;
+splice> select * from count;
 COUNT      
 -----------
 1          
-ij> select count from count;
+splice> select count from count;
 COUNT      
 -----------
 1          
-ij> select count from count where count=1;
+splice> select count from count where count=1;
 COUNT      
 -----------
 1          
-ij> select count.count from count;
+splice> select count.count from count;
 COUNT      
 -----------
 1          
-ij> prepare count as 'select * from count';
-ij> create index count on count(count);
+splice> prepare count as 'select * from count';
+splice> create index count on count(count);
 0 rows inserted/updated/deleted
-ij> drop table count;
+splice> drop table count;
 0 rows inserted/updated/deleted
-ij> remove count;
-ij> create table t1(i int);
+splice> remove count;
+splice> create table t1(i int);
 0 rows inserted/updated/deleted
-ij> insert into t1 values -1,2,-3,4,-5,6,-7,8,-9,0;
+splice> insert into t1 values -1,2,-3,4,-5,6,-7,8,-9,0;
 10 rows inserted/updated/deleted
-ij> create function count(i int) returns int no sql
+splice> create function count(i int) returns int no sql
 external name 'java.lang.Math.abs' language java parameter style java;
 0 rows inserted/updated/deleted
-ij> select count(*) from t1;
+splice> select count(*) from t1;
 1          
 -----------
 10         
-ij> select count(i) from t1;
+splice> select count(i) from t1;
 1          
 -----------
 10         
-ij> select * from t1 where count(i)=i;
+splice> select * from t1 where count(i)=i;
 ERROR 42903: Invalid use of an aggregate function.
-ij> drop table t1;
+splice> drop table t1;
 0 rows inserted/updated/deleted
-ij> -- making SECURITY keyword nonreserved as fix for Derby-4268
+splice> -- making SECURITY keyword nonreserved as fix for Derby-4268
 create table SECURITY (security int);
 0 rows inserted/updated/deleted
-ij> insert into security values (1);
+splice> insert into security values (1);
 1 row inserted/updated/deleted
-ij> select security from security where security > 0;
+splice> select security from security where security > 0;
 SECURITY   
 -----------
 1          
-ij> select security from security security where security > 0;
+splice> select security from security security where security > 0;
 SECURITY   
 -----------
 1          
-ij> select security.security from security where security.security > 0;
+splice> select security.security from security where security.security > 0;
 SECURITY   
 -----------
 1          
-ij> prepare security as 'select * from security';
-ij> execute security;
+splice> prepare security as 'select * from security';
+splice> execute security;
 SECURITY   
 -----------
 1          
-ij> create index security on security(security);
+splice> create index security on security(security);
 0 rows inserted/updated/deleted
-ij> drop table SECURITY;
+splice> drop table SECURITY;
 0 rows inserted/updated/deleted
-ij> remove security;
-ij> 
+splice> remove security;
+splice> 

@@ -1,4 +1,4 @@
-ij> -- SQL Test Suite, V6.0, Schema Definition, schema8.smi
+splice> -- SQL Test Suite, V6.0, Schema Definition, schema8.smi
 -- 59-byte ID
 -- TEd Version #
 -- date_time print
@@ -18,11 +18,11 @@ ij> -- SQL Test Suite, V6.0, Schema Definition, schema8.smi
 --O      AUTHORIZATION SUN;
       SUN;
 0 rows inserted/updated/deleted
-ij> set schema SUN;
+splice> set schema SUN;
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SUN.ECCO (C1 CHAR(2));
+splice> CREATE TABLE SUN.ECCO (C1 CHAR(2));
 0 rows inserted/updated/deleted
-ij> --O  CREATE TABLE ECCO (C1 CHAR(2));
+splice> --O  CREATE TABLE ECCO (C1 CHAR(2));
 
   CREATE TABLE STAFF
    (EMPNUM   CHAR(3) NOT NULL,
@@ -30,26 +30,26 @@ ij> --O  CREATE TABLE ECCO (C1 CHAR(2));
     GRADE    DECIMAL(4),
     CITY     CHAR(15));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE PROJ
+splice> CREATE TABLE PROJ
    (PNUM     CHAR(3) NOT NULL,
     PNAME    CHAR(20),
     PTYPE    CHAR(6),
     BUDGET   DECIMAL(9),
     CITY     CHAR(15));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE WORKS
+splice> CREATE TABLE WORKS
    (EMPNUM   CHAR(3) NOT NULL,
     PNUM     CHAR(3) NOT NULL,
     HOURS    DECIMAL(5));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF3
+splice> CREATE TABLE STAFF3
    (EMPNUM   CHAR(3) NOT NULL,
     EMPNAME  CHAR(20),
     GRADE    DECIMAL(4),
     CITY     CHAR(15),
     UNIQUE (EMPNUM));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE PROJ3
+splice> CREATE TABLE PROJ3
    (PNUM     CHAR(3) NOT NULL,
     PNAME    CHAR(20),
     PTYPE    CHAR(6),
@@ -57,21 +57,21 @@ ij> CREATE TABLE PROJ3
     CITY     CHAR(15),
     CONSTRAINT PROJ3_UNIQUE UNIQUE (PNUM));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE WORKS3
+splice> CREATE TABLE WORKS3
    (EMPNUM   CHAR(3) NOT NULL,
     PNUM     CHAR(3) NOT NULL,
     HOURS    DECIMAL(5),
     FOREIGN KEY (EMPNUM) REFERENCES STAFF3(EMPNUM),
     FOREIGN KEY (PNUM) REFERENCES PROJ3(PNUM));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF4 (EMPNUM    CHAR(3) NOT NULL,
+splice> CREATE TABLE STAFF4 (EMPNUM    CHAR(3) NOT NULL,
                 EMPNAME  CHAR(20) DEFAULT NULL,
 --O                GRADE DECIMAL(4) DEFAULT 0,
 --O                CITY   CHAR(15) DEFAULT '               ');
                 GRADE DECIMAL(4) ,
                 CITY   CHAR(15) );
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF14 (EMPNUM    CHAR(3) NOT NULL,
+splice> CREATE TABLE STAFF14 (EMPNUM    CHAR(3) NOT NULL,
 --O                EMPNAME  CHAR(20) DEFAULT USER,
                 EMPNAME  CHAR(20) ,
         -- EMPNAME CHAR precision may be changed to implementation-defined
@@ -79,48 +79,48 @@ ij> CREATE TABLE STAFF14 (EMPNUM    CHAR(3) NOT NULL,
                 GRADE DECIMAL(4),
                 CITY   CHAR(15));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF5 (EMPNUM    CHAR(3) NOT NULL,
+splice> CREATE TABLE STAFF5 (EMPNUM    CHAR(3) NOT NULL,
                 EMPNAME  CHAR(20),
                 GRADE DECIMAL(4),
                 CITY   CHAR(15),
                 PRIMARY KEY (EMPNUM),
                 CONSTRAINT STAFF5_GRADE CHECK (GRADE > 0 AND GRADE < 20));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF6 (EMPNUM    CHAR(3) NOT NULL,
+splice> CREATE TABLE STAFF6 (EMPNUM    CHAR(3) NOT NULL,
                 EMPNAME  CHAR(20),
                 GRADE DECIMAL(4)
                 CONSTRAINT STAFF6_GRADE CHECK (GRADE > 0 AND GRADE < 20),
                 CITY   CHAR(15));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF7 (EMPNUM    CHAR(3) NOT NULL,
+splice> CREATE TABLE STAFF7 (EMPNUM    CHAR(3) NOT NULL,
                 EMPNAME  CHAR(20),
                 GRADE DECIMAL(4),
                 CITY   CHAR(15),
                 CONSTRAINT STAFF7_PK  PRIMARY KEY (EMPNUM),
                 CONSTRAINT STAFF7_GRADE CHECK (GRADE BETWEEN 1 AND 20));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF8 (EMPNUM    CHAR(3) NOT NULL,
+splice> CREATE TABLE STAFF8 (EMPNUM    CHAR(3) NOT NULL,
                 EMPNAME  CHAR(20),
                 GRADE DECIMAL(4),
                 CITY   CHAR(15),
                 PRIMARY KEY (EMPNUM),
                 CONSTRAINT STAFF8_EMPNAME CHECK (EMPNAME IS NOT NULL));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF9 (EMPNUM    CHAR(3) NOT NULL
+splice> CREATE TABLE STAFF9 (EMPNUM    CHAR(3) NOT NULL
                 CONSTRAINT STAFF9_PK PRIMARY KEY,
                 EMPNAME  CHAR(20),
                 GRADE DECIMAL(4),
                 CITY   CHAR(15),
                 CONSTRAINT STAFF9_EMPNAME CHECK (EMPNAME NOT LIKE 'T%'));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF10 (EMPNUM    CHAR(3) NOT NULL,
+splice> CREATE TABLE STAFF10 (EMPNUM    CHAR(3) NOT NULL,
                 EMPNAME  CHAR(20),
                 GRADE DECIMAL(4),
                 CITY   CHAR(15),
                 PRIMARY KEY (EMPNUM),
                 CONSTRAINT STAFF10_GRADE CHECK (GRADE NOT IN (5,22)));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF11 (EMPNUM    CHAR(3) NOT NULL PRIMARY KEY,
+splice> CREATE TABLE STAFF11 (EMPNUM    CHAR(3) NOT NULL PRIMARY KEY,
                 EMPNAME  CHAR(20),
                 GRADE DECIMAL(4),
                 CITY   CHAR(15),
@@ -128,7 +128,7 @@ ij> CREATE TABLE STAFF11 (EMPNUM    CHAR(3) NOT NULL PRIMARY KEY,
                 CHECK (GRADE NOT IN (5,22) 
                             AND EMPNAME NOT LIKE 'T%'));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF12 (EMPNUM    CHAR(3) NOT NULL,
+splice> CREATE TABLE STAFF12 (EMPNUM    CHAR(3) NOT NULL,
                 EMPNAME  CHAR(20),
                 GRADE DECIMAL(4),
                 CITY   CHAR(15),
@@ -137,24 +137,24 @@ ij> CREATE TABLE STAFF12 (EMPNUM    CHAR(3) NOT NULL,
                 CHECK (NOT GRADE IN (5,22) 
                             AND NOT EMPNAME LIKE 'T%'));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF13 (EMPNUM    CHAR(3) NOT NULL,
+splice> CREATE TABLE STAFF13 (EMPNUM    CHAR(3) NOT NULL,
                 EMPNAME  CHAR(20),
                 GRADE DECIMAL(4),
                 CITY   CHAR(15),
                 PRIMARY KEY (EMPNUM),
                 CONSTRAINT STAFF13_EMPNAME CHECK (NOT EMPNAME IS NULL));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF15 (EMPNUM    CHAR(3),
+splice> CREATE TABLE STAFF15 (EMPNUM    CHAR(3),
                 EMPNAME  CHAR(20) NOT NULL,
                 GRADE DECIMAL(4),
                 CITY   CHAR(15));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF16 (EMPNUM    CHAR(3) NOT NULL,
+splice> CREATE TABLE STAFF16 (EMPNUM    CHAR(3) NOT NULL,
                 EMPNAME  CHAR(20) DEFAULT NULL,
                 GRADE DECIMAL(4) NOT NULL CHECK (GRADE IN (100,150,200)),
                 CITY   CHAR(15), PRIMARY KEY (GRADE,EMPNUM));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ1_P
+splice> CREATE TABLE SIZ1_P
            (S1   CHAR(3) NOT NULL,
             S2   CHAR(3) NOT NULL,
             S3   DECIMAL(4) NOT NULL,
@@ -166,7 +166,7 @@ ij> CREATE TABLE SIZ1_P
             R3   DECIMAL(4),
             UNIQUE   (S1,S2,S3,S4,S5,S6));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ1_F
+splice> CREATE TABLE SIZ1_F
            (F1   CHAR(3) NOT NULL,
             F2   CHAR(3),
             F3   DECIMAL(4),
@@ -179,7 +179,7 @@ ij> CREATE TABLE SIZ1_F
            FOREIGN KEY   (F1,F2,F3,F4,F5,F6)
            REFERENCES SIZ1_P(S1,S2,S3,S4,S5,S6));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ2_P
+splice> CREATE TABLE SIZ2_P
            (P1   CHAR(3) NOT NULL,
             P2   CHAR(3) NOT NULL,
             P3   DECIMAL(4) NOT NULL,
@@ -202,117 +202,117 @@ ij> CREATE TABLE SIZ2_P
             UNIQUE (P9),
             UNIQUE (P10));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ2_F1
+splice> CREATE TABLE SIZ2_F1
            (F1   CHAR(3) NOT NULL,
             F2   CHAR(8),
             FOREIGN KEY (F1) 
             REFERENCES SIZ2_P(P1));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ2_F2
+splice> CREATE TABLE SIZ2_F2
            (F1   CHAR(3) NOT NULL,
             F2   CHAR(8),
             FOREIGN KEY (F1) 
             REFERENCES SIZ2_P(P2));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ2_F3
+splice> CREATE TABLE SIZ2_F3
            (F1   DECIMAL(4) NOT NULL,
             F2   CHAR(8),
             FOREIGN KEY (F1) 
             REFERENCES SIZ2_P(P3));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ2_F4
+splice> CREATE TABLE SIZ2_F4
            (F1   CHAR(3) NOT NULL,
             F2   CHAR(8),
             FOREIGN KEY (F1) 
             REFERENCES SIZ2_P(P4));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ2_F5
+splice> CREATE TABLE SIZ2_F5
            (F1   DECIMAL(4) NOT NULL,
             F2   CHAR(8),
             FOREIGN KEY (F1) 
             REFERENCES SIZ2_P(P5));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ2_F6
+splice> CREATE TABLE SIZ2_F6
            (F1   CHAR(3) NOT NULL,
             F2   CHAR(8),
             FOREIGN KEY (F1) 
             REFERENCES SIZ2_P(P6));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ2_F7
+splice> CREATE TABLE SIZ2_F7
            (F1   CHAR(3) NOT NULL,
             F2   CHAR(8),
             FOREIGN KEY (F1) 
             REFERENCES SIZ2_P(P7));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ2_F8
+splice> CREATE TABLE SIZ2_F8
            (F1   DECIMAL(4) NOT NULL,
             F2   CHAR(8),
             FOREIGN KEY (F1) 
             REFERENCES SIZ2_P(P8));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ2_F9
+splice> CREATE TABLE SIZ2_F9
            (F1   DECIMAL(4) NOT NULL,
             F2   CHAR(8),
             FOREIGN KEY (F1) 
             REFERENCES SIZ2_P(P9));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ2_F10
+splice> CREATE TABLE SIZ2_F10
            (F1   DECIMAL(4) NOT NULL,
             F2   CHAR(8),
             FOREIGN KEY (F1) 
             REFERENCES SIZ2_P(P10));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ3_P1
+splice> CREATE TABLE SIZ3_P1
            (F1   CHAR(3) NOT NULL,
             F2   CHAR(8),
             UNIQUE (F1));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ3_P2
+splice> CREATE TABLE SIZ3_P2
            (F1   CHAR(3) NOT NULL,
             F2   CHAR(8),
             UNIQUE (F1));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ3_P3
+splice> CREATE TABLE SIZ3_P3
            (F1   DECIMAL(4) NOT NULL,
             F2   CHAR(8),
            UNIQUE (F1));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ3_P4
+splice> CREATE TABLE SIZ3_P4
            (F1   CHAR(3) NOT NULL,
             F2   CHAR(8),
             UNIQUE (F1));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ3_P5
+splice> CREATE TABLE SIZ3_P5
            (F1   DECIMAL(4) NOT NULL,
             F2   CHAR(8),
             UNIQUE (F1));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ3_P6
+splice> CREATE TABLE SIZ3_P6
            (F1   CHAR(3) NOT NULL,
             F2   CHAR(8),
             UNIQUE (F1));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ3_P7
+splice> CREATE TABLE SIZ3_P7
            (F1   CHAR(3) NOT NULL,
             F2   CHAR(8),
             UNIQUE (F1));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ3_P8
+splice> CREATE TABLE SIZ3_P8
            (F1   DECIMAL(4) NOT NULL,
             F2   CHAR(8),
             UNIQUE (F1));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ3_P9
+splice> CREATE TABLE SIZ3_P9
            (F1   DECIMAL(4) NOT NULL,
             F2   CHAR(8),
             UNIQUE (F1));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ3_P10
+splice> CREATE TABLE SIZ3_P10
            (F1   DECIMAL(4) NOT NULL,
             F2   CHAR(8),
             UNIQUE (F1));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE SIZ3_F
+splice> CREATE TABLE SIZ3_F
            (P1   CHAR(3) NOT NULL,
             P2   CHAR(3),
             P3   DECIMAL(4),
@@ -345,14 +345,14 @@ ij> CREATE TABLE SIZ3_F
             FOREIGN KEY (P10)
             REFERENCES SIZ3_P10(F1));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE DEPT
+splice> CREATE TABLE DEPT
                 (DNO DECIMAL(4) NOT NULL,
                  DNAME CHAR(20) NOT NULL,
                  DEAN CHAR(30),
                  PRIMARY KEY (DNO),
                  UNIQUE (DNAME));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE EMP
+splice> CREATE TABLE EMP
                 (ENO DECIMAL(4) NOT NULL,
                  ENAME CHAR(20) NOT NULL,
                  EDESC CHAR(30),
@@ -366,7 +366,7 @@ ij> CREATE TABLE EMP
                  FOREIGN KEY (DNAME) REFERENCES
                  DEPT(DNAME));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE EXPERIENCE
+splice> CREATE TABLE EXPERIENCE
                 (EXP_NAME CHAR(20),
                  BTH_DATE DECIMAL(6),
                  WK_DATE  DECIMAL(6),
@@ -374,7 +374,7 @@ ij> CREATE TABLE EXPERIENCE
                  FOREIGN KEY (EXP_NAME,BTH_DATE) REFERENCES
                  EMP(ENAME,BTH_DATE));
 0 rows inserted/updated/deleted
-ij> -- The following tables, STAFF_M and PROJ_M reference each other.
+splice> -- The following tables, STAFF_M and PROJ_M reference each other.
      -- Table STAFF_M has a "forward reference" to PROJ_M.
                               
      CREATE TABLE STAFF_M
@@ -385,7 +385,7 @@ ij> -- The following tables, STAFF_M and PROJ_M reference each other.
          PRI_WK   CHAR(3),
          UNIQUE   (EMPNUM));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE PROJ_M
+splice> CREATE TABLE PROJ_M
            (PNUM     CHAR(3) NOT NULL,
             PNAME    CHAR(20),
             PTYPE    CHAR(6),
@@ -396,10 +396,10 @@ ij> CREATE TABLE PROJ_M
             FOREIGN KEY (MGR)
             REFERENCES STAFF_M(EMPNUM));
 0 rows inserted/updated/deleted
-ij> ALTER TABLE STAFF_M ADD FOREIGN KEY (PRI_WK)
+splice> ALTER TABLE STAFF_M ADD FOREIGN KEY (PRI_WK)
           REFERENCES PROJ_M (PNUM);
 0 rows inserted/updated/deleted
-ij> --   The following table is self-referencing.
+splice> --   The following table is self-referencing.
 
         CREATE TABLE STAFF_C
            (EMPNUM   CHAR(3) NOT NULL,
@@ -411,14 +411,14 @@ ij> --   The following table is self-referencing.
             FOREIGN KEY (MGR)
             REFERENCES STAFF_C(EMPNUM));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE STAFF_P
+splice> CREATE TABLE STAFF_P
         (EMPNUM   CHAR(3) NOT NULL,
          EMPNAME  CHAR(20),
          GRADE    DECIMAL(4),
          CITY     CHAR(15),
          UNIQUE  (EMPNUM));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE PROJ_P
+splice> CREATE TABLE PROJ_P
         (PNUM     CHAR(3) NOT NULL,
          PNAME    CHAR(20),
          PTYPE    CHAR(6),
@@ -426,13 +426,13 @@ ij> CREATE TABLE PROJ_P
          CITY     CHAR(15),
          UNIQUE   (PNUM));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE MID1 (P_KEY DECIMAL(4) NOT NULL UNIQUE,
+splice> CREATE TABLE MID1 (P_KEY DECIMAL(4) NOT NULL UNIQUE,
                          F_KEY DECIMAL(4) REFERENCES MID1(P_KEY));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE ACR_SCH_P(P1 DECIMAL(4) NOT NULL UNIQUE,
+splice> CREATE TABLE ACR_SCH_P(P1 DECIMAL(4) NOT NULL UNIQUE,
                                P2 CHAR(4));
 0 rows inserted/updated/deleted
-ij> --O   CREATE TABLE CHAR_DEFAULT
+splice> --O   CREATE TABLE CHAR_DEFAULT
 --O               (SEX_CODE  CHAR(1)  DEFAULT 'F',
 --O                NICKNAME  CHAR(20) DEFAULT 'No nickname given',
 --O                INSURANCE1 CHAR(5)  DEFAULT 'basic');
@@ -450,7 +450,7 @@ ij> --O   CREATE TABLE CHAR_DEFAULT
 
 --O   CREATE TABLE SIZE_TAB
 --O               (COL1 CHAR(75)  DEFAULT 
---O'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz0123456789012',
+--O'ABCDEFGHSpliceKLMNOPQRSTUVWXYZ0123456789abcdefghspliceklmnopqrstuvwxyz0123456789012',
 --O                COL2 INTEGER   DEFAULT -999888777,
 --O                COL3 DEC(15,6) DEFAULT 987654321.123456,
 --O                COL4 REAL      DEFAULT -1.048576E22);   
@@ -461,17 +461,17 @@ ij> --O   CREATE TABLE CHAR_DEFAULT
           C_NAME CHAR(7) NOT NULL UNIQUE,
           PRIMARY KEY (C_NUM));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE CURRENCY_TABLE
+splice> CREATE TABLE CURRENCY_TABLE
          (CURRENCY CHAR(10) NOT NULL,
           DOLLAR_EQUIV NUMERIC(5, 2),
           PRIMARY KEY (CURRENCY));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE MEASURE_TABLE
+splice> CREATE TABLE MEASURE_TABLE
          (MEASURE CHAR(8) NOT NULL,
           POUND_EQUIV NUMERIC(8,2),
           PRIMARY KEY (MEASURE));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE C_TRANSACTION 
+splice> CREATE TABLE C_TRANSACTION 
          (COMMOD_NO INTEGER,
           TOT_PRICE     DECIMAL(12,2),
           CURRENCY  CHAR(10),
@@ -485,29 +485,29 @@ ij> CREATE TABLE C_TRANSACTION
           FOREIGN KEY (MEASURE)
            REFERENCES MEASURE_TABLE);
 0 rows inserted/updated/deleted
-ij> CREATE TABLE T6118REF (
+splice> CREATE TABLE T6118REF (
        COL1 CHAR(20) NOT NULL, COL2 CHAR(20) NOT NULL,
        COL3 CHAR(20) NOT NULL, COL4 CHAR(20) NOT NULL,
        COL5 CHAR(23) NOT NULL, COL6 NUMERIC (4) NOT NULL,
        STR118 CHAR(118) NOT NULL UNIQUE,
        UNIQUE (COL1, COL2, COL4, COL3, COL5, COL6));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE T118(STR118 CHAR(118) NOT NULL UNIQUE,
+splice> CREATE TABLE T118(STR118 CHAR(118) NOT NULL UNIQUE,
     FOREIGN KEY (STR118) REFERENCES T6118REF (STR118));
 0 rows inserted/updated/deleted
-ij> CREATE TABLE T6 (COL1 CHAR(20), COL2 CHAR(20),
+splice> CREATE TABLE T6 (COL1 CHAR(20), COL2 CHAR(20),
                  COL3 CHAR(20), COL4 CHAR(20),
                  COL5 CHAR(23), COL6 NUMERIC (4),
     FOREIGN KEY (COL1, COL2, COL4, COL3, COL5, COL6)
       REFERENCES T6118REF (COL1, COL2, COL4, COL3, COL5, COL6));
 0 rows inserted/updated/deleted
-ij> -- ********************** create view statements *****************
+splice> -- ********************** create view statements *****************
 
   CREATE VIEW TESTREPORT AS
     SELECT TESTNO, RESULT, TESTTYPE
     FROM HU.TESTREPORT;
 0 rows inserted/updated/deleted
-ij> --O    FROM TESTREPORT;
+splice> --O    FROM TESTREPORT;
 
 --O   CREATE VIEW DOLLARS_PER_POUND (COMMODITY, UNIT_PRICE, FROM_DATE, TO_DATE)
 --O      AS SELECT COMMODITY.C_NAME, 
@@ -535,7 +535,7 @@ ij> --O    FROM TESTREPORT;
                           WHERE GRADE > 0 AND GRADE < 20
   ;
 0 rows inserted/updated/deleted
-ij> --O                          WITH CHECK OPTION;
+splice> --O                          WITH CHECK OPTION;
 
 -- ************** grant statements follow *************
 --O       GRANT SELECT ON SUN.ECCO TO PUBLIC;
@@ -566,4 +566,4 @@ ij> --O                          WITH CHECK OPTION;
 
 -- ************* End of Schema *************
 ;
-ij> 
+splice> 

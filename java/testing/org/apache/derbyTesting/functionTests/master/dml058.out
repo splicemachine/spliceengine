@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE DML058
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE DML058
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml058.sql
 -- 59-byte ID
@@ -8,12 +8,12 @@ ij> -- MODULE DML058
 -- AUTHORIZATION HU
    set schema HU;
 0 rows inserted/updated/deleted
-ij> --O   SELECT USER FROM HU.ECCO;
+splice> --O   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 HU                                                                                                                              
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 
 -- date_time print
 
@@ -22,14 +22,14 @@ ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
      DELETE FROM STAFF1;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> -- Making sure the table is empty
+splice> -- Making sure the table is empty
 
 -- setup
      INSERT INTO STAFF1
             SELECT *
                  FROM STAFF;
 5 rows inserted/updated/deleted
-ij> -- PASS:0251 If 5 rows are inserted?
+splice> -- PASS:0251 If 5 rows are inserted?
 
 --O     SELECT COUNT(*) 
      SELECT * 
@@ -41,27 +41,27 @@ E2 |Betty               |10   |Vienna
 E3 |Carmen              |13   |Vienna         
 E4 |Don                 |12   |Deale          
 E5 |Ed                  |13   |Akron          
-ij> -- PASS:0251 If count = 5?
+splice> -- PASS:0251 If count = 5?
 
      INSERT INTO STAFF1
             VALUES('E9','Tom',50,'London');
 1 row inserted/updated/deleted
-ij> -- PASS:0251 If 1 row is inserted?
+splice> -- PASS:0251 If 1 row is inserted?
   
      UPDATE STAFF1
             SET GRADE = 40 
             WHERE EMPNUM = 'E2';
 1 row inserted/updated/deleted
-ij> -- PASS:0251 If 1 row is updated?
+splice> -- PASS:0251 If 1 row is updated?
 
      COMMIT WORK;
-ij> DELETE FROM STAFF1;
+splice> DELETE FROM STAFF1;
 6 rows inserted/updated/deleted
-ij> -- PASS:0251 If 6 rows are deleted?
+splice> -- PASS:0251 If 6 rows are deleted?
 
 -- verify
      ROLLBACK WORK;
-ij> -- verify previous commit
+splice> -- verify previous commit
 --O     SELECT COUNT(*)
      SELECT *
           FROM STAFF1
@@ -72,13 +72,13 @@ E2 |Betty               |40   |Vienna
 E3 |Carmen              |13   |Vienna         
 E5 |Ed                  |13   |Akron          
 E9 |Tom                 |50   |London         
-ij> -- PASS:0251 If count = 4?
+splice> -- PASS:0251 If count = 4?
 
 -- restore
      DELETE FROM STAFF1;
 6 rows inserted/updated/deleted
-ij> COMMIT WORK;
-ij> -- END TEST >>> 0251 <<< END TEST
+splice> COMMIT WORK;
+splice> -- END TEST >>> 0251 <<< END TEST
 
 -- ***************************************************************
 
@@ -87,46 +87,46 @@ ij> -- END TEST >>> 0251 <<< END TEST
      DELETE FROM STAFF1;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> -- Making sure the table is empty
+splice> -- Making sure the table is empty
 
 -- setup
      INSERT INTO STAFF1
             SELECT *
                  FROM STAFF;
 5 rows inserted/updated/deleted
-ij> -- PASS:0252 If 5 rows are inserted?
+splice> -- PASS:0252 If 5 rows are inserted?
 
      COMMIT WORK;
-ij> INSERT INTO STAFF1
+splice> INSERT INTO STAFF1
             VALUES('E10','Tom',50,'London');
 1 row inserted/updated/deleted
-ij> -- PASS:0252 If 1 row is inserted?
+splice> -- PASS:0252 If 1 row is inserted?
 
      UPDATE STAFF1
             SET GRADE = 40
             WHERE EMPNUM = 'E1';
 1 row inserted/updated/deleted
-ij> -- PASS:0252 If 1 row is updated?
+splice> -- PASS:0252 If 1 row is updated?
 
      DELETE FROM STAFF1
             WHERE EMPNUM = 'E2';
 1 row inserted/updated/deleted
-ij> -- PASS:0252 If 1 row is deleted?
+splice> -- PASS:0252 If 1 row is deleted?
 
      ROLLBACK WORK;
-ij> -- verify     
+splice> -- verify     
      SELECT SUM(GRADE)
           FROM STAFF1;
 1        
 ---------
 60       
-ij> -- PASS:0252 If SUM(GRADE) = 60?
+splice> -- PASS:0252 If SUM(GRADE) = 60?
 
 -- restore
      DELETE FROM STAFF1;
 5 rows inserted/updated/deleted
-ij> COMMIT WORK;
-ij> -- END TEST >>> 0252 <<< END TEST
+splice> COMMIT WORK;
+splice> -- END TEST >>> 0252 <<< END TEST
 
 -- ****************************************************************
 
@@ -143,43 +143,43 @@ NUM&
 3   
 2   
 1   
-ij> -- PASS:0253 If 6 rows are selected and first NUMKEY = 8 ?
+splice> -- PASS:0253 If 6 rows are selected and first NUMKEY = 8 ?
 
      UPDATE UPUNIQ
           SET NUMKEY = 8 + 1
           WHERE NUMKEY = 8;
 1 row inserted/updated/deleted
-ij> -- PASS:0253 If 1 row is updated?
+splice> -- PASS:0253 If 1 row is updated?
 
      UPDATE UPUNIQ
           SET NUMKEY = 6 + 1
           WHERE NUMKEY = 6;
 1 row inserted/updated/deleted
-ij> -- PASS:0253 If 1 row is updated?
+splice> -- PASS:0253 If 1 row is updated?
 
      UPDATE UPUNIQ
           SET NUMKEY = 4 + 1
           WHERE NUMKEY = 4;
 1 row inserted/updated/deleted
-ij> -- PASS:0253 If 1 row is updated?
+splice> -- PASS:0253 If 1 row is updated?
 
      UPDATE UPUNIQ
           SET NUMKEY = 3 + 1
           WHERE NUMKEY = 3;
 1 row inserted/updated/deleted
-ij> -- PASS:0253 If 1 row is updated?
+splice> -- PASS:0253 If 1 row is updated?
 
      UPDATE UPUNIQ
           SET NUMKEY = 2 + 1 
           WHERE NUMKEY = 2;
 1 row inserted/updated/deleted
-ij> -- PASS:0253 If 1 row is updated?
+splice> -- PASS:0253 If 1 row is updated?
 
      UPDATE UPUNIQ
           SET NUMKEY = 1 + 1
           WHERE NUMKEY = 1;
 1 row inserted/updated/deleted
-ij> -- PASS:0253 If 1 row is updated?
+splice> -- PASS:0253 If 1 row is updated?
 
 
      SELECT MAX(NUMKEY), MIN(NUMKEY)
@@ -187,11 +187,11 @@ ij> -- PASS:0253 If 1 row is updated?
 1   |2   
 ---------
 9   |2   
-ij> -- PASS:0253 If MAX(NUMKEY) = 9 AND MIN(NUMKEY) = 2?
+splice> -- PASS:0253 If MAX(NUMKEY) = 9 AND MIN(NUMKEY) = 2?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0253 <<< END TEST
+splice> -- END TEST >>> 0253 <<< END TEST
 
 -- **************************************************************
 
@@ -200,19 +200,19 @@ ij> -- END TEST >>> 0253 <<< END TEST
      DELETE FROM PROJ1;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> -- Making sure the table is empty
+splice> -- Making sure the table is empty
 
 -- setup
      INSERT INTO PROJ1
             SELECT *
                  FROM PROJ;
 6 rows inserted/updated/deleted
-ij> -- PASS:0254 If 6 rows are inserted?
+splice> -- PASS:0254 If 6 rows are inserted?
 
      UPDATE PROJ1
           SET CITY = PTYPE;
 6 rows inserted/updated/deleted
-ij> -- PASS:0254 If 6 rows are updated?
+splice> -- PASS:0254 If 6 rows are updated?
 
      SELECT CITY
           FROM PROJ1
@@ -220,11 +220,11 @@ ij> -- PASS:0254 If 6 rows are updated?
 CITY           
 ---------------
 Design         
-ij> -- PASS:0254 If CITY = 'Design'?
+splice> -- PASS:0254 If CITY = 'Design'?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0254 <<< END TEST
+splice> -- END TEST >>> 0254 <<< END TEST
 
 -- **************************************************************
 
@@ -234,13 +234,13 @@ ij> -- END TEST >>> 0254 <<< END TEST
      DELETE FROM T4;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> -- Making sure the table is empty
+splice> -- Making sure the table is empty
 
 -- setup
      INSERT INTO T4
           VALUES(CAST(USER AS VARCHAR(128)),100,'good','luck');
 1 row inserted/updated/deleted
-ij> -- PASS:0255 If 1 row is inserted?
+splice> -- PASS:0255 If 1 row is inserted?
 
      SELECT STR110 
           FROM T4
@@ -248,19 +248,19 @@ ij> -- PASS:0255 If 1 row is inserted?
 STR110                                                                                                        
 --------------------------------------------------------------------------------------------------------------
 HU                                                                                                            
-ij> -- PASS:0255 If STR110 = 'HU'?
+splice> -- PASS:0255 If STR110 = 'HU'?
 
 -- setup
      INSERT INTO T4
           VALUES('Hello',101,'good','luck');
 1 row inserted/updated/deleted
-ij> -- PASS:0255 If 1 row is inserted?
+splice> -- PASS:0255 If 1 row is inserted?
 
      UPDATE T4
           SET STR110 = CAST(USER AS VARCHAR(128))
           WHERE NUM6 = 101;
 1 row inserted/updated/deleted
-ij> -- PASS:0255 If 1 row is updated?
+splice> -- PASS:0255 If 1 row is updated?
 
      SELECT STR110 
           FROM T4
@@ -268,11 +268,11 @@ ij> -- PASS:0255 If 1 row is updated?
 STR110                                                                                                        
 --------------------------------------------------------------------------------------------------------------
 HU                                                                                                            
-ij> -- PASS:0255 If STR110 = 'HU'?
+splice> -- PASS:0255 If STR110 = 'HU'?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0255 <<< END TEST
+splice> -- END TEST >>> 0255 <<< END TEST
 
 -- ***************************************************************
 
@@ -281,13 +281,13 @@ ij> -- END TEST >>> 0255 <<< END TEST
      DELETE FROM T4;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> -- Making sure the table is empty
+splice> -- Making sure the table is empty
 
 -- setup
      INSERT INTO T4
             VALUES('HU',100,'good','luck');
 1 row inserted/updated/deleted
-ij> -- PASS:0256 If 1 row is inserted?
+splice> -- PASS:0256 If 1 row is inserted?
 
      SELECT STR110 
           FROM T4
@@ -295,18 +295,18 @@ ij> -- PASS:0256 If 1 row is inserted?
 STR110                                                                                                        
 --------------------------------------------------------------------------------------------------------------
 HU                                                                                                            
-ij> -- PASS:0256 If STR110 = 'HU'?
+splice> -- PASS:0256 If STR110 = 'HU'?
 
 -- setup
      INSERT INTO T4
             VALUES('Hello',101,'good','luck');
 1 row inserted/updated/deleted
-ij> -- PASS:0256 If 1 row is inserted?
+splice> -- PASS:0256 If 1 row is inserted?
 
      DELETE FROM T4
             WHERE STR110 = CAST(USER AS VARCHAR(128));
 1 row inserted/updated/deleted
-ij> -- PASS:0256 If 1 row is deleted?
+splice> -- PASS:0256 If 1 row is deleted?
 
      SELECT COUNT(*)
           FROM T4
@@ -314,11 +314,11 @@ ij> -- PASS:0256 If 1 row is deleted?
 1          
 -----------
 0          
-ij> -- PASS:0256 If count = 0?
+splice> -- PASS:0256 If count = 0?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0256 <<< END TEST
+splice> -- END TEST >>> 0256 <<< END TEST
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 

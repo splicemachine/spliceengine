@@ -1,4 +1,4 @@
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -17,26 +17,26 @@ ij> --
 -- This script tests configuring an un-enctypted database for encryption and
 -- reencryption of an encrypted database with new enryption key/password.
 disconnect;
-ij> ---test configure the database for encrypion with encryption key.
+splice> ---test configure the database for encrypion with encryption key.
 connect 'wombat_key;create=true';
-ij> create table t1(a int ) ;
+splice> create table t1(a int ) ;
 0 rows inserted/updated/deleted
-ij> insert into t1 values(1) ;
+splice> insert into t1 values(1) ;
 1 row inserted/updated/deleted
-ij> insert into t1 values(2) ;
+splice> insert into t1 values(2) ;
 1 row inserted/updated/deleted
-ij> insert into t1 values(3) ;
+splice> insert into t1 values(3) ;
 1 row inserted/updated/deleted
-ij> insert into t1 values(4) ;
+splice> insert into t1 values(4) ;
 1 row inserted/updated/deleted
-ij> insert into t1 values(5) ;
+splice> insert into t1 values(5) ;
 1 row inserted/updated/deleted
-ij> disconnect;
-ij> connect 'wombat_key;shutdown=true';
+splice> disconnect;
+splice> connect 'wombat_key;shutdown=true';
 ERROR 08006: Database 'wombat_key' shutdown.
-ij> -- configure the database for encrypion with external encryption key.
+splice> -- configure the database for encrypion with external encryption key.
 connect 'jdbc:derby:wombat_key;dataEncryption=true;encryptionKey=6162636465666768';
-ij> select * from t1;
+splice> select * from t1;
 A          
 -----------
 1          
@@ -44,15 +44,15 @@ A
 3          
 4          
 5          
-ij> insert into t1 values(6);
+splice> insert into t1 values(6);
 1 row inserted/updated/deleted
-ij> insert into t1 values(7);
+splice> insert into t1 values(7);
 1 row inserted/updated/deleted
-ij> disconnect;
-ij> connect 'wombat_key;shutdown=true';
+splice> disconnect;
+splice> connect 'wombat_key;shutdown=true';
 ERROR 08006: Database 'wombat_key' shutdown.
-ij> connect 'jdbc:derby:wombat_key;encryptionKey=6162636465666768';
-ij> select * from t1 ;
+splice> connect 'jdbc:derby:wombat_key;encryptionKey=6162636465666768';
+splice> select * from t1 ;
 A          
 -----------
 1          
@@ -62,12 +62,12 @@ A
 5          
 6          
 7          
-ij> disconnect;
-ij> connect 'wombat_key;shutdown=true';
+splice> disconnect;
+splice> connect 'wombat_key;shutdown=true';
 ERROR 08006: Database 'wombat_key' shutdown.
-ij> --- reencrypt the database with a different encryption key
+splice> --- reencrypt the database with a different encryption key
 connect 'jdbc:derby:wombat_key;encryptionKey=6162636465666768;newEncryptionKey=5666768616263646';
-ij> select * from t1;
+splice> select * from t1;
 A          
 -----------
 1          
@@ -77,16 +77,16 @@ A
 5          
 6          
 7          
-ij> insert into t1 values(7);
+splice> insert into t1 values(7);
 1 row inserted/updated/deleted
-ij> insert into t1 values(8);
+splice> insert into t1 values(8);
 1 row inserted/updated/deleted
-ij> disconnect;
-ij> connect 'wombat_key;shutdown=true';
+splice> disconnect;
+splice> connect 'wombat_key;shutdown=true';
 ERROR 08006: Database 'wombat_key' shutdown.
-ij> --- boot the database with the new encyrption key. 
+splice> --- boot the database with the new encyrption key. 
 connect 'jdbc:derby:wombat_key;encryptionKey=5666768616263646';
-ij> select * from t1;
+splice> select * from t1;
 A          
 -----------
 1          
@@ -98,37 +98,37 @@ A
 7          
 7          
 8          
-ij> insert into t1 values(9);
+splice> insert into t1 values(9);
 1 row inserted/updated/deleted
-ij> insert into t1 values(10);
+splice> insert into t1 values(10);
 1 row inserted/updated/deleted
-ij> disconnect;
-ij> connect 'wombat_key;shutdown=true';
+splice> disconnect;
+splice> connect 'wombat_key;shutdown=true';
 ERROR 08006: Database 'wombat_key' shutdown.
-ij> --- attempt to boot with the old encrytion key, it should fail.
+splice> --- attempt to boot with the old encrytion key, it should fail.
 connect 'jdbc:derby:wombat_key;encryptionKey=6162636465666768';
 ERROR XJ040: Failed to start database 'wombat_key' with class loader XXXX,  see the next exception for details.
 ERROR XBCXK: The given encryption key does not match the encryption key used when creating the database. Please ensure that you are using the correct encryption key and try again. 
-ij> -- test confugring the database for encrypion with a boot password. 
+splice> -- test confugring the database for encrypion with a boot password. 
 connect 'wombat_pwd;create=true';
-ij> create table t2(a int ) ;
+splice> create table t2(a int ) ;
 0 rows inserted/updated/deleted
-ij> insert into t2 values(1) ;
+splice> insert into t2 values(1) ;
 1 row inserted/updated/deleted
-ij> insert into t2 values(2) ;
+splice> insert into t2 values(2) ;
 1 row inserted/updated/deleted
-ij> insert into t2 values(3) ;
+splice> insert into t2 values(3) ;
 1 row inserted/updated/deleted
-ij> insert into t2 values(4) ;
+splice> insert into t2 values(4) ;
 1 row inserted/updated/deleted
-ij> insert into t2 values(5) ;
+splice> insert into t2 values(5) ;
 1 row inserted/updated/deleted
-ij> disconnect;
-ij> connect 'wombat_pwd;shutdown=true';
+splice> disconnect;
+splice> connect 'wombat_pwd;shutdown=true';
 ERROR 08006: Database 'wombat_pwd' shutdown.
-ij> ---configure the database for encrypion with a boot password.
+splice> ---configure the database for encrypion with a boot password.
 connect 'jdbc:derby:wombat_pwd;dataEncryption=true;bootPassword=xyz1234abc';
-ij> select * from t2;
+splice> select * from t2;
 A          
 -----------
 1          
@@ -136,15 +136,15 @@ A
 3          
 4          
 5          
-ij> insert into t2 values(6);
+splice> insert into t2 values(6);
 1 row inserted/updated/deleted
-ij> insert into t2 values(7);
+splice> insert into t2 values(7);
 1 row inserted/updated/deleted
-ij> disconnect;
-ij> connect 'wombat_pwd;shutdown=true';
+splice> disconnect;
+splice> connect 'wombat_pwd;shutdown=true';
 ERROR 08006: Database 'wombat_pwd' shutdown.
-ij> connect 'jdbc:derby:wombat_pwd;bootPassword=xyz1234abc';
-ij> select * from t2 ;
+splice> connect 'jdbc:derby:wombat_pwd;bootPassword=xyz1234abc';
+splice> select * from t2 ;
 A          
 -----------
 1          
@@ -154,12 +154,12 @@ A
 5          
 6          
 7          
-ij> disconnect;
-ij> connect 'wombat_pwd;shutdown=true';
+splice> disconnect;
+splice> connect 'wombat_pwd;shutdown=true';
 ERROR 08006: Database 'wombat_pwd' shutdown.
-ij> --- reconfigure the database with a different password. 
+splice> --- reconfigure the database with a different password. 
 connect 'jdbc:derby:wombat_pwd;bootPassword=xyz1234abc;newBootPassword=new1234xyz';
-ij> select * from t2 ;
+splice> select * from t2 ;
 A          
 -----------
 1          
@@ -169,18 +169,18 @@ A
 5          
 6          
 7          
-ij> insert into t2 values(8);
+splice> insert into t2 values(8);
 1 row inserted/updated/deleted
-ij> insert into t2 values(9);
+splice> insert into t2 values(9);
 1 row inserted/updated/deleted
-ij> insert into t2 values(10);
+splice> insert into t2 values(10);
 1 row inserted/updated/deleted
-ij> disconnect;
-ij> connect 'wombat_pwd;shutdown=true';
+splice> disconnect;
+splice> connect 'wombat_pwd;shutdown=true';
 ERROR 08006: Database 'wombat_pwd' shutdown.
-ij> -- boot the database with the new password. 
+splice> -- boot the database with the new password. 
 connect 'jdbc:derby:wombat_pwd;bootPassword=new1234xyz';
-ij> select * from t2 ;
+splice> select * from t2 ;
 A          
 -----------
 1          
@@ -193,11 +193,11 @@ A
 8          
 9          
 10         
-ij> disconnect;
-ij> connect 'wombat_pwd;shutdown=true';
+splice> disconnect;
+splice> connect 'wombat_pwd;shutdown=true';
 ERROR 08006: Database 'wombat_pwd' shutdown.
-ij> -- attempt to boot the database with the old password, it should fail. 
+splice> -- attempt to boot the database with the old password, it should fail. 
 connect 'jdbc:derby:wombat_pwd;bootPassword=xyz1234abc';
 ERROR XJ040: Failed to start database 'wombat_pwd' with class loader XXXX,  see the next exception for details.
 ERROR XBM06: Startup failed. An encrypted database cannot be accessed without the correct boot password.  
-ij> 
+splice> 

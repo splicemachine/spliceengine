@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE DML034
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE DML034
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml034.sql
 -- 59-byte ID
@@ -8,12 +8,12 @@ ij> -- MODULE DML034
 -- AUTHORIZATION HU                                                          
    set schema HU;
 0 rows inserted/updated/deleted
-ij> --O   SELECT USER FROM HU.ECCO;
+splice> --O   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 HU                                                                                                                              
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 
 -- date_time print
 
@@ -23,14 +23,14 @@ ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
      INSERT INTO GG
             VALUES(123.4567E-2);
 1 row inserted/updated/deleted
-ij> -- PASS:0088 If 1 row is inserted?
+splice> -- PASS:0088 If 1 row is inserted?
 
      SELECT REALTEST                                                    
           FROM GG;
 REALTEST     
 -------------
 1.234567     
-ij> -- PASS:0088 If REALTEST = 1.234567 ?
+splice> -- PASS:0088 If REALTEST = 1.234567 ?
 -- PASS:0088 OR  is between 1.234562 and 1.234572 ?
 
      SELECT * 
@@ -39,11 +39,11 @@ ij> -- PASS:0088 If REALTEST = 1.234567 ?
 REALTEST     
 -------------
 1.234567     
-ij> -- PASS:0088 If 1 row selected?
+splice> -- PASS:0088 If 1 row selected?
 
 -- restore                                                                 
      ROLLBACK WORK;
-ij> -- END TEST >>> 0088 <<< END TEST
+splice> -- END TEST >>> 0088 <<< END TEST
 -- ****************************************************************
 
 -- TEST:0090 Data type DOUBLE PRECISION!
@@ -52,14 +52,14 @@ ij> -- END TEST >>> 0088 <<< END TEST
      INSERT INTO II
             VALUES(0.123456123456E6);
 1 row inserted/updated/deleted
-ij> -- PASS:0090 If 1 row is inserted?
+splice> -- PASS:0090 If 1 row is inserted?
 
      SELECT DOUBLETEST                                                  
           FROM II;
 DOUBLETEST            
 ----------------------
 123456.123456         
-ij> -- PASS:0090 If DOUBLETEST = 123456.123456 ?
+splice> -- PASS:0090 If DOUBLETEST = 123456.123456 ?
 -- PASS:0090 OR  is between 123456.123451 and 123456.123461 ?
 
      SELECT * 
@@ -68,11 +68,11 @@ ij> -- PASS:0090 If DOUBLETEST = 123456.123456 ?
 DOUBLETEST            
 ----------------------
 123456.123456         
-ij> -- PASS:0090 If 1 row selected?
+splice> -- PASS:0090 If 1 row selected?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0090 <<< END TEST
+splice> -- END TEST >>> 0090 <<< END TEST
 -- ***********************************************************
 
 -- TEST:0091 Data type FLOAT!
@@ -81,14 +81,14 @@ ij> -- END TEST >>> 0090 <<< END TEST
      INSERT INTO JJ
             VALUES(12.345678);
 1 row inserted/updated/deleted
-ij> -- PASS:0091 If 1 row is inserted?
+splice> -- PASS:0091 If 1 row is inserted?
                                                                                
      SELECT FLOATTEST                                                  
           FROM JJ;
 FLOATTEST             
 ----------------------
 12.345678             
-ij> -- PASS:0091 If FLOATTEST = 12.345678 ?
+splice> -- PASS:0091 If FLOATTEST = 12.345678 ?
 -- PASS:0091 OR  is between 12.345673 and 12.345683 ?
 
      SELECT * 
@@ -97,11 +97,11 @@ ij> -- PASS:0091 If FLOATTEST = 12.345678 ?
 FLOATTEST             
 ----------------------
 12.345678             
-ij> -- PASS:0091 If 1 row selected?
+splice> -- PASS:0091 If 1 row selected?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0091 <<< END TEST
+splice> -- END TEST >>> 0091 <<< END TEST
 -- **********************************************************
 
 -- TEST:0092 Data type FLOAT(32)!
@@ -110,14 +110,14 @@ ij> -- END TEST >>> 0091 <<< END TEST
      INSERT INTO KK
             VALUES(123.456123456E+3);
 1 row inserted/updated/deleted
-ij> -- PASS:0092 If 1 row is inserted?
+splice> -- PASS:0092 If 1 row is inserted?
                                                                                 
      SELECT FLOATTEST                                                   
           FROM KK;
 FLOATTEST             
 ----------------------
 123456.123456         
-ij> -- PASS:0092 If FLOATTEST = 123456.123456 ?
+splice> -- PASS:0092 If FLOATTEST = 123456.123456 ?
 -- PASS:0092 OR  is between 123456.1233 and 123456.1236 ?
 
      SELECT * 
@@ -126,11 +126,11 @@ ij> -- PASS:0092 If FLOATTEST = 123456.123456 ?
 FLOATTEST             
 ----------------------
 123456.123456         
-ij> -- PASS:0092 If 1 row selected?
+splice> -- PASS:0092 If 1 row selected?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0092 <<< END TEST
+splice> -- END TEST >>> 0092 <<< END TEST
 -- *************************************************************
 
 -- TEST:0093 Data type NUMERIC(13,6)!
@@ -139,14 +139,14 @@ ij> -- END TEST >>> 0092 <<< END TEST
      INSERT INTO LL
             VALUES(123456.123456);
 1 row inserted/updated/deleted
-ij> -- PASS:0093 If 1 row is inserted?
+splice> -- PASS:0093 If 1 row is inserted?
  
      SELECT *
           FROM LL;
 NUMTEST        
 ---------------
 123456.123456  
-ij> -- PASS:0093 If NUMTEST = 123456.123456 ?
+splice> -- PASS:0093 If NUMTEST = 123456.123456 ?
 -- PASS:0093 OR  is between 123456.123451 and 123456.123461 ?
 
      SELECT * 
@@ -155,11 +155,11 @@ ij> -- PASS:0093 If NUMTEST = 123456.123456 ?
 NUMTEST        
 ---------------
 123456.123456  
-ij> -- PASS:0093 If 1 row selected?
+splice> -- PASS:0093 If 1 row selected?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0093 <<< END TEST
+splice> -- END TEST >>> 0093 <<< END TEST
 -- *************************************************************
 
 -- TEST:0094 Data type DECIMAL(13,6)!
@@ -168,19 +168,19 @@ ij> -- END TEST >>> 0093 <<< END TEST
      INSERT INTO PP
              VALUES(123456.123456);
 1 row inserted/updated/deleted
-ij> -- PASS:0094 If 1 row is inserted?
+splice> -- PASS:0094 If 1 row is inserted?
 
      SELECT *
           FROM PP;
 NUMTEST        
 ---------------
 123456.123456  
-ij> -- PASS:0094 If NUMTEST = 123456.123456 ?
+splice> -- PASS:0094 If NUMTEST = 123456.123456 ?
 -- PASS:0094 OR  is between 123456.123451 and 123456.123461 ?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0094 <<< END TEST
+splice> -- END TEST >>> 0094 <<< END TEST
 -- **************************************************************
 
 -- TEST:0095 Data type DEC(13,6)!
@@ -189,19 +189,19 @@ ij> -- END TEST >>> 0094 <<< END TEST
      INSERT INTO SS
             VALUES(123456.123456);
 1 row inserted/updated/deleted
-ij> -- PASS:0095 If 1 row is inserted?
+splice> -- PASS:0095 If 1 row is inserted?
 
      SELECT *
           FROM SS;
 NUMTEST        
 ---------------
 123456.123456  
-ij> -- PASS:0095 If NUMTEST = 123456.123456 ?
+splice> -- PASS:0095 If NUMTEST = 123456.123456 ?
 -- PASS:0095 OR  is between 123456.123451 and 123456.123461 ?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0095 <<< END TEST
+splice> -- END TEST >>> 0095 <<< END TEST
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 

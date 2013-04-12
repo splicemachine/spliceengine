@@ -1,6 +1,6 @@
 CONNECTION0* - 	jdbc:derby:wombat
 * = current connection
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -26,4 +26,4 @@ select count(*) from sys.systables where 1=0;
 0          
 
 1 row selected
-ij> 
+splice> 

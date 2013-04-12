@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE  DML147  
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE  DML147  
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml147.sql
 -- 59-byte ID
@@ -12,7 +12,7 @@ ij> -- MODULE  DML147
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 FLATER                                                                                                                          
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 --O   ROLLBACK WORK;
 
 -- date_time print
@@ -21,60 +21,60 @@ ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 
    CREATE TABLE NOT_THERE (C1 CHAR (10));
 0 rows inserted/updated/deleted
-ij> -- PASS:0840 If table is created?
+splice> -- PASS:0840 If table is created?
 
    ROLLBACK WORK;
-ij> INSERT INTO NOT_THERE VALUES ('1234567890');
+splice> INSERT INTO NOT_THERE VALUES ('1234567890');
 ERROR 42X05: Table/View 'NOT_THERE' does not exist.
-ij> -- PASS:0840 If ERROR, syntax error/access violation, 0 rows selected?
+splice> -- PASS:0840 If ERROR, syntax error/access violation, 0 rows selected?
 
    ROLLBACK WORK;
-ij> CREATE VIEW NOT_HERE AS
+splice> CREATE VIEW NOT_HERE AS
       SELECT * FROM USIG;
 0 rows inserted/updated/deleted
-ij> -- PASS:0840 If view is created?
+splice> -- PASS:0840 If view is created?
 
    ROLLBACK WORK;
-ij> SELECT COUNT (*) FROM NOT_HERE;
+splice> SELECT COUNT (*) FROM NOT_HERE;
 ERROR 42X05: Table/View 'NOT_HERE' does not exist.
-ij> -- PASS:0840 If ERROR, syntax error/access violation, 0 rows selected?
+splice> -- PASS:0840 If ERROR, syntax error/access violation, 0 rows selected?
 
    ROLLBACK WORK;
-ij> ALTER TABLE USIG
+splice> ALTER TABLE USIG
   ADD COLUMN NUL INT;
 0 rows inserted/updated/deleted
-ij> -- PASS:0840 If column is added?
+splice> -- PASS:0840 If column is added?
 
    ROLLBACK WORK;
-ij> SELECT COUNT (*)
+splice> SELECT COUNT (*)
   FROM USIG WHERE NUL IS NULL;
 ERROR 42X04: Column 'NUL' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'NUL' is not a column in the target table.
-ij> -- PASS:0840 If ERROR, syntax error/access violation, 0 rows selected?
+splice> -- PASS:0840 If ERROR, syntax error/access violation, 0 rows selected?
 
    ROLLBACK WORK;
-ij> --O   DROP TABLE USIG CASCADE;
+splice> --O   DROP TABLE USIG CASCADE;
    DROP TABLE USIG ;
 0 rows inserted/updated/deleted
-ij> -- PASS:0840 If table is dropped?
+splice> -- PASS:0840 If table is dropped?
 
    ROLLBACK WORK;
-ij> SELECT COUNT(*)
+splice> SELECT COUNT(*)
   FROM U_SIG;
 1          
 -----------
 2          
-ij> -- PASS:0840 If count = 2?
+splice> -- PASS:0840 If count = 2?
 
    ROLLBACK WORK;
-ij> SELECT COUNT(*)
+splice> SELECT COUNT(*)
   FROM USIG;
 1          
 -----------
 2          
-ij> -- PASS:0840 If count = 2?
+splice> -- PASS:0840 If count = 2?
 
    ROLLBACK WORK;
-ij> -- END TEST >>> 0840 <<< END TEST
+splice> -- END TEST >>> 0840 <<< END TEST
 
 -- *********************************************
 
@@ -84,11 +84,11 @@ ij> -- END TEST >>> 0840 <<< END TEST
    DELETE FROM HU.STAFF4;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> INSERT INTO HU.STAFF4
+splice> INSERT INTO HU.STAFF4
       SELECT * FROM HU.STAFF3
          WHERE EMPNUM > 'E3';
 2 rows inserted/updated/deleted
-ij> --O   SELECT EMPNUM FROM
+splice> --O   SELECT EMPNUM FROM
    SELECT a.EMPNUM FROM
 --O      HU.STAFF3 NATURAL LEFT JOIN HU.STAFF NATURAL INNER JOIN HU.STAFF4
       HU.STAFF3 a, HU.staff b, HU.staff4 c 
@@ -98,7 +98,7 @@ EM&
 ---
 E5 
 E4 
-ij> -- PASS:0841 If 2 rows selected?
+splice> -- PASS:0841 If 2 rows selected?
 -- PASS:0841 If ordered EMPNUM values are: E5, E4 ?
 
 --O   SELECT EMPNUM FROM
@@ -115,7 +115,7 @@ ij> -- PASS:0841 If 2 rows selected?
 -- PASS:0841 If ordered EMPNUM values are: E1, E2, E3, E4, E5 ?
 
    ROLLBACK WORK;
-ij> -- END TEST >>> 0841 <<< END TEST
+splice> -- END TEST >>> 0841 <<< END TEST
 
 -- *********************************************
 
@@ -128,21 +128,21 @@ ij> -- END TEST >>> 0841 <<< END TEST
      GRADE   DECIMAL,
      EMPNUM  CHAR(3));
 0 rows inserted/updated/deleted
-ij> COMMIT WORK;
-ij> -- setup
+splice> COMMIT WORK;
+splice> -- setup
    INSERT INTO STAFF66
       SELECT GRADE*1000, EMPNAME, GRADE, EMPNUM
          FROM HU.STAFF3 WHERE EMPNUM > 'E2';
 3 rows inserted/updated/deleted
-ij> -- PASS:0842 If 3 rows inserted ?
+splice> -- PASS:0842 If 3 rows inserted ?
 
    UPDATE HU.STAFF3 SET EMPNUM = 'E6' WHERE EMPNUM = 'E5';
 1 row inserted/updated/deleted
-ij> -- PASS:0842 If 1 row updated ?
+splice> -- PASS:0842 If 1 row updated ?
 
    UPDATE HU.STAFF3 SET EMPNAME = 'Ali' WHERE GRADE = 12;
 2 rows inserted/updated/deleted
-ij> -- PASS:0842 If 2 rows updated ?
+splice> -- PASS:0842 If 2 rows updated ?
 
 -- FULL OUTER JOIN of tables with unique data in the joined column
 --O   SELECT EMPNUM, CITY, SALARY
@@ -170,7 +170,7 @@ ij> -- PASS:0842 If 2 rows updated ?
 SALARY     |EMPNAME             |GRADE |EMP&|EM&|EMPNAME             |GRADE|CITY           
 -------------------------------------------------------------------------------------------
 13000      |Carmen              |13    |E3  |E3 |Carmen              |13   |Vienna         
-ij> -- PASS:0842 If 1 row selected?
+splice> -- PASS:0842 If 1 row selected?
 -- PASS:0842 If column values are in the exact order: ?
 -- PASS:0842 EMPNAME=Carmen,GRADE=13,EMPNUM=E3,SALARY=13000,CITY=Vienna?
 
@@ -240,7 +240,7 @@ ij> -- PASS:0842 If 1 row selected?
 EM&|GRADE|EMPNAME             |CITY           |SALARY     |EMPNAME             
 -------------------------------------------------------------------------------
 E3 |13   |Carmen              |Vienna         |13000      |Carmen              
-ij> -- PASS:0842 If 1 row selected with ordered column values?
+splice> -- PASS:0842 If 1 row selected with ordered column values?
 -- PASS:0842    E3  13  Carmen  Vienna  13000  Carmen    ?
 
 -- REF: 7.5 GR 1 d ii
@@ -250,16 +250,16 @@ ij> -- PASS:0842 If 1 row selected with ordered column values?
 1          
 -----------
 18         
-ij> -- PASS:0842 If count = 18?
+splice> -- PASS:0842 If count = 18?
 
 
    ROLLBACK WORK;
-ij> --O   DROP TABLE STAFF66 CASCADE;
+splice> --O   DROP TABLE STAFF66 CASCADE;
    DROP TABLE STAFF66 ;
 0 rows inserted/updated/deleted
-ij> COMMIT WORK;
-ij> -- END TEST >>> 0842 <<< END TEST
+splice> COMMIT WORK;
+splice> -- END TEST >>> 0842 <<< END TEST
 
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 

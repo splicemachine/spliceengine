@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE DML004
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE DML004
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml004.sql
 -- 59-byte ID
@@ -8,12 +8,12 @@ ij> -- MODULE DML004
 -- AUTHORIZATION HU
    set schema HU;
 0 rows inserted/updated/deleted
-ij> --O   SELECT USER FROM HU.ECCO;
+splice> --O   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 HU                                                                                                                              
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 
 -- date_time print
 
@@ -24,7 +24,7 @@ ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
           ORDER BY EMPNUM DESC;
 EM&|HOURS 
 ----------
-ij> -- PASS:0008 If 0 rows selected, SQLCODE = 100, end of data?
+splice> -- PASS:0008 If 0 rows selected, SQLCODE = 100, end of data?
 
 -- END TEST >>> 0008 <<< END TEST
 -- ****************************************************************
@@ -35,7 +35,7 @@ ij> -- PASS:0008 If 0 rows selected, SQLCODE = 100, end of data?
      INSERT INTO WORKS
             VALUES('E9','P9',NULL);
 1 row inserted/updated/deleted
-ij> -- PASS:0009 If 1 row is inserted?
+splice> -- PASS:0009 If 1 row is inserted?
 
      SELECT EMPNUM
           FROM WORKS
@@ -43,7 +43,7 @@ ij> -- PASS:0009 If 1 row is inserted?
 EM&
 ---
 E9 
-ij> -- PASS:0009 If EMPNUM = 'E9'?
+splice> -- PASS:0009 If EMPNUM = 'E9'?
 
           SELECT EMPNUM, HOURS
                FROM WORKS
@@ -52,11 +52,11 @@ ij> -- PASS:0009 If EMPNUM = 'E9'?
 EM&|HOURS 
 ----------
 E9 |NULL  
-ij> -- PASS:0009 If EMPNUM = 'E9' and HOURS is NULL?
+splice> -- PASS:0009 If EMPNUM = 'E9' and HOURS is NULL?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0009 <<< END TEST
+splice> -- END TEST >>> 0009 <<< END TEST
 -- ******************************************************************
 
 -- NO_TEST:0161 FETCH NULL value without indicator, SQLCODE < 0!
@@ -76,4 +76,4 @@ ij> -- END TEST >>> 0009 <<< END TEST
 -- Testing indicators
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 

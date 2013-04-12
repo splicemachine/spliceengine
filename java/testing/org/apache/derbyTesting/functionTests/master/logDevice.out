@@ -1,4 +1,4 @@
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -19,24 +19,24 @@ values SUBSTR(SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('logDevice'), LOCATE('wierd
 1       
 --------
 wierdlog
-ij> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('logDevice', null);
+splice> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('logDevice', null);
 ERROR XSRS8: Log Device can only be set during database creation time, it cannot be changed on the fly.
-ij> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('logDevice', 'foobar');
+splice> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('logDevice', 'foobar');
 ERROR XSRS8: Log Device can only be set during database creation time, it cannot be changed on the fly.
-ij> values SUBSTR(SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('logDevice'), LOCATE('wierdlog',SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('logDevice')),8);
+splice> values SUBSTR(SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('logDevice'), LOCATE('wierdlog',SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('logDevice')),8);
 1       
 --------
 wierdlog
-ij> call SYSCS_UTIL.SYSCS_BACKUP_DATABASE('ext/mybackup');
+splice> call SYSCS_UTIL.SYSCS_BACKUP_DATABASE('ext/mybackup');
 0 rows inserted/updated/deleted
-ij> disconnect;
-ij> connect 'wombat;shutdown=true';
+splice> disconnect;
+splice> connect 'wombat;shutdown=true';
 ERROR 08006: Database 'wombat' shutdown.
-ij> connect 'wombat';
-ij> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('logDevice', 'foobar');
+splice> connect 'wombat';
+splice> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('logDevice', 'foobar');
 ERROR XSRS8: Log Device can only be set during database creation time, it cannot be changed on the fly.
-ij> values SUBSTR(SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('logDevice'), LOCATE('wierdlog',SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('logDevice')),8);
+splice> values SUBSTR(SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('logDevice'), LOCATE('wierdlog',SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('logDevice')),8);
 1       
 --------
 wierdlog
-ij> 
+splice> 

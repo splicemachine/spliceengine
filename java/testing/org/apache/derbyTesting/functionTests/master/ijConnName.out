@@ -1,5 +1,5 @@
 ERROR XJ004: Database 'nevercreated' not found.
-ij(CONNECTION0)> --
+splice(CONNECTION0)> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -24,46 +24,46 @@ CONNECTION0* - 	jdbc:derby:wombat
 CONNONE - 	jdbc:derby:wombat
 * = current connection
 WARNING 01J01: Database 'wombat' not created, connection made to existing database instead.
-ij(CONNECTION0)> disconnect CONNECTION0;
-ij> set connection connOne;
-ij> -- expect connOne to be active
+splice(CONNECTION0)> disconnect CONNECTION0;
+splice> set connection connOne;
+splice> -- expect connOne to be active
 show connections;
 CONNONE* - 	jdbc:derby:wombat
 * = current connection
-ij> connect 'jdbc:derby:lemming;create=true' as connTwo;
-ij(CONNTWO)> set connection connOne;
-ij(CONNONE)> values 1;
+splice> connect 'jdbc:derby:lemming;create=true' as connTwo;
+splice(CONNTWO)> set connection connOne;
+splice(CONNONE)> values 1;
 1          
 -----------
 1          
-ij(CONNONE)> set connection connTwo;
-ij(CONNTWO)> values 1;
+splice(CONNONE)> set connection connTwo;
+splice(CONNTWO)> values 1;
 1          
 -----------
 1          
-ij(CONNTWO)> -- connThree doesn't exist, it failed at boot time
+splice(CONNTWO)> -- connThree doesn't exist, it failed at boot time
 set connection connThree;
-IJ ERROR: No connection exists with the name CONNTHREE
-ij(CONNTWO)> -- connFour doesn't exist, it failed at boot time
+Splice ERROR: No connection exists with the name CONNTHREE
+splice(CONNTWO)> -- connFour doesn't exist, it failed at boot time
 set connection connFour;
-IJ ERROR: No connection exists with the name CONNFOUR
-ij(CONNTWO)> -- connTwo is still active
+Splice ERROR: No connection exists with the name CONNFOUR
+splice(CONNTWO)> -- connTwo is still active
 show connections;
 CONNONE - 	jdbc:derby:wombat
 CONNTWO* - 	jdbc:derby:lemming
 * = current connection
-ij(CONNTWO)> -- no such connection to disconnect
+splice(CONNTWO)> -- no such connection to disconnect
 disconnect noName;
-IJ ERROR: No connection exists with the name NONAME
-ij(CONNTWO)> disconnect connOne;
-ij> -- connOne no longer exists
+Splice ERROR: No connection exists with the name NONAME
+splice(CONNTWO)> disconnect connOne;
+splice> -- connOne no longer exists
 set connection connOne;
-IJ ERROR: No connection exists with the name CONNONE
-ij> disconnect current;
-ij> -- see no more connections to use
+Splice ERROR: No connection exists with the name CONNONE
+splice> disconnect current;
+splice> -- see no more connections to use
 show connections;
 No connections available.
-ij> -- shutdown system
+splice> -- shutdown system
 connect 'jdbc:derby:;shutdown=true';
 ERROR XJ015: Derby system shutdown.
-ij> 
+splice> 

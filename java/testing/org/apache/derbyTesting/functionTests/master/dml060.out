@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE DML060
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE DML060
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml060.sql
 -- 59-byte ID
@@ -8,12 +8,12 @@ ij> -- MODULE DML060
 -- AUTHORIZATION HU
    set schema HU;
 0 rows inserted/updated/deleted
-ij> --O   SELECT USER FROM HU.ECCO;
+splice> --O   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 HU                                                                                                                              
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 
 -- date_time print
 
@@ -27,7 +27,7 @@ COL1       |COL2
 -----------------------
 10         |20         
 100        |200        
-ij> -- PASS:0261 If 2 rows are selected ?
+splice> -- PASS:0261 If 2 rows are selected ?
 -- PASS:0261 If first row is  ( 10,  20)?
 -- PASS:0261 If second row is (100, 200)?
 
@@ -41,7 +41,7 @@ ij> -- PASS:0261 If 2 rows are selected ?
           SET COL1 = 1
           WHERE COL1 = 0;
 1 row inserted/updated/deleted
-ij> -- PASS:0262 If 1 row is updated?
+splice> -- PASS:0262 If 1 row is updated?
 
      SELECT COL1, COL2
           FROM VTABLE
@@ -54,13 +54,13 @@ COL1       |COL2
 -----------------------
 100        |200        
 1000       |-2000      
-ij> -- PASS:0262 If 2 rows are selected?
+splice> -- PASS:0262 If 2 rows are selected?
 -- PASS:0262 If first row is  ( 100,   200)?
 -- PASS:0262 If second row is (1000, -2000)?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0262 <<< END TEST
+splice> -- END TEST >>> 0262 <<< END TEST
  
 -- ******************************************************************
 
@@ -75,7 +75,7 @@ COL1       |2
 1000       |-3990      
 10         |50         
 100        |410        
-ij> -- PASS:0263 If 3 rows are selected in order with values:?
+splice> -- PASS:0263 If 3 rows are selected in order with values:?
 -- PASS:0263      (1000, -3990)?
 -- PASS:0263      (  10,    50)?
 -- PASS:0263      ( 100,   410)?
@@ -90,7 +90,7 @@ ij> -- PASS:0263 If 3 rows are selected in order with values:?
      INSERT INTO WORKS
             VALUES('E3','P4',50);
 1 row inserted/updated/deleted
-ij> -- PASS:0265 If 1 row is inserted?
+splice> -- PASS:0265 If 1 row is inserted?
 
            SELECT EMPNUM, PNUM, HOURS
                 FROM SUBSP;
@@ -98,7 +98,7 @@ EM&|PN&|HOURS
 --------------
 E3 |P2 |20    
 E3 |P4 |50    
-ij> -- PASS:0265 If 2 rows are selected?
+splice> -- PASS:0265 If 2 rows are selected?
 
      SELECT * FROM WORKS;
 EM&|PN&|HOURS 
@@ -116,7 +116,7 @@ E4 |P2 |20
 E4 |P4 |40    
 E4 |P5 |80    
 E3 |P4 |50    
-ij> -- PASS:0265 If 13 rows selected?
+splice> -- PASS:0265 If 13 rows selected?
 
 --O     UPDATE SUBSP 
 --O          SET EMPNUM = 'E9'
@@ -139,11 +139,11 @@ E4 |P2 |20
 E4 |P4 |40    
 E4 |P5 |80    
 E3 |P4 |50    
-ij> -- PASS:0265 If 13 rows selected and no EMPNUM = 'E9'?
+splice> -- PASS:0265 If 13 rows selected and no EMPNUM = 'E9'?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0265 <<< END TEST
+splice> -- END TEST >>> 0265 <<< END TEST
 
 -- ******************************************************************
 
@@ -153,7 +153,7 @@ ij> -- END TEST >>> 0265 <<< END TEST
      INSERT INTO WORKS
             VALUES('E3','P4',50);
 1 row inserted/updated/deleted
-ij> -- PASS:0266 If 1 row is inserted?
+splice> -- PASS:0266 If 1 row is inserted?
 
      SELECT EMPNUM, PNUM, HOURS
           FROM SUBSP;
@@ -161,14 +161,14 @@ EM&|PN&|HOURS
 --------------
 E3 |P2 |20    
 E3 |P4 |50    
-ij> -- PASS:0266 If 2 rows are selected?
+splice> -- PASS:0266 If 2 rows are selected?
 
      SELECT * FROM WORKS WHERE EMPNUM = 'E3';
 EM&|PN&|HOURS 
 --------------
 E3 |P2 |20    
 E3 |P4 |50    
-ij> -- PASS:0266 If 2 rows selected and PNUM values are 'P2' and 'P4'?
+splice> -- PASS:0266 If 2 rows selected and PNUM values are 'P2' and 'P4'?
 
 --O     UPDATE SUBSP
 --O          SET PNUM = 'P6'
@@ -184,7 +184,7 @@ ij> -- PASS:0266 If 2 rows selected and PNUM values are 'P2' and 'P4'?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0266 <<< END TEST
+splice> -- END TEST >>> 0266 <<< END TEST
 
 -- ******************************************************************
 
@@ -193,85 +193,85 @@ ij> -- END TEST >>> 0266 <<< END TEST
      DELETE FROM WORKS1;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> -- Making sure the table is empty
+splice> -- Making sure the table is empty
 
 -- setup
      INSERT INTO WORKS1 VALUES ('P1','P6',1);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P2','P6',2);
+splice> INSERT INTO WORKS1 VALUES ('P2','P6',2);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P3','P6',3);
+splice> INSERT INTO WORKS1 VALUES ('P3','P6',3);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P4','P6',4);
+splice> INSERT INTO WORKS1 VALUES ('P4','P6',4);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P5','P6',5);
+splice> INSERT INTO WORKS1 VALUES ('P5','P6',5);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P6','P6',6);
+splice> INSERT INTO WORKS1 VALUES ('P6','P6',6);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P1','P5',7);
+splice> INSERT INTO WORKS1 VALUES ('P1','P5',7);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P2','P5',8);
+splice> INSERT INTO WORKS1 VALUES ('P2','P5',8);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P3','P5',9);
+splice> INSERT INTO WORKS1 VALUES ('P3','P5',9);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P4','P5',10);
+splice> INSERT INTO WORKS1 VALUES ('P4','P5',10);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P5','P5',11);
+splice> INSERT INTO WORKS1 VALUES ('P5','P5',11);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P6','P5',12);
+splice> INSERT INTO WORKS1 VALUES ('P6','P5',12);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P1','P4',13);
+splice> INSERT INTO WORKS1 VALUES ('P1','P4',13);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P2','P4',14);
+splice> INSERT INTO WORKS1 VALUES ('P2','P4',14);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P3','P4',15);
+splice> INSERT INTO WORKS1 VALUES ('P3','P4',15);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P4','P4',16);
+splice> INSERT INTO WORKS1 VALUES ('P4','P4',16);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P5','P4',17);
+splice> INSERT INTO WORKS1 VALUES ('P5','P4',17);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P6','P4',18);
+splice> INSERT INTO WORKS1 VALUES ('P6','P4',18);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P1','P3',19);
+splice> INSERT INTO WORKS1 VALUES ('P1','P3',19);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P2','P3',20);
+splice> INSERT INTO WORKS1 VALUES ('P2','P3',20);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P3','P3',21);
+splice> INSERT INTO WORKS1 VALUES ('P3','P3',21);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P4','P3',22);
+splice> INSERT INTO WORKS1 VALUES ('P4','P3',22);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P5','P3',23);
+splice> INSERT INTO WORKS1 VALUES ('P5','P3',23);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P6','P3',24);
+splice> INSERT INTO WORKS1 VALUES ('P6','P3',24);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P1','P2',25);
+splice> INSERT INTO WORKS1 VALUES ('P1','P2',25);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P2','P2',26);
+splice> INSERT INTO WORKS1 VALUES ('P2','P2',26);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P3','P2',27);
+splice> INSERT INTO WORKS1 VALUES ('P3','P2',27);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P4','P2',28);
+splice> INSERT INTO WORKS1 VALUES ('P4','P2',28);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P5','P2',29);
+splice> INSERT INTO WORKS1 VALUES ('P5','P2',29);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P6','P2',30);
+splice> INSERT INTO WORKS1 VALUES ('P6','P2',30);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P1','P1',31);
+splice> INSERT INTO WORKS1 VALUES ('P1','P1',31);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P2','P1',32);
+splice> INSERT INTO WORKS1 VALUES ('P2','P1',32);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P3','P1',33);
+splice> INSERT INTO WORKS1 VALUES ('P3','P1',33);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P4','P1',34);
+splice> INSERT INTO WORKS1 VALUES ('P4','P1',34);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P5','P1',35);
+splice> INSERT INTO WORKS1 VALUES ('P5','P1',35);
 1 row inserted/updated/deleted
-ij> INSERT INTO WORKS1 VALUES ('P6','P1',36);
+splice> INSERT INTO WORKS1 VALUES ('P6','P1',36);
 1 row inserted/updated/deleted
-ij> UPDATE WORKS1
+splice> UPDATE WORKS1
        SET PNUM = EMPNUM, EMPNUM = PNUM;
 36 rows inserted/updated/deleted
-ij> -- PASS:0267 If 36 rows are updated?
+splice> -- PASS:0267 If 36 rows are updated?
 
 --O     SELECT COUNT(*) 
      SELECT * 
@@ -285,12 +285,12 @@ P1 |P3 |33
 P1 |P4 |34    
 P1 |P5 |35    
 P1 |P6 |36    
-ij> -- PASS:0267 If count = 6?
+splice> -- PASS:0267 If count = 6?
 
 -- restore
      ROLLBACK WORK;
-ij> -- END TEST >>> 0267 <<< END TEST
+splice> -- END TEST >>> 0267 <<< END TEST
 
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 

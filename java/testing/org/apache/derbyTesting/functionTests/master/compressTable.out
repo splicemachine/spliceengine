@@ -1,4 +1,4 @@
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -17,7 +17,7 @@ ij> --
 -- tests for system procedure SYSCS_COMPRESS_TABLE
 -- that reclaims disk space to the OS
 run resource 'createTestProcedures.subsql';
-ij> --
+splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more
 --   contributor license agreements.  See the NOTICE file distributed with
 --   this work for additional information regarding copyright ownership.
@@ -35,77 +35,77 @@ ij> --
 --
 CREATE FUNCTION  PADSTRING (DATA VARCHAR(32000), LENGTH INTEGER) RETURNS VARCHAR(32000) EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.Formatters.padString' LANGUAGE JAVA PARAMETER STYLE JAVA;
 0 rows inserted/updated/deleted
-ij> CREATE PROCEDURE WAIT_FOR_POST_COMMIT() DYNAMIC RESULT SETS 0 LANGUAGE JAVA EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.T_Access.waitForPostCommitToFinish' PARAMETER STYLE JAVA;
+splice> CREATE PROCEDURE WAIT_FOR_POST_COMMIT() DYNAMIC RESULT SETS 0 LANGUAGE JAVA EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.T_Access.waitForPostCommitToFinish' PARAMETER STYLE JAVA;
 0 rows inserted/updated/deleted
-ij> maximumdisplaywidth 512;
-ij> CREATE FUNCTION ConsistencyChecker() RETURNS VARCHAR(128)
+splice> maximumdisplaywidth 512;
+splice> CREATE FUNCTION ConsistencyChecker() RETURNS VARCHAR(128)
 EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.T_ConsistencyChecker.runConsistencyChecker'
 LANGUAGE JAVA PARAMETER STYLE JAVA;
 0 rows inserted/updated/deleted
-ij> -- create tables
+splice> -- create tables
 create table noindexes(c1 int, c2 char(30), c3 decimal(5,2));
 0 rows inserted/updated/deleted
-ij> create table indexes(c1 int, c2 char(30), c3 decimal(5,2));
+splice> create table indexes(c1 int, c2 char(30), c3 decimal(5,2));
 0 rows inserted/updated/deleted
-ij> create index i_c1 on indexes(c1);
+splice> create index i_c1 on indexes(c1);
 0 rows inserted/updated/deleted
-ij> create index i_c2 on indexes(c2);
+splice> create index i_c2 on indexes(c2);
 0 rows inserted/updated/deleted
-ij> create index i_c3 on indexes(c3);
+splice> create index i_c3 on indexes(c3);
 0 rows inserted/updated/deleted
-ij> create index i_c3c1 on indexes(c3, c1);
+splice> create index i_c3c1 on indexes(c3, c1);
 0 rows inserted/updated/deleted
-ij> create index i_c2c1 on indexes(c2, c1);
+splice> create index i_c2c1 on indexes(c2, c1);
 0 rows inserted/updated/deleted
-ij> create table oldconglom(o_cnum bigint, o_cname long varchar);
+splice> create table oldconglom(o_cnum bigint, o_cname long varchar);
 0 rows inserted/updated/deleted
-ij> create table newconglom(n_cnum bigint, n_cname long varchar);
+splice> create table newconglom(n_cnum bigint, n_cname long varchar);
 0 rows inserted/updated/deleted
-ij> create view v_noindexes as select * from noindexes;
+splice> create view v_noindexes as select * from noindexes;
 0 rows inserted/updated/deleted
-ij> autocommit off;
-ij> -- test with heap only
+splice> autocommit off;
+splice> -- test with heap only
 -- test with empty table
 insert into oldconglom
 select conglomeratenumber, conglomeratename 
 from sys.systables t, sys.sysconglomerates c
 where t.tablename = 'NOINDEXES' and t.tableid = c.tableid;
 1 row inserted/updated/deleted
-ij> select count(*) from oldconglom;
+splice> select count(*) from oldconglom;
 1          
 -----------
 1          
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
 0 rows inserted/updated/deleted
-ij> insert into newconglom
+splice> insert into newconglom
 select conglomeratenumber, conglomeratename 
 from sys.systables t, sys.sysconglomerates c
 where t.tablename = 'NOINDEXES' and t.tableid = c.tableid;
 1 row inserted/updated/deleted
-ij> select * from oldconglom, newconglom where o_cnum = n_cnum;
+splice> select * from oldconglom, newconglom where o_cnum = n_cnum;
 O_CNUM              |O_CNAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |N_CNUM              |N_CNAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ij> select count(*) from newconglom;
+splice> select count(*) from newconglom;
 1          
 -----------
 1          
-ij> select * from noindexes;
+splice> select * from noindexes;
 C1         |C2                            |C3     
 --------------------------------------------------
-ij> -- do consistency check on scans, etc.
+splice> -- do consistency check on scans, etc.
 values ConsistencyChecker();
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 No open scans, etc.
 3 dependencies found                                                                                        
-ij> rollback;
-ij> -- test with various sizes as we use bulk fetch
+splice> rollback;
+splice> -- test with various sizes as we use bulk fetch
 insert into noindexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
 7 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
 0 rows inserted/updated/deleted
-ij> select * from noindexes;
+splice> select * from noindexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -115,13 +115,13 @@ C1         |C2                            |C3
 5          |5                             |5.50   
 6          |6                             |6.60   
 7          |7                             |7.70   
-ij> insert into noindexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
+splice> insert into noindexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
 10 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
 0 rows inserted/updated/deleted
-ij> select * from noindexes;
+splice> select * from noindexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -141,11 +141,11 @@ C1         |C2                            |C3
 14         |14                            |14.14  
 15         |15                            |15.15  
 16         |16                            |16.16  
-ij> insert into noindexes values (17, '17', 17.17), (18, '18', 18.18);
+splice> insert into noindexes values (17, '17', 17.17), (18, '18', 18.18);
 2 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
 0 rows inserted/updated/deleted
-ij> select * from noindexes;
+splice> select * from noindexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -167,55 +167,55 @@ C1         |C2                            |C3
 16         |16                            |16.16  
 17         |17                            |17.17  
 18         |18                            |18.18  
-ij> -- do consistency check on scans, etc.
+splice> -- do consistency check on scans, etc.
 values ConsistencyChecker();
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 No open scans, etc.
 3 dependencies found                                                                                        
-ij> rollback;
-ij> -- test with some indexes
+splice> rollback;
+splice> -- test with some indexes
 -- test with empty table
 insert into oldconglom
 select conglomeratenumber, conglomeratename 
 from sys.systables t, sys.sysconglomerates c
 where t.tablename = 'INDEXES' and t.tableid = c.tableid;
 6 rows inserted/updated/deleted
-ij> select count(*) from oldconglom;
+splice> select count(*) from oldconglom;
 1          
 -----------
 6          
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
 0 rows inserted/updated/deleted
-ij> insert into newconglom
+splice> insert into newconglom
 select conglomeratenumber, conglomeratename 
 from sys.systables t, sys.sysconglomerates c
 where t.tablename = 'INDEXES' and t.tableid = c.tableid;
 6 rows inserted/updated/deleted
-ij> select * from oldconglom, newconglom where o_cnum = n_cnum;
+splice> select * from oldconglom, newconglom where o_cnum = n_cnum;
 O_CNUM              |O_CNAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |N_CNUM              |N_CNAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ij> select count(*) from newconglom;
+splice> select count(*) from newconglom;
 1          
 -----------
 6          
-ij> select * from indexes;
+splice> select * from indexes;
 C1         |C2                            |C3     
 --------------------------------------------------
-ij> -- do consistency check on scans, etc.
+splice> -- do consistency check on scans, etc.
 values ConsistencyChecker();
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 No open scans, etc.
 3 dependencies found                                                                                        
-ij> rollback;
-ij> -- test with various sizes as we use bulk fetch
+splice> rollback;
+splice> -- test with various sizes as we use bulk fetch
 insert into indexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
 7 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
 0 rows inserted/updated/deleted
-ij> select * from indexes;
+splice> select * from indexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -225,13 +225,13 @@ C1         |C2                            |C3
 5          |5                             |5.50   
 6          |6                             |6.60   
 7          |7                             |7.70   
-ij> insert into indexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
+splice> insert into indexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
 10 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
 0 rows inserted/updated/deleted
-ij> select * from indexes;
+splice> select * from indexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -251,11 +251,11 @@ C1         |C2                            |C3
 14         |14                            |14.14  
 15         |15                            |15.15  
 16         |16                            |16.16  
-ij> insert into indexes values (17, '17', 17.17), (18, '18', 18.18);
+splice> insert into indexes values (17, '17', 17.17), (18, '18', 18.18);
 2 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
 0 rows inserted/updated/deleted
-ij> select * from indexes;
+splice> select * from indexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -277,162 +277,162 @@ C1         |C2                            |C3
 16         |16                            |16.16  
 17         |17                            |17.17  
 18         |18                            |18.18  
-ij> -- do consistency check on scans, etc.
+splice> -- do consistency check on scans, etc.
 values ConsistencyChecker();
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 No open scans, etc.
 3 dependencies found                                                                                        
-ij> rollback;
-ij> -- primary/foreign keys
+splice> rollback;
+splice> -- primary/foreign keys
 create table p (c1 char(1), y int not null, c2 char(1) not null, x int not null, constraint pk primary key(x,y));
 0 rows inserted/updated/deleted
-ij> create table f (x int, t int, y int, constraint fk foreign key (x,y) references p);
+splice> create table f (x int, t int, y int, constraint fk foreign key (x,y) references p);
 0 rows inserted/updated/deleted
-ij> insert into p values ('1', 1, '1', 1);
+splice> insert into p values ('1', 1, '1', 1);
 1 row inserted/updated/deleted
-ij> insert into f values (1, 1, 1), (1, 1, null);
+splice> insert into f values (1, 1, 1), (1, 1, null);
 2 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'P', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'P', 0);
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'F', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'F', 0);
 0 rows inserted/updated/deleted
-ij> insert into f values (1, 1, 1);
+splice> insert into f values (1, 1, 1);
 1 row inserted/updated/deleted
-ij> insert into f values (2, 2, 2);
+splice> insert into f values (2, 2, 2);
 ERROR 23503: INSERT on table 'F' caused a violation of foreign key constraint 'FK' for key (2,2).  The statement has been rolled back.
-ij> insert into p values ('2', 2, '2', 2);
+splice> insert into p values ('2', 2, '2', 2);
 1 row inserted/updated/deleted
-ij> insert into f values (2, 2, 2);
+splice> insert into f values (2, 2, 2);
 1 row inserted/updated/deleted
-ij> -- do consistency check on scans, etc.
+splice> -- do consistency check on scans, etc.
 values ConsistencyChecker();
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 No open scans, etc.
 4 dependencies found                                                                                        
-ij> rollback;
-ij> -- self referencing table
+splice> rollback;
+splice> -- self referencing table
 create table pf (x int not null constraint p primary key, y int constraint f references pf);
 0 rows inserted/updated/deleted
-ij> insert into pf values (1,1), (2, 2);
+splice> insert into pf values (1,1), (2, 2);
 2 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'PF', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'PF', 0);
 0 rows inserted/updated/deleted
-ij> insert into pf values (3,1), (4, 2);
+splice> insert into pf values (3,1), (4, 2);
 2 rows inserted/updated/deleted
-ij> insert into pf values (3,1);
+splice> insert into pf values (3,1);
 ERROR 23505: The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index identified by 'P' defined on 'PF'.
-ij> insert into pf values (5,6);
+splice> insert into pf values (5,6);
 ERROR 23503: INSERT on table 'PF' caused a violation of foreign key constraint 'F' for key (6).  The statement has been rolled back.
-ij> -- do consistency check on scans, etc.
+splice> -- do consistency check on scans, etc.
 values ConsistencyChecker();
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 No open scans, etc.
 4 dependencies found                                                                                        
-ij> rollback;
-ij> -- multiple indexes on same column
+splice> rollback;
+splice> -- multiple indexes on same column
 call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','4096');
 0 rows inserted/updated/deleted
-ij> create table t (i int, s varchar(1500));
+splice> create table t (i int, s varchar(1500));
 0 rows inserted/updated/deleted
-ij> create index t_s on t(s);
+splice> create index t_s on t(s);
 0 rows inserted/updated/deleted
-ij> create index t_si on t(s, i);
+splice> create index t_si on t(s, i);
 0 rows inserted/updated/deleted
-ij> insert into t values (1, '1'), (2, '2');
+splice> insert into t values (1, '1'), (2, '2');
 2 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T', 0);
 0 rows inserted/updated/deleted
-ij> select * from t;
+splice> select * from t;
 I          |S                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 1          |1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 2          |2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
-ij> -- do consistency check on scans, etc.
+splice> -- do consistency check on scans, etc.
 values ConsistencyChecker();
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 No open scans, etc.
 3 dependencies found                                                                                        
-ij> rollback;
-ij> -- verify statements get re-prepared
+splice> rollback;
+splice> -- verify statements get re-prepared
 create table t(c1 int, c2 int);
 0 rows inserted/updated/deleted
-ij> insert into t values (1, 2), (3, 4), (5, 6);
+splice> insert into t values (1, 2), (3, 4), (5, 6);
 3 rows inserted/updated/deleted
-ij> prepare p1 as 'select * from t where c2 = 4';
-ij> execute p1;
+splice> prepare p1 as 'select * from t where c2 = 4';
+splice> execute p1;
 C1         |C2         
 -----------------------
 3          |4          
-ij> prepare s as 'select * from t where c2 = 6';
-ij> execute s;
+splice> prepare s as 'select * from t where c2 = 6';
+splice> execute s;
 C1         |C2         
 -----------------------
 5          |6          
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T', 0);
 0 rows inserted/updated/deleted
-ij> execute p1;
+splice> execute p1;
 C1         |C2         
 -----------------------
 3          |4          
-ij> execute s;
+splice> execute s;
 C1         |C2         
 -----------------------
 5          |6          
-ij> remove p1;
-ij> remove s;
-ij> -- do consistency check on scans, etc.
+splice> remove p1;
+splice> remove s;
+splice> -- do consistency check on scans, etc.
 values ConsistencyChecker();
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 No open scans, etc.
 3 dependencies found                                                                                        
-ij> rollback;
-ij> -- verify that space getting reclaimed
+splice> rollback;
+splice> -- verify that space getting reclaimed
 call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','4096');
 0 rows inserted/updated/deleted
-ij> create table t(c1 int, c2 varchar(1500));
+splice> create table t(c1 int, c2 varchar(1500));
 0 rows inserted/updated/deleted
-ij> insert into t values (1,PADSTRING('1', 1500)), (2,PADSTRING('2', 1500)), (3,PADSTRING('3', 1500)), (4, PADSTRING('4', 1500)),
+splice> insert into t values (1,PADSTRING('1', 1500)), (2,PADSTRING('2', 1500)), (3,PADSTRING('3', 1500)), (4, PADSTRING('4', 1500)),
 	(5, PADSTRING('5', 1500)), (6, PADSTRING('6', 1500)), (7, PADSTRING('7', 1500)), (8, PADSTRING('8', 1500));
 8 rows inserted/updated/deleted
-ij> create table oldinfo (cname varchar(128), nap bigint);
+splice> create table oldinfo (cname varchar(128), nap bigint);
 0 rows inserted/updated/deleted
-ij> insert into oldinfo select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('T') t;
+splice> insert into oldinfo select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('T') t;
 1 row inserted/updated/deleted
-ij> delete from t where c1 in (1, 3, 5, 7);
+splice> delete from t where c1 in (1, 3, 5, 7);
 4 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T', 0);
 0 rows inserted/updated/deleted
-ij> create table newinfo (cname varchar(128), nap bigint);
+splice> create table newinfo (cname varchar(128), nap bigint);
 0 rows inserted/updated/deleted
-ij> insert into newinfo select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('T') t;
+splice> insert into newinfo select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('T') t;
 1 row inserted/updated/deleted
-ij> -- verify space reclaimed, this query should return 'compressed!'
+splice> -- verify space reclaimed, this query should return 'compressed!'
 -- if nothing is returned from this query, then the table was not compressed
 select 'compressed!' from oldinfo o, newinfo n where o.cname = n.cname and o.nap > n.nap;
 1          
 -----------
 compressed!
-ij> rollback;
-ij> -- sequential
+splice> rollback;
+splice> -- sequential
 -- no indexes
 -- empty table
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
 0 rows inserted/updated/deleted
-ij> select * from v_noindexes;
+splice> select * from v_noindexes;
 C1         |C2                            |C3     
 --------------------------------------------------
-ij> -- full table
+splice> -- full table
 insert into noindexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
 7 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
 0 rows inserted/updated/deleted
-ij> select * from v_noindexes;
+splice> select * from v_noindexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -442,13 +442,13 @@ C1         |C2                            |C3
 5          |5                             |5.50   
 6          |6                             |6.60   
 7          |7                             |7.70   
-ij> insert into noindexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
+splice> insert into noindexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
 10 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
 0 rows inserted/updated/deleted
-ij> select * from v_noindexes;
+splice> select * from v_noindexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -468,11 +468,11 @@ C1         |C2                            |C3
 14         |14                            |14.14  
 15         |15                            |15.15  
 16         |16                            |16.16  
-ij> insert into noindexes values (17, '17', 17.17), (18, '18', 18.18);
+splice> insert into noindexes values (17, '17', 17.17), (18, '18', 18.18);
 2 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
 0 rows inserted/updated/deleted
-ij> select * from v_noindexes;
+splice> select * from v_noindexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -494,29 +494,29 @@ C1         |C2                            |C3
 16         |16                            |16.16  
 17         |17                            |17.17  
 18         |18                            |18.18  
-ij> rollback;
-ij> -- 1 index
+splice> rollback;
+splice> -- 1 index
 drop index i_c2;
 0 rows inserted/updated/deleted
-ij> drop index i_c3;
+splice> drop index i_c3;
 0 rows inserted/updated/deleted
-ij> drop index i_c2c1;
+splice> drop index i_c2c1;
 0 rows inserted/updated/deleted
-ij> drop index i_c3c1;
+splice> drop index i_c3c1;
 0 rows inserted/updated/deleted
-ij> -- empty table
+splice> -- empty table
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
 0 rows inserted/updated/deleted
-ij> select * from indexes;
+splice> select * from indexes;
 C1         |C2                            |C3     
 --------------------------------------------------
-ij> -- full table
+splice> -- full table
 insert into indexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
 7 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
 0 rows inserted/updated/deleted
-ij> select * from indexes;
+splice> select * from indexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -526,13 +526,13 @@ C1         |C2                            |C3
 5          |5                             |5.50   
 6          |6                             |6.60   
 7          |7                             |7.70   
-ij> insert into indexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
+splice> insert into indexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
 10 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
 0 rows inserted/updated/deleted
-ij> select * from indexes;
+splice> select * from indexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -552,11 +552,11 @@ C1         |C2                            |C3
 14         |14                            |14.14  
 15         |15                            |15.15  
 16         |16                            |16.16  
-ij> insert into indexes values (17, '17', 17.17), (18, '18', 18.18);
+splice> insert into indexes values (17, '17', 17.17), (18, '18', 18.18);
 2 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
 0 rows inserted/updated/deleted
-ij> select * from indexes;
+splice> select * from indexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -578,21 +578,21 @@ C1         |C2                            |C3
 16         |16                            |16.16  
 17         |17                            |17.17  
 18         |18                            |18.18  
-ij> rollback;
-ij> -- multiple indexes
+splice> rollback;
+splice> -- multiple indexes
 -- empty table
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
 0 rows inserted/updated/deleted
-ij> select * from indexes;
+splice> select * from indexes;
 C1         |C2                            |C3     
 --------------------------------------------------
-ij> -- full table
+splice> -- full table
 insert into indexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
 7 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
 0 rows inserted/updated/deleted
-ij> select * from indexes;
+splice> select * from indexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -602,13 +602,13 @@ C1         |C2                            |C3
 5          |5                             |5.50   
 6          |6                             |6.60   
 7          |7                             |7.70   
-ij> insert into indexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
+splice> insert into indexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
 10 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
 0 rows inserted/updated/deleted
-ij> select * from indexes;
+splice> select * from indexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -628,11 +628,11 @@ C1         |C2                            |C3
 14         |14                            |14.14  
 15         |15                            |15.15  
 16         |16                            |16.16  
-ij> insert into indexes values (17, '17', 17.17), (18, '18', 18.18);
+splice> insert into indexes values (17, '17', 17.17), (18, '18', 18.18);
 2 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
 0 rows inserted/updated/deleted
-ij> select * from indexes;
+splice> select * from indexes;
 C1         |C2                            |C3     
 --------------------------------------------------
 1          |1                             |1.10   
@@ -654,31 +654,31 @@ C1         |C2                            |C3
 16         |16                            |16.16  
 17         |17                            |17.17  
 18         |18                            |18.18  
-ij> rollback;
-ij> --table with multiple indexes, indexes share columns
+splice> rollback;
+splice> --table with multiple indexes, indexes share columns
 --table has more than 4 rows
 -- multiple indexes on same column
 call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','4096');
 0 rows inserted/updated/deleted
-ij> create table tab (a int, b int, s varchar(1500));
+splice> create table tab (a int, b int, s varchar(1500));
 0 rows inserted/updated/deleted
-ij> create index i_a on tab(a);
+splice> create index i_a on tab(a);
 0 rows inserted/updated/deleted
-ij> create index i_s on tab(s);
+splice> create index i_s on tab(s);
 0 rows inserted/updated/deleted
-ij> create index i_ab on tab(a, b);
+splice> create index i_ab on tab(a, b);
 0 rows inserted/updated/deleted
-ij> insert into tab values (1, 1, 'abc'), (2, 2,  'bcd');
+splice> insert into tab values (1, 1, 'abc'), (2, 2,  'bcd');
 2 rows inserted/updated/deleted
-ij> insert into tab values (3, 3, 'abc'), (4, 4,  'bcd');
+splice> insert into tab values (3, 3, 'abc'), (4, 4,  'bcd');
 2 rows inserted/updated/deleted
-ij> insert into tab values (5, 5, 'abc'), (6, 6,  'bcd');
+splice> insert into tab values (5, 5, 'abc'), (6, 6,  'bcd');
 2 rows inserted/updated/deleted
-ij> insert into tab values (7, 7, 'abc'), (8, 8,  'bcd');
+splice> insert into tab values (7, 7, 'abc'), (8, 8,  'bcd');
 2 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB', 1);
 0 rows inserted/updated/deleted
-ij> select * from tab;
+splice> select * from tab;
 A          |B          |S                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 1          |1          |abc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
@@ -689,19 +689,19 @@ A          |B          |S
 6          |6          |bcd                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
 7          |7          |abc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
 8          |8          |bcd                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
-ij> -- do consistency check on scans, etc.
+splice> -- do consistency check on scans, etc.
 values ConsistencyChecker();
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 No open scans, etc.
 3 dependencies found                                                                                        
-ij> --record the number of rows
+splice> --record the number of rows
 create table oldstat(rowCount int);
 0 rows inserted/updated/deleted
-ij> insert into oldstat select count(*) from tab;
+splice> insert into oldstat select count(*) from tab;
 1 row inserted/updated/deleted
-ij> commit;
-ij> --double the size of the table
+splice> commit;
+splice> --double the size of the table
 select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
 CONGLOMERATENAME                                                                                                                |NUMALLOCATEDPAGES   
 -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -709,33 +709,33 @@ TAB                                                                             
 I_A                                                                                                                             |1                   
 I_S                                                                                                                             |1                   
 I_AB                                                                                                                            |1                   
-ij> insert into tab values (1, 1, 'abc'), (2, 2,  'bcd');
+splice> insert into tab values (1, 1, 'abc'), (2, 2,  'bcd');
 2 rows inserted/updated/deleted
-ij> insert into tab values (3, 3, 'abc'), (4, 4,  'bcd');
+splice> insert into tab values (3, 3, 'abc'), (4, 4,  'bcd');
 2 rows inserted/updated/deleted
-ij> insert into tab values (5, 5, 'abc'), (6, 6,  'bcd');
+splice> insert into tab values (5, 5, 'abc'), (6, 6,  'bcd');
 2 rows inserted/updated/deleted
-ij> insert into tab values (7, 7, 'abc'), (8, 8,  'bcd');
+splice> insert into tab values (7, 7, 'abc'), (8, 8,  'bcd');
 2 rows inserted/updated/deleted
-ij> select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
+splice> select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
 CONGLOMERATENAME                                                                                                                |NUMALLOCATEDPAGES   
 -----------------------------------------------------------------------------------------------------------------------------------------------------
 TAB                                                                                                                             |2                   
 I_A                                                                                                                             |1                   
 I_S                                                                                                                             |1                   
 I_AB                                                                                                                            |1                   
-ij> delete from tab;
+splice> delete from tab;
 16 rows inserted/updated/deleted
-ij> select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
+splice> select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
 CONGLOMERATENAME                                                                                                                |NUMALLOCATEDPAGES   
 -----------------------------------------------------------------------------------------------------------------------------------------------------
 TAB                                                                                                                             |2                   
 I_A                                                                                                                             |1                   
 I_S                                                                                                                             |1                   
 I_AB                                                                                                                            |1                   
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB', 0);
 0 rows inserted/updated/deleted
-ij> -- verify space reclaimed
+splice> -- verify space reclaimed
 select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
 CONGLOMERATENAME                                                                                                                |NUMALLOCATEDPAGES   
 -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -743,24 +743,24 @@ TAB                                                                             
 I_A                                                                                                                             |1                   
 I_S                                                                                                                             |1                   
 I_AB                                                                                                                            |1                   
-ij> -- do consistency check on scans, etc.
+splice> -- do consistency check on scans, etc.
 values  ConsistencyChecker();
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 No open scans, etc.
 3 dependencies found                                                                                        
-ij> rollback;
-ij> --record the number of rows
+splice> rollback;
+splice> --record the number of rows
 create table newstat(rowCount int);
 0 rows inserted/updated/deleted
-ij> insert into newstat select count(*) from tab;
+splice> insert into newstat select count(*) from tab;
 1 row inserted/updated/deleted
-ij> --make sure the number of rows are the same
+splice> --make sure the number of rows are the same
 select o.rowCount, n.rowCount from oldstat o, newstat n where o.rowCount = n.rowCount;
 ROWCOUNT   |ROWCOUNT   
 -----------------------
 8          |8          
-ij> --show old space usage
+splice> --show old space usage
 select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
 CONGLOMERATENAME                                                                                                                |NUMALLOCATEDPAGES   
 -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -768,9 +768,9 @@ TAB                                                                             
 I_A                                                                                                                             |1                   
 I_S                                                                                                                             |1                   
 I_AB                                                                                                                            |1                   
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB', 0);
 0 rows inserted/updated/deleted
-ij> --show new space usage
+splice> --show new space usage
 select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
 CONGLOMERATENAME                                                                                                                |NUMALLOCATEDPAGES   
 -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -778,35 +778,35 @@ TAB                                                                             
 I_A                                                                                                                             |1                   
 I_S                                                                                                                             |1                   
 I_AB                                                                                                                            |1                   
-ij> rollback;
-ij> drop table tab;
+splice> rollback;
+splice> drop table tab;
 0 rows inserted/updated/deleted
-ij> drop table oldstat;
+splice> drop table oldstat;
 0 rows inserted/updated/deleted
-ij> -- test that many levels of aborts of compress table still work
+splice> -- test that many levels of aborts of compress table still work
 call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','4096');
 0 rows inserted/updated/deleted
-ij> create table xena (a int, b int, c varchar(1000), d varchar(8000));
+splice> create table xena (a int, b int, c varchar(1000), d varchar(8000));
 0 rows inserted/updated/deleted
-ij> create index xena_idx1 on xena (a, c);
+splice> create index xena_idx1 on xena (a, c);
 0 rows inserted/updated/deleted
-ij> create unique index xena_idx2 on xena (b, c);
+splice> create unique index xena_idx2 on xena (b, c);
 0 rows inserted/updated/deleted
-ij> insert into xena values (1, 1, 'argo', 'horse');
+splice> insert into xena values (1, 1, 'argo', 'horse');
 1 row inserted/updated/deleted
-ij> insert into xena values (1, -1, 'argo', 'horse');
+splice> insert into xena values (1, -1, 'argo', 'horse');
 1 row inserted/updated/deleted
-ij> insert into xena values (2, 2, 'ares', 'god of war');
+splice> insert into xena values (2, 2, 'ares', 'god of war');
 1 row inserted/updated/deleted
-ij> insert into xena values (2, -2, 'ares', 'god of war');
+splice> insert into xena values (2, -2, 'ares', 'god of war');
 1 row inserted/updated/deleted
-ij> insert into xena values (3, 3, 'joxer', 'the mighty');
+splice> insert into xena values (3, 3, 'joxer', 'the mighty');
 1 row inserted/updated/deleted
-ij> insert into xena values (4, -4, 'gabrielle', 'side kick');
+splice> insert into xena values (4, -4, 'gabrielle', 'side kick');
 1 row inserted/updated/deleted
-ij> insert into xena values (4, 4, 'gabrielle', 'side kick');
+splice> insert into xena values (4, 4, 'gabrielle', 'side kick');
 1 row inserted/updated/deleted
-ij> select 
+splice> select 
     conglomeratename, isindex, 
     numallocatedpages, numfreepages, 
     pagesize, estimspacesaving
@@ -817,12 +817,12 @@ CONGLOMERATENAME                                                                
 XENA                                                                                                                            |0     |1                   |0                   |4096       |0                   
 XENA_IDX1                                                                                                                       |1     |1                   |0                   |4096       |0                   
 XENA_IDX2                                                                                                                       |1     |1                   |0                   |4096       |0                   
-ij> commit;
-ij> delete from xena where b = 1;
+splice> commit;
+splice> delete from xena where b = 1;
 1 row inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
 0 rows inserted/updated/deleted
-ij> select 
+splice> select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
@@ -833,11 +833,11 @@ NAME      |ALOC|FREE|EST
 XENA      |2   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-ij> create table xena2(a int);
+splice> create table xena2(a int);
 0 rows inserted/updated/deleted
-ij> delete from xena where b = 2;
+splice> delete from xena where b = 2;
 1 row inserted/updated/deleted
-ij> select 
+splice> select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
@@ -848,9 +848,9 @@ NAME      |ALOC|FREE|EST
 XENA      |2   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
 0 rows inserted/updated/deleted
-ij> select 
+splice> select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
@@ -861,11 +861,11 @@ NAME      |ALOC|FREE|EST
 XENA      |2   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-ij> create table xena3(a int);
+splice> create table xena3(a int);
 0 rows inserted/updated/deleted
-ij> delete from xena where b = 3;
+splice> delete from xena where b = 3;
 1 row inserted/updated/deleted
-ij> select 
+splice> select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
@@ -876,9 +876,9 @@ NAME      |ALOC|FREE|EST
 XENA      |2   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
 0 rows inserted/updated/deleted
-ij> select 
+splice> select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
@@ -889,11 +889,11 @@ NAME      |ALOC|FREE|EST
 XENA      |2   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-ij> create table xena4(a int);
+splice> create table xena4(a int);
 0 rows inserted/updated/deleted
-ij> delete from xena where b = 4;
+splice> delete from xena where b = 4;
 1 row inserted/updated/deleted
-ij> select 
+splice> select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
@@ -904,9 +904,9 @@ NAME      |ALOC|FREE|EST
 XENA      |2   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
 0 rows inserted/updated/deleted
-ij> select 
+splice> select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
@@ -917,15 +917,15 @@ NAME      |ALOC|FREE|EST
 XENA      |2   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-ij> create table xena5(a int);
+splice> create table xena5(a int);
 0 rows inserted/updated/deleted
-ij> rollback;
-ij> -- should all fail
+splice> rollback;
+splice> -- should all fail
 drop table xena2;
 ERROR 42Y55: 'DROP TABLE' cannot be performed on 'XENA2' because it does not exist.
-ij> drop table xena3;
+splice> drop table xena3;
 ERROR 42Y55: 'DROP TABLE' cannot be performed on 'XENA3' because it does not exist.
-ij> select a, b from xena;
+splice> select a, b from xena;
 A          |B          
 -----------------------
 1          |1          
@@ -935,15 +935,15 @@ A          |B
 3          |3          
 4          |-4         
 4          |4          
-ij> -- read every row and value in the table, including overflow pages.
+splice> -- read every row and value in the table, including overflow pages.
 insert into xena values (select a + 4, b - 4, c, d from xena);
 ERROR 42X80: VALUES clause must contain at least one element. Empty elements are not allowed. 
-ij> insert into xena values (select (a + 4, b - 4, c, d from xena);
+splice> insert into xena values (select (a + 4, b - 4, c, d from xena);
 ERROR 42X01: Syntax error: Encountered "," at line 1, column 39.
-Issue the 'help' command for general information on IJ command syntax.
+Issue the 'help' command for general information on Splice command syntax.
 Any unrecognized commands are treated as potential SQL commands and executed directly.
 Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.
-ij> select 
+splice> select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
@@ -954,10 +954,10 @@ NAME      |ALOC|FREE|EST
 XENA      |1   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-ij> -- delete all but 1 row (the sidekick)
+splice> -- delete all but 1 row (the sidekick)
 delete from xena where a <> 4 or b <> -4;
 6 rows inserted/updated/deleted
-ij> select 
+splice> select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
@@ -968,9 +968,9 @@ NAME      |ALOC|FREE|EST
 XENA      |1   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
 0 rows inserted/updated/deleted
-ij> select 
+splice> select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
@@ -981,8 +981,8 @@ NAME      |ALOC|FREE|EST
 XENA      |2   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-ij> rollback;
-ij> select a, b from xena;
+splice> rollback;
+splice> select a, b from xena;
 A          |B          
 -----------------------
 1          |1          
@@ -992,46 +992,46 @@ A          |B
 3          |3          
 4          |-4         
 4          |4          
-ij> drop table xena;
+splice> drop table xena;
 0 rows inserted/updated/deleted
-ij> -- bug 2940
+splice> -- bug 2940
 call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','4096');
 0 rows inserted/updated/deleted
-ij> create table xena (a int, b int, c varchar(1000), d varchar(8000));
+splice> create table xena (a int, b int, c varchar(1000), d varchar(8000));
 0 rows inserted/updated/deleted
-ij> insert into xena values (1, 1, 'argo', 'horse');
+splice> insert into xena values (1, 1, 'argo', 'horse');
 1 row inserted/updated/deleted
-ij> insert into xena values (2, 2, 'beta', 'mule');
+splice> insert into xena values (2, 2, 'beta', 'mule');
 1 row inserted/updated/deleted
-ij> insert into xena values (3, 3, 'comma', 'horse');
+splice> insert into xena values (3, 3, 'comma', 'horse');
 1 row inserted/updated/deleted
-ij> insert into xena values (4, 4, 'delta', 'goat');
+splice> insert into xena values (4, 4, 'delta', 'goat');
 1 row inserted/updated/deleted
-ij> insert into xena values (1, 1, 'x_argo', 'x_horse');
+splice> insert into xena values (1, 1, 'x_argo', 'x_horse');
 1 row inserted/updated/deleted
-ij> insert into xena values (2, 2, 'x_beta', 'x_mule');
+splice> insert into xena values (2, 2, 'x_beta', 'x_mule');
 1 row inserted/updated/deleted
-ij> insert into xena values (3, 3, 'x_comma', 'x_horse');
+splice> insert into xena values (3, 3, 'x_comma', 'x_horse');
 1 row inserted/updated/deleted
-ij> insert into xena values (4, 4, 'x_delta', 'x_goat');
+splice> insert into xena values (4, 4, 'x_delta', 'x_goat');
 1 row inserted/updated/deleted
-ij> autocommit off;
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> autocommit off;
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
 0 rows inserted/updated/deleted
-ij> commit;
-ij> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','4000');
+splice> commit;
+splice> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','4000');
 0 rows inserted/updated/deleted
-ij> create unique index xena1 on xena (a, c);
+splice> create unique index xena1 on xena (a, c);
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','20000');
+splice> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','20000');
 0 rows inserted/updated/deleted
-ij> create unique index xena2 on xena (a, d);
+splice> create unique index xena2 on xena (a, d);
 0 rows inserted/updated/deleted
-ij> create unique index xena3 on xena (c, d);
+splice> create unique index xena3 on xena (c, d);
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
 0 rows inserted/updated/deleted
-ij> select * from xena;
+splice> select * from xena;
 A          |B          |C                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |D                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 1          |1          |argo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |horse                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
@@ -1042,9 +1042,9 @@ A          |B          |C                                                       
 2          |2          |x_beta                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |x_mule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
 3          |3          |x_comma                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |x_horse                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
 4          |4          |x_delta                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |x_goat                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
 0 rows inserted/updated/deleted
-ij> select * from xena;
+splice> select * from xena;
 A          |B          |C                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |D                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 1          |1          |argo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |horse                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
@@ -1055,8 +1055,8 @@ A          |B          |C                                                       
 2          |2          |x_beta                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |x_mule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
 3          |3          |x_comma                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |x_horse                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
 4          |4          |x_delta                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |x_goat                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
-ij> rollback;
-ij> select 
+splice> rollback;
+splice> select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
@@ -1065,7 +1065,7 @@ ij> select
 NAME      |ALOC|FREE|EST       
 -------------------------------
 XENA      |2   |0   |0         
-ij> select schemaname, tablename, 
+splice> select schemaname, tablename, 
 SYSCS_UTIL.SYSCS_CHECK_TABLE(schemaname, tablename)
  from sys.systables a,  sys.sysschemas b where a.schemaid = b.schemaid
 order by schemaname, tablename;
@@ -1100,7 +1100,7 @@ SYS                                                                             
 SYS                                                                                                                             |SYSUSERS                                                                                                                        |1          
 SYS                                                                                                                             |SYSVIEWS                                                                                                                        |1          
 SYSIBM                                                                                                                          |SYSDUMMY1                                                                                                                       |1          
-ij> select a, b from xena;
+splice> select a, b from xena;
 A          |B          
 -----------------------
 1          |1          
@@ -1111,77 +1111,77 @@ A          |B
 2          |2          
 3          |3          
 4          |4          
-ij> -- clean up
+splice> -- clean up
 drop function padstring;
 0 rows inserted/updated/deleted
-ij> drop view v_noindexes;
+splice> drop view v_noindexes;
 0 rows inserted/updated/deleted
-ij> drop table noindexes;
+splice> drop table noindexes;
 0 rows inserted/updated/deleted
-ij> drop table indexes;
+splice> drop table indexes;
 0 rows inserted/updated/deleted
-ij> drop table oldconglom;
+splice> drop table oldconglom;
 0 rows inserted/updated/deleted
-ij> drop table newconglom;
+splice> drop table newconglom;
 0 rows inserted/updated/deleted
-ij> --test case for bug (DERBY-437)
+splice> --test case for bug (DERBY-437)
 --test compress table with reserved words as table Name/schema Name
 create schema "Group";
 0 rows inserted/updated/deleted
-ij> create table "Group"."Order"("select" int, "delete" int, itemName char(20)) ;
+splice> create table "Group"."Order"("select" int, "delete" int, itemName char(20)) ;
 0 rows inserted/updated/deleted
-ij> insert into "Group"."Order" values(1, 2, 'memory') ;
+splice> insert into "Group"."Order" values(1, 2, 'memory') ;
 1 row inserted/updated/deleted
-ij> insert into "Group"."Order" values(3, 4, 'disk') ;
+splice> insert into "Group"."Order" values(3, 4, 'disk') ;
 1 row inserted/updated/deleted
-ij> insert into "Group"."Order" values(5, 6, 'mouse') ;
+splice> insert into "Group"."Order" values(5, 6, 'mouse') ;
 1 row inserted/updated/deleted
-ij> --following compress call should fail because schema name is not matching the way it is defined using delimited quotes.
+splice> --following compress call should fail because schema name is not matching the way it is defined using delimited quotes.
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('GROUP', 'Order' , 0) ;
 ERROR 38000: The exception 'java.sql.SQLException: Schema 'GROUP' does not exist' was thrown while evaluating an expression.
 ERROR 42Y07: Schema 'GROUP' does not exist
-ij> --following compress call should fail because table name is not matching the way it is defined in the quotes.
+splice> --following compress call should fail because table name is not matching the way it is defined in the quotes.
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('Group', 'ORDER' , 0) ;
 ERROR 38000: The exception 'java.sql.SQLException: 'ALTER TABLE' cannot be performed on 'Group.ORDER' because it does not exist.' was thrown while evaluating an expression.
 ERROR 42Y55: 'ALTER TABLE' cannot be performed on 'Group.ORDER' because it does not exist.
-ij> --following compress should pass.
+splice> --following compress should pass.
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('Group', 'Order' , 0) ;
 0 rows inserted/updated/deleted
-ij> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('Group', 'Order' , 1) ;
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('Group', 'Order' , 1) ;
 0 rows inserted/updated/deleted
-ij> drop table "Group"."Order";
+splice> drop table "Group"."Order";
 0 rows inserted/updated/deleted
-ij> drop schema "Group" RESTRICT;
+splice> drop schema "Group" RESTRICT;
 0 rows inserted/updated/deleted
-ij> ---test undelimited names( All unquoted SQL identfiers should be passed in upper case). 
+splice> ---test undelimited names( All unquoted SQL identfiers should be passed in upper case). 
 create schema inventory;
 0 rows inserted/updated/deleted
-ij> create table inventory.orderTable(id int, amount int, itemName char(20)) ;
+splice> create table inventory.orderTable(id int, amount int, itemName char(20)) ;
 0 rows inserted/updated/deleted
-ij> insert into inventory.orderTable values(101, 5, 'pizza') ;
+splice> insert into inventory.orderTable values(101, 5, 'pizza') ;
 1 row inserted/updated/deleted
-ij> insert into inventory.orderTable values(102, 6, 'coke') ;
+splice> insert into inventory.orderTable values(102, 6, 'coke') ;
 1 row inserted/updated/deleted
-ij> insert into inventory.orderTable values(103, 7, 'break sticks') ;
+splice> insert into inventory.orderTable values(103, 7, 'break sticks') ;
 1 row inserted/updated/deleted
-ij> insert into inventory.orderTable values(104, 8, 'buffolo wings') ;
+splice> insert into inventory.orderTable values(104, 8, 'buffolo wings') ;
 1 row inserted/updated/deleted
-ij> --following compress should fail because schema name is not in upper case.
+splice> --following compress should fail because schema name is not in upper case.
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('inventory', 'ORDERTABLE' , 0) ;
 ERROR 38000: The exception 'java.sql.SQLException: Schema 'inventory' does not exist' was thrown while evaluating an expression.
 ERROR 42Y07: Schema 'inventory' does not exist
-ij> --following compress should fail because table name is not in upper case.
+splice> --following compress should fail because table name is not in upper case.
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('INVENTORY', 'ordertable', 0) ;
 ERROR 38000: The exception 'java.sql.SQLException: 'ALTER TABLE' cannot be performed on 'INVENTORY.ordertable' because it does not exist.' was thrown while evaluating an expression.
 ERROR 42Y55: 'ALTER TABLE' cannot be performed on 'INVENTORY.ordertable' because it does not exist.
-ij> --following compress should pass.
+splice> --following compress should pass.
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('INVENTORY', 'ORDERTABLE' , 1) ;
 0 rows inserted/updated/deleted
-ij> drop table inventory.orderTable;
+splice> drop table inventory.orderTable;
 0 rows inserted/updated/deleted
-ij> drop schema inventory RESTRICT;
+splice> drop schema inventory RESTRICT;
 0 rows inserted/updated/deleted
-ij> --end derby-437 related test cases.
+splice> --end derby-437 related test cases.
 -- test case for derby-1854 
 -- perform compress on a table that has same column 
 -- as a primary key and a foreign key.  
@@ -1190,161 +1190,161 @@ create table users (
  user_login varchar(255) not null,
  primary key (user_id));
 0 rows inserted/updated/deleted
-ij> create table admins (
+splice> create table admins (
  user_id int not null,
  primary key (user_id),
  constraint admin_uid_fk foreign key (user_id) references users (user_id));
 0 rows inserted/updated/deleted
-ij> insert into users (user_login) values('test1');
+splice> insert into users (user_login) values('test1');
 1 row inserted/updated/deleted
-ij> insert into admins values (values identity_val_local());
+splice> insert into admins values (values identity_val_local());
 1 row inserted/updated/deleted
-ij> call syscs_util.syscs_compress_table('APP', 'ADMINS', 0);
+splice> call syscs_util.syscs_compress_table('APP', 'ADMINS', 0);
 0 rows inserted/updated/deleted
-ij> -- do consistency check on the tables.
+splice> -- do consistency check on the tables.
 values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'USERS');
 1          
 -----------
 1          
-ij> values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'ADMINS');
+splice> values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'ADMINS');
 1          
 -----------
 1          
-ij> select * from admins;
+splice> select * from admins;
 USER_ID    
 -----------
 1          
-ij> select * from users;
+splice> select * from users;
 USER_ID    |USER_LOGIN                                                                                                                                                                                                                                                     
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 1          |test1                                                                                                                                                                                                                                                          
-ij> insert into users (user_login) values('test2');
+splice> insert into users (user_login) values('test2');
 1 row inserted/updated/deleted
-ij> insert into admins values (values identity_val_local());
+splice> insert into admins values (values identity_val_local());
 1 row inserted/updated/deleted
-ij> drop table admins;
+splice> drop table admins;
 0 rows inserted/updated/deleted
-ij> drop table users;
+splice> drop table users;
 0 rows inserted/updated/deleted
-ij> -- end derby-1854 test case. 
+splice> -- end derby-1854 test case. 
 -- test case for derby-737 
 -- perform compress on a table that has some indexes with no statistics
 create table derby737table1 (c1 int, c2 int);
 0 rows inserted/updated/deleted
-ij> select * from sys.sysstatistics;
+splice> select * from sys.sysstatistics;
 STATID                              |REFERENCEID                         |TABLEID                             |CREATIONTIMESTAMP            |&|VALID|COLCOUNT   |STATISTICS     
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ij> -- create index on the table when the table is empty. No statistics will be
+splice> -- create index on the table when the table is empty. No statistics will be
 --  generated for that index
 create index t1i1 on derby737table1(c1);
 0 rows inserted/updated/deleted
-ij> select * from sys.sysstatistics;
+splice> select * from sys.sysstatistics;
 STATID                              |REFERENCEID                         |TABLEID                             |CREATIONTIMESTAMP            |&|VALID|COLCOUNT   |STATISTICS     
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ij> -- the insert above will not add a row into sys.sysstatistics for index t1i1
+splice> -- the insert above will not add a row into sys.sysstatistics for index t1i1
 insert into derby737table1 values(1,1);
 1 row inserted/updated/deleted
-ij> select * from sys.sysstatistics;
+splice> select * from sys.sysstatistics;
 STATID                              |REFERENCEID                         |TABLEID                             |CREATIONTIMESTAMP            |&|VALID|COLCOUNT   |STATISTICS     
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ij> -- now compress the table and as part of the compress, Derby should generate
+splice> -- now compress the table and as part of the compress, Derby should generate
 --  statistics for all the indexes provided the table is not empty
 call syscs_util.syscs_compress_table('APP','DERBY737TABLE1',1);
 0 rows inserted/updated/deleted
-ij> -- Will find statistics for index t1i1 on derby737table1 because compress
+splice> -- Will find statistics for index t1i1 on derby737table1 because compress
 --  table created it.
 select * from sys.sysstatistics;
 STATID                              |REFERENCEID                         |TABLEID                             |CREATIONTIMESTAMP            |&|VALID|COLCOUNT   |STATISTICS     
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 xxxxFILTERED-UUIDxxxx|xxxxFILTERED-UUIDxxxx|xxxxFILTERED-UUIDxxxx|xxxxxxFILTERED-TIMESTAMPxxxxx|I|true |1          |numunique= 1 n&
-ij> drop table derby737table1;
+splice> drop table derby737table1;
 0 rows inserted/updated/deleted
-ij> -- Next Test : Make sure that drop index will drop the existing statistics 
+splice> -- Next Test : Make sure that drop index will drop the existing statistics 
 create table derby737table2 (c1 int, c2 int);
 0 rows inserted/updated/deleted
-ij> insert into derby737table2 values(1,1),(2,2);
+splice> insert into derby737table2 values(1,1),(2,2);
 2 rows inserted/updated/deleted
-ij> select * from sys.sysstatistics;
+splice> select * from sys.sysstatistics;
 STATID                              |REFERENCEID                         |TABLEID                             |CREATIONTIMESTAMP            |&|VALID|COLCOUNT   |STATISTICS     
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ij> -- since there is data in derby737table2 when index is getting created, 
+splice> -- since there is data in derby737table2 when index is getting created, 
 --   statistics will be created for that index 
 create index t2i1 on derby737table2(c1);
 0 rows inserted/updated/deleted
-ij> select * from sys.sysstatistics;
+splice> select * from sys.sysstatistics;
 STATID                              |REFERENCEID                         |TABLEID                             |CREATIONTIMESTAMP            |&|VALID|COLCOUNT   |STATISTICS     
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 xxxxFILTERED-UUIDxxxx|xxxxFILTERED-UUIDxxxx|xxxxFILTERED-UUIDxxxx|xxxxxxFILTERED-TIMESTAMPxxxxx|I|true |1          |numunique= 2 n&
-ij> -- deleting all the rows in table will not drop the index statistics
+splice> -- deleting all the rows in table will not drop the index statistics
 delete from derby737table2;
 2 rows inserted/updated/deleted
-ij> select * from sys.sysstatistics;
+splice> select * from sys.sysstatistics;
 STATID                              |REFERENCEID                         |TABLEID                             |CREATIONTIMESTAMP            |&|VALID|COLCOUNT   |STATISTICS     
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 xxxxFILTERED-UUIDxxxx|xxxxFILTERED-UUIDxxxx|xxxxFILTERED-UUIDxxxx|xxxxxxFILTERED-TIMESTAMPxxxxx|I|true |1          |numunique= 2 n&
-ij> -- dropping index will drop the index statistics, if they exist
+splice> -- dropping index will drop the index statistics, if they exist
 drop index t2i1;
 0 rows inserted/updated/deleted
-ij> select * from sys.sysstatistics;
+splice> select * from sys.sysstatistics;
 STATID                              |REFERENCEID                         |TABLEID                             |CREATIONTIMESTAMP            |&|VALID|COLCOUNT   |STATISTICS     
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ij> -- Next Test : Male sure that compress table will drop the existing statistics
+splice> -- Next Test : Male sure that compress table will drop the existing statistics
 --  and will not recreate them if the table is empty
 insert into derby737table2 values(1,1),(2,2);
 2 rows inserted/updated/deleted
-ij> select * from sys.sysstatistics;
+splice> select * from sys.sysstatistics;
 STATID                              |REFERENCEID                         |TABLEID                             |CREATIONTIMESTAMP            |&|VALID|COLCOUNT   |STATISTICS     
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ij> -- since there is data in derby737table2 when index is getting created, 
+splice> -- since there is data in derby737table2 when index is getting created, 
 --   statistics will be created for that index 
 create index t2i1 on derby737table2(c1);
 0 rows inserted/updated/deleted
-ij> select * from sys.sysstatistics;
+splice> select * from sys.sysstatistics;
 STATID                              |REFERENCEID                         |TABLEID                             |CREATIONTIMESTAMP            |&|VALID|COLCOUNT   |STATISTICS     
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 xxxxFILTERED-UUIDxxxx|xxxxFILTERED-UUIDxxxx|xxxxFILTERED-UUIDxxxx|xxxxxxFILTERED-TIMESTAMPxxxxx|I|true |1          |numunique= 2 n&
-ij> -- deleting all the rows in table will not drop the index statistics
+splice> -- deleting all the rows in table will not drop the index statistics
 delete from derby737table2;
 2 rows inserted/updated/deleted
-ij> select * from sys.sysstatistics;
+splice> select * from sys.sysstatistics;
 STATID                              |REFERENCEID                         |TABLEID                             |CREATIONTIMESTAMP            |&|VALID|COLCOUNT   |STATISTICS     
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 xxxxFILTERED-UUIDxxxx|xxxxFILTERED-UUIDxxxx|xxxxFILTERED-UUIDxxxx|xxxxxxFILTERED-TIMESTAMPxxxxx|I|true |1          |numunique= 2 n&
-ij> -- now compress the table and as part of the compress, Derby should drop
+splice> -- now compress the table and as part of the compress, Derby should drop
 --  statistics for all the indexes and should not recreate them if the
 --  user table is empty
 call syscs_util.syscs_compress_table('APP','DERBY737TABLE2',1);
 0 rows inserted/updated/deleted
-ij> select * from sys.sysstatistics;
+splice> select * from sys.sysstatistics;
 STATID                              |REFERENCEID                         |TABLEID                             |CREATIONTIMESTAMP            |&|VALID|COLCOUNT   |STATISTICS     
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ij> --end derby-737 related test cases.
+splice> --end derby-737 related test cases.
 -- DERBY-2057
 -- Use non-zero args other than 1s.
 rollback;
-ij> autocommit on;
-ij> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','4096');
+splice> autocommit on;
+splice> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','4096');
 0 rows inserted/updated/deleted
-ij> create table t1 (c1 char(254));
+splice> create table t1 (c1 char(254));
 0 rows inserted/updated/deleted
-ij> insert into t1 values 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z';
+splice> insert into t1 values 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z';
 26 rows inserted/updated/deleted
-ij> select conglomeratename, numallocatedpages, numfreepages from new org.apache.derby.diag.SpaceTable('T1') tab;
+splice> select conglomeratename, numallocatedpages, numfreepages from new org.apache.derby.diag.SpaceTable('T1') tab;
 CONGLOMERATENAME                                                                                                                |NUMALLOCATEDPAGES   |NUMFREEPAGES        
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 T1                                                                                                                              |3                   |0                   
-ij> delete from t1;
+splice> delete from t1;
 26 rows inserted/updated/deleted
-ij> -- don't check result from delete as the number of free pages is system
+splice> -- don't check result from delete as the number of free pages is system
 -- performance dependent.  It depends on how quickly post commit can run and
 -- reclaim the space, the result will not be reproducible across all platforms.
 -- select conglomeratename, numallocatedpages, numfreepages from new org.apache.derby.diag.SpaceTable('T1') tab;
 call syscs_util.syscs_inplace_compress_table('APP','T1',2,2,2);
 0 rows inserted/updated/deleted
-ij> select conglomeratename, numallocatedpages, numfreepages from new org.apache.derby.diag.SpaceTable('T1') tab;
+splice> select conglomeratename, numallocatedpages, numfreepages from new org.apache.derby.diag.SpaceTable('T1') tab;
 CONGLOMERATENAME                                                                                                                |NUMALLOCATEDPAGES   |NUMFREEPAGES        
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 T1                                                                                                                              |1                   |0                   
-ij> drop table t1;
+splice> drop table t1;
 0 rows inserted/updated/deleted
-ij> 
+splice> 

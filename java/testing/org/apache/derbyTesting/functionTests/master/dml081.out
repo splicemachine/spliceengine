@@ -1,5 +1,5 @@
-ij> AUTOCOMMIT OFF;
-ij> -- MODULE DML081  
+splice> AUTOCOMMIT OFF;
+splice> -- MODULE DML081  
 
 -- SQL Test Suite, V6.0, Interactive SQL, dml081.sql
 -- 59-byte ID
@@ -8,12 +8,12 @@ ij> -- MODULE DML081
 -- AUTHORIZATION SCHANZLE
    set schema SCHANZLE;
 0 rows inserted/updated/deleted
-ij> --O   SELECT USER FROM HU.ECCO;
+splice> --O   SELECT USER FROM HU.ECCO;
   VALUES USER;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 SCHANZLE                                                                                                                        
-ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
+splice> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 
 -- date_time print
 
@@ -48,7 +48,7 @@ E3 |P2 |20
 E4 |P2 |20    
 E4 |P4 |40    
 E4 |P5 |80    
-ij> -- PASS:0487 If count = 12?
+splice> -- PASS:0487 If count = 12?
 -- PASS:0487 OR SQLSTATE = 00000: successful completion?
 
 -- END TEST >>> 0487 <<< END TEST
@@ -63,7 +63,7 @@ ij> -- PASS:0487 If count = 12?
                              FROM HU.WORKS
                              WHERE HOURS = 80);
 ERROR 21000: Scalar subquery is only allowed to return a single row.
-ij> -- PASS:0488 If ERROR, cardinality violation, 0 rows selected? 
+splice> -- PASS:0488 If ERROR, cardinality violation, 0 rows selected? 
 -- PASS:0488 OR SQLSTATE = 21000 OR SQLCODE < 0?            
  
 -- END TEST >>> 0488 <<< END TEST
@@ -76,14 +76,14 @@ ij> -- PASS:0488 If ERROR, cardinality violation, 0 rows selected?
          WHERE EMPNUM = 'xx';
 GRADE
 -----
-ij> -- PASS:0489 If 0 rows selected?
+splice> -- PASS:0489 If 0 rows selected?
 -- PASS:0489 OR SQLSTATE = 02000: no data OR SQLCODE = 100? 
 
    DELETE FROM HU.STAFF
          WHERE GRADE = 11;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> -- PASS:0489 If 0 rows deleted?
+splice> -- PASS:0489 If 0 rows deleted?
 -- PASS:0489 OR SQLSTATE = 02000: no data OR SQLCODE = 100?
 
    INSERT INTO HU.STAFF (EMPNUM,GRADE)
@@ -91,19 +91,19 @@ ij> -- PASS:0489 If 0 rows deleted?
                FROM HU.WORKS
                WHERE PNUM = 'x9';
 0 rows inserted/updated/deleted
-ij> -- PASS:0489 If 0 rows inserted?
+splice> -- PASS:0489 If 0 rows inserted?
 -- PASS:0489 OR SQLSTATE = 02000: no data OR SQLCODE = 100?
 
    UPDATE HU.STAFF SET CITY = 'Ho'
          WHERE GRADE = 15;
 0 rows inserted/updated/deleted
 WARNING 02000: No row was found for FETCH, UPDATE or DELETE; or the result of a query is an empty table.
-ij> -- PASS:0489 If 0 rows updated?
+splice> -- PASS:0489 If 0 rows updated?
 -- PASS:0489 OR SQLSTATE = 02000: no data OR SQLCODE = 100?
 
 -- restore
    ROLLBACK WORK;
-ij> -- END TEST >>> 0489 <<< END TEST
+splice> -- END TEST >>> 0489 <<< END TEST
 -- *********************************************
 
 -- TEST:0490 SQLSTATE 22012: data exception/division by zero!
@@ -112,14 +112,14 @@ ij> -- END TEST >>> 0489 <<< END TEST
    INSERT INTO HU.STAFF
          VALUES ('E6','Fidel',0,'Havana');
 1 row inserted/updated/deleted
-ij> --O   SELECT COUNT(*) 
+splice> --O   SELECT COUNT(*) 
    SELECT * 
          FROM HU.STAFF
          WHERE EMPNAME = 'Fidel' AND 16/GRADE > 2;
 EM&|EMPNAME             |GRADE|CITY           
 ----------------------------------------------
 ERROR 22012: Attempt to divide by zero.
-ij> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows selected?
+splice> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows selected?
 -- PASS:0490 OR SQLSTATE = 22012 OR SQLCODE < 0?
 
    SELECT 16/GRADE 
@@ -128,14 +128,14 @@ ij> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows selected?
 1                                 
 ----------------------------------
 ERROR 22012: Attempt to divide by zero.
-ij> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows selected?
+splice> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows selected?
 -- PASS:0490 OR SQLSTATE = 22012 OR SQLCODE < 0?
 
    SELECT COUNT(*) 
          FROM HU.STAFF
          GROUP BY CITY HAVING SUM(GRADE/0) > 44;
 ERROR 22012: Attempt to divide by zero.
-ij> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows selected?
+splice> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows selected?
 -- PASS:0490 OR SQLSTATE = 22012 OR SQLCODE < 0?
 
 --O   SELECT COUNT(*) 
@@ -145,14 +145,14 @@ ij> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows selected?
                              FROM HU.STAFF 
                              WHERE EMPNUM = 'E6');
 ERROR 22012: Attempt to divide by zero.
-ij> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows selected?
+splice> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows selected?
 -- PASS:0490 OR SQLSTATE = 22012 OR SQLCODE < 0?
 
    UPDATE HU.STAFF 
          SET GRADE = GRADE/0 
          WHERE GRADE = 12;
 ERROR 22012: Attempt to divide by zero.
-ij> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows updated?
+splice> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows updated?
 -- PASS:0490 OR SQLSTATE = 22012 OR SQLCODE < 0?
 
    INSERT INTO HU.STAFF 
@@ -160,12 +160,12 @@ ij> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows updated?
                FROM HU.WORKS 
                WHERE PNUM = 'P6';
 ERROR 22012: Attempt to divide by zero.
-ij> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows inserted?
+splice> -- PASS:0490 If ERROR, data exception/division by zero, 0 rows inserted?
 -- PASS:0490 OR SQLSTATE = 22012 OR SQLCODE < 0?
 
 -- restore
    ROLLBACK WORK;
-ij> -- END TEST >>> 0490 <<< END TEST
+splice> -- END TEST >>> 0490 <<< END TEST
 -- *********************************************
 
 -- NO_TEST:0502 SQLSTATE 24000: invalid cursor state!
@@ -174,4 +174,4 @@ ij> -- END TEST >>> 0490 <<< END TEST
 
 -- *************************************************////END-OF-MODULE
 ;
-ij> 
+splice> 
