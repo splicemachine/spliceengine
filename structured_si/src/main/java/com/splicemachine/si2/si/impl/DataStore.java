@@ -3,13 +3,13 @@ package com.splicemachine.si2.si.impl;
 import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.SGet;
 import com.splicemachine.si2.data.api.SRowLock;
+import com.splicemachine.si2.data.api.SScan;
 import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.api.STableReader;
 import com.splicemachine.si2.data.api.STableWriter;
 import com.splicemachine.si2.si.api.TransactionId;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 public class DataStore {
@@ -130,4 +130,11 @@ public class DataStore {
         dataLib.addKeyValueToPut(put, siFamily, tombstoneQualifier, transactionId.getId(), siNull);
     }
 
+    public void ensureSiFamilyOnGet(SGet get) {
+        dataLib.ensureFamilyOnGet(get, siFamily);
+    }
+
+    public void ensureSiFamilyOnScan(SScan scan) {
+        dataLib.ensureFamilyOnScan(scan, siFamily);
+    }
 }

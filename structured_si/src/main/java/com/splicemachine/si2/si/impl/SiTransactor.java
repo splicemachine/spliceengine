@@ -151,6 +151,8 @@ public class SiTransactor implements Transactor, ClientTransactor {
     public void preProcessGet(SGet get) throws IOException {
         setGetTimeRange(get);
         dataLib.setGetMaxVersions(get);
+        dataStore.ensureSiFamilyOnGet(get);
+
     }
 
     private void setGetTimeRange(SGet get) {
@@ -167,6 +169,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     public void preProcessScan(SScan scan) {
         dataLib.setScanTimeRange(scan, 0L, Long.MAX_VALUE);
         dataLib.setScanMaxVersions(scan);
+        dataStore.ensureSiFamilyOnScan(scan);
     }
 
     @Override

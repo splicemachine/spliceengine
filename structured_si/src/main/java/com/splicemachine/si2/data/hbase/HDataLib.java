@@ -230,6 +230,22 @@ public class HDataLib implements IHDataLib {
         get.setMaxVersions();
     }
 
+    @Override
+    public void ensureFamilyOnGet(HGet get, byte[] family) {
+        final Get hGet = get.getGet();
+        if (hGet.hasFamilies()) {
+            hGet.addFamily(family);
+        }
+    }
+
+    @Override
+    public void ensureFamilyOnScan(HScan scan, byte[] family) {
+        final Scan hScan = scan.getScan();
+        if(hScan.hasFamilies()) {
+            hScan.addFamily(family);
+        }
+    }
+
     static byte[] convertToBytes(Object value) {
         if (value instanceof String) {
             return Bytes.toBytes((String) value);

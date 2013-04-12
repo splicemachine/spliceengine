@@ -157,6 +157,11 @@ public class HDataLibAdapter implements SDataLib {
     }
 
     @Override
+    public void ensureFamilyOnGet(SGet get, Object family) {
+        dataLib.ensureFamilyOnGet((HGet) get, (byte[]) family);
+    }
+
+    @Override
     public SScan newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp) {
         return new HScan(dataLib.newScan((byte[]) startRowKey, (byte[]) endRowKey, families, columns, effectiveTimestamp));
     }
@@ -169,6 +174,11 @@ public class HDataLibAdapter implements SDataLib {
     @Override
     public void setScanMaxVersions(SScan scan) {
         dataLib.setScanMaxVersions(((HScan) scan).getScan());
+    }
+
+    @Override
+    public void ensureFamilyOnScan(SScan scan, Object family) {
+        dataLib.ensureFamilyOnScan((HScan) scan, (byte[]) family);
     }
 
     public static byte[] convertToBytes(Object value) {

@@ -110,6 +110,26 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
+    public void ensureFamilyOnGet(SGet get, Object family) {
+        ensureFamilyDirect((LGet) get, family);
+    }
+
+    @Override
+    public void ensureFamilyOnScan(SScan scan, Object family) {
+        ensureFamilyDirect((LGet) scan, family);
+    }
+
+    private void ensureFamilyDirect(LGet lGet, Object family) {
+        if (lGet.families.isEmpty() && lGet.columns.isEmpty()) {
+        } else {
+            if (lGet.families.contains(family)) {
+            } else {
+                lGet.families.add(family);
+            }
+        }
+    }
+
+    @Override
     public SScan newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp) {
         return new LGet(startRowKey, endRowKey, families, columns, effectiveTimestamp);
     }
