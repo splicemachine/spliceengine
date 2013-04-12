@@ -85,7 +85,8 @@ public class SiBrowser {
             //dumpTable("conglomerates", "16");
             //dumpTable("SYCOLUMNS_INDEX2", "161");
 
-            //dumpTable("p", "1168");
+            dumpTable("p", "1168");
+            dumpTable("p2", "1184");
         }
     }
 

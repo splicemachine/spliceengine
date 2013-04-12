@@ -202,12 +202,13 @@ public class TransactionTest extends SpliceUnitTest {
 			s.executeUpdate(format("update %s set addr='rolled back address' where num=400",this.getTableReference(TABLE_NAME_7)));
 			ResultSet rs = methodWatcher.executeQuery(format("select addr from %s where num=400",this.getTableReference(TABLE_NAME_7)));
 			if (rs.next()) {
-				Assert.assertTrue("rolled back address".equals(rs.getString(1)));
+				Assert.assertEquals("rolled back address", rs.getString(1));
 			}	
 			methodWatcher.rollback();
-			rs = methodWatcher.executeQuery(format("select addr from %s where num=400",this.getTableReference(TABLE_NAME_7)));
+			rs = methodWatcher.executeQuery(format("select num, addr from %s where num=400",this.getTableReference(TABLE_NAME_7)));
 			if (rs.next()) {
-                Assert.assertTrue(!"rolled back address".equals(rs.getString(1)));
+                Assert.assertEquals(400, rs.getInt(1));
+                Assert.assertEquals("400: 182 Second St.", rs.getString(2));
 			}	
 	}
 
