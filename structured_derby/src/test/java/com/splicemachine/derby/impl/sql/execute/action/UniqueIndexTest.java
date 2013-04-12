@@ -34,7 +34,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
 	public static final String TABLE_NAME_3 = "C";
 	public static final String TABLE_NAME_4 = "D";
 	public static final String TABLE_NAME_5 = "E";
-	public static final String TABLE_NAME_6 = "F";	
+	public static final String TABLE_NAME_6 = "F";
 	public static final String TABLE_NAME_7 = "G";
 	public static final String INDEX_11 = "IDX_A1";
 	public static final String INDEX_21 = "IDX_B1";
@@ -42,8 +42,8 @@ public class UniqueIndexTest extends SpliceUnitTest {
 	public static final String INDEX_41 = "IDX_D1";
 	public static final String INDEX_51 = "IDX_E1";
 	public static final String INDEX_61 = "IDX_F1";
-	public static final String INDEX_71 = "IDX_G1";	
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	public static final String INDEX_71 = "IDX_G1";
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME,"(name varchar(40), val int)");
@@ -52,8 +52,12 @@ public class UniqueIndexTest extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,CLASS_NAME,"(name varchar(40), val int)");
 
-	
-	@ClassRule 
+    @Override
+    public String getSchemaName() {
+        return CLASS_NAME;
+    }
+
+    @ClassRule
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher1)
@@ -107,6 +111,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
      * then perform a lookup on that same data via the index to ensure
      * that the index will find those values.
      */
+    @Ignore("Waiting for transactional DDL - bug 349")
     @Test
     public void testCanCreateIndexFromExistingData() throws Exception{
         String name = "sfines";
@@ -134,6 +139,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
      * Basically, add some data, create an index off of that, and then
      * add some more data, and check to make sure that the new data shows up as well
      */
+    @Ignore("Waiting for transactional DDL - bug 349")
     @Test
     public void testCanCreateIndexFromExistingDataAndThenAddData() throws Exception{
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_3),"sfines",2));
