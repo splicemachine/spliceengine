@@ -184,7 +184,6 @@ public class TransactionTest extends SpliceUnitTest {
 			s.execute(format("insert into %s values(100)",this.getTableReference(TABLE_NAME_6)));
 	}
 
-    @Ignore("Broken with snapshot isolation, needs investigation - bug 350")
 	@Test
 	public void testUpdateRollback() throws Exception {
 			methodWatcher.setAutoCommit(false);
