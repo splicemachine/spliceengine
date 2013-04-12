@@ -232,7 +232,7 @@ public class IndexRowToBaseRowOperationTest extends SpliceUnitTest {
 
     @Test
     public void testJoinSortAndProjectIndexedRows() throws Exception{
-        String correctSchemaName = "SYS";
+        String correctSchemaName = getSchemaName();
         PreparedStatement ps = methodWatcher.prepareStatement("select " +
                 "t.tablename,t.schemaid," +
                 "s.schemaid,s.schemaname " +
@@ -273,18 +273,19 @@ public class IndexRowToBaseRowOperationTest extends SpliceUnitTest {
 
 	@Test
 	public void testJoinAndSortIndexedRows() throws Exception{
-		String correctSchemaName = "SYS";
-		PreparedStatement ps = methodWatcher.prepareStatement("select " +
-				"t.tablename,t.schemaid," +
-				"s.schemaid,s.schemaname " +
-				"from " +
-				"sys.systables t," +
-				"sys.sysschemas s " +
-				"where " +
-				"s.schemaid = t.schemaid " +
-				"and s.schemaname = ? " +
-				"order by " +
-				"t.tablename");
+		String correctSchemaName = getSchemaName();
+        final String sql = "select " +
+                "t.tablename,t.schemaid," +
+                "s.schemaid,s.schemaname " +
+                "from " +
+                "sys.systables t," +
+                "sys.sysschemas s " +
+                "where " +
+                "s.schemaid = t.schemaid " +
+                "and s.schemaname = ? " +
+                "order by " +
+                "t.tablename";
+        PreparedStatement ps = methodWatcher.prepareStatement(sql);
 		ps.setString(1,correctSchemaName);
 		final Map<String,String> correctSort = Maps.newTreeMap();
 		List<String> results = Lists.newArrayList();
