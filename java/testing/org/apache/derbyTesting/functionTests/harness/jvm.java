@@ -341,7 +341,7 @@ public abstract class jvm {
 	 */
 	protected void setSecurityProps() throws java.io.IOException, ClassNotFoundException
 	{		
-		D = jvm.getSecurityProps(D);
+		// gd again D = jvm.getSecurityProps(D);
 		
 	}
 	

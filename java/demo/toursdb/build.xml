@@ -34,7 +34,7 @@
 
 <!-- Targets -->
 
-  <target name="toursdb" depends="compile,builddb,jarup,copyfiles"/>
+  <target name="toursdb" depends="compile,jarup,copyfiles"/>
 
   <target name="compile">
     <javac

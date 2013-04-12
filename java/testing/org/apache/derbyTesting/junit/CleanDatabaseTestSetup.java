@@ -186,8 +186,8 @@ public class CleanDatabaseTestSetup extends BaseJDBCTestSetup {
      public static void cleanDatabase(Connection conn, boolean compress) throws SQLException {
          clearProperties(conn);
          removeObjects(conn);
-         if (compress)
-             compressObjects(conn);
+         //gd if (compress)
+         //gd    compressObjects(conn);
          removeRoles(conn);
          removeUsers( conn );
      }

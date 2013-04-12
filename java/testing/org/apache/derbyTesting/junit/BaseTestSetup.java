@@ -48,10 +48,11 @@ public abstract class BaseTestSetup extends TestSetup {
         // installed
         if ( System.getSecurityManager() == null )
         {
-            if (TestConfiguration.getCurrent().defaultSecurityManagerSetup())
+  /* gd          if (TestConfiguration.getCurrent().defaultSecurityManagerSetup())
             {
                 BaseTestCase.assertSecurityManager();
             }
+  */
         }
         
         super.run(result);

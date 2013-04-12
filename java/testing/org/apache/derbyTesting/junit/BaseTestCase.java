@@ -103,10 +103,12 @@ public abstract class BaseTestCase
         // installed
         if ( System.getSecurityManager() == null )
         {
-            if (config.defaultSecurityManagerSetup())
+        	/* gd temporarily remove            
+        	 	if (config.defaultSecurityManagerSetup())
             {
                 assertSecurityManager();
             }
+            */
         }
 
         try {

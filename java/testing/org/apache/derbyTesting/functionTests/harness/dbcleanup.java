@@ -51,7 +51,7 @@ import org.apache.derby.tools.JDBCDisplayUtil;
  */
 public class dbcleanup {
 
-	static String dbURL = "jdbc:derby:wombat";
+	static String dbURL = "jdbc:derby:splice:wombat";
 	static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
 	static boolean dbIsDirty = false;
 
