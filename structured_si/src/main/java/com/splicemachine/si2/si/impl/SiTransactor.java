@@ -118,7 +118,8 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public void abort(TransactionId transactionId) throws IOException {
         TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
-        if (transaction.getEffectiveStatus().equals(TransactionStatus.ACTIVE)) {
+        if (transaction.getEffectiveStatus().equals(TransactionStatus.ACTIVE) &&
+                (transaction.status == null || (transaction.status != null && !transaction.status.equals(TransactionStatus.COMMITED))) ) {
             transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ABORT);
         }
     }

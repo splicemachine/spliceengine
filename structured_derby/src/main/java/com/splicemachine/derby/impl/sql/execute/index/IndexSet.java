@@ -12,7 +12,6 @@ import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
@@ -314,7 +313,7 @@ public class IndexSet {
             throw new IndexNotSetUpException("Unable to initialize index management for table "+ conglomId+" within a sufficient period." +
                     " Please wait a bit and try again");
         }
-        boolean autoCommitOriginally = false;
+        boolean success = false;
         try{
             connection = SpliceDriver.driver().acquireConnection();
             LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
@@ -328,59 +327,11 @@ public class IndexSet {
 	             * That's weird, there's no Table in the dictionary? Probably not good, but nothing we
 	             * can do about it, so just bail.
 	             */
-            if(td==null) return;
-            boolean isSysConglomerate = td.getSchemaDescriptor().getSchemaName().equals("SYS");
-            if(isSysConglomerate){
-                    /*
-                     * The DataDictionary and Derby metadata code management will actually deal with
-                     * constraints internally, so we don't have anything to do
-                     */
-                SpliceLogUtils.trace(LOG,"Index management for Sys table disabled, relying on external" +
-                        "index management");
-                state.set(State.NOT_MANAGED);
-                return;
+            if(td!=null) {
+                startDirect(dataDictionary, td);
             }
-
-            //get primary key constraint
-            ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
-            for(int i=0;i<constraintDescriptors.size();i++){
-                ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
-                if(cDescriptor.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
-                    localConstraint = buildPrimaryKey(cDescriptor);
-                }else{
-                    LOG.warn("Unknown Constraint on table "+ conglomId+": type = "+ cDescriptor.getConstraintText());
-                }
-            }
-
-            //get Constraints list
-            ConglomerateDescriptorList congloms = td.getConglomerateDescriptorList();
-            List<Constraint> foreignKeys = Lists.newArrayListWithExpectedSize(congloms.size());
-            List<Constraint> checkConstraints = Lists.newArrayListWithExpectedSize(congloms.size());
-
-            List<IndexManager> attachedIndices = Lists.newArrayListWithExpectedSize(congloms.size());
-            for(int i=0;i<congloms.size();i++){
-                ConglomerateDescriptor conglomDesc = (ConglomerateDescriptor) congloms.get(i);
-                if(conglomDesc.isIndex()){
-                    if(conglomDesc.getConglomerateNumber()==conglomId){
-                        //we are an index, so just map a constraint, rather than an IndexManager
-                        localConstraint = buildIndexConstraint(conglomDesc);
-                        attachedIndices.clear(); //there are no attached indices on the index htable itself
-                        foreignKeys.clear(); //there are no foreign keys to deal with on the index htable itself
-                        break;
-                    }else
-                        attachedIndices.add(buildIndex(conglomDesc));
-                }
-            }
-
-                /*
-                 * Make sure that fkConstraints is thread safe so that we can drop the constraint whenever
-                 * someone asks us to.
-                 */
-            fkConstraints = new CopyOnWriteArrayList<Constraint>(foreignKeys);
-            indices = new CopyOnWriteArraySet<IndexManager>(attachedIndices);
-
-            SpliceLogUtils.debug(LOG,"Index setup complete for table "+conglomId+", ready to run");
-            state.set(State.RUNNING);
+            connection.commit();
+            success = true;
         }catch(StandardException se){
             SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ conglomId+", aborting",se);
             state.set(State.FAILED_SETUP);
@@ -405,11 +356,69 @@ public class IndexSet {
 
             //release our connection
             try {
+                if (!success) {
+                    connection.rollback();
+                }
                 SpliceDriver.driver().closeConnection(connection);
             } catch (SQLException e) {
                 SpliceLogUtils.error(LOG, "Unable to close index connection", e);
             }
         }
+    }
+
+    private void startDirect(DataDictionary dataDictionary, TableDescriptor td) throws StandardException, IOException {
+        boolean isSysConglomerate = td.getSchemaDescriptor().getSchemaName().equals("SYS");
+        if(isSysConglomerate){
+                /*
+                 * The DataDictionary and Derby metadata code management will actually deal with
+                 * constraints internally, so we don't have anything to do
+                 */
+            SpliceLogUtils.trace(LOG, "Index management for Sys table disabled, relying on external" +
+                    "index management");
+            state.set(State.NOT_MANAGED);
+            return;
+        }
+
+        //get primary key constraint
+        ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
+        for(int i=0;i<constraintDescriptors.size();i++){
+            ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
+            if(cDescriptor.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
+                localConstraint = buildPrimaryKey(cDescriptor);
+            }else{
+                LOG.warn("Unknown Constraint on table "+ conglomId+": type = "+ cDescriptor.getConstraintText());
+            }
+        }
+
+        //get Constraints list
+        ConglomerateDescriptorList congloms = td.getConglomerateDescriptorList();
+        List<Constraint> foreignKeys = Lists.newArrayListWithExpectedSize(congloms.size());
+        List<Constraint> checkConstraints = Lists.newArrayListWithExpectedSize(congloms.size());
+
+        List<IndexManager> attachedIndices = Lists.newArrayListWithExpectedSize(congloms.size());
+        for(int i=0;i<congloms.size();i++){
+            ConglomerateDescriptor conglomDesc = (ConglomerateDescriptor) congloms.get(i);
+            if(conglomDesc.isIndex()){
+                if(conglomDesc.getConglomerateNumber()==conglomId){
+                    //we are an index, so just map a constraint, rather than an IndexManager
+                    localConstraint = buildIndexConstraint(conglomDesc);
+                    attachedIndices.clear(); //there are no attached indices on the index htable itself
+                    foreignKeys.clear(); //there are no foreign keys to deal with on the index htable itself
+                    break;
+                }else
+                    attachedIndices.add(buildIndex(conglomDesc));
+            }
+        }
+
+                /*
+                 * Make sure that fkConstraints is thread safe so that we can drop the constraint whenever
+                 * someone asks us to.
+                 */
+        fkConstraints = new CopyOnWriteArrayList<Constraint>(foreignKeys);
+        indices = new CopyOnWriteArraySet<IndexManager>(attachedIndices);
+
+        SpliceLogUtils.debug(LOG,"Index setup complete for table "+conglomId+", ready to run");
+        state.set(State.RUNNING);
     }
 
     public void shutdown() throws IOException{

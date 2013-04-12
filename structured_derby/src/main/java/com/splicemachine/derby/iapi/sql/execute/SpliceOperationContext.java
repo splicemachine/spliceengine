@@ -30,6 +30,8 @@ import org.apache.log4j.Logger;
  * Created: 1/18/13 9:18 AM
  */
 public class SpliceOperationContext {
+    static final Logger LOG = Logger.getLogger(SpliceOperationContext.class);
+
     private final GenericStorablePreparedStatement preparedStatement;
     private final HRegion region;
     private final Activation activation;

@@ -13,7 +13,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -33,15 +32,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.stats.TimeUtils;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
 
 
 public class SpliceOperationRegionScanner implements RegionScanner {
@@ -145,16 +136,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		throw new RuntimeException("Not Implemented");
 	}
 
-    public void closeAndCommit() throws IOException {
-        closeDirect(true);
-    }
-
 	@Override
 	public void close() throws IOException {
-        closeDirect(false);
-	}
-
-    private void closeDirect(boolean commit) throws IOException {
         SpliceLogUtils.trace(LOG, "close");
         boolean success = false;
         try {
@@ -163,16 +146,17 @@ public class SpliceOperationRegionScanner implements RegionScanner {
         } catch (StandardException e) {
         	SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "close direct failed", e);
         }finally{
-            if (regionScanner != null)
+            if (regionScanner != null) {
                 regionScanner.close();
+            }
             finalStats = stats.finish();
             ((SpliceBaseOperation)topOperation).nextTime +=finalStats.getTotalTime();
             SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SpliceOperationRegionScanner at "+stats.getFinishTime());
-            context.close(commit && success);
+            context.close(success);
         }
     }
 
-	@Override
+    @Override
 	public HRegionInfo getRegionInfo() {
 		SpliceLogUtils.trace(LOG,"getRegionInfo");
 		return regionScanner.getRegionInfo();

@@ -100,7 +100,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 			SpliceLogUtils.trace(LOG,"performing sink");
 			SinkStats out = spliceScanner.sink();
 			SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getSinkStats().getTotalRecords());
-			spliceScanner.closeAndCommit();
+			spliceScanner.close();
             success = true;
 			return out;
 		} catch (InterruptedException e) {

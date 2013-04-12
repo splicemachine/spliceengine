@@ -113,9 +113,6 @@ public class SpliceDriver {
         if (connection != null) {
             try {
                 if (!connection.isClosed()) {
-                    if (!connection.getAutoCommit()) {
-                        connection.rollback();
-                    }
                     connection.close();
                 }
             } finally {
