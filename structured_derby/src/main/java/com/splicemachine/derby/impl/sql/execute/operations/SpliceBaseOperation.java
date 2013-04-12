@@ -567,54 +567,36 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		throw new UnsupportedOperationException("MapRowProviders not implemented for this node: "+ this.getClass());
 	}
 
-	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
-		throw new UnsupportedOperationException("ReduceRowProviders not implemented for this node: "+ this.getClass());
-	}
-	
-	@Override
-	public void cleanup() {
-		throw new RuntimeException("Finish Not Implemented for this node " + this.getClass());														
-	}
-	
-	@Override
-	public void executeShuffle() throws StandardException {
-		long start = System.currentTimeMillis();
-		SpliceLogUtils.trace(LOG,"shuffling %s",toString());
-		List<SpliceOperation> opStack = getOperationStack();
-		SpliceLogUtils.trace(LOG, "operationStack=%s",opStack);
-		final SpliceOperation regionOperation = opStack.get(0);
-		final SpliceOperation topOperation = opStack.get(opStack.size()-1);
-		SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-		final byte[] table;
-		final Scan scan;
-		//TODO -sf- deal with situations where we don't have a scan? presumably that's only for local data, 
-		//and doesn't need shuffling, but still something to think about
-		final RowProvider rowProvider;
-		if(regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation){
-			rowProvider = regionOperation.getReduceRowProvider(topOperation,topOperation.getExecRowDefinition());
-			table = SpliceOperationCoprocessor.TEMP_TABLE;
-		}else {
-			rowProvider = regionOperation.getMapRowProvider(topOperation,topOperation.getExecRowDefinition());
-			table = rowProvider.getTableName();
-		}
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
+        throw new UnsupportedOperationException("ReduceRowProviders not implemented for this node: "+ this.getClass());
+    }
+
+    @Override
+    public void cleanup() {
+        throw new RuntimeException("Finish Not Implemented for this node " + this.getClass());
+    }
+
+    @Override
+    public void executeShuffle() throws StandardException {
+        long start = System.currentTimeMillis();
+        SpliceLogUtils.trace(LOG,"shuffling %s",toString());
+        List<SpliceOperation> opStack = getOperationStack();
+        SpliceLogUtils.trace(LOG, "operationStack=%s",opStack);
+        final SpliceOperation regionOperation = opStack.get(0);
+        final SpliceOperation topOperation = opStack.get(opStack.size()-1);
+        SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
+        final RowProvider rowProvider;
+        if(regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation){
+            rowProvider = regionOperation.getReduceRowProvider(topOperation,topOperation.getExecRowDefinition());
+        }else {
+            rowProvider = regionOperation.getMapRowProvider(topOperation,topOperation.getExecRowDefinition());
+        }
 
         nextTime+= System.currentTimeMillis()-start;
-        HTableInterface htable = null;
-        try{
-
-            SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),topOperation);
-            JobStats stats = rowProvider.shuffleRows(soi);
-            JobStatsUtils.logStats(stats,LOG);
-        }finally{
-            if(htable!=null){
-                try {
-                    htable.close();
-                } catch (IOException e) {
-                    SpliceLogUtils.logAndThrow(LOG,Exceptions.parseException(e));
-                }
-            }
-        }
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),topOperation);
+        JobStats stats = rowProvider.shuffleRows(soi);
+        JobStatsUtils.logStats(stats,LOG);
 
 //		scan = rowProvider.toScan();
 //		nextTime += System.currentTimeMillis() - start;

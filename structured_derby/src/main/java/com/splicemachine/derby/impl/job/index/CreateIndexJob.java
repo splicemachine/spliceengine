@@ -50,6 +50,6 @@ public class CreateIndexJob implements CoprocessorJob{
 
     @Override
     public String getJobId() {
-        return "indexJob-"+transactionId;
+        return "indexJob-"+transactionId.substring(transactionId.lastIndexOf('/')+1);
     }
 }

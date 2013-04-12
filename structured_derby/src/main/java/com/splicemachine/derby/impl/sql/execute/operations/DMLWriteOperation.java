@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -9,6 +10,8 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.job.JobStats;
+import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;
@@ -17,6 +20,7 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -28,6 +32,7 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -158,9 +163,38 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		 */
 		return new SpliceNoPutResultSet(activation,this,modifiedProvider,false);
 	}
-	
-	
-	@Override
+
+
+    @Override
+    public void executeShuffle() throws StandardException {
+        long start = System.currentTimeMillis();
+        SpliceLogUtils.trace(LOG,"shuffling %s",toString());
+        List<SpliceOperation> opStack = getOperationStack();
+        SpliceLogUtils.trace(LOG, "operationStack=%s",opStack);
+        final SpliceOperation regionOperation = opStack.get(0);
+        final SpliceOperation topOperation = opStack.get(opStack.size()-1);
+        SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
+        final RowProvider rowProvider;
+        if(regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation){
+            rowProvider = regionOperation.getReduceRowProvider(topOperation,topOperation.getExecRowDefinition());
+        }else {
+            rowProvider = regionOperation.getMapRowProvider(topOperation,topOperation.getExecRowDefinition());
+        }
+
+        nextTime+= System.currentTimeMillis()-start;
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),topOperation);
+        JobStats jobStats = rowProvider.shuffleRows(soi);
+        JobStatsUtils.logStats(jobStats, LOG);
+        Map<String,TaskStats> taskStats = jobStats.getTaskStats();
+        long rowsModified = 0;
+        for(String taskId:taskStats.keySet()){
+            TaskStats stats = taskStats.get(taskId);
+            rowsModified+=stats.getWriteStats().getTotalRecords();
+        }
+        modifiedProvider.rowsModified+=rowsModified;
+    }
+
+    @Override
 	public void open() throws StandardException {
 		SpliceLogUtils.trace(LOG,"Open");
 		super.open();
@@ -188,7 +222,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         return fbt;
     }
 
-	private final RowProvider modifiedProvider = new SingleScanRowProvider(){
+    private final ModifiedRowProvider modifiedProvider = new ModifiedRowProvider();
+
+    private class ModifiedRowProvider extends SingleScanRowProvider{
 		private long rowsModified=0;
 		@Override public boolean hasNext() { return false; }
 
@@ -196,6 +232,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
 		@Override public void remove() { throw new UnsupportedOperationException(); }
 
+        public void setRowsModified(long rowsModified){
+            this.rowsModified = rowsModified;
+        }
 		@Override
 		public void open()  {
 			SpliceLogUtils.trace(LOG, "open");

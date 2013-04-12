@@ -29,7 +29,7 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/5/13
  */
 public class CreateIndexTask extends ZooKeeperTask {
-    private static final long serialVersionUID = 1l;
+    private static final long serialVersionUID = 2l;
     private String transactionId;
     private long indexConglomId;
     private long baseConglomId;
@@ -67,6 +67,7 @@ public class CreateIndexTask extends ZooKeeperTask {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
         out.writeUTF(transactionId);
         out.writeLong(indexConglomId);
         out.writeLong(baseConglomId);
@@ -76,6 +77,7 @@ public class CreateIndexTask extends ZooKeeperTask {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
         transactionId = in.readUTF();
         indexConglomId = in.readLong();
         baseConglomId = in.readLong();

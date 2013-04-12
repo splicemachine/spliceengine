@@ -186,26 +186,15 @@ public class UnionOperation extends SpliceBaseOperation {
 		RowProvider provider = regionOperation.getMapRowProvider(topOperation,regionOperation.getExecRowDefinition());
         nextTime += System.currentTimeMillis() - start;
 
-		HTableInterface htable = null;
-		try{
-			final RegionStats stats = new RegionStats("UnionOperation's "+regionOperation.getClass().getName());
-            stats.start();
-            
-			long numberCreated = 0;
-			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,topOperation);
-            JobStats jobStats = provider.shuffleRows(soi);
-            JobStatsUtils.logStats(jobStats,LOG);
-			executed = true;
-		}finally{
-			if (htable != null){
-				try {
-					htable.close();
-				}catch(IOException e){
-					SpliceLogUtils.logAndThrow(LOG,"Unable to close HBase table",StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
-				}
-			}
-		}
-	}
+        final RegionStats stats = new RegionStats("UnionOperation's "+regionOperation.getClass().getName());
+        stats.start();
+
+        long numberCreated = 0;
+        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,topOperation);
+        JobStats jobStats = provider.shuffleRows(soi);
+        JobStatsUtils.logStats(jobStats,LOG);
+        executed = true;
+    }
 
 	@Override
 	public void close() throws StandardException {
@@ -278,7 +267,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	@Override
 	public ExecRow	getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowCore, whichSource=%s,regionScanner=%s,isScan=%b",whichSource,regionScanner,isScan);
-		return isScan? getNextRowFromScan() : getNextRowFromSources();
+		return isScan? getNextRowFromScan() : getNextRowFromSources(true);
 	}
 
 	private ExecRow getNextRowFromScan() throws StandardException {
@@ -307,7 +296,7 @@ public class UnionOperation extends SpliceBaseOperation {
 		return currentRow;
 	}
 	
-	protected ExecRow	getNextRowFromSources() throws StandardException {
+	protected ExecRow	getNextRowFromSources(boolean bothSources) throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowFromSources, whichSource="+whichSource+",source1="+source1+",source2="+source2);
 	    ExecRow result = null;
 	    //if (isOpen) {
@@ -316,15 +305,17 @@ public class UnionOperation extends SpliceBaseOperation {
 	            		SpliceLogUtils.trace(LOG, "getNextRowFromSources,result from source 1="+result);
 	                     if ( result == (ExecRow) null ) {
 	                        source1.close();
-	                        whichSource = 2;
-	                        SpliceLogUtils.trace(LOG, "getNextRowFromSources, open source 2 since result from source 1 is null");
-	                        source2.openCore();
-	                        SpliceLogUtils.trace(LOG, "getNextRowFromSources, getNextRowCore from source 2");
-	                        result = source2.getNextRowCore();
-							if (result != null) {
-								SpliceLogUtils.trace(LOG, "UnionOperation from source 1 to source 2, getNextRowFromSources="+result);
-								rowsSeenRight++;
-							}
+                             if(bothSources){
+                                 whichSource = 2;
+                                 SpliceLogUtils.trace(LOG, "getNextRowFromSources, open source 2 since result from source 1 is null");
+                                 source2.openCore();
+                                 SpliceLogUtils.trace(LOG, "getNextRowFromSources, getNextRowCore from source 2");
+                                 result = source2.getNextRowCore();
+                                 if (result != null) {
+                                     SpliceLogUtils.trace(LOG, "UnionOperation from source 1 to source 2, getNextRowFromSources="+result);
+                                     rowsSeenRight++;
+                                 }
+                             }
 	                     } else {
 	                    	 SpliceLogUtils.trace(LOG, "UnionOperation getNextRowFromSources from source 1="+result);
 							 rowsSeenLeft++;
@@ -368,7 +359,7 @@ public class UnionOperation extends SpliceBaseOperation {
             Serializer serializer= new Serializer();
             do{
                 long start = System.nanoTime();
-                row = getNextRowFromSources();
+                row = getNextRowFromSources(false);
                 if(row==null) continue;
                 stats.readAccumulator().tick(System.nanoTime()-start);
 

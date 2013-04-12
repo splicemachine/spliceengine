@@ -222,7 +222,9 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                             changedFuture.complete(); //will throw an ExecutionException immediately
                             break;
                         case COMPLETED:
-                            this.stats.taskStatsMap.put(changedFuture.getTaskId(),changedFuture.getTaskStats());
+                            TaskStats stats = changedFuture.getTaskStats();
+                            if(stats!=null)
+                                this.stats.taskStatsMap.put(changedFuture.getTaskId(),stats);
                             completedFutures.add(changedFuture); //found the next completed task
                             return;
                         case CANCELLED:
