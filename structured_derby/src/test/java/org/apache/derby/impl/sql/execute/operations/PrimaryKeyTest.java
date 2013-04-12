@@ -94,7 +94,7 @@ public class PrimaryKeyTest extends SpliceUnitTest {
     }
 
     @Test
-    public void canUpdatePrimaryKeyCorrectly() throws Exception{
+    public void updateKeyColumn() throws Exception{
         PreparedStatement updateStatement = methodWatcher.prepareStatement(UPDATE_NAME_BY_NAME);
         updateStatement.setString(1,"jzhang");
         updateStatement.setString(2,"jleach");
@@ -118,11 +118,11 @@ public class PrimaryKeyTest extends SpliceUnitTest {
     }
 
     @Test
-    public void canUpdateNonPrimaryKeyCorrectly() throws Exception{
+    public void updateNonKeyColumn() throws Exception{
         PreparedStatement updateStatement = methodWatcher.prepareStatement(UPDATE_VALUE_BY_NAME);
         updateStatement.setInt(1,20);
         updateStatement.setString(2,"mzweben");
-        updateStatement.executeUpdate();
+        Assert.assertEquals(1, updateStatement.executeUpdate());
 
         PreparedStatement validator = methodWatcher.prepareStatement(SELECT_BY_NAME);
         validator.setString(1,"mzweben");
