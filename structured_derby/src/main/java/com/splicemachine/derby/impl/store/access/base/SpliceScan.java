@@ -396,9 +396,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 			LOG.trace("replace values for these valid Columns " + validColumns);
 		try {
 			table.put(Puts.buildInsert(currentRowLocation.getBytes(), row, validColumns, transID));
-			if (validColumns != null)
-				SpliceUtils.doCleanupNullsDelete(table, new HBaseRowLocation(currentResult.getRow()), row, validColumns, transID); // Might be faster to cycle through the result
-			return true;			
+			return true;
 		} catch (Exception e) {
 			throw StandardException.newException("Error during replace " + e);
 		}

@@ -159,11 +159,7 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 		if (LOG.isTraceEnabled())
 			LOG.trace("boot with properties " + properties);
         ITransactionManagerFactory iTransactionManagerFactory;
-        if (SpliceUtils.useSi) {
-            iTransactionManagerFactory = new TransactionManagerFactory();
-        } else {
-            iTransactionManagerFactory = new ZkTransactionManagerFactory();
-        }
+        iTransactionManagerFactory = new TransactionManagerFactory();
         transactionFactory = new SpliceTransactionFactory(iTransactionManagerFactory);
 		transactionFactory.boot(create, properties);
 	}

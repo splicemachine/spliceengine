@@ -62,7 +62,6 @@ import java.util.Properties;
 public class SpliceUtils {
 	private static Logger LOG = Logger.getLogger(SpliceUtils.class);
 
-    public static final boolean useSi = true;
     public static final String NA_TRANSACTION_ID = "NA_TRANSACTION_ID";
     private static final String SI_EXEMPT = "si-exempt";
 
@@ -268,10 +267,8 @@ public class SpliceUtils {
     public static boolean isDelete(Mutation mutation) {
         if(mutation instanceof Delete) {
             return true;
-        } else if (useSi) {
-            return TransactorFactory.getDefaultClientTransactor().isDeletePut(mutation);
         } else {
-            return false;
+            return TransactorFactory.getDefaultClientTransactor().isDeletePut(mutation);
         }
     }
 
@@ -301,33 +298,6 @@ public class SpliceUtils {
             }
         }
     }
-
-    public static void doCleanupNullsDelete(HTableInterface table, RowLocation loc,DataValueDescriptor[] destRow,
-                                              FormatableBitSet validColumns, String transID)
-            throws StandardException, IOException {
-        if (useSi) {
-            // handle this in the put
-        } else {
-            table.delete(cleanupNullsDelete(loc, destRow, validColumns, transID));
-        }
-    }
-
-    private static Delete cleanupNullsDelete(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns,
-                                             String transID) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("cleanupNullsDelete row ");
-		try {
-            Delete delete = Mutations.createDelete(transID, loc.getBytes());
-			int numrows = (validColumns != null ? validColumns.getLength() : destRow.length);  // bug 118
-			for (int i = 0; i < numrows; i++) {
-				if (validColumns.isSet(i) && destRow[i] != null && destRow[i].isNull())
-					delete.deleteColumn(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes());
-			}
-			return delete;
-		} catch (Exception e) {
-			throw new RuntimeException(e.getMessage(), e);
-		}
-	}
 
 	public static void populate(Result currentResult, DataValueDescriptor[] destRow) throws StandardException {
 		SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",currentResult.raw().length,destRow.length);
@@ -637,9 +607,7 @@ public class SpliceUtils {
 				HBaseConstants.DEFAULT_BLOCKCACHE,
 				HBaseConstants.DEFAULT_TTL,
 				HBaseConstants.DEFAULT_BLOOMFILTER));
-        if (useSi) {
-            desc.addFamily(TransactionTableCreator.createTransactionFamily());
-        }
+        desc.addFamily(TransactionTableCreator.createTransactionFamily());
         return desc;
 	}
 
@@ -667,11 +635,7 @@ public class SpliceUtils {
 	}
 
     private static ITransactionGetsPuts getTransactionGetsPuts() {
-        if (useSi) {
-            return new SiGetsPuts(TransactorFactory.getDefaultClientTransactor());
-        } else {
-            return new ZkTransactionGetsPuts();
-        }
+        return new SiGetsPuts(TransactorFactory.getDefaultClientTransactor());
     }
 
 	public static byte[] getUniqueKey(){

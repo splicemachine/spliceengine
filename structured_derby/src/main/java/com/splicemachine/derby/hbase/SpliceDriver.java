@@ -105,7 +105,7 @@ public class SpliceDriver {
     public Connection acquireConnection() throws SQLException, InterruptedException {
         //final Connection connection = embeddedConnections.acquire();
         final Connection connection = new EmbedConnectionMaker().createNew();
-        connection.setAutoCommit(!SpliceUtils.useSi);
+        connection.setAutoCommit(false);
         return connection;
     }
 

@@ -52,22 +52,11 @@ public class Mutations {
      * @throws IOException if something goes wrong.
      */
     public static Mutation getDeleteOp(String transactionId, byte[] row) throws IOException{
-        if(SpliceUtils.useSi){
-            return SpliceUtils.createDeletePut(transactionId, row);
-        }else{
-            Delete delete = new Delete(row);
-            if(transactionId!=null)
-                delete.setAttribute(TxnConstants.TRANSACTION_ID,transactionId.getBytes());
-            return delete;
-        }
+        return SpliceUtils.createDeletePut(transactionId, row);
     }
 
     public static Mutation getDeleteOp(Mutation mutation, byte[] row) throws IOException{
-        if (SpliceUtils.useSi) {
-            return SpliceUtils.createDeletePut(mutation, row);
-        } else {
-            return getDeleteOp(SpliceUtils.getTransactionId(mutation), row);
-        }
+        return SpliceUtils.createDeletePut(mutation, row);
     }
 
     /**

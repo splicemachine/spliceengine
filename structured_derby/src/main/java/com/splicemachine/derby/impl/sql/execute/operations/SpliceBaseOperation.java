@@ -57,8 +57,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	
 	protected Activation activation;
 	protected int resultSetNumber;
-    private Transaction originalTransaction;
-    private String originalTransactionId;
     private String transactionID;
 	protected boolean isTopResultSet = false;
 	protected String uniqueSequenceID;
@@ -104,10 +102,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		this.optimizerEstimatedRowCount = optimizerEstimatedRowCount;
 		this.activation = activation;
 		this.resultSetNumber = resultSetNumber;
-        if (!SpliceUtils.useSi) {
-            this.originalTransaction = (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
-            this.originalTransactionId = (originalTransaction == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
-        }
 		sequence = new DataValueDescriptor[1];
 		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
 		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
@@ -137,7 +131,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		optimizerEstimatedCost = in.readDouble();
 		optimizerEstimatedRowCount = in.readDouble();
 		resultSetNumber = in.readInt();
-        originalTransactionId = readNullableString(in);
         transactionID = readNullableString(in);
         isTopResultSet = in.readBoolean();
 		uniqueSequenceID = in.readUTF();
@@ -161,7 +154,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		out.writeDouble(optimizerEstimatedCost);
 		out.writeDouble(optimizerEstimatedRowCount);		
 		out.writeInt(resultSetNumber);
-        writeNullableString(originalTransactionId, out);
         writeNullableString(getTransactionID(), out);
 		out.writeBoolean(isTopResultSet);
 		out.writeUTF(uniqueSequenceID);
@@ -893,30 +885,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
     protected Transaction getTrans() {
-        if (SpliceUtils.useSi) {
-            return (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
-        } else {
-            return originalTransaction;
-        }
+        return (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
     }
 
     protected String getTransactionID() {
-        if (SpliceUtils.useSi) {
-            if (activation == null) {
-                return transactionID;
-            } else {
-                return (getTrans() == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
-            }
+        if (activation == null) {
+            return transactionID;
         } else {
-            return originalTransactionId;
-        }
-    }
-
-    protected void setOriginalTransactionId(String id) {
-        if (SpliceUtils.useSi) {
-            throw new RuntimeException("originalTransactionId is no longer used in SI mode");
-        } else {
-            this.originalTransactionId = id;
+            return (getTrans() == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
         }
     }
 }

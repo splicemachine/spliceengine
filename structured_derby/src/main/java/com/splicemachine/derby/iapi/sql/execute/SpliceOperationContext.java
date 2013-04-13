@@ -126,12 +126,10 @@ public class SpliceOperationContext {
         }finally{
             try {
                 getLanguageConnectionContext().popStatementContext(getLanguageConnectionContext().getStatementContext(), null);
-                if (SpliceUtils.useSi) {
-                    if (commit) {
-                        connection.commit();
-                    } else {
-                        connection.rollback();
-                    }
+                if (commit) {
+                    connection.commit();
+                } else {
+                    connection.rollback();
                 }
                 SpliceDriver.driver().closeConnection(connection);
             } catch (SQLException e) {
