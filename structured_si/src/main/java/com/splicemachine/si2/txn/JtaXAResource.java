@@ -81,15 +81,9 @@ public class JtaXAResource implements XAResource {
     @Override
     public int prepare(final Xid xid) throws XAException {
         LOG.info("prepare [" + xid.toString() + "] ");
-        TransactionId state = xidToTransactionState.get(xid);
-        try {
-            return this.transactionManager.prepareCommit(state);
-        } catch (Exception e) {
-            XAException xae = new XAException(XAException.XA_HEURRB);
-            xae.initCause(e);
-            throw xae;
-        }
+        return 0;
     }
+
     @Override
     public Xid[] recover(final int flag) throws XAException {
         return xidToTransactionState.keySet().toArray(new Xid[] { });

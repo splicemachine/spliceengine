@@ -133,7 +133,6 @@ public class SpliceTransaction implements Transaction {
         }
 			
 		try {
-			iTransactionManager.prepareCommit(this.ts);
 			iTransactionManager.doCommit(this.ts);
 			state = IDLE;
 		} catch (Exception e) {
@@ -278,12 +277,6 @@ public class SpliceTransaction implements Transaction {
 
 	public int xa_prepare() throws StandardException {
 		SpliceLogUtils.debug(LOG,"xa_prepare");
-		
-		try {
-			iTransactionManager.prepareCommit2(ZkUtils.getRecoverableZooKeeper(), this.ts);
-		} catch (Exception e) {
-			throw StandardException.newException(e.getMessage(), e);
-		}
 		return 0;
 	}
 

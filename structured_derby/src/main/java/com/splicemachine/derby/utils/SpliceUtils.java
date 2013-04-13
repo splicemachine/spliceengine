@@ -3,20 +3,18 @@ package com.splicemachine.derby.utils;
 import com.google.gson.Gson;
 import com.splicemachine.SpliceConfiguration;
 import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.ITransactionGetsPuts;
 import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.hbase.txn.ZkTransactionGetsPuts;
 import com.splicemachine.si.utils.SIConstants;
+import com.splicemachine.si2.data.hbase.HGet;
+import com.splicemachine.si2.data.hbase.HScan;
 import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.si.api.ClientTransactor;
-import com.splicemachine.si2.txn.SiGetsPuts;
 import com.splicemachine.si2.txn.TransactionTableCreator;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -239,14 +237,15 @@ public class SpliceUtils {
         if (txnId.equals(NA_TRANSACTION_ID)) {
             op.setAttribute(SI_EXEMPT, Bytes.toBytes(true));
         } else {
-            if (op instanceof Get)
-                getTransactionGetsPuts().prepGet(txnId, (Get) op);
-            else if (op instanceof Put)
-                getTransactionGetsPuts().prepPut(txnId, (Put) op);
-            else if (op instanceof Delete)
-                getTransactionGetsPuts().prepDelete(txnId, (Delete) op);
-            else
-                getTransactionGetsPuts().prepScan(txnId, (Scan) op);
+            if (op instanceof Get) {
+                getTransactionGetsPuts().initializeGet(txnId, new HGet((Get) op));
+            } else if (op instanceof Put) {
+                getTransactionGetsPuts().initializePut(txnId, op);
+            } else if (op instanceof Delete) {
+                throw new RuntimeException("Direct deleted not supported, expected to use delete put");
+            } else {
+                getTransactionGetsPuts().initializeScan(txnId, new HScan((Scan)op));
+            }
         }
         return op;
     }
@@ -284,9 +283,9 @@ public class SpliceUtils {
             return NA_TRANSACTION_ID;
         }
         if(mutation instanceof Put)
-            return getTransactionGetsPuts().getTransactionIdForPut((Put)mutation);
+            return getTransactionGetsPuts().getTransactionIdFromPut(mutation).getTransactionID();
         else
-            return getTransactionGetsPuts().getTransactionIdForDelete((Delete)mutation);
+            return getTransactionGetsPuts().getTransactionIdFromDelete((Delete)mutation).getTransactionID();
     }
 
     public static void handleNullsInUpdate(Put put, DataValueDescriptor[] row, FormatableBitSet validColumns) {
@@ -634,8 +633,8 @@ public class SpliceUtils {
 		return transID;
 	}
 
-    private static ITransactionGetsPuts getTransactionGetsPuts() {
-        return new SiGetsPuts(TransactorFactory.getDefaultClientTransactor());
+    private static ClientTransactor getTransactionGetsPuts() {
+        return TransactorFactory.getDefaultClientTransactor();
     }
 
 	public static byte[] getUniqueKey(){

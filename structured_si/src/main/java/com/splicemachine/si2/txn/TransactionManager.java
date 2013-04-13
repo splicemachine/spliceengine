@@ -46,16 +46,6 @@ public class TransactionManager implements ITransactionManager {
         }
     }
 
-    public int prepareCommit(final ITransactionState transaction) throws KeeperException, InterruptedException, IOException {
-        SpliceLogUtils.trace(LOG, "prepareCommit %s", transaction);
-        return 0;
-    }
-
-    @Override
-    public void prepareCommit2(Object bonus, ITransactionState transaction) throws KeeperException, InterruptedException, IOException {
-        prepareCommit(transaction);
-    }
-
     public void doCommit(final ITransactionState transaction) throws KeeperException, InterruptedException, IOException {
         SpliceLogUtils.trace(LOG, "doCommit %s", transaction);
         transactor.commit((TransactionId) transaction);
@@ -63,7 +53,6 @@ public class TransactionManager implements ITransactionManager {
 
     public void tryCommit(final ITransactionState transaction) throws IOException, KeeperException, InterruptedException {
         SpliceLogUtils.trace(LOG, "tryCommit %s", transaction);
-        prepareCommit(transaction);
         doCommit(transaction);
     }
 

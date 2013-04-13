@@ -4,10 +4,7 @@ package com.splicemachine.derby.impl.store.access;
 
 import java.util.Properties;
 
-import com.splicemachine.constants.ITransactionManager;
 import com.splicemachine.constants.ITransactionManagerFactory;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.txn.TransactionManagerFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;

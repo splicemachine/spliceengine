@@ -51,16 +51,6 @@ public class TransactionManagerTest {
     }
 
     @Test
-    public void prepareCommitTest() throws Exception {
-        TransactionId transactionId = tm.beginTransaction(true, false, false, null);
-        tm.prepareCommit(transactionId);
-        Assert.assertNotNull(transactionId);
-        TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
-        Assert.assertTrue(transaction.beginTimestamp >= 0);
-        Assert.assertEquals(TransactionStatus.ACTIVE, transaction.status);
-    }
-
-    @Test
     public void doCommitTest() throws Exception {
         TransactionId transactionId = tm.beginTransaction(true, false, false, null);
         tm.doCommit(transactionId);

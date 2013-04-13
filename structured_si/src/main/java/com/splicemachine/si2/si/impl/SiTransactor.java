@@ -18,8 +18,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 
 public class SiTransactor implements Transactor, ClientTransactor {
@@ -131,20 +129,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public void initializeGet(TransactionId transactionId, SGet get) throws IOException {
-        initializeGetDirect(transactionId, get);
-    }
-
-    @Override
-    public void initializeGets(TransactionId transactionId, List gets) throws IOException {
-        for (Object get : gets) {
-            initializeGetDirect(transactionId, (SGet) get);
-        }
-    }
-
-    private void initializeGetDirect(TransactionId transactionId, SGet get) {
+    public void initializeGet(String transactionId, SGet get) throws IOException {
         dataStore.setSiNeededAttribute(get);
-        dataStore.setTransactionId((SiTransactionId) transactionId, get);
+        dataStore.setTransactionId((SiTransactionId) transactionIdFromString(transactionId), get);
     }
 
     @Override
@@ -160,9 +147,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public void initializeScan(TransactionId transactionId, SScan scan) {
+    public void initializeScan(String transactionId, SScan scan) {
         dataStore.setSiNeededAttribute(scan);
-        dataStore.setTransactionId((SiTransactionId) transactionId, scan);
+        dataStore.setTransactionId((SiTransactionId) transactionIdFromString(transactionId), scan);
     }
 
     @Override
@@ -173,9 +160,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public void initializePut(TransactionId transactionId, Object put) {
+    public void initializePut(String transactionId, Object put) {
         dataStore.setSiNeededAttribute(put);
-        dataStore.setTransactionId((SiTransactionId) transactionId, put);
+        dataStore.setTransactionId((SiTransactionId) transactionIdFromString(transactionId), put);
     }
 
     @Override
@@ -198,7 +185,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     public Object newDeletePut(TransactionId transactionId, Object rowKey) {
         SiTransactionId siTransactionId = (SiTransactionId) transactionId;
         final Object deletePut = dataLib.newPut(rowKey);
-        initializePut(siTransactionId, deletePut);
+        initializePut(siTransactionId.getTransactionID(), deletePut);
         dataStore.setTombstoneOnPut(deletePut, siTransactionId);
         dataStore.setDeletePutAttribute(deletePut);
         return deletePut;

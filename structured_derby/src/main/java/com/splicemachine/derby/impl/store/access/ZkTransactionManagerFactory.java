@@ -7,6 +7,7 @@ import com.splicemachine.constants.ITransactionManagerFactory;
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.ZkUtils;
+import com.splicemachine.hbase.txn.TransactionManager;
 import com.splicemachine.hbase.txn.ZkTransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -20,16 +21,14 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
-public class ZkTransactionManagerFactory implements ITransactionManagerFactory {
+public class ZkTransactionManagerFactory {
     private static Logger LOG = Logger.getLogger(ZkTransactionManagerFactory.class);
 
-    @Override
-    public ITransactionManager newTransactionManager(IHbaseConfigurationSource configSource) throws IOException {
+    public TransactionManager newTransactionManager(IHbaseConfigurationSource configSource) throws IOException {
         return new ZkTransactionManager(SpliceUtils.getTransactionPath(), ZkUtils.getZooKeeperWatcher(),
                 ZkUtils.getRecoverableZooKeeper());
     }
 
-    @Override
     public void init() {
         if (LOG.isDebugEnabled())
             LOG.debug("SpliceTransactionFactory initZookeeper");

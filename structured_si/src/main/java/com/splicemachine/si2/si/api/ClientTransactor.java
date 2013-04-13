@@ -16,10 +16,9 @@ public interface ClientTransactor {
     TransactionId getTransactionIdFromPut(Object put);
     TransactionId getTransactionIdFromDelete(Delete delete);
 
-    void initializeGet(TransactionId transactionId, SGet get) throws IOException;
-    void initializeGets(TransactionId transactionId, List gets) throws IOException;
-    void initializeScan(TransactionId transactionId, SScan scan);
-    void initializePut(TransactionId transactionId, Object put);
+    void initializeGet(String transactionId, SGet get) throws IOException;
+    void initializeScan(String transactionId, SScan scan);
+    void initializePut(String transactionId, Object put);
 
     /**
      * Flag put2 for the same kind of transaction treatment as put1 has.
