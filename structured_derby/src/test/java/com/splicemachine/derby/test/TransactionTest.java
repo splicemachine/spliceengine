@@ -95,7 +95,6 @@ public class TransactionTest extends SpliceUnitTest {
         This test is specifically testing for the ability to drop a table in a transaction,
         which requires transactional DDL and needs to be revisited once we support it.
      */
-    @Ignore("Waiting for transactional DDL - bug 349")
 	@Test
 	public void testCreateDrop() throws Exception {
 		methodWatcher.setAutoCommit(false);
@@ -441,7 +440,6 @@ public class TransactionTest extends SpliceUnitTest {
         Assert.assertEquals(7, j);
     }
 
-    @Ignore("Waiting for transactional DDL - bug 349")
 	@Test
 	public void testTrasactionalDDLFailedInsert() throws Exception {
 		try {
