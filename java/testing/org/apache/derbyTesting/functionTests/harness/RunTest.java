@@ -2270,7 +2270,10 @@ clp.list(System.out);
 
         if ( (classpath != null) && (classpath.length()>0) )
             jvm.setClasspath(classpath);
-
+        else  { // gd
+        	jvm.setClasspath(System.getProperty("java.class.path"));
+        }
+        
 		Vector jvmProps = new Vector();
 		if ( testType.equals("java"))
 		    addStandardTestJvmProps(jvmProps,systemHome,
