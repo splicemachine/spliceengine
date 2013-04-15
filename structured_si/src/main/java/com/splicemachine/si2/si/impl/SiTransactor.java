@@ -185,7 +185,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     public Object newDeletePut(TransactionId transactionId, Object rowKey) {
         SiTransactionId siTransactionId = (SiTransactionId) transactionId;
         final Object deletePut = dataLib.newPut(rowKey);
-        initializePut(siTransactionId.getTransactionID(), deletePut);
+        initializePut(siTransactionId.getTransactionIdString(), deletePut);
         dataStore.setTombstoneOnPut(deletePut, siTransactionId);
         dataStore.setDeletePutAttribute(deletePut);
         return deletePut;
@@ -303,7 +303,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     private TransactionStruct ensureTransactionActive(TransactionId transactionId) throws IOException {
         TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
         if (!transaction.getEffectiveStatus().equals(TransactionStatus.ACTIVE)) {
-            throw new DoNotRetryIOException("transaction is not ACTIVE: " + transactionId.getTransactionID());
+            throw new DoNotRetryIOException("transaction is not ACTIVE: " + transactionId.getTransactionIdString());
         }
         return transaction;
     }

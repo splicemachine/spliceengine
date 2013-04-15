@@ -30,7 +30,7 @@ public class SpliceTransaction implements Transaction {
 	protected CompatibilitySpace compatibilitySpace;
 	protected DataValueFactory dataValueFactory;
 	protected SpliceTransactionContext transContext;
-	private TransactionId ts;
+	private TransactionId transactionId;
 	private String transName;
 	
 	protected volatile int	state;
@@ -38,8 +38,6 @@ public class SpliceTransaction implements Transaction {
 	protected static final int	CLOSED		    = 0;
 	protected static final int	IDLE		    = 1;
 	protected static final int	ACTIVE		    = 2;
-	protected static final int	UPDATE		    = 3;
-	protected static final int	PREPARED	    = 4;
 
 	//FIXME: this is a temp workaround to integrate our existing transaction code. We need to implement the function here eventually.
 	protected Transactor transactor;
@@ -47,7 +45,6 @@ public class SpliceTransaction implements Transaction {
 	public SpliceTransaction(CompatibilitySpace compatibilitySpace,
                              DataValueFactory dataValueFactory, Transactor transactor, String transName) {
 		SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
-		//this.transFactory = transFactory;
 		this.compatibilitySpace = compatibilitySpace;
 		this.dataValueFactory = dataValueFactory;
 		this.transactor = transactor;
@@ -55,19 +52,9 @@ public class SpliceTransaction implements Transaction {
 		this.state = IDLE;
 	}
 
-	public Transactor getTransactor() {
-		SpliceLogUtils.trace(LOG,"getTransactor");
-		return transactor;
-	}
-	
 	public ContextManager getContextManager() {
 		SpliceLogUtils.debug(LOG,"getContextManager");
 		return transContext.getContextManager();
-	}
-	
-	public SpliceTransactionContext getContext() {
-		SpliceLogUtils.debug(LOG,"getContext");
-		return transContext;
 	}
 	
 	public CompatibilitySpace getCompatibilitySpace() {
@@ -75,12 +62,12 @@ public class SpliceTransaction implements Transaction {
 		return compatibilitySpace;
 	}
 	
-	public TransactionId getTransactionState() {
-		return this.ts;
+	public TransactionId getTransactionId() {
+		return this.transactionId;
 	}
 	
 	public void setTransactionState(TransactionId ts) {
-		this.ts = ts;
+		this.transactionId = ts;
 		this.state = ACTIVE;
 	}
 
@@ -121,10 +108,10 @@ public class SpliceTransaction implements Transaction {
 	}
 
 	public LogInstant commit() throws StandardException {
-		SpliceLogUtils.debug(LOG,"commit, state="+state+" for transaction "+ts.getTransactionID());
+		SpliceLogUtils.debug(LOG, "commit, state=" + state + " for transaction " + transactionId.getTransactionIdString());
 		
 		if (state == IDLE) {
-			SpliceLogUtils.debug(LOG,"The transaction is in idle state and there is nothing to commit, transID="+ts.getTransactionID());
+			SpliceLogUtils.debug(LOG, "The transaction is in idle state and there is nothing to commit, transID=" + transactionId.getTransactionIdString());
 			return null;
 		}
 		
@@ -134,7 +121,7 @@ public class SpliceTransaction implements Transaction {
         }
 			
 		try {
-			transactor.commit(this.ts);
+			transactor.commit(this.transactionId);
 			state = IDLE;
 		} catch (Exception e) {
 			throw StandardException.newException(e.getMessage(), e);
@@ -152,7 +139,7 @@ public class SpliceTransaction implements Transaction {
 		try {
 			if (state == CLOSED)
 				return;
-            transactor.abort(this.ts);
+            transactor.abort(this.transactionId);
 			state = IDLE;
 		} catch (Exception e) {
 			throw StandardException.newException(e.getMessage(), e);
@@ -165,7 +152,7 @@ public class SpliceTransaction implements Transaction {
 
 		transContext.popMe();
 		transContext = null;
-		ts = null;
+		transactionId = null;
         transactor = null;
 		state = CLOSED;
 	}
@@ -238,7 +225,7 @@ public class SpliceTransaction implements Transaction {
 	}
 
 	public boolean isIdle() {
-		SpliceLogUtils.debug(LOG,"isIdle state="+state+" for transaction "+ts.getTransactionID());						
+		SpliceLogUtils.debug(LOG, "isIdle state=" + state + " for transaction " + transactionId.getTransactionIdString());
 		return (state==IDLE);
 	}
 
@@ -289,8 +276,8 @@ public class SpliceTransaction implements Transaction {
 	public String getActiveStateTxIdString() {
 		SpliceLogUtils.debug(LOG,"getActiveStateTxIdString");
 		setActiveState(false, false, false, null);
-		if (ts!=null)
-			return ts.getTransactionID();
+		if (transactionId !=null)
+			return transactionId.getTransactionIdString();
 		else
 			return null;
 	}
@@ -338,35 +325,9 @@ public class SpliceTransaction implements Transaction {
         }
         return result;
     }
-	
-	/*public final void setActiveState(String newTransID) throws StandardException {
-		if (state == IDLE)
-		{
-			try {
-				synchronized(this)
-				{
-					//this.setTransactionState(this.getTransactor().beginTransaction2());
-					ts = new TransactionState(newTransID);
-					state = ACTIVE;
-					//justCreated = false;
-				}
-			} catch (Exception e) {
-				LOG.error(e.getMessage(), e);
-			}
-		}
-	}*/
-	
-	public final void setIdleState()  {
-		synchronized(this) {
-			state = IDLE;
-		}
-	}
-	
+
 	public int getTransactionStatus() {
 		return state;
 	}
-	
-	//public final LockFactory getLockFactory() {
-	//	return transFactory.getLockFactory();
-	//}
+
 }

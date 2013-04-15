@@ -1,6 +1,5 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
@@ -133,8 +132,7 @@ public class SpliceObserverInstructions implements Externalizable {
         SpliceTransactionManagerContext stmc = (SpliceTransactionManagerContext) contextManager.getContext(AccessFactoryGlobals.RAMXACT_CONTEXT_ID);
         final SpliceTransactionManager transactionManager = stmc.getTransactionManager();
         final SpliceTransaction transaction = (SpliceTransaction) transactionManager.getRawStoreXact();
-        final TransactionId transactionState = transaction.getTransactionState();
-        return transactionState.getTransactionID();
+        return transaction.getTransactionId().getTransactionIdString();
     }
 
     private static class ActivationContext implements Externalizable{

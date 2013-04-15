@@ -144,7 +144,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 			SpliceTransactionContext context = new SpliceTransactionContext(contextMgr, contextName, trans, abortAll, hbaseStore);
 			
 			trans.setActiveState(readOnly, nested, dependent, parentTransactionID);
-			SpliceLogUtils.debug(LOG, "transaction type="+context.getIdName()+",transactionID="+trans.getTransactionState().getTransactionID());
+			SpliceLogUtils.debug(LOG, "transaction type="+context.getIdName()+",transactionID="+trans.getTransactionId().getTransactionIdString());
 			return trans;
 		} catch (Exception e) {
 			LOG.error(e.getMessage(), e);

@@ -5,5 +5,5 @@ package com.splicemachine.si2.si.api;
  */
 public interface TransactionId {
     long getId();
-    String getTransactionID();
+    String getTransactionIdString();
 }

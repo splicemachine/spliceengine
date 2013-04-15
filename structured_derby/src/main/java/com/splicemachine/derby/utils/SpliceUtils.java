@@ -283,9 +283,9 @@ public class SpliceUtils {
             return NA_TRANSACTION_ID;
         }
         if(mutation instanceof Put)
-            return getTransactor().getTransactionIdFromPut(mutation).getTransactionID();
+            return getTransactor().getTransactionIdFromPut(mutation).getTransactionIdString();
         else
-            return getTransactor().getTransactionIdFromDelete((Delete) mutation).getTransactionID();
+            return getTransactor().getTransactionIdFromDelete((Delete) mutation).getTransactionIdString();
     }
 
     public static void handleNullsInUpdate(Put put, DataValueDescriptor[] row, FormatableBitSet validColumns) {
@@ -618,9 +618,9 @@ public class SpliceUtils {
 		if (!(trans instanceof SpliceTransaction))
 			LOG.error("We should only support SpliceTransaction!");
 
-		SpliceTransaction zt = (SpliceTransaction)trans;
-		if (zt.getTransactionState() != null && zt.getTransactionState().getTransactionID() != null)
-			return zt.getTransactionState().getTransactionID();
+		SpliceTransaction spliceTransaction = (SpliceTransaction)trans;
+		if (spliceTransaction.getTransactionId() != null && spliceTransaction.getTransactionId().getTransactionIdString() != null)
+			return spliceTransaction.getTransactionId().getTransactionIdString();
 
 		return null;
 	}

@@ -15,7 +15,7 @@ public class SiTransactionId implements TransactionId {
     }
 
     @Override
-    public String getTransactionID() {
+    public String getTransactionIdString() {
         return Long.valueOf(id).toString();
     }
 }
