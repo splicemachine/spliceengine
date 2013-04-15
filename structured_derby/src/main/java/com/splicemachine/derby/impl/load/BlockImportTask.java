@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.job.load;
+package com.splicemachine.derby.impl.load;
 
 import au.com.bytecode.opencsv.CSVParser;
 import com.google.common.collect.Lists;

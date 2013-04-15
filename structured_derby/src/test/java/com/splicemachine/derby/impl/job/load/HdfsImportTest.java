@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.job.load;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.test.DerbyTestRule;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;

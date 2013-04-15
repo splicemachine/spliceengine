@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.job.load;
+package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.utils.SpliceUtils;

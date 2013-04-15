@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.job.load;
+package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
