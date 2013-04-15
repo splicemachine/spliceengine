@@ -2,7 +2,7 @@ package com.splicemachine.test;
 
 import java.io.File;
 
-import com.splicemachine.si2.coprocessors.SIObserver;
+import com.splicemachine.si.coprocessors.SIObserver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
@@ -14,8 +14,6 @@ import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.impl.load.SpliceImportCoprocessor;
-import com.splicemachine.hbase.txn.coprocessor.region.TransactionalManagerRegionObserver;
-import com.splicemachine.hbase.txn.coprocessor.region.TransactionalRegionObserver;
 
 public class SpliceTestPlatform extends TestConstants {
 	private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(SpliceTestPlatform.class);
