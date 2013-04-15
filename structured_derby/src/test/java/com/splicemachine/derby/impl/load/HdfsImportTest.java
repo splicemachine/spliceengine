@@ -95,6 +95,7 @@ public class HdfsImportTest extends SpliceUnitTest {
             success = true;
 		} catch (Exception e) {
 			DbUtils.closeQuietly(connection);
+            throw e;
 		} finally {
             if (!success) {
                 connection.rollback();
