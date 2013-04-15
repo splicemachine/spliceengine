@@ -54,7 +54,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
 			}
 			
 			statement = connection.createStatement();
-			//statement.execute("drop schema " + schemaName + " RESTRICT");
+			statement.execute("drop schema " + schemaName + " RESTRICT");
 			connection.commit();
 		} catch (Exception e) {
 			LOG.error("error Dropping " + e.getMessage());
