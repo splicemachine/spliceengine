@@ -9,7 +9,7 @@ import com.splicemachine.si2.data.hbase.HbRegion;
 import com.splicemachine.si2.filters.SIFilter;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.txn.TransactionManagerFactory;
+import com.splicemachine.si2.txn.TransactorFactoryImpl;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
@@ -22,7 +22,6 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.io.TimeRange;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
@@ -59,7 +58,7 @@ public class SIObserver extends BaseRegionObserver {
     public void preGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get, List<KeyValue> results) throws IOException {
         SpliceLogUtils.trace(LOG, "preGet %s", get);
         if (tableEnvMatch && shouldUseSI(new HGet(get))) {
-            Transactor transactor = TransactionManagerFactory.getTransactor();
+            Transactor transactor = TransactorFactoryImpl.getTransactor();
             transactor.preProcessGet(new HGet(get));
             assert (get.getMaxVersions() == Integer.MAX_VALUE);
             addSiFilterToGet(e, get);
@@ -76,7 +75,7 @@ public class SIObserver extends BaseRegionObserver {
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan, RegionScanner s) throws IOException {
         SpliceLogUtils.trace(LOG, "preScannerOpen %s", scan);
         if (tableEnvMatch && shouldUseSI(new HScan(scan))) {
-            Transactor transactor = TransactionManagerFactory.getTransactor();
+            Transactor transactor = TransactorFactoryImpl.getTransactor();
             transactor.preProcessScan(new HScan(scan));
             assert (scan.getMaxVersions() == Integer.MAX_VALUE);
             addSiFilterToScan(e, scan);
@@ -85,24 +84,24 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     private boolean shouldUseSI(Object operation) {
-        Transactor transactor = TransactionManagerFactory.getTransactor();
+        Transactor transactor = TransactorFactoryImpl.getTransactor();
         return transactor.isFilterNeeded(operation);
     }
 
     private void addSiFilterToGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get) throws IOException {
-        Transactor transactor = TransactionManagerFactory.getTransactor();
+        Transactor transactor = TransactorFactoryImpl.getTransactor();
         Filter newFilter = makeSiFilter(e, transactor.getTransactionIdFromGet(new HGet(get)), get.getFilter());
         get.setFilter(newFilter);
     }
 
     private void addSiFilterToScan(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan) throws IOException {
-        Transactor transactor = TransactionManagerFactory.getTransactor();
+        Transactor transactor = TransactorFactoryImpl.getTransactor();
         Filter newFilter = makeSiFilter(e, transactor.getTransactionIdFromScan(new HScan(scan)), scan.getFilter());
         scan.setFilter(newFilter);
     }
 
     private Filter makeSiFilter(ObserverContext<RegionCoprocessorEnvironment> e, TransactionId transactionId, Filter currentFilter) throws IOException {
-        Transactor transactor = TransactionManagerFactory.getTransactor();
+        Transactor transactor = TransactorFactoryImpl.getTransactor();
         SIFilter siFilter = new SIFilter(transactor, transactionId, new HbRegion(e.getEnvironment().getRegion()));
         Filter newFilter;
         if (currentFilter != null) {
@@ -116,7 +115,7 @@ public class SIObserver extends BaseRegionObserver {
     @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
         if (tableEnvMatch) {
-            Transactor transactor = TransactionManagerFactory.getTransactor();
+            Transactor transactor = TransactorFactoryImpl.getTransactor();
             STable region = new HbRegion(e.getEnvironment().getRegion());
             boolean processed = transactor.processPut(region, put);
             if (processed) {

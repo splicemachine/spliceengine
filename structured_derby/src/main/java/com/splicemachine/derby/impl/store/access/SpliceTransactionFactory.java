@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.SpliceConfiguration;
-import com.splicemachine.constants.IHbaseConfigurationSource;
-import com.splicemachine.constants.ITransactionManager;
-import com.splicemachine.constants.ITransactionManagerFactory;
+import com.splicemachine.si2.si.api.Transactor;
+import com.splicemachine.si2.si.api.HbaseConfigurationSource;
+import com.splicemachine.si2.si.api.TransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -37,10 +37,10 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 	protected J2SEDataValueFactory dataValueFactory;
 	protected ContextService contextFactory;
 	protected HBaseStore hbaseStore;
-    private ITransactionManagerFactory iTransactionManagerFactory;
+    private TransactorFactory transactorFactory;
 
-    public SpliceTransactionFactory(ITransactionManagerFactory iTransactionManagerFactory) {
-        this.iTransactionManagerFactory = iTransactionManagerFactory;
+    public SpliceTransactionFactory(TransactorFactory transactorFactory) {
+        this.transactorFactory = transactorFactory;
     }
 
     public StandardException markCorrupt(StandardException originalError) {
@@ -131,20 +131,20 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
         try {
 			//String transPath = config.get(TxnConstants.TRANSACTION_PATH_NAME,TxnConstants.DEFAULT_TRANSACTION_PATH);	
 			//ZkTransactionManager zkTrans = new ZkTransactionManager(transPath, zkw, rzk);
-            IHbaseConfigurationSource configSource = new IHbaseConfigurationSource() {
+            HbaseConfigurationSource configSource = new HbaseConfigurationSource() {
                 @Override
                 public Configuration getConfiguration() {
                     return SpliceConfiguration.create();
                 }
             };
-            ITransactionManager transactionManager = iTransactionManagerFactory.newTransactionManager(configSource);
-			SpliceTransaction trans = new SpliceTransaction(new SpliceLockSpace(), dataValueFactory, transactionManager, transName);
+            Transactor transactor = transactorFactory.newTransactionManager(configSource);
+			SpliceTransaction trans = new SpliceTransaction(new SpliceLockSpace(), dataValueFactory, transactor, transName);
 			trans.setTransactionName(transName);
 			
 			SpliceTransactionContext context = new SpliceTransactionContext(contextMgr, contextName, trans, abortAll, hbaseStore);
 			
 			trans.setActiveState(readOnly, nested, dependent, parentTransactionID);
-			SpliceLogUtils.debug(LOG, "transaction type="+context.getIdName()+",transactionID="+trans.getTransactionState().getTransactionID());
+			SpliceLogUtils.debug(LOG, "transaction type="+context.getIdName()+",transactionID="+trans.getTransactionId().getTransactionIdString());
 			return trans;
 		} catch (Exception e) {
 			LOG.error(e.getMessage(), e);
@@ -243,7 +243,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		lockFactory = new SpliceLockFactory();
 		lockFactory.boot(create, properties);
 		if (create)
-            iTransactionManagerFactory.init();
+            transactorFactory.init();
 	}
 
 	/*@SuppressWarnings(value = "deprecation")

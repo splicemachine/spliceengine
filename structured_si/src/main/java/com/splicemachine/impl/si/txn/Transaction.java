@@ -76,7 +76,7 @@ public class Transaction extends SIConstants {
 	}
 
 	public void doCommit(long commitTimestamp) {
-		SpliceLogUtils.trace(LOG, "doCommit %d",commitTimestamp);
+		SpliceLogUtils.trace(LOG, "commit %d",commitTimestamp);
     	this.commitTimestamp = commitTimestamp;
     	this.transactionState = TransactionState.COMMIT;
     	write();

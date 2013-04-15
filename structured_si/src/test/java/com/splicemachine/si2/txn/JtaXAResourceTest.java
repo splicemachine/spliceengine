@@ -3,6 +3,7 @@ package com.splicemachine.si2.txn;
 import com.splicemachine.si2.LStoreSetup;
 import com.splicemachine.si2.StoreSetup;
 import com.splicemachine.si2.TransactorSetup;
+import com.splicemachine.si2.si.api.ClientTransactor;
 import com.splicemachine.si2.si.api.TransactionId;
 import com.splicemachine.si2.si.api.Transactor;
 import com.splicemachine.si2.si.impl.TransactionStatus;
@@ -18,19 +19,13 @@ import javax.transaction.xa.Xid;
 import java.io.IOException;
 
 public class JtaXAResourceTest {
-    protected static TransactionManager tm;
+    protected static Transactor transactor;
 
     static StoreSetup storeSetup;
     static TransactorSetup transactorSetup;
-    static Transactor transactor;
 
     static void baseSetUp() {
         transactor = transactorSetup.transactor;
-        try {
-            tm = new TransactionManager(transactor);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @BeforeClass
@@ -46,7 +41,7 @@ public class JtaXAResourceTest {
 
     @Test
     public void startTest() throws XAException, IOException {
-        JtaXAResource resource = new JtaXAResource(tm);
+        JtaXAResource resource = new JtaXAResource(transactor);
         SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
         resource.start(xid, 0);
         TransactionId transactionId = resource.getThreadLocalTransactionState();
@@ -58,7 +53,7 @@ public class JtaXAResourceTest {
 
     @Test
     public void commitTest() throws XAException, IOException {
-        JtaXAResource resource = new JtaXAResource(tm);
+        JtaXAResource resource = new JtaXAResource(transactor);
         SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
         resource.start(xid, 0);
         TransactionId transactionId = resource.getThreadLocalTransactionState();
@@ -72,7 +67,7 @@ public class JtaXAResourceTest {
 
     @Test
     public void endTest() throws XAException {
-        JtaXAResource resource = new JtaXAResource(tm);
+        JtaXAResource resource = new JtaXAResource(transactor);
         SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
         resource.start(xid, 0);
         resource.commit(xid, true);
@@ -82,7 +77,7 @@ public class JtaXAResourceTest {
 
     @Test
     public void forgetTest() throws XAException, IOException {
-        JtaXAResource resource = new JtaXAResource(tm);
+        JtaXAResource resource = new JtaXAResource(transactor);
         SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
         resource.start(xid, 0);
         TransactionId transactionId = resource.getThreadLocalTransactionState();
@@ -96,7 +91,7 @@ public class JtaXAResourceTest {
 
     @Test
     public void threadLocalTransactionStateTest() throws XAException {
-        JtaXAResource resource = new JtaXAResource(tm);
+        JtaXAResource resource = new JtaXAResource(transactor);
         SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
         resource.start(xid, 0);
         Assert.assertNotNull(resource.getThreadLocalTransactionState());
@@ -104,21 +99,21 @@ public class JtaXAResourceTest {
 
     @Test
     public void getTransactionTimeoutTest() throws XAException {
-        JtaXAResource resource = new JtaXAResource(tm);
+        JtaXAResource resource = new JtaXAResource(transactor);
         resource.setTransactionTimeout(60);
         Assert.assertEquals(60, resource.getTransactionTimeout());
     }
 
     @Test
     public void isSameRMTest() throws XAException {
-        JtaXAResource resource = new JtaXAResource(tm);
-        JtaXAResource resource2 = new JtaXAResource(tm);
+        JtaXAResource resource = new JtaXAResource(transactor);
+        JtaXAResource resource2 = new JtaXAResource(transactor);
         Assert.assertTrue(resource.isSameRM(resource2));
     }
 
     @Test
     public void prepareTest() throws XAException, IOException {
-        JtaXAResource resource = new JtaXAResource(tm);
+        JtaXAResource resource = new JtaXAResource(transactor);
         SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
         resource.start(xid, 0);
         resource.prepare(xid);
@@ -131,7 +126,7 @@ public class JtaXAResourceTest {
 
     @Test
     public void recoverTest() throws XAException {
-        JtaXAResource resource = new JtaXAResource(tm);
+        JtaXAResource resource = new JtaXAResource(transactor);
         resource.start(new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1)), 0);
         resource.start(new SpliceXid(Bytes.toBytes(2), 1, Bytes.toBytes(2)), 0);
         Assert.assertEquals(2, resource.recover(0).length);
@@ -139,7 +134,7 @@ public class JtaXAResourceTest {
 
     @Test
     public void rollbackTest() throws XAException, IOException {
-        JtaXAResource resource = new JtaXAResource(tm);
+        JtaXAResource resource = new JtaXAResource(transactor);
         SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
         resource.start(xid, 0);
         TransactionId transactionId = resource.getThreadLocalTransactionState();
@@ -153,7 +148,7 @@ public class JtaXAResourceTest {
 
     @Test
     public void setTransactionTimeoutTest() throws XAException {
-        JtaXAResource resource = new JtaXAResource(tm);
+        JtaXAResource resource = new JtaXAResource(transactor);
         resource.setTransactionTimeout(60);
         Assert.assertEquals(60, resource.getTransactionTimeout());
     }

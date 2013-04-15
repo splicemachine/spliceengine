@@ -122,7 +122,7 @@ public class SiTransactorTest {
 
         Object key = dataLib.newRowKey(new Object[]{name});
         SGet get = dataLib.newGet(key, null, null, null);
-        transactorSetup.clientTransactor.initializeGet(transactionId.getTransactionID(), get);
+        transactorSetup.clientTransactor.initializeGet(transactionId.getTransactionIdString(), get);
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Object rawTuple = reader.get(testSTable, get);
@@ -139,7 +139,7 @@ public class SiTransactorTest {
 
         Object key = dataLib.newRowKey(new Object[]{name});
         SScan get = dataLib.newScan(key, key, null, null, null);
-        transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionID(), get);
+        transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), get);
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Iterator results = reader.scan(testSTable, get);
@@ -160,7 +160,7 @@ public class SiTransactorTest {
         Object key = dataLib.newRowKey(new Object[]{startKey});
         Object endKey = dataLib.newRowKey(new Object[]{stopKey});
         SScan get = dataLib.newScan(key, endKey, null, null, null);
-        transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionID(), get);
+        transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), get);
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Iterator results = reader.scan(testSTable, get);
@@ -1043,7 +1043,7 @@ public class SiTransactorTest {
             Assert.assertTrue(transactor.processPut(testSTable, put));
             Assert.assertTrue(transactor.processPut(testSTable, put2));
             SGet get1 = dataLib.newGet(testKey, null, null, null);
-            transactorSetup.clientTransactor.initializeGet(t.getTransactionID(), get1);
+            transactorSetup.clientTransactor.initializeGet(t.getTransactionIdString(), get1);
             Object result = reader.get(testSTable, get1);
             result = transactor.filterResult(transactor.newFilterState(testSTable, t), result);
             final int ageRead = (Integer) dataLib.decode(dataLib.getResultValue(result, family, ageQualifier), Integer.class);

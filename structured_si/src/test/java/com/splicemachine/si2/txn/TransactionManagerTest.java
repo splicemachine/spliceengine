@@ -15,19 +15,13 @@ import org.junit.Test;
 import java.io.IOException;
 
 public class TransactionManagerTest {
-    protected static TransactionManager tm;
+    protected static Transactor transactor;
 
     static StoreSetup storeSetup;
     static TransactorSetup transactorSetup;
-    static Transactor transactor;
 
     static void baseSetUp() {
         transactor = transactorSetup.transactor;
-        try {
-            tm = new TransactionManager(transactor);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @BeforeClass
@@ -43,7 +37,7 @@ public class TransactionManagerTest {
 
     @Test
     public void beginTransactionTest() throws Exception {
-        TransactionId transactionId = tm.beginTransaction(true, false, false, null);
+        TransactionId transactionId = transactor.beginTransaction(true, false, false);
         Assert.assertNotNull(transactionId);
         TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
@@ -52,18 +46,8 @@ public class TransactionManagerTest {
 
     @Test
     public void doCommitTest() throws Exception {
-        TransactionId transactionId = tm.beginTransaction(true, false, false, null);
-        tm.doCommit(transactionId);
-        TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
-        Assert.assertTrue(transaction.beginTimestamp >= 0);
-        Assert.assertEquals(TransactionStatus.COMMITED, transaction.status);
-        Assert.assertTrue(transaction.beginTimestamp < transaction.commitTimestamp);
-    }
-
-    @Test
-    public void tryCommitTest() throws Exception {
-        TransactionId transactionId = tm.beginTransaction(true, false, false, null);
-        tm.tryCommit(transactionId);
+        TransactionId transactionId = transactor.beginTransaction(true, false, false);
+        transactor.commit(transactionId);
         TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
         Assert.assertEquals(TransactionStatus.COMMITED, transaction.status);
@@ -72,16 +56,12 @@ public class TransactionManagerTest {
 
     @Test
     public void abortTest() throws Exception {
-        TransactionId transactionId = tm.beginTransaction(true, false, false, null);
-        tm.abort(transactionId);
+        TransactionId transactionId = transactor.beginTransaction(true, false, false);
+        transactor.abort(transactionId);
         TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
         Assert.assertEquals(TransactionStatus.ABORT, transaction.status);
         Assert.assertNull(transaction.commitTimestamp);
     }
 
-    @Test
-    public void getXAResourceTest() throws Exception {
-        Assert.assertNotNull(tm.getXAResource());
-    }
 }

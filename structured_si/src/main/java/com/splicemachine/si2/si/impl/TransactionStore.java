@@ -50,7 +50,7 @@ public class TransactionStore {
 
     public void addChildToTransaction(TransactionId transactionId, TransactionId childTransactionId) throws IOException {
         Object put = makeBasePut(transactionId);
-        dataLib.addKeyValueToPut(put, encodedSchema.siChildrenFamily, dataLib.encode(childTransactionId.getTransactionID()), null,
+        dataLib.addKeyValueToPut(put, encodedSchema.siChildrenFamily, dataLib.encode(childTransactionId.getTransactionIdString()), null,
                 dataLib.encode(true));
         writePut(put);
     }
@@ -86,7 +86,7 @@ public class TransactionStore {
     public TransactionStruct getTransactionStatus(TransactionId transactionId) throws IOException {
         final TransactionStruct cachedTransactionStruct = transactionCache.getIfPresent(transactionId.getId());
         if (cachedTransactionStruct != null) {
-            //LOG.warn("cache HIT " + transactionId.getTransactionID());
+            //LOG.warn("cache HIT " + transactionId.getTransactionIdString());
             return cachedTransactionStruct;
         }
         Object tupleKey = dataLib.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
@@ -123,9 +123,9 @@ public class TransactionStore {
                         status, commitTimestamp);
                 if (result.isCacheable()) {
                     transactionCache.put(transactionId.getId(), result);
-                    //LOG.warn("cache PUT " + transactionId.getTransactionID());
+                    //LOG.warn("cache PUT " + transactionId.getTransactionIdString());
                 } else {
-                    //LOG.warn("cache NOT " + transactionId.getTransactionID());
+                    //LOG.warn("cache NOT " + transactionId.getTransactionIdString());
                 }
                 return result;
             }
