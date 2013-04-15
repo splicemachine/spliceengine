@@ -2,8 +2,8 @@ package com.splicemachine.si2.txn;
 
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.si.utils.SIConstants;
-import com.splicemachine.si.utils.SIUtils;
+import com.splicemachine.si2.utils.SIConstants;
+import com.splicemachine.si2.utils.SIUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;

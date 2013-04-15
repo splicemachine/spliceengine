@@ -1,15 +1,15 @@
 package com.splicemachine.si2.coprocessors;
 
 import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.si.utils.SIUtils;
+import com.splicemachine.si2.utils.SIUtils;
 import com.splicemachine.si2.data.api.STable;
 import com.splicemachine.si2.data.hbase.HGet;
 import com.splicemachine.si2.data.hbase.HScan;
 import com.splicemachine.si2.data.hbase.HbRegion;
 import com.splicemachine.si2.filters.SIFilter;
-import com.splicemachine.si2.si.api.TransactionId;
-import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.txn.TransactorFactoryImpl;
+import com.splicemachine.si2.api.TransactionId;
+import com.splicemachine.si2.api.Transactor;
+import com.splicemachine.si2.impl.TransactorFactoryImpl;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;

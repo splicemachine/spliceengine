@@ -1,8 +1,8 @@
 package com.splicemachine.si2;
 
 import com.splicemachine.si2.data.hbase.TransactorFactory;
-import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.txn.TransactorFactoryImpl;
+import com.splicemachine.si2.api.Transactor;
+import com.splicemachine.si2.impl.TransactorFactoryImpl;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;

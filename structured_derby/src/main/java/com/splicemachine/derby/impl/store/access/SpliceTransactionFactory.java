@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.SpliceConfiguration;
-import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.si.api.HbaseConfigurationSource;
-import com.splicemachine.si2.si.api.TransactorFactory;
+import com.splicemachine.si2.api.Transactor;
+import com.splicemachine.si2.api.HbaseConfigurationSource;
+import com.splicemachine.si2.api.TransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;

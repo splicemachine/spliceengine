@@ -1,6 +1,6 @@
 package com.splicemachine.si2;
 
-import com.splicemachine.si.utils.SIConstants;
+import com.splicemachine.si2.utils.SIConstants;
 import com.splicemachine.si2.coprocessors.SIObserver;
 import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.SGet;

@@ -4,8 +4,8 @@ package com.splicemachine.derby.impl.store.access;
 
 import java.util.Properties;
 
-import com.splicemachine.si2.si.api.TransactorFactory;
-import com.splicemachine.si2.txn.TransactorFactoryImpl;
+import com.splicemachine.si2.api.TransactorFactory;
+import com.splicemachine.si2.impl.TransactorFactoryImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.locks.CompatibilitySpace;

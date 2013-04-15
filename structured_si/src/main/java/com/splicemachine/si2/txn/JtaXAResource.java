@@ -1,7 +1,7 @@
 package com.splicemachine.si2.txn;
 
-import com.splicemachine.si2.si.api.TransactionId;
-import com.splicemachine.si2.si.api.Transactor;
+import com.splicemachine.si2.api.TransactionId;
+import com.splicemachine.si2.api.Transactor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

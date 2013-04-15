@@ -4,7 +4,7 @@ import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.si2.si.api.ParentTransactionManager;
+import com.splicemachine.si2.api.ParentTransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.sql.Connection;

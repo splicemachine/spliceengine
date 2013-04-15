@@ -3,11 +3,10 @@ package com.splicemachine.derby.hbase;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.si.utils.SIUtils;
+import com.splicemachine.si2.utils.SIUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.log4j.Logger;
 
 /**
  * Coprocessor for starting the derby services on top of HBase.

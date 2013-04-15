@@ -1,8 +1,8 @@
 package com.splicemachine.si2.txn;
 
 import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.si.utils.SIUtils;
-import com.splicemachine.si2.si.api.TimestampSource;
+import com.splicemachine.si2.utils.SIUtils;
+import com.splicemachine.si2.api.TimestampSource;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;

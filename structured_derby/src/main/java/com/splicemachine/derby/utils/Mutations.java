@@ -2,9 +2,6 @@ package com.splicemachine.derby.utils;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
-import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.si2.data.hbase.TransactorFactory;
-import com.splicemachine.si2.si.api.ClientTransactor;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;

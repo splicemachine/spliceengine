@@ -2,19 +2,19 @@ package com.splicemachine.si2;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.splicemachine.si.utils.SIConstants;
+import com.splicemachine.si2.impl.DataStore;
+import com.splicemachine.si2.impl.ImmutableTransactionStruct;
+import com.splicemachine.si2.impl.SiTransactor;
+import com.splicemachine.si2.impl.TransactionSchema;
+import com.splicemachine.si2.impl.TransactionStruct;
+import com.splicemachine.si2.utils.SIConstants;
 import com.splicemachine.si2.data.api.SDataLib;
 import com.splicemachine.si2.data.api.STableReader;
 import com.splicemachine.si2.data.api.STableWriter;
-import com.splicemachine.si2.si.api.ClientTransactor;
-import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.si.impl.DataStore;
-import com.splicemachine.si2.si.impl.ImmutableTransactionStruct;
-import com.splicemachine.si2.si.impl.SiTransactor;
-import com.splicemachine.si2.si.impl.SimpleTimestampSource;
-import com.splicemachine.si2.si.impl.TransactionSchema;
-import com.splicemachine.si2.si.impl.TransactionStore;
-import com.splicemachine.si2.si.impl.TransactionStruct;
+import com.splicemachine.si2.api.ClientTransactor;
+import com.splicemachine.si2.api.Transactor;
+import com.splicemachine.si2.impl.SimpleTimestampSource;
+import com.splicemachine.si2.impl.TransactionStore;
 
 import java.util.concurrent.TimeUnit;
 

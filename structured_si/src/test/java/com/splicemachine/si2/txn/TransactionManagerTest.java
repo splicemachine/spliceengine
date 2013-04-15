@@ -3,16 +3,14 @@ package com.splicemachine.si2.txn;
 import com.splicemachine.si2.LStoreSetup;
 import com.splicemachine.si2.StoreSetup;
 import com.splicemachine.si2.TransactorSetup;
-import com.splicemachine.si2.si.api.TransactionId;
-import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.si.impl.TransactionStatus;
-import com.splicemachine.si2.si.impl.TransactionStruct;
+import com.splicemachine.si2.api.TransactionId;
+import com.splicemachine.si2.api.Transactor;
+import com.splicemachine.si2.impl.TransactionStatus;
+import com.splicemachine.si2.impl.TransactionStruct;
 import org.junit.Assert;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.io.IOException;
 
 public class TransactionManagerTest {
     protected static Transactor transactor;

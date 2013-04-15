@@ -1,7 +1,7 @@
 package com.splicemachine.si2;
 
-import com.splicemachine.si.utils.SIConstants;
-import com.splicemachine.si2.si.impl.TransactionStatus;
+import com.splicemachine.si2.impl.TransactionStatus;
+import com.splicemachine.si2.utils.SIConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
@@ -9,7 +9,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import sun.reflect.generics.tree.ByteSignature;
 
 import java.io.IOException;
 import java.util.ArrayList;
