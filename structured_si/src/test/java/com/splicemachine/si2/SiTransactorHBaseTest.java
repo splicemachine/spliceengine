@@ -2,7 +2,7 @@ package com.splicemachine.si2;
 
 import com.splicemachine.si2.data.hbase.TransactorFactory;
 import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.txn.TransactionManagerFactory;
+import com.splicemachine.si2.txn.TransactorFactoryImpl;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -36,7 +36,7 @@ public class SiTransactorHBaseTest extends SiTransactorTest {
         classTransactorSetup = new TransactorSetup(classStoreSetup);
         Transactor transactor = classTransactorSetup.transactor;
         TransactorFactory.setDefaultTransactor(transactor);
-        TransactionManagerFactory.setTransactor(transactor);
+        TransactorFactoryImpl.setTransactor(transactor);
     }
 
     @AfterClass

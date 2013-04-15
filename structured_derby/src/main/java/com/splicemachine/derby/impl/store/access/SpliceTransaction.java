@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.constants.ITransactionManager;
-import com.splicemachine.constants.ITransactionState;
-import com.splicemachine.derby.utils.ZkUtils;
+import com.splicemachine.si2.si.api.TransactionId;
+import com.splicemachine.si2.si.api.Transactor;
+import com.splicemachine.si2.si.api.ParentTransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -22,6 +22,7 @@ import org.apache.derby.iapi.store.raw.log.LogInstant;
 import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.util.Properties;
 
 public class SpliceTransaction implements Transaction {
@@ -29,7 +30,7 @@ public class SpliceTransaction implements Transaction {
 	protected CompatibilitySpace compatibilitySpace;
 	protected DataValueFactory dataValueFactory;
 	protected SpliceTransactionContext transContext;
-	private ITransactionState ts;
+	private TransactionId ts;
 	private String transName;
 	
 	protected volatile int	state;
@@ -41,22 +42,22 @@ public class SpliceTransaction implements Transaction {
 	protected static final int	PREPARED	    = 4;
 
 	//FIXME: this is a temp workaround to integrate our existing transaction code. We need to implement the function here eventually.
-	protected ITransactionManager iTransactionManager;
+	protected Transactor transactor;
 		
 	public SpliceTransaction(CompatibilitySpace compatibilitySpace,
-                             DataValueFactory dataValueFactory, ITransactionManager iTransactionManager, String transName) {
+                             DataValueFactory dataValueFactory, Transactor transactor, String transName) {
 		SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
 		//this.transFactory = transFactory;
 		this.compatibilitySpace = compatibilitySpace;
 		this.dataValueFactory = dataValueFactory;
-		this.iTransactionManager = iTransactionManager;
+		this.transactor = transactor;
 		this.transName = transName;
 		this.state = IDLE;
 	}
 
-	public ITransactionManager getiTransactionManager() {
-		SpliceLogUtils.trace(LOG,"getiTransactionManager");
-		return iTransactionManager;
+	public Transactor getTransactor() {
+		SpliceLogUtils.trace(LOG,"getTransactor");
+		return transactor;
 	}
 	
 	public ContextManager getContextManager() {
@@ -74,11 +75,11 @@ public class SpliceTransaction implements Transaction {
 		return compatibilitySpace;
 	}
 	
-	public ITransactionState getTransactionState() {
+	public TransactionId getTransactionState() {
 		return this.ts;
 	}
 	
-	public void setTransactionState(ITransactionState ts) {
+	public void setTransactionState(TransactionId ts) {
 		this.ts = ts;
 		this.state = ACTIVE;
 	}
@@ -133,7 +134,7 @@ public class SpliceTransaction implements Transaction {
         }
 			
 		try {
-			iTransactionManager.doCommit(this.ts);
+			transactor.commit(this.ts);
 			state = IDLE;
 		} catch (Exception e) {
 			throw StandardException.newException(e.getMessage(), e);
@@ -151,7 +152,7 @@ public class SpliceTransaction implements Transaction {
 		try {
 			if (state == CLOSED)
 				return;
-			iTransactionManager.abort(this.ts);
+            transactor.abort(this.ts);
 			state = IDLE;
 		} catch (Exception e) {
 			throw StandardException.newException(e.getMessage(), e);
@@ -165,7 +166,7 @@ public class SpliceTransaction implements Transaction {
 		transContext.popMe();
 		transContext = null;
 		ts = null;
-		iTransactionManager = null;
+        transactor = null;
 		state = CLOSED;
 	}
 
@@ -310,7 +311,8 @@ public class SpliceTransaction implements Transaction {
 			try {
 				synchronized(this)
 				{
-					this.setTransactionState(this.getiTransactionManager().beginTransaction(!readOnly, nested, dependent, parentTransactionID));
+                    boolean allowWrites = !readOnly;
+                    this.setTransactionState(generateTransactionId(nested, dependent, parentTransactionID, allowWrites));
 					state = ACTIVE;
 					//justCreated = false;
 				}
@@ -319,6 +321,23 @@ public class SpliceTransaction implements Transaction {
 			}
 		}
 	}
+
+    private TransactionId generateTransactionId(boolean nested, boolean dependent, String parentTransactionID, boolean allowWrites) throws IOException {
+        TransactionId result;
+        final String parentPerThreadLocal = ParentTransactionManager.getParentTransactionId();
+        if (!nested && parentPerThreadLocal != null) {
+            parentTransactionID = parentPerThreadLocal;
+            nested = true;
+            dependent = true;
+        }
+        if (nested) {
+            final TransactionId parentTransaction = transactor.transactionIdFromString(parentTransactionID);
+            result = transactor.beginChildTransaction(parentTransaction, dependent, allowWrites, null, null);
+        } else {
+            result = transactor.beginTransaction(true, false, false);
+        }
+        return result;
+    }
 	
 	/*public final void setActiveState(String newTransID) throws StandardException {
 		if (state == IDLE)
@@ -326,7 +345,7 @@ public class SpliceTransaction implements Transaction {
 			try {
 				synchronized(this)
 				{
-					//this.setTransactionState(this.getiTransactionManager().beginTransaction());
+					//this.setTransactionState(this.getTransactor().beginTransaction2());
 					ts = new TransactionState(newTransID);
 					state = ACTIVE;
 					//justCreated = false;

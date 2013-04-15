@@ -2171,7 +2171,7 @@ public class SpliceTransactionManager implements XATransactionController, Transa
 	}
 
 	/**************************************************************************
-	 * Public Methods of TransactionManager interface:
+	 * Public Methods of ParentTransactionManager interface:
 	 **************************************************************************
 	 */
 

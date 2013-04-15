@@ -79,7 +79,7 @@ public class TransactionManagerImpl extends TransactionManager {
      }
 
     public void doCommit(final Transaction transaction) throws KeeperException, InterruptedException, IOException  {
-    	SpliceLogUtils.trace(LOG, "doCommit %s",transaction);
+    	SpliceLogUtils.trace(LOG, "commit %s",transaction);
     	transaction.doCommit(SIUtils.createIncreasingTimestamp(transactionPath, rzk));
     }
 

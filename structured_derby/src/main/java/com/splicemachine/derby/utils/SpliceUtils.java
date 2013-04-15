@@ -238,13 +238,13 @@ public class SpliceUtils {
             op.setAttribute(SI_EXEMPT, Bytes.toBytes(true));
         } else {
             if (op instanceof Get) {
-                getTransactionGetsPuts().initializeGet(txnId, new HGet((Get) op));
+                getTransactor().initializeGet(txnId, new HGet((Get) op));
             } else if (op instanceof Put) {
-                getTransactionGetsPuts().initializePut(txnId, op);
+                getTransactor().initializePut(txnId, op);
             } else if (op instanceof Delete) {
                 throw new RuntimeException("Direct deleted not supported, expected to use delete put");
             } else {
-                getTransactionGetsPuts().initializeScan(txnId, new HScan((Scan)op));
+                getTransactor().initializeScan(txnId, new HScan((Scan) op));
             }
         }
         return op;
@@ -283,9 +283,9 @@ public class SpliceUtils {
             return NA_TRANSACTION_ID;
         }
         if(mutation instanceof Put)
-            return getTransactionGetsPuts().getTransactionIdFromPut(mutation).getTransactionID();
+            return getTransactor().getTransactionIdFromPut(mutation).getTransactionID();
         else
-            return getTransactionGetsPuts().getTransactionIdFromDelete((Delete)mutation).getTransactionID();
+            return getTransactor().getTransactionIdFromDelete((Delete) mutation).getTransactionID();
     }
 
     public static void handleNullsInUpdate(Put put, DataValueDescriptor[] row, FormatableBitSet validColumns) {
@@ -633,7 +633,7 @@ public class SpliceUtils {
 		return transID;
 	}
 
-    private static ClientTransactor getTransactionGetsPuts() {
+    private static ClientTransactor getTransactor() {
         return TransactorFactory.getDefaultClientTransactor();
     }
 

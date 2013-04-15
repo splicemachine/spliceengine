@@ -12,7 +12,7 @@ public class TransactionManagerHBaseTest extends TransactionManagerTest {
         storeSetup = new HStoreSetup();
         transactorSetup = new TransactorSetup(storeSetup);
         TransactorFactory.setDefaultTransactor(transactor);
-        TransactionManagerFactory.setTransactor(transactor);
+        TransactorFactoryImpl.setTransactor(transactor);
         baseSetUp();
     }
 

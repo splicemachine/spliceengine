@@ -4,8 +4,8 @@ package com.splicemachine.derby.impl.store.access;
 
 import java.util.Properties;
 
-import com.splicemachine.constants.ITransactionManagerFactory;
-import com.splicemachine.si2.txn.TransactionManagerFactory;
+import com.splicemachine.si2.si.api.TransactorFactory;
+import com.splicemachine.si2.txn.TransactorFactoryImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.locks.CompatibilitySpace;
@@ -155,9 +155,9 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 	public void boot(boolean create, Properties properties) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("boot with properties " + properties);
-        ITransactionManagerFactory iTransactionManagerFactory;
-        iTransactionManagerFactory = new TransactionManagerFactory();
-        transactionFactory = new SpliceTransactionFactory(iTransactionManagerFactory);
+        TransactorFactory transactorFactory;
+        transactorFactory = new TransactorFactoryImpl();
+        transactionFactory = new SpliceTransactionFactory(transactorFactory);
 		transactionFactory.boot(create, properties);
 	}
 	@Override

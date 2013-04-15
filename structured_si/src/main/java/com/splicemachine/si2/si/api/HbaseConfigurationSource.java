@@ -1,8 +1,8 @@
-package com.splicemachine.constants;
+package com.splicemachine.si2.si.api;
 
 import org.apache.hadoop.conf.Configuration;
 
-public interface IHbaseConfigurationSource {
+public interface HbaseConfigurationSource {
 
     Configuration getConfiguration();
 }

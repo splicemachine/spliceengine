@@ -10,7 +10,7 @@ import java.io.IOException;
 /**
  * The primary interface to the transaction module.
  */
-public interface Transactor {
+public interface Transactor extends ClientTransactor {
     TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
     TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
                                         Boolean readUncommitted, Boolean readCommitted) throws IOException;

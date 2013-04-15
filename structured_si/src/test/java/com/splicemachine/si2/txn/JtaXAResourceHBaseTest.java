@@ -6,15 +6,13 @@ import com.splicemachine.si2.data.hbase.TransactorFactory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-import java.io.IOException;
-
 public class JtaXAResourceHBaseTest extends JtaXAResourceTest {
     @BeforeClass
     public static void setUp() {
         storeSetup = new HStoreSetup();
         transactorSetup = new TransactorSetup(storeSetup);
         TransactorFactory.setDefaultTransactor(transactor);
-        TransactionManagerFactory.setTransactor(transactor);
+        TransactorFactoryImpl.setTransactor(transactor);
         baseSetUp();
     }
 

@@ -8,7 +8,7 @@ import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.stats.TimeUtils;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.si2.txn.TransactionManager;
+import com.splicemachine.si2.si.api.ParentTransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;
@@ -73,11 +73,11 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
 		this.regionScanner = regionScanner;
 
-        final String oldParentTransactionId = TransactionManager.getParentTransactionId();
+        final String oldParentTransactionId = ParentTransactionManager.getParentTransactionId();
         try {
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
             parentTransactionId = soi.getTransactionId();
-            TransactionManager.setParentTransactionId(parentTransactionId);
+            ParentTransactionManager.setParentTransactionId(parentTransactionId);
 			statement = soi.getStatement();
 			topOperation = soi.getTopOperation();
 
@@ -98,16 +98,16 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
 		} finally {
-            TransactionManager.setParentTransactionId(oldParentTransactionId);
+            ParentTransactionManager.setParentTransactionId(oldParentTransactionId);
         }
 	}
 
 	@Override
 	public boolean next(List<KeyValue> results) throws IOException {
 		SpliceLogUtils.trace(LOG, "next ");
-        final String oldParentTransactionId = TransactionManager.getParentTransactionId();
+        final String oldParentTransactionId = ParentTransactionManager.getParentTransactionId();
 		try {
-            TransactionManager.setParentTransactionId(parentTransactionId);
+            ParentTransactionManager.setParentTransactionId(parentTransactionId);
 			ExecRow nextRow;
             long start = System.nanoTime();
 			if ( (nextRow = topOperation.getNextRowCore()) != null) {
@@ -126,7 +126,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,"error during next call: ",e);
         } finally {
-            TransactionManager.setParentTransactionId(oldParentTransactionId);
+            ParentTransactionManager.setParentTransactionId(oldParentTransactionId);
         }
 		return false;
 	}

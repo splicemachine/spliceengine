@@ -1,9 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.IHbaseConfigurationSource;
-import com.splicemachine.constants.ITransactionManager;
-import com.splicemachine.constants.ITransactionManagerFactory;
 import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.ZkUtils;
@@ -24,7 +21,7 @@ import java.io.IOException;
 public class ZkTransactionManagerFactory {
     private static Logger LOG = Logger.getLogger(ZkTransactionManagerFactory.class);
 
-    public TransactionManager newTransactionManager(IHbaseConfigurationSource configSource) throws IOException {
+    public TransactionManager newTransactionManager() throws IOException {
         return new ZkTransactionManager(SpliceUtils.getTransactionPath(), ZkUtils.getZooKeeperWatcher(),
                 ZkUtils.getRecoverableZooKeeper());
     }

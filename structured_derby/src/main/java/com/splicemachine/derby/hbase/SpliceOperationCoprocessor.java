@@ -1,11 +1,10 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.derby.error.SpliceStandardException;
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.si2.txn.TransactionManager;
+import com.splicemachine.si2.si.api.ParentTransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.sql.Connection;
@@ -26,10 +25,6 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stats.SinkStats;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
 /**
  * 
  * HBase Endpoint coprocessor handling sink operations from the OperationTree.
@@ -77,12 +72,12 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException {
 		threadLocalEnvironment.set(getEnvironment());
         Connection runningConnection = null;
-        final String oldParentTransactionId = TransactionManager.getParentTransactionId();
+        final String oldParentTransactionId = ParentTransactionManager.getParentTransactionId();
         IOException exception = null;
         boolean success = false;
         SpliceOperationContext context = null;
         try {
-            TransactionManager.setParentTransactionId(instructions.getTransactionId());
+            ParentTransactionManager.setParentTransactionId(instructions.getTransactionId());
 
 			SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
 																			instructions.getStatement(),instructions.getTopOperation(), scan);
@@ -112,7 +107,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
         } catch (StandardException e) {
         	throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "run error", e);
 		} finally {
-            TransactionManager.setParentTransactionId(oldParentTransactionId);
+            ParentTransactionManager.setParentTransactionId(oldParentTransactionId);
             threadLocalEnvironment.set(null);
             try{
                 if (!success && (context != null)) {
