@@ -53,7 +53,10 @@
 
                 <copy file="${basedir}/../../jars/${sanity}/derbyTesting.jar"
                       tofile="${basedir}/target/${project.build.finalName}.jar"
-                      overwrite="true"/>                      
+                      overwrite="true"/> 
+                      <jar destfile="${basedir}/target/${project.build.finalName}-sources.jar">
+                         <fileset dir="${basedir}/../../java/testing"/>   
+			</jar>                     
                         </tasks>
                     </configuration>
                     <goals>
