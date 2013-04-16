@@ -7,7 +7,7 @@ import javax.management.MXBean;
  * Created on: 3/22/13
  */
 @MXBean
-public interface PoolStatus {
+public interface ConnectionPoolStatus {
 
     int getWaiting();
 

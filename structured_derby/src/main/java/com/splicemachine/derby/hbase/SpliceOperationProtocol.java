@@ -1,6 +1,6 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
@@ -23,5 +23,5 @@ public interface SpliceOperationProtocol extends CoprocessorProtocol {
 	 * @throws IOException
 	 * @throws StandardException
 	 */
-	public SinkStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException, StandardException;
+	public TaskStats run(Scan scan,SpliceObserverInstructions instructions) throws IOException, StandardException;
 }

@@ -8,9 +8,11 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.job.JobStats;
+import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
@@ -396,8 +398,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 	@Override
 	public void openCore() throws StandardException {
-        this.uniqueSequenceID = SpliceUtils.generateQueryNodeSequence();
+        this.uniqueSequenceID = SpliceUtils.getUniqueKeyString();
         sequence[0].setValue(uniqueSequenceID);
+        init(SpliceOperationContext.newContext(activation));
 	}
 	@Override
 	public void reopenCore() throws StandardException {
@@ -542,7 +545,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	@Override		
-	public SinkStats sink() throws IOException {
+	public TaskStats sink() throws IOException {
 		throw new RuntimeException("Sink Not Implemented for this node " + this.getClass());					
 	}
 
@@ -551,61 +554,36 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		throw new UnsupportedOperationException("MapRowProviders not implemented for this node: "+ this.getClass());
 	}
 
-	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
-		throw new UnsupportedOperationException("ReduceRowProviders not implemented for this node: "+ this.getClass());
-	}
-	
-	@Override
-	public void cleanup() {
-		throw new RuntimeException("Finish Not Implemented for this node " + this.getClass());														
-	}
-	
-	@Override
-	public void executeShuffle() throws StandardException {
-		long start = System.currentTimeMillis();
-		SpliceLogUtils.trace(LOG,"shuffling %s",toString());
-		List<SpliceOperation> opStack = getOperationStack();
-		SpliceLogUtils.trace(LOG, "operationStack=%s",opStack);
-		final SpliceOperation regionOperation = opStack.get(0);
-		final SpliceOperation topOperation = opStack.get(opStack.size()-1);
-		SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-		final byte[] table;
-		final Scan scan;
-		//TODO -sf- deal with situations where we don't have a scan? presumably that's only for local data, 
-		//and doesn't need shuffling, but still something to think about
-		final RowProvider rowProvider;
-		if(regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation){
-			rowProvider = regionOperation.getReduceRowProvider(topOperation,topOperation.getExecRowDefinition());
-			table = SpliceOperationCoprocessor.TEMP_TABLE;
-		}else {
-			rowProvider = regionOperation.getMapRowProvider(topOperation,topOperation.getExecRowDefinition());
-			table = rowProvider.getTableName();
-		}
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
+        throw new UnsupportedOperationException("ReduceRowProviders not implemented for this node: "+ this.getClass());
+    }
+
+    @Override
+    public void cleanup() {
+        throw new RuntimeException("Finish Not Implemented for this node " + this.getClass());
+    }
+
+    @Override
+    public void executeShuffle() throws StandardException {
+        long start = System.currentTimeMillis();
+        SpliceLogUtils.trace(LOG,"shuffling %s",toString());
+        List<SpliceOperation> opStack = getOperationStack();
+        SpliceLogUtils.trace(LOG, "operationStack=%s",opStack);
+        final SpliceOperation regionOperation = opStack.get(0);
+        final SpliceOperation topOperation = opStack.get(opStack.size()-1);
+        SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
+        final RowProvider rowProvider;
+        if(regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation){
+            rowProvider = regionOperation.getReduceRowProvider(topOperation,topOperation.getExecRowDefinition());
+        }else {
+            rowProvider = regionOperation.getMapRowProvider(topOperation,topOperation.getExecRowDefinition());
+        }
 
         nextTime+= System.currentTimeMillis()-start;
-        HTableInterface htable = null;
-        try{
-            regionStats = new RegionStats(this.getClass().getName());
-            regionStats.start();
-
-            SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),topOperation);
-            rowProvider.shuffleRows(soi,regionStats);
-
-            regionStats.finish();
-            regionStats.recordStats(LOG);
-            nextTime += regionStats.getTotalTimeTakenMs();
-            rowsSunk=regionStats.getTotalSunkRecords();
-            SpliceLogUtils.trace(LOG,"Sunk %d records",regionStats.getTotalSunkRecords());
-        }finally{
-            if(htable!=null){
-                try {
-                    htable.close();
-                } catch (IOException e) {
-                    SpliceLogUtils.logAndThrow(LOG,Exceptions.parseException(e));
-                }
-            }
-        }
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),topOperation);
+        JobStats stats = rowProvider.shuffleRows(soi);
+        JobStatsUtils.logStats(stats,LOG);
 
 //		scan = rowProvider.toScan();
 //		nextTime += System.currentTimeMillis() - start;
@@ -633,10 +611,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 //
 //			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), topOperation);
 //			htable.coprocessorExec(SpliceOperationProtocol.class,scan.getStartRow(),scan.getStopRow(),
-//													new Batch.Call<SpliceOperationProtocol,SinkStats>(){
+//													new Batch.Call<SpliceOperationProtocol,TaskStats>(){
 //
 //				@Override
-//				public SinkStats call(
+//				public TaskStats call(
 //						SpliceOperationProtocol instance)
 //								throws IOException {
 //					try{
@@ -646,10 +624,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 //						return null;
 //					}
 //				}
-//			},new Batch.Callback<SinkStats>(){
+//			},new Batch.Callback<TaskStats>(){
 //
 //						@Override
-//						public void update(byte[] region, byte[] row, SinkStats result) {
+//						public void update(byte[] region, byte[] row, TaskStats result) {
 //                            regionStats.addRegionStats(region,result);
 //						}
 //					});

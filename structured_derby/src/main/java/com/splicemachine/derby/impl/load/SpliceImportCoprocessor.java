@@ -43,7 +43,8 @@ import java.util.Collection;
  *
  * @author Scott Fines
  */
-public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements SpliceImportProtocol{
+@Deprecated
+public class SpliceImportCoprocessor extends BaseEndpointCoprocessor {
 	private static final Logger LOG = Logger.getLogger(SpliceImportCoprocessor.class);
 	private FileSystem fs;
 
@@ -64,7 +65,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		super.stop(env);
 	}
 
-	@Override
+//	@Override
 	public long doImport(Collection<BlockLocation> locations,ImportContext context) throws IOException{
 		SpliceLogUtils.trace(LOG,"executing import for context %s",context);
 		long numImported=0l;
@@ -130,7 +131,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		return numImported;
 	}
 
-    @Override
+//    @Override
 	public long importFile(ImportContext context) throws IOException{
 		Path path =  context.getFilePath();
 

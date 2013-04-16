@@ -75,6 +75,7 @@
     }
     ],
     "indices":[
+    /*
         {
             "name":"wlog_profile_idx",
             "table": "web_log",
@@ -83,6 +84,7 @@
                 "profile_id"
             ]
         }
+        */
     ],
     "queries":[
         {

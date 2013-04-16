@@ -5,7 +5,18 @@ import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.TransactionConstants;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJobScheduler;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.WorkStealingThreadedTaskScheduler;
+import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.ZkUtils;
+import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TableWriter;
+import com.splicemachine.hbase.TempCleaner;
+import com.splicemachine.job.*;
 import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -37,6 +48,9 @@ public class SpliceDriver {
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     private static final int DEFAULT_PORT = 1527;
     private static final String DEFAULT_SERVER_ADDRESS = "0.0.0.0";
+    private static final int DEFAULT_MAX_CONCURRENT_TASKS = 10;
+
+
 
     public static enum State{
         NOT_STARTED,
@@ -66,6 +80,10 @@ public class SpliceDriver {
 
     private ExecutorService executor;
     private ConnectionPool embeddedConnections;
+    private TaskScheduler threadTaskScheduler;
+    private JobScheduler jobScheduler;
+    private TaskMonitor taskMonitor;
+    private TempCleaner tempCleaner;
 
     private SpliceDriver(){
         ThreadFactory factory = new ThreadFactoryBuilder()
@@ -79,10 +97,19 @@ public class SpliceDriver {
 
             embeddedConnections = ConnectionPool.create(SpliceUtils.config);
 
+            threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
+            jobScheduler = new CoprocessorJobScheduler(ZkUtils.getRecoverableZooKeeper(),SpliceUtils.config);
 
+            taskMonitor = new ZkTaskMonitor(CoprocessorTaskScheduler.baseQueueNode,ZkUtils.getRecoverableZooKeeper());
+
+            tempCleaner = new TempCleaner(SpliceUtils.config);
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
+    }
+
+    public ZkTaskMonitor getTaskMonitor() {
+        return (ZkTaskMonitor)taskMonitor;
     }
 
     public TableWriter getTableWriter() {
@@ -91,6 +118,27 @@ public class SpliceDriver {
 
     public Properties getProperties() {
         return props;
+    }
+
+    public TempCleaner getTempCleaner() {
+        return tempCleaner;
+    }
+
+    public <T extends Task> TaskScheduler<T> getTaskScheduler() {
+        return (TaskScheduler<T>)threadTaskScheduler;
+    }
+
+    public TaskSchedulerManagement getTaskSchedulerManagement() {
+        //this only works IF threadTaskScheduler implements the interface!
+        return (TaskSchedulerManagement)threadTaskScheduler;
+    }
+
+    public <J extends CoprocessorJob> JobScheduler<J> getJobScheduler(){
+        return (JobScheduler<J>)jobScheduler;
+    }
+
+    public JobSchedulerManagement getJobSchedulerManagement() {
+        return (JobSchedulerManagement)jobScheduler;
     }
 
     public ConnectionPool embedConnPool(){
@@ -143,6 +191,9 @@ public class SpliceDriver {
                 public Void call() throws Exception {
 
                     writerPool.start();
+
+                    //all we have to do is create it, it will register itself for us
+                    SpliceMetrics metrics = new SpliceMetrics();
 
                     //register JMX items
                     registerJMX();
@@ -223,14 +274,25 @@ public class SpliceDriver {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         try{
             //register ConnectionPool
-            ObjectName connPoolName = new ObjectName("com.splicemachine.execution:type=PoolStatus");
-
+            ObjectName connPoolName = new ObjectName("com.splicemachine.connection:type=ConnectionPoolStatus");
             mbs.registerMBean(embeddedConnections,connPoolName);
 
             //register TableWriter
             ObjectName writerName = new ObjectName("com.splicemachine.writer:type=WriterStatus");
-
             mbs.registerMBean(writerPool,writerName);
+
+            //register TaskScheduler
+            ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=TaskSchedulerManagement");
+            mbs.registerMBean(threadTaskScheduler,taskSchedulerName);
+
+            //register TaskMonitor
+            ObjectName taskMonitorName = new ObjectName("com.splicemachine.job:type=TaskMonitor");
+            mbs.registerMBean(taskMonitor,taskMonitorName);
+
+            //register JobScheduler
+            ObjectName jobSchedulerName = new ObjectName("com.splicemachine.job:type=JobSchedulerManagement");
+            mbs.registerMBean(jobScheduler,jobSchedulerName);
+
         } catch (MalformedObjectNameException e) {
             //we want to log the message, but this shouldn't affect startup
             SpliceLogUtils.error(LOG,"Unable to register JMX entries",e);

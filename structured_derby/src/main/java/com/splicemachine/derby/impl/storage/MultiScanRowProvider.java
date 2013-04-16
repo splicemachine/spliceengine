@@ -1,13 +1,19 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.google.common.collect.Lists;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationProtocol;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.TempCleaner;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -16,7 +22,11 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Abstract RowProvider which assumes that multiple scans are required to
@@ -26,22 +36,71 @@ import java.util.List;
  * Created on: 3/26/13
  */
 public abstract class MultiScanRowProvider implements RowProvider {
+    private static final Logger LOG = Logger.getLogger(MultiScanRowProvider.class);
 
     @Override
-    public void shuffleRows( SpliceObserverInstructions instructions,
-                            RegionStats stats) throws StandardException {
+    public JobStats shuffleRows( SpliceObserverInstructions instructions) throws StandardException {
         List<Scan> scans = getScans();
         HTableInterface table = SpliceAccessManager.getHTable(getTableName());
+        LinkedList<JobFuture> jobs = Lists.newLinkedList();
+        LinkedList<JobFuture> completedJobs = Lists.newLinkedList();
+        List<JobStats> stats = Lists.newArrayList();
         try{
+            long start = System.nanoTime();
             for(Scan scan:scans){
-                doShuffle(table,instructions,stats,scan);
+                jobs.add(doShuffle(table, instructions, scan));
             }
+
+            //we have to wait for all of them to complete, so just wait in order
+            Throwable error = null;
+            try{
+                while(jobs.size()>0){
+                    JobFuture next = jobs.pop();
+                    next.completeAll();
+                    completedJobs.add(next);
+                    stats.add(next.getJobStats());
+                }
+
+                long stop = System.nanoTime();
+                //construct the job stats to return
+                return new CompositeJobStats(stats,stop-start);
+            } catch (InterruptedException e) {
+                error = e;
+                throw Exceptions.parseException(e);
+            } catch (ExecutionException e) {
+                error = e.getCause();
+                throw Exceptions.parseException(e.getCause());
+            }finally{
+                if(error!=null){
+                    cancelAll(jobs);
+                }
+                for(JobFuture completedJob:completedJobs){
+                    try {
+                        SpliceDriver.driver().getJobScheduler().cleanupJob(completedJob);
+                    } catch (ExecutionException e) {
+                        SpliceLogUtils.error(LOG,"Unable to clean up job",e.getCause());
+                    }
+                }
+            }
+
         }finally{
             try {
                 table.close();
             } catch (IOException e) {
                 SpliceLogUtils.logAndThrow(Logger.getLogger(MultiScanRowProvider.class),
                         Exceptions.parseException(e));
+            }
+        }
+    }
+
+    private void cancelAll(LinkedList<JobFuture> jobs) {
+        //cancel all remaining tasks
+        for(JobFuture jobToCancel:jobs){
+            try {
+                jobToCancel.cancel();
+                SpliceDriver.driver().getJobScheduler().cleanupJob(jobToCancel);
+            } catch (ExecutionException e) {
+                SpliceLogUtils.error(LOG, "Unable to cancel job", e.getCause());
             }
         }
     }
@@ -55,50 +114,113 @@ public abstract class MultiScanRowProvider implements RowProvider {
     protected abstract List<Scan> getScans() throws StandardException;
 
 
-/********************************************************************************************************************/
-    /*private helper methods*/
-    private void doShuffle(HTableInterface table,
-                           SpliceObserverInstructions instructions,
-                           RegionStats stats, Scan scan) throws StandardException {
-        SpliceUtils.setInstructions(scan, instructions);
+    @Override
+    public void close() {
         try {
-            table.coprocessorExec(SpliceOperationProtocol.class,
-                    scan.getStartRow(),
-                    scan.getStopRow(),new Call(scan,instructions),new Callback(stats));
+            List<Scan> scans = getScans();
+            TempCleaner cleaner = SpliceDriver.driver().getTempCleaner();
+            for(Scan scan:scans){
+                cleaner.deleteRange(SpliceUtils.getUniqueKeyString(),scan.getStartRow(),scan.getStopRow());
+            }
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /********************************************************************************************************************/
+    /*private helper methods*/
+    private JobFuture doShuffle(HTableInterface table,
+                           SpliceObserverInstructions instructions,
+                           Scan scan) throws StandardException {
+        SpliceUtils.setInstructions(scan, instructions);
+        OperationJob job = new OperationJob(scan,instructions,table);
+        try {
+            return SpliceDriver.driver().getJobScheduler().submit(job);
         } catch (Throwable throwable) {
             throw Exceptions.parseException(throwable);
         }
     }
 
-    private static class Callback implements Batch.Callback<SinkStats>{
-        private final RegionStats stats;
+    private class CompositeJobStats implements JobStats {
+        private final List<JobStats> stats;
+        private final long totalTime;
 
-        private Callback(RegionStats stats) {
-            this.stats = stats;
+        public CompositeJobStats(List<JobStats> stats, long totalTime) {
+            this.stats= stats;
+            this.totalTime = totalTime;
         }
 
         @Override
-        public void update(byte[] region, byte[] row, SinkStats result) {
-            this.stats.addRegionStats(region,result);
-        }
-    }
-
-    private static class Call implements Batch.Call<SpliceOperationProtocol,SinkStats>{
-        private final Scan scan;
-        private final SpliceObserverInstructions instructions;
-
-        private Call(Scan scan, SpliceObserverInstructions instructions) {
-            this.scan = scan;
-            this.instructions = instructions;
-        }
-
-        @Override
-        public SinkStats call(SpliceOperationProtocol instance) throws IOException {
-            try {
-                return instance.run(scan,instructions);
-            } catch (StandardException e) {
-                throw new IOException(e);
+        public int getNumTasks() {
+            int numTasks=0;
+            for(JobStats stat:stats){
+                numTasks+=stat.getNumTasks();
             }
+            return numTasks;
+        }
+
+        @Override
+        public long getTotalTime() {
+            return totalTime;
+        }
+
+        @Override
+        public int getNumSubmittedTasks() {
+            int numTasks=0;
+            for(JobStats stat:stats){
+                numTasks+=stat.getNumSubmittedTasks();
+            }
+            return numTasks;
+        }
+
+        @Override
+        public int getNumCompletedTasks() {
+            int numTasks=0;
+            for(JobStats stat:stats){
+                numTasks+=stat.getNumCompletedTasks();
+            }
+            return numTasks;
+        }
+
+        @Override
+        public int getNumFailedTasks() {
+            int numTasks=0;
+            for(JobStats stat:stats){
+                numTasks+=stat.getNumFailedTasks();
+            }
+            return numTasks;
+        }
+
+        @Override
+        public int getNumInvalidatedTasks() {
+            int numTasks=0;
+            for(JobStats stat:stats){
+                numTasks+=stat.getNumInvalidatedTasks();
+            }
+            return numTasks;
+        }
+
+        @Override
+        public int getNumCancelledTasks() {
+            int numTasks=0;
+            for(JobStats stat:stats){
+                numTasks+=stat.getNumCancelledTasks();
+            }
+            return numTasks;
+        }
+
+        @Override
+        public Map<String, TaskStats> getTaskStats() {
+            Map<String,TaskStats> allTaskStats = new HashMap<String,TaskStats>();
+            for(JobStats stat:stats){
+                allTaskStats.putAll(stat.getTaskStats());
+            }
+            return allTaskStats;
+        }
+
+        @Override
+        public String getJobName() {
+            return "multiScanJob"; //TODO -sf- use a better name here
         }
     }
 }

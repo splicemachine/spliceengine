@@ -1,22 +1,21 @@
-package com.splicemachine.derby.impl.load;
+package com.splicemachine.derby.impl.job.load;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.test.framework.SpliceEmbedConnection;
+import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.apache.commons.dbutils.DbUtils;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import java.sql.*;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.List;
 import java.util.Map;
 
@@ -58,6 +57,11 @@ public class HdfsImportTest extends SpliceUnitTest {
 		.around(spliceTableWatcher8);
 		
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+
+//    @After
+//    public void tearDownTest() throws Exception{
+//        rule.dropTables();
+//    }
 
 	@Test
 	public void testHdfsImport() throws Exception{

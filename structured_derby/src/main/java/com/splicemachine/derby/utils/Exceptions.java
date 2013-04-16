@@ -1,7 +1,6 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.base.Throwables;
-import com.splicemachine.derby.impl.load.SpliceImportCoprocessor;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
 import org.apache.derby.iapi.error.StandardException;

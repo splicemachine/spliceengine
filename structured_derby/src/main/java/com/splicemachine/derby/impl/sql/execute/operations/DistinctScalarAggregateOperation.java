@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.splicemachine.derby.stats.TaskStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -20,7 +21,6 @@ import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -135,8 +135,8 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
     }
 	
 	@Override
-	public SinkStats sink() {
-        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+	public TaskStats sink() {
+        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
 		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
 		ExecRow row = null;
@@ -153,7 +153,7 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
                 row = source.getNextRowCore();
                 if(row==null) continue;
 
-                stats.processAccumulator().tick(System.nanoTime()-pTs);
+                stats.readAccumulator().tick(System.nanoTime()-pTs);
 
                 pTs = System.nanoTime();
                 SpliceLogUtils.trace(LOG, "row="+row);
@@ -161,7 +161,7 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
                 put = Puts.buildTempTableInsert(rowKey, row.getRowArray(), null, serializer);
                 tempTable.put(put);
 
-                stats.sinkAccumulator().tick(System.nanoTime()-pTs);
+                stats.writeAccumulator().tick(System.nanoTime()-pTs);
             }while(row!=null);
 			tempTable.flushCommits();
 			tempTable.close();

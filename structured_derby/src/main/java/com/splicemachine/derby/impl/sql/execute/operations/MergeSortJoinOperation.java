@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -11,8 +12,9 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.*;
+import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -22,10 +24,7 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -203,17 +202,17 @@ public class MergeSortJoinOperation extends JoinOperation {
 
 	
 	@Override		
-	public SinkStats sink() {
-        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+	public TaskStats sink() throws IOException {
+        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for MergeSortJoin at "+stats.getStartTime());
 		SpliceLogUtils.trace(LOG, "sink with joinSide= %s",joinSide);
 		ExecRow row = null;
-		HTableInterface tempTable = null;
+        CallBuffer<Mutation> writeBuffer;
 		try{
 			Put put;
 			Hasher hasher = null;
-			tempTable = getBufferedTable();
+            writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(SpliceOperationCoprocessor.TEMP_TABLE);
 			NoPutResultSet resultSet = null;
 			DataValueDescriptor[] additionalDescriptors = {activation.getDataValueFactory().getDataValue(joinSide.ordinal(), null)};
 			switch (joinSide) {
@@ -233,32 +232,27 @@ public class MergeSortJoinOperation extends JoinOperation {
 
                 row = resultSet.getNextRowCore();
                 if(row==null)continue;
-                stats.processAccumulator().tick(System.nanoTime()-start);
+                stats.readAccumulator().tick(System.nanoTime()-start);
 
                 start = System.nanoTime();
                 SpliceLogUtils.trace(LOG, "sinking row %s",row);
                 byte[] rowKey = hasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors);
                 put = Puts.buildInsert(rowKey, row.getRowArray(),null, SpliceUtils.NA_TRANSACTION_ID, serializer, additionalDescriptors);
-                put.setWriteToWAL(false); // Seeing if this speeds stuff up a bit...
-                tempTable.put(put);
-                stats.sinkAccumulator().tick(System.nanoTime()-start);
+//                put.setWriteToWAL(false); // Seeing if this speeds stuff up a bit...
+                writeBuffer.add(put);
+                stats.writeAccumulator().tick(System.nanoTime()-start);
             }while(row!=null);
-			tempTable.flushCommits();
-			tempTable.close();
+            writeBuffer.flushBuffer();
+            writeBuffer.close();
 		}catch (StandardException se){
 			SpliceLogUtils.logAndThrowRuntime(LOG,se);
 		} catch (IOException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		}finally{
-			try {
-				if(tempTable!=null)
-					tempTable.close();
-			} catch (IOException e) {
-				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
-			}
-		}
+		} catch (Exception e) {
+            SpliceLogUtils.logAndThrow(LOG,Exceptions.getIOException(e));
+        }
         //return stats.finish();
-		SinkStats ss = stats.finish();
+		TaskStats ss = stats.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for MergeSortJoin at "+stats.getFinishTime());
         return ss;
 	}

@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.DerbyLogUtils;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -75,8 +75,8 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
     }
     
     @Override
-	public SinkStats sink() {
-        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+	public TaskStats sink() {
+        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for DistinctGroupedAggregationOperation at "+stats.getStartTime());
 		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
@@ -92,7 +92,7 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
                 long processTime = System.nanoTime();
                 row = source.getNextRowCore();
                 if(row==null)continue;
-                stats.processAccumulator().tick(System.nanoTime()-processTime);
+                stats.readAccumulator().tick(System.nanoTime()-processTime);
 
                 processTime = System.nanoTime();
                 SpliceLogUtils.trace(LOG, "row="+row);
@@ -100,7 +100,7 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
                 put = Puts.buildTempTableInsert(rowKey, row.getRowArray(), null, serializer);
                 tempTable.put(put);
 
-                stats.sinkAccumulator().tick(System.nanoTime()-processTime);
+                stats.writeAccumulator().tick(System.nanoTime()-processTime);
             }while(row!=null);
 			tempTable.flushCommits();
 			tempTable.close();
@@ -117,7 +117,7 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 			}
 		}
         //return stats.finish();
-		SinkStats ss = stats.finish();
+		TaskStats ss = stats.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for DistinctGroupedAggregationOperation at "+stats.getFinishTime());
         return ss;
 	}

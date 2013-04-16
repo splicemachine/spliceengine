@@ -1,0 +1,183 @@
+package com.splicemachine.hbase;
+
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.impl.job.ZooKeeperTask;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.*;
+
+/**
+ * Cleaner Utility for keeping SYS_TEMP from growing without bound under each operation.
+ *
+ * This class asynchronously submits a Task that cleans up the SYS_TEMP regions that are requested, without
+ * blocking any further action from being taken.
+ *
+ * @author Scott Fines
+ * Created on: 4/10/13
+ */
+public class TempCleaner {
+    private static final Logger LOG = Logger.getLogger(TempCleaner.class);
+    private static final int DEFAULT_CLEAN_TASK_PRIORITY = 2;
+    private final ExecutorService cleanWatcher;
+    private final int taskPriority;
+
+    public TempCleaner(Configuration configuration) {
+        ThreadFactory factory = new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("tempCleaner")
+                .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+                    @Override
+                    public void uncaughtException(Thread t, Throwable e) {
+                        SpliceLogUtils.error(LOG, "Unexpected error cleaning temp table", e);
+                    }
+                }).build();
+        cleanWatcher = Executors.newSingleThreadExecutor(factory);
+        this.taskPriority = configuration.getInt("splice.temp.cleanTaskPriority",DEFAULT_CLEAN_TASK_PRIORITY);
+    }
+
+    /**
+     * Submit a range of rows in SYS_TEMP to be deleted.
+     *
+     * @param start the start row to be deleted
+     * @param finish the finish row to be deleted
+     */
+    public void deleteRange(String uid, byte[] start, byte[] finish) throws StandardException {
+        TempCleanJob job = new TempCleanJob(uid,start,finish,taskPriority);
+        try {
+            final JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
+            cleanWatcher.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    try{
+                        future.completeAll();
+                    }finally{
+                        SpliceDriver.driver().getJobScheduler().cleanupJob(future);
+                    }
+
+                    return null;
+                }
+            });
+        } catch (ExecutionException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    public static class TempCleanJob implements CoprocessorJob {
+        private TempCleanTask task;
+        private final String jobId;
+
+        public TempCleanJob(String uid,byte[] start, byte[] finish,int taskPriority){
+            this.jobId = uid;
+            Scan scan = new Scan();
+            scan.setStartRow(start);
+            scan.setStopRow(finish);
+            this.task = new TempCleanTask(uid,scan,taskPriority);
+        }
+
+        @Override
+        public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
+            return Collections.singletonMap(task,Pair.newPair(task.scan.getStartRow(),task.scan.getStopRow()));
+        }
+
+        @Override
+        public HTableInterface getTable() {
+            return SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
+        }
+
+        @Override
+        public String getJobId() {
+            return jobId;
+        }
+    }
+
+    public static class TempCleanTask extends ZooKeeperTask {
+        private Scan scan;
+        private RegionScanner scanner;
+        private HRegion region;
+
+        public TempCleanTask(){}
+
+        public TempCleanTask(String jobId,Scan scan,int priority){
+            super(jobId,priority);
+            this.scan = scan;
+        }
+
+        @Override
+        protected String getTaskType() {
+            return "tempCleanTask";
+        }
+
+        @Override
+        public boolean invalidateOnClose() {
+            return true;
+        }
+
+        @Override
+        public void execute() throws ExecutionException, InterruptedException {
+            List<KeyValue> keys = Lists.newArrayListWithCapacity(1);
+
+            try {
+                while(scanner.next(keys)){
+                    Delete delete = new Delete(keys.get(0).getRow());
+                    region.delete(delete,null,true);
+                    keys.clear();
+                }
+                if(keys.size()>0){
+                    Delete delete = new Delete(keys.get(0).getRow());
+                    region.delete(delete,null,true);
+                }
+            } catch (IOException e) {
+                throw new ExecutionException(e);
+            }
+        }
+
+        @Override
+        public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
+            this.region = region;
+            try {
+                this.scanner = region.getScanner(scan);
+            } catch (IOException e) {
+                throw new ExecutionException(e);
+            }
+            super.prepareTask(region, zooKeeper);
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            super.writeExternal(out);
+            scan.write(out);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            super.readExternal(in);
+            scan = new Scan();
+            scan.readFields(in);
+        }
+    }
+}

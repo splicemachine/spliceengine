@@ -124,6 +124,8 @@ public class DerbyTestRule extends TestWatchman{
 	}
 	
 	public void dropTables() throws Exception{
+        closeResultSets();
+        closeStatements();
 		java.sql.Statement s = null;
 		try{
 			s = getConnection().createStatement();
