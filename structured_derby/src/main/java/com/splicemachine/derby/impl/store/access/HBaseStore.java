@@ -155,9 +155,7 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 	public void boot(boolean create, Properties properties) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("boot with properties " + properties);
-        TransactorFactory transactorFactory;
-        transactorFactory = new TransactorFactoryImpl();
-        transactionFactory = new SpliceTransactionFactory(transactorFactory);
+        transactionFactory = new SpliceTransactionFactory(new TransactorFactoryImpl());
 		transactionFactory.boot(create, properties);
 	}
 	@Override

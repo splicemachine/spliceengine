@@ -14,7 +14,7 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.hbase.txn.TxnConstants;
 
 public class TxnTestUtils extends BaseTest {
 	

@@ -1,6 +1,8 @@
 package com.splicemachine.si;
 
-import com.splicemachine.si.utils.SIConstants;
+import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.si.api.SIConstants;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
@@ -37,8 +39,8 @@ public class HStoreSetup implements StoreSetup {
 
             testCluster.startMiniCluster(1);
             final TestHTableSource tableSource = new TestHTableSource(testCluster, getPersonTableName(),
-                    new String[]{SIConstants.DEFAULT_FAMILY, SIConstants.SNAPSHOT_ISOLATION_FAMILY});
-            tableSource.addTable(testCluster, SIConstants.TRANSACTION_TABLE, new String[]{"siFamily", "siChildrenFamily"});
+                    new String[]{HBaseConstants.DEFAULT_FAMILY, SIConstants.SNAPSHOT_ISOLATION_FAMILY});
+            tableSource.addTable(testCluster, TransactionConstants.TRANSACTION_TABLE, new String[]{"siFamily", "siChildrenFamily"});
             return new HStore(tableSource);
         } catch (Exception e) {
             throw new RuntimeException(e);

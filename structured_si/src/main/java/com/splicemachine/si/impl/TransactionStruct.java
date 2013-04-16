@@ -27,7 +27,7 @@ public class TransactionStruct extends ImmutableTransactionStruct {
     }
 
     public boolean isCacheable() {
-        return (status != null && (status.equals(TransactionStatus.ERROR) || status.equals(TransactionStatus.ABORT) ||
+        return (status != null && (status.equals(TransactionStatus.ERROR) || status.equals(TransactionStatus.ROLLED_BACK) ||
                 (status.equals(TransactionStatus.COMMITED) && commitTimestamp != null)));
     }
 }

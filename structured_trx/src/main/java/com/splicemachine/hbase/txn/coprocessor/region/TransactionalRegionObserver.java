@@ -23,9 +23,9 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 
-import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.constants.TxnConstants.TableEnv;
-import com.splicemachine.constants.TxnConstants.TransactionIsolationLevel;
+import com.splicemachine.hbase.txn.TxnConstants;
+import com.splicemachine.constants.TransactionConstants.TableEnv;
+import com.splicemachine.hbase.txn.TxnConstants.TransactionIsolationLevel;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.hbase.txn.logger.LogConstants;
 import com.splicemachine.hbase.txn.logger.LogConstants.LogRecordType;

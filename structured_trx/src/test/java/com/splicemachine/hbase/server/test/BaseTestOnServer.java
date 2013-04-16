@@ -11,8 +11,7 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.junit.BeforeClass;
 import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.hbase.txn.TransactionManager;
+import com.splicemachine.hbase.txn.TxnConstants;
 import com.splicemachine.hbase.txn.ZkTransactionManager;
 
 public class BaseTestOnServer extends TxnConstants {

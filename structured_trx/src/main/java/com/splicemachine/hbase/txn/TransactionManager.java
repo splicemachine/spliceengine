@@ -19,7 +19,6 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TxnConstants;
 
 public abstract class TransactionManager extends TxnConstants {
 	

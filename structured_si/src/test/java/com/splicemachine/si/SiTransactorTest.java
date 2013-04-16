@@ -8,7 +8,9 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.impl.SiFilterState;
 import com.splicemachine.si.impl.TransactionStruct;
+import org.apache.hadoop.hbase.filter.Filter;
 import org.junit.Assert;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.junit.After;
@@ -16,7 +18,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 public class SiTransactorTest {
     boolean useSimple = true;
@@ -83,7 +87,7 @@ public class SiTransactorTest {
         Object key = dataLib.newRowKey(new Object[]{name});
         Object put = dataLib.newPut(key);
         dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
-        transactorSetup.clientTransactor.initializePut(transactionId, put);
+        transactorSetup.clientTransactor.initializePut(transactionId.getTransactionIdString(), put);
 
         processPutDirect(useSimple, transactorSetup, storeSetup, reader, put);
     }
@@ -126,7 +130,7 @@ public class SiTransactorTest {
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Object rawTuple = reader.get(testSTable, get);
-            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, testSTable, rawTuple);
+            return readRawTuple(useSimple, storeSetup, transactorSetup, transactionId, name, dataLib, testSTable, rawTuple);
         } finally {
             reader.close(testSTable);
         }
@@ -146,7 +150,7 @@ public class SiTransactorTest {
             Assert.assertTrue(results.hasNext());
             Object rawTuple = results.next();
             Assert.assertTrue(!results.hasNext());
-            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, testSTable, rawTuple);
+            return readRawTuple(useSimple, storeSetup, transactorSetup, transactionId, name, dataLib, testSTable, rawTuple);
         } finally {
             reader.close(testSTable);
         }
@@ -168,7 +172,7 @@ public class SiTransactorTest {
             while (results.hasNext()) {
                 final Object value = results.next();
                 final String name = (String) dataLib.decode(dataLib.getResultKey(value), String.class);
-                final String s = readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, testSTable, value);
+                final String s = readRawTuple(useSimple, storeSetup, transactorSetup, transactionId, name, dataLib, testSTable, value);
                 result.append(s);
                 result.append("\n");
             }
@@ -178,7 +182,8 @@ public class SiTransactorTest {
         }
     }
 
-    private static String readRawTuple(boolean useSimple, TransactorSetup transactorSetup, TransactionId transactionId, String name, SDataLib dataLib, STable testSTable, Object rawTuple) throws IOException {
+    private static String readRawTuple(boolean useSimple, StoreSetup storeSetup, TransactorSetup transactorSetup,
+                                       TransactionId transactionId, String name, SDataLib dataLib, STable testSTable, Object rawTuple) throws IOException {
         if (rawTuple != null) {
             Object result = rawTuple;
             if (useSimple) {
@@ -188,7 +193,7 @@ public class SiTransactorTest {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                result = transactorSetup.transactor.filterResult(filterState, rawTuple);
+                result = filterResult(storeSetup, transactorSetup, filterState, rawTuple);
             }
             final Object ageValue = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.ageQualifier);
             Integer age = (Integer) dataLib.decode(ageValue, Integer.class);
@@ -198,6 +203,46 @@ public class SiTransactorTest {
         } else {
             return name + " age=" + null + " job=" + null;
         }
+    }
+
+    private static Object filterResult(StoreSetup storeSetup, TransactorSetup transactorSetup,
+                                       FilterState filterState, Object result) throws IOException {
+        SiFilterState siFilterState = (SiFilterState) filterState;
+        //ensureTransactionActive(siFilterState.transactionId);
+
+        final SDataLib dataLib = storeSetup.getDataLib();
+        List<Object> filteredCells = new ArrayList<Object>();
+        final List keyValues = dataLib.listResult(result);
+        if (keyValues != null) {
+            Object qualifierToSkip = null;
+            Object familyToSkip = null;
+
+            for (Object keyValue : keyValues) {
+                if (familyToSkip != null
+                        && dataLib.valuesEqual(familyToSkip, dataLib.getKeyValueFamily(keyValue))
+                        && dataLib.valuesEqual(qualifierToSkip, dataLib.getKeyValueQualifier(keyValue))) {
+                    // skipping to next column
+                } else {
+                    familyToSkip = null;
+                    qualifierToSkip = null;
+                    Filter.ReturnCode returnCode = transactorSetup.transactor.filterKeyValue(filterState, keyValue);
+                    switch (returnCode) {
+                        case SKIP:
+                            break;
+                        case INCLUDE:
+                            filteredCells.add(keyValue);
+                            qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
+                            familyToSkip = dataLib.getKeyValueFamily(keyValue);
+                            break;
+                        case NEXT_COL:
+                            qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
+                            familyToSkip = dataLib.getKeyValueFamily(keyValue);
+                            break;
+                    }
+                }
+            }
+        }
+        return dataLib.newResult(dataLib.getResultKey(result), filteredCells);
     }
 
     private void dumpStore() {
@@ -383,19 +428,19 @@ public class SiTransactorTest {
 
         TransactionId t7 = transactor.beginTransaction(true, false, false);
         insertAge(t7, "joe6", 27);
-        transactor.abort(t7);
+        transactor.rollback(t7);
 
         TransactionId t8 = transactor.beginTransaction(true, false, false);
         insertAge(t8, "joe6", 28);
-        transactor.abort(t8);
+        transactor.rollback(t8);
 
         TransactionId t9 = transactor.beginTransaction(true, false, false);
         insertAge(t9, "joe6", 29);
-        transactor.abort(t9);
+        transactor.rollback(t9);
 
         TransactionId t10 = transactor.beginTransaction(true, false, false);
         insertAge(t10, "joe6", 30);
-        transactor.abort(t10);
+        transactor.rollback(t10);
 
         TransactionId t11 = transactor.beginTransaction(true, false, false);
         Assert.assertEquals("joe6 age=20 job=farrier", read(t11, "joe6"));
@@ -636,7 +681,7 @@ public class SiTransactorTest {
         TransactionId t3 = transactor.beginTransaction(false, true, true);
         Assert.assertEquals("joe23 age=21 job=null", read(t3, "joe23"));
 
-        transactor.abort(t2);
+        transactor.rollback(t2);
         Assert.assertEquals("joe23 age=20 job=null", read(t3, "joe23"));
 
         TransactionId t4 = transactor.beginTransaction(true, false, false);
@@ -651,7 +696,7 @@ public class SiTransactorTest {
         TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
         insertAge(t2, "joe24", 21);
         Assert.assertEquals("joe24 age=21 job=null", read(t1, "joe24"));
-        transactor.abort(t2);
+        transactor.rollback(t2);
         Assert.assertEquals("joe24 age=20 job=null", read(t1, "joe24"));
         transactor.commit(t1);
 
@@ -775,7 +820,7 @@ public class SiTransactorTest {
     }
 
     @Test
-    public void multipleChildDependentTransactionsAbortThenWrite() throws IOException {
+    public void multipleChildDependentTransactionsRollbackThenWrite() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe45", 20);
         TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
@@ -785,10 +830,10 @@ public class SiTransactorTest {
         Assert.assertEquals("joe45 age=21 job=baker", read(t1, "joe45"));
         Assert.assertEquals("joe45 age=21 job=baker", read(t2, "joe45"));
         Assert.assertEquals("joe45 age=21 job=baker", read(t3, "joe45"));
-        transactor.abort(t2);
+        transactor.rollback(t2);
         Assert.assertEquals("joe45 age=20 job=baker", read(t1, "joe45"));
         Assert.assertEquals("joe45 age=20 job=baker", read(t3, "joe45"));
-        transactor.abort(t3);
+        transactor.rollback(t3);
         Assert.assertEquals("joe45 age=20 job=null", read(t1, "joe45"));
         TransactionId t4 = transactor.beginChildTransaction(t1, true, true, null, null);
         insertAge(t4, "joe45", 24);
@@ -811,7 +856,7 @@ public class SiTransactorTest {
         TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
         insertJob(t2, "joe46", "baker");
         transactor.commit(t2);
-        transactor.abort(t1);
+        transactor.rollback(t1);
         TransactionId t3 = transactor.beginChildTransaction(t1, true, true, null, null);
         Assert.assertEquals("joe46 age=null job=null", read(t3, "joe46"));
     }
@@ -823,7 +868,7 @@ public class SiTransactorTest {
         TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
         insertAge(t2, "joe27", 21);
         transactor.commit(t2);
-        transactor.abort(t1);
+        transactor.rollback(t1);
 
         TransactionId t4 = transactor.beginTransaction(false, false, false);
         Assert.assertEquals("joe27 age=null job=null", read(t4, "joe27"));
@@ -836,7 +881,7 @@ public class SiTransactorTest {
         TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
         insertAge(t2, "joe28", 21);
         Assert.assertEquals("joe28 age=21 job=null", read(t1, "joe28"));
-        transactor.abort(t2);
+        transactor.rollback(t2);
         Assert.assertEquals("joe28 age=20 job=null", read(t1, "joe28"));
         transactor.commit(t1);
 
@@ -896,7 +941,7 @@ public class SiTransactorTest {
         TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
         insertAge(t2, "joe30", 21);
         transactor.commit(t2);
-        transactor.abort(t1);
+        transactor.rollback(t1);
 
         TransactionId t4 = transactor.beginTransaction(false, false, false);
         Assert.assertEquals("joe30 age=21 job=null", read(t4, "joe30"));
@@ -1006,7 +1051,7 @@ public class SiTransactorTest {
 
         TransactionId t2 = transactor.beginTransaction(true, false, false);
         insertAge(t2, "joe43", 21);
-        transactor.abort(t2);
+        transactor.rollback(t2);
 
         TransactionId t3 = transactor.beginTransaction(true, false, false);
         Assert.assertEquals("joe43 age=20 job=null", read(t3, "joe43"));
@@ -1016,7 +1061,7 @@ public class SiTransactorTest {
     public void rollbackInsert() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe44", 20);
-        transactor.abort(t1);
+        transactor.rollback(t1);
 
         TransactionId t2 = transactor.beginTransaction(true, false, false);
         Assert.assertEquals("joe44 age=null job=null", read(t2, "joe44"));
@@ -1033,10 +1078,12 @@ public class SiTransactorTest {
         Object ageQualifier = dataLib.encode("age");
         dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(25));
         TransactionId t = transactor.beginTransaction(true, false, false);
-        transactorSetup.clientTransactor.initializePut(t, put);
+        transactorSetup.clientTransactor.initializePut(t.getTransactionIdString(), put);
         Object put2 = dataLib.newPut(testKey);
         dataLib.addKeyValueToPut(put2, family, ageQualifier, null, dataLib.encode(27));
-        transactorSetup.clientTransactor.initializePut(put, put2);
+        transactorSetup.clientTransactor.initializePut(
+                transactorSetup.clientTransactor.getTransactionIdFromPut(put).getTransactionIdString(),
+                put2);
         Assert.assertTrue(dataLib.valuesEqual(dataLib.encode(true), dataLib.getAttribute(put2, "si-needed")));
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
@@ -1045,7 +1092,7 @@ public class SiTransactorTest {
             SGet get1 = dataLib.newGet(testKey, null, null, null);
             transactorSetup.clientTransactor.initializeGet(t.getTransactionIdString(), get1);
             Object result = reader.get(testSTable, get1);
-            result = transactor.filterResult(transactor.newFilterState(testSTable, t), result);
+            result = filterResult(storeSetup, transactorSetup, transactor.newFilterState(testSTable, t), result);
             final int ageRead = (Integer) dataLib.decode(dataLib.getResultValue(result, family, ageQualifier), Integer.class);
             Assert.assertEquals(27, ageRead);
         } finally {
@@ -1061,7 +1108,7 @@ public class SiTransactorTest {
                 //System.out.println(((SiTransactor) transactor).shouldKeep(keyValue, t2));
             }
             final FilterState filterState = transactor.newFilterState(testSTable, t2);
-            transactor.filterResult(filterState, resultTuple);
+            filterResult(storeSetup, transactorSetup, filterState, resultTuple);
         } finally {
             reader.close(testSTable);
         }
@@ -1071,7 +1118,7 @@ public class SiTransactorTest {
         t = transactor.beginTransaction(true, false, false);
 
         dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(35));
-        transactorSetup.clientTransactor.initializePut(t, put);
+        transactorSetup.clientTransactor.initializePut(t.getTransactionIdString(), put);
         testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Assert.assertTrue(transactor.processPut(testSTable, put));

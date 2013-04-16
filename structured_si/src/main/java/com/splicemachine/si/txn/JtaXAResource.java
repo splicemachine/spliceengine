@@ -60,7 +60,7 @@ public class JtaXAResource implements XAResource {
         TransactionId state = xidToTransactionState.remove(xid);
         if (state != null) {
             try {
-                transactor.abort(state);
+                transactor.rollback(state);
             } catch (Exception e) {
                 XAException xae = new XAException(XAException.XAER_RMERR);
                 xae.initCause(e);

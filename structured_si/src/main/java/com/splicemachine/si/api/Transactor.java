@@ -15,7 +15,7 @@ public interface Transactor extends ClientTransactor {
     TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
                                         Boolean readUncommitted, Boolean readCommitted) throws IOException;
     void commit(TransactionId transactionId) throws IOException;
-    void abort(TransactionId transactionId) throws IOException;
+    void rollback(TransactionId transactionId) throws IOException;
     void fail(TransactionId transactionId) throws IOException;
 
     boolean processPut(STable table, Object put) throws IOException;
@@ -25,7 +25,7 @@ public interface Transactor extends ClientTransactor {
     void preProcessGet(SGet get) throws IOException;
     TransactionId getTransactionIdFromScan(Object scan);
     void preProcessScan(SScan scan) throws IOException;
+
     FilterState newFilterState(STable table, TransactionId transactionId) throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
-    Object filterResult(FilterState filterState, Object result) throws IOException;
 }

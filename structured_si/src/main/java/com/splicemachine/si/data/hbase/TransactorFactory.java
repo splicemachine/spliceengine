@@ -2,10 +2,12 @@ package com.splicemachine.si.data.hbase;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.TransactionConstants;
 import com.splicemachine.si.impl.SiTransactor;
 import com.splicemachine.si.impl.TransactionSchema;
 import com.splicemachine.si.impl.TransactionStruct;
-import com.splicemachine.si.utils.SIConstants;
+import com.splicemachine.si.api.SIConstants;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -61,8 +63,8 @@ public class TransactorFactory {
         SDataLib dataLib = new HDataLibAdapter(new HDataLib());
         final STableReader reader = new HTableReaderAdapter(store);
         final STableWriter writer = new HTableWriterAdapter(store);
-        final TransactionSchema transactionSchema = new TransactionSchema(SIConstants.TRANSACTION_TABLE,
-                SIConstants.DEFAULT_FAMILY,
+        final TransactionSchema transactionSchema = new TransactionSchema(TransactionConstants.TRANSACTION_TABLE,
+                HBaseConstants.DEFAULT_FAMILY,
                 SIConstants.SNAPSHOT_ISOLATION_CHILDREN_FAMILY,
                 SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN,
                 SIConstants.TRANSACTION_PARENT_COLUMN_BYTES,
@@ -80,7 +82,7 @@ public class TransactorFactory {
                 "si-transaction-id", "si-delete-put", SIConstants.SNAPSHOT_ISOLATION_FAMILY,
                 SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,
                 SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN,
-                SIConstants.EMPTY_BYTE_ARRAY, SIConstants.DEFAULT_FAMILY);
+                SIConstants.EMPTY_BYTE_ARRAY, HBaseConstants.DEFAULT_FAMILY);
         return new SiTransactor(timestampSource, dataLib, writer, rowStore, transactionStore);
     }
 }

@@ -1,4 +1,4 @@
-package com.splicemachine.constants;
+package com.splicemachine.hbase.txn;
 
 public enum TransactionStatus {
 	PENDING,

@@ -35,8 +35,8 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooDefs.Ids;
 
 import com.splicemachine.constants.SchemaConstants;
-import com.splicemachine.constants.TransactionStatus;
-import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.hbase.txn.TransactionStatus;
+import com.splicemachine.hbase.txn.TxnConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.hbase.locks.TxnLockManager;
 import com.splicemachine.hbase.txn.TxnCoordinator2;

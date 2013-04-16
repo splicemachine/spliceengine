@@ -3,7 +3,6 @@ package com.splicemachine.hbase.txn;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
-import com.splicemachine.constants.TransactionStatus;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;

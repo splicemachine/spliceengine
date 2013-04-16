@@ -5,5 +5,5 @@ public enum TransactionStatus {
     ERROR,
     COMMITTING,
     COMMITED,
-    ABORT
+    ROLLED_BACK
 }

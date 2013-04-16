@@ -53,12 +53,12 @@ public class TransactionManagerTest {
     }
 
     @Test
-    public void abortTest() throws Exception {
+    public void rollbackTest() throws Exception {
         TransactionId transactionId = transactor.beginTransaction(true, false, false);
-        transactor.abort(transactionId);
+        transactor.rollback(transactionId);
         TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
-        Assert.assertEquals(TransactionStatus.ABORT, transaction.status);
+        Assert.assertEquals(TransactionStatus.ROLLED_BACK, transaction.status);
         Assert.assertNull(transaction.commitTimestamp);
     }
 

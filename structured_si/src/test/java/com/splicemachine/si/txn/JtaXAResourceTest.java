@@ -84,7 +84,7 @@ public class JtaXAResourceTest {
         TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertNotNull(transaction);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
-        Assert.assertEquals(transaction.status, TransactionStatus.ABORT);
+        Assert.assertEquals(transaction.status, TransactionStatus.ROLLED_BACK);
         Assert.assertNull(transaction.commitTimestamp);
     }
 
@@ -141,7 +141,7 @@ public class JtaXAResourceTest {
         TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertNotNull(transaction);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
-        Assert.assertEquals(transaction.status, TransactionStatus.ABORT);
+        Assert.assertEquals(transaction.status, TransactionStatus.ROLLED_BACK);
         Assert.assertNull(transaction.commitTimestamp);
     }
 

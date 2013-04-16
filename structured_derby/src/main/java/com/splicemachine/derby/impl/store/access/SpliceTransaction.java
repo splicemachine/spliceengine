@@ -139,7 +139,7 @@ public class SpliceTransaction implements Transaction {
 		try {
 			if (state == CLOSED)
 				return;
-            transactor.abort(this.transactionId);
+            transactor.rollback(this.transactionId);
 			state = IDLE;
 		} catch (Exception e) {
 			throw StandardException.newException(e.getMessage(), e);

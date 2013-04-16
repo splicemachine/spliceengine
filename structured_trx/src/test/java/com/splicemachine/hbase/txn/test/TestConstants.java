@@ -8,7 +8,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
-import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.hbase.txn.TxnConstants;
 import com.splicemachine.hbase.txn.TransactionManager;
 
 public class TestConstants extends TxnConstants {

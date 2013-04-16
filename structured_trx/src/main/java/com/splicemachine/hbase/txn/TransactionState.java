@@ -4,7 +4,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.client.Attributes;
 import org.apache.hadoop.hbase.util.Bytes;
-import com.splicemachine.constants.TxnConstants;
 
 public class TransactionState {
     static final Log LOG = LogFactory.getLog(TransactionState.class);

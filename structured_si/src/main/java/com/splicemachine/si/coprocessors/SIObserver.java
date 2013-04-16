@@ -1,7 +1,8 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.constants.TxnConstants;
-import com.splicemachine.si.utils.SIUtils;
+import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.hbase.HGet;
 import com.splicemachine.si.data.hbase.HScan;
@@ -41,10 +42,10 @@ public class SIObserver extends BaseRegionObserver {
         SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
         region = ((RegionCoprocessorEnvironment) e).getRegion();
         tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
-        tableEnvMatch = (SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.USER_TABLE)
-                || SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.USER_INDEX_TABLE)
-                || SIUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TxnConstants.TableEnv.DERBY_SYS_TABLE))
-                && !tableName.equals(TxnConstants.TEMP_TABLE);
+        tableEnvMatch = (EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TransactionConstants.TableEnv.USER_TABLE)
+                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TransactionConstants.TableEnv.USER_INDEX_TABLE)
+                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TransactionConstants.TableEnv.DERBY_SYS_TABLE))
+                && !tableName.equals(HBaseConstants.TEMP_TABLE);
         super.start(e);
     }
 
