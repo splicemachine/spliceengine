@@ -20,14 +20,31 @@ public class TransactionStruct extends ImmutableTransactionStruct {
     }
 
     public TransactionStatus getEffectiveStatus() {
-        if (status == null || (parent != null && status != null && status.equals(TransactionStatus.COMMITED) && dependent)) {
+        if (shouldUseParentStatus()) {
             return parent.getEffectiveStatus();
         }
         return status;
     }
 
-    public boolean isCacheable() {
-        return (status != null && (status.equals(TransactionStatus.ERROR) || status.equals(TransactionStatus.ROLLED_BACK) ||
+    private boolean shouldUseParentStatus() {
+        return status == null || (parent != null && status != null && status.equals(TransactionStatus.COMMITED) && dependent);
+    }
+
+    public boolean canBeRolledBack() {
+        return getEffectiveStatus().equals(TransactionStatus.ACTIVE) &&
+                (status == null || (status != null && !status.equals(TransactionStatus.COMMITED)));
+    }
+
+    public boolean isStillRunning() {
+        return !(status != null && (status.equals(TransactionStatus.ERROR) || status.equals(TransactionStatus.ROLLED_BACK) ||
                 (status.equals(TransactionStatus.COMMITED) && commitTimestamp != null)));
+    }
+
+    public boolean isCacheable() {
+        return !isStillRunning();
+    }
+
+    public boolean didNotCommit() {
+        return commitTimestamp == null;
     }
 }
