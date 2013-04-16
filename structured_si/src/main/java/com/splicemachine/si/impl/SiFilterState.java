@@ -156,7 +156,7 @@ public class SiFilterState implements FilterState {
         if (dataTransaction == null) {
             return false;
         }
-        return dataTransaction.isCommittedBefore(myTransaction);
+        return dataTransaction.committedBefore(myTransaction);
     }
 
     private boolean isThisTransactionsData(long dataTimestamp) throws IOException {
