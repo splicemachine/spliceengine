@@ -34,15 +34,15 @@ public class HdfsImportTest extends SpliceUnitTest {
 	
 	
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
-	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_1,CLASS_NAME,"(name varchar(40), title varchar(40), age int)");
-	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_2,CLASS_NAME,"(name varchar(40), title varchar(40), age int,PRIMARY KEY(name))");
-	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_3,CLASS_NAME,"(order_id VARCHAR(50), item_id INT, order_amt INT,order_date TIMESTAMP, emp_id INT, "+
+	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_1,spliceSchemaWatcher.schemaName,"(name varchar(40), title varchar(40), age int)");
+	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_2,spliceSchemaWatcher.schemaName,"(name varchar(40), title varchar(40), age int,PRIMARY KEY(name))");
+	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_3,spliceSchemaWatcher.schemaName,"(order_id VARCHAR(50), item_id INT, order_amt INT,order_date TIMESTAMP, emp_id INT, "+
 															"promotion_id INT, qty_sold INT, unit_price FLOAT, unit_cost FLOAT, discount FLOAT, customer_id INT)");
-	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_4,CLASS_NAME,"(cust_city_id int, cust_city_name varchar(64), cust_state_id int)");
-	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_5,CLASS_NAME,"(si varchar(40),i int, j varchar(20))");
-	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_6,CLASS_NAME,"(name varchar(40), title varchar(40), age int)");
-	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_7,CLASS_NAME,"(name varchar(40), title varchar(40), age int)");
-	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_8,CLASS_NAME,"(cust_city_id int, cust_city_name varchar(64), cust_state_id int)");
+	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_4,spliceSchemaWatcher.schemaName,"(cust_city_id int, cust_city_name varchar(64), cust_state_id int)");
+	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_5,spliceSchemaWatcher.schemaName,"(si varchar(40),i int, j varchar(20))");
+	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_6,spliceSchemaWatcher.schemaName,"(name varchar(40), title varchar(40), age int)");
+	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_7,spliceSchemaWatcher.schemaName,"(name varchar(40), title varchar(40), age int)");
+	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_8,spliceSchemaWatcher.schemaName,"(cust_city_id int, cust_city_name varchar(64), cust_state_id int)");
 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -65,12 +65,12 @@ public class HdfsImportTest extends SpliceUnitTest {
 
 	@Test
 	public void testHdfsImport() throws Exception{
-		testImport(CLASS_NAME,TABLE_1,getResourceDirectory()+"importTest.in","NAME,TITLE,AGE");
+		testImport(spliceSchemaWatcher.schemaName,TABLE_1,getResourceDirectory()+"importTest.in","NAME,TITLE,AGE");
 	}
 
     @Test
     public void testImportWithPrimaryKeys() throws Exception{
-        testImport(CLASS_NAME,TABLE_2,getResourceDirectory()+"importTest.in","NAME,TITLE,AGE");
+        testImport(spliceSchemaWatcher.schemaName,TABLE_2,getResourceDirectory()+"importTest.in","NAME,TITLE,AGE");
     }
 
     private void testImport(String schemaName, String tableName,String location,String colList) throws Exception {
@@ -95,9 +95,12 @@ public class HdfsImportTest extends SpliceUnitTest {
 	@Ignore("Bug")
 	public void testImportHelloThere() throws Exception {
 		String csvLocation = getResourceDirectory()+"hello_there.csv";
-		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s', null, null, '%s', ',', null, null)", CLASS_NAME,TABLE_5,csvLocation));
+		PreparedStatement ps =
+                methodWatcher.prepareStatement(
+                        format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s', null, null, '%s', ',', null, null)",
+                                spliceSchemaWatcher.schemaName,TABLE_5,csvLocation));
 		ps.execute();
-		ResultSet rs = methodWatcher.executeQuery(format("select i, j from %s.%s",CLASS_NAME,TABLE_5));
+		ResultSet rs = methodWatcher.executeQuery(format("select i, j from %s.%s",spliceSchemaWatcher.schemaName,TABLE_5));
 		List<String> results = Lists.newArrayList();
 		while(rs.next()){
 			Integer i = rs.getInt(1);
@@ -115,18 +118,18 @@ public class HdfsImportTest extends SpliceUnitTest {
 
     @Test
 	public void testHdfsImportGzipFile() throws Exception{
-		testImport(CLASS_NAME,TABLE_6,getResourceDirectory()+"importTest.in.gz","NAME,TITLE,AGE");
+		testImport(spliceSchemaWatcher.schemaName,TABLE_6,getResourceDirectory()+"importTest.in.gz","NAME,TITLE,AGE");
 	}
 
 
 	@Test
 	public void testImportFromSQL() throws Exception{
 		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-				",',',null,null)",CLASS_NAME,TABLE_3));
+				",',',null,null)",spliceSchemaWatcher.schemaName,TABLE_3));
         ps.setString(1,getResourceDirectory()+"order_detail_small.csv");
 		ps.execute();
 
-		ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", CLASS_NAME, TABLE_3));
+		ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName, TABLE_3));
 		List<String> results = Lists.newArrayList();
 		while(rs.next()){
 			String orderId = rs.getString(1);
@@ -159,14 +162,14 @@ public class HdfsImportTest extends SpliceUnitTest {
 
 	@Test
 	public void testHdfsImportNullColList() throws Exception{
-		testImport(CLASS_NAME,TABLE_7,getResourceDirectory()+"importTest.in",null);
+		testImport(spliceSchemaWatcher.schemaName,TABLE_7,getResourceDirectory()+"importTest.in",null);
 	}
 
     @Test
     public void testImportWithExtraTabDelimited() throws Exception{
         String location = getResourceDirectory()+"lu_cust_city.txt";
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
-                "'%s',',',null,null)", CLASS_NAME, TABLE_4,location));
+                "'%s',',',null,null)", spliceSchemaWatcher.schemaName, TABLE_4,location));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s",this.getTableReference(TABLE_4)));
@@ -184,10 +187,10 @@ public class HdfsImportTest extends SpliceUnitTest {
     public void testImportTabDelimited() throws Exception{
         String location = getResourceDirectory()+"lu_cust_city_tab.txt";
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
-                "'%s','\t',null,null)",CLASS_NAME,TABLE_8,location));
+                "'%s','\t',null,null)",spliceSchemaWatcher.schemaName,TABLE_8,location));
         ps.execute();
 
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",CLASS_NAME,TABLE_8));
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,TABLE_8));
         List<String>results = Lists.newArrayList();
         while(rs.next()){
             int id = rs.getInt(1);

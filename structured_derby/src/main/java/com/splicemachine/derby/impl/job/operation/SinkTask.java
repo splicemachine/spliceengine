@@ -3,15 +3,14 @@ package com.splicemachine.derby.impl.job.operation;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
-import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.job.Status;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.job.TaskStatus;
-import com.splicemachine.si2.txn.TransactionManager;
+import com.splicemachine.job.Status;
+import com.splicemachine.si.api.ParentTransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.impl.jdbc.EmbedConnection;
@@ -25,6 +24,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -70,8 +70,24 @@ public class SinkTask extends ZooKeeperTask {
     @Override
     public void execute() throws ExecutionException, InterruptedException {
         SpliceLogUtils.trace(LOG,"executing task %s",getTaskId());
-        TransactionManager.setParentTransactionId(instructions.getTransactionId());
+        try {
+            ParentTransactionManager.runInParentTransaction(instructions.getTransactionId(), new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    run();
+                    return null;
+                }
+            });
+        } catch (Exception e) {
+            if(e instanceof ExecutionException)
+                throw (ExecutionException)e;
+            else if(e instanceof InterruptedException)
+                throw (InterruptedException)e;
+            else throw new ExecutionException(e);
+        }
+    }
 
+    private void run() throws InterruptedException, StandardException, ExecutionException {
         Connection runningConnection = null;
         try{
             runningConnection = SpliceDriver.driver().acquireConnection();
@@ -84,7 +100,7 @@ public class SinkTask extends ZooKeeperTask {
                     scan,activation,instructions.getStatement(),runningConnection);
             SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),opContext);
 
-            SpliceLogUtils.trace(LOG,"sinking task %s",getTaskId());
+            SpliceLogUtils.trace(LOG, "sinking task %s", getTaskId());
             TaskStats stats = spliceScanner.sink();
             status.setStats(stats);
 
@@ -97,7 +113,6 @@ public class SinkTask extends ZooKeeperTask {
             SpliceLogUtils.error(LOG,"Exception encountered dealing with Connection pool",e);
             throw new ExecutionException(e);
         }finally{
-            TransactionManager.setParentTransactionId(null);
             try {
                 SpliceDriver.driver().closeConnection(runningConnection);
             } catch (SQLException e) {

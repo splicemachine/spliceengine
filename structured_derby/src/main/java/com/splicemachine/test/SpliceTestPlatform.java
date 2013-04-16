@@ -2,6 +2,7 @@ package com.splicemachine.test;
 
 import java.io.File;
 
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.si.coprocessors.SIObserver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -70,24 +71,25 @@ public class SpliceTestPlatform extends TestConstants {
 		coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
 	}
-	
-	public void coprocessorBaseline(Configuration configuration) {
-		configuration.set("hbase.coprocessor.region.classes", 
-				SpliceOperationRegionObserver.class.getCanonicalName() + "," +
-				SpliceOperationCoprocessor.class.getCanonicalName() + "," + 
-				SpliceIndexObserver.class.getCanonicalName() + "," +
-				SpliceDerbyCoprocessor.class.getCanonicalName() + "," + 
-				SpliceIndexManagementEndpoint.class.getCanonicalName() + "," + 
-				SpliceIndexEndpoint.class.getCanonicalName() + "," + 
-				//TransactionalManagerRegionObserver.class.getCanonicalName() + "," +
-				//TransactionalRegionObserver.class.getCanonicalName()
-				//comment out SIObserver for now, and when SI is ready, 
-				//uncomment it out and comment out the above old transaction observers
-				//+ "," +
-				SIObserver.class.getCanonicalName()
-				);
-	
-	
-	}
+
+    public void coprocessorBaseline(Configuration configuration) {
+        configuration.set("hbase.coprocessor.region.classes",
+                SpliceOperationRegionObserver.class.getCanonicalName() + "," +
+                        SpliceOperationCoprocessor.class.getCanonicalName() + "," +
+                        SpliceIndexObserver.class.getCanonicalName() + "," +
+                        SpliceDerbyCoprocessor.class.getCanonicalName() + "," +
+                        SpliceIndexManagementEndpoint.class.getCanonicalName() + "," +
+                        SpliceIndexEndpoint.class.getCanonicalName() + "," +
+                        CoprocessorTaskScheduler.class.getCanonicalName()+","+
+                        //TransactionalManagerRegionObserver.class.getCanonicalName() + "," +
+                        //TransactionalRegionObserver.class.getCanonicalName()
+                        //comment out SIObserver for now, and when SI is ready,
+                        //uncomment it out and comment out the above old transaction observers
+                        //+ "," +
+                        SIObserver.class.getCanonicalName()
+        );
+
+
+    }
 
 }

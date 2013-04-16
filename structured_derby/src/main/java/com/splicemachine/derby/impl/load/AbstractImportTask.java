@@ -109,7 +109,7 @@ public abstract class AbstractImportTask extends ZooKeeperTask{
                                        RowSerializer rowSerializer,
                                        CallBuffer<Mutation> writeBuffer) throws Exception;
 
-    protected void doImportRow(String[] line,FormatableBitSet activeCols, ExecRow row,
+    protected void doImportRow(String transactionId,String[] line,FormatableBitSet activeCols, ExecRow row,
                              CallBuffer<Mutation> writeBuffer,
                              RowSerializer rowSerializer,Serializer serializer) throws IOException {
         try{
@@ -126,7 +126,7 @@ public abstract class AbstractImportTask extends ZooKeeperTask{
                     row.getColumn(line.length).setValue(line[line.length-1]);
                 }
             }
-            Put put = Puts.buildInsert(rowSerializer.serialize(row.getRowArray()), row.getRowArray(), null, serializer); //TODO -sf- add transaction stuff
+            Put put = Puts.buildInsertWithSerializer(rowSerializer.serialize(row.getRowArray()),row.getRowArray(),null,transactionId,serializer);
             writeBuffer.add(put);
         }catch(StandardException se){
             throw new DoNotRetryIOException(se.getMessageId());

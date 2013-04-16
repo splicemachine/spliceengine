@@ -3,10 +3,7 @@ package org.apache.derby.impl.sql.execute.operations;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -54,6 +51,7 @@ public class DistinctScalarAggregateOperationTest extends SpliceUnitTest {
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 		
 	@Test
+    @Ignore("Bug 340")
 	public void testDistinctScalarAggregate() throws Exception {			
 		ResultSet rs = methodWatcher.executeQuery("select sum(distinct score) from" + this.getPaddedTableReference("ORDERSUMMARY"));
 		if (rs.next()) {

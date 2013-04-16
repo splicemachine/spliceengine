@@ -108,7 +108,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                 Mutation mutation = Mutations.getDeleteOp(transactionId,rowBytes);
                 mutation.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
                 if(mutation instanceof Put)
-                    region.put((Put)mutation);
+                    region.put(new Pair[]{Pair.newPair((Put)mutation,null)});
                 else
                     region.delete((Delete)mutation,null,true);
             }

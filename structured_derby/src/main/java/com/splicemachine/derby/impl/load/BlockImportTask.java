@@ -68,7 +68,7 @@ public class BlockImportTask extends AbstractImportTask{
                     long newSize = reader.readLine(text);
                     pos+=newSize;
                     String[] cols = parser.parseLine(text.toString());
-                    doImportRow(cols,importContext.getActiveCols(),row,writeBuffer,rowSerializer,serializer);
+                    doImportRow(importContext.getTransactionId(),cols,importContext.getActiveCols(),row,writeBuffer,rowSerializer,serializer);
                     numImported++;
 
                     reportIntermediate(numImported);

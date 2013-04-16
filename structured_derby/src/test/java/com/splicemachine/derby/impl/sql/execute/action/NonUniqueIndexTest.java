@@ -48,7 +48,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
 
     @Override
     public String getSchemaName() {
-        return CLASS_NAME;
+        return spliceSchemaWatcher.schemaName;
     }
 
     @ClassRule
@@ -66,7 +66,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
 
     @Test
     public void testCanCreateIndexWithMultipleEntries() throws Exception{
-        new SpliceIndexWatcher(TABLE_NAME_2,CLASS_NAME,INDEX_21,CLASS_NAME,"(n_1,n_2)").starting(null);
+        new SpliceIndexWatcher(TABLE_NAME_2,spliceSchemaWatcher.schemaName,INDEX_21,spliceSchemaWatcher.schemaName,"(n_1,n_2)").starting(null);
         PreparedStatement ps = methodWatcher.prepareStatement(format("insert into %s (n_1,n_2,val) values (?,?,?)",this.getTableReference(TABLE_NAME_2)));
         String n1 = "sfines";
         ps.setString(1,n1);
@@ -107,7 +107,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
      */
     @Test
     public void testCanUseIndex() throws Exception{
-        new SpliceIndexWatcher(TABLE_NAME_1,CLASS_NAME,INDEX_11,CLASS_NAME,"(name)").starting(null);
+        new SpliceIndexWatcher(TABLE_NAME_1,spliceSchemaWatcher.schemaName,INDEX_11,spliceSchemaWatcher.schemaName,"(name)").starting(null);
         String name = "sfines";
         int value = 2;
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('"+name+"',"+value+")",this.getTableReference(TABLE_NAME_1)));
@@ -137,7 +137,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
         String name = "sfines";
         int value =2;
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('"+name+"',"+value+")",this.getTableReference(TABLE_NAME_3)));
-    	new SpliceIndexWatcher(TABLE_NAME_3,CLASS_NAME,INDEX_31,CLASS_NAME,"(name)").starting(null);        
+    	new SpliceIndexWatcher(TABLE_NAME_3,spliceSchemaWatcher.schemaName,INDEX_31,spliceSchemaWatcher.schemaName,"(name)").starting(null);
         //now check that we can get data out for the proper key
         ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s where name = '" + name + "'",this.getTableReference(TABLE_NAME_3)));
         List<String> results = Lists.newArrayListWithExpectedSize(1);
@@ -162,7 +162,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
     @Test
     public void testCanCreateIndexFromExistingDataAndThenAddData() throws Exception{
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('sfines',2)",this.getTableReference(TABLE_NAME_4)));
-    	new SpliceIndexWatcher(TABLE_NAME_4,CLASS_NAME,INDEX_41,CLASS_NAME,"(name)").starting(null);        
+    	new SpliceIndexWatcher(TABLE_NAME_4,spliceSchemaWatcher.schemaName,INDEX_41,spliceSchemaWatcher.schemaName,"(name)").starting(null);
         //add some more data
         String name = "jzhang";
         int value =2;
@@ -183,7 +183,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
     
     @Test
     public void testCanAddDuplicateAndDelete() throws Exception{
-    	new SpliceIndexWatcher(TABLE_NAME_5,CLASS_NAME,INDEX_51,CLASS_NAME,"(name)").starting(null);
+    	new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
         methodWatcher.getStatement().execute(format("insert into %s.%s (name,val) values ('sfines',2)",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
         methodWatcher.getStatement().execute(format("insert into %s.%s (name,val) values ('sfines',3)",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
         ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s.%s where name = 'sfines'",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
@@ -204,7 +204,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
     @Test
     public void testCanUpdateEntryIndexChanges() throws Exception{
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('sfines',2)",this.getTableReference(TABLE_NAME_6)));
-    	new SpliceIndexWatcher(TABLE_NAME_6,CLASS_NAME,INDEX_61,CLASS_NAME,"(name)").starting(null);        
+    	new SpliceIndexWatcher(TABLE_NAME_6,spliceSchemaWatcher.schemaName,INDEX_61,spliceSchemaWatcher.schemaName,"(name)").starting(null);
 
         String oldName = "sfines";
         String newName = "jzhang";
@@ -213,7 +213,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",this.getTableReference(TABLE_NAME_6),oldName));
         Assert.assertTrue("Rows returned incorrectly",!rs.next());
 
-        assertSelectCorrect(CLASS_NAME,TABLE_NAME_6,newName,1);
+        assertSelectCorrect(spliceSchemaWatcher.schemaName,TABLE_NAME_6,newName,1);
     }
     /**
      * Regression test for Bug 149. Confirm that we can add a view and then add an index
