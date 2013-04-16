@@ -4,7 +4,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.hbase.CallBuffer;
@@ -59,7 +59,7 @@ public class InsertOperation extends DMLWriteOperation {
 	}
 	
 	@Override
-	public SinkStats sink() throws IOException {
+	public TaskStats sink() throws IOException {
 //		SpliceLogUtils.trace(LOG,"sink on transactinID="+transactionID);
 		/*
 		 * write out the data to the correct location.
@@ -70,7 +70,7 @@ public class InsertOperation extends DMLWriteOperation {
 		 * to the writer. This dramatically simplifies this code, at the cost of adding conceptual complexity
 		 * in coprocessor logic
 		 */
-        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for InsertOperation at "+stats.getStartTime());
 		ExecRow nextRow=null;
@@ -87,7 +87,7 @@ public class InsertOperation extends DMLWriteOperation {
 
                 nextRow = source.getNextRowCore();
                 if(nextRow==null)continue;
-                stats.processAccumulator().tick(System.nanoTime()-start);
+                stats.readAccumulator().tick(System.nanoTime()-start);
 
                 start = System.nanoTime();
 //                SpliceLogUtils.trace(LOG,"InsertOperation sink, nextRow="+nextRow);
@@ -95,7 +95,7 @@ public class InsertOperation extends DMLWriteOperation {
                 byte[] rowKey = rowKeySerializer.serialize(nextRow.getRowArray());
                 writer.add(Puts.buildInsert(rowKey, nextRow.getRowArray(), this.getTransactionID(), serializer)); // Buffered
 
-                stats.sinkAccumulator().tick(System.nanoTime()-start);
+                stats.writeAccumulator().tick(System.nanoTime()-start);
             }while(nextRow!=null);
             writer.flushBuffer();
             writer.close();
@@ -106,7 +106,7 @@ public class InsertOperation extends DMLWriteOperation {
             else
                 throw Exceptions.getIOException(e);
 		}
-		SinkStats ss = stats.finish();
+		TaskStats ss = stats.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for InsertOperation at "+stats.getFinishTime());
         return ss;
 	}

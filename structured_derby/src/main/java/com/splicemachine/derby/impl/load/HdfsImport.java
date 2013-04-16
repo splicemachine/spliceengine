@@ -6,9 +6,11 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
@@ -22,6 +24,7 @@ import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.compress.SplittableCompressionCodec;
@@ -33,6 +36,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Imports a delimiter-separated file located in HDFS in a parallel way.
@@ -207,19 +211,24 @@ public class HdfsImport extends ParallelVTI {
 	public void executeShuffle() throws StandardException {
 		CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
 		CompressionCodec codec = codecFactory.getCodec(context.getFilePath());
-		Importer importer;
+		ImportJob importJob;
+        HTableInterface table = SpliceAccessManager.getHTable(context.getTableName().getBytes());
 		if(codec==null ||codec instanceof SplittableCompressionCodec){
-			importer = new SplitImporter(admin,context);
+			importJob = new BlockImportJob(table, context);
 		}else{
-			importer = new SequentialImporter(admin,context);
+			importJob = new FileImportJob(table,context);
 		}
 
-		try {
-			insertedRowCount = importer.importData();
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrow(LOG,StandardException.newException(SQLState.UNEXPECTED_IMPORT_ERROR,e));
-		}
-	}
+        try {
+            JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
+
+            jobFuture.completeAll();
+		}  catch (ExecutionException e) {
+            throw Exceptions.parseException(e.getCause());
+        } catch (InterruptedException e) {
+            throw Exceptions.parseException(e.getCause());
+        }
+    }
 
 	@Override
 	public void close() {
@@ -235,7 +244,7 @@ public class HdfsImport extends ParallelVTI {
 	@Override public void open() throws StandardException { openCore(); }
 
 	/*no op methods*/
-	@Override public SinkStats sink() { return null; }
+	@Override public TaskStats sink() { return null; }
 	@Override public ExecRow getExecRowDefinition() { return null; }
 	@Override public boolean next() { return false; }
     @Override public SpliceOperation getRightOperation() { return null; } //noop
@@ -299,7 +308,7 @@ public class HdfsImport extends ParallelVTI {
         int numCols = 0;
         try{
             rs = dmd.getColumns(null,(schemaName==null?"APP":schemaName.toUpperCase()),tableName,null);
-            if(insertColumnList!=null){
+            if(insertColumnList!=null && !insertColumnList.equalsIgnoreCase("null")){
                 List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
                 while(rs.next()){
                     numCols++;

@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.stats.RegionStats;
+import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -95,8 +96,7 @@ public class MiscOperation extends NoRowsOperation
         @Override public byte[] getTableName() { return null; }
 
         @Override
-        public void shuffleRows(SpliceObserverInstructions instructions,
-                                RegionStats stats) throws StandardException {
+        public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
             throw new UnsupportedOperationException();
         }
 

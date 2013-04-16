@@ -5,6 +5,7 @@ import java.util.NoSuchElementException;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stats.RegionStats;
+import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -64,9 +65,8 @@ public class RowProviders {
 		@Override public boolean hasNext() throws StandardException { return provider.hasNext(); }
 
         @Override
-        public void shuffleRows(SpliceObserverInstructions instructions,
-                                RegionStats stats) throws StandardException {
-            provider.shuffleRows(instructions,stats);
+        public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+            return provider.shuffleRows(instructions);
         }
 
         @Override

@@ -40,9 +40,9 @@ public class RegionStats {
     	this.currentOp = currentOpName;
     }
     
-    public void addRegionStats(byte[] region, SinkStats stats){
-        this.processStats.put(region,stats.getProcessStats());
-        this.sinkStats.put(region,stats.getSinkStats());
+    public void addRegionStats(byte[] region, TaskStats stats){
+        this.processStats.put(region,stats.getReadStats());
+        this.sinkStats.put(region,stats.getWriteStats());
     }
 
     public void start(){

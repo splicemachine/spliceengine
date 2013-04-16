@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.job.JobStats;
+import com.splicemachine.job.JobStatsUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.sql.Activation;
@@ -31,7 +34,6 @@ import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -184,29 +186,15 @@ public class UnionOperation extends SpliceBaseOperation {
 		RowProvider provider = regionOperation.getMapRowProvider(topOperation,regionOperation.getExecRowDefinition());
         nextTime += System.currentTimeMillis() - start;
 
-		HTableInterface htable = null;
-		try{
-			final RegionStats stats = new RegionStats("UnionOperation's "+regionOperation.getClass().getName());
-            stats.start();
-            
-			long numberCreated = 0;
-			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,topOperation);
-            provider.shuffleRows(soi,stats);
-            stats.finish();
-            stats.recordStats(LOG);
-            nextTime += stats.getTotalTimeTakenMs();
-			SpliceLogUtils.trace(LOG,"Retrieved %d records",numberCreated);
-			executed = true;
-		}finally{
-			if (htable != null){
-				try {
-					htable.close();
-				}catch(IOException e){
-					SpliceLogUtils.logAndThrow(LOG,"Unable to close HBase table",StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
-				}
-			}
-		}
-	}
+        final RegionStats stats = new RegionStats("UnionOperation's "+regionOperation.getClass().getName());
+        stats.start();
+
+        long numberCreated = 0;
+        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,topOperation);
+        JobStats jobStats = provider.shuffleRows(soi);
+        JobStatsUtils.logStats(jobStats,LOG);
+        executed = true;
+    }
 
 	@Override
 	public void close() throws StandardException {
@@ -279,7 +267,7 @@ public class UnionOperation extends SpliceBaseOperation {
 	@Override
 	public ExecRow	getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowCore, whichSource=%s,regionScanner=%s,isScan=%b",whichSource,regionScanner,isScan);
-		return isScan? getNextRowFromScan() : getNextRowFromSources();
+		return isScan? getNextRowFromScan() : getNextRowFromSources(true);
 	}
 
 	private ExecRow getNextRowFromScan() throws StandardException {
@@ -308,7 +296,7 @@ public class UnionOperation extends SpliceBaseOperation {
 		return currentRow;
 	}
 	
-	protected ExecRow	getNextRowFromSources() throws StandardException {
+	protected ExecRow	getNextRowFromSources(boolean bothSources) throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowFromSources, whichSource="+whichSource+",source1="+source1+",source2="+source2);
 	    ExecRow result = null;
 	    //if (isOpen) {
@@ -317,15 +305,17 @@ public class UnionOperation extends SpliceBaseOperation {
 	            		SpliceLogUtils.trace(LOG, "getNextRowFromSources,result from source 1="+result);
 	                     if ( result == (ExecRow) null ) {
 	                        source1.close();
-	                        whichSource = 2;
-	                        SpliceLogUtils.trace(LOG, "getNextRowFromSources, open source 2 since result from source 1 is null");
-	                        source2.openCore();
-	                        SpliceLogUtils.trace(LOG, "getNextRowFromSources, getNextRowCore from source 2");
-	                        result = source2.getNextRowCore();
-							if (result != null) {
-								SpliceLogUtils.trace(LOG, "UnionOperation from source 1 to source 2, getNextRowFromSources="+result);
-								rowsSeenRight++;
-							}
+                             if(bothSources){
+                                 whichSource = 2;
+                                 SpliceLogUtils.trace(LOG, "getNextRowFromSources, open source 2 since result from source 1 is null");
+                                 source2.openCore();
+                                 SpliceLogUtils.trace(LOG, "getNextRowFromSources, getNextRowCore from source 2");
+                                 result = source2.getNextRowCore();
+                                 if (result != null) {
+                                     SpliceLogUtils.trace(LOG, "UnionOperation from source 1 to source 2, getNextRowFromSources="+result);
+                                     rowsSeenRight++;
+                                 }
+                             }
 	                     } else {
 	                    	 SpliceLogUtils.trace(LOG, "UnionOperation getNextRowFromSources from source 1="+result);
 							 rowsSeenLeft++;
@@ -354,9 +344,9 @@ public class UnionOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public SinkStats sink() {
+	public TaskStats sink() {
 		SpliceLogUtils.trace(LOG, "sink");
-        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for UnionOperation at "+stats.getStartTime());
 		ExecRow row = null;
@@ -369,9 +359,9 @@ public class UnionOperation extends SpliceBaseOperation {
             Serializer serializer= new Serializer();
             do{
                 long start = System.nanoTime();
-                row = getNextRowFromSources();
+                row = getNextRowFromSources(false);
                 if(row==null) continue;
-                stats.processAccumulator().tick(System.nanoTime()-start);
+                stats.readAccumulator().tick(System.nanoTime()-start);
 
                 start = System.nanoTime();
                 SpliceLogUtils.trace(LOG, "UnionOperation sink, row="+row);
@@ -383,7 +373,7 @@ public class UnionOperation extends SpliceBaseOperation {
                 put = Puts.buildTempTableInsert(DerbyBytesUtil.generatePrefixedRowKey(sequence[0]), row.getRowArray(), null, serializer);
                 tempTable.put(put);
 
-                stats.sinkAccumulator().tick(System.nanoTime()-start);
+                stats.writeAccumulator().tick(System.nanoTime()-start);
             }while(row!=null);
 			tempTable.flushCommits();
 		} catch (StandardException se){
@@ -400,7 +390,7 @@ public class UnionOperation extends SpliceBaseOperation {
 			}
 		}
         //return stats.finish();
-		SinkStats ss = stats.finish();
+		TaskStats ss = stats.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for UnionOperation at "+stats.getFinishTime());
         return ss;
 	}

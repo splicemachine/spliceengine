@@ -9,6 +9,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.*;
+import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.hbase.TableWriter;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -22,6 +27,7 @@ import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
@@ -37,12 +43,7 @@ import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.Accumulator;
-import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.stats.TimingStats;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class GroupedAggregateOperation extends GenericAggregateOperation {	
@@ -86,7 +87,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     	this.orderingItem = orderingItem;
  
     	//get reduce scan
-    	init(SpliceOperationContext.newContext(a));
     	recordConstructorTime();
     }
     
@@ -165,43 +165,44 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	}
 
 	@Override		
-	public SinkStats sink() {
+	public TaskStats sink() throws IOException{
 		/*
 		 * Sorts the data by sinking into the TEMP table. From there, the 
 		 * getNextRowCore() method can be used to pull the data out in sequence and perform 
 		 * the aggregation
 		 */
-        SinkStats.SinkAccumulator statsAccumulator = SinkStats.uniformAccumulator();
+        TaskStats.SinkAccumulator statsAccumulator = TaskStats.uniformAccumulator();
         statsAccumulator.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for GroupedAggregation at "+statsAccumulator.getStartTime());
 		SpliceLogUtils.trace(LOG, "sink");
 		ExecRow row;
-		HTableInterface tempTable = null;
-		try{
+
+        CallBuffer<Mutation> writer;
+        try{
+            writer = SpliceDriver.driver().getTableWriter().writeBuffer(SpliceOperationCoprocessor.TEMP_TABLE);
 			Put put;
-			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
             Serializer serializer = new Serializer();
-            Accumulator sinkAccumulator = statsAccumulator.sinkAccumulator();
+            Accumulator sinkAccumulator = statsAccumulator.writeAccumulator();
             do{
-                row = doAggregation(false,statsAccumulator.processAccumulator());
+                row = doAggregation(false,statsAccumulator.readAccumulator());
 
                 if(row==null)continue;
 
                 long processStart = System.nanoTime();
                 SpliceLogUtils.trace(LOG, "sinking row %s",row);
                 put = Puts.buildTempTableInsert(hasher.generateSortedHashKey(row.getRowArray()), row.getRowArray(), null, serializer);
-                tempTable.put(put);
+                writer.add(put);
 
                 sinkAccumulator.tick(System.nanoTime() - processStart);
             }while(row!=null);
-			tempTable.flushCommits();
-			tempTable.close();
+            writer.flushBuffer();
+            writer.close();
 		}catch (StandardException se){
-			SpliceLogUtils.logAndThrowRuntime(LOG,se);
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		}finally{
+			SpliceLogUtils.logAndThrow(LOG, Exceptions.getIOException(se));
+		} catch (Exception e) {
+            SpliceLogUtils.logAndThrow(LOG,Exceptions.getIOException(e));
+        } finally{
 			try {
 				if(tempTable!=null)
 					tempTable.close();
@@ -210,7 +211,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			}
 		}
 		
-		SinkStats ss = statsAccumulator.finish();
+		TaskStats ss = statsAccumulator.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for GroupedAggregation at "+statsAccumulator.getFinishTime());
         return ss;
 	}

@@ -1,13 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.index.CreateIndexJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -22,13 +22,11 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Operation to create an index in a Splice-efficient fashion
@@ -188,28 +186,25 @@ public class CreateIndexOperation implements ConstantAction {
         SpliceLogUtils.debug(LOG,"Building the initial index");
         final long tableConglomId = td.getHeapConglomerateId();
         final boolean isUnique = cgd.getIndexDescriptor().isUnique();
+        final String transactionId = getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute());
         HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
+        JobFuture future = null;
         try{
-            final RegionStats regionStats = new RegionStats();
-            regionStats.start();
-            table.coprocessorExec(SpliceIndexProtocol.class,
-                    HConstants.EMPTY_BYTE_ARRAY,HConstants.EMPTY_END_ROW,
-                    new Batch.Call<SpliceIndexProtocol,SinkStats>(){
-                        @Override
-                        public SinkStats call(SpliceIndexProtocol instance) throws IOException {
-                            final String transactionId = getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute());
-                            return instance.buildIndex(transactionId,indexConglomId,tableConglomId,baseColumnPositions,isUnique);
-                        }
-                    },new Batch.Callback<SinkStats>() {
-                        @Override
-                        public void update(byte[] region, byte[] row, SinkStats result) {
-                            regionStats.addRegionStats(region,result);
-                        }
-                    });
-            regionStats.finish();
-            regionStats.recordStats(LOG);
-        }catch(Throwable t){
-            throw Exceptions.parseException(t);
+            future = SpliceDriver.driver().getJobScheduler().submit(new CreateIndexJob(table,transactionId,indexConglomId,tableConglomId,baseColumnPositions,isUnique));
+
+            future.completeAll();
+        } catch (ExecutionException e) {
+            throw Exceptions.parseException(e.getCause());
+        } catch (InterruptedException e) {
+            throw Exceptions.parseException(e);
+        }finally{
+            if(future!=null){
+                try {
+                    SpliceDriver.driver().getJobScheduler().cleanupJob(future);
+                } catch (ExecutionException e) {
+                    throw Exceptions.parseException(e.getCause());
+                }
+            }
         }
     }
 

@@ -60,9 +60,9 @@ public class ZkUtils {
 	 * @param createMode the create mode for that node
 	 * @throws IOException if something goes wrong and the node can't be added.
 	 */
-	public static boolean safeCreate(String path, byte[] bytes, List<ACL> acls, CreateMode createMode)
-																														throws KeeperException, InterruptedException {
-		try {
+    public static boolean safeCreate(String path, byte[] bytes, List<ACL> acls, CreateMode createMode)
+            throws KeeperException, InterruptedException {
+        try {
 			getRecoverableZooKeeper().create(path,bytes,acls,createMode);
 			return true;
 		} catch (KeeperException e) {
@@ -74,6 +74,35 @@ public class ZkUtils {
 		}
 	}
 
+
+    public static boolean recursiveSafeCreate(String path,byte[] bytes, List<ACL> acls, CreateMode createMode) throws InterruptedException, KeeperException {
+        if(path==null||path.length()<=0) return true; //nothing to do, we've gone all the way to the root
+        RecoverableZooKeeper rzk = getRecoverableZooKeeper();
+        try{
+            return safeCreate(path,bytes,acls,createMode,rzk);
+        }catch (KeeperException e) {
+            if(e.code()== KeeperException.Code.NONODE){
+                //parent node doesn't exist, so recursively create it, and then try and create your node again
+                String parent = path.substring(0, path.lastIndexOf('/'));
+                recursiveSafeCreate(parent,new byte[]{},acls,CreateMode.PERSISTENT);
+                return safeCreate(path,bytes,acls,createMode);
+            }
+            else
+                throw e;
+        }
+    }
+
+    private static boolean safeCreate(String path, byte[] bytes, List<ACL> acls, CreateMode createMode,RecoverableZooKeeper zooKeeper) throws KeeperException,InterruptedException{
+       try{
+           zooKeeper.create(path,bytes,acls,createMode);
+           return true;
+       }catch(KeeperException ke){
+           if(ke.code()!= KeeperException.Code.NODEEXISTS)
+               throw ke;
+           else
+               return true;
+       }
+    }
 	/**
 	 * Sets the data onto ZooKeeper.
 	 *

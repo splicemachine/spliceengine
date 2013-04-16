@@ -43,7 +43,8 @@ import java.util.Collection;
  *
  * @author Scott Fines
  */
-public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements SpliceImportProtocol{
+@Deprecated
+public class SpliceImportCoprocessor extends BaseEndpointCoprocessor {
 	private static final Logger LOG = Logger.getLogger(SpliceImportCoprocessor.class);
 	private FileSystem fs;
 
@@ -64,7 +65,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		super.stop(env);
 	}
 
-	@Override
+//	@Override
 	public long doImport(Collection<BlockLocation> locations,ImportContext context) throws IOException{
 		SpliceLogUtils.trace(LOG,"executing import for context %s",context);
 		long numImported=0l;
@@ -130,7 +131,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
 		return numImported;
 	}
 
-    @Override
+//    @Override
 	public long importFile(ImportContext context) throws IOException{
 		Path path =  context.getFilePath();
 
@@ -196,7 +197,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
                              CallBuffer<Mutation> writeBuffer,
                              RowSerializer rowSerializer,Serializer serializer) throws IOException {
         try{
-            if(activeCols!=null){
+            if(activeCols!=null&&activeCols.getNumBitsSet()>0){
                 for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
                     row.getColumn(activePos+1).setValue(line[pos]);
                 }
@@ -224,7 +225,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
         int[] columnTypes = context.getColumnTypes();
         FormatableBitSet activeCols = context.getActiveCols();
         ExecRow row = new ValueRow(columnTypes.length);
-        if(activeCols!=null){
+        if(activeCols!=null && activeCols.getNumBitsSet()>0){
             for(int i=activeCols.anySetBit();i!=-1;i=activeCols.anySetBit(i)){
                 row.setColumn(i+1,getDataValueDescriptor(columnTypes[i]));
             }

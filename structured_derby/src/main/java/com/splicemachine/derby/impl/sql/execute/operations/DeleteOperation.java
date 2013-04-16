@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stats.SinkStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -49,9 +49,9 @@ public class DeleteOperation extends DMLWriteOperation{
 	}
 
 	@Override
-	public SinkStats sink() throws IOException {
-		SpliceLogUtils.trace(LOG,"sink on transactinID="+ getTransactionID());
-        SinkStats.SinkAccumulator stats = SinkStats.uniformAccumulator();
+	public TaskStats sink() throws IOException {
+		SpliceLogUtils.trace(LOG,"sink on transactinID="+getTransactionID());
+        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for DeleteOperation at "+stats.getStartTime());
 		ExecRow nextRow;
@@ -61,7 +61,7 @@ public class DeleteOperation extends DMLWriteOperation{
                 long processStart = System.nanoTime();
                 nextRow = source.getNextRowCore();
                 if(nextRow==null) continue;
-                stats.processAccumulator().tick(System.nanoTime()-processStart);
+                stats.readAccumulator().tick(System.nanoTime()-processStart);
 
                 processStart = System.nanoTime();
                 //there is a row to delete, so delete it
@@ -69,7 +69,7 @@ public class DeleteOperation extends DMLWriteOperation{
                 RowLocation locToDelete = (RowLocation) nextRow.getColumn(nextRow.nColumns()).getObject();
                 writeBuffer.add(Mutations.getDeleteOp(getTransactionID(),locToDelete.getBytes()));
 
-                stats.sinkAccumulator().tick(System.nanoTime()-processStart);
+                stats.writeAccumulator().tick(System.nanoTime()-processStart);
             }while(nextRow!=null);
             writeBuffer.flushBuffer();
             writeBuffer.close();
@@ -77,7 +77,7 @@ public class DeleteOperation extends DMLWriteOperation{
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
         //return stats.finish();
-		SinkStats ss = stats.finish();
+		TaskStats ss = stats.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for DeleteOperation at "+stats.getFinishTime());
         return ss;
 	}

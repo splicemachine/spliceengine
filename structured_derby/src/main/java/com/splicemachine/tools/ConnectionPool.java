@@ -7,7 +7,6 @@ import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A Pool of Connections.
@@ -20,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Scott Fines
  * Created on: 3/22/13
  */
-public class ConnectionPool implements PoolStatus{
+public class ConnectionPool implements ConnectionPoolStatus {
     /*Default maximum connections created in this pool*/
     private static final int DEFAULT_MAX_CONNECTIONS = 100;
     /*Configuration string for adjusting the max connections up or down*/
