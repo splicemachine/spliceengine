@@ -1,22 +1,17 @@
 package com.splicemachine.derby.hbase;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.TransactionConstants;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.drda.NetworkServerControl;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.impl.jdbc.EmbedConnection;
-import org.apache.derby.jdbc.EmbeddedDriver;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.log4j.Logger;
 
 import javax.management.*;
@@ -253,10 +248,10 @@ public class SpliceDriver {
         HBaseAdmin admin = null;
         try{
             admin = new HBaseAdmin(SpliceUtils.config);
-            if(!admin.tableExists(TxnConstants.TEMP_TABLE_BYTES)){
-                HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(TxnConstants.TEMP_TABLE);
+            if(!admin.tableExists(HBaseConstants.TEMP_TABLE_BYTES)){
+                HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(HBaseConstants.TEMP_TABLE);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG,TxnConstants.TEMP_TABLE+" created");
+                SpliceLogUtils.info(LOG, HBaseConstants.TEMP_TABLE+" created");
             }
             return true;
         }catch(Exception e){

@@ -10,8 +10,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableSet;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -34,8 +32,8 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooDefs;
 
-import com.splicemachine.constants.TransactionStatus;
-import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.hbase.txn.TransactionStatus;
+import com.splicemachine.hbase.txn.TxnConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.hbase.locks.TxnLockManager;
 import com.splicemachine.hbase.txn.logger.LogConstants.LogRecordType;

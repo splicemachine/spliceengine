@@ -4,7 +4,7 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 
-import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.hbase.txn.TxnConstants;
 
 public class LockTestUtils extends BaseLockTest {
 	public static void putSingleCell(HTable table, byte[] value, String transactionID) throws Exception {

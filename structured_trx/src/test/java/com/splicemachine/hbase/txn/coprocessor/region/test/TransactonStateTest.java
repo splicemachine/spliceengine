@@ -11,7 +11,7 @@ import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.splicemachine.constants.TransactionStatus;
+import com.splicemachine.hbase.txn.TransactionStatus;
 import com.splicemachine.hbase.txn.coprocessor.region.TransactionState;
 import com.splicemachine.hbase.txn.coprocessor.region.TransactionState.SplitPointPosition;
 import com.splicemachine.hbase.txn.test.ZkBaseTest;

@@ -1,7 +1,6 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;

@@ -15,8 +15,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -48,7 +46,7 @@ import org.apache.zookeeper.ZooDefs.Ids;
 
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.SchemaConstants;
-import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.hbase.txn.TxnConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.hbase.locks.TxnLockManager;

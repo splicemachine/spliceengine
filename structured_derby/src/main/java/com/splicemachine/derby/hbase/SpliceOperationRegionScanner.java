@@ -8,7 +8,7 @@ import com.splicemachine.derby.stats.SinkStats;
 import com.splicemachine.derby.stats.TimeUtils;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.si2.si.api.ParentTransactionManager;
+import com.splicemachine.si.api.ParentTransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;

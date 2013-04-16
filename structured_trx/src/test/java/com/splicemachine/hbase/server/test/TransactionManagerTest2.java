@@ -15,8 +15,8 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Before;
 import org.junit.Test;
-import com.splicemachine.constants.TransactionStatus;
-import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.hbase.txn.TransactionStatus;
+import com.splicemachine.hbase.txn.TxnConstants;
 import com.splicemachine.hbase.txn.TransactionState;
 import com.splicemachine.hbase.txn.test.TxnTestUtils;
 

@@ -1,179 +1,60 @@
 package com.splicemachine.si.filters;
 
+import com.splicemachine.si.data.api.STable;
+import com.splicemachine.si.api.FilterState;
+import com.splicemachine.si.api.TransactionId;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.impl.SiTransactionId;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.filter.FilterBase;
+import org.apache.log4j.Logger;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-
-import com.google.common.cache.Cache;
-import com.splicemachine.impl.si.txn.Transaction;
-import com.splicemachine.si.utils.SIConstants;
-import com.splicemachine.utils.SpliceLogUtils;
 
 public class SIFilter extends FilterBase {
-	private static Logger LOG = Logger.getLogger(SIFilter.class);
-	protected long startTimestamp;
-	protected byte[] currentRow;
-	protected Long currentTombstoneMarker;
-	protected HashMap<Long,Long> committedTransactions;
-	protected HRegion region;
-	protected Cache<Long,Transaction> transactionCache;
-	protected byte[] lastValidQualifier = SIConstants.EMPTY_BYTE_ARRAY;
-	
-	public SIFilter() {
-		
-	}
-	/**
-	 * Client side filter without commit roll forward...
-	 * Used for unit testing purposes
-	 * 
-	 * @param startTimestamp
-	 */
-	public SIFilter(long startTimestamp) {
-		this.startTimestamp = startTimestamp;
-	}
-	/**
-	 * Server side filter wrapped into other filters on the coprocessor side.
-	 * 
-	 * @param startTimestamp
-	 * @param region
-	 */
-	public SIFilter(long startTimestamp, HRegion region) {
-		this.startTimestamp = startTimestamp;
-		this.region = region;
-	}
+    private static Logger LOG = Logger.getLogger(SIFilter.class);
+    private Transactor transactor = null;
+    protected long startTimestamp;
+    protected STable region;
 
-	/**
-	 * Server side filter wrapped into other filters on the coprocessor side.
-	 * 
-	 * @param startTimestamp
-	 * @param region
-	 */
-	public SIFilter(long startTimestamp, HRegion region, Cache<Long,Transaction> transactionCache) {
-		this.startTimestamp = startTimestamp;
-		this.region = region;
-		this.transactionCache = transactionCache;
-	}
+    private FilterState filterState = null;
 
-	@Override
-	public void write(DataOutput out) throws IOException {
-		out.writeLong(startTimestamp);		
-	}
-	
-	private void cleanupErrors (KeyValue keyValue) {
-		if (region == null)
-			return;
-		Delete delete = new Delete(keyValue.getRow());
-		delete.setTimestamp(keyValue.getTimestamp());
-		try {
-			region.delete(delete, null, false);
-		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		}		
-	}
+    public SIFilter() {
+    }
 
-	private void rollCommitForward (KeyValue keyValue, Transaction transaction) {
-		if (region == null)
-			return;
-		Put put = new Put(keyValue.getRow(),keyValue.getTimestamp());
-		put.add(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, Bytes.toBytes(transaction.getCommitTimestamp()));
-		try {
-			region.put(put,false);
-		} catch (Exception e) {
-			e.printStackTrace();
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		}		
-	}
-		
-	private void updateCommitTimestamps (KeyValue keyValue) {
- 		byte[] commitValue = keyValue.getValue();
- 		if (Arrays.equals(commitValue,SIConstants.EMPTY_BYTE_ARRAY)) {
-			Transaction transaction = Transaction.readTransaction(keyValue.getTimestamp());
-			switch (transaction.getTransactionState()) {
-			case ABORT:
-			case ERROR: // Cleanup Errors, Not Durable but Fast.
-				cleanupErrors(keyValue);			
-				return;
-			case ACTIVE: // Ignore active transactional data
-				return; 
-			case COMMIT: // Roll Forward, Not Durable but fast
-				rollCommitForward(keyValue,transaction);
-				if (keyValue.getTimestamp() < startTimestamp)
-					committedTransactions.put(keyValue.getTimestamp(), transaction.getCommitTimestamp());
-				return;
-			default:
-				SpliceLogUtils.logAndThrow(LOG, new RuntimeException("Transaction status not set - should not happen"));		
-			}			
-		} else {
-			if (Bytes.toLong(commitValue) < startTimestamp) {
-				committedTransactions.put(keyValue.getTimestamp(), Bytes.toLong(commitValue));
-			}
-		}
-	}
-	
-	private void rowReset(KeyValue keyValue) {
-		currentRow = keyValue.getRow();
-		currentTombstoneMarker = null;
-		committedTransactions = new HashMap<Long,Long>();
-	}
-	
-	public static boolean isCommitTimestamp(KeyValue keyValue) {
-		return Arrays.equals(keyValue.getFamily(), SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) && 
-				Arrays.equals(keyValue.getQualifier(), SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES);
-	}
-	
-	public static boolean isTombstone(KeyValue keyValue) {
-		return Arrays.equals(keyValue.getFamily(), SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) && 
-				Arrays.equals(keyValue.getQualifier(), SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES);
-	}
-	
-	
-	@Override
-	public ReturnCode filterKeyValue(KeyValue keyValue) {
-		SpliceLogUtils.trace(LOG, "filterKeyValue %s",keyValue);
-		if (currentRow == null || !Arrays.equals(currentRow,keyValue.getRow()))
-			rowReset(keyValue);
-		if (isCommitTimestamp(keyValue)) {
-				updateCommitTimestamps(keyValue);
-				return ReturnCode.SKIP;
-		}
-		if (isTombstone(keyValue)) {
-			if (currentTombstoneMarker == null) {
-				if (committedTransactions.containsKey(keyValue.getTimestamp()) || startTimestamp == keyValue.getTimestamp()) {
-					currentTombstoneMarker = keyValue.getTimestamp();
-					return ReturnCode.NEXT_COL;
-				}
-				return ReturnCode.SKIP;
-			}
-			throw new RuntimeException(SIConstants.FILTER_CHECKING_MULTIPLE_ROW_TOMBSTONES);
-		}
-		if (Arrays.equals(keyValue.getFamily(),SIConstants.DEFAULT_FAMILY_BYTES) &&
-			!Arrays.equals(lastValidQualifier,keyValue.getQualifier())) {
-				if (committedTransactions.containsKey(keyValue.getTimestamp()) || 
-					startTimestamp == keyValue.getTimestamp()) {
-					if (keyValue.getValue() != null && Arrays.equals(keyValue.getValue(),SIConstants.EMPTY_BYTE_ARRAY)) {
-						return ReturnCode.NEXT_COL;
-					}
-					if (currentTombstoneMarker == null || currentTombstoneMarker < keyValue.getTimestamp()) {
-						lastValidQualifier = keyValue.getQualifier();
-						return ReturnCode.INCLUDE;
-					}
-			} 
-		}
-		return ReturnCode.SKIP;
-	}
+    public SIFilter(Transactor transactor, TransactionId transactionId, STable region) throws IOException {
+        this.transactor = transactor;
+        this.startTimestamp = transactionId.getId();
+        this.region = region;
+    }
 
-	@Override
-	public void readFields(DataInput in) throws IOException {
-		startTimestamp = in.readLong();
-	}
+    @Override
+    public ReturnCode filterKeyValue(KeyValue keyValue) {
+        SpliceLogUtils.trace(LOG, "filterKeyValue %s", keyValue);
+        try {
+            initFilterStateIfNeeded();
+            return transactor.filterKeyValue(filterState, keyValue);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
+    private void initFilterStateIfNeeded() throws IOException {
+        if (filterState == null) {
+            filterState = transactor.newFilterState(region, new SiTransactionId(startTimestamp));
+        }
+    }
+
+    @Override
+    public void readFields(DataInput in) throws IOException {
+        startTimestamp = in.readLong();
+    }
+
+    @Override
+    public void write(DataOutput out) throws IOException {
+        out.writeLong(startTimestamp);
+    }
 }

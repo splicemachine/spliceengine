@@ -3,16 +3,13 @@ package com.splicemachine.hbase.txn;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import com.splicemachine.constants.TransactionStatus;
-import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class TxnCoordinator2 extends TxnConstants {

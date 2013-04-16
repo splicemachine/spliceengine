@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.si2.si.api.TransactionId;
-import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.si.api.ParentTransactionManager;
+import com.splicemachine.si.api.TransactionId;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.ParentTransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -139,7 +139,7 @@ public class SpliceTransaction implements Transaction {
 		try {
 			if (state == CLOSED)
 				return;
-            transactor.abort(this.transactionId);
+            transactor.rollback(this.transactionId);
 			state = IDLE;
 		} catch (Exception e) {
 			throw StandardException.newException(e.getMessage(), e);

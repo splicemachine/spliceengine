@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.SpliceConfiguration;
-import com.splicemachine.si2.si.api.Transactor;
-import com.splicemachine.si2.si.api.HbaseConfigurationSource;
-import com.splicemachine.si2.si.api.TransactorFactory;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.HbaseConfigurationSource;
+import com.splicemachine.si.api.TransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -137,7 +137,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
                     return SpliceConfiguration.create();
                 }
             };
-            Transactor transactor = transactorFactory.newTransactionManager(configSource);
+            Transactor transactor = transactorFactory.newTransactor(configSource);
 			SpliceTransaction trans = new SpliceTransaction(new SpliceLockSpace(), dataValueFactory, transactor, transName);
 			trans.setTransactionName(transName);
 			
@@ -242,60 +242,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		contextFactory = ContextService.getFactory();
 		lockFactory = new SpliceLockFactory();
 		lockFactory.boot(create, properties);
-		if (create)
-            transactorFactory.init();
 	}
-
-	/*@SuppressWarnings(value = "deprecation")
-	private void initZookeeper() {
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory initZookeeper");
-		try {
-			@SuppressWarnings("resource")
-			Configuration config = HBaseConfiguration.create();
-			HBaseAdmin admin = new HBaseAdmin(config);
-			if (!admin.tableExists(TxnConstants.TRANSACTION_LOG_TABLE_BYTES)) {
-				HTableDescriptor desc = new HTableDescriptor(TxnConstants.TRANSACTION_LOG_TABLE_BYTES);
-				desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-						HBaseConstants.DEFAULT_VERSIONS,
-						HBaseConstants.DEFAULT_COMPRESSION,
-						HBaseConstants.DEFAULT_IN_MEMORY,
-						HBaseConstants.DEFAULT_BLOCKCACHE,
-						HBaseConstants.DEFAULT_TTL,
-						HBaseConstants.DEFAULT_BLOOMFILTER));
-				desc.addFamily(new HColumnDescriptor(TxnConstants.DEFAULT_FAMILY));
-				admin.createTable(desc);
-			}
-			
-			transPath = config.get(TxnConstants.TRANSACTION_PATH_NAME,TxnConstants.DEFAULT_TRANSACTION_PATH);		
-			try {
-				zkw = admin.getConnection().getZooKeeperWatcher();
-				//rzk = zkw.getRecoverableZooKeeper();
-				final CountDownLatch connSignal = new CountDownLatch(1);
-				rzk = ZKUtil.connect(config, new Watcher() {			
-					@Override
-					public void process(WatchedEvent event) {	
-						if (event.getState() == KeeperState.SyncConnected)
-							connSignal.countDown();
-					}
-				});
-				
-				connSignal.await();
-				
-				//if (rzk.exists(transPath, false) == null)
-				//	rzk.create(transPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			} finally {
-
-			}
-		} catch (MasterNotRunningException e) {
-			e.printStackTrace();
-		} catch (ZooKeeperConnectionException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}*/
 
 	public void stop() {
 		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -stop");

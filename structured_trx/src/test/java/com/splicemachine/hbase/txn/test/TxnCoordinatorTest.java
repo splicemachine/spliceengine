@@ -17,7 +17,7 @@ import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
 import org.junit.Before;
 import org.junit.Test;
-import com.splicemachine.constants.TransactionStatus;
+import com.splicemachine.hbase.txn.TransactionStatus;
 import com.splicemachine.hbase.txn.TxnCoordinator;
 import com.splicemachine.hbase.txn.TxnCoordinator2;
 

@@ -3,19 +3,19 @@ package com.splicemachine.derby.utils;
 import com.google.gson.Gson;
 import com.splicemachine.SpliceConfiguration;
 import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.constants.TransactionConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.si.utils.SIConstants;
-import com.splicemachine.si2.data.hbase.HGet;
-import com.splicemachine.si2.data.hbase.HScan;
-import com.splicemachine.si2.data.hbase.TransactorFactory;
-import com.splicemachine.si2.si.api.ClientTransactor;
-import com.splicemachine.si2.txn.TransactionTableCreator;
+import com.splicemachine.si.api.SIConstants;
+import com.splicemachine.si.data.hbase.HGet;
+import com.splicemachine.si.data.hbase.HScan;
+import com.splicemachine.si.data.hbase.TransactorFactory;
+import com.splicemachine.si.api.ClientTransactor;
+import com.splicemachine.si.txn.TransactionTableCreator;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -122,7 +122,7 @@ public class SpliceUtils {
 	static {
 		quorum = generateQuorum();
 //		conglomeratePath = config.get(SchemaConstants.CONGLOMERATE_PATH_NAME,SchemaConstants.DEFAULT_CONGLOMERATE_SCHEMA_PATH);
-		transPath = config.get(TxnConstants.TRANSACTION_PATH_NAME,TxnConstants.DEFAULT_TRANSACTION_PATH);
+		transPath = config.get(TransactionConstants.TRANSACTION_PATH_NAME, TransactionConstants.DEFAULT_TRANSACTION_PATH);
 		try {
 
 			zkw = (new HBaseAdmin(config)).getConnection().getZooKeeperWatcher();
@@ -188,11 +188,6 @@ public class SpliceUtils {
 				}
 			}
 
-			//FIXME: need to get the isolation level
-			if (transID != null) {
-				get.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
-													Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
-			}
 			return get;
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
@@ -444,11 +439,6 @@ public class SpliceUtils {
 			//May need to read more HTableInteface's checkAndPut
 			Get get = createGet(transID, loc.getBytes());
 
-			//FIXME: need to get the isolation level
-			if (transID != null) {
-				get.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
-		    			Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
-			}
 			Result result = htable.get(get);
 			if (result.isEmpty()) {
 				LOG.error("Row with the key "+ loc.getBytes() +" does not exists. Cannot perform update operation");

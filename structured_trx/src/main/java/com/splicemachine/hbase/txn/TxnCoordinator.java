@@ -12,8 +12,6 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 
-import com.splicemachine.constants.TransactionStatus;
-import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class TxnCoordinator {

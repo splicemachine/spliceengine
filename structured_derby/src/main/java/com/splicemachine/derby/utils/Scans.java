@@ -20,7 +20,6 @@ import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TxnConstants;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
 
 /**
@@ -107,7 +106,6 @@ public class Scans {
 		scan.setStartRow(startRow);
 		scan.setStopRow(stopRow);
 		scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
-        attachTransactionInformation(transactionId, scan);
 		return scan;
 	}
 
@@ -151,7 +149,6 @@ public class Scans {
 															 String transactionId) throws IOException {
         Scan scan = SpliceUtils.createScan(transactionId);
 		scan.setCaching(DEFAULT_CACHE_SIZE);
-		attachTransactionInformation(transactionId, scan);
 		attachScanKeys(scan, startKeyValue, startSearchOperator,
 				stopKeyValue, stopSearchOperator,
 				qualifiers, null,scanColumnList, sortOrder);
@@ -203,7 +200,6 @@ public class Scans {
 															 String transactionId) throws IOException {
 		Scan scan = SpliceUtils.createScan(transactionId);
 		scan.setCaching(DEFAULT_CACHE_SIZE);
-		attachTransactionInformation(transactionId, scan);
 		attachScanKeys(scan, startKeyValue, startSearchOperator,
 				stopKeyValue, stopSearchOperator,
 				qualifiers, primaryKeys,scanColumnList, sortOrder);
@@ -262,20 +258,6 @@ public class Scans {
 
 /* *************************************************************************************************/
 	/*private helper methods*/
-	private static void attachTransactionInformation(String transactionId, Scan scan) {
-		/*
-		 * This attaches the TransactionInformation as an attribute on scan.
-		 */
-		if(transactionId!=null) {
-			//TODO -sf- change this to use the Ordinal of the TransactionIsolationLevel
-			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
-					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_UNCOMMITED.toString()));
-		}else{
-			scan.setAttribute(TxnConstants.TRANSACTION_ISOLATION_LEVEL,
-					Bytes.toBytes(TxnConstants.TransactionIsolationLevel.READ_COMMITTED.toString()));
-		}
-	}
-
 	private static Filter generateIndexFilter(DataValueDescriptor[] descriptors,int compareOp) throws IOException {
 		FilterList masterList = new FilterList(FilterList.Operator.MUST_PASS_ALL);
 		try {

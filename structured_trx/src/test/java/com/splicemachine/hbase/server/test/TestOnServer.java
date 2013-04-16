@@ -4,7 +4,7 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
-import com.splicemachine.constants.TxnConstants;
+import com.splicemachine.hbase.txn.TxnConstants;
 import com.splicemachine.hbase.txn.TransactionState;
 import com.splicemachine.hbase.txn.test.TxnTestUtils;
 
