@@ -10,7 +10,7 @@ import org.junit.runner.Description;
 
 public class SpliceSchemaWatcher extends TestWatcher {
 	private static final Logger LOG = Logger.getLogger(SpliceSchemaWatcher.class);
-	String schemaName;
+	public String schemaName;
 	public SpliceSchemaWatcher(String schemaName) {
 		this.schemaName = schemaName.toUpperCase();
 	}
@@ -54,7 +54,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
 			}
 			
 			statement = connection.createStatement();
-			statement.execute("drop schema " + schemaName + " RESTRICT");
+//			statement.execute("drop schema " + schemaName + " RESTRICT");
 			connection.commit();
 		} catch (Exception e) {
 			LOG.error("error Dropping " + e.getMessage());

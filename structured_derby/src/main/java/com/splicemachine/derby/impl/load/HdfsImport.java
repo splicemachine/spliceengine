@@ -299,7 +299,7 @@ public class HdfsImport extends ParallelVTI {
         int numCols = 0;
         try{
             rs = dmd.getColumns(null,(schemaName==null?"APP":schemaName.toUpperCase()),tableName,null);
-            if(insertColumnList!=null){
+            if(insertColumnList!=null && !insertColumnList.equalsIgnoreCase("null")){
                 List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
                 while(rs.next()){
                     numCols++;

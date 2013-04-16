@@ -62,8 +62,7 @@ public class SpliceTableWatcher extends TestWatcher {
 			statement.execute(String.format("drop table %s.%s",schemaName.toUpperCase(),tableName.toUpperCase()));
 			connection.commit();
 		} catch (Exception e) {
-			LOG.error("error Dropping " + e.getMessage());
-			e.printStackTrace();
+			LOG.error("error Dropping " + e.getMessage(),e);
 			throw new RuntimeException(e);
 		} finally {
 			DbUtils.closeQuietly(statement);
@@ -82,7 +81,7 @@ public class SpliceTableWatcher extends TestWatcher {
 		    ps.setString(3,filename);
 		    ps.executeUpdate();
 		} catch (Exception e) {
-			e.printStackTrace();
+            LOG.error(e);
 			throw new RuntimeException(e);
 		} finally {
 			DbUtils.closeQuietly(ps);

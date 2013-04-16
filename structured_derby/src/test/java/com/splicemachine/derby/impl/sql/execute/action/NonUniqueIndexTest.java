@@ -39,12 +39,12 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
 	public static final String INDEX_61 = "IDX_F1";
 	
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(name varchar(40), val int)");
-	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(n_1 varchar(40),n_2 varchar(30),val int)");
-	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME,"(name varchar(40), val int)");
-	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,CLASS_NAME,"(name varchar(40), val int)");
-	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME,"(name varchar(40), val int)");
-	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME,"(name varchar(40), val int)");
+	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
+	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,spliceSchemaWatcher.schemaName,"(n_1 varchar(40),n_2 varchar(30),val int)");
+	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
+	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
+	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
+	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
 
     @Override
     public String getSchemaName() {
@@ -66,31 +66,31 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
 
     @Test
     public void testCanCreateIndexWithMultipleEntries() throws Exception{
-    	new SpliceIndexWatcher(TABLE_NAME_2,CLASS_NAME,INDEX_21,CLASS_NAME,"(n_1,n_2)").starting(null);
-    		PreparedStatement ps = methodWatcher.prepareStatement(format("insert into %s (n_1,n_2,val) values (?,?,?)",this.getTableReference(TABLE_NAME_2)));
-    		String n1 = "sfines";
-    		ps.setString(1,n1);
-    		String n2 = "mathematician";
-    		ps.setString(2,n2);
-    		int value = 2;
-    		ps.setInt(3,2);
-    		ps.execute();
-    		//now check that we can get data out for the proper key
-    		PreparedStatement query = methodWatcher.prepareStatement(format("select * from %s where n_1 = ? and n_2 = ?",this.getTableReference(TABLE_NAME_2)));
-    		query.setString(1,n1);
-    		query.setString(2,n2);
-    		ResultSet resultSet = query.executeQuery();
-    		List<String> results = Lists.newArrayListWithExpectedSize(1);
-    		while(resultSet.next()){
-	            String retN1 = resultSet.getString(1);
-	            String retN2 = resultSet.getString(2);
-	            int val = resultSet.getInt(3);
-	            Assert.assertEquals("Incorrect n1 returned!", n1, retN1);
-	            Assert.assertEquals("Incorrect n2 returned!", n2, retN2);
-	            Assert.assertEquals("Incorrect value returned!",value,val);
-	            results.add(String.format("n1:%s,n2:%s,value:%d",retN1,retN2,val));
-    		}
-    		Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
+        new SpliceIndexWatcher(TABLE_NAME_2,CLASS_NAME,INDEX_21,CLASS_NAME,"(n_1,n_2)").starting(null);
+        PreparedStatement ps = methodWatcher.prepareStatement(format("insert into %s (n_1,n_2,val) values (?,?,?)",this.getTableReference(TABLE_NAME_2)));
+        String n1 = "sfines";
+        ps.setString(1,n1);
+        String n2 = "mathematician";
+        ps.setString(2,n2);
+        int value = 2;
+        ps.setInt(3,2);
+        ps.execute();
+        //now check that we can get data out for the proper key
+        PreparedStatement query = methodWatcher.prepareStatement(format("select * from %s where n_1 = ? and n_2 = ?",this.getTableReference(TABLE_NAME_2)));
+        query.setString(1,n1);
+        query.setString(2,n2);
+        ResultSet resultSet = query.executeQuery();
+        List<String> results = Lists.newArrayListWithExpectedSize(1);
+        while(resultSet.next()){
+            String retN1 = resultSet.getString(1);
+            String retN2 = resultSet.getString(2);
+            int val = resultSet.getInt(3);
+            Assert.assertEquals("Incorrect n1 returned!", n1, retN1);
+            Assert.assertEquals("Incorrect n2 returned!", n2, retN2);
+            Assert.assertEquals("Incorrect value returned!",value,val);
+            results.add(String.format("n1:%s,n2:%s,value:%d",retN1,retN2,val));
+        }
+        Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
 
     }
     /**
@@ -107,7 +107,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
      */
     @Test
     public void testCanUseIndex() throws Exception{
-    	new SpliceIndexWatcher(TABLE_NAME_1,CLASS_NAME,INDEX_11,CLASS_NAME,"(name)").starting(null);
+        new SpliceIndexWatcher(TABLE_NAME_1,CLASS_NAME,INDEX_11,CLASS_NAME,"(name)").starting(null);
         String name = "sfines";
         int value = 2;
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('"+name+"',"+value+")",this.getTableReference(TABLE_NAME_1)));
@@ -184,9 +184,9 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
     @Test
     public void testCanAddDuplicateAndDelete() throws Exception{
     	new SpliceIndexWatcher(TABLE_NAME_5,CLASS_NAME,INDEX_51,CLASS_NAME,"(name)").starting(null);
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('sfines',2)",this.getTableReference(TABLE_NAME_5)));
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('sfines',3)",this.getTableReference(TABLE_NAME_5)));
-        ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s where name = 'sfines'",this.getTableReference(TABLE_NAME_5)));
+        methodWatcher.getStatement().execute(format("insert into %s.%s (name,val) values ('sfines',2)",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
+        methodWatcher.getStatement().execute(format("insert into %s.%s (name,val) values ('sfines',3)",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
+        ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s.%s where name = 'sfines'",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
         List<String> results = Lists.newArrayListWithExpectedSize(1);
         while(resultSet.next()){
             String retName = resultSet.getString(1);
@@ -195,8 +195,9 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
             results.add(String.format("name:%s,value:%d",retName,val));
         }
         Assert.assertEquals("Incorrect number of rows returned!",2,results.size());
-        methodWatcher.getStatement().execute(format("delete from %s where name = 'sfines' and val = 2",this.getTableReference(TABLE_NAME_5)));
-        assertSelectCorrect(CLASS_NAME,TABLE_NAME_5,"sfines",1);
+
+        methodWatcher.getStatement().execute(format("delete from %s.%s where name = 'sfines' and val = 2",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
+        assertSelectCorrect(spliceSchemaWatcher.schemaName,TABLE_NAME_5,"sfines",1);
     }
 
     @Ignore("Waiting for transactional DDL - bug 349")

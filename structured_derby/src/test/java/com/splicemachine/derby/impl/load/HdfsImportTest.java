@@ -69,40 +69,23 @@ public class HdfsImportTest extends SpliceUnitTest {
         testImport(CLASS_NAME,TABLE_2,getResourceDirectory()+"importTest.in","NAME,TITLE,AGE");
     }
 
-	private void testImport(String schemaName, String tableName,String location,String colList) throws Exception {
-		Connection connection = null;
-        boolean success = false;
-		try {
-			connection = SpliceDriver.driver().acquireConnection();
-            LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
-            final String transactionId = SpliceObserverInstructions.getTransactionId(lcc);
-
-            HdfsImport.importData(transactionId, connection, schemaName, tableName.toUpperCase(), colList, location, ",","\"");
-			ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",schemaName,tableName));
-			List<String> results = Lists.newArrayList();
-			while(rs.next()){
-				String name = rs.getString(1);
-				String title = rs.getString(2);
-				int age = rs.getInt(3);
-	            Assert.assertTrue("age was null!",!rs.wasNull());
-				Assert.assertNotNull("Name is null!", name);
-				Assert.assertNotNull("Title is null!", title);
-				Assert.assertNotNull("Age is null!",age);
-				results.add(String.format("name:%s,title:%s,age:%d",name,title,age));
-			}
-			Assert.assertTrue("no rows imported!",results.size()>0);
-            connection.commit();
-            success = true;
-		} catch (Exception e) {
-			DbUtils.closeQuietly(connection);
-            throw e;
-		} finally {
-            if (!success) {
-                connection.rollback();
-            }
-            SpliceDriver.driver().closeConnection(connection);
+    private void testImport(String schemaName, String tableName,String location,String colList) throws Exception {
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s','%s',null, '%s',',',null,null)",schemaName,tableName,colList,location));
+        ps.execute();
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",schemaName,tableName));
+        List<String> results = Lists.newArrayList();
+        while(rs.next()){
+            String name = rs.getString(1);
+            String title = rs.getString(2);
+            int age = rs.getInt(3);
+            Assert.assertTrue("age was null!",!rs.wasNull());
+            Assert.assertNotNull("Name is null!", name);
+            Assert.assertNotNull("Title is null!", title);
+            Assert.assertNotNull("Age is null!",age);
+            results.add(String.format("name:%s,title:%s,age:%d",name,title,age));
         }
-	}
+        Assert.assertTrue("no rows imported!",results.size()>0);
+    }
 
 	@Test
 	@Ignore("Bug")

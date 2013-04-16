@@ -196,7 +196,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
                              CallBuffer<Mutation> writeBuffer,
                              RowSerializer rowSerializer,Serializer serializer) throws IOException {
         try{
-            if(activeCols!=null){
+            if(activeCols!=null&&activeCols.getNumBitsSet()>0){
                 for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
                     row.getColumn(activePos+1).setValue(line[pos]);
                 }
@@ -224,7 +224,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor implements 
         int[] columnTypes = context.getColumnTypes();
         FormatableBitSet activeCols = context.getActiveCols();
         ExecRow row = new ValueRow(columnTypes.length);
-        if(activeCols!=null){
+        if(activeCols!=null && activeCols.getNumBitsSet()>0){
             for(int i=activeCols.anySetBit();i!=-1;i=activeCols.anySetBit(i)){
                 row.setColumn(i+1,getDataValueDescriptor(columnTypes[i]));
             }
