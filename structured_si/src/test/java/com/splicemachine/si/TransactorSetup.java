@@ -4,10 +4,10 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.TransactionConstants;
 import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.si.impl.ImmutableTransactionStruct;
+import com.splicemachine.si.impl.ImmutableTransaction;
 import com.splicemachine.si.impl.SiTransactor;
+import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionSchema;
-import com.splicemachine.si.impl.TransactionStruct;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -41,8 +41,8 @@ public class TransactorSetup {
         ageQualifier = dataLib.encode("age");
         jobQualifier = dataLib.encode("job");
 
-        final Cache<Long,TransactionStruct> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-        final Cache<Long,ImmutableTransactionStruct> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+        final Cache<Long,Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+        final Cache<Long,ImmutableTransaction> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, cache, immutableCache);
         SiTransactor siTransactor = new SiTransactor(new SimpleTimestampSource(), dataLib, writer,
                 new DataStore(dataLib, reader, writer, "si-needed", "si-transaction-id", "si-delete-put",

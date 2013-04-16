@@ -17,6 +17,7 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class SiTransactor implements Transactor, ClientTransactor {
@@ -86,36 +87,35 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     @Override
     public void commit(TransactionId transactionId) throws IOException {
-        final TransactionStruct transaction = ensureTransactionActive(transactionId);
-        if (transaction.parent == null || !transaction.dependent) {
+        final Transaction transaction = ensureTransactionActive(transactionId);
+        if (!transaction.isNestedDependent()) {
+            List<Long> childrenToCommit = new ArrayList<Long>();
+            for (Long childId : transaction.getChildren()) {
+                if (transactionStore.getTransactionStatus(childId).isEffectivelyActive()) {
+                    childrenToCommit.add(childId);
+                }
+            }
             transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.COMMITTING);
             // TODO: need to sort out how to take child transactions through COMMITTING state
             final long endId = timestampSource.nextTimestamp();
-            transactionStore.recordTransactionCommit(transactionId, endId, TransactionStatus.COMMITED);
-            for (Long childId : transaction.children) {
-                final TransactionStruct childTransaction = transactionStore.getTransactionStatus(childId);
-                final TransactionStatus childStatus = childTransaction.getEffectiveStatus();
-                if (childStatus == TransactionStatus.ACTIVE
-                        || childTransaction.dependent
-                        && (childStatus == TransactionStatus.COMMITED
-                        || childStatus == TransactionStatus.COMMITTING)) {
-                    commitChild(childId, endId);
-                }
+            transactionStore.recordTransactionCommit(transactionId, endId, TransactionStatus.COMMITTED);
+            for (Long childId : childrenToCommit) {
+                commitChild(childId, endId);
             }
         } else {
             // perform "local" commit only within the parent transaction
-            transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.COMMITED);
+            transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.LOCAL_COMMIT);
         }
     }
 
     private void commitChild(long childId, long endId) throws IOException {
-        transactionStore.recordTransactionCommit(new SiTransactionId(childId), endId, TransactionStatus.COMMITED);
+        transactionStore.recordTransactionCommit(new SiTransactionId(childId), endId, TransactionStatus.COMMITTED);
     }
 
     @Override
     public void rollback(TransactionId transactionId) throws IOException {
-        TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
-        if (transaction.canBeRolledBack()) {
+        Transaction transaction = transactionStore.getTransactionStatus(transactionId);
+        if (transaction.isActive()) {
             transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ROLLED_BACK);
         }
     }
@@ -184,7 +184,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         Boolean siNeeded = dataStore.getSiNeededAttribute(put);
         if (siNeeded != null && siNeeded) {
             SiTransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
-            final ImmutableTransactionStruct transaction = transactionStore.getImmutableTransaction(transactionId);
+            final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
             ensureTransactionAllowsWrites(transaction);
             Object rowKey = dataLib.getPutKey(put);
             SRowLock lock = dataWriter.lockRow(table, rowKey);
@@ -207,7 +207,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
         dataLib.addAttribute(newPut, "iu", new byte[]{});
     }
 
-    private void checkForConflict(ImmutableTransactionStruct putTransaction, STable table, SRowLock lock, Object rowKey) throws IOException {
+    private void checkForConflict(ImmutableTransaction putTransaction, STable table, SRowLock lock, Object rowKey) throws IOException {
         Long rootId = putTransaction.getRootBeginTimestamp();
         TransactionId transactionId = new SiTransactionId(putTransaction.beginTimestamp);
         List keyValues = dataStore.getCommitTimestamp(table, rowKey);
@@ -218,17 +218,14 @@ public class SiTransactor implements Transactor, ClientTransactor {
                 if (index >= keyValues.size()) {
                     loop = false;
                 } else {
-                    Object c = keyValues.get(index);
-                    long cellTimestamp = dataLib.getKeyValueTimestamp(c);
-                    TransactionStruct transaction = transactionStore.getTransactionStatus(cellTimestamp);
-                    if (transaction.getEffectiveStatus().equals(TransactionStatus.COMMITED)) {
-                        if (transaction.commitTimestamp > rootId) {
-                            writeWriteConflict(transactionId);
-                        }
-                    } else if (transaction.getEffectiveStatus().equals(TransactionStatus.ACTIVE)
-                            || transaction.getEffectiveStatus().equals(TransactionStatus.COMMITTING)) {
-                        // if the KeyValue was written by the current running transaction then it is not a conflict
-                        if (transaction.getRootBeginTimestamp() != rootId) {
+                    Object dataKeyValue = keyValues.get(index);
+                    long dataTransactionId = dataLib.getKeyValueTimestamp(dataKeyValue);
+                    Transaction dataTransaction = transactionStore.getTransactionStatus(dataTransactionId);
+                    if (dataTransaction.committedAfter(putTransaction)) {
+                        writeWriteConflict(transactionId);
+                    } else {
+                        if (dataTransaction.isEffectivelyActive() && !dataTransaction.isEffectivelyPartOfTransaction(putTransaction)) {
+                            // if the KeyValue was written by the current running transaction then it is not a conflict
                             writeWriteConflict(transactionId);
                         }
                     }
@@ -243,16 +240,16 @@ public class SiTransactor implements Transactor, ClientTransactor {
         throw new DoNotRetryIOException("write/write conflict");
     }
 
-    private TransactionStruct ensureTransactionActive(TransactionId transactionId) throws IOException {
-        TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
-        if (!transaction.getEffectiveStatus().equals(TransactionStatus.ACTIVE)) {
+    private Transaction ensureTransactionActive(TransactionId transactionId) throws IOException {
+        Transaction transaction = transactionStore.getTransactionStatus(transactionId);
+        if (!transaction.isEffectivelyActive()) {
             throw new DoNotRetryIOException("transaction is not ACTIVE: " + transactionId.getTransactionIdString());
         }
         return transaction;
     }
 
-    private void ensureTransactionAllowsWrites(ImmutableTransactionStruct transaction) throws IOException {
-        if (!transaction.allowWrites) {
+    private void ensureTransactionAllowsWrites(ImmutableTransaction transaction) throws IOException {
+        if (transaction.isReadOnly()) {
             throw new DoNotRetryIOException("transaction is read only");
         }
     }
@@ -268,7 +265,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     @Override
     public FilterState newFilterState(STable table, TransactionId transactionId) throws IOException {
-        final ImmutableTransactionStruct immutableTransaction = transactionStore.getImmutableTransaction(transactionId);
+        final ImmutableTransaction immutableTransaction = transactionStore.getImmutableTransaction(transactionId);
         return new SiFilterState(dataLib, dataStore, transactionStore, table, immutableTransaction);
     }
 

@@ -21,16 +21,16 @@ public class TransactionStore {
 
     private final SDataLib dataLib;
     private final STableReader reader;
-    private final Cache<Long, ImmutableTransactionStruct> immutableTransactionCache;
-    private final Cache<Long, TransactionStruct> transactionCache;
+    private final Cache<Long, ImmutableTransaction> immutableTransactionCache;
+    private final Cache<Long, Transaction> transactionCache;
     private final STableWriter writer;
 
     private final TransactionSchema transactionSchema;
     private final TransactionSchema encodedSchema;
 
     public TransactionStore(TransactionSchema transactionSchema, SDataLib dataLib,
-                            STableReader reader, STableWriter writer, Cache<Long,TransactionStruct> transactionCache,
-                            Cache<Long, ImmutableTransactionStruct> immutableTransactionCache) {
+                            STableReader reader, STableWriter writer, Cache<Long,Transaction> transactionCache,
+                            Cache<Long, ImmutableTransaction> immutableTransactionCache) {
         this.transactionSchema = transactionSchema;
         this.encodedSchema = transactionSchema.encodedSchema(dataLib);
         this.dataLib = dataLib;
@@ -65,12 +65,12 @@ public class TransactionStore {
         writePut(makeStatusUpdateTuple(startTransactionTimestamp, newStatus));
     }
 
-    public ImmutableTransactionStruct getImmutableTransaction(TransactionId transactionId) throws IOException {
-        final TransactionStruct cachedTransaction = transactionCache.getIfPresent(transactionId.getId());
+    public ImmutableTransaction getImmutableTransaction(TransactionId transactionId) throws IOException {
+        final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId.getId());
         if (cachedTransaction != null) {
             return cachedTransaction;
         }
-        ImmutableTransactionStruct immutableCachedTransaction = immutableTransactionCache.getIfPresent(transactionId.getId());
+        ImmutableTransaction immutableCachedTransaction = immutableTransactionCache.getIfPresent(transactionId.getId());
         if (immutableCachedTransaction != null) {
             return immutableCachedTransaction;
         }
@@ -79,15 +79,15 @@ public class TransactionStore {
         return immutableCachedTransaction;
     }
 
-    public TransactionStruct getTransactionStatus(long beginTimestamp) throws IOException {
+    public Transaction getTransactionStatus(long beginTimestamp) throws IOException {
         return getTransactionStatus(new SiTransactionId(beginTimestamp));
     }
 
-    public TransactionStruct getTransactionStatus(TransactionId transactionId) throws IOException {
-        final TransactionStruct cachedTransactionStruct = transactionCache.getIfPresent(transactionId.getId());
-        if (cachedTransactionStruct != null) {
+    public Transaction getTransactionStatus(TransactionId transactionId) throws IOException {
+        final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId.getId());
+        if (cachedTransaction != null) {
             //LOG.warn("cache HIT " + transactionId.getTransactionIdString());
-            return cachedTransactionStruct;
+            return cachedTransaction;
         }
         Object tupleKey = dataLib.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
 
@@ -99,7 +99,7 @@ public class TransactionStore {
                 final Object value = dataLib.getResultValue(resultTuple, encodedSchema.siFamily, encodedSchema.statusQualifier);
                 TransactionStatus status = (value == null) ? null : TransactionStatus.values()[((Integer) dataLib.decode(value, Integer.class))];
                 Long parentId = getLongFieldFromResult(resultTuple, encodedSchema.parentQualifier);
-                TransactionStruct parent = null;
+                Transaction parent = null;
                 if (parentId != null) {
                     parent = getTransactionStatus(parentId);
                 }
@@ -114,14 +114,14 @@ public class TransactionStore {
                     children.add(Long.valueOf((String) dataLib.decode(child, String.class)));
                 }
 
-                final TransactionStruct result = new TransactionStruct(transactionId.getId(),
+                final Transaction result = new Transaction(transactionId.getId(),
                         parent, children,
                         getBooleanFieldFromResult(resultTuple, encodedSchema.dependentQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.allowWritesQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.readUncommittedQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.readCommittedQualifier),
                         status, commitTimestamp);
-                if (result.isCacheable()) {
+                if (!result.isActive()) {
                     transactionCache.put(transactionId.getId(), result);
                     //LOG.warn("cache PUT " + transactionId.getTransactionIdString());
                 } else {

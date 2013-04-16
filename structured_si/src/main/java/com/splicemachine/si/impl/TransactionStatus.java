@@ -4,6 +4,7 @@ public enum TransactionStatus {
     ACTIVE,
     ERROR,
     COMMITTING,
-    COMMITED,
+    COMMITTED,
+    LOCAL_COMMIT,
     ROLLED_BACK
 }

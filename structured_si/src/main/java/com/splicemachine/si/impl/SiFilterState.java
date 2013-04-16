@@ -11,27 +11,27 @@ import java.util.Map;
 
 public class SiFilterState implements FilterState {
     private final STable table;
-    private final ImmutableTransactionStruct myTransaction;
+    private final ImmutableTransaction myTransaction;
     private final SDataLib dataLib;
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
 
-    private final Map<Long, TransactionStruct> committedTransactions;
-    private final Map<Long, TransactionStruct> stillRunningTransactions;
-    private final Map<Long, TransactionStruct> failedTransactions;
+    private final Map<Long, Transaction> committedTransactions;
+    private final Map<Long, Transaction> stillRunningTransactions;
+    private final Map<Long, Transaction> failedTransactions;
 
     private FilterRowState rowState;
 
     public SiFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
-                         STable table, ImmutableTransactionStruct myTransaction) {
+                         STable table, ImmutableTransaction myTransaction) {
         this.dataLib = dataLib;
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
         this.table = table;
         this.myTransaction = myTransaction;
-        committedTransactions = new HashMap<Long, TransactionStruct>();
-        stillRunningTransactions = new HashMap<Long, TransactionStruct>();
-        failedTransactions = new HashMap<Long, TransactionStruct>();
+        committedTransactions = new HashMap<Long, Transaction>();
+        stillRunningTransactions = new HashMap<Long, Transaction>();
+        failedTransactions = new HashMap<Long, Transaction>();
         rowState = new FilterRowState(dataLib);
     }
 
@@ -65,55 +65,47 @@ public class SiFilterState implements FilterState {
     private void filterProcessCommitTimestamp(Object keyValue) throws IOException {
         long beginTimestamp = dataLib.getKeyValueTimestamp(keyValue);
         Object commitTimestampValue = dataLib.getKeyValueValue(keyValue);
-        TransactionStruct transactionStruct = null;
+        Transaction transaction = null;
         Boolean stillRunning = false;
         if (dataStore.isSiNull(commitTimestampValue)) {
             final Object[] temp = filterHandleUnknownTransactionStatus(keyValue, beginTimestamp);
-            transactionStruct = (TransactionStruct) temp[0];
+            transaction = (Transaction) temp[0];
             stillRunning = (Boolean) temp[1];
         } else {
-            transactionStruct = transactionStore.getTransactionStatus(beginTimestamp);
+            transaction = transactionStore.getTransactionStatus(beginTimestamp);
         }
         if (stillRunning) {
-            stillRunningTransactions.put(beginTimestamp, transactionStruct);
-        } else if (transactionStruct.didNotCommit()) {
-            failedTransactions.put(beginTimestamp, transactionStruct);
+            stillRunningTransactions.put(beginTimestamp, transaction);
+        } else if (!transaction.isCommitted()) {
+            failedTransactions.put(beginTimestamp, transaction);
         } else {
-            committedTransactions.put(beginTimestamp, transactionStruct);
+            committedTransactions.put(beginTimestamp, transaction);
         }
     }
 
     private Object[] filterHandleUnknownTransactionStatus(Object keyValue,
                                                           long beginTimestamp) throws IOException {
-        TransactionStruct transactionStruct = transactionStore.getTransactionStatus(beginTimestamp);
-        Boolean stillRunning = transactionStruct.isStillRunning();
-        switch (transactionStruct.getEffectiveStatus()) {
-            case ACTIVE:
-                break;
-            case ERROR:
-            case ROLLED_BACK:
-                cleanupErrors();
-                break;
-            case COMMITTING:
-                //TODO: needs special handling
-                break;
-            case COMMITED:
-                rollForward(keyValue, transactionStruct);
-                break;
+        Transaction transaction = transactionStore.getTransactionStatus(beginTimestamp);
+        if (transaction.isCommitted()) {
+            rollForward(keyValue, transaction);
+        } else if (transaction.isFailed()) {
+            cleanupErrors();
+        } else if (transaction.isCommitting()) {
+            //TODO: needs special handling
         }
-        return new Object[]{transactionStruct, stillRunning};
+        return new Object[]{transaction, transaction.isActive()};
     }
 
-    private void rollForward(Object keyValue, TransactionStruct transactionStruct) {
-        if (transactionStruct.parent == null || !transactionStruct.dependent) {
-            dataStore.setCommitTimestamp(table, keyValue, transactionStruct.beginTimestamp, transactionStruct.commitTimestamp);
+    private void rollForward(Object keyValue, Transaction transaction) {
+        if (!transaction.isNestedDependent()) {
+            dataStore.setCommitTimestamp(table, keyValue, transaction.beginTimestamp, transaction.commitTimestamp);
         }
     }
 
     private boolean filterKeepDataValue(Object dataKeyValue) throws IOException {
         long dataTimestamp = dataLib.getKeyValueTimestamp(dataKeyValue);
         updateFilterState(dataTimestamp);
-        TransactionStruct committedDataTransaction = committedTransactions.get(dataTimestamp);
+        Transaction committedDataTransaction = committedTransactions.get(dataTimestamp);
         Boolean dataTransactionStillRunning = stillRunningTransactions.containsKey(dataTimestamp);
         if (isDataCommittedBeforeThisTransaction(committedDataTransaction)
                 || isThisTransactionsData(dataTimestamp)
@@ -125,21 +117,21 @@ public class SiFilterState implements FilterState {
     }
 
     private void updateFilterState(long beginTimestamp) throws IOException {
-        TransactionStruct cachedTransaction = getTransactionFromFilterState(beginTimestamp);
+        Transaction cachedTransaction = getTransactionFromFilterState(beginTimestamp);
         if (cachedTransaction == null) {
-            final TransactionStruct transactionStruct = transactionStore.getTransactionStatus(beginTimestamp);
-            if (transactionStruct.isStillRunning()) {
-                stillRunningTransactions.put(beginTimestamp, transactionStruct);
-            } else if (transactionStruct.didNotCommit()) {
-                failedTransactions.put(beginTimestamp, transactionStruct);
+            final Transaction transaction = transactionStore.getTransactionStatus(beginTimestamp);
+            if (transaction.isActive()) {
+                stillRunningTransactions.put(beginTimestamp, transaction);
+            } else if (!transaction.isCommitted()) {
+                failedTransactions.put(beginTimestamp, transaction);
             } else {
-                committedTransactions.put(beginTimestamp, transactionStruct);
+                committedTransactions.put(beginTimestamp, transaction);
             }
         }
     }
 
-    private TransactionStruct getTransactionFromFilterState(long beginTimestamp) {
-        TransactionStruct cachedTransaction = committedTransactions.get(beginTimestamp);
+    private Transaction getTransactionFromFilterState(long beginTimestamp) {
+        Transaction cachedTransaction = committedTransactions.get(beginTimestamp);
         if (cachedTransaction == null) {
             cachedTransaction = failedTransactions.get(beginTimestamp);
         }
@@ -153,29 +145,22 @@ public class SiFilterState implements FilterState {
         return myTransaction.getEffectiveReadUncommitted() && stillRunning;
     }
 
-    private boolean readCommittedAndDataTransactionCommitted(TransactionStruct dataTransaction) {
-        if (dataTransaction != null) {
-            return myTransaction.getEffectiveReadCommitted() && (dataTransaction.commitTimestamp != null);
+    private boolean readCommittedAndDataTransactionCommitted(Transaction dataTransaction) {
+        if (dataTransaction == null) {
+            return false;
         }
-        return false;
+        return myTransaction.getEffectiveReadCommitted() && dataTransaction.isCommitted();
     }
 
-    private boolean isDataCommittedBeforeThisTransaction(TransactionStruct dataTransaction) {
-        if (dataTransaction != null) {
-            Long dataTimestamp = dataTransaction.commitTimestamp;
-            return (dataTimestamp != null && dataTimestamp < myTransaction.getRootBeginTimestamp());
+    private boolean isDataCommittedBeforeThisTransaction(Transaction dataTransaction) {
+        if (dataTransaction == null) {
+            return false;
         }
-        return false;
+        return dataTransaction.isCommittedBefore(myTransaction);
     }
 
-    private boolean isThisTransactionsData(long dataTimestamp)
-            throws IOException {
-        final TransactionStruct dataTransaction = getTransactionFromFilterState(dataTimestamp);
-        final TransactionStatus dataStatus = dataTransaction.getEffectiveStatus();
-        return ((dataStatus == TransactionStatus.ACTIVE
-                || dataStatus == TransactionStatus.COMMITTING
-                || dataStatus == TransactionStatus.COMMITED)
-                && dataTransaction.getRootBeginTimestamp() == myTransaction.getRootBeginTimestamp());
+    private boolean isThisTransactionsData(long dataTimestamp) throws IOException {
+        return getTransactionFromFilterState(dataTimestamp).isVisiblePartOfTransaction(myTransaction);
     }
 
     private void cleanupErrors() {

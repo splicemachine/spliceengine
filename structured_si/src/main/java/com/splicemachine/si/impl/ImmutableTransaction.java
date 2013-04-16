@@ -1,15 +1,16 @@
 package com.splicemachine.si.impl;
 
-public class ImmutableTransactionStruct {
+public class ImmutableTransaction {
     public final long beginTimestamp;
-    public final ImmutableTransactionStruct immutableParent;
-    public final Boolean dependent;
-    public final boolean allowWrites;
-    public final Boolean readUncommitted;
-    public final Boolean readCommitted;
+    protected final Boolean dependent;
 
-    public ImmutableTransactionStruct(Boolean dependent, boolean allowWrites, Boolean readCommitted,
-                                      ImmutableTransactionStruct immutableParent, Boolean readUncommitted, long beginTimestamp) {
+    private final ImmutableTransaction immutableParent;
+    private final boolean allowWrites;
+    private final Boolean readUncommitted;
+    private final Boolean readCommitted;
+
+    public ImmutableTransaction(Boolean dependent, boolean allowWrites, Boolean readCommitted,
+                                ImmutableTransaction immutableParent, Boolean readUncommitted, long beginTimestamp) {
         this.dependent = dependent;
         this.allowWrites = allowWrites;
         this.readCommitted = readCommitted;
@@ -38,4 +39,9 @@ public class ImmutableTransactionStruct {
         }
         return immutableParent.getRootBeginTimestamp();
     }
+
+    public boolean isReadOnly() {
+        return !allowWrites;
+    }
+
 }

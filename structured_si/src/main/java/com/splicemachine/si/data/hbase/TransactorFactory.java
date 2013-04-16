@@ -4,9 +4,10 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.si.impl.ImmutableTransaction;
 import com.splicemachine.si.impl.SiTransactor;
+import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionSchema;
-import com.splicemachine.si.impl.TransactionStruct;
 import com.splicemachine.si.api.SIConstants;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
@@ -15,7 +16,6 @@ import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.si.impl.ImmutableTransactionStruct;
 import com.splicemachine.si.impl.TransactionStore;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -73,8 +73,8 @@ public class TransactorFactory {
                 SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES,
                 SIConstants.TRANSACTION_READ_COMMITTED_COLUMN_BYTES,
                 SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN, SIConstants.TRANSACTION_STATUS_COLUMN);
-        final Cache<Long,TransactionStruct> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-        final Cache<Long,ImmutableTransactionStruct> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+        final Cache<Long,Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+        final Cache<Long,ImmutableTransaction> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, cache,
                 immutableCache);
 

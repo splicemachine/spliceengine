@@ -5,8 +5,7 @@ import com.splicemachine.si.StoreSetup;
 import com.splicemachine.si.TransactorSetup;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.TransactionStatus;
-import com.splicemachine.si.impl.TransactionStruct;
+import com.splicemachine.si.impl.Transaction;
 import org.junit.Assert;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -37,18 +36,18 @@ public class TransactionManagerTest {
     public void beginTransactionTest() throws Exception {
         TransactionId transactionId = transactor.beginTransaction(true, false, false);
         Assert.assertNotNull(transactionId);
-        TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
+        Transaction transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
-        Assert.assertEquals(TransactionStatus.ACTIVE, transaction.status);
+        Assert.assertTrue(transaction.isEffectivelyActive());
     }
 
     @Test
     public void doCommitTest() throws Exception {
         TransactionId transactionId = transactor.beginTransaction(true, false, false);
         transactor.commit(transactionId);
-        TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
+        Transaction transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
-        Assert.assertEquals(TransactionStatus.COMMITED, transaction.status);
+        Assert.assertTrue(transaction.isCommitted());
         Assert.assertTrue(transaction.beginTimestamp < transaction.commitTimestamp);
     }
 
@@ -56,9 +55,9 @@ public class TransactionManagerTest {
     public void rollbackTest() throws Exception {
         TransactionId transactionId = transactor.beginTransaction(true, false, false);
         transactor.rollback(transactionId);
-        TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
+        Transaction transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
-        Assert.assertEquals(TransactionStatus.ROLLED_BACK, transaction.status);
+        Assert.assertTrue(!transaction.isActive() && !transaction.isCommitted());
         Assert.assertNull(transaction.commitTimestamp);
     }
 

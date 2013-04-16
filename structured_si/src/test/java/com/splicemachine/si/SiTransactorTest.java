@@ -9,7 +9,7 @@ import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.SiFilterState;
-import com.splicemachine.si.impl.TransactionStruct;
+import com.splicemachine.si.impl.Transaction;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.junit.Assert;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -1010,10 +1010,10 @@ public class SiTransactorTest {
         TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
         insertAge(t2, "joe32", 21);
         transactor.commit(t2);
-        final TransactionStruct transactionStatusA = transactorSetup.transactionStore.getTransactionStatus(t2);
+        final Transaction transactionStatusA = transactorSetup.transactionStore.getTransactionStatus(t2);
         Assert.assertNull("committing a dependent child does not set a commit timestamp", transactionStatusA.commitTimestamp);
         transactor.commit(t1);
-        final TransactionStruct transactionStatusB = transactorSetup.transactionStore.getTransactionStatus(t2);
+        final Transaction transactionStatusB = transactorSetup.transactionStore.getTransactionStatus(t2);
         Assert.assertNotNull("committing parent of dependent transaction should set the commit time of the child",
                 transactionStatusB.commitTimestamp);
     }
@@ -1021,13 +1021,13 @@ public class SiTransactorTest {
     @Test
     public void commitParentOfCommittedIndependent() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
-        insertAge(t1, "joe32", 20);
+        insertAge(t1, "joe49", 20);
         TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
-        insertAge(t2, "joe32", 21);
+        insertAge(t2, "joe49", 21);
         transactor.commit(t2);
-        final TransactionStruct transactionStatusA = transactorSetup.transactionStore.getTransactionStatus(t2);
+        final Transaction transactionStatusA = transactorSetup.transactionStore.getTransactionStatus(t2);
         transactor.commit(t1);
-        final TransactionStruct transactionStatusB = transactorSetup.transactionStore.getTransactionStatus(t2);
+        final Transaction transactionStatusB = transactorSetup.transactionStore.getTransactionStatus(t2);
         Assert.assertEquals("committing parent of independent transaction should not change the commit time of the child",
                 transactionStatusA.commitTimestamp, transactionStatusB.commitTimestamp);
     }

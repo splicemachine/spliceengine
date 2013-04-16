@@ -5,8 +5,7 @@ import com.splicemachine.si.StoreSetup;
 import com.splicemachine.si.TransactorSetup;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.TransactionStatus;
-import com.splicemachine.si.impl.TransactionStruct;
+import com.splicemachine.si.impl.Transaction;
 import org.junit.Assert;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.AfterClass;
@@ -45,9 +44,9 @@ public class JtaXAResourceTest {
         resource.start(xid, 0);
         TransactionId transactionId = resource.getThreadLocalTransactionState();
         Assert.assertNotNull(transactionId);
-        TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
+        Transaction transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
-        Assert.assertEquals(transaction.status, TransactionStatus.ACTIVE);
+        Assert.assertTrue(transaction.isEffectivelyActive());
     }
 
     @Test
@@ -58,9 +57,9 @@ public class JtaXAResourceTest {
         TransactionId transactionId = resource.getThreadLocalTransactionState();
         Assert.assertNotNull(transactionId);
         resource.commit(xid, true);
-        TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
+        Transaction transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
-        Assert.assertEquals(transaction.status, TransactionStatus.COMMITED);
+        Assert.assertTrue(transaction.isCommitted());
         Assert.assertTrue(transaction.beginTimestamp < transaction.commitTimestamp);
     }
 
@@ -81,10 +80,10 @@ public class JtaXAResourceTest {
         resource.start(xid, 0);
         TransactionId transactionId = resource.getThreadLocalTransactionState();
         resource.forget(xid);
-        TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
+        Transaction transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertNotNull(transaction);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
-        Assert.assertEquals(transaction.status, TransactionStatus.ROLLED_BACK);
+        Assert.assertTrue(!transaction.isActive() && !transaction.isCommitted());
         Assert.assertNull(transaction.commitTimestamp);
     }
 
@@ -118,9 +117,9 @@ public class JtaXAResourceTest {
         resource.prepare(xid);
         TransactionId transactionId = resource.getThreadLocalTransactionState();
         Assert.assertNotNull(transactionId);
-        TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
+        Transaction transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
-        Assert.assertEquals(transaction.status, TransactionStatus.ACTIVE);
+        Assert.assertTrue(transaction.isEffectivelyActive());
     }
 
     @Test
@@ -138,10 +137,10 @@ public class JtaXAResourceTest {
         resource.start(xid, 0);
         TransactionId transactionId = resource.getThreadLocalTransactionState();
         resource.rollback(xid);
-        TransactionStruct transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
+        Transaction transaction = transactorSetup.transactionStore.getTransactionStatus(transactionId);
         Assert.assertNotNull(transaction);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
-        Assert.assertEquals(transaction.status, TransactionStatus.ROLLED_BACK);
+        Assert.assertTrue(!transaction.isActive() && !transaction.isCommitted());
         Assert.assertNull(transaction.commitTimestamp);
     }
 
