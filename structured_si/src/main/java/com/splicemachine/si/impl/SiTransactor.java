@@ -115,7 +115,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public void rollback(TransactionId transactionId) throws IOException {
         Transaction transaction = transactionStore.getTransactionStatus(transactionId);
-        if (transaction.isActive()) {
+        if (transaction.isActive() && !transaction.isLocallyCommitted()) {
             transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ROLLED_BACK);
         }
     }

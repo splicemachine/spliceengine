@@ -46,6 +46,10 @@ public class Transaction extends ImmutableTransaction {
         return isNested() && dependent;
     }
 
+    public boolean isLocallyCommitted() {
+        return locallyCommitted;
+    }
+
     // immediate functions
 
     public boolean isActive() {
