@@ -93,6 +93,7 @@ public class CallStatementOperationTest extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("Bug 355")
     public void testCallSQLTABLES() throws Exception{
             CallableStatement cs = methodWatcher.prepareCall("call SYSIBM.SQLTABLES(null,'SYS',null,'SYSTEM TABLE',null)",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY);
             ResultSet rs = cs.executeQuery();
