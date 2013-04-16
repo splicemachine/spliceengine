@@ -101,6 +101,7 @@ public class Table {
                         int tenPercentSize = rowsToInsert>10?rowsToInsert/10 : 1;
                         int written = 0;
                         Connection conn = connectionPool.acquire();
+                        conn.setAutoCommit(false);
                         try{
                             PreparedStatement ps = conn.prepareStatement(getInsertDataString());
                             for(int numRowsInserted=0;numRowsInserted<numRows/insertThreads;numRowsInserted++){
