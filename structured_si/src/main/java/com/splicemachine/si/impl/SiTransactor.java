@@ -115,8 +115,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public void rollback(TransactionId transactionId) throws IOException {
         TransactionStruct transaction = transactionStore.getTransactionStatus(transactionId);
-        if (transaction.getEffectiveStatus().equals(TransactionStatus.ACTIVE) &&
-                (transaction.status == null || (transaction.status != null && !transaction.status.equals(TransactionStatus.COMMITED))) ) {
+        if (transaction.canBeRolledBack()) {
             transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ROLLED_BACK);
         }
     }
@@ -276,7 +275,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException {
         SiFilterState siFilterState = (SiFilterState) filterState;
-        return siFilterState.filterKeyValue(filterState, keyValue);
+        return siFilterState.filterKeyValue(keyValue);
     }
 
 }
