@@ -59,6 +59,8 @@ public class DistinctScalarAggregateOperationTest extends SpliceUnitTest {
 		if (rs.next()) {
 			LOG.info("sum of distinct="+rs.getInt(1));
 			Assert.assertEquals(16, rs.getInt(1));
-		}	
+		}else{
+            Assert.fail("No results returned!");
+        }
 	} 
 }
