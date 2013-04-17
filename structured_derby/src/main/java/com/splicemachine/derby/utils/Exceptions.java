@@ -38,8 +38,6 @@ public class Exceptions {
             for(Throwable t:causes){
                 if(t instanceof DoNotRetryIOException) return parseException(t);
             }
-        }else if (rootCause instanceof WriteConflict){
-            return StandardException.newException(SQLState.DEADLOCK);
         }
 
         return StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,rootCause);
