@@ -347,6 +347,15 @@ public class SiTransactorTest {
     }
 
     @Test
+    public void rollbackAfterCommit() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe50", 20);
+        transactor.commit(t1);
+        transactor.rollback(t1);
+        Assert.assertEquals("joe50 age=20 job=null", read(t1, "joe50"));
+    }
+
+    @Test
     public void writeScan() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         Assert.assertEquals("joe4 age=null job=null", read(t1, "joe4"));
@@ -761,6 +770,28 @@ public class SiTransactorTest {
     }
 
     @Test
+    public void childDependentTransactionWriteCommitRollbackRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        insertAge(t2, "joe51", 21);
+        transactor.commit(t2);
+        transactor.rollback(t2);
+        Assert.assertEquals("joe51 age=21 job=null", read(t1, "joe51"));
+        transactor.commit(t1);
+    }
+
+    @Test
+    public void childIndependentTransactionWriteCommitRollbackRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        insertAge(t2, "joe52", 21);
+        transactor.commit(t2);
+        transactor.rollback(t2);
+        Assert.assertEquals("joe52 age=21 job=null", read(t1, "joe52"));
+        transactor.commit(t1);
+    }
+
+    @Test
     public void childDependentSeesParentWrites() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe40", 20);
@@ -1148,7 +1179,9 @@ public class SiTransactorTest {
             SGet get1 = dataLib.newGet(testKey, null, null, null);
             transactorSetup.clientTransactor.initializeGet(t.getTransactionIdString(), get1);
             Object result = reader.get(testSTable, get1);
-            result = filterResult(storeSetup, transactorSetup, transactor.newFilterState(testSTable, t), result);
+            if (useSimple) {
+                result = filterResult(storeSetup, transactorSetup, transactor.newFilterState(testSTable, t), result);
+            }
             final int ageRead = (Integer) dataLib.decode(dataLib.getResultValue(result, family, ageQualifier), Integer.class);
             Assert.assertEquals(27, ageRead);
         } finally {
@@ -1164,7 +1197,9 @@ public class SiTransactorTest {
                 //System.out.println(((SiTransactor) transactor).shouldKeep(keyValue, t2));
             }
             final FilterState filterState = transactor.newFilterState(testSTable, t2);
-            filterResult(storeSetup, transactorSetup, filterState, resultTuple);
+            if(useSimple) {
+                filterResult(storeSetup, transactorSetup, filterState, resultTuple);
+            }
         } finally {
             reader.close(testSTable);
         }
