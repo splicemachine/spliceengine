@@ -104,7 +104,7 @@ public class SiFilterState implements FilterState {
 
     private boolean filterKeepDataValue(Object dataKeyValue) throws IOException {
         long dataTimestamp = dataLib.getKeyValueTimestamp(dataKeyValue);
-        updateFilterState(dataTimestamp);
+        assertTransactionInFilterState(dataTimestamp);
         Transaction committedDataTransaction = committedTransactions.get(dataTimestamp);
         Boolean dataTransactionStillRunning = stillRunningTransactions.containsKey(dataTimestamp);
         if (isDataCommittedBeforeThisTransaction(committedDataTransaction)
@@ -116,17 +116,9 @@ public class SiFilterState implements FilterState {
         return false;
     }
 
-    private void updateFilterState(long beginTimestamp) throws IOException {
-        Transaction cachedTransaction = getTransactionFromFilterState(beginTimestamp);
-        if (cachedTransaction == null) {
-            final Transaction transaction = transactionStore.getTransactionStatus(beginTimestamp);
-            if (transaction.isActive()) {
-                stillRunningTransactions.put(beginTimestamp, transaction);
-            } else if (!transaction.isCommitted()) {
-                failedTransactions.put(beginTimestamp, transaction);
-            } else {
-                committedTransactions.put(beginTimestamp, transaction);
-            }
+    private void assertTransactionInFilterState(long beginTimestamp) throws IOException {
+        if (getTransactionFromFilterState(beginTimestamp) == null) {
+            throw new RuntimeException("All transactions should already be loaded from the si family for the data row");
         }
     }
 
