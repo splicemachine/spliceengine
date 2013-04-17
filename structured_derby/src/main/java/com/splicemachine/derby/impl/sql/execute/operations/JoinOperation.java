@@ -10,11 +10,13 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableHashtable;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
+import org.apache.derby.iapi.services.io.FormatableLongHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.derby.impl.sql.compile.JoinNode;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -137,12 +139,12 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
         FormatableHashtable hashKeyInfo =  (FormatableHashtable) activation.getPreparedStatement().getSavedObject(hashKeyItem);
 
-        FormatableArrayHolder fah = (FormatableArrayHolder) hashKeyInfo.get("HashKeysIntArrayHolder");
+        FormatableArrayHolder fah = (FormatableArrayHolder) hashKeyInfo.get(JoinNode.HASH_KEYS_ARRAY_KEY);
         FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
 
-        FormatableIntHolder tableNumber = (FormatableIntHolder) hashKeyInfo.get("TableNumberIntHolder");
+        FormatableLongHolder tableNumber = (FormatableLongHolder) hashKeyInfo.get(JoinNode.TABLE_NUMBER_KEY);
 
-        int[] rootAccessedCols = resultSet.getRootAccessedCols(tableNumber.getInt());
+        int[] rootAccessedCols = resultSet.getRootAccessedCols((int) tableNumber.getLong());
         int[] keyColumns = new int[fihArray.length];
         for(int i=0;i<fihArray.length;i++){
             keyColumns[i] = rootAccessedCols[fihArray[i].getInt()-1];

@@ -8,6 +8,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -244,7 +245,6 @@ public class InnerJoinTest extends SpliceUnitTest {
         }
     }
 
-    @Ignore("Throws ArrayIndexOutOfBoundsException might be related to bug 333")
     @Test
     public void testThreeTableJoinOnItems() throws Exception{
         ResultSet rs = methodWatcher.executeQuery("select t1.itm_name, t2.sbc_desc, t3.cat_name " +
@@ -255,6 +255,13 @@ public class InnerJoinTest extends SpliceUnitTest {
 
         Assert.assertEquals(10, results.size());
 
+        Assert.assertEquals("50 Favorite Rooms", results.get(0).get("ITM_NAME"));
+        Assert.assertEquals("MicroStrategy Books", results.get(0).get("CAT_NAME"));
+        Assert.assertEquals("Art & Architecture", results.get(0).get("SBC_DESC"));
+
+        Assert.assertEquals("Seal (94)", results.get(5).get("ITM_NAME"));
+        Assert.assertEquals("MicroStrategy Music", results.get(5).get("CAT_NAME"));
+        Assert.assertEquals("Alternative", results.get(5).get("SBC_DESC"));
 
     }
 

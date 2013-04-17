@@ -32,6 +32,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -289,16 +290,24 @@ public class MergeSortJoinOperation extends JoinOperation {
  
    @Override
     public int[] getRootAccessedCols(int tableNumber) {
-       if(!areChildrenLeaves()){
+       if(areChildrenLeaves()){
 
            ScanOperation leftSO = (ScanOperation) leftResultSet;
            String tableNumberStr = String.valueOf(tableNumber);
 
            if(leftSO.tableName.equals(tableNumberStr)){
-            return leftSO.getRootAccessedCols(tableNumber);
+
+               return leftSO.getRootAccessedCols(tableNumber);
            }else{
             ScanOperation rightSO = (ScanOperation) rightResultSet;
-            return rightSO.getRootAccessedCols(tableNumber);
+               int leftCols = getLeftNumCols();
+               int[] rightRootCols = rightSO.getRootAccessedCols(tableNumber);
+               int[] rightOffsetRootCols = new int[rightRootCols.length];
+
+               for(int i=0; i<rightRootCols.length; i++){
+                rightOffsetRootCols[i] = rightRootCols[i] + leftCols;
+               }
+               return rightOffsetRootCols;
            }
        } else{
         return leftResultSet.getRootAccessedCols(tableNumber);
