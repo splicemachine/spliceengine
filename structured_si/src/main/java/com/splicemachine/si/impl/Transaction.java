@@ -3,6 +3,9 @@ package com.splicemachine.si.impl;
 import java.util.Collections;
 import java.util.Set;
 
+/**
+ * Represents an application level transaction that spans many atomic writes to the underlying data store (i.e. HBase).
+ */
 public class Transaction extends ImmutableTransaction {
     /**
      * the time when the transaction committed or null if it has not committed
@@ -59,7 +62,8 @@ public class Transaction extends ImmutableTransaction {
         return isNested() && dependent;
     }
 
-    // immediate functions - These functions chec
+    // immediate functions - These functions are based solely on the transaction's immediate state (i.e. not on the
+    // state of their parent)
 
     /**
      * Returns true if this is a nested, dependent transaction that has been locally committed. Meaning the child
