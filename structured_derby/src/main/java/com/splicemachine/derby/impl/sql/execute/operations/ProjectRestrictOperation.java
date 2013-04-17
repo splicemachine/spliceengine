@@ -319,7 +319,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		if(source!=null) source.openCore();
 	}
 	@Override
-	public int[] getRootAccessedCols(int tableNumber) {
+	public int[] getRootAccessedCols(long tableNumber) {
 		if (source instanceof SpliceBaseOperation)
 			return ((SpliceBaseOperation) source).getRootAccessedCols(tableNumber);
 		throw new RuntimeException("Source of merge join not a SpliceBaseOperation, it is this " + source);

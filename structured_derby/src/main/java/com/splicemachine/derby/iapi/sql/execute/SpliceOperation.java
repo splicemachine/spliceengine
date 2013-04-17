@@ -168,8 +168,9 @@ public interface SpliceOperation extends NoPutResultSet {
      * array relates the compact row column location (integer pointer) to the original
      * location (the nth column on the original table).
      *
+     *
      * @param tableNumber
      * @return
      */
-    int[] getRootAccessedCols(int tableNumber);
+    int[] getRootAccessedCols(long tableNumber);
 }

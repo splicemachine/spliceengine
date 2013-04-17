@@ -32,7 +32,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -289,7 +288,7 @@ public class MergeSortJoinOperation extends JoinOperation {
     }
  
    @Override
-    public int[] getRootAccessedCols(int tableNumber) {
+    public int[] getRootAccessedCols(long tableNumber) {
        if(areChildrenLeaves()){
 
            ScanOperation leftSO = (ScanOperation) leftResultSet;
@@ -350,7 +349,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 				setCurrentRow(currentRow);
 				rowsReturned++;
 				currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
-				SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
+				SpliceLogUtils.trace(LOG, "current row returned %s", currentRow);
 				return true;
 			}
 			if (!serverProvider.hasNext()) {
@@ -361,12 +360,12 @@ public class MergeSortJoinOperation extends JoinOperation {
 				if (joinRow.getJoinSide().ordinal() == JoinSide.RIGHT.ordinal()) { // Right Side
 					rightHash = joinRow.getHash();
 					if (joinRow.sameHash(priorHash)) {
-						SpliceLogUtils.trace(LOG, "adding additional right=%s",joinRow);
+						SpliceLogUtils.trace(LOG, "adding additional right=%s", joinRow);
 						rights.add(joinRow.getRow().getClone());
 					} else {
 						resetRightSide();
 						rowsSeenRight++;
-						SpliceLogUtils.trace(LOG, "adding initial right=%s",joinRow);
+						SpliceLogUtils.trace(LOG, "adding initial right=%s", joinRow);
 						rights.add(joinRow.getRow().getClone());
 						priorHash = joinRow.getHash();
 					}
@@ -377,17 +376,17 @@ public class MergeSortJoinOperation extends JoinOperation {
 					rowsSeenLeft++;
 					if (joinRow.sameHash(priorHash)) {
 						if (joinRow.sameHash(rightHash)) {
-							SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s",joinRow);
+							SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s", joinRow);
 							rightIterator = rights.iterator();
 							currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, rightNumCols,leftNumCols, mergedRow);
 							setCurrentRow(currentRow);
 							rowsReturned++;
 							currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());					
-							SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
+							SpliceLogUtils.trace(LOG, "current row returned %s", currentRow);
 							return true;
 						} else {
 							if (outerJoin) {
-								SpliceLogUtils.trace(LOG, "simple left emit=%s",joinRow);
+								SpliceLogUtils.trace(LOG, "simple left emit=%s", joinRow);
 								resetRightSide();
 								priorHash = joinRow.getHash();
 								currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
@@ -396,7 +395,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 								emptyRightRowsReturned++;
 								return true;					
 							} else {
-								SpliceLogUtils.trace(LOG, "right hash miss left=%s",joinRow);
+								SpliceLogUtils.trace(LOG, "right hash miss left=%s", joinRow);
 								resetRightSide();	
 								priorHash = joinRow.getHash();
 								continue;				
@@ -406,7 +405,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 					} 
 					else {
 						if (outerJoin) {
-							SpliceLogUtils.trace(LOG, "simple left with no right=%s",joinRow);
+							SpliceLogUtils.trace(LOG, "simple left with no right=%s", joinRow);
 							resetRightSide();
 							priorHash = joinRow.getHash();
 							currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
@@ -417,7 +416,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 						} else {
 							resetRightSide();
 							priorHash = joinRow.getHash();
-							SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
+							SpliceLogUtils.trace(LOG, "current row returned %s", currentRow);
 							continue;
 						}
 					}			

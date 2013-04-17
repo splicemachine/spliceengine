@@ -144,7 +144,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
         FormatableLongHolder tableNumber = (FormatableLongHolder) hashKeyInfo.get(JoinNode.TABLE_NUMBER_KEY);
 
-        int[] rootAccessedCols = resultSet.getRootAccessedCols((int) tableNumber.getLong());
+        int[] rootAccessedCols = resultSet.getRootAccessedCols(tableNumber.getLong());
         int[] keyColumns = new int[fihArray.length];
         for(int i=0;i<fihArray.length;i++){
             keyColumns[i] = rootAccessedCols[fihArray[i].getInt()-1];
