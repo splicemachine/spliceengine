@@ -68,12 +68,12 @@ public class DataStore {
     }
 
     void setTransactionId(SiTransactionId transactionId, Object put) {
-        dataLib.addAttribute(put, transactionIdAttribute, dataLib.encode(transactionId.getId()));
+        dataLib.addAttribute(put, transactionIdAttribute, dataLib.encode(transactionId.getTransactionIdString()));
     }
 
     SiTransactionId getTransactionIdFromOperation(Object put) {
         Object value = dataLib.getAttribute(put, transactionIdAttribute);
-        Long transactionId = (Long) dataLib.decode(value, Long.class);
+        String transactionId = (String) dataLib.decode(value, String.class);
         if (transactionId != null) {
             return new SiTransactionId(transactionId);
         }

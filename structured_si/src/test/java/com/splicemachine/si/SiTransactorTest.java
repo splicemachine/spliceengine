@@ -9,6 +9,7 @@ import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.SiFilterState;
+import com.splicemachine.si.impl.SiTransactionId;
 import com.splicemachine.si.impl.Transaction;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.junit.Assert;
@@ -752,6 +753,16 @@ public class SiTransactorTest {
         TransactionId t4 = transactor.beginTransaction(true, false, false);
         insertAge(t4, "joe23", 22);
         Assert.assertEquals("joe23 age=22 job=null", read(t3, "joe23"));
+    }
+
+    @Test
+    public void nestedReadOnlyIds() {
+        final SiTransactionId id = new SiTransactionId(100L, true);
+        Assert.assertEquals(100L, id.getId());
+        Assert.assertEquals("100NRO", id.getTransactionIdString());
+        final SiTransactionId id2 = new SiTransactionId("200NRO");
+        Assert.assertEquals(200L, id2.getId());
+        Assert.assertEquals("200NRO", id2.getTransactionIdString());
     }
 
     @Test

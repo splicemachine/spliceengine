@@ -47,9 +47,13 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
                                                Boolean readUncommitted, Boolean readCommitted) throws IOException {
-        final TransactionId childTransactionId = beginTransactionDirect(parent, dependent, null, allowWrites, readUncommitted, readCommitted);
-        transactionStore.addChildToTransaction(parent, childTransactionId);
-        return childTransactionId;
+        if (!dependent && !allowWrites) {
+            return new SiTransactionId(parent.getId(), true);
+        } else {
+            final TransactionId childTransactionId = beginTransactionDirect(parent, dependent, null, allowWrites, readUncommitted, readCommitted);
+            transactionStore.addChildToTransaction(parent, childTransactionId);
+            return childTransactionId;
+        }
     }
 
     private TransactionId beginTransactionDirect(TransactionId parent, Boolean dependent, TransactionStatus status,
@@ -62,7 +66,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     @Override
     public TransactionId transactionIdFromString(String transactionId) {
-        return new SiTransactionId(Long.valueOf(transactionId));
+        return new SiTransactionId(transactionId);
     }
 
     @Override
@@ -87,6 +91,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     @Override
     public void commit(TransactionId transactionId) throws IOException {
+        if (((SiTransactionId) transactionId).nestedReadOnly) {
+            return;
+        }
         final Transaction transaction = ensureTransactionActive(transactionId);
         if (!transaction.isNestedDependent()) {
             List<Long> childrenToCommit = new ArrayList<Long>();
@@ -114,6 +121,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     @Override
     public void rollback(TransactionId transactionId) throws IOException {
+        if (((SiTransactionId) transactionId).nestedReadOnly) {
+            return;
+        }
         Transaction transaction = transactionStore.getTransactionStatus(transactionId);
         if (transaction.isActive() && !transaction.isLocallyCommitted()) {
             transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ROLLED_BACK);
@@ -122,6 +132,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     @Override
     public void fail(TransactionId transactionId) throws IOException {
+        if (((SiTransactionId) transactionId).nestedReadOnly) {
+            return;
+        }
         ensureTransactionActive(transactionId);
         transactionStore.recordTransactionStatusChange(transactionId, TransactionStatus.ERROR);
     }
