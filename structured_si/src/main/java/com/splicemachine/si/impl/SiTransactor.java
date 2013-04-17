@@ -208,7 +208,6 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     private void checkForConflict(ImmutableTransaction putTransaction, STable table, SRowLock lock, Object rowKey) throws IOException {
-        Long rootId = putTransaction.getRootBeginTimestamp();
         TransactionId transactionId = new SiTransactionId(putTransaction.beginTimestamp);
         List keyValues = dataStore.getCommitTimestamp(table, rowKey);
         if (keyValues != null) {
@@ -237,7 +236,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     private void writeWriteConflict(TransactionId transactionId) throws IOException {
         fail(transactionId);
-        throw new DoNotRetryIOException("write/write conflict");
+        throw new WriteConflict("write/write conflict");
     }
 
     private Transaction ensureTransactionActive(TransactionId transactionId) throws IOException {

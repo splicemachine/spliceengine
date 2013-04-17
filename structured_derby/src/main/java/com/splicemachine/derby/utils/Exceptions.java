@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
+import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -37,6 +38,8 @@ public class Exceptions {
             for(Throwable t:causes){
                 if(t instanceof DoNotRetryIOException) return parseException(t);
             }
+        }else if (rootCause instanceof WriteConflict){
+            return StandardException.newException(SQLState.DEADLOCK);
         }
 
         return StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,rootCause);
