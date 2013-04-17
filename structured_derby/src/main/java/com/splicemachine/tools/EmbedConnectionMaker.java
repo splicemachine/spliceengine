@@ -10,7 +10,7 @@ import java.sql.SQLException;
  * @author Scott Fines
  * Created on: 3/22/13
  */
-public final class EmbedConnectionMaker implements ConnectionPool.Supplier {
+final class EmbedConnectionMaker implements ConnectionPool.Supplier {
     private static final String DRIVER_CLASS_NAME = "org.apache.derby.jdbc.EmbeddedDriver";
     private static final String protocol = "jdbc:derby:splice:";
     private static final String dbName = "wombat";

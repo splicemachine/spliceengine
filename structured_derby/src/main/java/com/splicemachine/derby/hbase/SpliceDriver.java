@@ -2,23 +2,18 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TransactionConstants;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJobScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
-import com.splicemachine.derby.impl.job.scheduler.WorkStealingThreadedTaskScheduler;
-import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.ZkUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
 import com.splicemachine.tools.ConnectionPool;
-import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -146,8 +141,7 @@ public class SpliceDriver {
     }
 
     public Connection acquireConnection() throws SQLException, InterruptedException {
-        //final Connection connection = embeddedConnections.acquire();
-        final Connection connection = new EmbedConnectionMaker().createNew();
+        final Connection connection = embeddedConnections.acquire();
         connection.setAutoCommit(false);
         return connection;
     }
@@ -166,8 +160,7 @@ public class SpliceDriver {
 
     public void registerService(Service service){
         this.services.add(service);
-        //If the service is registered after we've successfully started up, let it know on the same
-        //thread.
+        //If the service is registered after we've successfully started up, let it know on the same thread.
         if(stateHolder.get()==State.RUNNING)
             service.start();
     }
