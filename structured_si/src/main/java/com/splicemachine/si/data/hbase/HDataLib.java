@@ -178,7 +178,7 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
-    public void setGetTimeRange(Get get, long minTimestamp, long maxTimestamp) {
+    public void setReadTimeRange(Get get, long minTimestamp, long maxTimestamp) {
         try {
             get.setTimeRange(minTimestamp, maxTimestamp);
         } catch (IOException e) {
@@ -212,7 +212,7 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
-    public void setScanTimeRange(Scan scan, long minTimestamp, long maxTimestamp) {
+    public void setReadTimeRange(Scan scan, long minTimestamp, long maxTimestamp) {
         try {
             scan.setTimeRange(minTimestamp, maxTimestamp);
         } catch (IOException e) {
@@ -221,28 +221,26 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
-    public void setScanMaxVersions(Scan scan) {
+    public void setReadMaxVersions(Scan scan) {
         scan.setMaxVersions();
     }
 
     @Override
-    public void setGetMaxVersions(Get get) {
+    public void setReadMaxVersions(Get get) {
         get.setMaxVersions();
     }
 
     @Override
-    public void ensureFamilyOnGet(HGet get, byte[] family) {
-        final Get hGet = get.getGet();
-        if (hGet.hasFamilies()) {
-            hGet.addFamily(family);
+    public void addFamilyToReadIfNeeded(Get get, byte[] family) {
+        if (get.hasFamilies()) {
+            get.addFamily(family);
         }
     }
 
     @Override
-    public void ensureFamilyOnScan(HScan scan, byte[] family) {
-        final Scan hScan = scan.getScan();
-        if(hScan.hasFamilies()) {
-            hScan.addFamily(family);
+    public void addFamilyToReadIfNeeded(Scan scan, byte[] family) {
+        if(scan.hasFamilies()) {
+            scan.addFamily(family);
         }
     }
 

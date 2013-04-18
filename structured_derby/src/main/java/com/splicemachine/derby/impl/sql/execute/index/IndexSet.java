@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.TransactionConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.constraint.*;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -73,9 +74,9 @@ public class IndexSet {
      *
      * To bypass index updates, attach INDEX_UPDATED as an attribute key on a Mutation.
      */
-    public static final String INDEX_UPDATED = "iu";
+    public static final String INDEX_UPDATED = TransactionConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
     //it doesn't need to have any content, because we only key off of the Attribute key
-    public static final byte[] INDEX_ALREADY_UPDATED=new byte[]{};
+    public static final byte[] INDEX_ALREADY_UPDATED = TransactionConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
 
     /*
      * Synchronizer object for use during initialization.

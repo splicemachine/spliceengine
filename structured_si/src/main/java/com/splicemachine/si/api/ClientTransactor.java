@@ -11,13 +11,12 @@ import java.io.IOException;
  */
 public interface ClientTransactor {
     TransactionId transactionIdFromString(String transactionId);
-    TransactionId getTransactionIdFromPut(Object put);
-    TransactionId getTransactionIdFromDelete(Delete delete);
+    TransactionId transactionIdFromOperation(Object put);
 
     void initializeGet(String transactionId, SGet get) throws IOException;
     void initializeScan(String transactionId, SScan scan);
     void initializePut(String transactionId, Object put);
 
-    Object newDeletePut(TransactionId transactionId, Object rowKey);
+    Object createDeletePut(TransactionId transactionId, Object rowKey);
     boolean isDeletePut(Object put);
 }

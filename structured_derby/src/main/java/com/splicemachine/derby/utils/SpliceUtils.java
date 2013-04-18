@@ -255,7 +255,7 @@ public class SpliceUtils {
 
     public static Put createDeletePut(String transactionId, byte[] rowKey) {
         final ClientTransactor clientTransactor = TransactorFactory.getDefaultClientTransactor();
-        return (Put) clientTransactor.newDeletePut(clientTransactor.transactionIdFromString(transactionId), rowKey);
+        return (Put) clientTransactor.createDeletePut(clientTransactor.transactionIdFromString(transactionId), rowKey);
     }
 
     public static boolean isDelete(Mutation mutation) {
@@ -278,9 +278,9 @@ public class SpliceUtils {
             return NA_TRANSACTION_ID;
         }
         if(mutation instanceof Put)
-            return getTransactor().getTransactionIdFromPut(mutation).getTransactionIdString();
+            return getTransactor().transactionIdFromOperation(mutation).getTransactionIdString();
         else
-            return getTransactor().getTransactionIdFromDelete((Delete) mutation).getTransactionIdString();
+            return getTransactor().transactionIdFromOperation(mutation).getTransactionIdString();
     }
 
     public static void handleNullsInUpdate(Put put, DataValueDescriptor[] row, FormatableBitSet validColumns) {

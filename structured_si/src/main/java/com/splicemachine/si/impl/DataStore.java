@@ -2,6 +2,7 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
+import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
@@ -67,8 +68,8 @@ public class DataStore {
         dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, transactionId.getId(), siNull);
     }
 
-    void setTransactionId(SiTransactionId transactionId, Object put) {
-        dataLib.addAttribute(put, transactionIdAttribute, dataLib.encode(transactionId.getTransactionIdString()));
+    void setTransactionId(SiTransactionId transactionId, Object operation) {
+        dataLib.addAttribute(operation, transactionIdAttribute, dataLib.encode(transactionId.getTransactionIdString()));
     }
 
     SiTransactionId getTransactionIdFromOperation(Object put) {
@@ -80,16 +81,13 @@ public class DataStore {
         return null;
     }
 
-    Object newLockWithPut(TransactionId transactionId, Object put, SRowLock lock) {
-        Object rowKey = dataLib.getPutKey(put);
-        Object newPut = dataLib.newPut(rowKey, lock);
+    void copyPutKeyValues(Object put, Object newPut, long timestamp) {
         for (Object keyValue : dataLib.listPut(put)) {
             dataLib.addKeyValueToPut(newPut, dataLib.getKeyValueFamily(keyValue),
                     dataLib.getKeyValueQualifier(keyValue),
-                    transactionId.getId(),
+                    timestamp,
                     dataLib.getKeyValueValue(keyValue));
         }
-        return newPut;
     }
 
     List getCommitTimestamp(STable table, Object rowKey) {
@@ -130,11 +128,7 @@ public class DataStore {
         dataLib.addKeyValueToPut(put, siFamily, tombstoneQualifier, transactionId.getId(), siNull);
     }
 
-    public void ensureSiFamilyOnGet(SGet get) {
-        dataLib.ensureFamilyOnGet(get, siFamily);
-    }
-
-    public void ensureSiFamilyOnScan(SScan scan) {
-        dataLib.ensureFamilyOnScan(scan, siFamily);
+    public void addSiFamilyToReadIfNeeded(SRead get) {
+        dataLib.addFamilyToReadIfNeeded(get, siFamily);
     }
 }

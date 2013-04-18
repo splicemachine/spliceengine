@@ -60,7 +60,7 @@ public class SIObserver extends BaseRegionObserver {
         SpliceLogUtils.trace(LOG, "preGet %s", get);
         if (tableEnvMatch && shouldUseSI(new HGet(get))) {
             Transactor transactor = TransactorFactoryImpl.getTransactor();
-            transactor.preProcessGet(new HGet(get));
+            transactor.preProcessRead(new HGet(get));
             assert (get.getMaxVersions() == Integer.MAX_VALUE);
             addSiFilterToGet(e, get);
         }
@@ -77,7 +77,7 @@ public class SIObserver extends BaseRegionObserver {
         SpliceLogUtils.trace(LOG, "preScannerOpen %s", scan);
         if (tableEnvMatch && shouldUseSI(new HScan(scan))) {
             Transactor transactor = TransactorFactoryImpl.getTransactor();
-            transactor.preProcessScan(new HScan(scan));
+            transactor.preProcessRead(new HScan(scan));
             assert (scan.getMaxVersions() == Integer.MAX_VALUE);
             addSiFilterToScan(e, scan);
         }
@@ -91,13 +91,13 @@ public class SIObserver extends BaseRegionObserver {
 
     private void addSiFilterToGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get) throws IOException {
         Transactor transactor = TransactorFactoryImpl.getTransactor();
-        Filter newFilter = makeSiFilter(e, transactor.getTransactionIdFromGet(new HGet(get)), get.getFilter());
+        Filter newFilter = makeSiFilter(e, transactor.transactionIdFromOperation(new HGet(get)), get.getFilter());
         get.setFilter(newFilter);
     }
 
     private void addSiFilterToScan(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan) throws IOException {
         Transactor transactor = TransactorFactoryImpl.getTransactor();
-        Filter newFilter = makeSiFilter(e, transactor.getTransactionIdFromScan(new HScan(scan)), scan.getFilter());
+        Filter newFilter = makeSiFilter(e, transactor.transactionIdFromOperation(new HScan(scan)), scan.getFilter());
         scan.setFilter(newFilter);
     }
 

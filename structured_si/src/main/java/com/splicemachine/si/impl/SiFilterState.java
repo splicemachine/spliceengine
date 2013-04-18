@@ -72,7 +72,7 @@ public class SiFilterState implements FilterState {
             transaction = (Transaction) temp[0];
             stillRunning = (Boolean) temp[1];
         } else {
-            transaction = transactionStore.getTransactionStatus(beginTimestamp);
+            transaction = transactionStore.getTransaction(beginTimestamp);
         }
         if (stillRunning) {
             stillRunningTransactions.put(beginTimestamp, transaction);
@@ -85,7 +85,7 @@ public class SiFilterState implements FilterState {
 
     private Object[] filterHandleUnknownTransactionStatus(Object keyValue,
                                                           long beginTimestamp) throws IOException {
-        Transaction transaction = transactionStore.getTransactionStatus(beginTimestamp);
+        Transaction transaction = transactionStore.getTransaction(beginTimestamp);
         if (transaction.isCommitted()) {
             rollForward(keyValue, transaction);
         } else if (transaction.isFailed()) {

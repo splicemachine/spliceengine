@@ -1,6 +1,7 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.si.data.api.SGet;
+import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -12,6 +13,16 @@ import java.io.IOException;
  */
 public interface Transactor extends ClientTransactor {
     TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
+    /**
+     *
+     * @param parent transaction that contains this new transaction
+     * @param dependent indicator of whether this transaction can only finally commit if the parent does
+     * @param allowWrites indicates whether this transaction can peform writes
+     * @param readUncommitted
+     * @param readCommitted
+     * @return
+     * @throws IOException
+     */
     TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
                                         Boolean readUncommitted, Boolean readCommitted) throws IOException;
     void commit(TransactionId transactionId) throws IOException;
@@ -21,10 +32,7 @@ public interface Transactor extends ClientTransactor {
     boolean processPut(STable table, Object put) throws IOException;
     boolean isFilterNeeded(Object operation);
 
-    TransactionId getTransactionIdFromGet(Object get);
-    void preProcessGet(SGet get) throws IOException;
-    TransactionId getTransactionIdFromScan(Object scan);
-    void preProcessScan(SScan scan) throws IOException;
+    void preProcessRead(SRead readOperation) throws IOException;
 
     FilterState newFilterState(STable table, TransactionId transactionId) throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;

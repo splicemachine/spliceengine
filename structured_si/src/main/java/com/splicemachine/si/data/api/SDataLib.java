@@ -33,12 +33,9 @@ public interface SDataLib {
     long getKeyValueTimestamp(Object keyValue);
 
     SGet newGet(Object rowKey, List families, List columns, Long effectiveTimestamp);
-    void setGetTimeRange(SGet get, long minTimestamp, long maxTimestamp);
-    void setGetMaxVersions(SGet get);
-    void ensureFamilyOnGet(SGet get, Object family);
-
     SScan newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp);
-    void setScanTimeRange(SScan get, long minTimestamp, long maxTimestamp);
-    void setScanMaxVersions(SScan scan);
-    void ensureFamilyOnScan(SScan scan, Object family);
+    void setReadTimeRange(SRead get, long minTimestamp, long maxTimestamp);
+    void setReadMaxVersions(SRead get);
+    void addFamilyToReadIfNeeded(SRead get, Object family);
+
 }

@@ -9,6 +9,9 @@ public class TransactionConstants extends HBaseConstants {
     public static final String TRANSACTION_TABLE = "__TXN";
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
 
+    public static final String SUPPRESS_INDEXING_ATTRIBUTE_NAME = "iu";
+    public static final byte[] SUPPRESS_INDEXING_ATTRIBUTE_VALUE = new byte[]{};
+
     public static enum TableEnv {
     	TRANSACTION_TABLE,
     	ROOT_TABLE,

@@ -2,6 +2,7 @@ package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
+import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.SScan;
 import org.apache.hadoop.hbase.KeyValue;
@@ -147,38 +148,35 @@ public class HDataLibAdapter implements SDataLib {
     }
 
     @Override
-    public void setGetTimeRange(SGet get, long minTimestamp, long maxTimestamp) {
-        dataLib.setGetTimeRange(((HGet) get).get, minTimestamp, maxTimestamp);
+    public void setReadTimeRange(SRead read, long minTimestamp, long maxTimestamp) {
+        if (read instanceof HGet) {
+            dataLib.setReadTimeRange(((HGet) read).get, minTimestamp, maxTimestamp);
+        } else {
+            dataLib.setReadTimeRange(((HScan) read).scan, minTimestamp, maxTimestamp);
+        }
     }
 
     @Override
-    public void setGetMaxVersions(SGet get) {
-        dataLib.setGetMaxVersions(((HGet) get).getGet());
+    public void setReadMaxVersions(SRead read) {
+        if (read instanceof HGet) {
+            dataLib.setReadMaxVersions(((HGet) read).getGet());
+        } else {
+            dataLib.setReadMaxVersions(((HScan) read).getScan());
+        }
     }
 
     @Override
-    public void ensureFamilyOnGet(SGet get, Object family) {
-        dataLib.ensureFamilyOnGet((HGet) get, (byte[]) family);
+    public void addFamilyToReadIfNeeded(SRead read, Object family) {
+        if (read instanceof HGet) {
+            dataLib.addFamilyToReadIfNeeded(((HGet) read).get, (byte[]) family);
+        } else {
+            dataLib.addFamilyToReadIfNeeded(((HScan) read).scan, (byte[]) family);
+        }
     }
 
     @Override
     public SScan newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp) {
         return new HScan(dataLib.newScan((byte[]) startRowKey, (byte[]) endRowKey, families, columns, effectiveTimestamp));
-    }
-
-    @Override
-    public void setScanTimeRange(SScan scan, long minTimestamp, long maxTimestamp) {
-        dataLib.setScanTimeRange(((HScan) scan).scan, minTimestamp, maxTimestamp);
-    }
-
-    @Override
-    public void setScanMaxVersions(SScan scan) {
-        dataLib.setScanMaxVersions(((HScan) scan).getScan());
-    }
-
-    @Override
-    public void ensureFamilyOnScan(SScan scan, Object family) {
-        dataLib.ensureFamilyOnScan((HScan) scan, (byte[]) family);
     }
 
     public static byte[] convertToBytes(Object value) {

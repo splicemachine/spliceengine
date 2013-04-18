@@ -40,12 +40,9 @@ public class TransactionStore {
         this.writer = writer;
     }
 
-    public void recordNewTransaction(TransactionId startTransactionTimestamp, TransactionId parent,
-                                     Boolean dependent, boolean allowWrites, Boolean readUncommitted,
-                                     Boolean readCommitted, TransactionStatus status)
-            throws IOException {
-        writePut(makeCreateTuple(startTransactionTimestamp, parent, dependent, allowWrites, readUncommitted,
-                readCommitted, status));
+    public void recordNewTransaction(TransactionId startTransactionTimestamp, TransactionParams params,
+                                     TransactionStatus status) throws IOException {
+        writePut(makeCreateTuple(startTransactionTimestamp, params, status));
     }
 
     public void addChildToTransaction(TransactionId transactionId, TransactionId childTransactionId) throws IOException {
@@ -55,8 +52,13 @@ public class TransactionStore {
         writePut(put);
     }
 
-    public void recordTransactionCommit(TransactionId startTransactionTimestamp, long commitTransactionTimestamp,
-                                        TransactionStatus newStatus) throws IOException {
+    public void recordTransactionEnd(long startTransactionTimestamp, long commitTransactionTimestamp,
+                                     TransactionStatus newStatus) throws IOException {
+        recordTransactionEnd(new SiTransactionId(startTransactionTimestamp), commitTransactionTimestamp, newStatus);
+    }
+
+    public void recordTransactionEnd(TransactionId startTransactionTimestamp, long commitTransactionTimestamp,
+                                     TransactionStatus newStatus) throws IOException {
         writePut(makeCommitPut(startTransactionTimestamp, commitTransactionTimestamp, newStatus));
     }
 
@@ -74,16 +76,16 @@ public class TransactionStore {
         if (immutableCachedTransaction != null) {
             return immutableCachedTransaction;
         }
-        immutableCachedTransaction = getTransactionStatus(transactionId.getId());
+        immutableCachedTransaction = getTransaction(transactionId.getId());
         immutableTransactionCache.put(transactionId.getId(), immutableCachedTransaction);
         return immutableCachedTransaction;
     }
 
-    public Transaction getTransactionStatus(long beginTimestamp) throws IOException {
-        return getTransactionStatus(new SiTransactionId(beginTimestamp));
+    public Transaction getTransaction(long beginTimestamp) throws IOException {
+        return getTransaction(new SiTransactionId(beginTimestamp));
     }
 
-    public Transaction getTransactionStatus(TransactionId transactionId) throws IOException {
+    public Transaction getTransaction(TransactionId transactionId) throws IOException {
         final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId.getId());
         if (cachedTransaction != null) {
             //LOG.warn("cache HIT " + transactionId.getTransactionIdString());
@@ -101,7 +103,7 @@ public class TransactionStore {
                 Long parentId = getLongFieldFromResult(resultTuple, encodedSchema.parentQualifier);
                 Transaction parent = null;
                 if (parentId != null) {
-                    parent = getTransactionStatus(parentId);
+                    parent = getTransaction(parentId);
                 }
                 final Object commitValue = dataLib.getResultValue(resultTuple, encodedSchema.siFamily, encodedSchema.commitQualifier);
                 Long commitTimestamp = null;
@@ -159,23 +161,21 @@ public class TransactionStore {
         return put;
     }
 
-    private Object makeCreateTuple(TransactionId transactionId, TransactionId parent,
-                                   Boolean dependent, boolean allowWrites, Boolean readUncommitted,
-                                   Boolean readCommitted, TransactionStatus status) {
+    private Object makeCreateTuple(TransactionId transactionId, TransactionParams params, TransactionStatus status) {
         Object put = makeBasePut(transactionId);
         addFieldToPut(put, encodedSchema.startQualifier, transactionId.getId());
-        if (parent != null) {
-            addFieldToPut(put, encodedSchema.parentQualifier, parent.getId());
+        if (params.parent != null) {
+            addFieldToPut(put, encodedSchema.parentQualifier, params.parent.getId());
         }
-        if (dependent != null) {
-            addFieldToPut(put, encodedSchema.dependentQualifier, dependent);
+        if (params.dependent != null) {
+            addFieldToPut(put, encodedSchema.dependentQualifier, params.dependent);
         }
-        addFieldToPut(put, encodedSchema.allowWritesQualifier, allowWrites);
-        if (readUncommitted != null) {
-            addFieldToPut(put, encodedSchema.readUncommittedQualifier, readUncommitted);
+        addFieldToPut(put, encodedSchema.allowWritesQualifier, params.allowWrites);
+        if (params.readUncommitted != null) {
+            addFieldToPut(put, encodedSchema.readUncommittedQualifier, params.readUncommitted);
         }
-        if (readCommitted != null) {
-            addFieldToPut(put, encodedSchema.readCommittedQualifier, readCommitted);
+        if (params.readCommitted != null) {
+            addFieldToPut(put, encodedSchema.readCommittedQualifier, params.readCommitted);
         }
         if (status != null) {
             addFieldToPut(put, encodedSchema.statusQualifier, status.ordinal());

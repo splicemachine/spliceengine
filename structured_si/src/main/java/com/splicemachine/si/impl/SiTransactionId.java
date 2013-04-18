@@ -4,26 +4,26 @@ import com.splicemachine.si.api.TransactionId;
 
 public class SiTransactionId implements TransactionId {
     private final long id;
-    public final boolean nestedReadOnly;
-    private final String NRO = "NRO";
+    public final boolean independentReadOnly;
+    private final String IRO = ".IRO";
 
     public SiTransactionId(long id) {
         this.id = id;
-        this.nestedReadOnly = false;
+        this.independentReadOnly = false;
     }
 
-    public SiTransactionId(long id, boolean nestedReadOnly) {
+    public SiTransactionId(long id, boolean independentReadOnly) {
         this.id = id;
-        this.nestedReadOnly = nestedReadOnly;
+        this.independentReadOnly = independentReadOnly;
     }
 
     public SiTransactionId(String transactionId) {
-        if (transactionId.endsWith(NRO)) {
-            this.id = Long.parseLong(transactionId.substring(0, transactionId.length() - NRO.length()));
-            this.nestedReadOnly = true;
+        if (transactionId.endsWith(IRO)) {
+            this.id = Long.parseLong(transactionId.substring(0, transactionId.length() - IRO.length()));
+            this.independentReadOnly = true;
         } else {
             this.id = Long.parseLong(transactionId);
-            this.nestedReadOnly = false;
+            this.independentReadOnly = false;
         }
     }
 
@@ -35,7 +35,7 @@ public class SiTransactionId implements TransactionId {
     @Override
     public String getTransactionIdString() {
         final String baseId = Long.valueOf(id).toString();
-        final String suffix = nestedReadOnly ? NRO : "";
+        final String suffix = independentReadOnly ? IRO : "";
         return baseId + suffix;
     }
 }

@@ -3,6 +3,13 @@ package com.splicemachine.si.impl;
 import java.util.Collections;
 import java.util.Set;
 
+import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
+import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
+import static com.splicemachine.si.impl.TransactionStatus.COMMITTING;
+import static com.splicemachine.si.impl.TransactionStatus.ERROR;
+import static com.splicemachine.si.impl.TransactionStatus.LOCAL_COMMIT;
+import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
+
 /**
  * Represents an application level transaction that spans many atomic writes to the underlying data store (i.e. HBase).
  */
@@ -32,12 +39,17 @@ public class Transaction extends ImmutableTransaction {
                        Boolean readUncommitted, Boolean readCommitted, TransactionStatus status,
                        Long commitTimestamp) {
         super(dependent, allowWrites, readCommitted, parent, readUncommitted, beginTimestamp);
-        this.children = children;
-        // handle the LOCAL_COMMIT status as a separate boolean because it makes it easy to check if the child status is null
-        this.status = (status == null || status.equals(TransactionStatus.LOCAL_COMMIT)) ? null : status;
-        this.locallyCommitted = (status != null && status.equals(TransactionStatus.LOCAL_COMMIT));
         this.commitTimestamp = commitTimestamp;
         this.parent = parent;
+        this.children = children;
+        // handle the LOCAL_COMMIT status as a separate boolean because it makes it easy to check if the child status is null
+        if (LOCAL_COMMIT.equals(status)) {
+            this.status = null;
+            this.locallyCommitted = true;
+        } else {
+            this.status = status;
+            this.locallyCommitted = false;
+        }
     }
 
     /**
@@ -45,21 +57,6 @@ public class Transaction extends ImmutableTransaction {
      */
     public Set<Long> getChildren() {
         return Collections.unmodifiableSet(children);
-    }
-
-    /**
-     * Returns true if this is _not_ a root transaction.
-     */
-    private boolean isNested() {
-        return parent != null;
-    }
-
-    /**
-     * Returns true if this is a child transaction that is dependent on its parent. Dependent transactions do not
-     * commit independently (i.e. they don't finally commit until the parent does).
-     */
-    public boolean isNestedDependent() {
-        return isNested() && dependent;
     }
 
     // immediate functions - These functions are based solely on the transaction's immediate state (i.e. not on the
@@ -90,22 +87,20 @@ public class Transaction extends ImmutableTransaction {
     }
 
     private boolean inTerminalStatus() {
-        return (status.equals(TransactionStatus.ERROR)
-                || status.equals(TransactionStatus.ROLLED_BACK)
-                || status.equals(TransactionStatus.COMMITTED));
+        return statusIsOneOf(ERROR, ROLLED_BACK, COMMITTED);
     }
 
     /**
      * @return indicator of whether the transaction is currently in the COMMITTING status. This means it is in the
-     * process of obtaining a commit timestamp.
+     *         process of obtaining a commit timestamp.
      */
     public boolean isCommitting() {
-        return status != null && status.equals(TransactionStatus.COMMITTING);
+        return statusIsOneOf(COMMITTING);
     }
 
     /**
      * @return indicator of whether this transaction has been finally committed. Note: if a nested dependent transaction
-     * is locally committed, but its parent has not yet committed then this will return false.
+     *         is locally committed, but its parent has not yet committed then this will return false.
      */
     public boolean isCommitted() {
         return commitTimestamp != null;
@@ -113,12 +108,19 @@ public class Transaction extends ImmutableTransaction {
 
     /**
      * @return indicator of whether this transaction has completed, but not successfully. This means it either errored
-     * out or was rolled back by the user.
+     *         out or was rolled back by the user.
      */
     public boolean isFailed() {
-        return status != null &&
-                (status.equals(TransactionStatus.ERROR)
-                        || status.equals(TransactionStatus.ROLLED_BACK));
+        return statusIsOneOf(ERROR, ROLLED_BACK);
+    }
+
+    private boolean statusIsOneOf(TransactionStatus... statuses) {
+        for (TransactionStatus s : statuses) {
+            if (s.equals(status)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // effective functions - these functions walk the transaction ancestry to produce their answer. So they are based
@@ -126,7 +128,7 @@ public class Transaction extends ImmutableTransaction {
 
     /**
      * @return status of this transaction or the status of it's ancestor. Transactions inherit their parent's status
-     * if they don't have one explictly set for themselves.
+     *         if they don't have one explictly set for themselves.
      */
     public TransactionStatus getEffectiveStatus() {
         if (shouldUseParentStatus()) {
@@ -143,7 +145,7 @@ public class Transaction extends ImmutableTransaction {
      * @return true if this transaction is still active, based on it's parent status.
      */
     public boolean isEffectivelyActive() {
-        return getEffectiveStatus().equals(TransactionStatus.ACTIVE);
+        return getEffectiveStatus().equals(ACTIVE);
     }
 
     /**

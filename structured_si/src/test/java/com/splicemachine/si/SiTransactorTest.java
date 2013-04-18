@@ -99,7 +99,7 @@ public class SiTransactorTest {
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{name});
-        Object deletePut = transactorSetup.clientTransactor.newDeletePut(transactionId, key);
+        Object deletePut = transactorSetup.clientTransactor.createDeletePut(transactionId, key);
         processPutDirect(useSimple, transactorSetup, storeSetup, reader, deletePut);
     }
 
@@ -759,10 +759,10 @@ public class SiTransactorTest {
     public void nestedReadOnlyIds() {
         final SiTransactionId id = new SiTransactionId(100L, true);
         Assert.assertEquals(100L, id.getId());
-        Assert.assertEquals("100NRO", id.getTransactionIdString());
-        final SiTransactionId id2 = new SiTransactionId("200NRO");
+        Assert.assertEquals("100.IRO", id.getTransactionIdString());
+        final SiTransactionId id2 = new SiTransactionId("200.IRO");
         Assert.assertEquals(200L, id2.getId());
-        Assert.assertEquals("200NRO", id2.getTransactionIdString());
+        Assert.assertEquals("200.IRO", id2.getTransactionIdString());
     }
 
     @Test
@@ -1052,10 +1052,10 @@ public class SiTransactorTest {
         TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
         insertAge(t2, "joe32", 21);
         transactor.commit(t2);
-        final Transaction transactionStatusA = transactorSetup.transactionStore.getTransactionStatus(t2);
+        final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2);
         Assert.assertNull("committing a dependent child does not set a commit timestamp", transactionStatusA.commitTimestamp);
         transactor.commit(t1);
-        final Transaction transactionStatusB = transactorSetup.transactionStore.getTransactionStatus(t2);
+        final Transaction transactionStatusB = transactorSetup.transactionStore.getTransaction(t2);
         Assert.assertNotNull("committing parent of dependent transaction should set the commit time of the child",
                 transactionStatusB.commitTimestamp);
     }
@@ -1067,9 +1067,9 @@ public class SiTransactorTest {
         TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
         insertAge(t2, "joe49", 21);
         transactor.commit(t2);
-        final Transaction transactionStatusA = transactorSetup.transactionStore.getTransactionStatus(t2);
+        final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2);
         transactor.commit(t1);
-        final Transaction transactionStatusB = transactorSetup.transactionStore.getTransactionStatus(t2);
+        final Transaction transactionStatusB = transactorSetup.transactionStore.getTransaction(t2);
         Assert.assertEquals("committing parent of independent transaction should not change the commit time of the child",
                 transactionStatusA.commitTimestamp, transactionStatusB.commitTimestamp);
     }
@@ -1180,7 +1180,7 @@ public class SiTransactorTest {
         Object put2 = dataLib.newPut(testKey);
         dataLib.addKeyValueToPut(put2, family, ageQualifier, null, dataLib.encode(27));
         transactorSetup.clientTransactor.initializePut(
-                transactorSetup.clientTransactor.getTransactionIdFromPut(put).getTransactionIdString(),
+                transactorSetup.clientTransactor.transactionIdFromOperation(put).getTransactionIdString(),
                 put2);
         Assert.assertTrue(dataLib.valuesEqual(dataLib.encode(true), dataLib.getAttribute(put2, "si-needed")));
         STable testSTable = reader.open(storeSetup.getPersonTableName());

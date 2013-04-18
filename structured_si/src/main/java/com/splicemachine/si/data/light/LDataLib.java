@@ -2,6 +2,7 @@ package com.splicemachine.si.data.light;
 
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
+import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.SScan;
 
@@ -100,23 +101,18 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
-    public void setGetTimeRange(SGet get, long minTimestamp, long maxTimestamp) {
+    public void setReadTimeRange(SRead get, long minTimestamp, long maxTimestamp) {
         assert minTimestamp == 0L;
         ((LGet) get).effectiveTimestamp = maxTimestamp - 1;
     }
 
     @Override
-    public void setGetMaxVersions(SGet get) {
+    public void setReadMaxVersions(SRead get) {
     }
 
     @Override
-    public void ensureFamilyOnGet(SGet get, Object family) {
+    public void addFamilyToReadIfNeeded(SRead get, Object family) {
         ensureFamilyDirect((LGet) get, family);
-    }
-
-    @Override
-    public void ensureFamilyOnScan(SScan scan, Object family) {
-        ensureFamilyDirect((LGet) scan, family);
     }
 
     private void ensureFamilyDirect(LGet lGet, Object family) {
@@ -132,16 +128,6 @@ public class LDataLib implements SDataLib {
     @Override
     public SScan newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp) {
         return new LGet(startRowKey, endRowKey, families, columns, effectiveTimestamp);
-    }
-
-    @Override
-    public void setScanTimeRange(SScan get, long minTimestamp, long maxTimestamp) {
-        assert minTimestamp == 0L;
-        ((LGet) get).effectiveTimestamp = maxTimestamp - 1;
-    }
-
-    @Override
-    public void setScanMaxVersions(SScan scan) {
     }
 
     @Override

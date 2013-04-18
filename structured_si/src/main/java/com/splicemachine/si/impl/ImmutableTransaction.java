@@ -2,6 +2,7 @@ package com.splicemachine.si.impl;
 
 public class ImmutableTransaction {
     public final long beginTimestamp;
+    private final SiTransactionId transactionId;
     protected final Boolean dependent;
 
     private final ImmutableTransaction immutableParent;
@@ -17,6 +18,26 @@ public class ImmutableTransaction {
         this.immutableParent = immutableParent;
         this.readUncommitted = readUncommitted;
         this.beginTimestamp = beginTimestamp;
+        this.transactionId = new SiTransactionId(beginTimestamp);
+    }
+
+    public SiTransactionId getTransactionId() {
+        return transactionId;
+    }
+
+    /**
+     * Returns true if this is _not_ a root transaction.
+     */
+    boolean isNested() {
+        return immutableParent != null;
+    }
+
+    /**
+     * Returns true if this is a child transaction that is dependent on its parent. Dependent transactions do not
+     * commit independently (i.e. they don't finally commit until the parent does).
+     */
+    public boolean isNestedDependent() {
+        return isNested() && dependent;
     }
 
     public boolean getEffectiveReadUncommitted() {
