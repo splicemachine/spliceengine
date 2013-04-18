@@ -192,6 +192,11 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	public String getUserSuppliedOptimizerOverrides() {
 		return this.userSuppliedOptimizerOverrides;
 	}
+
+    @Override
+    public boolean isReferencingTable(long tableNumber){
+        return leftResultSet.isReferencingTable(tableNumber) || rightResultSet.isReferencingTable(tableNumber);
+    }
 	
 	@Override
 	public String toString() {

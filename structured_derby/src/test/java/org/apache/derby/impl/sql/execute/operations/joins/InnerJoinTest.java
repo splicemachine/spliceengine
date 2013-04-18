@@ -265,7 +265,6 @@ public class InnerJoinTest extends SpliceUnitTest {
 
     }
 
-    @Ignore("Throws ArrayIndexOutOfBoundsException - logged as 333")
     @Test
     public void testFourTableJoin() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name, t4.sbc_desc " +
@@ -276,6 +275,19 @@ public class InnerJoinTest extends SpliceUnitTest {
         List<Map> results = TestUtils.resultSetToMaps(rs);
 
         Assert.assertEquals(10, results.size());
+
+        Assert.assertEquals("50 Favorite Rooms", results.get(0).get("ITM_NAME"));
+        Assert.assertEquals("Leslie", results.get(0).get("CST_FIRST_NAME"));
+        Assert.assertEquals("Deutsch", results.get(0).get("CST_LAST_NAME"));
+        Assert.assertEquals("Art & Architecture", results.get(0).get("SBC_DESC"));
+        Assert.assertEquals("10058_7_1", results.get(0).get("ORL_ORDER_ID"));
+
+        Assert.assertEquals("Seal (94)", results.get(5).get("ITM_NAME"));
+        Assert.assertEquals("Shelby", results.get(5).get("CST_FIRST_NAME"));
+        Assert.assertEquals("Marko", results.get(5).get("CST_LAST_NAME"));
+        Assert.assertEquals("Alternative", results.get(5).get("SBC_DESC"));
+        Assert.assertEquals("10059_274_1", results.get(5).get("ORL_ORDER_ID"));
+
 
     }
 

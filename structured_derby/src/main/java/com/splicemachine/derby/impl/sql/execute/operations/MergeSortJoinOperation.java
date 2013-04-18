@@ -289,28 +289,23 @@ public class MergeSortJoinOperation extends JoinOperation {
  
    @Override
     public int[] getRootAccessedCols(long tableNumber) {
-       if(areChildrenLeaves()){
 
-           ScanOperation leftSO = (ScanOperation) leftResultSet;
-           String tableNumberStr = String.valueOf(tableNumber);
+       int[] rootCols = null;
 
-           if(leftSO.tableName.equals(tableNumberStr)){
+       if(leftResultSet.isReferencingTable(tableNumber)){
+           rootCols = leftResultSet.getRootAccessedCols(tableNumber);
+       }else if(rightResultSet.isReferencingTable(tableNumber)){
+           int leftCols = getLeftNumCols();
+           int[] rightRootCols = rightResultSet.getRootAccessedCols(tableNumber);
+           rootCols = new int[rightRootCols.length];
 
-               return leftSO.getRootAccessedCols(tableNumber);
-           }else{
-            ScanOperation rightSO = (ScanOperation) rightResultSet;
-               int leftCols = getLeftNumCols();
-               int[] rightRootCols = rightSO.getRootAccessedCols(tableNumber);
-               int[] rightOffsetRootCols = new int[rightRootCols.length];
-
-               for(int i=0; i<rightRootCols.length; i++){
-                rightOffsetRootCols[i] = rightRootCols[i] + leftCols;
-               }
-               return rightOffsetRootCols;
+           for(int i=0; i<rightRootCols.length; i++){
+               rootCols[i] = rightRootCols[i] + leftCols;
            }
-       } else{
-        return leftResultSet.getRootAccessedCols(tableNumber);
+
        }
+
+       return rootCols;
     }
 
 	@Override

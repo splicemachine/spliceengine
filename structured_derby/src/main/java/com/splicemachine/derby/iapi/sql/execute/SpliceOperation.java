@@ -173,4 +173,11 @@ public interface SpliceOperation extends NoPutResultSet {
      * @return
      */
     int[] getRootAccessedCols(long tableNumber);
+
+    /**
+     * Returns true if this operation references the given table number.  For a join,
+     * this means either the left side or the right side involves that table.  For things
+     * like table scans, it's true if it is scanning that table.
+     */
+    boolean isReferencingTable(long tableNumber);
 }
