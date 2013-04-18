@@ -30,6 +30,7 @@ import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.FormatableHashtable;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
+import org.apache.derby.iapi.services.io.FormatableLongHolder;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.compile.*;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -1680,51 +1681,39 @@ public class JoinNode extends TableOperatorNode {
                 PredicateList nonStoreRestrictionList = table.nonStoreRestrictionList;
                 FormatableBitSet leftHashBits = new FormatableBitSet(nonStoreRestrictionList.size());
                 String leftTableName = null;
-                int leftTableNumber = -1;
+                long leftTableNumber = -1;
 
                 FormatableBitSet rightHashBits = new FormatableBitSet(nonStoreRestrictionList.size());
                 String rightTableName = null;
-                int rightTableNumber = -1;
+                long rightTableNumber = -1;
 
                 for(int i=0;i<nonStoreRestrictionList.size();i++){
                     Predicate op = (Predicate)nonStoreRestrictionList.getOptPredicate(i);
                     BinaryRelationalOperatorNode opNode = (BinaryRelationalOperatorNode)op.getAndNode().getLeftOperand();
-                    /*
-                     * deal with the left side of the predicate operand.
-                     */
-                    if(opNode.getLeftOperand() instanceof ColumnReference){
-                        ColumnReference leftCol = (ColumnReference)opNode.getLeftOperand();
 
-                        leftTableName = leftCol.getTableName();
-                        leftTableNumber = leftCol.getTableNumber();
-                        /*
-                         * if this column belongs to the left table, set it on the left bits, otherwise
-                         * set it on the right bits.
-                         *
-                         * This is for situations where the right-side join column is on the left side of the
-                         * predicate (e.g. reversed from what you would normally expect).
-                         */
-                        if(leftCol.getTableNumber()==0){
-                            leftHashBits.grow(leftCol.getColumnNumber()+1);
-                            leftHashBits.set(leftCol.getColumnNumber());
-                        }else{
-                            rightHashBits.grow(leftCol.getColumnNumber()+1);
-                            rightHashBits.set(leftCol.getColumnNumber());
-				        }
+                    ColumnReference maybeLeftCol = (ColumnReference) opNode.getLeftOperand();
+                    ColumnReference maybeRightCol = (ColumnReference) opNode.getRightOperand();
+
+                    ColumnReference leftCol = null;
+                    ColumnReference rightCol = null;
+
+                    if(maybeLeftCol.getTableNumber() < maybeRightCol.getTableNumber()){
+                        leftCol = maybeLeftCol;
+                        rightCol = maybeRightCol;
+                    } else{
+                        leftCol = maybeRightCol;
+                        rightCol = maybeLeftCol;
                     }
-                    /*
-                     * Deal with the right side of the predicate operand.
-                     */
-                    if(opNode.getRightOperand() instanceof ColumnReference){
-                        ColumnReference rightCol = (ColumnReference)opNode.getRightOperand();
-                        if(rightCol.getTableNumber()==0){
-                            leftHashBits.grow(rightCol.getColumnNumber()+1);
-                            leftHashBits.set(rightCol.getColumnNumber());
-                        }else{
-                            rightHashBits.grow(rightCol.getColumnNumber()+1);
-                            rightHashBits.set(rightCol.getColumnNumber());
-				        }
-			        }
+
+                    leftHashBits.grow(leftCol.getColumnNumber()+1);
+                    leftHashBits.set(leftCol.getColumnNumber());
+                    rightHashBits.grow(rightCol.getColumnNumber()+1);
+                    rightHashBits.set(rightCol.getColumnNumber());
+
+                    leftTableName = leftCol.getSource().getTableColumnDescriptor().getTableDescriptor().getName();
+                    leftTableNumber = leftCol.getSource().getTableColumnDescriptor().getTableDescriptor().getHeapConglomerateId();
+                    rightTableName = rightCol.getSource().getTableColumnDescriptor().getTableDescriptor().getName();
+                    rightTableNumber = rightCol.getSource().getTableColumnDescriptor().getTableDescriptor().getHeapConglomerateId();
 		        }
 
                 FormatableHashtable leftHashTable = createFormatableHashtable(leftTableName, leftTableNumber, leftHashBits);
@@ -1822,35 +1811,35 @@ public class JoinNode extends TableOperatorNode {
     /**
      * Build an integer array of column indexes to hash
      *
-     * @param leftHashBits
+     * @param hashBits
      * @return
      */
-    private int[] convertToIntArray(FormatableBitSet leftHashBits) {
-        int[] leftHash = new int[leftHashBits.getNumBitsSet()];
-        for(int pos=0, next = leftHashBits.anySetBit();next!=-1;pos++,next = leftHashBits.anySetBit(next)){
-            leftHash[pos] = next;
+    private int[] convertToIntArray(FormatableBitSet hashBits) {
+        int[] hashArray = new int[hashBits.getNumBitsSet()];
+        for(int pos=0, next = hashBits.anySetBit();next!=-1;pos++,next = hashBits.anySetBit(next)){
+            hashArray[pos] = next;
         }
-        return leftHash;
+        return hashArray;
     }
 
     /**
      * Create a FormatableHashtable with the indexes of the columns to hash, the table number and table name containing
      * those columns.
      *
-     * @param rightTableName
-     * @param rightTableNumber
+     * @param tableName
+     * @param tableNumber
      * @param hashBits
      * @return
      */
-    private FormatableHashtable createFormatableHashtable(String rightTableName, int rightTableNumber, FormatableBitSet hashBits) {
+    private FormatableHashtable createFormatableHashtable(String tableName, long tableNumber, FormatableBitSet hashBits) {
 
         int[] hashColsArray = convertToIntArray(hashBits);
         FormatableIntHolder[] fihArray = FormatableIntHolder.getFormatableIntHolders(hashColsArray);
         FormatableArrayHolder hashColsHolder = new FormatableArrayHolder(fihArray);
 
         FormatableHashtable fHashTable = new FormatableHashtable();
-        fHashTable.put(TABLE_NAME_KEY, rightTableName);
-        fHashTable.put(TABLE_NUMBER_KEY, new FormatableIntHolder(rightTableNumber));
+        fHashTable.put(TABLE_NAME_KEY, tableName);
+        fHashTable.put(TABLE_NUMBER_KEY, new FormatableLongHolder(tableNumber));
         fHashTable.put(HASH_KEYS_ARRAY_KEY, hashColsHolder);
 
         return fHashTable;
