@@ -120,13 +120,20 @@ public class UpdateOperation extends DMLWriteOperation{
 					 *
 					 * and so forth
 					 */
+                    if(heapList==null){
+                        int[] changedCols = ((UpdateConstantAction)constants).getChangedColumnIds();
+                        heapList = new FormatableBitSet(changedCols.length);
+                        for(int colPosition:changedCols){
+                            heapList.grow(colPosition+1);
+                            heapList.set(colPosition);
+                        }
+                    }
                     colPositionMap = new int[heapList.size()];
                     for(int i = heapList.anySetBit(),pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++){
                         colPositionMap[i] = pos;
                     }
-
                 }
-                stats.readAccumulator().tick(System.nanoTime()-start);
+                stats.readAccumulator().tick(System.nanoTime() - start);
 
                 start = System.nanoTime();
                 RowLocation location= (RowLocation)nextRow.getColumn(nextRow.nColumns()).getObject(); //the location to update is always at the end
