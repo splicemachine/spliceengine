@@ -168,14 +168,6 @@ public class Transaction extends ImmutableTransaction {
 
     /**
      * @param otherTransaction
-     * @return true if this transaction is finally committed and was committed before the otherTransaction began
-     */
-    public boolean committedBefore(ImmutableTransaction otherTransaction) {
-        return isCommitted() && commitTimestamp < otherTransaction.getRootBeginTimestamp();
-    }
-
-    /**
-     * @param otherTransaction
      * @return true if the otherTransaction did not fail and is part of the same root transaction as this transaction
      */
     public boolean isVisiblePartOfTransaction(ImmutableTransaction otherTransaction) {

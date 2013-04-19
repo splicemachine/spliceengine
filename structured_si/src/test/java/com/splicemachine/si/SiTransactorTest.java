@@ -1217,7 +1217,6 @@ public class SiTransactorTest {
         insertAge(t3, "joe54", 20);
         Assert.assertEquals("joe54 age=20 job=null", read(t3, "joe54"));
         transactor.rollback(t3);
-        Assert.assertEquals("joe54 age=null job=null", read(t3, "joe54"));
         Assert.assertEquals("joe54 age=null job=null", read(t2, "joe54"));
         insertAge(t2, "boe54", 21);
         Assert.assertEquals("boe54 age=21 job=null", read(t2, "boe54"));

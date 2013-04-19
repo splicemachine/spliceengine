@@ -9,6 +9,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE;
+import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.NEXT_COL;
+import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
+
+/**
+ * Contains the logic for performing an HBase-style filter using "snapshot isolation" logic. This means it filters out
+ * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
+ */
 public class SiFilterState implements FilterState {
     private final STable table;
     private final ImmutableTransaction myTransaction;
@@ -16,11 +24,10 @@ public class SiFilterState implements FilterState {
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
 
-    private final Map<Long, Transaction> committedTransactions;
-    private final Map<Long, Transaction> stillRunningTransactions;
-    private final Map<Long, Transaction> failedTransactions;
+    private final Map<Long, Transaction> transactionCache;
 
-    private FilterRowState rowState;
+    private final FilterRowState rowState;
+    private DecodedKeyValue keyValue;
 
     public SiFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
                          STable table, ImmutableTransaction myTransaction) {
@@ -29,134 +36,189 @@ public class SiFilterState implements FilterState {
         this.transactionStore = transactionStore;
         this.table = table;
         this.myTransaction = myTransaction;
-        committedTransactions = new HashMap<Long, Transaction>();
-        stillRunningTransactions = new HashMap<Long, Transaction>();
-        failedTransactions = new HashMap<Long, Transaction>();
-        rowState = new FilterRowState(dataLib);
+
+        // initialize internal state
+        this.transactionCache = new HashMap<Long, Transaction>();
+        this.rowState = new FilterRowState(dataLib);
     }
 
+    /**
+     * The public entry point. This returns an HBase filter code and is expected to serve as the heart of an HBase filter
+     * implementation.
+     * The order of the column families is important. It is expected that the SI family will be processed first.
+     */
     public Filter.ReturnCode filterKeyValue(Object dataKeyValue) throws IOException {
-        Object rowKey = dataLib.getKeyValueRow(dataKeyValue);
-        rowState.updateCurrentRow(rowKey);
-        if (dataStore.isCommitTimestampKeyValue(dataKeyValue)) {
-            filterProcessCommitTimestamp(dataKeyValue);
-            return Filter.ReturnCode.SKIP;
-        } else if (dataStore.isTombstoneKeyValue(dataKeyValue)) {
-            if (filterKeepDataValue(dataKeyValue)) {
-                rowState.setTombstoneTimestamp(dataLib.getKeyValueTimestamp(dataKeyValue));
-                return Filter.ReturnCode.NEXT_COL;
-            }
-        } else if (dataStore.isDataKeyValue(dataKeyValue)) {
-            if (dataLib.valuesEqual(dataLib.getKeyValueQualifier(dataKeyValue), rowState.lastValidQualifier)) {
-                return Filter.ReturnCode.NEXT_COL;
-            } else {
-                if (rowState.tombstoneTimestamp != null &&
-                        dataLib.getKeyValueTimestamp(dataKeyValue) < rowState.tombstoneTimestamp) {
-                    return Filter.ReturnCode.NEXT_COL;
-                } else if (filterKeepDataValue(dataKeyValue)) {
-                    rowState.lastValidQualifier = dataLib.getKeyValueQualifier(dataKeyValue);
-                    return Filter.ReturnCode.INCLUDE;
-                }
-            }
-        }
-        return Filter.ReturnCode.SKIP;
+        keyValue = new DecodedKeyValue(dataLib, dataKeyValue);
+        rowState.updateCurrentRow(keyValue.row);
+        return filterByColumnType();
     }
 
-    private void filterProcessCommitTimestamp(Object keyValue) throws IOException {
-        long beginTimestamp = dataLib.getKeyValueTimestamp(keyValue);
-        Object commitTimestampValue = dataLib.getKeyValueValue(keyValue);
-        Transaction transaction = null;
-        Boolean stillRunning = false;
-        if (dataStore.isSiNull(commitTimestampValue)) {
-            final Object[] temp = filterHandleUnknownTransactionStatus(keyValue, beginTimestamp);
-            transaction = (Transaction) temp[0];
-            stillRunning = (Boolean) temp[1];
+    /**
+     * Look at the column family and qualifier to determing how to "dispatch" the current keyValue.
+     */
+    private Filter.ReturnCode filterByColumnType() throws IOException {
+        final KeyValueType type = dataStore.getKeyValueType(keyValue.family, keyValue.qualifier);
+        if (type.equals(KeyValueType.COMMIT_TIMESTAMP)) {
+            return processCommitTimestamp();
+        } else if (type.equals(KeyValueType.TOMBSTONE)) {
+            return processTombstone();
+        } else if (type.equals(KeyValueType.USER_DATA)) {
+            return processUserData();
         } else {
-            transaction = transactionStore.getTransaction(beginTimestamp);
-        }
-        if (stillRunning) {
-            stillRunningTransactions.put(beginTimestamp, transaction);
-        } else if (!transaction.isCommitted()) {
-            failedTransactions.put(beginTimestamp, transaction);
-        } else {
-            committedTransactions.put(beginTimestamp, transaction);
+            return processUnknownFamilyData();
         }
     }
 
-    private Object[] filterHandleUnknownTransactionStatus(Object keyValue,
-                                                          long beginTimestamp) throws IOException {
-        Transaction transaction = transactionStore.getTransaction(beginTimestamp);
-        if (transaction.isCommitted()) {
-            rollForward(keyValue, transaction);
-        } else if (transaction.isFailed()) {
+    /**
+     * Handles the "commit timestamp" values that SI writes to each data row. Processing these values causes the
+     * relevant transaction data to be loaded up into the local cache.
+     */
+    private Filter.ReturnCode processCommitTimestamp() throws IOException {
+        final Transaction transaction = dataStore.isSiNull(keyValue.value)
+                ? handleUnknownTransactionStatus()
+                // TODO: we should avoid loading the full transaction here once roll-forward is revisited
+                : transactionStore.getTransaction(keyValue.timestamp);
+        transactionCache.put(transaction.beginTimestamp, transaction);
+        return SKIP;
+    }
+
+    /**
+     * Handles the case where the commit timestamp cell contains a begin timestamp, but doesn't have an
+     * associated commit timestamp in the cell. This means the transaction table needs to be consulted to find out
+     * the current status of the transaction.
+     */
+    private Transaction handleUnknownTransactionStatus() throws IOException {
+        final Transaction dataTransaction = transactionStore.getTransaction(keyValue.timestamp);
+        if (dataTransaction.isCommitted()) {
+            rollForward(dataTransaction);
+        } else if (dataTransaction.isFailed()) {
             cleanupErrors();
-        } else if (transaction.isCommitting()) {
+        } else if (dataTransaction.isCommitting()) {
             //TODO: needs special handling
         }
-        return new Object[]{transaction, transaction.isActive()};
+        return dataTransaction;
     }
 
-    private void rollForward(Object keyValue, Transaction transaction) {
+    /**
+     * Update the data row to remember the commit timestamp of the transaction. This avoids the need to look the
+     * transaction up in the transaction table again the next time this row is read.
+     */
+    private void rollForward(Transaction transaction) {
         if (!transaction.isNestedDependent()) {
-            dataStore.setCommitTimestamp(table, keyValue, transaction.beginTimestamp, transaction.commitTimestamp);
+            // TODO: revisit this in light of nested independent transactions
+            dataStore.setCommitTimestamp(table, keyValue.row, transaction.beginTimestamp, transaction.commitTimestamp);
         }
-    }
-
-    private boolean filterKeepDataValue(Object dataKeyValue) throws IOException {
-        long dataTimestamp = dataLib.getKeyValueTimestamp(dataKeyValue);
-        assertTransactionInFilterState(dataTimestamp);
-        Transaction committedDataTransaction = committedTransactions.get(dataTimestamp);
-        Boolean dataTransactionStillRunning = stillRunningTransactions.containsKey(dataTimestamp);
-        if (isDataCommittedBeforeThisTransaction(committedDataTransaction)
-                || isThisTransactionsData(dataTimestamp)
-                || readCommittedAndDataTransactionCommitted(committedDataTransaction)
-                || readDirtyAndDataTransactionStillRunning(dataTransactionStillRunning)) {
-            return true;
-        }
-        return false;
-    }
-
-    private void assertTransactionInFilterState(long beginTimestamp) throws IOException {
-        if (getTransactionFromFilterState(beginTimestamp) == null) {
-            throw new RuntimeException("All transactions should already be loaded from the si family for the data row");
-        }
-    }
-
-    private Transaction getTransactionFromFilterState(long beginTimestamp) {
-        Transaction cachedTransaction = committedTransactions.get(beginTimestamp);
-        if (cachedTransaction == null) {
-            cachedTransaction = failedTransactions.get(beginTimestamp);
-        }
-        if (cachedTransaction == null) {
-            cachedTransaction = stillRunningTransactions.get(beginTimestamp);
-        }
-        return cachedTransaction;
-    }
-
-    private boolean readDirtyAndDataTransactionStillRunning(Boolean stillRunning) {
-        return myTransaction.getEffectiveReadUncommitted() && stillRunning;
-    }
-
-    private boolean readCommittedAndDataTransactionCommitted(Transaction dataTransaction) {
-        if (dataTransaction == null) {
-            return false;
-        }
-        return myTransaction.getEffectiveReadCommitted() && dataTransaction.isCommitted();
-    }
-
-    private boolean isDataCommittedBeforeThisTransaction(Transaction dataTransaction) {
-        if (dataTransaction == null) {
-            return false;
-        }
-        return dataTransaction.committedBefore(myTransaction);
-    }
-
-    private boolean isThisTransactionsData(long dataTimestamp) throws IOException {
-        return getTransactionFromFilterState(dataTimestamp).isVisiblePartOfTransaction(myTransaction);
     }
 
     private void cleanupErrors() {
         //TODO: implement this
+    }
+
+    /**
+     * Under SI, deleting a row is handled as adding a row level tombstone record in the SI family. This function reads
+     * those values in for a given row and stores the tombstone timestamp so it can be used later to filter user data.
+     */
+    private Filter.ReturnCode processTombstone() throws IOException {
+        if (isVisibleToCurrentTransaction()) {
+            rowState.setTombstoneTimestamp(keyValue.timestamp);
+            return NEXT_COL;
+        } else {
+            return SKIP;
+        }
+    }
+
+    /**
+     * Handle a cell that represents user data. Filter it based on the various timestamps and transaction status.
+     */
+    private Filter.ReturnCode processUserData() throws IOException {
+        if (doneWithColumn()) {
+            return NEXT_COL;
+        } else {
+            return filterUserDataByTimestamp();
+        }
+    }
+
+    /**
+     * Consider a cell of user data and decide whether to use it as "the" value for the column (in the context of the
+     * current transaction) based on the various timestamp values and transaction status.
+     */
+    private Filter.ReturnCode filterUserDataByTimestamp() throws IOException {
+        if (tombstoneAfterData()) {
+            return NEXT_COL;
+        } else if (isVisibleToCurrentTransaction()) {
+            proceedToNextColumn();
+            return INCLUDE;
+        } else {
+            return SKIP;
+        }
+    }
+
+    /**
+     * The version of HBase we are using does not support the newer "INCLUDE & NEXT_COL" return code
+     * so this manually does the equivalent.
+     */
+    private void proceedToNextColumn() {
+        rowState.lastValidQualifier = keyValue.qualifier;
+    }
+
+    /**
+     * The second half of manually implementing our own "INCLUDE & NEXT_COL" return code.
+     */
+    private boolean doneWithColumn() {
+        return dataLib.valuesEqual(keyValue.qualifier, rowState.lastValidQualifier);
+    }
+
+    /**
+     * Is there a row level tombstone that supercedes the current cell?
+     */
+    private boolean tombstoneAfterData() {
+        return rowState.tombstoneTimestamp != null && keyValue.timestamp < rowState.tombstoneTimestamp;
+    }
+
+    /**
+     * Should the current cell be visible to the current transaction? This is the core of the filtering of the data
+     * under SI. It handles the various cases of when data should be visible.
+     */
+    private boolean isVisibleToCurrentTransaction() throws IOException {
+        final Transaction transaction = loadTransaction();
+        return (isDataCommittedBeforeThisTransaction(transaction)
+                || isPartOfCurrentTransaction(transaction)
+                || readCommitted(transaction)
+                || readUncommitted(transaction));
+    }
+
+    /**
+     * Retrieve the transaction for the current cell from the local cache.
+     */
+    private Transaction loadTransaction() throws IOException {
+        final Transaction transaction = transactionCache.get(keyValue.timestamp);
+        if (transaction == null) {
+            throw new RuntimeException("All transactions should already be loaded from the si family for the data row");
+        }
+        return transaction;
+    }
+
+    private boolean isDataCommittedBeforeThisTransaction(Transaction dataTransaction) {
+        return dataTransaction.isCommitted() && (dataTransaction.commitTimestamp < myTransaction.getRootBeginTimestamp());
+    }
+
+    private boolean isPartOfCurrentTransaction(Transaction dataTransaction) throws IOException {
+        return dataTransaction.isVisiblePartOfTransaction(myTransaction);
+    }
+
+    private boolean readCommitted(Transaction dataTransaction) {
+        return myTransaction.getEffectiveReadCommitted() && dataTransaction.isCommitted();
+    }
+
+    private boolean readUncommitted(Transaction dataTransaction) {
+        return myTransaction.getEffectiveReadUncommitted() && dataTransaction.isActive();
+    }
+
+    /**
+     * This is not expected to happen, but if there are extra unknown column families in the results they will be skipped.
+     */
+    private Filter.ReturnCode processUnknownFamilyData() {
+        return SKIP;
     }
 
 }

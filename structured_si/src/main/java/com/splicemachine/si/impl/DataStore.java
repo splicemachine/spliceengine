@@ -100,26 +100,24 @@ public class DataStore {
         return null;
     }
 
-    public boolean isCommitTimestampKeyValue(Object keyValue) {
-        return dataLib.valuesEqual(dataLib.getKeyValueFamily(keyValue), siFamily) &&
-                dataLib.valuesEqual(dataLib.getKeyValueQualifier(keyValue), commitTimestampQualifier);
-    }
-
-    public boolean isTombstoneKeyValue(Object keyValue) {
-        return dataLib.valuesEqual(dataLib.getKeyValueFamily(keyValue), siFamily) &&
-                dataLib.valuesEqual(dataLib.getKeyValueQualifier(keyValue), tombstoneQualifier);
+    public KeyValueType getKeyValueType(Object family, Object qualifier) {
+        if (dataLib.valuesEqual(family, siFamily) && dataLib.valuesEqual(qualifier, commitTimestampQualifier)) {
+            return KeyValueType.COMMIT_TIMESTAMP;
+        } else if (dataLib.valuesEqual(family, siFamily) && dataLib.valuesEqual(qualifier, tombstoneQualifier)) {
+            return KeyValueType.TOMBSTONE;
+        } else if (dataLib.valuesEqual(family, userColumnFamily)) {
+            return KeyValueType.USER_DATA;
+        } else {
+            return KeyValueType.OTHER;
+        }
     }
 
     public boolean isSiNull(Object value) {
         return dataLib.valuesEqual(value, siNull);
     }
 
-    public boolean isDataKeyValue(Object keyValue) {
-        return dataLib.valuesEqual(dataLib.getKeyValueFamily(keyValue), userColumnFamily);
-    }
-
-    public void setCommitTimestamp(STable table, Object keyValue, long beginTimestamp, long commitTimestamp) {
-        Object put = dataLib.newPut(dataLib.getKeyValueRow(keyValue));
+    public void setCommitTimestamp(STable table, Object rowKey, long beginTimestamp, long commitTimestamp) {
+        Object put = dataLib.newPut(rowKey);
         dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, beginTimestamp, dataLib.encode(commitTimestamp));
         writer.write(table, put, false);
     }
