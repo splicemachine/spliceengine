@@ -17,7 +17,6 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import com.splicemachine.hbase.txn.coprocessor.region.TxnUtils;
 import org.apache.log4j.Logger;
 
 /**
@@ -37,18 +36,18 @@ public class SpliceOperationContext {
     private final Activation activation;
     private final Scan scan;
     private RegionScanner scanner;
-    private final Connection connection;
+    private LanguageConnectionContext lcc;
 
     public SpliceOperationContext(HRegion region,
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
-                                  Connection connection){
+                                  LanguageConnectionContext lcc){
         this.region= region;
         this.scan = scan;
         this.activation = activation;
         this.preparedStatement = preparedStatement;
-        this.connection = connection;
+        this.lcc = lcc;
     }
 
     public SpliceOperationContext(RegionScanner scanner,
@@ -56,13 +55,13 @@ public class SpliceOperationContext {
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
-                                  Connection connection){
+                                  LanguageConnectionContext lcc){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
         this.scanner = scanner;
         this.region=region;
         this.scan = scan;
-        this.connection = connection;
+        this.lcc = lcc;
     }
 
     public HRegion getRegion(){
@@ -73,47 +72,19 @@ public class SpliceOperationContext {
         if(scanner==null){
             if(region==null)return null;
 
-            //Bug 193: manually trigger  transactional observer's preScannerOpen to handle transaction cases. 
-            //I am not using the TransactionalRegionObserver class implicitly since this is the highest priority
-            //coprocessor in our transactional system thus its preScannerOpen is called by default - jz
-            if (TxnUtils.getTransactionID(scan) != null) {
-                scanner = region.getCoprocessorHost().preScannerOpen(scan);
-                if(scanner==null){
-								/*
-								 * the Coprocessor host may bypass calling preScannerOpen, in which case we need
-								 * to open the scanner ourselves and run it through postScannerOpen to make sure it gets
-								 * pushed through the coprocessor framework correctly
-								 */
-                    scanner = region.getScanner(scan);
-//								scanner = region.getCoprocessorHost().postScannerOpen(scan,scanner);
-                }
-            } else {
-                scanner = region.getCoprocessorHost().preScannerOpen(scan);
-                if (scanner == null) {
-                    scanner = region.getScanner(scan);
-                }
+            scanner = region.getCoprocessorHost().preScannerOpen(scan);
+            if (scanner == null) {
+                scanner = region.getScanner(scan);
             }
-
         }
         return scanner;
     }
 
     public LanguageConnectionContext getLanguageConnectionContext() {
-        LanguageConnectionContext lcc = null;
         if(activation!=null){
-           lcc = activation.getLanguageConnectionContext();
-        }
-        if(lcc!=null) return lcc;
-        if(connection!=null){
-            try {
-                return connection.unwrap(EmbedConnection.class).getLanguageConnection();
-            } catch (SQLException e) {
-                SpliceLogUtils.logAndThrowRuntime(Logger.getLogger(SpliceOperation.class), e);
-                return null;
-            }
-        }
-        //if neither the activate nor the connection is set, then why are you calling this anyway? bomb out
-        return null;
+            lcc = activation.getLanguageConnectionContext();
+         }
+    	return lcc;
     }
 
     public void close(boolean commit) throws IOException {
@@ -124,17 +95,7 @@ public class SpliceOperationContext {
             throw new DoNotRetryIOException(new SpliceStandardException(e).getTextMessage());
         }
         }finally{
-            try {
                 getLanguageConnectionContext().popStatementContext(getLanguageConnectionContext().getStatementContext(), null);
-                if (commit) {
-                    connection.commit();
-                } else {
-                    connection.rollback();
-                }
-                SpliceDriver.driver().closeConnection(connection);
-            } catch (SQLException e) {
-                throw new DoNotRetryIOException(e.getMessage(), e);
-            }
         }
     }
 

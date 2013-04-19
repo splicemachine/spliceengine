@@ -111,6 +111,12 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getRawStoreProperties " + transactionController);	
 	}
+
+	public Transaction marshallTransaction(ContextManager contextManager, String transactionName, String transactionId) throws StandardException {
+		if (LOG.isTraceEnabled())
+			LOG.trace("marshalTransaction with Context Manager " + contextManager + " and transaction name " + transactionName);
+		return transactionFactory.marshalTransaction(this, contextManager, transactionName, transactionId);
+	}
 	
 	public Transaction findUserTransaction(ContextManager contextManager, String transactionName) throws StandardException {
 		if (LOG.isTraceEnabled())

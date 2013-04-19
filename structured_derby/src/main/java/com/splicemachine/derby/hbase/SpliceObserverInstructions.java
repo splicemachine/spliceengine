@@ -147,11 +147,11 @@ public class SpliceObserverInstructions implements Externalizable {
         private ParameterValueSet pvs;
 
 
-        /**
-         * Used only for serialization. DO NOT USE
-         */
-        @Deprecated
-        public ActivationContext() { }
+
+        @SuppressWarnings("unused")
+		public ActivationContext() { 
+        	
+        }
 
         public ActivationContext(ExecRow[] currentRows, ParameterValueSet pvs, Map<String, Integer> setOps,
                                  boolean statementAtomic, boolean statementReadOnly,

@@ -58,9 +58,12 @@ public class SpliceTableWatcher extends TestWatcher {
 		Statement statement = null;
 		try {
 			connection = SpliceNetConnection.getConnection();
-			statement = connection.createStatement();
-			statement.execute(String.format("drop table %s.%s",schemaName.toUpperCase(),tableName.toUpperCase()));
-			connection.commit();
+			ResultSet rs = connection.getMetaData().getTables(null, schemaName.toUpperCase(), tableName.toUpperCase(), null);
+			if (rs.next()) {
+				statement = connection.createStatement();
+				statement.execute(String.format("drop table %s.%s",schemaName.toUpperCase(),tableName.toUpperCase()));
+				connection.commit();
+			}
 		} catch (Exception e) {
 			LOG.error("error Dropping " + e.getMessage(),e);
 			throw new RuntimeException(e);

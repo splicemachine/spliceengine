@@ -20,12 +20,10 @@ public class SpliceMetrics implements Updater {
     private final MetricsRecord taskMetrics;
     private final MetricsRecord jobMetrics;
     private final MetricsRecord writerMetrics;
-    private final MetricsRecord poolMetrics;
 
     private MetricsRegistry taskRegistry = new MetricsRegistry();
     private MetricsRegistry jobRegistry = new MetricsRegistry();
     private MetricsRegistry writerRegistry = new MetricsRegistry();
-    private MetricsRegistry poolRegistry = new MetricsRegistry();
 
     /*Task scheduler metrics*/
     private final MetricsIntValue numPendingTasks = new MetricsIntValue("numPending",taskRegistry);
@@ -58,20 +56,12 @@ public class SpliceMetrics implements Updater {
     private final MetricsLongValue cacheLastUpdatedWriter = new MetricsLongValue("cacheLastUpdated",writerRegistry);
     private final MetricsIntValue compressedWritesWriter = new MetricsIntValue("compressedWrites",writerRegistry);
 
-    /*Connection Pool Metrics*/
-    private final MetricsIntValue poolWaiting = new MetricsIntValue("waiting",poolRegistry);
-    private final MetricsIntValue maxPoolSize = new MetricsIntValue("maxPoolSize",poolRegistry);
-    private final MetricsIntValue poolAvailable = new MetricsIntValue("available",poolRegistry);
-    private final MetricsIntValue poolInUse = new MetricsIntValue("inUse",poolRegistry);
-
     public SpliceMetrics() {
         MetricsContext context = MetricsUtil.getContext("splice");
         taskMetrics = MetricsUtil.createRecord(context,"tasks");
         jobMetrics = MetricsUtil.createRecord(context,"jobs");
         writerMetrics = MetricsUtil.createRecord(context,"writer");
-        poolMetrics = MetricsUtil.createRecord(context,"connectionPool");
         context.registerUpdater(this);
-
     }
 
     @Override
@@ -140,22 +130,9 @@ public class SpliceMetrics implements Updater {
             cacheLastUpdatedWriter.pushMetric(this.writerMetrics);
             compressedWritesWriter.pushMetric(this.writerMetrics);
 
-            /*Get connection Pool statistics*/
-            ConnectionPool pool = SpliceDriver.driver().embedConnPool();
-            poolWaiting.set(pool.getWaiting());
-            poolAvailable.set(pool.getAvailable());
-            poolInUse.set(pool.getInUse());
-            maxPoolSize.set(pool.getMaxPoolSize());
-
-            poolWaiting.pushMetric(this.poolMetrics);
-            poolAvailable.pushMetric(this.poolMetrics);
-            poolInUse.pushMetric(this.poolMetrics);
-            maxPoolSize.pushMetric(this.poolMetrics);
         }
-
         this.taskMetrics.update();
         this.jobMetrics.update();
         this.writerMetrics.update();
-        this.poolMetrics.update();
     }
 }
