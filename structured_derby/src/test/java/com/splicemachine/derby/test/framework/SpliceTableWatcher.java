@@ -89,4 +89,8 @@ public class SpliceTableWatcher extends TestWatcher {
 		}
 	}
 
+    @Override
+    public String toString() {
+        return schemaName+"."+tableName;
+    }
 }
