@@ -8,7 +8,6 @@
 	<description>Set of modules for getting hbase to function in structure</description>
 	<modules>
 		<module>structured_constants</module>
-		<module>structured_trx</module>
 		<module>structured_si</module>
 		<module>structured_derby</module>		
 	</modules>

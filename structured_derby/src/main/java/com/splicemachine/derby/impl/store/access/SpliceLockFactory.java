@@ -17,8 +17,6 @@ import org.apache.derby.iapi.services.monitor.ModuleSupportable;
 import org.apache.derby.iapi.util.Matchable;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.hbase.locks.TxnLockManager;
-
 //FIXME: We may need to implement unlock and zeroDurationlockObject since they are called directly by DataDictionaryImpl
 //and used by locking the cache.
 
