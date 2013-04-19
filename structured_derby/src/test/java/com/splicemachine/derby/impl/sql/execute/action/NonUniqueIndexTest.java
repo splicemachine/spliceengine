@@ -9,7 +9,6 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
-import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -22,7 +21,6 @@ import java.util.List;
  *         Created on: 3/8/13
  */
 public class NonUniqueIndexTest extends SpliceUnitTest {
-    private static final Logger LOG = Logger.getLogger(NonUniqueIndexTest.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = NonUniqueIndexTest.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME_1 = "A";
@@ -131,7 +129,6 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
      * then perform a lookup on that same data via the index to ensure
      * that the index will find those values.
      */
-    @Ignore("Waiting for transactional DDL - bug 349")
     @Test
     public void testCanCreateIndexFromExistingData() throws Exception{
         String name = "sfines";
@@ -158,7 +155,6 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
      * Basically, add some data, create an index off of that, and then
      * add some more data, and check to make sure that the new data shows up as well
      */
-    @Ignore("Waiting for transactional DDL - bug 349")
     @Test
     public void testCanCreateIndexFromExistingDataAndThenAddData() throws Exception{
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('sfines',2)",this.getTableReference(TABLE_NAME_4)));
@@ -200,7 +196,6 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
         assertSelectCorrect(spliceSchemaWatcher.schemaName,TABLE_NAME_5,"sfines",1);
     }
 
-    @Ignore("Waiting for transactional DDL - bug 349")
     @Test
     public void testCanUpdateEntryIndexChanges() throws Exception{
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('sfines',2)",this.getTableReference(TABLE_NAME_6)));
@@ -220,7 +215,6 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
      * and stuff
      */
     @Test
-    @Ignore("ignored until Bug #309 can be resolved and we can properly drop views")
     public void testCanAddIndexToViewedTable() throws Exception{
 /*        rule.getStatement().execute("create view t_view as select name,val from t where val > 1");
         try{

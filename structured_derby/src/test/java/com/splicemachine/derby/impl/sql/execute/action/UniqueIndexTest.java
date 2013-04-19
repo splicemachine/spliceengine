@@ -1,32 +1,26 @@
 package com.splicemachine.derby.impl.sql.execute.action;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
-import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Scott Fines
  *         Created on: 3/7/13
  */
 public class UniqueIndexTest extends SpliceUnitTest {
-    private static final Logger LOG = Logger.getLogger(UniqueIndexTest.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = UniqueIndexTest.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME_1 = "A";
@@ -111,7 +105,6 @@ public class UniqueIndexTest extends SpliceUnitTest {
      * then perform a lookup on that same data via the index to ensure
      * that the index will find those values.
      */
-    @Ignore("Waiting for transactional DDL - bug 349")
     @Test
     public void testCanCreateIndexFromExistingData() throws Exception{
         String name = "sfines";
@@ -139,7 +132,6 @@ public class UniqueIndexTest extends SpliceUnitTest {
      * Basically, add some data, create an index off of that, and then
      * add some more data, and check to make sure that the new data shows up as well
      */
-    @Ignore("Waiting for transactional DDL - bug 349")
     @Test
     public void testCanCreateIndexFromExistingDataAndThenAddData() throws Exception{
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_3),"sfines",2));
