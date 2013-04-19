@@ -36,7 +36,6 @@ public class IndexRowToBaseRowOperationTest extends SpliceUnitTest {
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    @Ignore ("Bug  209 ")
 	@Test
 	public void testScanSysTables() throws Exception{
 		ResultSet rs = methodWatcher.executeQuery("select tablename from sys.systables where tablename like 'ORDER_FACT'");
