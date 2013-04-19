@@ -4,7 +4,12 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.TransactionConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.constraint.*;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.si.api.TransactionId;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.data.hbase.TransactorFactory;
+import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.error.StandardException;
@@ -315,11 +320,14 @@ public class IndexSet {
                     " Please wait a bit and try again");
         }
         boolean success = false;
+        Transactor transactor = null;
+        TransactionId txnID = null;
         try{
-            connection = SpliceDriver.driver().acquireConnection();
-            LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
-            SpliceUtils.setThreadContext(lcc);
-            DataDictionary dataDictionary = lcc.getDataDictionary();
+        	SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
+        	transactor = TransactorFactory.getDefaultTransactor(); // TODO Place Holder - Transaction Must Flow...
+        	txnID = transactor.beginTransaction(false, true, false);
+        	impl.marshallTransaction(txnID.getTransactionIdString());
+            DataDictionary dataDictionary = impl.getLcc().getDataDictionary();
             ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(conglomId);
 
             dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
@@ -331,7 +339,7 @@ public class IndexSet {
             if(td!=null) {
                 startDirect(dataDictionary, td);
             }
-            connection.commit();
+            transactor.commit(txnID);
             success = true;
         }catch(StandardException se){
             SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ conglomId+", aborting",se);
@@ -341,11 +349,6 @@ public class IndexSet {
             SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ conglomId+", aborting",e);
             state.set(State.FAILED_SETUP);
             return;
-        } catch (InterruptedException e) {
-            SpliceLogUtils.error(LOG,"Unable to acquire a Database Connection, " +
-                    "aborting write, but backing off so that other writes can try again",e);
-            state.set(State.READY_TO_START);
-            throw new IndexNotSetUpException(e);
         } catch (SQLException e) {
             SpliceLogUtils.error(LOG,"Unable to acquire a Database Connection, " +
                     "aborting write, but backing off so that other writes can try again",e);
@@ -354,16 +357,8 @@ public class IndexSet {
         } finally{
             //now unlock so that other threads can get access
             initializationLock.unlock();
-
-            //release our connection
-            try {
-                if (!success) {
-                    connection.rollback();
-                }
-                SpliceDriver.driver().closeConnection(connection);
-            } catch (SQLException e) {
-                SpliceLogUtils.error(LOG, "Unable to close index connection", e);
-            }
+            if (transactor != null && txnID != null)
+            	transactor.rollback(txnID);
         }
     }
 

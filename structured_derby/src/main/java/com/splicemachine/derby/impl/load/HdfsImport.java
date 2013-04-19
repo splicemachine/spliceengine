@@ -76,19 +76,14 @@ public class HdfsImport extends ParallelVTI {
 	private final ImportContext context;
 	private HBaseAdmin admin;
 
+	
     public static void SYSCS_IMPORT_DATA(String schemaName, String tableName,
                                          String insertColumnList, String columnIndexes,
                                          String fileName, String columnDelimiter,
                                          String characterDelimiter,
                                          String timestampFormat) throws SQLException {
-
-        Connection conn = null;
+    	Connection conn = getDefaultConn();
         try {
-            try {
-                conn = SpliceDriver.driver().acquireConnection();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
             LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
             final String transactionId = SpliceObserverInstructions.getTransactionId(lcc);
             try {
@@ -108,7 +103,7 @@ public class HdfsImport extends ParallelVTI {
         } finally {
             try {
                 if (conn != null) {
-                    SpliceDriver.driver().closeConnection(conn);
+                    conn.close();
                 }
             } catch (SQLException e) {
                 SpliceLogUtils.error(LOG, "Unable to close index connection", e);

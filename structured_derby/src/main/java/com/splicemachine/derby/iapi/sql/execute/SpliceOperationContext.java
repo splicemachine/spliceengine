@@ -36,18 +36,18 @@ public class SpliceOperationContext {
     private final Activation activation;
     private final Scan scan;
     private RegionScanner scanner;
-    private final Connection connection;
+    private LanguageConnectionContext lcc;
 
     public SpliceOperationContext(HRegion region,
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
-                                  Connection connection){
+                                  LanguageConnectionContext lcc){
         this.region= region;
         this.scan = scan;
         this.activation = activation;
         this.preparedStatement = preparedStatement;
-        this.connection = connection;
+        this.lcc = lcc;
     }
 
     public SpliceOperationContext(RegionScanner scanner,
@@ -55,13 +55,13 @@ public class SpliceOperationContext {
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
-                                  Connection connection){
+                                  LanguageConnectionContext lcc){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
         this.scanner = scanner;
         this.region=region;
         this.scan = scan;
-        this.connection = connection;
+        this.lcc = lcc;
     }
 
     public HRegion getRegion(){
@@ -81,21 +81,10 @@ public class SpliceOperationContext {
     }
 
     public LanguageConnectionContext getLanguageConnectionContext() {
-        LanguageConnectionContext lcc = null;
         if(activation!=null){
-           lcc = activation.getLanguageConnectionContext();
-        }
-        if(lcc!=null) return lcc;
-        if(connection!=null){
-            try {
-                return connection.unwrap(EmbedConnection.class).getLanguageConnection();
-            } catch (SQLException e) {
-                SpliceLogUtils.logAndThrowRuntime(Logger.getLogger(SpliceOperation.class), e);
-                return null;
-            }
-        }
-        //if neither the activate nor the connection is set, then why are you calling this anyway? bomb out
-        return null;
+            lcc = activation.getLanguageConnectionContext();
+         }
+    	return lcc;
     }
 
     public void close(boolean commit) throws IOException {
@@ -106,17 +95,7 @@ public class SpliceOperationContext {
             throw new DoNotRetryIOException(new SpliceStandardException(e).getTextMessage());
         }
         }finally{
-            try {
                 getLanguageConnectionContext().popStatementContext(getLanguageConnectionContext().getStatementContext(), null);
-                if (commit) {
-                    connection.commit();
-                } else {
-                    connection.rollback();
-                }
-                SpliceDriver.driver().closeConnection(connection);
-            } catch (SQLException e) {
-                throw new DoNotRetryIOException(e.getMessage(), e);
-            }
         }
     }
 

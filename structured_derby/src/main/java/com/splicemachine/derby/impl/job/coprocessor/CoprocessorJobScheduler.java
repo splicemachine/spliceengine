@@ -47,6 +47,7 @@ public class CoprocessorJobScheduler extends ZkBackedJobScheduler<CoprocessorJob
                 Pair<byte[],byte[]> range = tasks.get(task);
                 byte[] start = range.getFirst();
                 byte[] stop = range.getSecond();
+                
                 submitTask(task, start, stop, job.getTable(), tasksToWatch);
             }
             return tasksToWatch;

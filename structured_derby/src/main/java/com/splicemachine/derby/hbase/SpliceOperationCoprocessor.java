@@ -3,28 +3,21 @@ package com.splicemachine.derby.hbase;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.si.api.ParentTransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
-import java.util.concurrent.Callable;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 /**
@@ -76,18 +69,20 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
         final Boolean[] successHolder = new Boolean[] {false};
         final SpliceOperationContext[] contextHolder = new SpliceOperationContext[] {null};
         final HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
-        Connection runningConnection = null;
         try {
-
-            return ParentTransactionManager.runInParentTransaction(instructions.getTransactionId(), new Callable<TaskStats>() {
-                @Override
-                public TaskStats call() throws Exception {
-                    return runDirect(instructions, scan, contextHolder, region, successHolder);
-                }
-            });
-        } catch (InterruptedException e) {
-            exception = new IOException(e);
-            throw exception;
+            SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
+                    instructions.getStatement(),instructions.getTopOperation(), scan);
+            SpliceLogUtils.trace(LOG,"Creating RegionScanner");
+            SpliceTransactionResourceImpl imp = new SpliceTransactionResourceImpl();
+            imp.marshallTransaction(instructions.getTransactionId());
+            Activation activation = instructions.getActivation(imp.getLcc());
+            SpliceOperationContext context = new SpliceOperationContext(region,scan,activation, instructions.getStatement(),imp.getLcc());
+            SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
+            SpliceLogUtils.trace(LOG,"performing sink");
+            TaskStats out = spliceScanner.sink();
+            SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getWriteStats().getTotalRecords());
+            spliceScanner.close();
+            return out;
         } catch (SQLException e) {
             exception = new IOException(e);
             throw exception;
@@ -110,27 +105,4 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
             }
         }
     }
-
-    private TaskStats runDirect(SpliceObserverInstructions instructions, Scan scan,
-                                SpliceOperationContext[] contextHolder, HRegion region, Boolean[] successHolder)
-            throws SQLException, InterruptedException, StandardException, IOException {
-        SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
-                instructions.getStatement(),instructions.getTopOperation(), scan);
-        SpliceLogUtils.trace(LOG,"Creating RegionScanner");
-        Connection runningConnection = SpliceDriver.driver().acquireConnection();
-
-        LanguageConnectionContext lcc = runningConnection.unwrap(EmbedConnection.class).getLanguageConnection();
-        SpliceUtils.setThreadContext(lcc);
-        Activation activation = instructions.getActivation(lcc);
-
-        SpliceOperationContext context = new SpliceOperationContext(region,scan,
-                activation, instructions.getStatement(),runningConnection);
-        SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
-        SpliceLogUtils.trace(LOG,"performing sink");
-        TaskStats out = spliceScanner.sink();
-        SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getWriteStats().getTotalRecords());
-        spliceScanner.close();
-        return out;
-    }
-
 }

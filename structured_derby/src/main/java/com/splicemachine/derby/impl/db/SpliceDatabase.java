@@ -2,12 +2,21 @@ package com.splicemachine.derby.impl.db;
 
 import java.util.Properties;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.property.PropertyFactory;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.store.access.AccessFactory;
+import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.db.BasicDatabase;
 import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.derby.impl.store.access.HBaseStore;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceLockSpace;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -39,4 +48,18 @@ public class SpliceDatabase extends BasicDatabase {
 			SpliceLogUtils.trace(LOG,"bootStore create %s, startParams %s",create,startParams);
 			af = (AccessFactory) Monitor.bootServiceModule(create, this, AccessFactory.MODULE, startParams);
 		}
+		
+		public LanguageConnectionContext generateLanguageConnectionContext(String transactionID, ContextManager cm, String user, String drdaID, String dbname) throws StandardException {
+			TransactionController tc = ((SpliceAccessManager) af).marshallTransaction(cm, transactionID);
+			cm.setLocaleFinder(this);
+			pushDbContext(cm);
+			LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, drdaID, dbname);
+			pushClassFactoryContext(cm, lcf.getClassFactory());
+			ExecutionFactory ef = lcf.getExecutionFactory();
+			ef.newExecutionContext(cm);
+			lctx.initialize();		
+			return lctx;
+		}
+		
+		
 }

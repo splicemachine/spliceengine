@@ -7,6 +7,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Properties;
 
+import com.google.common.base.Preconditions;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -481,17 +482,11 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 	}
 
 
-	public TransactionController getTransaction(
-			ContextManager cm)
-					throws StandardException
-	{
+	public TransactionController getTransaction(ContextManager cm) throws StandardException {
 		return getAndNameTransaction(cm, AccessFactoryGlobals.USER_TRANS_NAME);
 	}
 
-	public TransactionController getAndNameTransaction(
-			ContextManager cm, String transName)
-					throws StandardException
-	{
+	public TransactionController getAndNameTransaction( ContextManager cm, String transName) throws StandardException {
 		if (LOG.isDebugEnabled())
 			LOG.debug("in SpliceAccessManager - getAndNameTransaction, transName="+transName);
 		if (cm == null)
@@ -532,6 +527,15 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 		return rtc.getTransactionManager();
 	}
 
+	public TransactionController marshallTransaction( ContextManager cm , String transactionID) throws StandardException {
+		SpliceLogUtils.debug(LOG, "marshallTransaction called for transaction {%s} for context manager {%s}",transactionID, cm);
+		Preconditions.checkNotNull(cm, "ContextManager is null");
+		Transaction transaction = rawstore.marshallTransaction(cm, AccessFactoryGlobals.USER_TRANS_NAME, transactionID);
+		SpliceTransactionManager transactionManager = new SpliceTransactionManager(this, transaction, null);
+		SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(cm, AccessFactoryGlobals.RAMXACT_CONTEXT_ID, transactionManager, false /* abortAll */);
+		return rtc.getTransactionManager();
+	}
+	
 	/**
 	 * Start a global transaction.
 	 * <p>
@@ -788,12 +792,8 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 			conglom_nextid = 1;
 		}
 
-		// Access depends on a Raw Store implementations.  Load it.
-		//
-		// rawstore = (RawStoreFactory) Monitor.bootServiceModule(create, this, RawStoreFactory.MODULE, serviceProperties); JLEACH MOD
 		rawstore = new HBaseStore();
 		rawstore.boot(true, serviceProperties);
-		//rawstore = new HBaseStore(); // XXX - TODO JL
 
 		// Note: we also boot this module here since we may start Derby
 		// system from store access layer, as some of the unit test case,

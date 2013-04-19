@@ -10,21 +10,15 @@ import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.si.api.ParentTransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
@@ -33,8 +27,8 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 
 
 public class SpliceOperationRegionScanner implements RegionScanner {
@@ -76,72 +70,50 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		this.regionScanner = regionScanner;
 
         try {
-			final SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
-            ParentTransactionManager.runInParentTransaction(soi.getTransactionId(), new Callable<Object>() {
-                @Override
-                public Object call() throws Exception {
-                    return constructScanner(soi, regionScanner, region, scan);
-                }
-            });
+			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
+	        statement = soi.getStatement();
+	        topOperation = soi.getTopOperation();
+	        SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
+	        impl.marshallTransaction(soi.getTransactionId());
+	        activation = soi.getActivation(impl.getLcc());
+	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc());
+	        topOperation.init(context);
+	        List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
+	        topOperation.generateLeftOperationStack(opStack);
+	        SpliceLogUtils.trace(LOG, "Ready to execute stack %s", opStack);
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
         }
 	}
 
-    private Object constructScanner(SpliceObserverInstructions soi, RegionScanner regionScanner, HRegion region, Scan scan) throws SQLException, InterruptedException, StandardException {
-        statement = soi.getStatement();
-        topOperation = soi.getTopOperation();
 
-        //TODO -sf- timed backoffs here?
-        Connection connection = SpliceDriver.driver().acquireConnection();
-        LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
-        SpliceUtils.setThreadContext(lcc);
-
-        activation = soi.getActivation(lcc);
-
-        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, connection);
-
-        topOperation.init(context);
-        List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
-        topOperation.generateLeftOperationStack(opStack);
-        SpliceLogUtils.trace(LOG, "Ready to execute stack %s", opStack);
-        return null;
-    }
 
     @Override
 	public boolean next(final List<KeyValue> results) throws IOException {
 		SpliceLogUtils.trace(LOG, "next ");
 		try {
-            return ParentTransactionManager.runInParentTransaction(parentTransactionId, new Callable<Boolean>() {
-                @Override
-                public Boolean call() throws Exception {
-                    return nextDirect(results);
-                }
-            });
+			ExecRow nextRow;
+	        long start = System.nanoTime();
+	        if ( (nextRow = topOperation.getNextRowCore()) != null) {
+	            stats.readAccumulator().tick(System.nanoTime()-start);
+	            start = System.nanoTime();
+	            Put put = Puts.buildInsert(nextRow.getRowArray(), SpliceUtils.NA_TRANSACTION_ID,serializer); //todo -sf- add transaction id
+	            Map<byte[],List<KeyValue>> family = put.getFamilyMap();
+	            for(byte[] bytes: family.keySet()){
+	                results.addAll(family.get(bytes));
+	            }
+	            SpliceLogUtils.trace(LOG,"next returns results: "+ nextRow);
+	            stats.writeAccumulator().tick(System.nanoTime()-start);
+	            return true;
+	        }
+	        return false;
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,"error during next call: ",e);
         }
         return false;
 	}
 
-    private Boolean nextDirect(List<KeyValue> results) throws StandardException, IOException {
-        ExecRow nextRow;
-        long start = System.nanoTime();
-        if ( (nextRow = topOperation.getNextRowCore()) != null) {
-            stats.readAccumulator().tick(System.nanoTime()-start);
 
-            start = System.nanoTime();
-            Put put = Puts.buildInsert(nextRow.getRowArray(), SpliceUtils.NA_TRANSACTION_ID,serializer); //todo -sf- add transaction id
-            Map<byte[],List<KeyValue>> family = put.getFamilyMap();
-            for(byte[] bytes: family.keySet()){
-                results.addAll(family.get(bytes));
-            }
-            SpliceLogUtils.trace(LOG,"next returns results: "+ nextRow);
-            stats.writeAccumulator().tick(System.nanoTime()-start);
-            return true;
-        }
-        return false;
-    }
 
     @Override
 	public boolean next(List<KeyValue> result, int limit) throws IOException {
