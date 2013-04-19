@@ -36,7 +36,6 @@ public final class SpliceTransactionResourceImpl {
 		SpliceLogUtils.debug(LOG, "instance with url %s and properties %s",url,info);
 		csf = ContextService.getFactory();
 		dbname = InternalDriver.getDatabaseName(url, info);
-		System.out.println("database Name: " + dbname);
 		this.url = url;
 		username = IdUtil.getUserNameFromURLProps(info);
 		drdaID = info.getProperty(Attribute.DRDAID_ATTR, null);
