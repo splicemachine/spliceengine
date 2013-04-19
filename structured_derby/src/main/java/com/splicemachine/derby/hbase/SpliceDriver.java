@@ -13,19 +13,17 @@ import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
-import com.splicemachine.tools.ConnectionPool;
+import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
-
 import javax.management.*;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.*;
@@ -37,9 +35,6 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class SpliceDriver {
     private static final Logger LOG = Logger.getLogger(SpliceDriver.class);
-    private static final String DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
-    private static final String protocol = "jdbc:derby:splice:";
-    private static final String dbName = "wombat";
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     private static final int DEFAULT_PORT = 1527;
     private static final String DEFAULT_SERVER_ADDRESS = "0.0.0.0";
@@ -74,7 +69,6 @@ public class SpliceDriver {
     private volatile CountDownLatch initalizationLatch = new CountDownLatch(1);
 
     private ExecutorService executor;
-    private ConnectionPool embeddedConnections;
     private TaskScheduler threadTaskScheduler;
     private JobScheduler jobScheduler;
     private TaskMonitor taskMonitor;
@@ -89,14 +83,9 @@ public class SpliceDriver {
         //TODO -sf- create a separate pool for writing to TEMP
         try {
             writerPool = TableWriter.create(SpliceUtils.config);
-
-            embeddedConnections = ConnectionPool.create(SpliceUtils.config);
-
             threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
             jobScheduler = new CoprocessorJobScheduler(ZkUtils.getRecoverableZooKeeper(),SpliceUtils.config);
-
             taskMonitor = new ZkTaskMonitor(CoprocessorTaskScheduler.baseQueueNode,ZkUtils.getRecoverableZooKeeper());
-
             tempCleaner = new TempCleaner(SpliceUtils.config);
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
@@ -134,28 +123,6 @@ public class SpliceDriver {
 
     public JobSchedulerManagement getJobSchedulerManagement() {
         return (JobSchedulerManagement)jobScheduler;
-    }
-
-    public ConnectionPool embedConnPool(){
-        return embeddedConnections;
-    }
-
-    public Connection acquireConnection() throws SQLException, InterruptedException {
-        final Connection connection = embeddedConnections.acquire();
-        connection.setAutoCommit(false);
-        return connection;
-    }
-
-    public void closeConnection(Connection connection) throws SQLException {
-        if (connection != null) {
-            try {
-                if (!connection.isClosed()) {
-                    connection.close();
-                }
-            } finally {
-                //connection.setAutoCommit(true);
-            }
-        }
     }
 
     public void registerService(Service service){
@@ -222,8 +189,9 @@ public class SpliceDriver {
     private boolean bootDatabase() throws Exception {
         Connection connection = null;
         try{
-            connection = embeddedConnections.acquire();
-            return true;
+        	EmbedConnectionMaker maker = new EmbedConnectionMaker();
+        	connection = maker.createNew();
+        	return true;
         }finally{
             if(connection!=null)
                 connection.close();
@@ -245,12 +213,7 @@ public class SpliceDriver {
                     }
 
                     SpliceLogUtils.info(LOG,"Destroying internal Engine");
-                    try{
-                        if(embeddedConnections!=null)
-                            embeddedConnections.shutdown();
-                    }finally{
-                        stateHolder.set(State.SHUTDOWN);
-                    }
+                    stateHolder.set(State.SHUTDOWN);
                 }catch(Exception e){
                     SpliceLogUtils.error(LOG,
                             "Unable to shut down properly, this may affect the next time the service is started",e);
@@ -266,9 +229,6 @@ public class SpliceDriver {
     private void registerJMX()  {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         try{
-            //register ConnectionPool
-            ObjectName connPoolName = new ObjectName("com.splicemachine.connection:type=ConnectionPoolStatus");
-            mbs.registerMBean(embeddedConnections,connPoolName);
 
             //register TableWriter
             ObjectName writerName = new ObjectName("com.splicemachine.writer:type=WriterStatus");

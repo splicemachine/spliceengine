@@ -186,7 +186,7 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
 			int[] streamStorableHeapColIds, int numColumns, UUID dependencyId,
 			boolean singleRowSource, ConstantAction[] dependentConstantActions)
 			throws StandardException {
-    	SpliceLogUtils.trace(LOG, "getDeleteConstantAction for {%s.%s} with view text {%s}",schemaName, tableName);
+    	SpliceLogUtils.trace(LOG, "getDeleteConstantAction for {%s.%s}",schemaName, tableName);
 		return super.getDeleteConstantAction(conglomId, tableType, heapSCOCI,
 				pkColumns, irgs, indexCIDS, indexSCOCIs, emptyHeapRow, deferred,
 				tableIsPublished, tableID, lockMode, deleteToken, keySignature,

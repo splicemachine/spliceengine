@@ -2,7 +2,6 @@ package com.splicemachine.derby.hbase;
 
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;

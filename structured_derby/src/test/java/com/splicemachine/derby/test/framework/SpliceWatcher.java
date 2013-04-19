@@ -111,7 +111,6 @@ public class SpliceWatcher extends TestWatcher {
 	}
 
 	public ResultSet executeQuery(String sql) throws Exception {
-		System.out.println(sql);
 		Statement s = getStatement();
 		ResultSet rs = s.executeQuery(sql);
 		resultSets.add(rs);

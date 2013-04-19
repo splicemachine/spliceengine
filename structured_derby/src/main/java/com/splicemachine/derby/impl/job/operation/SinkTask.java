@@ -5,12 +5,14 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
 import com.splicemachine.si.api.ParentTransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.impl.jdbc.EmbedConnection;
@@ -71,33 +73,11 @@ public class SinkTask extends ZooKeeperTask {
     public void execute() throws ExecutionException, InterruptedException {
         SpliceLogUtils.trace(LOG,"executing task %s",getTaskId());
         try {
-            ParentTransactionManager.runInParentTransaction(instructions.getTransactionId(), new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    run();
-                    return null;
-                }
-            });
-        } catch (Exception e) {
-            if(e instanceof ExecutionException)
-                throw (ExecutionException)e;
-            else if(e instanceof InterruptedException)
-                throw (InterruptedException)e;
-            else throw new ExecutionException(e);
-        }
-    }
-
-    private void run() throws InterruptedException, StandardException, ExecutionException {
-        Connection runningConnection = null;
-        try{
-            runningConnection = SpliceDriver.driver().acquireConnection();
-
-            LanguageConnectionContext lcc = runningConnection.unwrap(EmbedConnection.class).getLanguageConnection();
-            SpliceUtils.setThreadContext(lcc);
-            Activation activation = instructions.getActivation(lcc);
-
-            SpliceOperationContext opContext = new SpliceOperationContext(region,
-                    scan,activation,instructions.getStatement(),runningConnection);
+            SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
+            ContextService.getFactory().setCurrentContextManager(impl.getContextManager());
+            impl.marshallTransaction(instructions.getTransactionId());                        
+            Activation activation = instructions.getActivation(impl.getLcc());
+            SpliceOperationContext opContext = new SpliceOperationContext(region,scan,activation,instructions.getStatement(),impl.getLcc());
             SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),opContext);
 
             SpliceLogUtils.trace(LOG, "sinking task %s", getTaskId());
@@ -106,19 +86,12 @@ public class SinkTask extends ZooKeeperTask {
 
             SpliceLogUtils.trace(LOG,"task %s sunk successfully, closing",getTaskId());
             spliceScanner.close();
-        } catch (SQLException e) {
-            SpliceLogUtils.error(LOG,"Exception encountered dealing with Connection pool",e);
-            throw new ExecutionException(e);
-        } catch (IOException e) {
-            SpliceLogUtils.error(LOG,"Exception encountered dealing with Connection pool",e);
-            throw new ExecutionException(e);
-        }finally{
-            try {
-                SpliceDriver.driver().closeConnection(runningConnection);
-            } catch (SQLException e) {
-                SpliceLogUtils.error(LOG,"Exception encountered dealing with Connection pool",e);
-                throw new ExecutionException(e);
-            }
+        } catch (Exception e) {
+            if(e instanceof ExecutionException)
+                throw (ExecutionException)e;
+            else if(e instanceof InterruptedException)
+                throw (InterruptedException)e;
+            else throw new ExecutionException(e);
         }
     }
 

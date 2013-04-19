@@ -113,8 +113,10 @@ public class Table {
                                     int numInserted = ps.executeBatch().length;
                                     insertAccumulator.tick(numInserted,System.nanoTime()-start);
 
-                                    if((written-1)%tenPercentSize==0)
+                                    if((written-1)%tenPercentSize==0){
+                                        conn.commit();
                                         SpliceLogUtils.info(LOG, "%d%% complete", ((written - 1) / tenPercentSize) * 10);
+                                    }
                                 }
                             }
                             long start = System.nanoTime();
