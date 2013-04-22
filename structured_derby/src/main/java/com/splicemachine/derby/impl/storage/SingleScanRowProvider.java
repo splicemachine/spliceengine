@@ -51,7 +51,15 @@ public abstract class SingleScanRowProvider  implements RowProvider {
             }
         }else{
             HTableInterface table = SpliceAccessManager.getHTable(getTableName());
-            return doShuffle(table, instructions, scan);
+            try{
+                return doShuffle(table, instructions, scan);
+            }finally{
+                try {
+                    table.close();
+                } catch (IOException e) {
+                    throw Exceptions.parseException(e);
+                }
+            }
         }
     }
 
