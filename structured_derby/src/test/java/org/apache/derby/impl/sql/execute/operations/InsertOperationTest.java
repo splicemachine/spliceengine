@@ -117,7 +117,6 @@ public class InsertOperationTest extends SpliceUnitTest {
 	 * @throws Exception
 	 */
 	@Test
-    @Ignore("Ignoring until joins are handled properly")
 	public void testInsertFromBoundedSubSelectThatChanges() throws Exception{
 		Statement s = methodWatcher.getStatement();
 		s.execute("insert into"+this.getPaddedTableReference("L")+"(name) values ('gdavis'),('mzweben'),('rreimer')");
