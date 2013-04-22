@@ -2,26 +2,15 @@ package com.splicemachine.derby.test.framework;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
 import org.junit.Ignore;
-
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
 
 @Ignore
 public class SpliceEmbedConnection {
-	private static final Logger LOG = Logger.getLogger(SpliceEmbedConnection.class);
     protected static String framework = "embedded";
     protected static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
     protected static String protocol = "jdbc:derby:splice/";

@@ -1,11 +1,5 @@
 package com.splicemachine.derby.test.framework.tables;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-
-import org.apache.commons.dbutils.DbUtils;
-
-import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 
 public class SpliceItemTable extends SpliceTableWatcher {
