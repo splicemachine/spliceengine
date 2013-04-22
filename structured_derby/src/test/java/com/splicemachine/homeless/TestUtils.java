@@ -3,11 +3,8 @@ package com.splicemachine.homeless;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.apache.commons.dbutils.BasicRowProcessor;
 import org.apache.commons.io.IOUtils;
-
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;

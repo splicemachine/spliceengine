@@ -5,7 +5,7 @@ import com.splicemachine.job.Status;
 import com.splicemachine.job.Task;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.utils.SpliceLogUtils;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
