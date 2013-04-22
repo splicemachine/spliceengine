@@ -2,7 +2,7 @@
 
 ant clean
 mkdir bin/templates
-ant buildsource buildjars derbytestingjar
+ant buildsource testing buildjars
 cd maven2
 ./SpliceBuild.sh $1
 cd ..
