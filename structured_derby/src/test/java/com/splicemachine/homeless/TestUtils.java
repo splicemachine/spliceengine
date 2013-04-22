@@ -52,4 +52,19 @@ public class TestUtils {
 
         return results;
     }
+
+    public static List<Map> tableLookupByNumber(SpliceWatcher spliceWatcher) throws Exception{
+        ResultSet rs = spliceWatcher.executeQuery("select t1.tableid, t2.tablename, t1.CONGLOMERATENUMBER " +
+                "                                  from sys.sysconglomerates t1, sys.systables t2  " +
+                "                                  where t1.tableid=t2.tableid and t2.tablename not like 'SYS%'" +
+                "                                  order by t1.conglomeratenumber desc");
+
+        List<Map> results = resultSetToMaps(rs);
+        System.out.println("Table ID\t\tConglomerate Number\t\tTable Name");
+        for( Map m : results){
+            System.out.println(String.format("%s\t\t%s\t\t%s", m.get("TABLEID"), m.get("CONGLOMERATENUMBER"), m.get("TABLENAME")));
+        }
+
+        return results;
+    }
 }
