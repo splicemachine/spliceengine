@@ -2,16 +2,13 @@ package com.splicemachine.derby.impl.job.load;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
@@ -20,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 public class HdfsImportTest extends SpliceUnitTest {
-	private static final Logger LOG = Logger.getLogger(HdfsImportTest.class);
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = HdfsImportTest.class.getSimpleName().toUpperCase();
 	protected static String TABLE_1 = "A";

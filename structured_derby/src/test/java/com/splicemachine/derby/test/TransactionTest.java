@@ -4,11 +4,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -60,8 +57,6 @@ public class TransactionTest extends SpliceUnitTest {
 		.around(spliceSchemaWatcher);
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
-
-	private static Logger LOG = Logger.getLogger(TransactionTest.class);
 	
 	@Test
 	public void testPreparedStatementAutoCommitOn() throws Exception {

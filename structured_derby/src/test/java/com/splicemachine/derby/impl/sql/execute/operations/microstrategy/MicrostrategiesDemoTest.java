@@ -1,22 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
-
-import org.apache.log4j.Logger;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-
-import com.splicemachine.derby.test.SpliceDerbyTest;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -31,7 +23,6 @@ import com.splicemachine.derby.test.framework.tables.SpliceOrderLineTable;
  */
 
 public class MicrostrategiesDemoTest extends SpliceUnitTest {
-	private static Logger LOG = Logger.getLogger(MicrostrategiesDemoTest.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = MicrostrategiesDemoTest.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME_1 = "CUSTOMER";
