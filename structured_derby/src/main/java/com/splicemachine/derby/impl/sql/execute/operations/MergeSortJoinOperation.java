@@ -282,10 +282,30 @@ public class MergeSortJoinOperation extends JoinOperation {
                 wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
 	}
+
+    private boolean areChildrenLeaves(){
+        return leftResultSet instanceof ScanOperation && rightResultSet instanceof ScanOperation;
+    }
  
    @Override
-    public int[] getRootAccessedCols() {
-        return leftResultSet.getRootAccessedCols();
+    public int[] getRootAccessedCols(long tableNumber) {
+
+       int[] rootCols = null;
+
+       if(leftResultSet.isReferencingTable(tableNumber)){
+           rootCols = leftResultSet.getRootAccessedCols(tableNumber);
+       }else if(rightResultSet.isReferencingTable(tableNumber)){
+           int leftCols = getLeftNumCols();
+           int[] rightRootCols = rightResultSet.getRootAccessedCols(tableNumber);
+           rootCols = new int[rightRootCols.length];
+
+           for(int i=0; i<rightRootCols.length; i++){
+               rootCols[i] = rightRootCols[i] + leftCols;
+           }
+
+       }
+
+       return rootCols;
     }
 
 	@Override
@@ -324,7 +344,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 				setCurrentRow(currentRow);
 				rowsReturned++;
 				currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
-				SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
+				SpliceLogUtils.trace(LOG, "current row returned %s", currentRow);
 				return true;
 			}
 			if (!serverProvider.hasNext()) {
@@ -335,12 +355,12 @@ public class MergeSortJoinOperation extends JoinOperation {
 				if (joinRow.getJoinSide().ordinal() == JoinSide.RIGHT.ordinal()) { // Right Side
 					rightHash = joinRow.getHash();
 					if (joinRow.sameHash(priorHash)) {
-						SpliceLogUtils.trace(LOG, "adding additional right=%s",joinRow);
+						SpliceLogUtils.trace(LOG, "adding additional right=%s", joinRow);
 						rights.add(joinRow.getRow().getClone());
 					} else {
 						resetRightSide();
 						rowsSeenRight++;
-						SpliceLogUtils.trace(LOG, "adding initial right=%s",joinRow);
+						SpliceLogUtils.trace(LOG, "adding initial right=%s", joinRow);
 						rights.add(joinRow.getRow().getClone());
 						priorHash = joinRow.getHash();
 					}
@@ -351,17 +371,17 @@ public class MergeSortJoinOperation extends JoinOperation {
 					rowsSeenLeft++;
 					if (joinRow.sameHash(priorHash)) {
 						if (joinRow.sameHash(rightHash)) {
-							SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s",joinRow);
+							SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s", joinRow);
 							rightIterator = rights.iterator();
 							currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, rightNumCols,leftNumCols, mergedRow);
 							setCurrentRow(currentRow);
 							rowsReturned++;
 							currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());					
-							SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
+							SpliceLogUtils.trace(LOG, "current row returned %s", currentRow);
 							return true;
 						} else {
 							if (outerJoin) {
-								SpliceLogUtils.trace(LOG, "simple left emit=%s",joinRow);
+								SpliceLogUtils.trace(LOG, "simple left emit=%s", joinRow);
 								resetRightSide();
 								priorHash = joinRow.getHash();
 								currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
@@ -370,7 +390,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 								emptyRightRowsReturned++;
 								return true;					
 							} else {
-								SpliceLogUtils.trace(LOG, "right hash miss left=%s",joinRow);
+								SpliceLogUtils.trace(LOG, "right hash miss left=%s", joinRow);
 								resetRightSide();	
 								priorHash = joinRow.getHash();
 								continue;				
@@ -380,7 +400,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 					} 
 					else {
 						if (outerJoin) {
-							SpliceLogUtils.trace(LOG, "simple left with no right=%s",joinRow);
+							SpliceLogUtils.trace(LOG, "simple left with no right=%s", joinRow);
 							resetRightSide();
 							priorHash = joinRow.getHash();
 							currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
@@ -391,7 +411,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 						} else {
 							resetRightSide();
 							priorHash = joinRow.getHash();
-							SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
+							SpliceLogUtils.trace(LOG, "current row returned %s", currentRow);
 							continue;
 						}
 					}			

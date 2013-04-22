@@ -8,12 +8,15 @@ import java.util.List;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableHashtable;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
+import org.apache.derby.iapi.services.io.FormatableLongHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.derby.impl.sql.compile.JoinNode;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -133,9 +136,15 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	}
 
     protected int[] generateHashKeys(int hashKeyItem, SpliceBaseOperation resultSet) {
-		FormatableArrayHolder fah = (FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(hashKeyItem));
-		FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
-        int[] rootAccessedCols = resultSet.getRootAccessedCols();
+
+        FormatableHashtable hashKeyInfo =  (FormatableHashtable) activation.getPreparedStatement().getSavedObject(hashKeyItem);
+
+        FormatableArrayHolder fah = (FormatableArrayHolder) hashKeyInfo.get(JoinNode.HASH_KEYS_ARRAY_KEY);
+        FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
+
+        FormatableLongHolder tableNumber = (FormatableLongHolder) hashKeyInfo.get(JoinNode.TABLE_NUMBER_KEY);
+
+        int[] rootAccessedCols = resultSet.getRootAccessedCols(tableNumber.getLong());
         int[] keyColumns = new int[fihArray.length];
         for(int i=0;i<fihArray.length;i++){
             keyColumns[i] = rootAccessedCols[fihArray[i].getInt()-1];
@@ -183,6 +192,11 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	public String getUserSuppliedOptimizerOverrides() {
 		return this.userSuppliedOptimizerOverrides;
 	}
+
+    @Override
+    public boolean isReferencingTable(long tableNumber){
+        return leftResultSet.isReferencingTable(tableNumber) || rightResultSet.isReferencingTable(tableNumber);
+    }
 	
 	@Override
 	public String toString() {

@@ -198,8 +198,13 @@ public class HdfsImport extends ParallelVTI {
 	}
 
     @Override
-    public int[] getRootAccessedCols() {
+    public int[] getRootAccessedCols(long tableNumber) {
         throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement getRootAccessedCols");
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement isReferencingTable");
     }
 
 	@Override

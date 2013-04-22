@@ -231,6 +231,11 @@ public class WindowOperation extends SpliceBaseOperation {
 		operations.add(source);
 		return operations;
 	}
+
+    @Override
+    public boolean isReferencingTable(long tableNumber){
+        return source.isReferencingTable(tableNumber);
+    }
 	
 	@Override
 	public long getTimeSpent(int type)

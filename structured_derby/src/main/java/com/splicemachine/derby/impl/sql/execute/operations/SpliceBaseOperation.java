@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -9,7 +8,6 @@ import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.JobStatsUtils;
@@ -27,8 +25,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.Orderable;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 
@@ -719,9 +715,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 	
 	@Override
-    public int[] getRootAccessedCols() {
+    public int[] getRootAccessedCols(long tableNumber) {
 		throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement getRootAccessedCols");
 	}
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement isReferencingTable");
+    }
 	
 	public double getOptimizerEstimatedRowCount() {
 		return this.optimizerEstimatedRowCount;

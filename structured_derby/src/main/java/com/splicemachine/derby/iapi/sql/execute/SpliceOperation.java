@@ -19,7 +19,6 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
  */
 
 public interface SpliceOperation extends NoPutResultSet {
-    int[] getRootAccessedCols();
 
     /**
 	 * 
@@ -161,5 +160,24 @@ public interface SpliceOperation extends NoPutResultSet {
 	 * @return
 	 * @throws StandardException 
 	 */
+
 	public ExecRow getExecRowDefinition() throws StandardException;
+
+    /**
+     * Returns an array containing integer pointers into the columns of the table. This
+     * array relates the compact row column location (integer pointer) to the original
+     * location (the nth column on the original table).
+     *
+     *
+     * @param tableNumber
+     * @return
+     */
+    int[] getRootAccessedCols(long tableNumber);
+
+    /**
+     * Returns true if this operation references the given table number.  For a join,
+     * this means either the left side or the right side involves that table.  For things
+     * like table scans, it's true if it is scanning that table.
+     */
+    boolean isReferencingTable(long tableNumber);
 }

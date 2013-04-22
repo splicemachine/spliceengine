@@ -254,9 +254,14 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     }
 
     @Override
-	public int[] getRootAccessedCols() {
+	public int[] getRootAccessedCols(long tableNumber) {
         return baseColumnMap;
 	}
+
+    @Override
+    public boolean isReferencingTable(long tableNumber){
+        return tableName.equals(String.valueOf(tableNumber));
+    }
     
     public FormatableBitSet getAccessedCols() {
     	return this.accessedCols;
