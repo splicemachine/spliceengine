@@ -1,8 +1,13 @@
 package com.splicemachine.si.coprocessors;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.TransactionConstants;
 import com.splicemachine.constants.environment.EnvUtils;
+import com.splicemachine.si.api.PutLog;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.hbase.HGet;
 import com.splicemachine.si.data.hbase.HScan;
@@ -30,15 +35,23 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 public class SIObserver extends BaseRegionObserver {
     private static Logger LOG = Logger.getLogger(SIObserver.class);
-    protected HRegion region;
+    protected HRegion region = null;
     private boolean tableEnvMatch = false;
     private String tableName;
+    private final Timer rollforwardTimer = new Timer("rollforward");
+    private final  Cache<Long, Set> putLogCache = CacheBuilder.newBuilder().maximumSize(50000).expireAfterWrite(30, TimeUnit.SECONDS).build();
+    private PutLog putLog;
+    private PutLog filterPutLog;
 
     @Override
-    public void start(CoprocessorEnvironment e) throws IOException {
+    public void start(final CoprocessorEnvironment e) throws IOException {
         SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
         region = ((RegionCoprocessorEnvironment) e).getRegion();
         tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
@@ -46,7 +59,42 @@ public class SIObserver extends BaseRegionObserver {
                 || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TransactionConstants.TableEnv.USER_INDEX_TABLE)
                 || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TransactionConstants.TableEnv.DERBY_SYS_TABLE))
                 && !tableName.equals(HBaseConstants.TEMP_TABLE);
+        putLog = makePutLog(10000);
+        filterPutLog = makePutLog(0);
         super.start(e);
+    }
+
+    private PutLog makePutLog(final int delay) {
+        return new PutLog() {
+            @Override
+            public Set getRows(long transactionId) {
+                return putLogCache.getIfPresent(transactionId);
+            }
+
+            @Override
+            public void removeRows(long transactionId) {
+                putLogCache.invalidate(transactionId);
+            }
+
+            @Override
+            public void setRows(final long transactionId, Set rows) {
+                putLogCache.put(transactionId, rows);
+                final PutLog putLogRef = this;
+                rollforwardTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        Transactor transactor = TransactorFactoryImpl.getTransactor();
+                        STable sTable = new HbRegion(region);
+                        try {
+                            transactor.rollForward(sTable, putLogRef, transactionId);
+                        } catch (Throwable ex) {
+                            // The timer is a separate thread, to keep from killing it we need to handle all exceptions here
+                            LOG.warn("Problem while rolling forward", ex);
+                        }
+                    }
+                }, delay);
+            }
+        };
     }
 
     @Override
@@ -103,7 +151,7 @@ public class SIObserver extends BaseRegionObserver {
 
     private Filter makeSiFilter(ObserverContext<RegionCoprocessorEnvironment> e, TransactionId transactionId, Filter currentFilter) throws IOException {
         Transactor transactor = TransactorFactoryImpl.getTransactor();
-        SIFilter siFilter = new SIFilter(transactor, transactionId, new HbRegion(e.getEnvironment().getRegion()));
+        SIFilter siFilter = new SIFilter(transactor, filterPutLog, transactionId);
         Filter newFilter;
         if (currentFilter != null) {
             newFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL, currentFilter, siFilter); // Wrap Existing Filters
@@ -118,7 +166,7 @@ public class SIObserver extends BaseRegionObserver {
         if (tableEnvMatch) {
             Transactor transactor = TransactorFactoryImpl.getTransactor();
             STable region = new HbRegion(e.getEnvironment().getRegion());
-            boolean processed = transactor.processPut(region, put);
+            boolean processed = transactor.processPut(region, put, putLog);
             if (processed) {
                 e.bypass();
                 e.complete();

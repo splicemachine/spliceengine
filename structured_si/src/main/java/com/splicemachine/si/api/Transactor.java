@@ -14,10 +14,9 @@ import java.io.IOException;
 public interface Transactor extends ClientTransactor {
     TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
     /**
-     *
-     * @param parent transaction that contains this new transaction
-     * @param dependent indicator of whether this transaction can only finally commit if the parent does
-     * @param allowWrites indicates whether this transaction can peform writes
+     * @param parent          transaction that contains this new transaction
+     * @param dependent       indicator of whether this transaction can only finally commit if the parent does
+     * @param allowWrites     indicates whether this transaction can peform writes
      * @param readUncommitted
      * @param readCommitted
      * @return
@@ -29,11 +28,13 @@ public interface Transactor extends ClientTransactor {
     void rollback(TransactionId transactionId) throws IOException;
     void fail(TransactionId transactionId) throws IOException;
 
-    boolean processPut(STable table, Object put) throws IOException;
+    boolean processPut(STable table, Object put, PutLog putLog) throws IOException;
+    void rollForward(STable table, PutLog putLog, long transactionId) throws IOException;
+
     boolean isFilterNeeded(Object operation);
 
     void preProcessRead(SRead readOperation) throws IOException;
 
-    FilterState newFilterState(STable table, TransactionId transactionId) throws IOException;
+    FilterState newFilterState(PutLog putLog, TransactionId transactionId) throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
 }

@@ -85,7 +85,7 @@ public class SiBrowser {
             //dumpTable("SYCOLUMNS_INDEX2", "161");
 
             dumpTable("p", "1168");
-            dumpTable("p2", "1184");
+            //dumpTable("p2", "1184");
         }
     }
 

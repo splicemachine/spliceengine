@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.PutLog;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.api.FilterState;
@@ -8,6 +9,7 @@ import org.apache.hadoop.hbase.filter.Filter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE;
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.NEXT_COL;
@@ -18,23 +20,23 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
 public class SiFilterState implements FilterState {
-    private final STable table;
     private final ImmutableTransaction myTransaction;
     private final SDataLib dataLib;
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
+    private final PutLog putLog;
 
     private final Map<Long, Transaction> transactionCache;
 
     private final FilterRowState rowState;
     private DecodedKeyValue keyValue;
 
-    public SiFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
-                         STable table, ImmutableTransaction myTransaction) {
+    public SiFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore, PutLog putLog,
+                         ImmutableTransaction myTransaction) {
         this.dataLib = dataLib;
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
-        this.table = table;
+        this.putLog = putLog;
         this.myTransaction = myTransaction;
 
         // initialize internal state
@@ -103,10 +105,10 @@ public class SiFilterState implements FilterState {
      * Update the data row to remember the commit timestamp of the transaction. This avoids the need to look the
      * transaction up in the transaction table again the next time this row is read.
      */
-    private void rollForward(Transaction transaction) {
+    private void rollForward(Transaction transaction) throws IOException {
         if (!transaction.isNestedDependent()) {
             // TODO: revisit this in light of nested independent transactions
-            dataStore.setCommitTimestamp(table, keyValue.row, transaction.beginTimestamp, transaction.commitTimestamp);
+            dataStore.addToPutLog(transaction, keyValue.row, putLog);
         }
     }
 
