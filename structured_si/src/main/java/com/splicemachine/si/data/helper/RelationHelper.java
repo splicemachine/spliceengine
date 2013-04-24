@@ -23,7 +23,7 @@ public class RelationHelper {
         table = reader.open(tableName);
     }
 
-    public void write(Object[] keyParts, String family, Object qualifier, Object value, Long timestamp) throws IOException {
+    public void write(Object[] keyParts, String family, Object qualifier, Object value, Long timestamp) {
         final Object newKey = dataLib.newRowKey(keyParts);
         Object put = dataLib.newPut(newKey);
         dataLib.addKeyValueToPut(put, dataLib.encode(family), dataLib.encode(qualifier),

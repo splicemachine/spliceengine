@@ -11,9 +11,9 @@ import java.util.Iterator;
 
 public interface IHTableReader {
     HTableInterface open(String tableName) throws IOException;
-    void close(HTableInterface table) throws IOException;
+    void close(HTableInterface table);
 
-    Result get(HTableInterface table, Get get) throws IOException;
-    Result get(HRegion table, Get get) throws IOException;
-    Iterator scan(HTableInterface table, Scan scan) throws IOException;
+    Result get(HTableInterface table, Get get);
+    Result get(HRegion table, Get get);
+    Iterator scan(HTableInterface table, Scan scan);
 }
