@@ -141,7 +141,7 @@ public class DataStore {
     }
 
     public void rollForward(STable table, Object rowKey, Transaction transaction) throws IOException {
-        setCommitTimestamp(table, rowKey, transaction.beginTimestamp, transaction.commitTimestamp);
+        //setCommitTimestamp(table, rowKey, transaction.beginTimestamp, transaction.commitTimestamp);
     }
 
     public void setCommitTimestamp(STable table, Object rowKey, long beginTimestamp, long commitTimestamp) throws IOException {

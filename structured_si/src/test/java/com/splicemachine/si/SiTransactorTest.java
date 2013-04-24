@@ -18,6 +18,7 @@ import org.junit.Assert;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -1423,6 +1424,7 @@ public class SiTransactorTest {
         //System.out.println("store2 = " + store);
     }
 
+    @Ignore
     @Test
     public void testAsynchRollForward() throws IOException, InterruptedException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
