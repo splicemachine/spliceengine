@@ -66,12 +66,12 @@ public class HStoreSetup implements StoreSetup {
             }
 
             @Override
-            public Object get(STable table, SGet get) throws IOException {
+            public Object get(STable table, SGet get) {
                 return rawReader.get(table, get);
             }
 
             @Override
-            public Iterator scan(STable table, SScan scan) throws IOException {
+            public Iterator scan(STable table, SScan scan) {
                 return rawReader.scan(table, scan);
             }
         };

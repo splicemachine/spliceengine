@@ -8,8 +8,8 @@ import java.util.Iterator;
  */
 public interface STableReader {
     STable open(String tableName) throws IOException;
-    void close(STable table) throws IOException;
+    void close(STable table);
 
-    Object get(STable table, SGet get) throws IOException;
-    Iterator scan(STable table, SScan scan) throws IOException;
+    Object get(STable table, SGet get);
+    Iterator scan(STable table, SScan scan);
 }

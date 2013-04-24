@@ -82,7 +82,7 @@ public class TransactorFactory {
                 "si-transaction-id", "si-delete-put", SIConstants.SNAPSHOT_ISOLATION_FAMILY,
                 SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,
                 SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN,
-                SIConstants.EMPTY_BYTE_ARRAY, HBaseConstants.DEFAULT_FAMILY, 10000);
+                SIConstants.EMPTY_BYTE_ARRAY, HBaseConstants.DEFAULT_FAMILY);
         return new SiTransactor(timestampSource, dataLib, writer, rowStore, transactionStore);
     }
 }

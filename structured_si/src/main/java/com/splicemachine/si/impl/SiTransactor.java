@@ -2,7 +2,6 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.FilterState;
-import com.splicemachine.si.api.PutLog;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
@@ -14,15 +13,15 @@ import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableWriter;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
+import static com.splicemachine.constants.TransactionConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
+import static com.splicemachine.constants.TransactionConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
 import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
 import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
 import static com.splicemachine.si.impl.TransactionStatus.COMMITTING;
@@ -52,10 +51,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
         this.transactionStore = transactionStore;
     }
 
-    /**
-     * *******************************
-     */
+    /***********************************/
     // Transaction control
+
     @Override
     public TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted)
             throws IOException {
@@ -197,19 +195,17 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     private void failDirect(TransactionId transactionId) throws IOException {
         Transaction transaction = transactionStore.getTransaction(transactionId);
-        if (transaction.isEffectivelyActive()) {
-            transactionStore.recordTransactionStatusChange(transactionId, ERROR);
-        }
+        ensureTransactionActive(transaction);
+        transactionStore.recordTransactionStatusChange(transactionId, ERROR);
     }
 
     private boolean isIndependentReadOnly(TransactionId transactionId) {
         return ((SiTransactionId) transactionId).independentReadOnly;
     }
 
-    /**
-     * *******************************
-     */
+    /***********************************/
     // Transaction ID manipulation
+
     @Override
     public TransactionId transactionIdFromString(String transactionId) {
         return new SiTransactionId(transactionId);
@@ -281,40 +277,38 @@ public class SiTransactor implements Transactor, ClientTransactor {
         dataStore.addSiFamilyToReadIfNeeded(read);
     }
 
-    /**
-     * *******************************
-     */
+    /***********************************/
     // Process update operations
+
     @Override
-    public boolean processPut(STable table, Object put, PutLog putLog) throws IOException {
+    public boolean processPut(STable table, Object put) throws IOException {
         if (isFlaggedForSiTreatment(put)) {
-            processPutDirect(table, put, putLog);
+            processPutDirect(table, put);
             return true;
         } else {
             return false;
         }
     }
 
-    private void processPutDirect(STable table, Object put, PutLog putLog) throws IOException {
+    private void processPutDirect(STable table, Object put) throws IOException {
         final SiTransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
         final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
         ensureTransactionAllowsWrites(transaction);
-        performPut(table, put, transaction, putLog);
+        performPut(table, put, transaction);
     }
 
-    private void performPut(STable table, Object put, ImmutableTransaction transaction, PutLog putLog) throws IOException {
+    private void performPut(STable table, Object put, ImmutableTransaction transaction) throws IOException {
         final Object rowKey = dataLib.getPutKey(put);
         final SRowLock lock = dataWriter.lockRow(table, rowKey);
         // This is the critical section that runs while the row is locked.
         try {
             ensureNoWriteConflict(transaction, table, rowKey);
             final Object newPut = createUltimatePut(transaction, lock, put);
-            dataStore.suppressIndexing(newPut);
+            suppressIndexing(newPut);
             dataWriter.write(table, newPut, lock);
         } finally {
             dataWriter.unLockRow(table, lock);
         }
-        dataStore.addToPutLog(transaction, rowKey, putLog);
     }
 
     /**
@@ -377,36 +371,26 @@ public class SiTransactor implements Transactor, ClientTransactor {
         return newPut;
     }
 
-    @Override
-    public void rollForward(STable table, PutLog putLog, long transactionId) throws IOException {
-        Set rows = putLog.getRows(transactionId);
-        putLog.removeRows(transactionId);
-        if (rows != null) {
-            final Transaction transaction = transactionStore.getTransaction(transactionId);
-            if (transaction.isCommitted()) {
-                for (Object row : rows) {
-                    try {
-                        dataStore.rollForward(table, row, transaction);
-                    } catch (NotServingRegionException nsre) {
-                        // if the region has split, ignore the error, just skip this row
-                    }
-                }
-            }
-        }
+    /**
+     * When this new operation goes through the co-processor stack it should not be indexed (because it already has been
+     * when the original operation went through).
+     */
+    private void suppressIndexing(Object newPut) {
+        dataLib.addAttribute(newPut, SUPPRESS_INDEXING_ATTRIBUTE_NAME, SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
     }
 
-    /**
-     * *******************************
-     */
+    /***********************************/
     // Process read operations
+
     @Override
     public boolean isFilterNeeded(Object operation) {
         return isFlaggedForSiTreatment(operation);
     }
 
     @Override
-    public FilterState newFilterState(PutLog putLog, TransactionId transactionId) throws IOException {
-        return new SiFilterState(dataLib, dataStore, transactionStore, putLog, transactionStore.getImmutableTransaction(transactionId));
+    public FilterState newFilterState(STable table, TransactionId transactionId) throws IOException {
+        return new SiFilterState(dataLib, dataStore, transactionStore, table,
+                transactionStore.getImmutableTransaction(transactionId));
     }
 
     @Override
