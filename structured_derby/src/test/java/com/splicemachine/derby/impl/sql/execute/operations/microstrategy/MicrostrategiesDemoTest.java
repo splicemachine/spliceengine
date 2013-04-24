@@ -67,33 +67,37 @@ public class MicrostrategiesDemoTest extends SpliceUnitTest {
 	public void testTransactionDemoQueries() throws Exception {
 		int count = 0;
 		methodWatcher.setAutoCommit(false);
-		ResultSet rs = methodWatcher.executeQuery(format("select orl_order_id as ORDER_ID, orl_qty_sold as QTY, orl_unit_price as UNIT_PRICE, " +
-				"orl_customer_id as CUST_ID from %s where orl_customer_id=5520",this.getTableReference(TABLE_NAME_2)));
-		while (rs.next()) {
-			count++;
-		}	
-		Assert.assertEquals(10, count);
-		Statement s = methodWatcher.getStatement();
-		s.execute(format("insert into %s (ORL_ORDER_ID,ORL_ITEM_ID,ORL_QTY_SOLD,ORL_UNIT_PRICE,ORL_CUSTOMER_ID) values "+
-			"('99999_999_1',310,1,100,5520), ('99999_999_1',311,1,100,5520), ('99999_999_1',312,1,100,5520), ('99999_999_1',313,1,100,5520), ('99999_999_1',314,1,100,5520), ('99999_999_1',315,1,100,5520), ('99999_999_1',316,1,100,5520), ('99999_999_1',317,1,100,5520), ('99999_999_1',318,1,100,5520), ('99999_999_1',319,1,100,5520),"+ 
-			"('99999_999_1',320,1,100,5520), ('99999_999_1',321,1,100,5520), ('99999_999_1',322,1,100,5520), ('99999_999_1',323,1,100,5520), ('99999_999_1',324,1,100,5520), ('99999_999_1',325,1,100,5520), ('99999_999_1',326,1,100,5520), ('99999_999_1',327,1,100,5520), ('99999_999_1',328,1,100,5520), ('99999_999_1',329,1,100,5520),"+ 
-			"('99999_999_1',330,1,100,5520), ('99999_999_1',331,1,100,5520), ('99999_999_1',332,1,100,5520), ('99999_999_1',333,1,100,5520), ('99999_999_1',334,1,100,5520), ('99999_999_1',335,1,100,5520), ('99999_999_1',336,1,100,5520), ('99999_999_1',337,1,100,5520), ('99999_999_1',338,1,100,5520), ('99999_999_1',339,1,100,5520), "+
-			"('99999_999_1',340,1,100,5520), ('99999_999_1',341,1,100,5520), ('99999_999_1',342,1,100,5520), ('99999_999_1',343,1,100,5520),('99999_999_1',344,1,100,5520),('99999_999_1',345,1,100,5520)",this.getTableReference(TABLE_NAME_2)));
-		count = 0;
-		rs = methodWatcher.executeQuery(format("select orl_order_id as ORDER_ID, orl_qty_sold as QTY, orl_unit_price as UNIT_PRICE, " +
-				"orl_customer_id as CUST_ID from %s where orl_customer_id=5520",this.getTableReference(TABLE_NAME_2)));
-		while (rs.next()) {
-			count++;
-		}	
-		Assert.assertEquals(46, count);
-		methodWatcher.rollback();			
-		count = 0;
-		rs = methodWatcher.executeQuery(format("select orl_order_id as ORDER_ID, orl_qty_sold as QTY, orl_unit_price as UNIT_PRICE, " +
-				"orl_customer_id as CUST_ID from %s where orl_customer_id=5520",this.getTableReference(TABLE_NAME_2)));
-		while (rs.next()) {
-			count++;
-		}	
-		Assert.assertEquals(10, count);
-	}
+        try {
+            ResultSet rs = methodWatcher.executeQuery(format("select orl_order_id as ORDER_ID, orl_qty_sold as QTY, orl_unit_price as UNIT_PRICE, " +
+                    "orl_customer_id as CUST_ID from %s where orl_customer_id=5520",this.getTableReference(TABLE_NAME_2)));
+            while (rs.next()) {
+                count++;
+            }
+            Assert.assertEquals(10, count);
+            Statement s = methodWatcher.getStatement();
+            s.execute(format("insert into %s (ORL_ORDER_ID,ORL_ITEM_ID,ORL_QTY_SOLD,ORL_UNIT_PRICE,ORL_CUSTOMER_ID) values "+
+                "('99999_999_1',310,1,100,5520), ('99999_999_1',311,1,100,5520), ('99999_999_1',312,1,100,5520), ('99999_999_1',313,1,100,5520), ('99999_999_1',314,1,100,5520), ('99999_999_1',315,1,100,5520), ('99999_999_1',316,1,100,5520), ('99999_999_1',317,1,100,5520), ('99999_999_1',318,1,100,5520), ('99999_999_1',319,1,100,5520),"+
+                "('99999_999_1',320,1,100,5520), ('99999_999_1',321,1,100,5520), ('99999_999_1',322,1,100,5520), ('99999_999_1',323,1,100,5520), ('99999_999_1',324,1,100,5520), ('99999_999_1',325,1,100,5520), ('99999_999_1',326,1,100,5520), ('99999_999_1',327,1,100,5520), ('99999_999_1',328,1,100,5520), ('99999_999_1',329,1,100,5520),"+
+                "('99999_999_1',330,1,100,5520), ('99999_999_1',331,1,100,5520), ('99999_999_1',332,1,100,5520), ('99999_999_1',333,1,100,5520), ('99999_999_1',334,1,100,5520), ('99999_999_1',335,1,100,5520), ('99999_999_1',336,1,100,5520), ('99999_999_1',337,1,100,5520), ('99999_999_1',338,1,100,5520), ('99999_999_1',339,1,100,5520), "+
+                "('99999_999_1',340,1,100,5520), ('99999_999_1',341,1,100,5520), ('99999_999_1',342,1,100,5520), ('99999_999_1',343,1,100,5520),('99999_999_1',344,1,100,5520),('99999_999_1',345,1,100,5520)",this.getTableReference(TABLE_NAME_2)));
+            count = 0;
+            rs = methodWatcher.executeQuery(format("select orl_order_id as ORDER_ID, orl_qty_sold as QTY, orl_unit_price as UNIT_PRICE, " +
+                    "orl_customer_id as CUST_ID from %s where orl_customer_id=5520",this.getTableReference(TABLE_NAME_2)));
+            while (rs.next()) {
+                count++;
+            }
+            Assert.assertEquals(46, count);
+            methodWatcher.rollback();
+            count = 0;
+            rs = methodWatcher.executeQuery(format("select orl_order_id as ORDER_ID, orl_qty_sold as QTY, orl_unit_price as UNIT_PRICE, " +
+                    "orl_customer_id as CUST_ID from %s where orl_customer_id=5520",this.getTableReference(TABLE_NAME_2)));
+            while (rs.next()) {
+                count++;
+            }
+            Assert.assertEquals(10, count);
+        } finally {
+            methodWatcher.commit();
+        }
+    }
 	
 }
