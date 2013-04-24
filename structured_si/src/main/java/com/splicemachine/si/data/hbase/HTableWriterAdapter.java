@@ -6,6 +6,7 @@ import com.splicemachine.si.data.api.STableWriter;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
+import java.io.IOException;
 import java.util.List;
 
 public class HTableWriterAdapter implements STableWriter {
@@ -16,7 +17,7 @@ public class HTableWriterAdapter implements STableWriter {
     }
 
     @Override
-    public void write(STable table, Object put) {
+    public void write(STable table, Object put) throws IOException {
         if (table instanceof HbTable) {
             writer.write(((HbTable) table).table, (Put) put);
         } else {
@@ -25,7 +26,7 @@ public class HTableWriterAdapter implements STableWriter {
     }
 
     @Override
-    public void write(STable table, Object put, SRowLock rowLock) {
+    public void write(STable table, Object put, SRowLock rowLock) throws IOException {
         if (table instanceof HbTable) {
             writer.write(((HbTable) table).table, (Put) put);
         } else {
@@ -34,8 +35,12 @@ public class HTableWriterAdapter implements STableWriter {
     }
 
     @Override
-    public void write(STable table, Object put, boolean durable) {
-        writer.write(table, (Put) put, durable);
+    public void write(STable table, Object put, boolean durable) throws IOException {
+        if (table instanceof HbTable) {
+            writer.write(((HbTable) table).table, (Put) put, durable);
+        } else {
+            writer.write(((HbRegion) table).region, (Put) put, durable);
+        }
     }
 
     @Override
@@ -44,7 +49,7 @@ public class HTableWriterAdapter implements STableWriter {
     }
 
     @Override
-    public SRowLock lockRow(STable table, Object rowKey) {
+    public SRowLock lockRow(STable table, Object rowKey) throws IOException {
         if (table instanceof HbTable) {
             return new HRowLock(writer.lockRow(((HbTable) table).table, (byte[]) rowKey));
         } else {
@@ -58,7 +63,7 @@ public class HTableWriterAdapter implements STableWriter {
     }
 
     @Override
-    public void unLockRow(STable table, SRowLock lock) {
+    public void unLockRow(STable table, SRowLock lock) throws IOException {
         if (table instanceof HbTable) {
             writer.unLockRow(((HbTable) table).table, ((HRowLock) lock).lock);
         } else {
