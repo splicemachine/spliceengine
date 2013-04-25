@@ -305,6 +305,41 @@
         <log4j.location>${basedir}/src/main/resources/trace-log4j.properties</log4j.location>
       </properties>
 	</profile>
+	
+	<profile>
+            <id>harness</id>
+            <activation><property><name>harness</name></property></activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.2.1</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+        <includeProjectDependencies>true</includeProjectDependencies>
+                            <classpathScope>compile</classpathScope>	        
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-cp</argument>
+                                <classpath>${maven.runtime.classpath}</classpath>
+                                <argument>org.apache.derbyTesting.functionTests.harness.RunTest</argument>
+             <argument>${test}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+
+</build>
+
+</profile>
+	
 	</profiles>
 	
 </project>
