@@ -4,6 +4,7 @@ import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SiTransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
@@ -18,17 +19,17 @@ public class SIFilter extends FilterBase {
     private static Logger LOG = Logger.getLogger(SIFilter.class);
     private Transactor transactor = null;
     protected long startTimestamp;
-    protected STable region;
+    protected RollForwardQueue rollForwardQueue;
 
     private FilterState filterState = null;
 
     public SIFilter() {
     }
 
-    public SIFilter(Transactor transactor, TransactionId transactionId, STable region) throws IOException {
+    public SIFilter(Transactor transactor, TransactionId transactionId, RollForwardQueue rollForwardQueue) throws IOException {
         this.transactor = transactor;
         this.startTimestamp = transactionId.getId();
-        this.region = region;
+        this.rollForwardQueue = rollForwardQueue;
     }
 
     @Override
@@ -44,7 +45,7 @@ public class SIFilter extends FilterBase {
 
     private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
-            filterState = transactor.newFilterState(region, new SiTransactionId(startTimestamp));
+            filterState = transactor.newFilterState(rollForwardQueue, new SiTransactionId(startTimestamp));
         }
     }
 

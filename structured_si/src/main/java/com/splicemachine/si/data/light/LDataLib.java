@@ -5,6 +5,7 @@ import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.SScan;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.util.ArrayList;
 import java.util.Collections;

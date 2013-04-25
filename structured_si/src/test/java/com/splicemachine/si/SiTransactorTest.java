@@ -8,12 +8,15 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.impl.RollForwardAction;
+import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SiFilterState;
 import com.splicemachine.si.impl.SiTransactionId;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.junit.After;
@@ -34,6 +37,14 @@ public class SiTransactorTest {
 
     void baseSetUp() {
         transactor = transactorSetup.transactor;
+        transactorSetup.rollForwardQueue = new RollForwardQueue(new RollForwardAction() {
+            @Override
+            public void rollForward(long transactionId, List rowList) throws IOException {
+                final STableReader reader = storeSetup.getReader();
+                STable testSTable = reader.open(storeSetup.getPersonTableName());
+                transactor.rollForward(testSTable, transactionId, rowList);
+            }
+        }, 10, 100, 1000);
     }
 
     @Before
@@ -105,11 +116,13 @@ public class SiTransactorTest {
         processPutDirect(useSimple, transactorSetup, storeSetup, reader, deletePut);
     }
 
-    private static void processPutDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup, STableReader reader, Object put) throws IOException {
+    private static void processPutDirect(boolean useSimple,
+                                         TransactorSetup transactorSetup, StoreSetup storeSetup, STableReader reader,
+                                         Object put) throws IOException {
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             if (useSimple) {
-                Assert.assertTrue(transactorSetup.transactor.processPut(testSTable, put));
+                Assert.assertTrue(transactorSetup.transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
             } else {
                 storeSetup.getWriter().write(testSTable, put);
             }
@@ -194,7 +207,7 @@ public class SiTransactorTest {
             if (useSimple) {
                 final FilterState filterState;
                 try {
-                    filterState = transactorSetup.transactor.newFilterState(testSTable, transactionId);
+                    filterState = transactorSetup.transactor.newFilterState(transactorSetup.rollForwardQueue, transactionId);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -1357,13 +1370,13 @@ public class SiTransactorTest {
         Assert.assertTrue(dataLib.valuesEqual(dataLib.encode(true), dataLib.getAttribute(put2, "si-needed")));
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
-            Assert.assertTrue(transactor.processPut(testSTable, put));
-            Assert.assertTrue(transactor.processPut(testSTable, put2));
+            Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
+            Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put2));
             SGet get1 = dataLib.newGet(testKey, null, null, null);
             transactorSetup.clientTransactor.initializeGet(t.getTransactionIdString(), get1);
             Object result = reader.get(testSTable, get1);
             if (useSimple) {
-                result = filterResult(storeSetup, transactorSetup, transactor.newFilterState(testSTable, t), result);
+                result = filterResult(storeSetup, transactorSetup, transactor.newFilterState(transactorSetup.rollForwardQueue, t), result);
             }
             final int ageRead = (Integer) dataLib.decode(dataLib.getResultValue(result, family, ageQualifier), Integer.class);
             Assert.assertEquals(27, ageRead);
@@ -1379,7 +1392,7 @@ public class SiTransactorTest {
             for (Object keyValue : dataLib.listResult(resultTuple)) {
                 //System.out.println(((SiTransactor) transactor).shouldKeep(keyValue, t2));
             }
-            final FilterState filterState = transactor.newFilterState(testSTable, t2);
+            final FilterState filterState = transactor.newFilterState(transactorSetup.rollForwardQueue, t2);
             if (useSimple) {
                 filterResult(storeSetup, transactorSetup, filterState, resultTuple);
             }
@@ -1395,11 +1408,63 @@ public class SiTransactorTest {
         transactorSetup.clientTransactor.initializePut(t.getTransactionIdString(), put);
         testSTable = reader.open(storeSetup.getPersonTableName());
         try {
-            Assert.assertTrue(transactor.processPut(testSTable, put));
+            Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
         } finally {
             reader.close(testSTable);
         }
 
         //System.out.println("store2 = " + store);
     }
+
+    @Test
+    public void testAsynchRollForward() throws IOException, InterruptedException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe61", 20);
+        transactor.commit(t1);
+        Object result = readRaw("joe61");
+        final SDataLib dataLib = storeSetup.getDataLib();
+        final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
+                dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+        for (Object c : commitTimestamps) {
+            final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(c), Integer.class);
+            Assert.assertEquals(-1, timestamp);
+            Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c));
+        }
+        if (useSimple) {
+            Thread.sleep(1000);
+            dumpStore();
+        } else {
+            Thread.sleep(11000);
+        }
+        Object result2 = readRaw("joe61");
+
+        final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
+                dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+        for (Object c2 : commitTimestamps2) {
+            final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(c2), Long.class);
+            Assert.assertEquals(t1.getId() + 1, timestamp);
+            Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c2));
+        }
+        TransactionId t2 = transactor.beginTransaction(false, false, false);
+        Assert.assertEquals("joe61 age=20 job=null", read(t2, "joe61"));
+    }
+
+    private Object readRaw(String name) throws IOException {
+        return readAgeRawDirect(storeSetup, name);
+    }
+
+    static Object readAgeRawDirect(StoreSetup storeSetup, String name) throws IOException {
+        final SDataLib dataLib = storeSetup.getDataLib();
+        final STableReader reader = storeSetup.getReader();
+
+        Object key = dataLib.newRowKey(new Object[]{name});
+        SGet get = dataLib.newGet(key, null, null, null);
+        STable testSTable = reader.open(storeSetup.getPersonTableName());
+        try {
+            return reader.get(testSTable, get);
+        } finally {
+            reader.close(testSTable);
+        }
+    }
+
 }

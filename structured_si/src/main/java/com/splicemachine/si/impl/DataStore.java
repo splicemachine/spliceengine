@@ -1,18 +1,19 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SRead;
-import com.splicemachine.si.data.api.SRowLock;
-import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.api.TransactionId;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+
+import static com.splicemachine.constants.TransactionConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
+import static com.splicemachine.constants.TransactionConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
 
 public class DataStore {
     private final SDataLib dataLib;
@@ -117,10 +118,23 @@ public class DataStore {
         return dataLib.valuesEqual(value, siNull);
     }
 
+    public void recordRollForward(RollForwardQueue rollForwardQueue, ImmutableTransaction transaction, Object row) {
+        rollForwardQueue.recordRow(transaction.beginTimestamp, row);
+    }
+
     public void setCommitTimestamp(STable table, Object rowKey, long beginTimestamp, long commitTimestamp) throws IOException {
         Object put = dataLib.newPut(rowKey);
+        suppressIndexing(put);
         dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, beginTimestamp, dataLib.encode(commitTimestamp));
         writer.write(table, put, false);
+    }
+
+    /**
+     * When this new operation goes through the co-processor stack it should not be indexed (because it already has been
+     * when the original operation went through).
+     */
+    public void suppressIndexing(Object newPut) {
+        dataLib.addAttribute(newPut, SUPPRESS_INDEXING_ATTRIBUTE_NAME, SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
     }
 
     public void setTombstoneOnPut(Object put, SiTransactionId transactionId) {
@@ -130,4 +144,5 @@ public class DataStore {
     public void addSiFamilyToReadIfNeeded(SRead get) {
         dataLib.addFamilyToReadIfNeeded(get, siFamily);
     }
+
 }

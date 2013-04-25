@@ -37,5 +37,4 @@ public interface SDataLib {
     void setReadTimeRange(SRead get, long minTimestamp, long maxTimestamp);
     void setReadMaxVersions(SRead get);
     void addFamilyToReadIfNeeded(SRead get, Object family);
-
 }

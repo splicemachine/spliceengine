@@ -67,6 +67,8 @@ public class HStore implements IHTableReader, IHTableWriter {
             ((HTableInterface) table).put(put);
         } else if (table instanceof HRegion) {
             ((HRegion) table).put(put, durable);
+        } else {
+            throw new RuntimeException("Cannot write to table of type " + table.getClass().getName());
         }
     }
 

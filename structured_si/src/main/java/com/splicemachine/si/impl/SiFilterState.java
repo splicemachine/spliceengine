@@ -18,11 +18,11 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
 public class SiFilterState implements FilterState {
-    private final STable table;
     private final ImmutableTransaction myTransaction;
     private final SDataLib dataLib;
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
+    private final RollForwardQueue rollForwardQueue;
 
     private final Map<Long, Transaction> transactionCache;
 
@@ -30,11 +30,11 @@ public class SiFilterState implements FilterState {
     private DecodedKeyValue keyValue;
 
     public SiFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
-                         STable table, ImmutableTransaction myTransaction) {
+                         RollForwardQueue rollForwardQueue, ImmutableTransaction myTransaction) {
         this.dataLib = dataLib;
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
-        this.table = table;
+        this.rollForwardQueue = rollForwardQueue;
         this.myTransaction = myTransaction;
 
         // initialize internal state
@@ -106,7 +106,7 @@ public class SiFilterState implements FilterState {
     private void rollForward(Transaction transaction) throws IOException {
         if (!transaction.isNestedDependent()) {
             // TODO: revisit this in light of nested independent transactions
-            dataStore.setCommitTimestamp(table, keyValue.row, transaction.beginTimestamp, transaction.commitTimestamp);
+            dataStore.recordRollForward(rollForwardQueue, transaction, keyValue.row);
         }
     }
 

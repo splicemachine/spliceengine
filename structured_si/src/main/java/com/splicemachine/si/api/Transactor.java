@@ -4,9 +4,11 @@ import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
+import com.splicemachine.si.impl.RollForwardQueue;
 import org.apache.hadoop.hbase.filter.Filter;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * The primary interface to the transaction module.
@@ -29,11 +31,13 @@ public interface Transactor extends ClientTransactor {
     void rollback(TransactionId transactionId) throws IOException;
     void fail(TransactionId transactionId) throws IOException;
 
-    boolean processPut(STable table, Object put) throws IOException;
+    boolean processPut(STable table, RollForwardQueue rollForwardQueue, Object put) throws IOException;
     boolean isFilterNeeded(Object operation);
 
     void preProcessRead(SRead readOperation) throws IOException;
 
-    FilterState newFilterState(STable table, TransactionId transactionId) throws IOException;
+    FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
+
+    void rollForward(STable table, long transactionId, List rows) throws IOException;
 }

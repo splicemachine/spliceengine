@@ -36,7 +36,11 @@ public class HTableWriterAdapter implements STableWriter {
 
     @Override
     public void write(STable table, Object put, boolean durable) throws IOException {
-        writer.write(table, (Put) put, durable);
+        if (table instanceof HbTable) {
+            writer.write(((HbTable) table).table, (Put) put, durable);
+        } else {
+            writer.write(((HbRegion) table).region, (Put) put, durable);
+        }
     }
 
     @Override

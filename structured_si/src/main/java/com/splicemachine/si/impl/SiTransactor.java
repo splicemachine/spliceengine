@@ -13,6 +13,7 @@ import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableWriter;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
@@ -20,8 +21,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.splicemachine.constants.TransactionConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
-import static com.splicemachine.constants.TransactionConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
 import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
 import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
 import static com.splicemachine.si.impl.TransactionStatus.COMMITTING;
@@ -281,34 +280,36 @@ public class SiTransactor implements Transactor, ClientTransactor {
     // Process update operations
 
     @Override
-    public boolean processPut(STable table, Object put) throws IOException {
+    public boolean processPut(STable table, RollForwardQueue rollForwardQueue, Object put) throws IOException {
         if (isFlaggedForSiTreatment(put)) {
-            processPutDirect(table, put);
+            processPutDirect(table, rollForwardQueue, put);
             return true;
         } else {
             return false;
         }
     }
 
-    private void processPutDirect(STable table, Object put) throws IOException {
+    private void processPutDirect(STable table, RollForwardQueue rollForwardQueue, Object put) throws IOException {
         final SiTransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
         final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
         ensureTransactionAllowsWrites(transaction);
-        performPut(table, put, transaction);
+        performPut(table, rollForwardQueue, put, transaction);
     }
 
-    private void performPut(STable table, Object put, ImmutableTransaction transaction) throws IOException {
+    private void performPut(STable table, RollForwardQueue rollForwardQueue, Object put, ImmutableTransaction transaction)
+            throws IOException {
         final Object rowKey = dataLib.getPutKey(put);
         final SRowLock lock = dataWriter.lockRow(table, rowKey);
         // This is the critical section that runs while the row is locked.
         try {
             ensureNoWriteConflict(transaction, table, rowKey);
             final Object newPut = createUltimatePut(transaction, lock, put);
-            suppressIndexing(newPut);
+            dataStore.suppressIndexing(newPut);
             dataWriter.write(table, newPut, lock);
         } finally {
             dataWriter.unLockRow(table, lock);
         }
+        dataStore.recordRollForward(rollForwardQueue, transaction, rowKey);
     }
 
     /**
@@ -371,14 +372,6 @@ public class SiTransactor implements Transactor, ClientTransactor {
         return newPut;
     }
 
-    /**
-     * When this new operation goes through the co-processor stack it should not be indexed (because it already has been
-     * when the original operation went through).
-     */
-    private void suppressIndexing(Object newPut) {
-        dataLib.addAttribute(newPut, SUPPRESS_INDEXING_ATTRIBUTE_NAME, SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
-    }
-
     /***********************************/
     // Process read operations
 
@@ -388,8 +381,8 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public FilterState newFilterState(STable table, TransactionId transactionId) throws IOException {
-        return new SiFilterState(dataLib, dataStore, transactionStore, table,
+    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException {
+        return new SiFilterState(dataLib, dataStore, transactionStore, rollForwardQueue,
                 transactionStore.getImmutableTransaction(transactionId));
     }
 
@@ -398,6 +391,21 @@ public class SiTransactor implements Transactor, ClientTransactor {
         return ((SiFilterState) filterState).filterKeyValue(keyValue);
     }
 
+
+    /************************************/
+    @Override
+    public void rollForward(STable table, long transactionId, List rows) throws IOException {
+        final Transaction transaction = transactionStore.getTransaction(transactionId);
+        if (transaction.isCommitted()) {
+            for(Object row : rows) {
+                try {
+                    dataStore.setCommitTimestamp(table, row, transaction.beginTimestamp, transaction.commitTimestamp);
+                } catch (NotServingRegionException e) {
+                    // If the region split and the row is not here, then just skip it
+                }
+            }
+        }
+    }
     /***********************************/
     // Helpers
 
