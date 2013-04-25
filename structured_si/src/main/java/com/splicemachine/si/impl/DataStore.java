@@ -10,6 +10,7 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.api.TransactionId;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -90,7 +91,7 @@ public class DataStore {
         }
     }
 
-    List getCommitTimestamp(STable table, Object rowKey) {
+    List getCommitTimestamp(STable table, Object rowKey) throws IOException {
         final List<List<Object>> columns = Arrays.asList(Arrays.asList(siFamily, commitTimestampQualifier));
         SGet get = dataLib.newGet(rowKey, null, columns, null);
         Object result = reader.get(table, get);
@@ -116,7 +117,7 @@ public class DataStore {
         return dataLib.valuesEqual(value, siNull);
     }
 
-    public void setCommitTimestamp(STable table, Object rowKey, long beginTimestamp, long commitTimestamp) {
+    public void setCommitTimestamp(STable table, Object rowKey, long beginTimestamp, long commitTimestamp) throws IOException {
         Object put = dataLib.newPut(rowKey);
         dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, beginTimestamp, dataLib.encode(commitTimestamp));
         writer.write(table, put, false);

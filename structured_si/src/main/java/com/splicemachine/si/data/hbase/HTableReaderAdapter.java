@@ -21,12 +21,12 @@ public class HTableReaderAdapter implements STableReader {
     }
 
     @Override
-    public void close(STable table) {
+    public void close(STable table) throws IOException {
         tableReader.close(((HbTable) table).table);
     }
 
     @Override
-    public Object get(STable table, SGet get) {
+    public Object get(STable table, SGet get) throws IOException {
         if (table instanceof HbTable) {
             return tableReader.get(((HbTable) table).table, ((HGet) get).get);
         } else {
@@ -35,7 +35,7 @@ public class HTableReaderAdapter implements STableReader {
     }
 
     @Override
-    public Iterator scan(STable table, SScan scan) {
+    public Iterator scan(STable table, SScan scan) throws IOException {
         return tableReader.scan(((HbTable) table).table, ((HScan) scan).scan);
     }
 }

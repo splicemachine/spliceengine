@@ -11,6 +11,8 @@ import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.SiFilterState;
 import com.splicemachine.si.impl.SiTransactionId;
 import com.splicemachine.si.impl.Transaction;
+import com.splicemachine.si.impl.WriteConflict;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.junit.Assert;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -107,11 +109,7 @@ public class SiTransactorTest {
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             if (useSimple) {
-                try {
-                    Assert.assertTrue(transactorSetup.transactor.processPut(testSTable, put));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                Assert.assertTrue(transactorSetup.transactor.processPut(testSTable, put));
             } else {
                 storeSetup.getWriter().write(testSTable, put);
             }
@@ -324,10 +322,9 @@ public class SiTransactorTest {
         try {
             insertAge(t2, "joe2", 30);
             Assert.fail();
-        } catch (RuntimeException e) {
-            // TODO: expected write/write conflict
-            //DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
-            //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
+        } catch (WriteConflict e) {
+        } catch (RetriesExhaustedWithDetailsException e) {
+            assertWriteConflict(e);
         }
         Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
         transactor.commit(t1);
@@ -507,10 +504,9 @@ public class SiTransactorTest {
         try {
             deleteRow(t2, "joe12");
             Assert.fail();
-        } catch (RuntimeException e) {
-            // TODO: expected write/write conflict
-            //DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
-            //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
+        } catch (WriteConflict e) {
+        } catch (RetriesExhaustedWithDetailsException e) {
+            assertWriteConflict(e);
         }
         Assert.assertEquals("joe12 age=20 job=null", read(t1, "joe12"));
         Assert.assertEquals("joe12 age=20 job=null", read(t1, "joe12"));
@@ -521,6 +517,11 @@ public class SiTransactorTest {
         } catch (DoNotRetryIOException dnrio) {
             Assert.assertTrue(dnrio.getMessage().startsWith("transaction is not ACTIVE"));
         }
+    }
+
+    private void assertWriteConflict(RetriesExhaustedWithDetailsException e) {
+        Assert.assertEquals(1, e.getNumExceptions());
+        Assert.assertTrue(e.getMessage().startsWith("Failed 1 action: WriteConflict: 1 time"));
     }
 
     @Test
@@ -536,10 +537,9 @@ public class SiTransactorTest {
         try {
             insertAge(t2, "joe13", 21);
             Assert.fail();
-        } catch (RuntimeException e) {
-            // TODO: expected write/write conflict
-            //DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
-            //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
+        } catch (WriteConflict e) {
+        } catch (RetriesExhaustedWithDetailsException e) {
+            assertWriteConflict(e);
         }
         Assert.assertEquals("joe13 age=null job=null", read(t1, "joe13"));
         transactor.commit(t1);
@@ -687,7 +687,7 @@ public class SiTransactorTest {
         try {
             insertAge(t2, "joe18", 21);
             Assert.fail("expected exception performing a write on a read-only transaction");
-        } catch (RuntimeException e) {
+        } catch (IOException e) {
         }
     }
 
@@ -1088,10 +1088,9 @@ public class SiTransactorTest {
             // TODO: make this test pass, writes should be allowed on top of committed transactions in READ_COMMITTED mode
             insertAge(other, "joe33", 21);
             Assert.fail();
-        } catch (RuntimeException e) {
-            // TODO: expected write/write conflict
-            //DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
-            //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
+        } catch (WriteConflict e) {
+        } catch (RetriesExhaustedWithDetailsException e) {
+            assertWriteConflict(e);
         }
     }
 
@@ -1134,10 +1133,9 @@ public class SiTransactorTest {
         try {
             insertAge(other, "joe36", 21);
             Assert.fail();
-        } catch (RuntimeException e) {
-            // TODO: expected write/write conflict
-            //DoNotRetryIOException dnrio = (DoNotRetryIOException) e.getCause();
-            //Assert.assertTrue(dnrio.getMessage().indexOf("write/write conflict") >= 0);
+        } catch (WriteConflict e) {
+        } catch (RetriesExhaustedWithDetailsException e) {
+            assertWriteConflict(e);
         }
     }
 
@@ -1181,7 +1179,7 @@ public class SiTransactorTest {
         Assert.assertEquals("joe53 age=20 job=null", read(t1, "joe53"));
         Assert.assertEquals("boe53 age=21 job=null", read(t1, "boe53"));
         transactor.commit(t1);
-        TransactionId t4 =  transactor.beginTransaction(false, false, false);
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
         Assert.assertEquals("joe53 age=20 job=null", read(t4, "joe53"));
         Assert.assertEquals("boe53 age=21 job=null", read(t4, "boe53"));
     }
@@ -1204,7 +1202,7 @@ public class SiTransactorTest {
         Assert.assertEquals("joe57 age=20 job=null", read(t1, "joe57"));
         Assert.assertEquals("boe57 age=21 job=null", read(t1, "boe57"));
         transactor.commit(t1);
-        TransactionId t4 =  transactor.beginTransaction(false, false, false);
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
         Assert.assertEquals("joe57 age=20 job=null", read(t4, "joe57"));
         Assert.assertEquals("boe57 age=21 job=null", read(t4, "boe57"));
     }
@@ -1224,7 +1222,7 @@ public class SiTransactorTest {
         Assert.assertEquals("joe54 age=null job=null", read(t1, "joe54"));
         Assert.assertEquals("boe54 age=21 job=null", read(t1, "boe54"));
         transactor.commit(t1);
-        TransactionId t4 =  transactor.beginTransaction(false, false, false);
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
         Assert.assertEquals("joe54 age=null job=null", read(t4, "joe54"));
         Assert.assertEquals("boe54 age=21 job=null", read(t4, "boe54"));
     }
@@ -1246,7 +1244,7 @@ public class SiTransactorTest {
         Assert.assertEquals("joe58 age=18 job=null", read(t1, "joe58"));
         Assert.assertEquals("boe58 age=21 job=null", read(t1, "boe58"));
         transactor.commit(t1);
-        TransactionId t4 =  transactor.beginTransaction(false, false, false);
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
         Assert.assertEquals("joe58 age=18 job=null", read(t4, "joe58"));
         Assert.assertEquals("boe58 age=21 job=null", read(t4, "boe58"));
     }
@@ -1267,7 +1265,7 @@ public class SiTransactorTest {
         Assert.assertEquals("joe55 age=20 job=null", read(t1, "joe55"));
         Assert.assertEquals("boe55 age=null job=null", read(t1, "boe55"));
         transactor.commit(t1);
-        TransactionId t4 =  transactor.beginTransaction(false, false, false);
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
         Assert.assertEquals("joe55 age=20 job=null", read(t4, "joe55"));
         Assert.assertEquals("boe55 age=null job=null", read(t4, "boe55"));
     }
@@ -1289,7 +1287,7 @@ public class SiTransactorTest {
         Assert.assertEquals("joe59 age=20 job=null", read(t1, "joe59"));
         Assert.assertEquals("boe59 age=19 job=null", read(t1, "boe59"));
         transactor.commit(t1);
-        TransactionId t4 =  transactor.beginTransaction(false, false, false);
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
         Assert.assertEquals("joe59 age=20 job=null", read(t4, "joe59"));
         Assert.assertEquals("boe59 age=19 job=null", read(t4, "boe59"));
     }
@@ -1313,7 +1311,7 @@ public class SiTransactorTest {
         Assert.assertEquals("joe60 age=20 job=null", read(t1, "joe60"));
         Assert.assertEquals("boe60 age=21 job=null", read(t1, "boe60"));
         transactor.rollback(t1);
-        TransactionId t4 =  transactor.beginTransaction(false, false, false);
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
         Assert.assertEquals("joe60 age=20 job=null", read(t4, "joe60"));
         Assert.assertEquals("boe60 age=null job=null", read(t4, "boe60"));
     }
@@ -1334,7 +1332,7 @@ public class SiTransactorTest {
         Assert.assertEquals("joe56 age=20 job=null", read(t1, "joe56"));
         Assert.assertEquals("boe56 age=21 job=null", read(t1, "boe56"));
         transactor.rollback(t1);
-        TransactionId t4 =  transactor.beginTransaction(false, false, false);
+        TransactionId t4 = transactor.beginTransaction(false, false, false);
         Assert.assertEquals("joe56 age=20 job=null", read(t4, "joe56"));
         Assert.assertEquals("boe56 age=null job=null", read(t4, "boe56"));
     }
@@ -1382,7 +1380,7 @@ public class SiTransactorTest {
                 //System.out.println(((SiTransactor) transactor).shouldKeep(keyValue, t2));
             }
             final FilterState filterState = transactor.newFilterState(testSTable, t2);
-            if(useSimple) {
+            if (useSimple) {
                 filterResult(storeSetup, transactorSetup, filterState, resultTuple);
             }
         } finally {

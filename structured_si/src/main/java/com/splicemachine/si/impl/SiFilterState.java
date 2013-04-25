@@ -103,7 +103,7 @@ public class SiFilterState implements FilterState {
      * Update the data row to remember the commit timestamp of the transaction. This avoids the need to look the
      * transaction up in the transaction table again the next time this row is read.
      */
-    private void rollForward(Transaction transaction) {
+    private void rollForward(Transaction transaction) throws IOException {
         if (!transaction.isNestedDependent()) {
             // TODO: revisit this in light of nested independent transactions
             dataStore.setCommitTimestamp(table, keyValue.row, transaction.beginTimestamp, transaction.commitTimestamp);
