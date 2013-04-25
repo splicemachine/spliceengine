@@ -119,7 +119,9 @@ public class DataStore {
     }
 
     public void recordRollForward(RollForwardQueue rollForwardQueue, ImmutableTransaction transaction, Object row) {
-        rollForwardQueue.recordRow(transaction.beginTimestamp, row);
+        if (rollForwardQueue != null) {
+            rollForwardQueue.recordRow(transaction.beginTimestamp, row);
+        }
     }
 
     public void setCommitTimestamp(STable table, Object rowKey, long beginTimestamp, long commitTimestamp) throws IOException {
