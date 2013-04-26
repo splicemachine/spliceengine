@@ -224,4 +224,15 @@ public class BytesUtil {
         incrementAtIndex(other,other.length-1);
         return other;
     }
+
+    public static String debug(Object o) {
+        byte[] bytes = (byte[]) o;
+        String s = "" + bytes.length + "[";
+        for (int i=0; i<bytes.length; i++) {
+            s += " " + bytes[i];
+        }
+        s += " ]";
+        return s;
+    }
+
 }

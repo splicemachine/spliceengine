@@ -4,6 +4,7 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.api.FilterState;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -18,13 +19,13 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
 public class SiFilterState implements FilterState {
+    static final Logger LOG = Logger.getLogger(SiFilterState.class);
+
     private final ImmutableTransaction myTransaction;
     private final SDataLib dataLib;
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
-
-    private final Map<Long, Transaction> transactionCache;
 
     private final FilterRowState rowState;
     private DecodedKeyValue keyValue;
@@ -38,7 +39,6 @@ public class SiFilterState implements FilterState {
         this.myTransaction = myTransaction;
 
         // initialize internal state
-        this.transactionCache = new HashMap<Long, Transaction>();
         this.rowState = new FilterRowState(dataLib);
     }
 
@@ -78,7 +78,7 @@ public class SiFilterState implements FilterState {
                 ? handleUnknownTransactionStatus()
                 // TODO: we should avoid loading the full transaction here once roll-forward is revisited
                 : transactionStore.getTransaction(keyValue.timestamp);
-        transactionCache.put(transaction.beginTimestamp, transaction);
+        rowState.transactionCache.put(transaction.beginTimestamp, transaction);
         return SKIP;
     }
 
@@ -88,15 +88,20 @@ public class SiFilterState implements FilterState {
      * the current status of the transaction.
      */
     private Transaction handleUnknownTransactionStatus() throws IOException {
-        final Transaction dataTransaction = transactionStore.getTransaction(keyValue.timestamp);
-        if (dataTransaction.isCommitted()) {
-            rollForward(dataTransaction);
-        } else if (dataTransaction.isFailed()) {
-            cleanupErrors();
-        } else if (dataTransaction.isCommitting()) {
-            //TODO: needs special handling
+        final Transaction cachedTransaction = rowState.transactionCache.get(keyValue.timestamp);
+        if (cachedTransaction == null) {
+            final Transaction dataTransaction = transactionStore.getTransaction(keyValue.timestamp);
+            if (dataTransaction.isCommitted()) {
+                rollForward(dataTransaction);
+            } else if (dataTransaction.isFailed()) {
+                cleanupErrors();
+            } else if (dataTransaction.isCommitting()) {
+                //TODO: needs special handling
+            }
+            return dataTransaction;
+        } else {
+            return cachedTransaction;
         }
-        return dataTransaction;
     }
 
     /**
@@ -191,9 +196,9 @@ public class SiFilterState implements FilterState {
      * Retrieve the transaction for the current cell from the local cache.
      */
     private Transaction loadTransaction() throws IOException {
-        final Transaction transaction = transactionCache.get(keyValue.timestamp);
+        final Transaction transaction = rowState.transactionCache.get(keyValue.timestamp);
         if (transaction == null) {
-            throw new RuntimeException("All transactions should already be loaded from the si family for the data row");
+            throw new RuntimeException("All transactions should already be loaded from the si family for the data row, transaction Id: " + keyValue.timestamp);
         }
         return transaction;
     }
