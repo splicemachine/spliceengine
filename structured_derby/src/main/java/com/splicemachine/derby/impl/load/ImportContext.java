@@ -61,6 +61,9 @@ public class ImportContext implements Externalizable{
 	private String timestampFormat;
     private FormatableBitSet pkCols;
 
+    private long byteOffset;
+    private int bytesToRead;
+
     public ImportContext(){}
 
     private ImportContext(String transactionId,
@@ -71,7 +74,9 @@ public class ImportContext implements Externalizable{
                           int [] columnTypes,
                           FormatableBitSet activeCols,
                           FormatableBitSet pkCols,
-                          String timestampFormat){
+                          String timestampFormat,
+                          long byteOffset,
+                          int bytesToRead){
         this.transactionId = transactionId;
 		this.filePath = filePath;
 		this.columnDelimiter = columnDelimiter!= null?columnDelimiter:DEFAULT_COLUMN_DELIMITTER;
@@ -81,6 +86,9 @@ public class ImportContext implements Externalizable{
 		this.activeCols = activeCols;
 		this.timestampFormat = timestampFormat;
         this.pkCols = pkCols;
+        this.byteOffset = byteOffset;
+        this.bytesToRead = bytesToRead;
+
 	}
 
 	public Path getFilePath() {
@@ -115,7 +123,15 @@ public class ImportContext implements Externalizable{
 		return timestampFormat;
 	}
 
-	@Override
+    public long getByteOffset() {
+        return byteOffset;
+    }
+
+    public int getBytesToRead() {
+        return bytesToRead;
+    }
+
+    @Override
 	public void writeExternal(ObjectOutput out) throws IOException {
 		out.writeUTF(transactionId);
         out.writeUTF(filePath.toString());
@@ -137,6 +153,8 @@ public class ImportContext implements Externalizable{
 		out.writeBoolean(timestampFormat!=null);
 		if(timestampFormat!=null)
 			out.writeUTF(timestampFormat);
+        out.writeLong(byteOffset);
+        out.writeInt(bytesToRead);
 	}
 
 	@Override
@@ -157,6 +175,8 @@ public class ImportContext implements Externalizable{
             pkCols = (FormatableBitSet)in.readObject();
 		if(in.readBoolean())
 			timestampFormat = in.readUTF();
+        byteOffset = in.readLong();
+        bytesToRead = in.readInt();
 	}
 
 	@Override
@@ -170,6 +190,8 @@ public class ImportContext implements Externalizable{
 				", tableId=" + tableId +
 				", activeCols=" + activeCols +
 				", timestampFormat='" + timestampFormat + '\'' +
+                ", byteOffset=" + byteOffset +
+                ", bytesToRead=" + bytesToRead +
 				'}';
 	}
 
@@ -192,6 +214,8 @@ public class ImportContext implements Externalizable{
 		private int numCols = -1;
         private FormatableBitSet pkCols;
         private String transactionId;
+        private long byteOffset;
+        private int bytesToRead;
 
         public Builder path(Path filePath) {
 			this.filePath = filePath;
@@ -248,6 +272,17 @@ public class ImportContext implements Externalizable{
             this.transactionId = transactionId;
             return this;
         }
+
+        public Builder byteOffset(long byteOffset){
+            this.byteOffset = byteOffset;
+            return this;
+        }
+
+        public Builder bytesToRead(int bytesToRead){
+            this.bytesToRead = bytesToRead;
+            return this;
+        }
+
 		public ImportContext build() throws StandardException {
 			Preconditions.checkNotNull(filePath,"No File specified!");
 			Preconditions.checkNotNull(tableId,"No destination table specified!");
@@ -283,7 +318,7 @@ public class ImportContext implements Externalizable{
             return new ImportContext(transactionId, filePath,tableId,
                     columnDelimiter,stripString,
                     colTypes,activeCols,pkCols,
-                    timestampFormat);
+                    timestampFormat, byteOffset, bytesToRead);
         }
     }
 }
