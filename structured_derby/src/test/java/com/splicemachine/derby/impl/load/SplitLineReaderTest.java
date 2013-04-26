@@ -32,7 +32,7 @@ public class SplitLineReaderTest {
     public void testOneLineFromFile() throws IOException {
         FSDataInputStream is = openFile("order_line_small.csv");
 
-        BufferedReader reader = new BufferedReader(new SplitLineReader(is, 0, 2));
+        BufferedReader reader =  SplitLineReader.createBufferedLineReader(is, 0, 2);
         String line1 = reader.readLine();
         String line2 = reader.readLine();
 
@@ -44,7 +44,7 @@ public class SplitLineReaderTest {
     public void testReadWholeFile() throws IOException {
         FSDataInputStream is = openFile("small_msdatasample/item.csv");
 
-        BufferedReader reader = new BufferedReader(new SplitLineReader(is, 0, Integer.MAX_VALUE));
+        BufferedReader reader =  SplitLineReader.createBufferedLineReader(is, 0, Integer.MAX_VALUE);
         List<String> pks = new ArrayList<String>();
         String line = null;
         CSVParser csvParse = new CSVParser(',','"');
@@ -69,8 +69,7 @@ public class SplitLineReaderTest {
     public void testBeginMidLine() throws IOException {
         FSDataInputStream is = openFile("small_msdatasample/item.csv");
 
-        BufferedReader reader = new BufferedReader(new SplitLineReader(is, 2, Integer.MAX_VALUE));
-        reader.readLine(); //Discard partial first line
+        BufferedReader reader =  SplitLineReader.createBufferedLineReader(is, 2, Integer.MAX_VALUE);
 
         List<String> pks = new ArrayList<String>();
         String line = null;

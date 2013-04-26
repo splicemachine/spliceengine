@@ -2,10 +2,17 @@ package com.splicemachine.derby.impl.load;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 
+/**
+ * Reader that recognizes byte boundries.  This class is useful for splitting a file
+ * starting at an arbitrary byte of the file and consuming up to some total amount of bytes.
+ * It's line aware and will consume bytes beyond totalBytesToRead, until it has found the next
+ * newline.
+ */
 public class SplitLineReader extends Reader {
 
     private InputStreamReader isr = null;
@@ -19,11 +26,15 @@ public class SplitLineReader extends Reader {
 
     }
 
-    @Override
-    public int read(char[] cbuf) throws IOException {
-        return super.read(cbuf);    //To change body of overridden methods use File | Settings | File Templates.
-    }
-
+    /**
+     * Consumes either maxBytesToRead or up to the newline character from the input stream reader, whichever comes first.
+     *
+     * @param chars
+     * @param offset
+     * @param maxBytesToRead
+     * @return
+     * @throws IOException
+     */
     private int readUntilEOL(char[] chars, int offset, int maxBytesToRead) throws IOException {
         int result = 0;
 
@@ -69,5 +80,26 @@ public class SplitLineReader extends Reader {
     @Override
     public void close() throws IOException {
         isr.close();
+    }
+
+    /**
+     * Returns a BufferedReader wrapping a SplitLineReader.  There's nothing special about the BufferedReader
+     * other than the first line is always discarded, unless the first bytes from the stream are being read.
+     * It's assumed that the previous chunk read from the file will have consumed the first bytes up to the newline.
+     *
+     * @param fis
+     * @param beginAt
+     * @param totalBytesToRead
+     * @return
+     * @throws IOException
+     */
+    public static BufferedReader createBufferedLineReader(FSDataInputStream fis, long beginAt, int totalBytesToRead) throws IOException{
+        BufferedReader buff = new BufferedReader(new SplitLineReader(fis, beginAt, totalBytesToRead));
+
+        if(beginAt != 0){
+            buff.readLine();
+        }
+
+        return buff;
     }
 }
