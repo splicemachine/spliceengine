@@ -396,17 +396,17 @@ public class SiTransactor implements Transactor, ClientTransactor {
     @Override
     public void rollForward(STable table, long transactionId, List rows) throws IOException {
         final Transaction transaction = transactionStore.getTransaction(transactionId);
-        Tracer.traceTransaction(transactionId);
         if (transaction.isCommitted()) {
             for(Object row : rows) {
                 try {
-                    Tracer.trace(row);
                     dataStore.setCommitTimestamp(table, row, transaction.beginTimestamp, transaction.commitTimestamp);
+                    Tracer.trace(row);
                 } catch (NotServingRegionException e) {
                     // If the region split and the row is not here, then just skip it
                 }
             }
         }
+        Tracer.traceTransaction(transactionId);
     }
     /***********************************/
     // Helpers
