@@ -1,5 +1,6 @@
 package com.splicemachine.si;
 
+import com.google.common.base.Function;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SScan;
@@ -12,6 +13,7 @@ import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SiFilterState;
 import com.splicemachine.si.impl.SiTransactionId;
+import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
@@ -23,10 +25,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class SiTransactorTest {
     boolean useSimple = true;
@@ -1418,35 +1423,104 @@ public class SiTransactorTest {
 
     @Test
     public void testAsynchRollForward() throws IOException, InterruptedException {
-        TransactionId t1 = transactor.beginTransaction(true, false, false);
-        insertAge(t1, "joe61", 20);
-        transactor.commit(t1);
-        Object result = readRaw("joe61");
-        final SDataLib dataLib = storeSetup.getDataLib();
-        final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
-                dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
-        for (Object c : commitTimestamps) {
-            final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(c), Integer.class);
-            Assert.assertEquals(-1, timestamp);
-            Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c));
-        }
-        if (useSimple) {
-            Thread.sleep(1000);
-            dumpStore();
-        } else {
-            Thread.sleep(11000);
-        }
-        Object result2 = readRaw("joe61");
+        try {
+            Tracer.rollForwardDelayOverride = 100;
+            TransactionId t1 = transactor.beginTransaction(true, false, false);
+            insertAge(t1, "joe61", 20);
+            final CountDownLatch latch = makeLatch("joe61");
+            transactor.commit(t1);
+            Object result = readRaw("joe61");
+            final SDataLib dataLib = storeSetup.getDataLib();
+            final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
+                    dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+            for (Object c : commitTimestamps) {
+                final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(c), Integer.class);
+                Assert.assertEquals(-1, timestamp);
+                Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c));
+            }
+            Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
 
-        final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
-                dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
-        for (Object c2 : commitTimestamps2) {
-            final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(c2), Long.class);
-            Assert.assertEquals(t1.getId() + 1, timestamp);
-            Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c2));
+            Object result2 = readRaw("joe61");
+            final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
+                    dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+            for (Object c2 : commitTimestamps2) {
+                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(c2), Long.class);
+                Assert.assertEquals(t1.getId() + 1, timestamp);
+                Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c2));
+            }
+            TransactionId t2 = transactor.beginTransaction(false, false, false);
+            Assert.assertEquals("joe61 age=20 job=null", read(t2, "joe61"));
+        } finally {
+            Tracer.rollForwardDelayOverride = null;
         }
-        TransactionId t2 = transactor.beginTransaction(false, false, false);
-        Assert.assertEquals("joe61 age=20 job=null", read(t2, "joe61"));
+    }
+
+    private CountDownLatch makeLatch(final String targetKey) {
+        final SDataLib dataLib = storeSetup.getDataLib();
+        final CountDownLatch latch = new CountDownLatch(1);
+        Tracer.register(new Function<Object, Object>() {
+            @Override
+            public Object apply(@Nullable Object input) {
+                String key = (String) dataLib.decode(input, String.class);
+                if (key.equals(targetKey)) {
+                    latch.countDown();
+                }
+                return null;
+            }
+        });
+        return latch;
+    }
+
+    private CountDownLatch makeTransactionLatch(final TransactionId targetTransactionId) {
+        final CountDownLatch latch = new CountDownLatch(1);
+        Tracer.registerTransaction(new Function<Long, Object>() {
+            @Override
+            public Object apply(@Nullable Long input) {
+                if (input.equals(targetTransactionId.getId())) {
+                    latch.countDown();
+                }
+                return null;
+            }
+        });
+        return latch;
+    }
+
+    @Test
+    public void testAsynchRollForwardViaScan() throws IOException, InterruptedException {
+        try {
+            Tracer.rollForwardDelayOverride = 100;
+            TransactionId t1 = transactor.beginTransaction(true, false, false);
+            final CountDownLatch transactionlatch = makeTransactionLatch(t1);
+            insertAge(t1, "joe62", 20);
+            Assert.assertTrue(transactionlatch.await(11, TimeUnit.SECONDS));
+            transactor.commit(t1);
+            Object result = readRaw("joe62");
+            final SDataLib dataLib = storeSetup.getDataLib();
+            final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
+                    dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+            for (Object c : commitTimestamps) {
+                final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(c), Integer.class);
+                Assert.assertEquals(-1, timestamp);
+                Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c));
+            }
+
+            final CountDownLatch latch = makeLatch("joe62");
+            TransactionId t2 = transactor.beginTransaction(false, false, false);
+            Assert.assertEquals("joe62 age=20 job=null", read(t2, "joe62"));
+            Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
+
+            Object result2 = readRaw("joe62");
+
+            final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
+                    dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+            for (Object c2 : commitTimestamps2) {
+                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(c2), Long.class);
+                Assert.assertEquals(t1.getId() + 1, timestamp);
+                Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c2));
+            }
+        } finally {
+            Tracer.rollForwardDelayOverride = null;
+        }
     }
 
     private Object readRaw(String name) throws IOException {

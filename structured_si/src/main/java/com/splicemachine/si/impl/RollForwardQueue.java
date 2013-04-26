@@ -96,7 +96,16 @@ public class RollForwardQueue {
                 clearRowList(transactionId);
             }
         };
-        scheduler.schedule(roller, rollForwardDelayMS, TimeUnit.MILLISECONDS);
+        scheduler.schedule(roller, getRollForwardDelay(), TimeUnit.MILLISECONDS);
+    }
+
+    private int getRollForwardDelay() {
+        Integer override = Tracer.rollForwardDelayOverride;
+        if (override == null) {
+            return rollForwardDelayMS;
+        } else {
+            return override.intValue();
+        }
     }
 
     public List takeRowList(long transactionId) {
