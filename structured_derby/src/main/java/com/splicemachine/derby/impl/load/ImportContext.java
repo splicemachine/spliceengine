@@ -287,6 +287,7 @@ public class ImportContext implements Externalizable{
 			Preconditions.checkNotNull(filePath,"No File specified!");
 			Preconditions.checkNotNull(tableId,"No destination table specified!");
 			Preconditions.checkNotNull(columnDelimiter,"No column Delimiter specified");
+            Preconditions.checkNotNull(transactionId,"No transactionId specified");
 
 			int[] colTypes = numCols>0?new int[numCols]:new int[indexToTypeMap.size()];
 
