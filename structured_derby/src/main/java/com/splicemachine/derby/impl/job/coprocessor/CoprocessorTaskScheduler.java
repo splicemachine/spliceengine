@@ -195,8 +195,24 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
             }
             for(String taskNode:tasks){
                 try{
-                    ByteDataInput bdi = new ByteDataInput(zooKeeper.getData(regionQueue+"/"+taskNode,false,new Stat()));
+                    ByteDataInput bdi = new ByteDataInput(zooKeeper.getData(regionQueue+"/"+taskNode+"/status",false,new Stat()));
+                    //read status node and ensure status is something that we need to execute
+                    TaskStatus status = (TaskStatus)bdi.readObject();
+                    switch (status.getStatus()) {
+                        case FAILED:
+                        case COMPLETED:
+                        case CANCELLED:
+                            //don't resubmit
+                            continue;
+                    }
+
+                    //task needs to be re-run, so read it out and submit it
+                    bdi = new ByteDataInput(zooKeeper.getData(regionQueue+"/"+taskNode,false,new Stat()));
                     Task task = (Task)bdi.readObject();
+
+                    //we need to run this task
+                    task.getTaskStatus().setStatus(status.getStatus());
+
                     if(task instanceof RegionTask){
                         RegionTask regionTask = (RegionTask)task;
                         regionTask.prepareTask(regionToLoad, zooKeeper);
