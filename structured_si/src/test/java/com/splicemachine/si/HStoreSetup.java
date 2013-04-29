@@ -2,6 +2,7 @@ package com.splicemachine.si;
 
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.SIConstants;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.api.SDataLib;
@@ -15,6 +16,7 @@ import com.splicemachine.si.data.hbase.HDataLibAdapter;
 import com.splicemachine.si.data.hbase.HStore;
 import com.splicemachine.si.data.hbase.HTableReaderAdapter;
 import com.splicemachine.si.data.hbase.HTableWriterAdapter;
+import com.splicemachine.si.impl.SystemClock;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 
@@ -25,6 +27,7 @@ public class HStoreSetup implements StoreSetup {
     SDataLib dataLib;
     STableReader reader;
     STableWriter writer;
+    Clock clock = new SystemClock();
 
     HBaseTestingUtility testCluster;
 
@@ -106,5 +109,10 @@ public class HStoreSetup implements StoreSetup {
     @Override
     public String getPersonTableName() {
         return "999";
+    }
+
+    @Override
+    public Clock getClock() {
+        return clock;
     }
 }

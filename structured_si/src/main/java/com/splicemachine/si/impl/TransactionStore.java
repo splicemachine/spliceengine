@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -67,6 +68,11 @@ public class TransactionStore {
         writePut(makeStatusUpdateTuple(startTransactionTimestamp, newStatus));
     }
 
+    public void recordKeepAlive(TransactionId startTransactionTimestamp)
+            throws IOException {
+        writePut(makeKeepAliveTuple(startTransactionTimestamp));
+    }
+
     public ImmutableTransaction getImmutableTransaction(TransactionId transactionId) throws IOException {
         final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId.getId());
         if (cachedTransaction != null) {
@@ -99,6 +105,11 @@ public class TransactionStore {
             Object resultTuple = reader.get(transactionSTable, get);
             if (resultTuple != null) {
                 final Object value = dataLib.getResultValue(resultTuple, encodedSchema.siFamily, encodedSchema.statusQualifier);
+
+                final List keepAliveValues = dataLib.getResultColumn(resultTuple, encodedSchema.siFamily, encodedSchema.keepAliveQualifier);
+                final Object keepAliveValue = keepAliveValues.get(0);
+                final long keepAlive = dataLib.getKeyValueTimestamp(keepAliveValue);
+
                 TransactionStatus status = (value == null) ? null : TransactionStatus.values()[((Integer) dataLib.decode(value, Integer.class))];
                 Long parentId = getLongFieldFromResult(resultTuple, encodedSchema.parentQualifier);
                 Transaction parent = null;
@@ -116,8 +127,7 @@ public class TransactionStore {
                     children.add(Long.valueOf((String) dataLib.decode(child, String.class)));
                 }
 
-                final Transaction result = new Transaction(transactionId.getId(),
-                        parent, children,
+                final Transaction result = new Transaction(transactionId.getId(), keepAlive, parent, children,
                         getBooleanFieldFromResult(resultTuple, encodedSchema.dependentQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.allowWritesQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.readUncommittedQualifier),
@@ -161,9 +171,16 @@ public class TransactionStore {
         return put;
     }
 
+    private Object makeKeepAliveTuple(TransactionId transactionId) {
+        Object put = makeBasePut(transactionId);
+        addFieldToPut(put, encodedSchema.keepAliveQualifier, encodedSchema.siNull);
+        return put;
+    }
+
     private Object makeCreateTuple(TransactionId transactionId, TransactionParams params, TransactionStatus status) {
         Object put = makeBasePut(transactionId);
         addFieldToPut(put, encodedSchema.startQualifier, transactionId.getId());
+        addFieldToPut(put, encodedSchema.keepAliveQualifier, encodedSchema.siNull);
         if (params.parent != null) {
             addFieldToPut(put, encodedSchema.parentQualifier, params.parent.getId());
         }

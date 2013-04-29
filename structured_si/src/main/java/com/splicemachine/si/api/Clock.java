@@ -1,4 +1,4 @@
-package com.splicemachine.si.data.light;
+package com.splicemachine.si.api;
 
 /**
  * Generate timestamps representing the time in milliseconds since the epoch.

@@ -19,6 +19,7 @@ public class SIConstants {
     public static final int TRANSACTION_READ_COMMITTED_COLUMN = 5;
     public static final int TRANSACTION_STATUS_COLUMN = 6;
     public static final int TRANSACTION_COMMIT_TIMESTAMP_COLUMN = 7;
+    public static final int TRANSACTION_KEEP_ALIVE_COLUMN = 8;
 
     public static final byte[] TRANSACTION_START_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_START_TIMESTAMP_COLUMN);
     public static final byte[] TRANSACTION_PARENT_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_PARENT_COLUMN);

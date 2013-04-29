@@ -12,6 +12,7 @@ import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableWriter;
+import com.splicemachine.si.api.Clock;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -40,14 +41,18 @@ public class SiTransactor implements Transactor, ClientTransactor {
     private final STableWriter dataWriter;
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
+    private final Clock clock;
+    private final int transactionTimeoutMS;
 
     public SiTransactor(TimestampSource timestampSource, SDataLib dataLib, STableWriter dataWriter, DataStore dataStore,
-                        TransactionStore transactionStore) {
+                        TransactionStore transactionStore, Clock clock, int transactionTimeoutMS) {
         this.timestampSource = timestampSource;
         this.dataLib = dataLib;
         this.dataWriter = dataWriter;
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
+        this.clock = clock;
+        this.transactionTimeoutMS = transactionTimeoutMS;
     }
 
     /***********************************/
@@ -64,7 +69,8 @@ public class SiTransactor implements Transactor, ClientTransactor {
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
                                                Boolean readUncommitted, Boolean readCommitted) throws IOException {
         if (dependent || allowWrites) {
-            final TransactionParams params = new TransactionParams(parent, dependent, allowWrites, readUncommitted, readCommitted);
+            final TransactionParams params = new TransactionParams(parent, dependent, allowWrites, readUncommitted,
+                    readCommitted);
             return createHeavyChildTransaction(params);
         } else {
             return createLightweightChildTransaction(parent);
@@ -106,6 +112,11 @@ public class SiTransactor implements Transactor, ClientTransactor {
      */
     private TransactionId createLightweightChildTransaction(TransactionId parent) {
         return new SiTransactionId(parent.getId(), true);
+    }
+
+    @Override
+    public void keepAlive(TransactionId transactionId) throws IOException {
+        transactionStore.recordKeepAlive(transactionId);
     }
 
     @Override
@@ -331,8 +342,22 @@ public class SiTransactor implements Transactor, ClientTransactor {
             throws IOException {
         for (Object dataCommitKeyValue : dataCommitKeyValues) {
             final long dataTransactionId = dataLib.getKeyValueTimestamp(dataCommitKeyValue);
-            final Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
+            Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
+            dataTransaction = checkTransactionTimeout(dataTransaction);
             checkTransactionConflict(updateTransaction, dataTransaction);
+        }
+    }
+
+    /**
+     * Look at the last keepAlive timestamp on the transaction, if it is too long in the past then "fail" the
+     * transaction. Returns a possibly updated transaction that reflects the call to "fail".
+     */
+    private Transaction checkTransactionTimeout(Transaction dataTransaction) throws IOException {
+        if ((clock.getTime() - dataTransaction.keepAlive) > transactionTimeoutMS) {
+            fail(dataTransaction.getTransactionId());
+            return transactionStore.getTransaction(dataTransaction.getTransactionId());
+        } else {
+            return dataTransaction;
         }
     }
 

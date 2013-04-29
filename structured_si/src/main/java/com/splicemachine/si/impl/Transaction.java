@@ -15,6 +15,12 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  */
 public class Transaction extends ImmutableTransaction {
     /**
+     * the last time keepAlive was called on this transaction (or when the transaction began). This is an actual timestamp
+     * (i.e. number of ms since Jan 1, 1970), not a sequence number.
+     */
+    public final long keepAlive;
+
+    /**
      * the time when the transaction committed or null if it has not committed
      */
     public final Long commitTimestamp;
@@ -34,11 +40,12 @@ public class Transaction extends ImmutableTransaction {
      */
     private final boolean locallyCommitted;
 
-    public Transaction(long beginTimestamp, Transaction parent, Set<Long> children,
+    public Transaction(long beginTimestamp, long keepAlive, Transaction parent, Set<Long> children,
                        Boolean dependent, boolean allowWrites,
                        Boolean readUncommitted, Boolean readCommitted, TransactionStatus status,
                        Long commitTimestamp) {
         super(dependent, allowWrites, readCommitted, parent, readUncommitted, beginTimestamp);
+        this.keepAlive = keepAlive;
         this.commitTimestamp = commitTimestamp;
         this.parent = parent;
         this.children = children;

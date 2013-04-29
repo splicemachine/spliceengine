@@ -3,7 +3,7 @@ package com.splicemachine.si;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.data.light.Clock;
+import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.data.light.LDataLib;
 import com.splicemachine.si.data.light.LStore;
@@ -14,10 +14,11 @@ public class LStoreSetup implements StoreSetup {
     SDataLib dataLib;
     STableReader reader;
     STableWriter writer;
+    Clock clock;
 
     public LStoreSetup() {
         dataLib = new LDataLib();
-        Clock clock = new IncrementingClock(1000);
+        clock = new IncrementingClock(1000);
         store = new LStore(clock);
         reader = store;
         writer = store;
@@ -51,5 +52,10 @@ public class LStoreSetup implements StoreSetup {
     @Override
     public String getPersonTableName() {
         return "person";
+    }
+
+    @Override
+    public Clock getClock() {
+        return clock;
     }
 }

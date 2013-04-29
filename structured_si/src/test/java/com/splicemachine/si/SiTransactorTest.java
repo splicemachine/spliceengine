@@ -1,6 +1,7 @@
 package com.splicemachine.si;
 
 import com.google.common.base.Function;
+import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SScan;
@@ -9,6 +10,7 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SiFilterState;
@@ -1422,7 +1424,7 @@ public class SiTransactorTest {
     }
 
     @Test
-    public void testAsynchRollForward() throws IOException, InterruptedException {
+    public void asynchRollForward() throws IOException, InterruptedException {
         try {
             Tracer.rollForwardDelayOverride = 100;
             TransactionId t1 = transactor.beginTransaction(true, false, false);
@@ -1486,7 +1488,7 @@ public class SiTransactorTest {
     }
 
     @Test
-    public void testAsynchRollForwardViaScan() throws IOException, InterruptedException {
+    public void asynchRollForwardViaScan() throws IOException, InterruptedException {
         try {
             Tracer.rollForwardDelayOverride = 100;
             TransactionId t1 = transactor.beginTransaction(true, false, false);
@@ -1538,6 +1540,53 @@ public class SiTransactorTest {
             return reader.get(testSTable, get);
         } finally {
             reader.close(testSTable);
+        }
+    }
+
+    @Test
+    public void transactionTimeout() throws IOException, InterruptedException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe63", 20);
+        sleep();
+        TransactionId t2 = transactor.beginTransaction(true, false, false);
+        insertAge(t2, "joe63", 21);
+        transactor.commit(t2);
+    }
+
+    @Test
+    public void transactionNoTimeoutWithKeepAlive() throws IOException, InterruptedException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe64", 20);
+        sleep();
+        transactor.keepAlive(t1);
+        TransactionId t2 = transactor.beginTransaction(true, false, false);
+        try {
+            insertAge(t2, "joe64", 21);
+            Assert.fail();
+        } catch (WriteConflict e) {
+        } catch (RetriesExhaustedWithDetailsException e) {
+            assertWriteConflict(e);
+        }
+    }
+
+    @Test
+    public void transactionTimeoutAfterKeepAlive() throws IOException, InterruptedException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe65", 20);
+        sleep();
+        transactor.keepAlive(t1);
+        sleep();
+        TransactionId t2 = transactor.beginTransaction(true, false, false);
+        insertAge(t2, "joe65", 21);
+        transactor.commit(t2);
+    }
+
+    private void sleep() throws InterruptedException {
+        if (useSimple) {
+            final IncrementingClock clock = (IncrementingClock) storeSetup.getClock();
+            clock.delay(2000);
+        } else {
+            Thread.sleep(2000);
         }
     }
 

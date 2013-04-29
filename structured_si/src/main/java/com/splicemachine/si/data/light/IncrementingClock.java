@@ -1,5 +1,7 @@
 package com.splicemachine.si.data.light;
 
+import com.splicemachine.si.api.Clock;
+
 public class IncrementingClock implements Clock {
     private long time = 0;
 
@@ -16,5 +18,9 @@ public class IncrementingClock implements Clock {
             time = time + 1;
             return time - 1;
         }
+    }
+
+    public void delay(long delay) {
+        time = time + delay;
     }
 }

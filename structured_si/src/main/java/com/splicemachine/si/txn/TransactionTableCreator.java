@@ -20,7 +20,7 @@ public class TransactionTableCreator {
             if (!admin.tableExists(TransactionConstants.TRANSACTION_TABLE_BYTES)) {
                 HTableDescriptor desc = new HTableDescriptor(TransactionConstants.TRANSACTION_TABLE_BYTES);
                 desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-                        Integer.MAX_VALUE,
+                        5,
                         admin.getConfiguration().get(HBaseConstants.TABLE_COMPRESSION, HBaseConstants.DEFAULT_COMPRESSION),
                         HBaseConstants.DEFAULT_IN_MEMORY,
                         HBaseConstants.DEFAULT_BLOCKCACHE,
@@ -28,6 +28,7 @@ public class TransactionTableCreator {
                         HBaseConstants.DEFAULT_BLOOMFILTER));
                 desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY));
                 desc.addFamily(new HColumnDescriptor(SIConstants.SNAPSHOT_ISOLATION_CHILDREN_FAMILY));
+
                 admin.createTable(desc);
             }
         } catch (Exception e) {

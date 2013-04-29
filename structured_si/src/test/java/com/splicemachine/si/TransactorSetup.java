@@ -21,9 +21,8 @@ import java.util.concurrent.TimeUnit;
 
 public class TransactorSetup {
     final TransactionSchema transactionSchema = new TransactionSchema(TransactionConstants.TRANSACTION_TABLE, "siFamily",
-            "siChildrenFamily",
-            "begin", "parent", "dependent", "allowWrites", "readUncommited", "readCommitted", "commit",
-            "status");
+            "siChildrenFamily", -1, "begin", "parent", "dependent", "allowWrites", "readUncommited", "readCommitted",
+            "commit", "status", "keepAlive");
     Object family;
     Object ageQualifier;
     Object jobQualifier;
@@ -54,7 +53,7 @@ public class TransactorSetup {
         SiTransactor siTransactor = new SiTransactor(new SimpleTimestampSource(), dataLib, writer,
                 new DataStore(dataLib, reader, writer, "si-needed", "si-transaction-id", "si-delete-put",
                         SI_DATA_FAMILY, SI_DATA_COMMIT_TIMESTAMP_QUALIFIER, "tombstone", -1, userColumnsFamilyName),
-                transactionStore);
+                transactionStore, storeSetup.getClock(), 1500);
         clientTransactor = siTransactor;
         transactor = siTransactor;
     }
