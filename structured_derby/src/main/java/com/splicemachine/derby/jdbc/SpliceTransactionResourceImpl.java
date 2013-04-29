@@ -3,6 +3,7 @@ package com.splicemachine.derby.jdbc;
 import java.sql.SQLException;
 import java.util.Properties;
 import org.apache.derby.iapi.db.Database;
+import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Attribute;
 import org.apache.derby.iapi.reference.Property;
@@ -12,6 +13,7 @@ import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.util.IdUtil;
+import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
@@ -42,6 +44,17 @@ public final class SpliceTransactionResourceImpl {
 		cm = csf.newContextManager();
 		ContextService.getFactory().setCurrentContextManager(cm);
 		database = (SpliceDatabase) Monitor.findService(Property.DATABASE_MODULE, dbname);
+        if(database==null){
+            SpliceLogUtils.debug(LOG,"database has not yet been created, creating now");
+            try {
+                if(!Monitor.startPersistentService(dbname,info)){
+                    throw new IllegalArgumentException("Unable to start database!");
+                }
+                database = (SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE,dbname);
+            } catch (StandardException e) {
+                throw PublicAPI.wrapStandardException(e);
+            }
+        }
 	}
 
 	public void setDatabase(SpliceDatabase db) {
