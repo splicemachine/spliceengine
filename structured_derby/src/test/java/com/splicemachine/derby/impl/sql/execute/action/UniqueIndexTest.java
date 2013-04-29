@@ -30,6 +30,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
 	public static final String TABLE_NAME_5 = "E";
 	public static final String TABLE_NAME_6 = "F";
 	public static final String TABLE_NAME_7 = "G";
+    public static final String TABLE_NAME_8 = "H";
 	public static final String INDEX_11 = "IDX_A1";
 	public static final String INDEX_21 = "IDX_B1";
 	public static final String INDEX_31 = "IDX_C1";
@@ -37,6 +38,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
 	public static final String INDEX_51 = "IDX_E1";
 	public static final String INDEX_61 = "IDX_F1";
 	public static final String INDEX_71 = "IDX_G1";
+    public static final String INDEX_81 = "IDX_H1";
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(name varchar(40), val int)");
@@ -45,6 +47,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,CLASS_NAME,"(name varchar(40), val int)");
+    protected static SpliceTableWatcher uniqueTableWatcher = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME,"(name varchar(40), val int, unique(val))");
 
     @Override
     public String getSchemaName() {
@@ -60,8 +63,9 @@ public class UniqueIndexTest extends SpliceUnitTest {
 		.around(spliceTableWatcher4)
 		.around(spliceTableWatcher5)
 		.around(spliceTableWatcher6)
-		.around(spliceTableWatcher7);
-	
+		.around(spliceTableWatcher7)
+        .around(uniqueTableWatcher);
+
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -255,6 +259,19 @@ public class UniqueIndexTest extends SpliceUnitTest {
         }
         Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
 
+    }
+
+    @Test
+    public void testUniqueInTableCreationViolatesPrimaryKey() throws Exception{
+        String name = "sfines";
+        int value =2;
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_8),name,value));
+        try{
+            methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_8),name,value));
+        }catch(SQLException se){
+            throw se;
+        }
+        Assert.assertTrue("Did not report a duplicate key violation!",false);
     }
 
 
