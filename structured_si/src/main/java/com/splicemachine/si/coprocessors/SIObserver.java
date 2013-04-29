@@ -3,6 +3,7 @@ package com.splicemachine.si.coprocessors;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.TransactionConstants;
 import com.splicemachine.constants.environment.EnvUtils;
+import com.splicemachine.si.api.TransactorFactory;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.hbase.HGet;
 import com.splicemachine.si.data.hbase.HScan;
@@ -14,6 +15,7 @@ import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.TransactorFactoryImpl;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -46,10 +48,13 @@ public class SIObserver extends BaseRegionObserver {
     private String tableName;
     private static final int S = 1000;
     private RollForwardQueue rollForwardQueue;
+    private Configuration envConfiguration;
+    private Transactor transactor;
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
+        this.envConfiguration = e.getConfiguration();
         region = ((RegionCoprocessorEnvironment) e).getRegion();
         tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
         tableEnvMatch = (EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TransactionConstants.TableEnv.USER_TABLE)
@@ -64,6 +69,7 @@ public class SIObserver extends BaseRegionObserver {
             }
         };
         rollForwardQueue = new RollForwardQueue(action, 10000, 10 * S, 5 * 60 * S);
+        transactor= TransactorFactoryImpl.getTransactor(envConfiguration);
         super.start(e);
     }
 
@@ -77,7 +83,6 @@ public class SIObserver extends BaseRegionObserver {
     public void preGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get, List<KeyValue> results) throws IOException {
         SpliceLogUtils.trace(LOG, "preGet %s", get);
         if (tableEnvMatch && shouldUseSI(new HGet(get))) {
-            Transactor transactor = TransactorFactoryImpl.getTransactor();
             transactor.preProcessRead(new HGet(get));
             assert (get.getMaxVersions() == Integer.MAX_VALUE);
             addSiFilterToGet(e, get);
@@ -94,7 +99,6 @@ public class SIObserver extends BaseRegionObserver {
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan, RegionScanner s) throws IOException {
         SpliceLogUtils.trace(LOG, "preScannerOpen %s", scan);
         if (tableEnvMatch && shouldUseSI(new HScan(scan))) {
-            Transactor transactor = TransactorFactoryImpl.getTransactor();
             transactor.preProcessRead(new HScan(scan));
             assert (scan.getMaxVersions() == Integer.MAX_VALUE);
             addSiFilterToScan(e, scan);
@@ -108,19 +112,16 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     private void addSiFilterToGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get) throws IOException {
-        Transactor transactor = TransactorFactoryImpl.getTransactor();
         Filter newFilter = makeSiFilter(e, transactor.transactionIdFromOperation(new HGet(get)), get.getFilter());
         get.setFilter(newFilter);
     }
 
     private void addSiFilterToScan(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan) throws IOException {
-        Transactor transactor = TransactorFactoryImpl.getTransactor();
         Filter newFilter = makeSiFilter(e, transactor.transactionIdFromOperation(new HScan(scan)), scan.getFilter());
         scan.setFilter(newFilter);
     }
 
     private Filter makeSiFilter(ObserverContext<RegionCoprocessorEnvironment> e, TransactionId transactionId, Filter currentFilter) throws IOException {
-        Transactor transactor = TransactorFactoryImpl.getTransactor();
         SIFilter siFilter = new SIFilter(transactor, transactionId, rollForwardQueue);
         Filter newFilter;
         if (currentFilter != null) {
@@ -134,7 +135,6 @@ public class SIObserver extends BaseRegionObserver {
     @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
         if (tableEnvMatch) {
-            Transactor transactor = TransactorFactoryImpl.getTransactor();
             STable region = new HbRegion(e.getEnvironment().getRegion());
             boolean processed = transactor.processPut(region, rollForwardQueue, put);
             if (processed) {

@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.TransactionConstants;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
@@ -13,9 +14,11 @@ import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
+import com.splicemachine.si.api.SIConstants;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.drda.NetworkServerControl;
+import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
@@ -149,7 +152,7 @@ public class SpliceDriver {
             executor.submit(new Callable<Void>(){
                 @Override
                 public Void call() throws Exception {
-
+                    SpliceLogUtils.info(LOG,"Booting the SpliceDriver");
                     writerPool.start();
 
                     //all we have to do is create it, it will register itself for us
@@ -158,13 +161,13 @@ public class SpliceDriver {
                     //register JMX items
                     registerJMX();
                     boolean setRunning = true;
-                    setRunning = bootDatabase();
-                    if(!setRunning){
+                    setRunning = ensureHBaseTablesPresent();
+                    if(!setRunning) {
                         abortStartup();
                         return null;
                     }
-                    setRunning = ensureHBaseTablesPresent();
-                    if(!setRunning) {
+                    setRunning = bootDatabase();
+                    if(!setRunning){
                         abortStartup();
                         return null;
                     }
@@ -267,6 +270,19 @@ public class SpliceDriver {
                 HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(HBaseConstants.TEMP_TABLE);
                 admin.createTable(td);
                 SpliceLogUtils.info(LOG, HBaseConstants.TEMP_TABLE+" created");
+            }
+            if (!admin.tableExists(TransactionConstants.TRANSACTION_TABLE_BYTES)) {
+                HTableDescriptor desc = new HTableDescriptor(TransactionConstants.TRANSACTION_TABLE_BYTES);
+                desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
+                        Integer.MAX_VALUE,
+                        admin.getConfiguration().get(HBaseConstants.TABLE_COMPRESSION, HBaseConstants.DEFAULT_COMPRESSION),
+                        HBaseConstants.DEFAULT_IN_MEMORY,
+                        HBaseConstants.DEFAULT_BLOCKCACHE,
+                        Integer.MAX_VALUE,
+                        HBaseConstants.DEFAULT_BLOOMFILTER));
+                desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY));
+                desc.addFamily(new HColumnDescriptor(SIConstants.SNAPSHOT_ISOLATION_CHILDREN_FAMILY));
+                admin.createTable(desc);
             }
             return true;
         }catch(Exception e){

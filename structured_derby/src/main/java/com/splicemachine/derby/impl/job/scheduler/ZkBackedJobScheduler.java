@@ -6,9 +6,7 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceZooKeeperManager;
 import com.splicemachine.derby.utils.ZkUtils;
-import com.splicemachine.job.TaskStatus;
 import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
@@ -110,6 +108,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
     protected abstract Set<? extends WatchingTask> submitTasks(J job) throws ExecutionException;
 
     protected class WatchingFuture implements JobFuture{
+        private final Logger logger = Logger.getLogger(WatchingFuture.class);
         private final Collection<? extends WatchingTask> taskFutures;
         private final BlockingQueue<TaskFuture> changedFutures;
         private final Set<TaskFuture> completedFutures;
@@ -139,6 +138,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                  * will actually attach a watcher for us, so we don't have to worry about reattaching.
                  */
                 Status status = taskFuture.getStatus();
+                SpliceLogUtils.trace(logger,"Task %s is %s",taskFuture.getTaskId(),status);
                 switch (status) {
                     case INVALID:
                         invalidatedCount.incrementAndGet();
@@ -208,6 +208,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
             int futuresRemaining = getOutstandingCount();
             while(!found&&futuresRemaining>0){
                 changedFuture = changedFutures.take();
+                SpliceLogUtils.trace(logger,"Received a task with a changed status, updating state");
 
                 found = !completedFutures.contains(changedFuture) &&
                         !failedFutures.contains(changedFuture) &&
@@ -218,19 +219,26 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                     Status status = changedFuture.getStatus();
                     switch (status) {
                         case FAILED:
+                            SpliceLogUtils.trace(logger, "Task "+ changedFuture.getTaskId()+" failed");
                             failedFutures.add(changedFuture);
                             changedFuture.complete(); //will throw an ExecutionException immediately
                             break;
                         case COMPLETED:
+                            SpliceLogUtils.trace(logger, "Task "+ changedFuture.getTaskId()+" completed");
                             TaskStats stats = changedFuture.getTaskStats();
                             if(stats!=null)
                                 this.stats.taskStatsMap.put(changedFuture.getTaskId(),stats);
                             completedFutures.add(changedFuture); //found the next completed task
                             return;
                         case CANCELLED:
+                            SpliceLogUtils.trace(logger, "Task "+ changedFuture.getTaskId()+" was cancelled");
                             cancelledFutures.add(changedFuture);
                             throw new CancellationException();
+                        case INVALID:
+                            SpliceLogUtils.trace(logger,"Task "+ changedFuture.getTaskId()+" was invalidated, managing");
+                            ((WatchingTask)changedFuture).manageInvalidated();
                         default:
+                            SpliceLogUtils.trace(logger,"Unable to determine state of task "+ changedFuture.getTaskId());
                             found=false; //circle around because we aren't finished yet
                     }
                 }
@@ -351,6 +359,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
     }
 
     protected abstract class WatchingTask implements TaskFuture,Watcher {
+        protected final Logger logger;
         protected final TaskFutureContext context;
         private final RecoverableZooKeeper zooKeeper;
         private WatchingFuture jobFuture;
@@ -359,6 +368,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         private volatile boolean refresh = true;
 
         public WatchingTask(TaskFutureContext result,RecoverableZooKeeper zooKeeper) {
+            logger = Logger.getLogger(this.getClass());
             this.context = result;
             this.zooKeeper = zooKeeper;
         }
@@ -434,6 +444,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
 
         @Override
         public void process(WatchedEvent event) {
+            SpliceLogUtils.trace(logger, "received notification that task "+ event.getPath()+" has changed status");
             refresh=true;
             jobFuture.changedFutures.offer(this);
             synchronized (context){

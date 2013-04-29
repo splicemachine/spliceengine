@@ -170,12 +170,20 @@ public class TableWriter implements WriterStatus{
                 .setPriority(Thread.NORM_PRIORITY).build();
         ThreadPoolExecutor writerPool = new ThreadPoolExecutor(1,maxThreads,threadKeepAlive,
                 TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),writerFactory);
+        /*
+         * Setting the cache update interval <0 indicates that caching is to be turned off.
+         * This is a performance killer, but is useful when debugging issues.
+         */
         long cacheUpdatePeriod = configuration.getLong("hbase.htable.regioncache.updateinterval",DEFAULT_CACHE_UPDATE_PERIOD);
-        ThreadFactory cacheFactory = new ThreadFactoryBuilder()
-                .setNameFormat("tablewriter-cacheupdater-%d")
-                .setDaemon(true)
-                .setPriority(Thread.NORM_PRIORITY).build();
-        ScheduledExecutorService cacheUpdater = Executors.newSingleThreadScheduledExecutor(cacheFactory);
+        boolean enableRegionCache = cacheUpdatePeriod>0l;
+        ScheduledExecutorService cacheUpdater = null;
+        if(enableRegionCache){
+            ThreadFactory cacheFactory = new ThreadFactoryBuilder()
+                    .setNameFormat("tablewriter-cacheupdater-%d")
+                    .setDaemon(true)
+                    .setPriority(Thread.NORM_PRIORITY).build();
+            cacheUpdater = Executors.newSingleThreadScheduledExecutor(cacheFactory);
+        }
 
         long cacheExpirationPeriod = configuration.getLong("hbase.htable.regioncache.expiration",DEFAULT_CACHE_EXPIRATION);
         LoadingCache<Integer,Set<HRegionInfo>> regionCache = CacheBuilder.newBuilder()
@@ -217,11 +225,13 @@ public class TableWriter implements WriterStatus{
     }
 
     public void start(){
-        cacheUpdater.scheduleAtFixedRate(new RegionCacheLoader(), 0l, cacheUpdatePeriod, TimeUnit.MILLISECONDS);
+        if(cacheUpdater!=null)
+            cacheUpdater.scheduleAtFixedRate(new RegionCacheLoader(), 0l, cacheUpdatePeriod, TimeUnit.MILLISECONDS);
     }
 
     public void shutdown(){
-        cacheUpdater.shutdownNow();
+        if(cacheUpdater!=null)
+            cacheUpdater.shutdownNow();
         writerPool.shutdown();
     }
 
