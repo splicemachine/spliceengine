@@ -456,6 +456,8 @@ public class DerbyBytesUtil {
      */
     private static class NullRemovingRowKey extends UTF8RowKey {
 
+        private static final char NULL_CHAR = '\u0000';
+
 			@Override public Class<?> getSerializedClass() { return String.class; }
 
 			@Override
@@ -463,12 +465,32 @@ public class DerbyBytesUtil {
 				return super.getSerializedLength(toUTF8(o));
 			}
 
+            private String stripChar(String s, char c){
+                StringBuilder strBuilder = new StringBuilder(s.length());
+
+                for(char stringChar : s.toCharArray()){
+                    if( stringChar != c){
+                        strBuilder.append(stringChar);
+                    }
+                }
+
+                return strBuilder.toString();
+            }
+
 			private Object toUTF8(Object o) {
 				if(o==null|| o instanceof byte[]) return o;
-				String replacedString = o.toString().replaceAll("\u0000","");
-//				if(replacedString.length()<=0)
-//					return null;
-				return Bytes.toBytes(replacedString);
+
+                String objectString = o.toString();
+
+                String replacedString;
+
+                if( objectString.indexOf(NULL_CHAR) != -1){
+                    replacedString = stripChar(objectString, NULL_CHAR);
+                } else {
+                    replacedString = objectString;
+                }
+
+                return Bytes.toBytes(replacedString);
 			}
 
 			@Override
