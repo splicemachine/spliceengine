@@ -55,21 +55,21 @@ public class SIObserver extends BaseRegionObserver {
     public void start(CoprocessorEnvironment e) throws IOException {
         SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
         this.envConfiguration = e.getConfiguration();
-        region = ((RegionCoprocessorEnvironment) e).getRegion();
-        tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
-        tableEnvMatch = (EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TransactionConstants.TableEnv.USER_TABLE)
-                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TransactionConstants.TableEnv.USER_INDEX_TABLE)
-                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TransactionConstants.TableEnv.DERBY_SYS_TABLE))
+        RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)e;
+        region = rce.getRegion();
+        tableName = rce.getRegion().getTableDesc().getNameAsString();
+        tableEnvMatch = (EnvUtils.getTableEnv(rce).equals(TransactionConstants.TableEnv.USER_TABLE)
+                || EnvUtils.getTableEnv(rce).equals(TransactionConstants.TableEnv.USER_INDEX_TABLE)
+                || EnvUtils.getTableEnv(rce).equals(TransactionConstants.TableEnv.DERBY_SYS_TABLE))
                 && !tableName.equals(HBaseConstants.TEMP_TABLE);
+        transactor= TransactorFactoryImpl.getTransactor(envConfiguration);
         RollForwardAction action = new RollForwardAction() {
             @Override
             public void rollForward(long transactionId, List rowList) throws IOException {
-                Transactor transactor = TransactorFactoryImpl.getTransactor();
                 transactor.rollForward(new HbRegion(region), transactionId, rowList);
             }
         };
         rollForwardQueue = new RollForwardQueue(action, 10000, 10 * S, 5 * 60 * S);
-        transactor= TransactorFactoryImpl.getTransactor(envConfiguration);
         super.start(e);
     }
 
