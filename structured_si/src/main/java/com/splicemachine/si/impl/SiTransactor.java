@@ -141,7 +141,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
      */
     private void performLocalCommit(TransactionId transactionId) throws IOException {
         // perform "local" commit only within the parent transaction
-        transactionStore.recordTransactionStatusChange(transactionId, LOCAL_COMMIT);
+        if(!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, LOCAL_COMMIT)) {
+            throw new IOException("local commit failed");
+        }
     }
 
     /**
@@ -149,23 +151,28 @@ public class SiTransactor implements Transactor, ClientTransactor {
      */
     private void performCommit(Transaction transaction) throws IOException {
         final SiTransactionId transactionId = transaction.getTransactionId();
-        final List<Long> childrenToCommit = findChildrenToCommit(transaction);
-        transactionStore.recordTransactionStatusChange(transactionId, COMMITTING);
+        final List<Transaction> childrenToCommit = findChildrenToCommit(transaction);
+        if(!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, COMMITTING)) {
+            throw new IOException("committing failed");
+        }
         // TODO: need to sort out how to take child transactions through COMMITTING state, alternatively don't commit
         // TODO: children directly, rather let them inherit their commit status from their parent
         final long endId = timestampSource.nextTimestamp();
-        transactionStore.recordTransactionEnd(transactionId, endId, COMMITTED);
+        if (!transactionStore.recordTransactionEnd(transactionId, endId, COMMITTING, COMMITTED)) {
+            throw new IOException("commit failed");
+        }
         commitAll(childrenToCommit, endId);
     }
 
     /**
      * Filter the immediate children of the transaction to find the ones that can be committed.
      */
-    private List<Long> findChildrenToCommit(Transaction transaction) throws IOException {
-        final List<Long> childrenToCommit = new ArrayList<Long>();
+    private List<Transaction> findChildrenToCommit(Transaction transaction) throws IOException {
+        final List<Transaction> childrenToCommit = new ArrayList<Transaction>();
         for (Long childId : transaction.getChildren()) {
-            if (transactionStore.getTransaction(childId).isEffectivelyActive()) {
-                childrenToCommit.add(childId);
+            final Transaction childTransaction = transactionStore.getTransaction(childId);
+            if (childTransaction.isEffectivelyActive()) {
+                childrenToCommit.add(childTransaction);
             }
         }
         return childrenToCommit;
@@ -174,9 +181,12 @@ public class SiTransactor implements Transactor, ClientTransactor {
     /**
      * Update the transaction table to record all of the transactionIds as committed as of the timestamp.
      */
-    private void commitAll(List<Long> transactionIds, long timestamp) throws IOException {
-        for (Long transactionId : transactionIds) {
-            transactionStore.recordTransactionEnd(transactionId, timestamp, COMMITTED);
+    private void commitAll(List<Transaction> children, long timestamp) throws IOException {
+        for (Transaction childTransaction : children) {
+            TransactionStatus expectedStatus = childTransaction.isLocallyCommitted() ? LOCAL_COMMIT : ACTIVE;
+            if (!transactionStore.recordTransactionEnd(childTransaction.getTransactionId(), timestamp, expectedStatus, COMMITTED)) {
+                throw new IOException("child commit failed");
+            }
         }
     }
 
@@ -192,7 +202,9 @@ public class SiTransactor implements Transactor, ClientTransactor {
         // currently the application above us tries to rollback already committed transactions.
         // This is poor form, but if it happens just silently ignore it.
         if (transaction.isActive() && !transaction.isLocallyCommitted()) {
-            transactionStore.recordTransactionStatusChange(transactionId, ROLLED_BACK);
+            if(!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ROLLED_BACK)) {
+                throw new IOException("rollback failed");
+            }
         }
     }
 
@@ -204,9 +216,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     private void failDirect(TransactionId transactionId) throws IOException {
-        Transaction transaction = transactionStore.getTransaction(transactionId);
-        ensureTransactionActive(transaction);
-        transactionStore.recordTransactionStatusChange(transactionId, ERROR);
+        transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ERROR);
     }
 
     private boolean isIndependentReadOnly(TransactionId transactionId) {

@@ -5,7 +5,6 @@ import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.SScan;
-import org.apache.hadoop.hbase.util.Bytes;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -154,7 +153,7 @@ public class LDataLib implements SDataLib {
                 results.add(v);
             }
         }
-        sort(results);
+        LStore.sortValues(results);
         return results;
     }
 
@@ -173,34 +172,8 @@ public class LDataLib implements SDataLib {
     @Override
     public List getResultColumn(Object result, Object family, Object qualifier) {
         List<Object> values = getValuesForColumn((LTuple) result, family, qualifier);
-        sort(values);
+        LStore.sortValues(values);
         return values;
-    }
-
-    private void sort(List results) {
-        Collections.sort(results, new Comparator<Object>() {
-            @Override
-            public int compare(Object simpleCell, Object simpleCell2) {
-                final LKeyValue v2 = (LKeyValue) simpleCell2;
-                final LKeyValue v1 = (LKeyValue) simpleCell;
-                if (v1.family.equals(v2.family)) {
-                    if (v1.qualifier.equals(v2.qualifier)) {
-                        Long t1 = v1.timestamp;
-                        if (t1 == null) {
-                            t1 = 0L;
-                        }
-                        Long t2 = v2.timestamp;
-                        if (t2 == null) {
-                            t2 = 0L;
-                        }
-                        return t2.compareTo(t1);
-                    } else {
-                        return v1.qualifier.compareTo(v2.qualifier);
-                    }
-                }
-                return v1.family.compareTo(v2.family);
-            }
-        });
     }
 
     @Override
@@ -230,7 +203,7 @@ public class LDataLib implements SDataLib {
     @Override
     public List listPut(Object put) {
         final List<LKeyValue> values = ((LTuple) put).values;
-        sort(values);
+        LStore.sortValues(values);
         return values;
     }
 

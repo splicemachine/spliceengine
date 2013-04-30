@@ -14,6 +14,7 @@ public interface IHTableWriter {
     void write(HRegion region, Put put, Integer lock) throws IOException;
     void write(Object table, Put put, boolean durable) throws IOException;
     void write(HTableInterface table, List puts) throws IOException;
+    boolean checkAndPut(HTableInterface table, byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException;
 
     RowLock lockRow(HTableInterface table, byte[] rowKey) throws IOException;
     Integer lockRow(HRegion region, byte[] rowKey) throws IOException;

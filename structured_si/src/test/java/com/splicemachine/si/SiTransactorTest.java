@@ -17,6 +17,7 @@ import com.splicemachine.si.impl.SiFilterState;
 import com.splicemachine.si.impl.SiTransactionId;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.Transaction;
+import com.splicemachine.si.impl.TransactionStatus;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -1588,6 +1589,139 @@ public class SiTransactorTest {
         } else {
             Thread.sleep(2000);
         }
+    }
+
+    @Test
+    public void transactionStatusAlreadyFailed() throws IOException, InterruptedException {
+        final TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe66", 20);
+        final TransactionId t2 = transactor.beginTransaction(true, false, false);
+        try {
+            insertAge(t2, "joe66", 22);
+        } catch (WriteConflict e) {
+        } catch (RetriesExhaustedWithDetailsException e) {
+            assertWriteConflict(e);
+        }
+        try {
+            insertAge(t2, "joe66", 23);
+        } catch (WriteConflict e) {
+        } catch (RetriesExhaustedWithDetailsException e) {
+            assertWriteConflict(e);
+        }
+    }
+
+    @Test
+    public void transactionCommitFailRaceFailWins() throws Exception {
+        final TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe67", 20);
+        final TransactionId t2 = transactor.beginTransaction(true, false, false);
+
+        final Exception[] exception = new Exception[1];
+        final CountDownLatch latch = new CountDownLatch(1);
+        final CountDownLatch latch2 = new CountDownLatch(1);
+        Tracer.registerStatus(new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                final Long transactionId = (Long) input[0];
+                final TransactionStatus status = (TransactionStatus) input[1];
+                final Boolean beforeChange = (Boolean) input[2];
+                if (transactionId == t2.getId()) {
+                    if (status.equals(TransactionStatus.COMMITTING)) {
+                        if (beforeChange) {
+                            try {
+                                latch.await(2, TimeUnit.SECONDS);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    } else if (status.equals(TransactionStatus.ERROR)) {
+                        if (!beforeChange) {
+                            latch.countDown();
+                        }
+                    }
+                }
+                return null;
+            }
+        });
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    transactor.commit(t2);
+                } catch (IOException e) {
+                    exception[0] = e;
+                    latch2.countDown();
+                }
+            }
+        }).start();
+        try {
+            insertAge(t2, "joe67", 22);
+        } catch (WriteConflict e) {
+        } catch (RetriesExhaustedWithDetailsException e) {
+            assertWriteConflict(e);
+        }
+
+        latch2.await(2, TimeUnit.SECONDS);
+        Assert.assertEquals("committing failed", exception[0].getMessage());
+        Assert.assertEquals(IOException.class, exception[0].getClass());
+    }
+
+    @Test
+    public void transactionCommitFailRaceCommitWins() throws Exception {
+        final TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe68", 20);
+        final TransactionId t2 = transactor.beginTransaction(true, false, false);
+
+        final Exception[] exception = new Exception[1];
+        final CountDownLatch latch = new CountDownLatch(1);
+        final CountDownLatch latch2 = new CountDownLatch(1);
+        Tracer.registerStatus(new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                final Long transactionId = (Long) input[0];
+                final TransactionStatus status = (TransactionStatus) input[1];
+                final Boolean beforeChange = (Boolean) input[2];
+                if (transactionId == t2.getId()) {
+                    if (status.equals(TransactionStatus.ERROR)) {
+                        if (beforeChange) {
+                            try {
+                                latch.await(2, TimeUnit.SECONDS);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    } else if (status.equals(TransactionStatus.COMMITTED)) {
+                        if (!beforeChange) {
+                            latch.countDown();
+                        }
+                    }
+                }
+                return null;
+            }
+        });
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    transactor.commit(t2);
+                    latch2.countDown();
+                } catch (IOException e) {
+                    exception[0] = e;
+                }
+            }
+        }).start();
+        try {
+            insertAge(t2, "joe68", 22);
+            // it would be better if this threw an exception indicating that the transaction has already been committed
+        } catch (WriteConflict e) {
+        } catch (RetriesExhaustedWithDetailsException e) {
+            assertWriteConflict(e);
+        }
+
+        latch2.await(2, TimeUnit.SECONDS);
+        Assert.assertNull(exception[0]);
     }
 
 }

@@ -49,6 +49,11 @@ public class HTableWriterAdapter implements STableWriter {
     }
 
     @Override
+    public boolean checkAndPut(STable table, Object family, Object qualifier, Object expectedValue, Object put) throws IOException {
+        return writer.checkAndPut(((HbTable) table).table, (byte[]) family, (byte[]) qualifier, (byte[]) expectedValue, (Put) put);
+    }
+
+    @Override
     public SRowLock lockRow(STable table, Object rowKey) throws IOException {
         if (table instanceof HbTable) {
             return new HRowLock(writer.lockRow(((HbTable) table).table, (byte[]) rowKey));

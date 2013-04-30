@@ -30,7 +30,7 @@ public class TransactionStore {
     private final TransactionSchema encodedSchema;
 
     public TransactionStore(TransactionSchema transactionSchema, SDataLib dataLib,
-                            STableReader reader, STableWriter writer, Cache<Long,Transaction> transactionCache,
+                            STableReader reader, STableWriter writer, Cache<Long, Transaction> transactionCache,
                             Cache<Long, ImmutableTransaction> immutableTransactionCache) {
         this.transactionSchema = transactionSchema;
         this.encodedSchema = transactionSchema.encodedSchema(dataLib);
@@ -53,19 +53,33 @@ public class TransactionStore {
         writePut(put);
     }
 
-    public void recordTransactionEnd(long startTransactionTimestamp, long commitTransactionTimestamp,
-                                     TransactionStatus newStatus) throws IOException {
-        recordTransactionEnd(new SiTransactionId(startTransactionTimestamp), commitTransactionTimestamp, newStatus);
+    public boolean recordTransactionEnd(TransactionId startTransactionTimestamp, long commitTransactionTimestamp,
+                                        TransactionStatus expectedStatus, TransactionStatus newStatus) throws IOException {
+        Tracer.traceStatus(startTransactionTimestamp.getId(), newStatus, true);
+        try {
+            return writePut(makeCommitPut(startTransactionTimestamp, commitTransactionTimestamp, newStatus), encodedStatus(expectedStatus));
+        } finally {
+            Tracer.traceStatus(startTransactionTimestamp.getId(), newStatus, false);
+        }
     }
 
-    public void recordTransactionEnd(TransactionId startTransactionTimestamp, long commitTransactionTimestamp,
-                                     TransactionStatus newStatus) throws IOException {
-        writePut(makeCommitPut(startTransactionTimestamp, commitTransactionTimestamp, newStatus));
+    private Object encodedStatus(TransactionStatus status) {
+        if (status == null) {
+            return encodedSchema.siNull;
+        } else {
+            return dataLib.encode(status.ordinal());
+        }
     }
 
-    public void recordTransactionStatusChange(TransactionId startTransactionTimestamp, TransactionStatus newStatus)
+    public boolean recordTransactionStatusChange(TransactionId startTransactionTimestamp, TransactionStatus expectedStatus,
+                                                 TransactionStatus newStatus)
             throws IOException {
-        writePut(makeStatusUpdateTuple(startTransactionTimestamp, newStatus));
+        Tracer.traceStatus(startTransactionTimestamp.getId(), newStatus, true);
+        try {
+            return writePut(makeStatusUpdateTuple(startTransactionTimestamp, newStatus), encodedStatus(expectedStatus));
+        } finally {
+            Tracer.traceStatus(startTransactionTimestamp.getId(), newStatus, false);
+        }
     }
 
     public void recordKeepAlive(TransactionId startTransactionTimestamp)
@@ -223,9 +237,19 @@ public class TransactionStore {
     }
 
     private void writePut(Object put) throws IOException {
+        writePut(put, null);
+    }
+
+    private boolean writePut(Object put, Object expectedStatus) throws IOException {
         final STable transactionSTable = reader.open(transactionSchema.tableName);
         try {
-            writer.write(transactionSTable, put);
+            if (expectedStatus == null) {
+                writer.write(transactionSTable, put);
+                return true;
+            } else {
+                return writer.checkAndPut(transactionSTable, encodedSchema.siFamily, encodedSchema.statusQualifier,
+                        expectedStatus, put);
+            }
         } finally {
             reader.close(transactionSTable);
         }

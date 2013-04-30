@@ -14,4 +14,5 @@ public interface STableWriter {
 
     SRowLock lockRow(STable table, Object rowKey) throws IOException;
     void unLockRow(STable table, SRowLock lock) throws IOException;
+    boolean checkAndPut(STable table, Object family, Object qualifier, Object expectedValue, Object put) throws IOException;
 }

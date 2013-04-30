@@ -7,7 +7,9 @@ import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
+import com.splicemachine.si.impl.TransactionStatus;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -150,6 +152,63 @@ public class LStore implements STableReader, STableWriter {
             }
             relations.put(relationIdentifier, newTuples);
         }
+    }
+
+    @Override
+    public boolean checkAndPut(STable table, final Object family, final Object qualifier, Object expectedValue, Object put) throws IOException {
+        LTuple lPut = (LTuple) put;
+        SRowLock lock = null;
+        try {
+            lock = lockRow(table, lPut.key);
+            LGet get = new LGet(lPut.key, lPut.key, null, null, null);
+            Iterator results = runScan(table, get);
+            LTuple result = (LTuple) results.next();
+            assert !results.hasNext();
+            boolean match = false;
+            sortValues(result.values);
+            for (LKeyValue kv : result.values) {
+                if (kv.family.equals(family) && kv.qualifier.equals(qualifier)) {
+                    match = kv.value.equals(expectedValue);
+                    break;
+                }
+            }
+            if (match) {
+                write(table, put, lock);
+                return true;
+            } else {
+                return false;
+            }
+        } finally {
+            if (lock != null) {
+                unLockRow(table, lock);
+            }
+        }
+    }
+
+    static void sortValues(List results) {
+        Collections.sort(results, new Comparator<Object>() {
+            @Override
+            public int compare(Object simpleCell, Object simpleCell2) {
+                final LKeyValue v2 = (LKeyValue) simpleCell2;
+                final LKeyValue v1 = (LKeyValue) simpleCell;
+                if (v1.family.equals(v2.family)) {
+                    if (v1.qualifier.equals(v2.qualifier)) {
+                        Long t1 = v1.timestamp;
+                        if (t1 == null) {
+                            t1 = 0L;
+                        }
+                        Long t2 = v2.timestamp;
+                        if (t2 == null) {
+                            t2 = 0L;
+                        }
+                        return t2.compareTo(t1);
+                    } else {
+                        return v1.qualifier.compareTo(v2.qualifier);
+                    }
+                }
+                return v1.family.compareTo(v2.family);
+            }
+        });
     }
 
     @Override

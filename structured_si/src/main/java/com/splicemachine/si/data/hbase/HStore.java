@@ -78,6 +78,11 @@ public class HStore implements IHTableReader, IHTableWriter {
     }
 
     @Override
+    public boolean checkAndPut(HTableInterface table, byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException {
+        return table.checkAndPut(put.getRow(), family, qualifier, expectedValue, put);
+    }
+
+    @Override
     public RowLock lockRow(HTableInterface table, byte[] rowKey) throws IOException {
         return table.lockRow(rowKey);
     }
