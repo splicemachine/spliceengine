@@ -9,7 +9,7 @@ import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.ql.exec.Task;
 
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.TxnConstants;
 
 public class IRHiveHBaseTestingUtility {
@@ -33,7 +33,7 @@ public class IRHiveHBaseTestingUtility {
 		
 		hbaseTestingUtility.getConfiguration().set("hbase.coprocessor.master.classes", "com.ir.hbase.coprocessor.index.IndexMasterObserver,com.ir.hbase.coprocessor.structured.StructuredMasterObserver");
 		hbaseTestingUtility.getConfiguration().set("hbase.coprocessor.region.classes", "com.ir.hbase.coprocessor.index.IndexRegionObserver,com.ir.hbase.coprocessor.structured.StructuredRegionObserver,com.ir.hbase.txn.coprocessor.region.TransactionalManagerRegionObserver,com.ir.hbase.txn.coprocessor.region.TransactionalRegionObserver");		
-		hbaseTestingUtility.getConfiguration().set(SchemaConstants.SCHEMA_PATH_NAME, SCHEMA_PATH);
+		hbaseTestingUtility.getConfiguration().set(SpliceConstants.SCHEMA_PATH_NAME, SCHEMA_PATH);
 		hbaseTestingUtility.getConfiguration().set(TxnConstants.TRANSACTION_PATH_NAME, TRANSACTION_PATH);		
 		hbaseTestingUtility.getConfiguration().reloadConfiguration();
 		hiveConf = new HiveConf(this.getClass());
@@ -47,7 +47,7 @@ public class IRHiveHBaseTestingUtility {
 		hiveConf.setIntVar(ConfVars.METASTORE_CLIENT_CONNECT_RETRY_DELAY, 2);
 		hiveConf.setIntVar(HiveConf.ConfVars.METASTORE_CLIENT_SOCKET_TIMEOUT,2);
 		hiveConf.setBoolVar(ConfVars.METASTORE_MODE, true);
-		hiveConf.set(SchemaConstants.SCHEMA_PATH_NAME, SCHEMA_PATH);
+		hiveConf.set(SpliceConstants.SCHEMA_PATH_NAME, SCHEMA_PATH);
 		hiveConf.set(TxnConstants.TRANSACTION_PATH_NAME, TRANSACTION_PATH);	
 		hiveConf.setBoolVar(HiveConf.ConfVars.LOCALMODEAUTO,true);		
 		hiveConf.set("hbase.zookeeper.property.clientPort", "21818");

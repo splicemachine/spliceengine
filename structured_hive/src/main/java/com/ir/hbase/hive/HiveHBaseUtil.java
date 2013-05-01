@@ -4,7 +4,7 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 
 import com.google.gson.Gson;
-import com.ir.constants.HBaseConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.hbase.client.structured.Column;
 import com.ir.hbase.client.structured.Family;
 import com.ir.hbase.client.structured.TableStructure;
@@ -13,7 +13,7 @@ public class HiveHBaseUtil {
 	public static Gson gson = new Gson();
 	public static TableStructure generateTableStructure(Table tbl) {
 		TableStructure tableStructure = new TableStructure();
-		Family family = new Family(HBaseConstants.DEFAULT_FAMILY);
+		Family family = new Family(SpliceConstants.DEFAULT_FAMILY);
 		System.out.println("Storage" + tbl.getSd().toString());
 		for (FieldSchema fieldSchema: tbl.getSd().getCols()) {
 			System.out.println("fieldSchema " + fieldSchema.toString());
@@ -21,7 +21,7 @@ public class HiveHBaseUtil {
 			column.setColumnName(fieldSchema.getName());
 			column.setDescription(fieldSchema.getComment());
 			column.setType(hiveToHBase(fieldSchema.getType()));
-			column.setFamily(HBaseConstants.DEFAULT_FAMILY);
+			column.setFamily(SpliceConstants.DEFAULT_FAMILY);
 			family.addColumn(column);
 		}
 		tableStructure.addFamily(family);
@@ -30,7 +30,7 @@ public class HiveHBaseUtil {
 
 	public static TableStructure generateTableStructure(String columnTypesString, String columnString) {
 		TableStructure tableStructure = new TableStructure();
-		Family family = new Family(HBaseConstants.DEFAULT_FAMILY);
+		Family family = new Family(SpliceConstants.DEFAULT_FAMILY);
 		String[] columns = columnString.split(",");
 		String[] columnTypes = columnTypesString.split(":");
 		for (int i=0;i<columns.length;i++) {

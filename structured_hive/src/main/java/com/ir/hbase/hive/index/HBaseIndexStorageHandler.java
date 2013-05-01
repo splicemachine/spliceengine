@@ -30,7 +30,7 @@ import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.util.StringUtils;
-import com.ir.constants.HBaseConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.hbase.client.structured.Column;
 import com.ir.hbase.client.structured.Family;
 import com.ir.hbase.client.structured.TableStructure;

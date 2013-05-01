@@ -5,14 +5,14 @@ import org.apache.hadoop.mapred.JobConf;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.ir.constants.HBaseConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.hbase.hive.HBaseSerDe;
 
 public class HiveConfTest {
 
 	@Test 
 	public void test () {
-		Assert.assertNotNull(new JobConf(HBaseConstants.class).getJar());
+		Assert.assertNotNull(new JobConf(SpliceConstants.class).getJar());
 		
 	}
 	

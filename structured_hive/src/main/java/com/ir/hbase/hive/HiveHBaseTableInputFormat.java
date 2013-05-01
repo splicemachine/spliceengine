@@ -41,8 +41,8 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 
-import com.ir.constants.HBaseConstants;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.hbase.client.index.Index;
 import com.ir.hbase.client.index.IndexColumn;
 import com.ir.hbase.client.index.IndexColumn.Order;
@@ -104,11 +104,11 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase implements I
 		}
 		if (preferredIndex != null) {
 			if (LOG.isDebugEnabled()) {
-				LOG.debug("Scanning Index Table "+ hbaseTableName + SchemaConstants.INDEX +"with begin key " + beginKey + " and end key " + endKey);
+				LOG.debug("Scanning Index Table "+ hbaseTableName + SpliceConstants.INDEX +"with begin key " + beginKey + " and end key " + endKey);
 			}	
 			WhileMatchFilter filter = new WhileMatchFilter(filterList);
 			scan.setFilter(filter);
-			setHTable(new HTable(HBaseConfiguration.create(jobConf), Bytes.toBytes(hbaseTableName + SchemaConstants.INDEX)));
+			setHTable(new HTable(HBaseConfiguration.create(jobConf), Bytes.toBytes(hbaseTableName + SpliceConstants.INDEX)));
 			List<String> indexedColumns = new ArrayList<String>();
 			for (Column column : preferredIndex.getAllColumns())
 				indexedColumns.add(column.getFullColumnName());
@@ -120,16 +120,16 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase implements I
 			}
 			if (primaryTable == null) {
 				for (String fullColumnName : readColumns) {
-					String[] splits = fullColumnName.split(HBaseConstants.FAMILY_SEPARATOR);
+					String[] splits = fullColumnName.split(SpliceConstants.FAMILY_SEPARATOR);
 					scan.addColumn(splits[0].getBytes(), splits[1].getBytes());
 				}
 			}
-			scan.addColumn(SchemaConstants.INDEX_BASE_FAMILY_BYTE, SchemaConstants.INDEX_BASE_ROW_BYTE);
+			scan.addColumn(SpliceConstants.INDEX_BASE_FAMILY_BYTE, SpliceConstants.INDEX_BASE_ROW_BYTE);
 		} else {
 			if (LOG.isDebugEnabled())
 				LOG.debug("Scanning Base Table");	
 			for (String fullColumnName : readColumns) {
-				String[] splits = fullColumnName.split(HBaseConstants.FAMILY_SEPARATOR);
+				String[] splits = fullColumnName.split(SpliceConstants.FAMILY_SEPARATOR);
 				scan.addColumn(splits[0].getBytes(), splits[1].getBytes());
 			}
 			setHTable(new HTable(HBaseConfiguration.create(jobConf), Bytes.toBytes(hbaseTableName)));				
@@ -185,15 +185,15 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase implements I
 							Writables.copyWritable(recordReader.getCurrentValue(), value);
 						} else if (primaryTable == null) { 
 							Result result = recordReader.getCurrentValue();
-							rowKey.set(result.getValue(SchemaConstants.INDEX_BASE_FAMILY_BYTE, SchemaConstants.INDEX_BASE_ROW_BYTE));
+							rowKey.set(result.getValue(SpliceConstants.INDEX_BASE_FAMILY_BYTE, SpliceConstants.INDEX_BASE_ROW_BYTE));
 							Writables.copyWritable(result, value);
 						} else {
 							Result result = recordReader.getCurrentValue();
-							byte[] baseRow = result.getValue(SchemaConstants.INDEX_BASE_FAMILY_BYTE, SchemaConstants.INDEX_BASE_ROW_BYTE);
+							byte[] baseRow = result.getValue(SpliceConstants.INDEX_BASE_FAMILY_BYTE, SpliceConstants.INDEX_BASE_ROW_BYTE);
 							rowKey.set(baseRow);
 							Get get = new Get(baseRow);
 							for (String fullColumnName : readColumns) {
-								String[] splits = fullColumnName.split(HBaseConstants.FAMILY_SEPARATOR);
+								String[] splits = fullColumnName.split(SpliceConstants.FAMILY_SEPARATOR);
 								get.addColumn(splits[0].getBytes(), splits[1].getBytes());
 							}
 							Result primaryResult = primaryTable.get(get);
@@ -364,7 +364,7 @@ public class HiveHBaseTableInputFormat extends TableInputFormatBase implements I
 public static byte[] generateIndexKeyForQuery(Index index, Map<String,ScannerKeyElement> scanColumns) {
 	List<byte[]> fromKeyComponents = new ArrayList<byte[]>();
 	fromKeyComponents.add(Bytes.toBytes(index.getIndexName()));
-	fromKeyComponents.add(SchemaConstants.INDEX_DELIMITER);
+	fromKeyComponents.add(SpliceConstants.INDEX_DELIMITER);
 	for (IndexColumn icol : index.getIndexColumns()) {
 		Object value = scanColumns.get(icol.getFullColumnName());
 		if (value == null)
@@ -374,7 +374,7 @@ public static byte[] generateIndexKeyForQuery(Index index, Map<String,ScannerKey
 			BytesUtil.incrementAtIndex(bytes, bytes.length - 1);
 		}
 		fromKeyComponents.add(bytes);
-		fromKeyComponents.add(SchemaConstants.INDEX_DELIMITER);			
+		fromKeyComponents.add(SpliceConstants.INDEX_DELIMITER);			
 	}
 	return BytesUtil.concat(fromKeyComponents);
 }
@@ -406,9 +406,9 @@ public static byte[] generateIndexKeyForQuery(Index index, Map<String,ScannerKey
 		scan.setCaching(1000);
 		if (preferredIndex != null) {
 			if (LOG.isDebugEnabled()) {
-				LOG.debug("Scanning Index Table "+ hbaseTableName + SchemaConstants.INDEX +"with begin key " + beginKey + " and end key " + endKey);
+				LOG.debug("Scanning Index Table "+ hbaseTableName + SpliceConstants.INDEX +"with begin key " + beginKey + " and end key " + endKey);
 			}	
-			jobConf.set(PRIMARY_SCAN_TABLE_NAME, hbaseTableName + SchemaConstants.INDEX);
+			jobConf.set(PRIMARY_SCAN_TABLE_NAME, hbaseTableName + SpliceConstants.INDEX);
 			if (beginKey != null)
 				scan.setStartRow(beginKey);
 			if (endKey != null)
@@ -416,7 +416,7 @@ public static byte[] generateIndexKeyForQuery(Index index, Map<String,ScannerKey
 			System.out.println("Utilizing Index " + preferredIndex.getIndexName() + " using begin key " + beginKey + " and end key " + endKey);
 			WhileMatchFilter filter = new WhileMatchFilter(filterList);
 			scan.setFilter(filter);
-			setHTable(new HTable(HBaseConfiguration.create(jobConf), Bytes.toBytes(hbaseTableName+SchemaConstants.INDEX)));				
+			setHTable(new HTable(HBaseConfiguration.create(jobConf), Bytes.toBytes(hbaseTableName+SpliceConstants.INDEX)));				
 		} else {
 			if (LOG.isDebugEnabled())
 				LOG.debug("Scanning Base Table");	

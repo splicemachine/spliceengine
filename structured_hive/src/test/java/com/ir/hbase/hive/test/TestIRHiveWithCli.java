@@ -14,7 +14,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.ir.constants.HBaseConstants;
+import com.ir.constants.SpliceConstants;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -57,8 +57,8 @@ public class TestIRHiveWithCli extends TestRemoteHiveMetaStore {
 		} 
 		HTable table = new HTable(HBaseConfiguration.create(), "firsttablea");
 		Put put = new Put("yo".getBytes());
-		put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), "key".getBytes(), Bytes.toBytes(1));
-		put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), "value".getBytes(), Bytes.toBytes("Value String?"));
+		put.add(SpliceConstants.DEFAULT_FAMILY.getBytes(), "key".getBytes(), Bytes.toBytes(1));
+		put.add(SpliceConstants.DEFAULT_FAMILY.getBytes(), "value".getBytes(), Bytes.toBytes("Value String?"));
 		table.put(put);
 		
 		cmds = new ArrayList<String>();
