@@ -18,7 +18,8 @@ import java.util.concurrent.TimeUnit;
 public class RollForwardQueue {
     static final Logger LOG = Logger.getLogger(RollForwardQueue.class);
 
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    public static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(0);
+
     private final RollForwardAction action;
     private final int maxCount;
     private final int rollForwardDelayMS;

@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class SiTransactorTest {
@@ -57,6 +58,7 @@ public class SiTransactorTest {
 
     @Before
     public void setUp() {
+        RollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
         storeSetup = new LStoreSetup();
         transactorSetup = new TransactorSetup(storeSetup);
         baseSetUp();

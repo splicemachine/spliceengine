@@ -1,11 +1,14 @@
 package com.splicemachine.si.impl;
 
+import junit.extensions.TestSetup;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executors;
 
 public class RollForwardQueueTest {
     private final int SHORT_DELAY = 50;
@@ -13,6 +16,11 @@ public class RollForwardQueueTest {
     private final int LONG_DELAY = 200;
     private final int LONG_WAIT = LONG_DELAY + SHORT_DELAY;
     private final int VERY_LONG_DELAY = 3 * LONG_DELAY;
+
+    @Before
+    public void setup() {
+        RollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
+    }
 
     @Test
     public void basic() throws InterruptedException {
@@ -110,7 +118,6 @@ public class RollForwardQueueTest {
         RollForwardAction action = new RollForwardAction() {
             @Override
             public void rollForward(long transactionId, List rowList) {
-                System.out.println("tid = " + transactionId + " size " + rowList.size());
                 for(Object row : rowList) {
                     out.add(((byte[]) row)[0]);
                 }
