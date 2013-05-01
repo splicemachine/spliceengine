@@ -22,7 +22,7 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.gotometrics.orderly.StringRowKey;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -94,11 +94,8 @@ runs recovery. To make a small number of properties (listed in
 servicePropertyList) available during early boot, this copies
 them to services.properties.
 **/
-class PropertyConglomerate {
+class PropertyConglomerate extends SpliceConstants {
 	private static Logger LOG = Logger.getLogger(PropertyConglomerate.class);
-    private static final String PROPERTIES_TABLE_NAME = "PROPERTIES";
-    private static final byte[] PROPERTIES_TABLE_NAME_BYTES = PROPERTIES_TABLE_NAME.getBytes();
-    private static final byte[] VALUE_COLUMN = Integer.toString(1).getBytes();
     protected String propertiesId;
 	protected Properties serviceProperties;
 	private LockFactory lf;
@@ -312,7 +309,7 @@ class PropertyConglomerate {
             oos.writeObject(value);
 
             Put put = SpliceUtils.createPut(keyBytes, transactionId);
-            put.add(HBaseConstants.DEFAULT_FAMILY_BYTES, valColumn,baos.toByteArray());
+            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, valColumn,baos.toByteArray());
 
             table.put(put);
         }catch(IOException ioe){
@@ -550,12 +547,12 @@ class PropertyConglomerate {
         HTableInterface table = SpliceAccessManager.getHTable(PROPERTIES_TABLE_NAME_BYTES);
         try {
             Get get = SpliceUtils.createGet(getTransactionId(tc), new StringRowKey().serialize(key));
-            get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN);
+            get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN);
 
             Result result = table.get(get);
 
             if(result==null||result.isEmpty()) return null;
-            return getValue(result.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN));
+            return getValue(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN));
         } catch (IOException e) {
             throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
         } catch (ClassNotFoundException e) {
@@ -759,10 +756,10 @@ class PropertyConglomerate {
         HTableInterface table = SpliceAccessManager.getHTable(PROPERTIES_TABLE_NAME_BYTES);
 
         Scan scan = SpliceUtils.createScan(getTransactionId(tc));
-        scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+        scan.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
         scan.setCaching(100);
-        scan.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN);
-//        scan.setFilter(new ColumnNullableFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN,
+        scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN);
+//        scan.setFilter(new ColumnNullableFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN,
 //                CompareFilter.CompareOp.GREATER_OR_EQUAL));
         try{
             ResultScanner scanner = table.getScanner(scan);
@@ -772,7 +769,7 @@ class PropertyConglomerate {
                     break;
                 }
                 String key = Bytes.toString(result.getRow());
-                byte[] valBytes = result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN).getValue();
+                byte[] valBytes = result.getColumnLatest(SpliceConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN).getValue();
                 Object value = getValue(valBytes);
                 set.put(key,value);
             }

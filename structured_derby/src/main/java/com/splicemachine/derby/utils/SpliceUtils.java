@@ -1,9 +1,9 @@
 package com.splicemachine.derby.utils;
 
+import com.google.common.io.Closeables;
 import com.google.gson.Gson;
-import com.splicemachine.SpliceConfiguration;
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.constants.SpliceConfiguration;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -43,8 +43,11 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
-
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -57,9 +60,9 @@ import java.util.Properties;
  */
 
 @SuppressWarnings(value = "deprecation")
-public class SpliceUtils {
+public class SpliceUtils extends SpliceConstants {
 	private static Logger LOG = Logger.getLogger(SpliceUtils.class);
-
+	public static UUIDHexGenerator gen = new UUIDHexGenerator("Splice", null);
     public static final String NA_TRANSACTION_ID = "NA_TRANSACTION_ID";
     private static final String SI_EXEMPT = "si-exempt";
 
@@ -107,34 +110,17 @@ public class SpliceUtils {
         throw new RuntimeException("Cannot reach this state.");
     }
 
-    public enum SpliceConglomerate {HEAP,BTREE}
-	public static Configuration config = SpliceConfiguration.create();
-	protected static Gson gson = new Gson();
-	protected static UUIDHexGenerator gen = new UUIDHexGenerator("Splice", null);
 	protected static String quorum;
 	protected static String transPath;
-	protected static String derbyPropertyPath = "/derbyPropertyPath";
-	protected static String queryNodePath = "/queryNodePath";
 	protected static RecoverableZooKeeper rzk = null;
 	protected static ZooKeeperWatcher zkw = null;
 
     protected static HConnection connection;
 	static {
 		quorum = generateQuorum();
-//		conglomeratePath = config.get(SchemaConstants.CONGLOMERATE_PATH_NAME,SchemaConstants.DEFAULT_CONGLOMERATE_SCHEMA_PATH);
-		transPath = config.get(TransactionConstants.TRANSACTION_PATH_NAME, TransactionConstants.DEFAULT_TRANSACTION_PATH);
 		try {
-
 			zkw = (new HBaseAdmin(config)).getConnection().getZooKeeperWatcher();
 			rzk = zkw.getRecoverableZooKeeper();
-
-			if (rzk.exists(queryNodePath, false) == null)
-				rzk.create(queryNodePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-			if (rzk.exists(derbyPropertyPath, false) == null)
-				rzk.create(derbyPropertyPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-			if (rzk.exists(transPath, false) == null)
-				rzk.create(transPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-
             connection = HConnectionManager.getConnection(config);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -157,7 +143,7 @@ public class SpliceUtils {
 		return transPath;
 	}
 
-
+/*
 	public static String toJSON(Object object) {
 		return gson.toJson(object);
 	}
@@ -166,6 +152,7 @@ public class SpliceUtils {
 		return gson.fromJson(json, instanceClass);
 	}
 
+*/
     public static Get createGet(Mutation mutation, byte[] row) throws IOException {
         return createGet(getTransactionId(mutation), row);
     }
@@ -180,11 +167,11 @@ public class SpliceUtils {
 			Get get = createGet(transID, loc.getBytes());
 			if(validColumns!=null){
 				for(int i= validColumns.anySetBit();i!=-1;i = validColumns.anySetBit(i)){
-					get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
+					get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
 				}
 			}else{
 				for(int i=0;i<destRow.length;i++){
-					get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
+					get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
 				}
 			}
 
@@ -288,7 +275,7 @@ public class SpliceUtils {
             int numrows = (validColumns != null ? validColumns.getLength() : row.length);  // bug 118
             for (int i = 0; i < numrows; i++) {
                 if (validColumns.isSet(i) && row[i] != null && row[i].isNull())
-                    put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), 0, SIConstants.EMPTY_BYTE_ARRAY);
+                    put.add(SpliceConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), 0, SIConstants.EMPTY_BYTE_ARRAY);
             }
         }
     }
@@ -300,7 +287,7 @@ public class SpliceUtils {
 		 * than 9 will go missing if you call getValue() --likely its due to the fact that we are serializing ints
 		 * as strings instead of as ints themselves.
 		 */
-		Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+		Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
 		try{
 			for(int i=0;i<destRow.length;i++){
 				byte[] value = dataMap.get(Integer.toString(i).getBytes());
@@ -318,7 +305,7 @@ public class SpliceUtils {
          * than 9 will go missing if you call getValue() --likely its due to the fact that we are serializing ints
          * as strings instead of as ints themselves.
          */
-        Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+        Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
         try{
             for(int i=0;i<destRow.length;i++){
                 byte[] value = dataMap.get(Integer.toString(i).getBytes());
@@ -334,7 +321,7 @@ public class SpliceUtils {
         try {
             if(scanColumnList == null) populate(currentResult,destRow,serializer);
             else{
-                Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+                Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
                 for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
                     byte[] value = dataMap.get(Integer.toString(i).getBytes());
                     fill(value,destRow[i],serializer);
@@ -350,7 +337,7 @@ public class SpliceUtils {
         try {
             if(scanColumnList == null) populate(currentResult,destRow);
             else{
-                Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+                Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
                 for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
                     byte[] value = dataMap.get(Integer.toString(i).getBytes());
                     fill(value,destRow[i]);
@@ -366,7 +353,7 @@ public class SpliceUtils {
         if(scanList==null||scanList.getNumBitsSet()<=0) populate(currentResult,destRow,serializer);
         else{
             try{
-                Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+                Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
                 if (dataMap != null) {
                     for (int i = scanList.anySetBit(); i != -1; i = scanList.anySetBit(i)) {
                         byte[] value = dataMap.get(Integer.toString(i).getBytes());
@@ -387,7 +374,7 @@ public class SpliceUtils {
 		if(scanList==null||scanList.getNumBitsSet()<=0) populate(currentResult,destRow);
 		else{
 			try{
-				Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+				Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
 				for(int i=scanList.anySetBit();i!=-1;i=scanList.anySetBit(i)){
 					byte[] value = dataMap.get(Integer.toString(i).getBytes());
 					SpliceLogUtils.trace(LOG,"Attempting to place column[%d] into destRow %s",i,destRow[bitSetToDestRowMap[i]]);
@@ -404,12 +391,16 @@ public class SpliceUtils {
 		if(instructions==null) return null;
 		//Putting this here to prevent some kind of weird NullPointer situation
 		//where the LanguageConnectionContext doesn't get initialized properly
+		ByteArrayInputStream bis = null;
+		ObjectInputStream ois = null;
 		try {
-			ByteArrayInputStream bis = new ByteArrayInputStream(instructions);
-			ObjectInputStream ois = new ObjectInputStream(bis);
+			bis = new ByteArrayInputStream(instructions);
+			ois = new ObjectInputStream(bis);
 			SpliceObserverInstructions soi = (SpliceObserverInstructions) ois.readObject();
 			return soi;
 		} catch (Exception e) {
+			Closeables.closeQuietly(ois);
+			Closeables.closeQuietly(bis);			
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
 		}
 		return null;
@@ -457,8 +448,8 @@ public class SpliceUtils {
 
 	public static String generateQuorum() {
 		LOG.info("generateQuorum");
-		String servers = config.get(HBaseConstants.HBASE_ZOOKEEPER_QUOROM, "localhost");
-		String port = config.get(HBaseConstants.HBASE_ZOOKEEPER_CLIENT_PORT, "2181");
+		String servers = config.get(SpliceConstants.HBASE_ZOOKEEPER_QUOROM, "localhost");
+		String port = config.get(SpliceConstants.HBASE_ZOOKEEPER_CLIENT_PORT, "2181");
 		StringBuilder sb = new StringBuilder();
 		for (String split: servers.split(",")) {
 			sb.append(split);
@@ -473,7 +464,7 @@ public class SpliceUtils {
 	public static String generateQueryNodeSequence() {
 		SpliceLogUtils.trace(LOG,"generateQueryNodeSequence");
 		try {
-			String node = rzk.create(queryNodePath + "/", Bytes.toBytes(OperationTreeStatus.CREATED.toString()), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+			String node = rzk.create(DEFAULT_QUERY_NODE_PATH + "/", Bytes.toBytes(OperationTreeStatus.CREATED.toString()), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
 			if (LOG.isTraceEnabled())
 				LOG.trace("generate Query Node Sequence " +node);
 			return node;
@@ -505,7 +496,7 @@ public class SpliceUtils {
 		if (LOG.isTraceEnabled())
 			LOG.trace("started ");
 		try {
-			List<String> paths = rzk.getChildren(derbyPropertyPath, false);
+			List<String> paths = rzk.getChildren(DEFAULT_DERBY_PROPERTY_PATH, false);
 			return paths != null && paths.size() > 5;
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
@@ -521,7 +512,7 @@ public class SpliceUtils {
 		if (LOG.isTraceEnabled())
 			LOG.trace("propertyExists " + propertyName);
 		try {
-			return rzk.exists(derbyPropertyPath + "/" + propertyName, false) != null;
+			return rzk.exists(DEFAULT_DERBY_PROPERTY_PATH + "/" + propertyName, false) != null;
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -536,7 +527,7 @@ public class SpliceUtils {
 		if (LOG.isTraceEnabled())
 			LOG.trace("addProperty name " + propertyName + ", value "+ propertyValue);
 		try {
-			rzk.create(derbyPropertyPath + "/" + propertyName, Bytes.toBytes(propertyValue), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+			rzk.create(DEFAULT_DERBY_PROPERTY_PATH + "/" + propertyName, Bytes.toBytes(propertyValue), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -550,7 +541,7 @@ public class SpliceUtils {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getProperty " + propertyName);
 		try {
-			byte[] data = rzk.getData(derbyPropertyPath + "/" + propertyName, false, null);
+			byte[] data = rzk.getData(DEFAULT_DERBY_PROPERTY_PATH + "/" + propertyName, false, null);
 			if (LOG.isTraceEnabled())
 				LOG.trace("getProperty name " + propertyName + ", value "+ Bytes.toString(data));
 			return Bytes.toString(data);
@@ -569,9 +560,9 @@ public class SpliceUtils {
 			LOG.trace("getAllProperties " + defaultProperties);
 		Properties properties = new Properties(defaultProperties);
 		try {
-			List<String> keys = rzk.getChildren(derbyPropertyPath, false);
+			List<String> keys = rzk.getChildren(DEFAULT_DERBY_PROPERTY_PATH, false);
 			for (String key : keys) {
-				byte[] data = rzk.getData(derbyPropertyPath + "/" + key, false, null);
+				byte[] data = rzk.getData(DEFAULT_DERBY_PROPERTY_PATH + "/" + key, false, null);
 				if (LOG.isTraceEnabled())
 					LOG.trace("getAllProperties retrieved property " + key + ", value " + Bytes.toString(data));
 				properties.put(key, Bytes.toString(data));
@@ -589,13 +580,13 @@ public class SpliceUtils {
 
 	public static HTableDescriptor generateDefaultDescriptor(String tableName) {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
-		desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-				HBaseConstants.DEFAULT_VERSIONS,
-				HBaseConstants.DEFAULT_COMPRESSION,
-				HBaseConstants.DEFAULT_IN_MEMORY,
-				HBaseConstants.DEFAULT_BLOCKCACHE,
-				HBaseConstants.DEFAULT_TTL,
-				HBaseConstants.DEFAULT_BLOOMFILTER));
+		desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
+				SpliceConstants.DEFAULT_VERSIONS,
+				SpliceConstants.DEFAULT_COMPRESSION,
+				SpliceConstants.DEFAULT_IN_MEMORY,
+				SpliceConstants.DEFAULT_BLOCKCACHE,
+				SpliceConstants.DEFAULT_TTL,
+				SpliceConstants.DEFAULT_BLOOMFILTER));
         desc.addFamily(TransactionTableCreator.createTransactionFamily());
         return desc;
 	}

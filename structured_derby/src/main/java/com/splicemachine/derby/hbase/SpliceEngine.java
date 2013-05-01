@@ -4,7 +4,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.derby.iapi.services.monitor.ModuleFactory;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -53,10 +53,10 @@ public class SpliceEngine {
 		}
 		try {
 			HBaseAdmin admin = new HBaseAdmin(new Configuration());
-			if (!admin.tableExists(HBaseConstants.TEMP_TABLE)) {
-				HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(HBaseConstants.TEMP_TABLE);
+			if (!admin.tableExists(SpliceConstants.TEMP_TABLE)) {
+				HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(SpliceConstants.TEMP_TABLE);
 				admin.createTable(td);
-				SpliceLogUtils.info(LOG, HBaseConstants.TEMP_TABLE + " created");
+				SpliceLogUtils.info(LOG, SpliceConstants.TEMP_TABLE + " created");
 			}
 			admin.close();
 		} catch (Exception e) {

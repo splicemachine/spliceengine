@@ -1,7 +1,7 @@
 package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
 import com.splicemachine.derby.utils.Mutations;

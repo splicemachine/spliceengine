@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Properties;
-
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -36,13 +35,11 @@ import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
 import org.apache.derby.impl.store.access.conglomerate.OpenConglomerateScratchSpace;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
-
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
-import com.splicemachine.derby.utils.SpliceUtils;
-
 /**
  * A hbase object corresponds to an instance of a hbase conglomerate.  
  * 
@@ -54,7 +51,6 @@ public class HBaseConglomerate extends SpliceConglomerate {
 
 	public HBaseConglomerate() {
     	super();
-//        SpliceLogUtils.trace(LOG,"instantiate");
     }
 
     protected void create(
@@ -68,12 +64,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
             int                     conglom_format_id,
             int                     tmpFlag) throws StandardException {
         super.create(rawtran, segmentId, input_containerid, template, columnOrder, collationIds, properties, conglom_format_id, tmpFlag);
-        try {
-            ConglomerateUtils.createConglomerate(containerId,this);
-        } catch (Exception e) {
-            LOG.error(e.getMessage(), e);
-        }
-        this.getContainerid();
+        ConglomerateUtils.createConglomerate(containerId,this, rawtran.getActiveStateTxIdString());
     }
 
 	/*
@@ -93,12 +84,8 @@ public class HBaseConglomerate extends SpliceConglomerate {
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-	public void addColumn(TransactionManager xact_manager, int column_id,
-			Storable template_column, int collation_id) throws StandardException
-    {
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("addColumn column_id=" + column_id + ", template_column=" + template_column+", table name="+getContainerid());
-    	
+	public void addColumn(TransactionManager xact_manager, int column_id, Storable template_column, int collation_id) throws StandardException {
+		SpliceLogUtils.trace(LOG, "addColumn column_id=%s, template_column=%s, table_nam=%s", column_id, template_column, getContainerid());   	
     	HTableInterface htable = null;
 		try {
 			htable = SpliceAccessManager.getHTable(getContainerid());
@@ -113,21 +100,13 @@ public class HBaseConglomerate extends SpliceConglomerate {
             int[] old_collation_ids = collation_ids;
             collation_ids = new int[old_collation_ids.length + 1];
             System.arraycopy(old_collation_ids, 0, collation_ids, 0, old_collation_ids.length);
-
             // add the new column's collation id.
             collation_ids[old_collation_ids.length] =  collation_id;
-            ConglomerateUtils.updateConglomerate(this);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			throw StandardException.newException("Exception closing HTable in add column",e);
+            ConglomerateUtils.updateConglomerate(this, xact_manager.getActiveStateTxIdString());
+		} catch (StandardException e) {
+			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "exception in HBaseConglomerate#addColumn", e);
 		} finally {
-			try{
-				if (htable != null)
-					htable.close();
-			} catch (Exception e) {
-				//no need to catch. htable is already closed or null
-			}
+			SpliceAccessManager.closeHTableQuietly(htable);
 		}
     }
 
@@ -138,12 +117,8 @@ public class HBaseConglomerate extends SpliceConglomerate {
 
 	@exception StandardException Standard exception policy.
 	**/
-	public void drop(TransactionManager xact_manager)
-		throws StandardException
-	{
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("drop " + xact_manager);
-
+	public void drop(TransactionManager xact_manager) throws StandardException {
+		SpliceLogUtils.trace(LOG, "drop with account manager %s",xact_manager);
         //xact_manager.getRawStoreXact().dropContainer(id);
 		//FIXME: need a new API on RawTransaction
 		//xact_manager.getRawStoreXact().dropHTable(Long.toString(id.getContainerId()));
@@ -275,15 +250,10 @@ public class HBaseConglomerate extends SpliceConglomerate {
     int                             lock_level,
     LockingPolicy                   locking_policy,
     StaticCompiledOpenConglomInfo   static_info,
-    DynamicCompiledOpenConglomInfo  dynamic_info)
-		throws StandardException
-	{
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("open conglomerate id: " + Long.toString(id.getContainerId()));
-        OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,hold,open_mode,
-        		lock_level,locking_policy,static_info,dynamic_info,this);
+    DynamicCompiledOpenConglomInfo  dynamic_info) throws StandardException {
+		SpliceLogUtils.trace(LOG, "open conglomerate id: %d",id.getContainerId());
+        OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,hold,open_mode,lock_level,locking_policy,static_info,dynamic_info,this);
 		return new HBaseController(open_conglom, rawtran);
-
 	}
 
     /**
@@ -472,14 +442,10 @@ public class HBaseConglomerate extends SpliceConglomerate {
     }
 
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-//    	if (LOG.isTraceEnabled())
-//    		LOG.trace("readExternal: ");
         localReadExternal(in);
     }
 
-	public void readExternalFromArray(ArrayInputStream in)
-		throws IOException, ClassNotFoundException
-	{
+	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException {
     	if (LOG.isTraceEnabled())
     		LOG.trace("readExternalFromArray: ");
         localReadExternal(in);

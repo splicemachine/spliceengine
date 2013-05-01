@@ -14,7 +14,23 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.Orderable;
 import org.apache.derby.impl.sql.catalog.*;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooDefs;
 
+import com.google.common.io.Closeables;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.utils.ZkUtils;
+import com.splicemachine.utils.SpliceLogUtils;
+
+import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 
@@ -23,6 +39,7 @@ import java.util.Properties;
  *         Created on: 2/28/13
  */
 public class SpliceDataDictionary extends DataDictionaryImpl {
+	protected static final Logger LOG = Logger.getLogger(SpliceDataDictionary.class);
     public static final int SYSPRIMARYKEYS_CATALOG_NUM = 23;
     private volatile TabInfoImpl pkTable = null;
 
@@ -136,5 +153,21 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 
         makeCatalog(getPkTable(), getSystemSchemaDescriptor(), tc);
     }
+
+    public void cleanHBase() throws IOException {
+    	HBaseAdmin admin = null;
+    	try {
+    		admin = new HBaseAdmin(new Configuration());
+    		HTableDescriptor[] allTables = admin.listTables();
+    		for (HTableDescriptor table : allTables) {
+    			SpliceLogUtils.debug(LOG, "Dropping table %s",table.getNameAsString());
+    			admin.deleteTable(table.getName());
+    		}
+    	} catch (Exception e) {
+    		SpliceLogUtils.error(LOG, e);
+    		Closeables.closeQuietly(admin);
+    	}
+    }
+    
 
 }

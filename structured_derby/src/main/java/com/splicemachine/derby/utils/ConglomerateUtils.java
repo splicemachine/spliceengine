@@ -1,18 +1,25 @@
 package com.splicemachine.derby.utils;
 
+import com.google.common.base.Preconditions;
 import com.google.common.io.Closeables;
-import com.splicemachine.constants.SchemaConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -22,41 +29,9 @@ import java.util.List;
  * @author Scott Fines
  * Created: 2/2/13 10:11 AM
  */
-public class ConglomerateUtils {
+public class ConglomerateUtils extends SpliceConstants {
 	public static final String CONGLOMERATE_ATTRIBUTE = "DERBY_CONGLOMERATE";
-	public static final String SPLIT_WAIT_INTERVAL = "splice.splitWaitInterval";
-	public static final long DEFAULT_SPLIT_WAIT_INTERVAL = 500l;
-	private static final Logger LOG = LoggerFactory.getLogger(ConglomerateUtils.class);
-
-	private static final String conglomeratePath;
-	private static final String conglomSequencePath;
-
-	private static final long SLEEP_SPLIT_INTERVAL;
-
-	static{
-		conglomeratePath = SpliceUtils.config.get(SchemaConstants.CONGLOMERATE_PATH_NAME,
-																							SchemaConstants.DEFAULT_CONGLOMERATE_SCHEMA_PATH);
-		conglomSequencePath = conglomeratePath+"/__CONGLOM_SEQUENCE";
-		try {
-			ZkUtils.safeCreate(conglomeratePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-			ZkUtils.safeCreate(conglomSequencePath, Bytes.toBytes(0l), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-		} catch (KeeperException e) {
-			LOG.error("Unable to ensure Conglomerate base path exists, aborting",e);
-			/*
-			 * We can't start up without a conglomerate path, so abort the path
-			 */
-			throw new RuntimeException(e);
-		} catch (InterruptedException e) {
-			LOG.error("Interrupted while creating conglomerate paths,aborting", e);
-			/*
-			 * We can't start up without a conglomerate path, so abort the path
-			 */
-			throw new RuntimeException(e);
-		}
-
-		SLEEP_SPLIT_INTERVAL = SpliceUtils.config.getLong(SPLIT_WAIT_INTERVAL, DEFAULT_SPLIT_WAIT_INTERVAL);
-	}
-
+	private static Logger LOG = Logger.getLogger(ConglomerateUtils.class);
 	/**
 	 * Reads stored Conglomerate information and returns it as an instance of {@code instanceClass}.
 	 *
@@ -65,41 +40,23 @@ public class ConglomerateUtils {
 	 * @param <T> the type to return
 	 * @return an instance of {@code T} which contains the conglomerate information.
 	 */
-	public static <T> T readConglomerate(long conglomId, Class<T> instanceClass){
-		LOG.trace("readConglomerate {}, for instanceClass {}",conglomId,instanceClass);
-		String table = Long.toString(conglomId);
-		byte[] data = null;
-		try{
-			data = ZkUtils.getData(conglomeratePath+"/"+table);
-		}catch(IOException e){
-			LOG.error("Unable to get Conglomerate information from ZooKeeper, attempting HBase",e);
-			data = null;
-		}
-		if(data!=null){
-			return SpliceUtils.fromJSON(Bytes.toString(data), instanceClass);
-		}
-			/*
-			 * The data isn't in ZooKeeper, so we'll need to
-			 * look it up from an HBase table
-			 */
-		LOG.warn("Missing conglomerate information, make sure that zookeeper is not transient");
-		HBaseAdmin admin = SpliceUtils.getAdmin();
+	public static <T> T readConglomerate(long conglomId, Class<T> instanceClass, String transactionID) throws StandardException {
+		SpliceLogUtils.trace(LOG,"readConglomerate {%d}, for instanceClass {%s}",conglomId,instanceClass);
+		Preconditions.checkNotNull(transactionID);
+		Preconditions.checkNotNull(conglomId);
+		HTableInterface table = null;
 		try {
-			if(admin.tableExists(table)) {
-				HTableDescriptor td = admin.getTableDescriptor(Bytes.toBytes(table));
-				String json = td.getValue(CONGLOMERATE_ATTRIBUTE);
-				ZkUtils.setData(conglomeratePath+"/"+table,Bytes.toBytes(json),-1);
-				if(LOG.isTraceEnabled())
-					LOG.trace("readConglomerate {}, json {}",table,json);
-				return SpliceUtils.fromJSON(json, instanceClass);
-			}else{
-				LOG.error("Table {} does not exist in hbase",table);
+			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
+			SpliceUtils.createGet(transactionID, Bytes.toBytes(conglomId));
+			Result result = table.get(SpliceUtils.createGet(transactionID, Bytes.toBytes(conglomId))); // ADD SI Lingo
+			byte[] data = result.getValue(DEFAULT_FAMILY_BYTES, VALUE_COLUMN);
+			if(data!=null) {
+				return DerbyBytesUtil.fromBytes(data, instanceClass);
 			}
-		} catch (IOException e) {
-			LOG.error("Unable to get Conglomerate information from HBase", e);
-			throw new RuntimeException(e);
-		}finally{
-			Closeables.closeQuietly(admin);
+		} catch (Exception e) {
+			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "readConglomerateException", e);
+		} finally {
+			SpliceAccessManager.closeHTableQuietly(table);
 		}
 		return null;
 	}
@@ -111,9 +68,8 @@ public class ConglomerateUtils {
 	 * @param conglomerate the conglomerate to store
 	 * @throws IOException if something goes wrong and the data can't be stored.
 	 */
-	public static void createConglomerate(long conglomId,
-																				Conglomerate conglomerate) throws IOException {
-		createConglomerate(Long.toString(conglomId),SpliceUtils.toJSON(conglomerate));
+	public static void createConglomerate(long conglomId, Conglomerate conglomerate, String transactionID) throws StandardException {
+		createConglomerate(Long.toString(conglomId),DerbyBytesUtil.toBytes(conglomerate),transactionID);
 	}
 
 	/**
@@ -123,21 +79,21 @@ public class ConglomerateUtils {
 	 * @param conglomerate the conglomerate to store
 	 * @throws IOException if something goes wrong and the data can't be stored.
 	 */
-	public static void createConglomerate(String tableName,
-																				String conglomData) throws IOException {
-		LOG.debug("creating Hbase table for conglom {} with data {}",tableName,conglomData);
+	public static void createConglomerate(String tableName, byte[] conglomData, String transactionID) throws StandardException {
+		SpliceLogUtils.debug(LOG, "creating Hbase table for conglom {%s} with data {%s}", tableName, conglomData);
+		Preconditions.checkNotNull(transactionID);
+		Preconditions.checkNotNull(conglomData);		
+		Preconditions.checkNotNull(tableName);
 		HBaseAdmin admin = SpliceUtils.getAdmin();
+		HTableInterface table = null;
 		try{
 			HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(tableName);
 			admin.createTable(td);
-			ZkUtils.safeCreate(conglomeratePath+"/"+tableName,Bytes.toBytes(conglomData),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
-		} catch (InterruptedException e) {
-			throw new IOException(e);
-		} catch (KeeperException e) {
-			throw new IOException(e);
-		} catch (IOException e) {
-			throw new IOException(e);
+			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
+		} catch (Exception e) {
+			SpliceStandardLogUtils.logAndReturnStandardException(LOG, "Erorr Creating Conglomerate", e);
 		}finally{
+			SpliceAccessManager.closeHTableQuietly(table);
 			Closeables.closeQuietly(admin);
 		}
 	}
@@ -148,19 +104,22 @@ public class ConglomerateUtils {
 	 * @param conglomerate the new conglomerate information to update
 	 * @throws IOException if something goes wrong and the data can't be stored.
 	 */
-	public static void updateConglomerate(Conglomerate conglomerate) throws IOException {
-		String conglomData = SpliceUtils.toJSON(conglomerate);
-		String table = Long.toString(conglomerate.getContainerid());
-		LOG.debug("updating table {} in hbase with serialized data {}",table,conglomData);
-		HBaseAdmin admin = SpliceUtils.getAdmin();
+	public static void updateConglomerate(Conglomerate conglomerate, String transactionID) throws StandardException {
+		String tableName = Long.toString(conglomerate.getContainerid());
+		SpliceLogUtils.debug(LOG, "updating table {%s} in hbase with serialized data {%s}",tableName,conglomerate);
+		HTableInterface table = null;
 		try{
-			if(!admin.tableExists(Bytes.toBytes(table))){
-				LOG.error("Unable to update table {}, it does not exist in hbase",conglomerate.getContainerid());
-			}else{
-				ZkUtils.setData(conglomeratePath+"/"+table,Bytes.toBytes(conglomData),-1);
-			}
-		}finally{
-			Closeables.closeQuietly(admin);
+			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
+			Put put = new Put(Bytes.toBytes(conglomerate.getContainerid()));
+			SpliceUtils.createPut(Bytes.toBytes(conglomerate.getContainerid()), transactionID);
+			put.add(DEFAULT_FAMILY_BYTES, VALUE_COLUMN, DerbyBytesUtil.toBytes(conglomerate));
+			table.put(put);
+		}
+		catch (Exception e) {
+			SpliceStandardLogUtils.logAndReturnStandardException(LOG, "update Conglomerate Failed", e);
+		}
+		finally{
+			SpliceAccessManager.closeHTableQuietly(table);
 		}
 	}
 
@@ -172,7 +131,7 @@ public class ConglomerateUtils {
 	 */
 	public static long getNextConglomerateId() throws IOException{
 		LOG.trace("getting next conglomerate id");
-		return ZkUtils.nextSequenceId(conglomSequencePath);
+		return ZkUtils.nextSequenceId(zkSpliceConglomerateSequencePath);
 	}
 
 	/**
@@ -199,9 +158,7 @@ public class ConglomerateUtils {
 	 * @throws IOException if something goes wrong and the split fails
 	 * @throws InterruptedException if the split operation is interrupted.
 	 */
-	public static void splitConglomerate(long conglomId,
-																			 byte[] position)
-											throws IOException, InterruptedException {
+	public static void splitConglomerate(long conglomId, byte[] position) throws IOException, InterruptedException {
 		HBaseAdmin admin = SpliceUtils.getAdmin();
 		byte[] name = Bytes.toBytes(Long.toString(conglomId));
 		admin.split(name,position);
@@ -216,7 +173,8 @@ public class ConglomerateUtils {
 					break;
 				}
 			}
-			Thread.sleep(SLEEP_SPLIT_INTERVAL);
+			Thread.sleep(sleepSplitInterval);
 		}
 	}
+	
 }

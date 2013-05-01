@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.constraint;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -43,7 +43,7 @@ public class UniqueConstraint implements Constraint {
         public Get apply(@Nullable Mutation input) {
             try {
                 Get get = SpliceUtils.createGet(input, input.getRow());
-                get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+                get.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
                 return get;
             } catch (IOException e) {
                 throw new RuntimeException(e);

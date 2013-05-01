@@ -9,8 +9,11 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+
+import com.google.common.io.Closeables;
 import com.gotometrics.orderly.*;
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -27,6 +30,37 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class DerbyBytesUtil {
 	private static Logger LOG = Logger.getLogger(DerbyBytesUtil.class);
 
+	@SuppressWarnings("unchecked")
+	public static <T> T fromBytes(byte[] bytes, Class<T> instanceClass) throws StandardException {
+		ByteArrayInputStream bis = null;
+		ObjectInputStream ois = null;
+		try {
+			bis = new ByteArrayInputStream(bytes);
+			ois = new ObjectInputStream(bis);
+			return (T) ois.readObject();
+		} catch (Exception e) {
+			Closeables.closeQuietly(ois);
+			Closeables.closeQuietly(bis);	
+			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "fromBytes Exception", e);
+		}
+	}
+	public static byte[] toBytes(Object object) throws StandardException {
+		ByteArrayOutputStream bis = null;
+		ObjectOutputStream ois = null;
+		try {
+			bis = new ByteArrayOutputStream();
+			ois = new ObjectOutputStream(bis);
+			ois.writeObject(object);
+			return bis.toByteArray();
+		} catch (Exception e) {
+			Closeables.closeQuietly(ois);
+			Closeables.closeQuietly(bis);	
+			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "fromBytes Exception", e);
+		}
+	}
+
+	
+	
 	public static DataValueDescriptor fromBytes (byte[] bytes, DataValueDescriptor descriptor) throws StandardException, IOException {
         //TODO -sf- move this into the Serializer abstraction
 		SpliceLogUtils.trace(LOG,"fromBytes %s",descriptor.getTypeName());

@@ -19,7 +19,7 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
 
 /**
@@ -105,7 +105,7 @@ public class Scans {
 		scan.setCaching(caching);
 		scan.setStartRow(startRow);
 		scan.setStopRow(stopRow);
-		scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+		scan.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
 		return scan;
 	}
 
@@ -270,7 +270,7 @@ public class Scans {
 					 */
 					byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
 					if(bytes.length>0){
-						masterList.addFilter(new SingleColumnValueFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,
+						masterList.addFilter(new SingleColumnValueFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
 								Integer.toString(pos).getBytes(),
 								getCompareOp(compareOp,false),
 								bytes));
@@ -314,11 +314,11 @@ public class Scans {
 				if(dvd==null||dvd.isNull()||dvd.isNullOp().getBoolean()){
 					CompareFilter.CompareOp compareOp = qualifier.negateCompareResult()?
 							CompareFilter.CompareOp.NOT_EQUAL: CompareFilter.CompareOp.EQUAL;
-					list.addFilter(new ColumnNullableFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,
+					list.addFilter(new ColumnNullableFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
 							Integer.toString(qualifier.getColumnId()).getBytes(),
 							compareOp));
 				}else{
-					SingleColumnValueFilter filter = new SingleColumnValueFilter(HBaseConstants.DEFAULT_FAMILY_BYTES,
+					SingleColumnValueFilter filter = new SingleColumnValueFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
 							Integer.toString(qualifier.getColumnId()).getBytes(),
 							getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),
 							DerbyBytesUtil.generateBytes(dvd));
@@ -406,7 +406,7 @@ public class Scans {
 					}
 				}
 				for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
-					scan.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
+					scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
 				}
 			}
 		}

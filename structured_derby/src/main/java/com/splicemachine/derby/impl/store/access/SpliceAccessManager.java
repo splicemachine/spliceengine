@@ -53,7 +53,7 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 
-import com.splicemachine.constants.SchemaConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -111,7 +111,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 		
 //		Configuration config = HBaseConfiguration.create();
 //		//SpliceUtils.generateQuorum();
-//		String conglomeratePath = config.get(SchemaConstants.CONGLOMERATE_PATH_NAME,SchemaConstants.DEFAULT_CONGLOMERATE_SCHEMA_PATH);		
+//		String conglomeratePath = config.get(SpliceConstants.CONGLOMERATE_PATH_NAME,SpliceConstants.DEFAULT_CONGLOMERATE_SCHEMA_PATH);		
 //		try {
 //			rzk = ZKUtil.connect(config, new Watcher() {			
 //				@Override
@@ -1022,22 +1022,24 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 	}
 
 	public static HTableInterface getHTable(Long id) {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("Getting HTable " + id);
 		return getHTableRPCPool().getTable(Long.toString(id));
 	}
 
 	public static HTableInterface getHTable(byte[] tableName) {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("Getting HTable " + Bytes.toString(tableName));
 		return getHTableRPCPool().getTable(tableName);
 	}
 
 	public static HTableInterface getFlushableHTable(byte[] tableName) {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("Getting HTable " + Bytes.toString(tableName));
 		return getHTableFlushablePool().getTable(tableName);
 	}
 	
+	public static void closeHTableQuietly(HTableInterface table) {
+		try {
+			if (table != null)
+				table.close();
+		} catch (Exception e) {
+			SpliceLogUtils.error(LOG, e);
+		}
+	}
 }
 

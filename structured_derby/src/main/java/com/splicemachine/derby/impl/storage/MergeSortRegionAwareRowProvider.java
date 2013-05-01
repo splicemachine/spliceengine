@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.io.Closeables;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.Hasher;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
@@ -119,7 +119,7 @@ public class MergeSortRegionAwareRowProvider extends SingleScanRowProvider {
         try{
             Result result = getResult();
             if(result!=null){
-        		rowType = (SQLInteger) serializer.deserialize(result.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN),rowType);
+        		rowType = (SQLInteger) serializer.deserialize(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN),rowType);
     			if (rowType.getInt() == JoinSide.RIGHT.ordinal()) {
     				SpliceUtils.populate(result, fbt, rightRow.getRowArray(),serializer);
     				currentRow = rightRow;

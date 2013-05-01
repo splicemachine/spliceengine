@@ -43,7 +43,7 @@ public class ForeignKey implements Constraint{
 //    @Override
     public boolean validate(Put put,RegionCoprocessorEnvironment rce) throws IOException{
 //        Get get = SpliceUtils.createGet(... Constraints.getReferencedRowKey(put, fkCols));
-//        get.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+//        get.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
         return true;// TODO -sf- implement
     }
 
@@ -65,7 +65,7 @@ public class ForeignKey implements Constraint{
     public void updateForeignKey(Delete delete) throws IOException{
 //        Get get = SpliceUtils.createGet(...);
 //        for(int fk = fkCols.nextSetBit(0);fk!=-1;fk=fkCols.nextSetBit(fk+1)){
-//            get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(fk).getBytes());
+//            get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(fk).getBytes());
 //        }
 //        HTableInterface table = tableSource.getTable(mainTableBytes);
 //        Result result = table.get(get);
@@ -75,7 +75,7 @@ public class ForeignKey implements Constraint{
 //            return;
 //        }
 //        byte[] referencedRowKey = Constraints.getReferencedRowKey(
-//                result.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES), fkCols);
+//                result.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES), fkCols);
 //        if(referencedRowKey==null) return; //nothing to update!
 //        table.incrementColumnValue(FOREIGN_KEY_FAMILY,FOREIGN_KEY_COLUMN,referencedRowKey,-1l);
     }

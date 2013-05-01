@@ -8,7 +8,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ConglomerateUtils;
@@ -250,7 +250,7 @@ public class DerbyTestRule extends TestWatchman{
 	public void splitTable(String tableName, int position) throws Exception{
 		Scan scan = new Scan();
 		scan.setCaching(100);
-		scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+		scan.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
 
 		long conglomId = getConglomId(tableName);
 

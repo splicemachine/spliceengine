@@ -1,6 +1,6 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -161,7 +161,7 @@ public class Puts {
         SpliceUtils.handleNullsInUpdate(put, row, validColumns);
 
         if(put.size()==0) {
-            put.add(HBaseConstants.DEFAULT_FAMILY_BYTES, NULL_COLUMN_MARKER, new byte[]{});
+            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, NULL_COLUMN_MARKER, new byte[]{});
         }
 
         return put;
@@ -198,7 +198,7 @@ public class Puts {
 
         try {
             byte[] data = serializer.serialize(descriptor);
-            put.add(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(columnNum).getBytes(),data);
+            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(columnNum).getBytes(),data);
         } catch (StandardException e) {
             throw new IOException(e);
         }
@@ -210,7 +210,7 @@ public class Puts {
 
 		try {
 			byte[] data = DerbyBytesUtil.generateBytes(descriptor);
-			put.add(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(columnNum).getBytes(),data);
+			put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(columnNum).getBytes(),data);
 		} catch (StandardException e) {
 			throw new IOException(e);
 		}

@@ -1,7 +1,7 @@
 package com.splicemachine.derby.hbase;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
@@ -263,10 +263,10 @@ public class SpliceDriver {
         HBaseAdmin admin = null;
         try{
             admin = new HBaseAdmin(SpliceUtils.config);
-            if(!admin.tableExists(HBaseConstants.TEMP_TABLE_BYTES)){
-                HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(HBaseConstants.TEMP_TABLE);
+            if(!admin.tableExists(SpliceConstants.TEMP_TABLE_BYTES)){
+                HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(SpliceConstants.TEMP_TABLE);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG, HBaseConstants.TEMP_TABLE+" created");
+                SpliceLogUtils.info(LOG, SpliceConstants.TEMP_TABLE+" created");
             }
             return true;
         }catch(Exception e){

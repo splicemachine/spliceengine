@@ -1,6 +1,6 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
@@ -29,7 +29,7 @@ import org.apache.log4j.Logger;
  */
 public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implements SpliceOperationProtocol{
 	private static Logger LOG = Logger.getLogger(SpliceOperationCoprocessor.class);
-	public static byte[] TEMP_TABLE = HBaseConstants.TEMP_TABLE_BYTES;
+	public static byte[] TEMP_TABLE = SpliceConstants.TEMP_TABLE_BYTES;
 	protected static ContextManager contextManager;
 	public static final ThreadLocal<CoprocessorEnvironment> threadLocalEnvironment = new ThreadLocal<CoprocessorEnvironment>();
 

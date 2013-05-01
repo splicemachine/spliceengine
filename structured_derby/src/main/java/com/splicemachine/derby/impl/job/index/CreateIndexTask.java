@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.job.index;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
@@ -98,7 +98,7 @@ public class CreateIndexTask extends ZooKeeperTask {
         regionScan.setStopRow(region.getEndKey());
 
         for(int mainTablePos:indexColsToBaseColMap){
-            regionScan.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,Integer.toString(mainTablePos-1).getBytes());
+            regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(mainTablePos-1).getBytes());
         }
 
         try{

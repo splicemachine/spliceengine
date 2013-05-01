@@ -7,7 +7,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.operations.Hasher;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
@@ -40,7 +40,7 @@ public class MultipleTypeHashAwareScanBoundary extends BaseHashAwareScanBoundary
     public byte[] getStartKey(Result result) {
 		SpliceLogUtils.trace(LOG, "getStartKey for result %s",result);
         try {
-        	byte[] data = result.getValue(HBaseConstants.DEFAULT_FAMILY.getBytes(), JoinUtils.JOIN_SIDE_COLUMN);
+        	byte[] data = result.getValue(SpliceConstants.DEFAULT_FAMILY.getBytes(), JoinUtils.JOIN_SIDE_COLUMN);
         	if (data == null)
         		return null;
 			rowType = (SQLInteger) DerbyBytesUtil.fromBytes(data, rowType);
@@ -63,7 +63,7 @@ public class MultipleTypeHashAwareScanBoundary extends BaseHashAwareScanBoundary
 		SpliceLogUtils.trace(LOG, "getStopKey for result %s",result);
 		byte[] stopKey = null;
     	try {
-			rowType = (SQLInteger) DerbyBytesUtil.fromBytes(result.getValue(HBaseConstants.DEFAULT_FAMILY.getBytes(), JoinUtils.JOIN_SIDE_COLUMN), rowType);
+			rowType = (SQLInteger) DerbyBytesUtil.fromBytes(result.getValue(SpliceConstants.DEFAULT_FAMILY.getBytes(), JoinUtils.JOIN_SIDE_COLUMN), rowType);
 			if (rowType.getInt() == JoinSide.RIGHT.ordinal()) {
 				SpliceUtils.populate(result, rightRow.getRowArray());	
 				stopKey = rightHasher.generateSortedHashScanKey(rightRow.getRowArray());

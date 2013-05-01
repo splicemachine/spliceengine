@@ -32,7 +32,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -147,7 +147,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                         getTransactionID(),
                         context.getRegion(),
 						regionScanner.getRegionInfo().getTableName(),
-						HBaseConstants.DEFAULT_FAMILY_BYTES,
+						SpliceConstants.DEFAULT_FAMILY_BYTES,
 						start,finish,hasher,
 						sourceExecIndexRow,null);
 				rowProvider.open();

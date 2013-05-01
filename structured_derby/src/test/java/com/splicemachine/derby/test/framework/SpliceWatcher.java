@@ -16,7 +16,7 @@ import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import com.google.common.io.Closeables;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -183,7 +183,7 @@ public class SpliceWatcher extends TestWatcher {
 		public void splitTable(String tableName, String schemaName, int position) throws Exception{
 			Scan scan = new Scan();
 			scan.setCaching(100);
-			scan.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+			scan.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
 
 			long conglomId = getConglomId(tableName,schemaName);
 			HTable table = null;

@@ -94,15 +94,11 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory {
 	 * 
 	 * FIXME: need to 
      **/
-    public Conglomerate readConglomerate(
-    TransactionManager      xact_mgr,
-    ContainerKey            container_key)
-		throws StandardException
-    {
+    public Conglomerate readConglomerate(TransactionManager xact_mgr, ContainerKey container_key) throws StandardException {
     	if (LOG.isTraceEnabled()) {
     		LOG.trace("readConglomerate container_key " + container_key.getContainerId());
     	}
-    	return ConglomerateUtils.readConglomerate(container_key.getContainerId(), HBaseConglomerate.class);
+    	return ConglomerateUtils.readConglomerate(container_key.getContainerId(), HBaseConglomerate.class, xact_mgr.getActiveStateTxIdString());
     }
 	
 

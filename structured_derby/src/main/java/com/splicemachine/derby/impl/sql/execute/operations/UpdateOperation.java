@@ -23,7 +23,7 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -162,21 +162,21 @@ public class UpdateOperation extends DMLWriteOperation{
                      * re-insert it in the new location, and then delete the old location.
                      */
                     Get remoteGet = SpliceUtils.createGet(getTransactionID(), location.getBytes());
-                    remoteGet.addFamily(HBaseConstants.DEFAULT_FAMILY_BYTES);
+                    remoteGet.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
                     Result result = htable.get(remoteGet);
 
                     //convert Result into put under the new row key
                     byte[] newRowKey = rowInsertSerializer.serialize(nextRow.getRowArray());
                     Put newPut = SpliceUtils.createPut(newRowKey, getTransactionID());
-                    NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+                    NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
                     for(byte[] qualifier:familyMap.keySet()){
                         int position = Integer.parseInt(Bytes.toString(qualifier));
                         if(heapList.isSet(position+1)){
                             //put the new value into the position instead of the old one
                             DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[position+1]];
-                            newPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES, qualifier, serializer.serialize(dvd));
+                            newPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES, qualifier, serializer.serialize(dvd));
                         }else
-                            newPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,qualifier,familyMap.get(qualifier));
+                            newPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,qualifier,familyMap.get(qualifier));
                     }
                     writeBuffer.add(newPut);
 

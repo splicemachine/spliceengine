@@ -1,7 +1,7 @@
 package com.splicemachine.hbase;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import org.junit.Assert;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -40,7 +40,7 @@ public class TableWriterTest {
         LOG.debug("Creating hbase table");
         HTableDescriptor tableDesc = new HTableDescriptor(tableName);
         tableDesc.addCoprocessor("com.splicemachine.derby.hbase.SpliceIndexEndpoint");
-        tableDesc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY_BYTES));
+        tableDesc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY_BYTES));
         admin.createTable(tableDesc);
         while(!admin.isTableAvailable(tableName)){
             Thread.sleep(100);
@@ -109,7 +109,7 @@ public class TableWriterTest {
         HTableInterface table = new HTable(tableName);
         for(Row row:rows){
             Get get = new Get(row.getRow());
-            get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,"1".getBytes());
+            get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,"1".getBytes());
 
             Assert.assertTrue("Row " + Bytes.toInt(row.getRow()) + " does not exist!", table.exists(get));
         }
@@ -123,7 +123,7 @@ public class TableWriterTest {
         Random random = new Random();
         for(int i=0;i<numToWrite;i++){
             Put put = new Put(Bytes.toBytes(random.nextInt(numWrites)));
-            put.add(HBaseConstants.DEFAULT_FAMILY_BYTES,"1".getBytes(),Bytes.toBytes(i));
+            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,"1".getBytes(),Bytes.toBytes(i));
             buffer.add(put);
             rows.add(put);
         }

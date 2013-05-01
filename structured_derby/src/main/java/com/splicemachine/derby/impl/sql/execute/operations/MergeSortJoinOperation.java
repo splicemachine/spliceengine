@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
@@ -159,7 +159,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 			if(regionScanner==null){
 				reduceScan = Scans.newScan(start,finish, getTransactionID());
 			}else{
-				serverProvider = new MergeSortRegionAwareRowProvider(getTransactionID(), context.getRegion(),SpliceOperationCoprocessor.TEMP_TABLE,HBaseConstants.DEFAULT_FAMILY_BYTES,
+				serverProvider = new MergeSortRegionAwareRowProvider(getTransactionID(), context.getRegion(),SpliceOperationCoprocessor.TEMP_TABLE,SpliceConstants.DEFAULT_FAMILY_BYTES,
 						start,finish,leftHasher,leftRow,rightHasher,rightRow,null,rowType);		
 				serverProvider.open();
 			}

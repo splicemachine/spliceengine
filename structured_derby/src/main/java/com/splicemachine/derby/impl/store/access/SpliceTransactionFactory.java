@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.SpliceConfiguration;
+import com.splicemachine.constants.SpliceConfiguration;
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.HbaseConfigurationSource;

@@ -106,15 +106,8 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
 	 * 
 	 * FIXME: need to 
      **/
-    public Conglomerate readConglomerate(
-    TransactionManager      xact_mgr,
-    ContainerKey            container_key)
-		throws StandardException
-    {
-//    	if (LOG.isTraceEnabled()) {
-//    		LOG.trace("readConglomerate container_key " + container_key.getContainerId());
-//    	}
-    	return ConglomerateUtils.readConglomerate(container_key.getContainerId(), IndexConglomerate.class);
+    public Conglomerate readConglomerate(TransactionManager xact_mgr,ContainerKey container_key) throws StandardException {
+    	return ConglomerateUtils.readConglomerate(container_key.getContainerId(), IndexConglomerate.class, xact_mgr.getActiveStateTxIdString());
     }
 	
 }

@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
@@ -176,10 +176,10 @@ public class IndexManager {
             Put indexPut = SpliceUtils.createPut(finalIndexRow, transactionId);
             for(int dataPos=0;dataPos<indexRowData.length;dataPos++){
                 byte[] putPos = Integer.toString(dataPos).getBytes();
-                indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
+                indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
             }
 
-            indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
+            indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,
                     Integer.toString(rowData.size()).getBytes(),mainRow);
             indexPuts.add(indexPut);
         }
@@ -228,12 +228,12 @@ public class IndexManager {
         Get get = SpliceUtils.createGet(mutation, mutation.getRow());
 
         for(byte[] mainColumn:mainColPos){
-            get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColumn);
+            get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,mainColumn);
         }
         Result result = rce.getRegion().get(get, null);
         if(result==null||result.isEmpty()) return table; //already deleted? weird, but oh well, we're good
 
-        NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+        NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
         byte[][] rowKeyBuilder = getDataArray();
         int size = 0;
         for(int indexPos=0;indexPos<indexColsToMainColMap.length;indexPos++){
@@ -304,7 +304,7 @@ public class IndexManager {
 
         for(int indexPos=0;indexPos< indexColsToMainColMap.length;indexPos++){
             byte[] putPos = mainColPos[indexPos];
-            byte[] data = put.get(HBaseConstants.DEFAULT_FAMILY_BYTES,putPos).get(0).getValue();
+            byte[] data = put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,putPos).get(0).getValue();
             rowKeyBuilder[indexPos] = data;
             size+=data.length+1;
         }
@@ -319,13 +319,13 @@ public class IndexManager {
         Put indexPut = SpliceUtils.createPut(indexRowKey, mainPut);
         for(int i=0;i<indexColsToMainColMap.length;i++){
             byte[] indexPos = Integer.toString(i).getBytes();
-            indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos,rowKeyBuilder[i]);
+            indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,indexPos,rowKeyBuilder[i]);
         }
 
         //add the put rowKey as the row location at the end of the row
         byte[] locPos = Integer.toString(indexColsToMainColMap.length).getBytes();
 
-        indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,locPos,put.getRow());
+        indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,locPos,put.getRow());
 
         doPut(indexPut, writeBuffer) ;
     }
@@ -346,7 +346,7 @@ public class IndexManager {
         //check if we changed anything in the index
         boolean indexNeedsUpdating = false;
         for(byte[] indexColPo:mainColPos){
-            if(mainPut.has(HBaseConstants.DEFAULT_FAMILY_BYTES,indexColPo)){
+            if(mainPut.has(SpliceConstants.DEFAULT_FAMILY_BYTES,indexColPo)){
                 indexNeedsUpdating = true;
                 break;
             }
@@ -357,7 +357,7 @@ public class IndexManager {
         //bummer, have to update the index
         Get oldGet = SpliceUtils.createGet(mainPut, mainPut.getRow());
         for(byte[] indexColPos:mainColPos){
-            oldGet.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,indexColPos);
+            oldGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,indexColPos);
         }
 
         Result r = region.get(oldGet,null);
@@ -366,7 +366,7 @@ public class IndexManager {
         byte[][] rowToDelete = getDataArray();
         int size =0;
         for(int indexPos = 0;indexPos<mainColPos.length;indexPos++){
-            byte[] data = r.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColPos[indexPos]);
+            byte[] data = r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES,mainColPos[indexPos]);
             rowToDelete[indexPos] = data;
             size+=data.length+1;
         }
@@ -379,12 +379,12 @@ public class IndexManager {
         Put newPut = Mutations.translateToPut(mainPut,null);
         for(byte[] indexPos:mainColPos){
             byte[] data;
-            if(mainPut.has(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos))
-                data = mainPut.get(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos).get(0).getValue();
+            if(mainPut.has(SpliceConstants.DEFAULT_FAMILY_BYTES,indexPos))
+                data = mainPut.get(SpliceConstants.DEFAULT_FAMILY_BYTES,indexPos).get(0).getValue();
             else
-                data = r.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos);
+                data = r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES,indexPos);
 
-            newPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos,data);
+            newPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,indexPos,data);
         }
 
         return newPut;

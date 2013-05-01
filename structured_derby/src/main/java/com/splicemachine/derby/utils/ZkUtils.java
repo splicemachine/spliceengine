@@ -6,10 +6,13 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.splicemachine.constants.SpliceConstants;
 
 import java.io.IOException;
 import java.util.List;
@@ -74,7 +77,6 @@ public class ZkUtils {
 		}
 	}
 
-
     public static boolean recursiveSafeCreate(String path,byte[] bytes, List<ACL> acls, CreateMode createMode) throws InterruptedException, KeeperException {
         if(path==null||path.length()<=0) return true; //nothing to do, we've gone all the way to the root
         RecoverableZooKeeper rzk = getRecoverableZooKeeper();
@@ -91,6 +93,7 @@ public class ZkUtils {
                 throw e;
         }
     }
+    
 
     private static boolean safeCreate(String path, byte[] bytes, List<ACL> acls, CreateMode createMode,RecoverableZooKeeper zooKeeper) throws KeeperException,InterruptedException{
        try{
@@ -237,4 +240,22 @@ public class ZkUtils {
 		throw new IOException("Unable to get next conglomerate sequence, there is an issue" +
 				"speaking with ZooKeeper");
 	}
+    public static void cleanZookeeper() throws InterruptedException, KeeperException {
+    	RecoverableZooKeeper rzk = getRecoverableZooKeeper();
+    	for (String path: SpliceConstants.zookeeperPaths) {
+    		rzk.delete(path, 0);
+    	}
+    }
+
+    public static void initializeZookeeper() throws InterruptedException, KeeperException {
+    	for (String path: SpliceConstants.zookeeperPaths) {
+    		recursiveSafeCreate(path, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
+    	}
+    }
+    
+    public static void refreshZookeeper() throws InterruptedException, KeeperException {
+    	cleanZookeeper();
+    	initializeZookeeper();
+    }
+
 }
