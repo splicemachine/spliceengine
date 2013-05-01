@@ -3,6 +3,7 @@ package com.splicemachine.hbase;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -13,12 +14,18 @@ import org.apache.log4j.Logger;
 import org.junit.*;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.*;
 
 /**
  * @author Scott Fines
  * Created on: 4/29/13
  */
+@Ignore("This has to be ignored because the HBaseTestingUtility attempts to open a " +
+        "server on the same port as the external server does, which causes all these tests" +
+        "to just sit there and do nothing. They work, however, for individual testing, and should " +
+        "not be discarded")
 public class SITableWriterHBaseTest {
     private static final Logger LOG = Logger.getLogger(TableWriterHBaseTest.class);
 
@@ -74,7 +81,27 @@ public class SITableWriterHBaseTest {
     public void testCanHandleHBaseSplits() throws Exception {
         LOG.debug("Allowing some writes through");
         CallBuffer<Mutation> writeBuffer =
-                testWriter.synchronousWriteBuffer(TABLE_NAME.getBytes());
+                testWriter.synchronousWriteBuffer(TABLE_NAME.getBytes(),new TableWriter.FlushWatcher() {
+                    @Override
+                    public List<Mutation> preFlush(List<Mutation> mutations) throws Exception {
+                        return mutations;
+                    }
+
+                    @Override
+                    public Response globalError(Throwable t) throws Exception {
+                        return t instanceof NotServingRegionException ? Response.RETRY: Response.THROW_ERROR;
+                    }
+
+                    @Override
+                    public Response partialFailure(MutationRequest request,MutationResponse response) throws Exception {
+                        Collection<String> errors = response.getFailedRows().values();
+                        for(String error:errors){
+                            if(!error.contains("NotServingRegion")&&!error.contains("WrongRegion"))
+                                return Response.THROW_ERROR;
+                        }
+                        return Response.RETRY;
+                    }
+                });
 
         LOG.debug("Adding 10 items to buffer before waiting for approval");
         for(int i=0;i<20;i+=2){

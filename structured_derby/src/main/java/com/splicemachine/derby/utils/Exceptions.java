@@ -1,8 +1,12 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.base.Throwables;
+import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
+import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
+import com.splicemachine.hbase.MutationResponse;
+import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
@@ -71,6 +75,18 @@ public class Exceptions {
         if(e instanceof ConstraintViolation.UniqueConstraintViolation) return false;
         if(e instanceof IndexNotSetUpException) return false;
         return true;
+    }
+
+    public static Throwable fromString(String s) {
+        MutationResult.Code writeErrorCode = MutationResult.Code.parse(s);
+        if(writeErrorCode!=null){
+            if(writeErrorCode== MutationResult.Code.WRITE_CONFLICT)
+                return new WriteConflict(s);
+            else if(writeErrorCode==MutationResult.Code.FAILED)
+                return new DoNotRetryIOException(s);
+            else return Constraints.constraintViolation(writeErrorCode);
+        }
+        return new DoNotRetryIOException(s);
     }
 
     public static class LangFormatException extends DoNotRetryIOException{

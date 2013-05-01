@@ -19,6 +19,10 @@ import java.util.concurrent.*;
  * @author Scott Fines
  *         Created on: 4/29/13
  */
+@Ignore("This has to be ignored because the HBaseTestingUtility attempts to open a " +
+        "server on the same port as the external server does, which causes all these tests" +
+        "to just sit there and do nothing. They work, however, for individual testing, and should " +
+        "not be discarded")
 public class TableWriterHBaseTest {
     private static final Logger LOG = Logger.getLogger(TableWriterHBaseTest.class);
 

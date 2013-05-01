@@ -235,4 +235,22 @@ public class BytesUtil {
         return s;
     }
 
+    public static byte[] concatenate(byte[][] bytes,int size){
+        byte[] concatedBytes = new byte[size];
+        int offset = 0;
+        boolean isStart=true;
+        for(byte[] nextBytes:bytes){
+            if(nextBytes==null) break;
+            if(!isStart){
+                concatedBytes[offset] = 1;
+                offset++;
+            }else
+                isStart = false;
+
+            System.arraycopy(nextBytes, 0, concatedBytes, offset, nextBytes.length);
+            offset+=nextBytes.length;
+        }
+        return concatedBytes;
+    }
+
 }

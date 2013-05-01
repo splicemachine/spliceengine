@@ -13,39 +13,32 @@ import java.io.IOException;
  */
 public class ConstraintViolation extends DoNotRetryIOException{
 
-    public static enum Type{
-        PRIMARY_KEY,
-        FOREIGN_KEY,
-        FAILED_SETUP,
-        SHUTDOWN
-    }
+    private final Constraint.Type type;
 
-    private final Type type;
-
-    private ConstraintViolation(Type type){
+    private ConstraintViolation(Constraint.Type type){
         super();
        this.type = type;
     }
 
-    private ConstraintViolation(Type type, String message) {
+    private ConstraintViolation(Constraint.Type type, String message) {
         super(message);
         this.type = type;
     }
 
-    private ConstraintViolation(Type type, String message, Throwable cause ) {
+    private ConstraintViolation(Constraint.Type type, String message, Throwable cause ) {
         super(message, cause);
         this.type = type;
     }
 
-    public Type getType() {return type;}
+    public Constraint.Type getType() {return type;}
 
     public static ConstraintViolation failedSetup(String tableName){
-        return new ConstraintViolation(Type.FAILED_SETUP,
+        return new ConstraintViolation(Constraint.Type.NONE,
                 "Failed to set up index management for table "+ tableName);
     }
 
     public static ConstraintViolation shutdown(String tableName){
-        return new ConstraintViolation(Type.SHUTDOWN,
+        return new ConstraintViolation(Constraint.Type.NONE,
                 "Index management for table "+ tableName+ " has been shutdown");
     }
 
