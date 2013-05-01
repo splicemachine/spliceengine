@@ -13,7 +13,7 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.zookeeper.KeeperException;
 
-import com.ir.constants.HBaseConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.TxnConstants;
 
 
@@ -28,13 +28,13 @@ public abstract class TransactionManager extends TxnConstants {
 			HBaseAdmin admin = new HBaseAdmin(config);
 			if (!admin.tableExists(TxnConstants.TRANSACTION_LOG_TABLE_BYTES)) {
 				HTableDescriptor desc = new HTableDescriptor(TxnConstants.TRANSACTION_LOG_TABLE_BYTES);
-				desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-						HBaseConstants.DEFAULT_VERSIONS,
-						HBaseConstants.DEFAULT_COMPRESSION,
-						HBaseConstants.DEFAULT_IN_MEMORY,
-						HBaseConstants.DEFAULT_BLOCKCACHE,
-						HBaseConstants.DEFAULT_TTL,
-						HBaseConstants.DEFAULT_BLOOMFILTER));
+				desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
+						SpliceConstants.DEFAULT_VERSIONS,
+						SpliceConstants.DEFAULT_COMPRESSION,
+						SpliceConstants.DEFAULT_IN_MEMORY,
+						SpliceConstants.DEFAULT_BLOCKCACHE,
+						SpliceConstants.DEFAULT_TTL,
+						SpliceConstants.DEFAULT_BLOOMFILTER));
 				desc.addFamily(new HColumnDescriptor(TxnConstants.DEFAULT_FAMILY));
 				admin.createTable(desc);
 			}

@@ -43,8 +43,8 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooDefs.Ids;
-import com.ir.constants.HBaseConstants;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.TxnConstants;
 import com.ir.constants.bytes.BytesUtil;
 import com.ir.constants.environment.EnvUtils;
@@ -93,7 +93,7 @@ public class TxnLogger extends LogConstants {
 			String currentID = null;
 			TransactionState transactionState = null;
 			while ((result = scanner.next()) != null) {
-				currentID = Bytes.toString(result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES, TXN_ID_COLUMN_BYTES).getValue());
+				currentID = Bytes.toString(result.getColumnLatest(SpliceConstants.DEFAULT_FAMILY_BYTES, TXN_ID_COLUMN_BYTES).getValue());
 				if (currentID != null && !currentID.equals(priorID)) {
 					if (LOG.isDebugEnabled())
 						LOG.debug("Read transaction state " + currentID + " from logger and hold it in new region " + EnvUtils.getRegionId(holder));
@@ -115,9 +115,9 @@ public class TxnLogger extends LogConstants {
 	 * Actions would be kept in the List parameter. 
 	 */
 	public static void getWriteActionFromResult(Result result, String transactionID, HRegion actionHolder, List<WriteAction> writeOrdering) throws IOException {
-		byte[] row = result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES, ROW_KEY_BYTES).getValue();
-		WriteActionType actionType = WriteActionType.valueOf(Bytes.toString(result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES, ACTION_TYPE_BYTES).getValue()));
-		byte[] action = result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES, ACTION_WRITABLE_BYTE).getValue();
+		byte[] row = result.getColumnLatest(SpliceConstants.DEFAULT_FAMILY_BYTES, ROW_KEY_BYTES).getValue();
+		WriteActionType actionType = WriteActionType.valueOf(Bytes.toString(result.getColumnLatest(SpliceConstants.DEFAULT_FAMILY_BYTES, ACTION_TYPE_BYTES).getValue()));
+		byte[] action = result.getColumnLatest(SpliceConstants.DEFAULT_FAMILY_BYTES, ACTION_WRITABLE_BYTE).getValue();
 		ByteArrayInputStream istream = new ByteArrayInputStream(action);
 		DataInput in = new DataInputStream(istream);
 		switch (actionType) {
@@ -162,7 +162,7 @@ public class TxnLogger extends LogConstants {
 	}
 
 	public static String getRegionLogPath(String regionLogPath, String regionId) {
-		return regionLogPath + SchemaConstants.PATH_DELIMITER + regionId;
+		return regionLogPath + SpliceConstants.PATH_DELIMITER + regionId;
 	}
 
 	public static void logTxnTableRegionsToZk(String regionLogPath, ZooKeeperWatcher zkw, Configuration conf) {
@@ -299,7 +299,7 @@ public class TxnLogger extends LogConstants {
 	}
 
 	public static String getTxnLogNodePath(String txnLogPath, String regionId) {
-		return txnLogPath + SchemaConstants.PATH_DELIMITER + regionId;
+		return txnLogPath + SpliceConstants.PATH_DELIMITER + regionId;
 	}
 
 	public static boolean txnLogNodeExist(String txnLogPath, String regionId, RecoverableZooKeeper rzk)  {

@@ -11,7 +11,7 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.zookeeper.KeeperException;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.TxnConstants;
 import com.ir.constants.environment.EnvUtils;
 import com.ir.hbase.locks.TxnLockManager;
@@ -43,7 +43,7 @@ public class BaseTxnRegionObserver extends BaseRegionObserver {
 		logPath =  e.getConfiguration().get(LogConstants.LOG_PATH_NAME,LogConstants.DEFAULT_LOG_PATH);
 		if (logPath == null)
 			throw new IOException("Log Path Not Set in Configuration for " + LogConstants.LOG_PATH_NAME);
-		txnLogPath = logPath + LogConstants.TXN_LOG_SUBPATH + SchemaConstants.PATH_DELIMITER + tableName;
+		txnLogPath = logPath + LogConstants.TXN_LOG_SUBPATH + SpliceConstants.PATH_DELIMITER + tableName;
 		regionLogPath = logPath + LogConstants.REGION_LOG_SUBPATH;
 		if (transactionPath == null) {
 			LOG.error("Transaction Path Not Set in Configuration for " + TxnConstants.TRANSACTION_PATH_NAME);

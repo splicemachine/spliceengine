@@ -11,7 +11,7 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.junit.BeforeClass;
 
-import com.ir.constants.HBaseConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.TxnConstants;
 import com.ir.hbase.txn.TransactionManager;
 import com.ir.hbase.txn.ZkTransactionManager;
@@ -73,13 +73,13 @@ public class BaseTestOnServer extends TxnConstants {
 	
 	public static HTable createTable(HBaseAdmin admin, String tableName) throws Exception {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
-		desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-				HBaseConstants.DEFAULT_VERSIONS,
-				HBaseConstants.DEFAULT_COMPRESSION,
-				HBaseConstants.DEFAULT_IN_MEMORY,
-				HBaseConstants.DEFAULT_BLOCKCACHE,
-				HBaseConstants.DEFAULT_TTL,
-				HBaseConstants.DEFAULT_BLOOMFILTER));
+		desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
+				SpliceConstants.DEFAULT_VERSIONS,
+				SpliceConstants.DEFAULT_COMPRESSION,
+				SpliceConstants.DEFAULT_IN_MEMORY,
+				SpliceConstants.DEFAULT_BLOCKCACHE,
+				SpliceConstants.DEFAULT_TTL,
+				SpliceConstants.DEFAULT_BLOOMFILTER));
 		admin.createTable(desc);
 		return new HTable(admin.getConfiguration(), tableName);
 	}
