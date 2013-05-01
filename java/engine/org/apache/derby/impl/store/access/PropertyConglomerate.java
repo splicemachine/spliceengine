@@ -91,7 +91,7 @@ runs recovery. To make a small number of properties (listed in
 servicePropertyList) available during early boot, this copies
 them to services.properties.
 **/
-class PropertyConglomerate
+public class PropertyConglomerate
 {
 	protected long propertiesConglomId;
 	protected Properties serviceProperties;
@@ -103,7 +103,7 @@ class PropertyConglomerate
 
     /* Constructors for This class: */
 
-	PropertyConglomerate(
+	public PropertyConglomerate(
     TransactionController   tc,
     boolean                 create,
     Properties              serviceProperties,
