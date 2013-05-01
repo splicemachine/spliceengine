@@ -1,5 +1,7 @@
 package com.splicemachine.si.data.api;
 
+import org.apache.hadoop.hbase.KeyValue;
+
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +28,7 @@ public interface SDataLib {
     List listPut(Object put);
     Object getPutKey(Object put);
 
+    Object newKeyValue(Object rowKey, Object family, Object qualifier, Long timestamp, Object value);
     Object getKeyValueRow(Object keyValue);
     Object getKeyValueFamily(Object keyValue);
     Object getKeyValueQualifier(Object keyValue);

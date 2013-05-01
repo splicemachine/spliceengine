@@ -5,6 +5,7 @@ import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.coprocessors.SICompactionScanner;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SRead;
@@ -16,6 +17,7 @@ import com.splicemachine.si.api.Clock;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -428,6 +430,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
 
     /************************************/
+
     @Override
     public void rollForward(STable table, long transactionId, List rows) throws IOException {
         final Transaction transaction = transactionStore.getTransaction(transactionId);
@@ -443,6 +446,12 @@ public class SiTransactor implements Transactor, ClientTransactor {
         }
         Tracer.traceTransaction(transactionId);
     }
+
+    @Override
+    public InternalScanner newCompactionScanner(InternalScanner scanner) {
+        return new SICompactionScanner(dataStore, dataLib, transactionStore, scanner);
+    }
+
     /***********************************/
     // Helpers
 

@@ -68,6 +68,11 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
+    public KeyValue newKeyValue(byte[] rowKey, byte[] family, byte[] qualifier, Long timestamp, byte[] value) {
+        return new KeyValue(rowKey, family, qualifier, timestamp, value);
+    }
+
+    @Override
     public byte[] getKeyValueRow(KeyValue keyValue) {
         return keyValue.getRow();
     }

@@ -1,15 +1,14 @@
 package com.splicemachine.si;
 
 import com.google.common.base.Function;
-import com.splicemachine.si.api.Clock;
+import com.splicemachine.si.api.FilterState;
+import com.splicemachine.si.api.TransactionId;
+import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.api.FilterState;
-import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.RollForwardQueue;
@@ -19,12 +18,15 @@ import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionStatus;
 import com.splicemachine.si.impl.WriteConflict;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.junit.Assert;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.regionserver.HRegionServer;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -1725,5 +1727,77 @@ public class SiTransactorTest {
         latch2.await(2, TimeUnit.SECONDS);
         Assert.assertNull(exception[0]);
     }
+
+    @Test
+    public void noCompaction() throws IOException, InterruptedException {
+        if (!useSimple) {
+            TransactionId t0 = null;
+            for (int i=0; i<10; i++) {
+                TransactionId tx = transactor.beginTransaction(true, false, false);
+                if (i == 0) {
+                    t0 = tx;
+                }
+                insertAge(tx, "joe69-" + i, i);
+                transactor.commit(tx);
+            }
+            Object result = readRaw("joe69-0");
+            final SDataLib dataLib = storeSetup.getDataLib();
+            final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
+                    dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+            for (Object c : commitTimestamps) {
+                final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(c), Integer.class);
+                Assert.assertEquals(t0.getId(), dataLib.getKeyValueTimestamp(c));
+                Assert.assertEquals(-1, timestamp);
+            }
+        }
+    }
+
+    @Test
+    public void compaction() throws IOException, InterruptedException {
+        if (!useSimple) {
+            final CountDownLatch latch = new CountDownLatch(2);
+            Tracer.registerCompact(new Runnable() {
+                @Override
+                public void run() {
+                    latch.countDown();
+                }
+            });
+
+            final HBaseTestingUtility testCluster = storeSetup.getTestCluster();
+            final HBaseAdmin admin = testCluster.getHBaseAdmin();
+            TransactionId t0 = null;
+            for (int i=0; i<10; i++) {
+                TransactionId tx = transactor.beginTransaction(true, false, false);
+                if (i == 0) {
+                    t0 = tx;
+                }
+                insertAge(tx, "joe70-" + i, i);
+                admin.flush(storeSetup.getPersonTableName());
+                transactor.commit(tx);
+            }
+
+            admin.majorCompact(storeSetup.getPersonTableName());
+            latch.await(2, TimeUnit.SECONDS);
+            Object result = readRaw("joe70-0");
+            final SDataLib dataLib = storeSetup.getDataLib();
+            final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
+                    dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+            for (Object c : commitTimestamps) {
+                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(c), Long.class);
+                Assert.assertEquals(t0.getId(), dataLib.getKeyValueTimestamp(c));
+                Assert.assertEquals(t0.getId() + 1, timestamp);
+            }
+        }
+    }
+
+    private void compactRegions() throws IOException {
+        final HBaseTestingUtility testCluster = storeSetup.getTestCluster();
+        final HRegionServer regionServer = testCluster.getRSForFirstRegionInTable((byte[]) storeSetup.getDataLib().encode(storeSetup.getPersonTableName()));
+        final List<HRegionInfo> regions = regionServer.getOnlineRegions();
+        for (HRegionInfo region : regions) {
+            regionServer.compactRegion(region, false);
+        }
+    }
+
 
 }

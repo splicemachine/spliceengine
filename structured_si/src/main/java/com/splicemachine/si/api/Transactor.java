@@ -6,6 +6,7 @@ import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.impl.RollForwardQueue;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
 
 import java.io.IOException;
 import java.util.List;
@@ -41,4 +42,5 @@ public interface Transactor extends ClientTransactor {
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
 
     void rollForward(STable table, long transactionId, List rows) throws IOException;
+    InternalScanner newCompactionScanner(InternalScanner scanner);
 }

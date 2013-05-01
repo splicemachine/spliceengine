@@ -28,6 +28,7 @@ public interface IHDataLib {
     byte[] getResultValue(Result result, byte[] family, byte[] qualifier);
     Map getResultFamilyMap(Result result, byte[] family);
 
+    KeyValue newKeyValue(byte[] rowKey, byte[] family, byte[] qualifier, Long timestamp, byte[] value);
     byte[] getKeyValueRow(KeyValue keyValue);
     byte[] getKeyValueFamily(KeyValue keyValue);
     byte[] getKeyValueQualifier(KeyValue keyValue);

@@ -12,6 +12,7 @@ import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.RollForwardQueue;
+import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.TransactorFactoryImpl;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -26,7 +27,10 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.regionserver.Store;
+import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
 
@@ -145,6 +149,24 @@ public class SIObserver extends BaseRegionObserver {
             throw new RuntimeException("Direct deletes are not supported under snapshot isolation. Instead a Put is expected that will set a record level tombstone.");
         } else {
             super.preDelete(e, delete, edit, writeToWAL);
+        }
+    }
+
+    @Override
+    public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e, Store store,
+                                      InternalScanner scanner) {
+        if (tableEnvMatch) {
+            Transactor transactor = TransactorFactoryImpl.getTransactor();
+            return transactor.newCompactionScanner(scanner);
+        } else {
+            return super.preCompact(e, store, scanner);
+        }
+    }
+
+    @Override
+    public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e, Store store, StoreFile resultFile) {
+        if (tableEnvMatch) {
+            Tracer.compact();
         }
     }
 }

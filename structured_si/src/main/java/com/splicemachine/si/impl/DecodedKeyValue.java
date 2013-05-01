@@ -3,11 +3,11 @@ package com.splicemachine.si.impl;
 import com.splicemachine.si.data.api.SDataLib;
 
 public class DecodedKeyValue {
-    final Object row;
-    final Object family;
-    final Object qualifier;
-    final long timestamp;
-    final Object value;
+    public final Object row;
+    public final Object family;
+    public final Object qualifier;
+    public final long timestamp;
+    public final Object value;
 
     public DecodedKeyValue(SDataLib dataLib, Object keyValue) {
         row = dataLib.getKeyValueRow(keyValue);
