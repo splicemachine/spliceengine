@@ -1,4 +1,4 @@
-package com.splicemachine;
+package com.splicemachine.constants;
 
 
 import org.apache.hadoop.conf.Configuration;

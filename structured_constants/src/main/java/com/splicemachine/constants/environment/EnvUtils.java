@@ -1,14 +1,11 @@
 package com.splicemachine.constants.environment;
 
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.SpliceConstants.TableEnv;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.constants.SchemaConstants;
-import com.splicemachine.constants.TransactionConstants.TableEnv;
 
 public class EnvUtils {
 	private static Logger LOG = Logger.getLogger(EnvUtils.class);
@@ -20,15 +17,13 @@ public class EnvUtils {
 
     public static TableEnv getTableEnv(String tableName) {
         SpliceLogUtils.trace(LOG,"Checking table environment for %s",tableName);
-		if (tableName.equals(TransactionConstants.TRANSACTION_TABLE))
+		if (tableName.equals(SpliceConstants.TRANSACTION_TABLE))
 			return TableEnv.TRANSACTION_TABLE;
-		else if (tableName.endsWith(SchemaConstants.INDEX))
-			return TableEnv.USER_INDEX_TABLE;
 		else if (tableName.equals("-ROOT-"))
 			return TableEnv.ROOT_TABLE;
 		else if (tableName.equals(".META."))
 			return TableEnv.META_TABLE;
-		else if (tableName.equals(HBaseConstants.TEMP_TABLE))
+		else if (tableName.equals(SpliceConstants.TEMP_TABLE))
 			return TableEnv.DERBY_SYS_TABLE;
 		else {
 			try {
