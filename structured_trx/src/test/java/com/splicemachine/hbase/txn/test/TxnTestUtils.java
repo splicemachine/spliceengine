@@ -13,7 +13,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.txn.TxnConstants;
 
 public class TxnTestUtils extends BaseTest {
@@ -23,7 +23,7 @@ public class TxnTestUtils extends BaseTest {
 	}
 	
 	public static void putDataToTable(HTable htable, int startingRowNum, int totalRows, String txnID) throws IOException {
-		byte[] family = HBaseConstants.DEFAULT_FAMILY.getBytes();
+		byte[] family = SpliceConstants.DEFAULT_FAMILY.getBytes();
 		char letter = 'A';
 		Integer num = 111;
 
@@ -90,14 +90,14 @@ public class TxnTestUtils extends BaseTest {
 	
 	public static HTable createTable(HBaseAdmin admin, String tableName) throws Exception {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
-		desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-				HBaseConstants.DEFAULT_VERSIONS,
-				HBaseConstants.DEFAULT_COMPRESSION,
-//				admin.getConfiguration().get(HBaseConstants.TABLE_COMPRESSION,HBaseConstants.DEFAULT_COMPRESSION),
-				HBaseConstants.DEFAULT_IN_MEMORY,
-				HBaseConstants.DEFAULT_BLOCKCACHE,
-				HBaseConstants.DEFAULT_TTL,
-				HBaseConstants.DEFAULT_BLOOMFILTER));
+		desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
+				SpliceConstants.DEFAULT_VERSIONS,
+				SpliceConstants.DEFAULT_COMPRESSION,
+//				admin.getConfiguration().get(SpliceConstants.TABLE_COMPRESSION,SpliceConstants.DEFAULT_COMPRESSION),
+				SpliceConstants.DEFAULT_IN_MEMORY,
+				SpliceConstants.DEFAULT_BLOCKCACHE,
+				SpliceConstants.DEFAULT_TTL,
+				SpliceConstants.DEFAULT_BLOOMFILTER));
 		admin.createTable(desc);
 		return new HTable(admin.getConfiguration(), tableName);
 	}

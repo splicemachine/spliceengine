@@ -2,7 +2,7 @@ package com.splicemachine.hbase.txn.coprocessor.region;
 
 import java.io.IOException;
 
-import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -41,7 +41,7 @@ public class BaseTxnRegionObserver extends BaseRegionObserver {
 		region = ((RegionCoprocessorEnvironment) e).getRegion();
 		regionId = EnvUtils.getRegionId(region);
 		tableName = region.getTableDesc().getNameAsString();
-		transactionPath = e.getConfiguration().get(TransactionConstants.TRANSACTION_PATH_NAME, TransactionConstants.DEFAULT_TRANSACTION_PATH);
+		transactionPath = e.getConfiguration().get(SpliceConstants.zkSpliceTransactionPath, SpliceConstants.DEFAULT_TRANSACTION_PATH);
 		String logPath =  e.getConfiguration().get(LogConstants.LOG_PATH_NAME,LogConstants.DEFAULT_LOG_PATH);
 		if (logPath == null)
 			throw new IOException("Log Path Not Set in Configuration for " + LogConstants.LOG_PATH_NAME);
@@ -49,8 +49,8 @@ public class BaseTxnRegionObserver extends BaseRegionObserver {
 		splitLogPath = TxnLogger.getSplitLogPath(logPath, tableName);
 		txnLogPath = TxnLogger.getTxnLogPath(logPath, regionId);
 		if (transactionPath == null) {
-			SpliceLogUtils.info(LOG, "Transaction Path Not Set in Configuration for " + TransactionConstants.TRANSACTION_PATH_NAME);
-			throw new IOException("Transaction Path Not Set in Configuration for " + TransactionConstants.TRANSACTION_PATH_NAME);
+			SpliceLogUtils.info(LOG, "Transaction Path Not Set in Configuration for " + SpliceConstants.zkSpliceTransactionPath);
+			throw new IOException("Transaction Path Not Set in Configuration for " + SpliceConstants.zkSpliceTransactionPath);
 		}
 		try {
 			ZKUtil.createWithParents(zkw, regionLogPath);

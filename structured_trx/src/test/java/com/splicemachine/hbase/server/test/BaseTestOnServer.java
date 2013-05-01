@@ -10,7 +10,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.junit.BeforeClass;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.txn.TxnConstants;
 import com.splicemachine.hbase.txn.ZkTransactionManager;
 
@@ -71,15 +71,15 @@ public class BaseTestOnServer extends TxnConstants {
 	
 	public static HTable createTable(HBaseAdmin admin, String tableName) throws Exception {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
-//		String compression = admin.getConfiguration().get(HBaseConstants.TABLE_COMPRESSION,HBaseConstants.DEFAULT_COMPRESSION);
-		String compression = HBaseConstants.DEFAULT_COMPRESSION;
-		desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-				HBaseConstants.DEFAULT_VERSIONS,
+//		String compression = admin.getConfiguration().get(SpliceConstants.TABLE_COMPRESSION,SpliceConstants.DEFAULT_COMPRESSION);
+		String compression = SpliceConstants.DEFAULT_COMPRESSION;
+		desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
+				SpliceConstants.DEFAULT_VERSIONS,
 				compression,
-				HBaseConstants.DEFAULT_IN_MEMORY,
-				HBaseConstants.DEFAULT_BLOCKCACHE,
-				HBaseConstants.DEFAULT_TTL,
-				HBaseConstants.DEFAULT_BLOOMFILTER));
+				SpliceConstants.DEFAULT_IN_MEMORY,
+				SpliceConstants.DEFAULT_BLOCKCACHE,
+				SpliceConstants.DEFAULT_TTL,
+				SpliceConstants.DEFAULT_BLOOMFILTER));
 		admin.createTable(desc);
 		return new HTable(admin.getConfiguration(), tableName);
 	}

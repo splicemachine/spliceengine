@@ -34,7 +34,7 @@ import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooDefs.Ids;
 
-import com.splicemachine.constants.SchemaConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.txn.TransactionStatus;
 import com.splicemachine.hbase.txn.TxnConstants;
 import com.splicemachine.constants.environment.EnvUtils;
@@ -68,7 +68,7 @@ public class TxnUtils extends TxnConstants{
 	}
 
 	public static String getTransactionalRegionPath(String txnId, String regionId) {
-		return txnId + SchemaConstants.PATH_DELIMITER + regionId;
+		return txnId + SpliceConstants.PATH_DELIMITER + regionId;
 	}
 
 	public static String getTransactionID(Attributes attributableOperation) {
@@ -261,7 +261,7 @@ public class TxnUtils extends TxnConstants{
 	 * @return parent of path, null if passed the root node or an invalid node
 	 */
 	public static String getParent(String node) {
-		int idx = node.lastIndexOf(SchemaConstants.PATH_DELIMITER);
+		int idx = node.lastIndexOf(SpliceConstants.PATH_DELIMITER);
 		return idx <= 0 ? null : node.substring(0, idx);
 	}
 

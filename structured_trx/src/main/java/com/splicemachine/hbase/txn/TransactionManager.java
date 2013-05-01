@@ -18,7 +18,7 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 
 public abstract class TransactionManager extends TxnConstants {
 	
@@ -34,14 +34,14 @@ public abstract class TransactionManager extends TxnConstants {
 			HBaseAdmin admin = new HBaseAdmin(config);
 			if (!admin.tableExists(TxnConstants.TRANSACTION_LOG_TABLE_BYTES)) {
 				HTableDescriptor desc = new HTableDescriptor(TxnConstants.TRANSACTION_LOG_TABLE_BYTES);
-				desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-						HBaseConstants.DEFAULT_VERSIONS,
-						HBaseConstants.DEFAULT_COMPRESSION,
-//						config.get(HBaseConstants.TABLE_COMPRESSION,HBaseConstants.DEFAULT_COMPRESSION),
-						HBaseConstants.DEFAULT_IN_MEMORY,
-						HBaseConstants.DEFAULT_BLOCKCACHE,
-						HBaseConstants.DEFAULT_TTL,
-						HBaseConstants.DEFAULT_BLOOMFILTER));
+				desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
+						SpliceConstants.DEFAULT_VERSIONS,
+						SpliceConstants.DEFAULT_COMPRESSION,
+//						config.get(SpliceConstants.TABLE_COMPRESSION,SpliceConstants.DEFAULT_COMPRESSION),
+						SpliceConstants.DEFAULT_IN_MEMORY,
+						SpliceConstants.DEFAULT_BLOCKCACHE,
+						SpliceConstants.DEFAULT_TTL,
+						SpliceConstants.DEFAULT_BLOOMFILTER));
 				desc.addFamily(new HColumnDescriptor(TxnConstants.DEFAULT_FAMILY));
 				admin.createTable(desc);
 			}

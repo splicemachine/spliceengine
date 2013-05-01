@@ -24,7 +24,7 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 
 import com.splicemachine.hbase.txn.TxnConstants;
-import com.splicemachine.constants.TransactionConstants.TableEnv;
+import com.splicemachine.constants.SpliceConstants.TableEnv;
 import com.splicemachine.hbase.txn.TxnConstants.TransactionIsolationLevel;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.hbase.txn.logger.LogConstants;

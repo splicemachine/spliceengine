@@ -15,7 +15,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.hbase.txn.TxnConstants;
-import com.splicemachine.constants.TransactionConstants.TableEnv;
+import com.splicemachine.constants.SpliceConstants.TableEnv;
 import com.splicemachine.hbase.txn.logger.TxnLogger;
 import com.splicemachine.utils.SpliceLogUtils;
 

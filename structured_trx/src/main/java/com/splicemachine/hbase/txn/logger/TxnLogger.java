@@ -44,8 +44,8 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
 
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.SchemaConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.txn.TxnConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.constants.environment.EnvUtils;
@@ -98,7 +98,7 @@ public class TxnLogger extends LogConstants {
 			String currentID = null;
 			TransactionState transactionState = null;
 			while ((result = scanner.next()) != null) {
-				currentID = Bytes.toString(result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES, TXN_ID_COLUMN_BYTES).getValue());
+				currentID = Bytes.toString(result.getColumnLatest(SpliceConstants.DEFAULT_FAMILY_BYTES, TXN_ID_COLUMN_BYTES).getValue());
 				if (currentID != null && !currentID.equals(priorID)) {
 					SpliceLogUtils.debug(LOG,"Read transaction state " + currentID + " from logger and hold it in new region " + EnvUtils.getRegionId(holder));
 					priorID = currentID;
@@ -120,9 +120,9 @@ public class TxnLogger extends LogConstants {
 	 */
 	public static void getWriteActionFromResult(Result result, String transactionID, HRegion actionHolder, List<WriteAction> writeOrdering) throws IOException {
 		SpliceLogUtils.debug(LOG,"getWriteActionFromResult, result= " +  result);
-		byte[] row = result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES, ROW_KEY_BYTES).getValue();
-		WriteActionType actionType = WriteActionType.valueOf(Bytes.toString(result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES, ACTION_TYPE_BYTES).getValue()));
-		byte[] action = result.getColumnLatest(HBaseConstants.DEFAULT_FAMILY_BYTES, ACTION_WRITABLE_BYTE).getValue();
+		byte[] row = result.getColumnLatest(SpliceConstants.DEFAULT_FAMILY_BYTES, ROW_KEY_BYTES).getValue();
+		WriteActionType actionType = WriteActionType.valueOf(Bytes.toString(result.getColumnLatest(SpliceConstants.DEFAULT_FAMILY_BYTES, ACTION_TYPE_BYTES).getValue()));
+		byte[] action = result.getColumnLatest(SpliceConstants.DEFAULT_FAMILY_BYTES, ACTION_WRITABLE_BYTE).getValue();
 		ByteArrayInputStream istream = new ByteArrayInputStream(action);
 		DataInput in = new DataInputStream(istream);
 		switch (actionType) {
@@ -166,7 +166,7 @@ public class TxnLogger extends LogConstants {
 	}
 
 	public static String getRegionLogPath(String regionLogPath, String regionId) {
-		return regionLogPath + SchemaConstants.PATH_DELIMITER + regionId;
+		return regionLogPath + SpliceConstants.PATH_DELIMITER + regionId;
 	}
 
 	public static void logTxnTableRegionsToZk(String regionLogPath, ZooKeeperWatcher zkw, Configuration conf) {
@@ -278,15 +278,15 @@ public class TxnLogger extends LogConstants {
 	}
 
 	public static String getTxnLogPath(String logPath, String regionId) {
-		return logPath + LogConstants.TXN_LOG_SUBPATH + SchemaConstants.PATH_DELIMITER + regionId;
+		return logPath + LogConstants.TXN_LOG_SUBPATH + SpliceConstants.PATH_DELIMITER + regionId;
 	}
 	
 	public static String getTxnLogNodePath(String txnLogPath, String txnId) {
-		return txnLogPath + SchemaConstants.PATH_DELIMITER + txnId.replace("/", "-");
+		return txnLogPath + SpliceConstants.PATH_DELIMITER + txnId.replace("/", "-");
 	}
 
 	public static String getSplitLogPath(String logPath, String tableName) {
-		return logPath + LogConstants.SPLIT_LOG_SUBPATH + SchemaConstants.PATH_DELIMITER + tableName;
+		return logPath + LogConstants.SPLIT_LOG_SUBPATH + SpliceConstants.PATH_DELIMITER + tableName;
 	}
 
 	public static boolean logNodeExist(String path, RecoverableZooKeeper rzk) {
@@ -327,7 +327,7 @@ public class TxnLogger extends LogConstants {
 		try {
 			SpliceLogUtils.debug(LOG,"Get children from split node path: " + splitLogNodePath);
 			for (String child : rzk.getChildren(splitLogNodePath, false)) {
-				String path = splitLogNodePath + SchemaConstants.PATH_DELIMITER + child;
+				String path = splitLogNodePath + SpliceConstants.PATH_DELIMITER + child;
 				byte[] data = rzk.getData(path, false, null);
 				SpliceLogUtils.debug(LOG,"Read data from split log node: " + path +  "; data: " + Bytes.toString(data));
 				if (Bytes.compareTo(data, bytes) == 0) {

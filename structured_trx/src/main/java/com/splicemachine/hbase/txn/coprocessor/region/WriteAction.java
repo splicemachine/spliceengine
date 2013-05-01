@@ -17,7 +17,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
 import com.google.common.primitives.Bytes;
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.SortableByteUtil;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.hbase.txn.logger.LogConstants;
@@ -73,18 +73,18 @@ public class WriteAction extends LogConstants {
 			if (put != null) {
 				SpliceLogUtils.debug(LOG,"generateLogPut, put"+put);
 				put.write(out);
-				logPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES, ACTION_TYPE_BYTES, WriteActionType.PUT.toString().getBytes());
+				logPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES, ACTION_TYPE_BYTES, WriteActionType.PUT.toString().getBytes());
 			} else if (delete != null) {
 				SpliceLogUtils.debug(LOG,"generateLogPut, delete"+delete);
 				delete.write(out);
-				logPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES, ACTION_TYPE_BYTES, WriteActionType.DELETE.toString().getBytes());
+				logPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES, ACTION_TYPE_BYTES, WriteActionType.DELETE.toString().getBytes());
 			}
 		} catch (IOException e) {
 			SpliceLogUtils.error(LOG,"Failed to write WriteAction into ByteArrayOutputStream.",e);	
 		}
-		logPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES, ROW_KEY_BYTES, this.getRow());
-		logPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES, TXN_ID_COLUMN_BYTES, transactionID.getBytes());
-		logPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES, ACTION_WRITABLE_BYTE, ostream.toByteArray());
+		logPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES, ROW_KEY_BYTES, this.getRow());
+		logPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES, TXN_ID_COLUMN_BYTES, transactionID.getBytes());
+		logPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES, ACTION_WRITABLE_BYTE, ostream.toByteArray());
 		SpliceLogUtils.debug(LOG,"Generated log put with Row key " + org.apache.hadoop.hbase.util.Bytes.toString(logRowKey) + 
 					". The original row key " + org.apache.hadoop.hbase.util.Bytes.toString(this.getRow()));
 		return logPut;

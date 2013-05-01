@@ -1,9 +1,9 @@
 package com.splicemachine.hbase.txn;
 
-import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.hbase.util.Bytes;
 
-public class TxnConstants extends TransactionConstants {
+public class TxnConstants extends SpliceConstants {
 	public static final String TRANSACTION_ID = "__txn_id";
     public static final byte[] TRANSACTION_QUALIFIER = TRANSACTION_ID.getBytes();
     public static final String LOCK_TYPE = "__lock_type";

@@ -3,7 +3,7 @@ package com.splicemachine.hbase.txn;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
-import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
@@ -20,7 +20,7 @@ public class ZkTransactionManager extends TransactionManager {
   
     public ZkTransactionManager(final Configuration conf) throws IOException {
     	super(conf);
-    	this.transactionPath = conf.get(TransactionConstants.TRANSACTION_PATH_NAME, TransactionConstants.DEFAULT_TRANSACTION_PATH);
+    	this.transactionPath = conf.get(SpliceConstants.zkSpliceTransactionPath, SpliceConstants.DEFAULT_TRANSACTION_PATH);
     }
 
     public ZkTransactionManager(final String transactionPath, final Configuration conf) throws IOException {
@@ -29,7 +29,7 @@ public class ZkTransactionManager extends TransactionManager {
     }
     
     public ZkTransactionManager(final Configuration conf, ZooKeeperWatcher zkw, RecoverableZooKeeper rzk) throws IOException {
-    	this.transactionPath = conf.get(TransactionConstants.TRANSACTION_PATH_NAME, TransactionConstants.DEFAULT_TRANSACTION_PATH);
+    	this.transactionPath = conf.get(SpliceConstants.zkSpliceTransactionPath, SpliceConstants.DEFAULT_TRANSACTION_PATH);
     	this.zkw = zkw;
     	this.rzk = rzk;
     }
