@@ -17,7 +17,7 @@ import com.ir.hbase.coprocessor.BaseZkMasterObserver;
 import com.ir.hbase.coprocessor.SchemaUtils;
 import com.ir.hbase.coprocessor.index.IndexMasterObserver;
 import com.ir.hbase.coprocessor.index.IndexUtils;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.TxnConstants;
 import com.ir.constants.TxnConstants.TableEnv;
 import com.ir.constants.environment.EnvUtils;

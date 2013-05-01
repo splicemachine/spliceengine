@@ -11,8 +11,8 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.google.gson.Gson;
-import com.ir.constants.HBaseConstants;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
+import com.ir.constants.SpliceConstants;
 
 public class TableStructure extends Object {
 	private Map<String, Family> families = new HashMap<String, Family>();
@@ -75,7 +75,7 @@ public class TableStructure extends Object {
 	}
 	
 	public static HTableDescriptor setTableStructure(HTableDescriptor desc, TableStructure tableStructure) {
-		desc.setValue(SchemaConstants.TABLE_STRUCTURE, gson.toJson(tableStructure));
+		desc.setValue(SpliceConstants.TABLE_STRUCTURE, gson.toJson(tableStructure));
 		return desc;
 	}
 	
@@ -85,21 +85,21 @@ public class TableStructure extends Object {
 
 	public static HTableDescriptor generateDefaultStructuredData(TableStructure tableStructure, String tableName) {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
-		desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-				HBaseConstants.DEFAULT_VERSIONS,
-				HBaseConstants.DEFAULT_COMPRESSION,
-				HBaseConstants.DEFAULT_IN_MEMORY,
-				HBaseConstants.DEFAULT_BLOCKCACHE,
-				HBaseConstants.DEFAULT_TTL,
-				HBaseConstants.DEFAULT_BLOOMFILTER));
+		desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
+				SpliceConstants.DEFAULT_VERSIONS,
+				SpliceConstants.DEFAULT_COMPRESSION,
+				SpliceConstants.DEFAULT_IN_MEMORY,
+				SpliceConstants.DEFAULT_BLOCKCACHE,
+				SpliceConstants.DEFAULT_TTL,
+				SpliceConstants.DEFAULT_BLOOMFILTER));
 		return tableStructure == null ? desc : setTableStructure(desc, tableStructure);		
 	}
 	
 	public static TableStructure getTableStructure(HTableDescriptor desc) {
-		return gson.fromJson(desc.getValue(SchemaConstants.TABLE_STRUCTURE),TableStructure.class);
+		return gson.fromJson(desc.getValue(SpliceConstants.TABLE_STRUCTURE),TableStructure.class);
 	}
 	
 	public static void removeTableStructure(HTableDescriptor desc) {
-		desc.remove(Bytes.toBytes(SchemaConstants.TABLE_STRUCTURE));
+		desc.remove(Bytes.toBytes(SpliceConstants.TABLE_STRUCTURE));
 	}
 }

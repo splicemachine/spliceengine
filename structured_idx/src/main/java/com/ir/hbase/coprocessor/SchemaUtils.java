@@ -11,9 +11,9 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 
-public class SchemaUtils extends SchemaConstants {
+public class SchemaUtils extends SpliceConstants {
 	private static Logger LOG = Logger.getLogger(SchemaUtils.class);
 	/**
 	 * Creates the specified node and all parent nodes required for it to exist.

@@ -11,7 +11,7 @@ import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 
 public class BaseZkRegionObserver extends BaseRegionObserver {
 	private static Logger LOG = Logger.getLogger(BaseZkRegionObserver.class);
@@ -27,12 +27,12 @@ public class BaseZkRegionObserver extends BaseRegionObserver {
 		rzk = ((RegionCoprocessorEnvironment) e).getRegionServerServices().getZooKeeper().getRecoverableZooKeeper();
 		zkw = ((RegionCoprocessorEnvironment) e).getRegionServerServices().getZooKeeper();
 		tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
-		schemaPath = e.getConfiguration().get(SchemaConstants.SCHEMA_PATH_NAME,SchemaConstants.DEFAULT_SCHEMA_PATH);
+		schemaPath = e.getConfiguration().get(SpliceConstants.SCHEMA_PATH_NAME,SpliceConstants.DEFAULT_SCHEMA_PATH);
 		if (schemaPath == null)
-			throw new IOException("Schema Path Not Set in Configuration for " + SchemaConstants.SCHEMA_PATH_NAME);
+			throw new IOException("Schema Path Not Set in Configuration for " + SpliceConstants.SCHEMA_PATH_NAME);
 		try {
 			if (rzk.exists(schemaPath, false) == null)
-				throw new IOException("Schema Not Not Created in ZooKeeper for " + SchemaConstants.SCHEMA_PATH_NAME + ". Check if Index Master Observer is running.");
+				throw new IOException("Schema Not Not Created in ZooKeeper for " + SpliceConstants.SCHEMA_PATH_NAME + ". Check if Index Master Observer is running.");
 		} catch (KeeperException e1) {
 			e1.printStackTrace();
 		} catch (InterruptedException e1) {

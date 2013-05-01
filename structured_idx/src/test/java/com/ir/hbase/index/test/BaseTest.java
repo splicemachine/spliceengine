@@ -6,11 +6,11 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Ignore;
 
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.hbase.client.index.IndexColumn;
 import com.ir.hbase.client.structured.Column;
 @Ignore
-public class BaseTest extends SchemaConstants {
+public class BaseTest extends SpliceConstants {
 
 	protected static HTable htable;
 	protected static HTable indexTable;

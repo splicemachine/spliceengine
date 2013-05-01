@@ -26,7 +26,7 @@ import com.ir.hbase.client.structured.Column;
 import com.ir.hbase.coprocessor.BaseZkRegionObserver;
 import com.ir.hbase.coprocessor.SchemaUtils;
 import com.ir.hbase.txn.coprocessor.region.TxnUtils;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.TxnConstants.TableEnv;
 
 public class IndexRegionObserver extends BaseZkRegionObserver {
@@ -67,7 +67,7 @@ public class IndexRegionObserver extends BaseZkRegionObserver {
 		}
 		if (tableEnvMatch) {
 			if (!indexesByName.isEmpty()) {
-					HTableInterface indexTable = tablePool.getTable(Bytes.toBytes(region.getRegionInfo().getTableNameAsString() + SchemaConstants.INDEX));
+					HTableInterface indexTable = tablePool.getTable(Bytes.toBytes(region.getRegionInfo().getTableNameAsString() + SpliceConstants.INDEX));
 					IndexUtils.updateIndexes(indexTable, put, region, indexesByName, null);
 					indexTable.close();
 			}
@@ -89,7 +89,7 @@ public class IndexRegionObserver extends BaseZkRegionObserver {
 			//Get new result
 			Result newRow = IndexUtils.applyDelete(delete, oldRow);
 			SortedMap<byte[], byte[]> newColumnValues = IndexUtils.convertToValueMap(newRow);
-			HTableInterface indexTable = tablePool.getTable(Bytes.toBytes(region.getRegionInfo().getTableNameAsString() + SchemaConstants.INDEX));
+			HTableInterface indexTable = tablePool.getTable(Bytes.toBytes(region.getRegionInfo().getTableNameAsString() + SpliceConstants.INDEX));
 			IndexUtils.deleteOnIndexTable(indexTable, delete, indexesByName, oldColumnValues, newColumnValues);
 			indexTable.close();
 			super.preDelete(e, delete, edit, writeToWAL);
@@ -125,11 +125,11 @@ public class IndexRegionObserver extends BaseZkRegionObserver {
 				LOG.debug("New index watcher triggered in CoProcessor " + IndexRegionObserver.class);
 			if (event.getType().equals(EventType.NodeChildrenChanged)) {
 				try {
-					for (String child : rzk.getChildren(schemaPath + SchemaConstants.PATH_DELIMITER + tableName + SchemaConstants.INDEX, this)) {
+					for (String child : rzk.getChildren(schemaPath + SpliceConstants.PATH_DELIMITER + tableName + SpliceConstants.INDEX, this)) {
 						if (!indexesByName.containsKey(child)) {
 							if (LOG.isDebugEnabled())
 								LOG.debug("New index found in CoProcessor " + IndexRegionObserver.class);
-							indexesByName.put(child, Index.toIndex(Bytes.toString(rzk.getData(schemaPath + SchemaConstants.PATH_DELIMITER + tableName + SchemaConstants.INDEX + SchemaConstants.PATH_DELIMITER + child, new OldIndexWatcher(child), null))));
+							indexesByName.put(child, Index.toIndex(Bytes.toString(rzk.getData(schemaPath + SpliceConstants.PATH_DELIMITER + tableName + SpliceConstants.INDEX + SpliceConstants.PATH_DELIMITER + child, new OldIndexWatcher(child), null))));
 						}
 					}
 				} catch (KeeperException e) {

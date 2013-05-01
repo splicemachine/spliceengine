@@ -8,7 +8,7 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.google.gson.Gson;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 
 public class IndexTableStructure {
 	private Map<String, Index> indexes = new HashMap<String, Index>();
@@ -46,13 +46,13 @@ public class IndexTableStructure {
 		return gson.fromJson(json, IndexTableStructure.class);
 	}
 	public static HTableDescriptor setIndexStructure(HTableDescriptor desc, IndexTableStructure itableStructure) {
-		desc.setValue(SchemaConstants.INDEXTABLE_STRUCTURE, gson.toJson(itableStructure));
+		desc.setValue(SpliceConstants.INDEXTABLE_STRUCTURE, gson.toJson(itableStructure));
 		return desc;
 	}
 	public static IndexTableStructure getIndexTableStructure(HTableDescriptor desc) {
-		return gson.fromJson(desc.getValue(SchemaConstants.INDEXTABLE_STRUCTURE), IndexTableStructure.class);
+		return gson.fromJson(desc.getValue(SpliceConstants.INDEXTABLE_STRUCTURE), IndexTableStructure.class);
 	}
 	public static void removeIndexTableStructure(HTableDescriptor desc) {
-		desc.remove(Bytes.toBytes(SchemaConstants.INDEXTABLE_STRUCTURE));
+		desc.remove(Bytes.toBytes(SpliceConstants.INDEXTABLE_STRUCTURE));
 	}
 }

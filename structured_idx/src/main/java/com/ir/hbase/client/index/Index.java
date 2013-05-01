@@ -10,7 +10,7 @@ import org.apache.log4j.Logger;
 import org.mortbay.log.Log;
 
 import com.google.gson.Gson;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.bytes.SortableByteUtil;
 import com.ir.hbase.client.structured.Column;
 import com.ir.hbase.coprocessor.index.IndexRegionObserver;
@@ -85,7 +85,7 @@ public class Index {
 			LOG.debug("Create index key for " + indexName);
 		List<byte[]> keyComponents = new ArrayList<byte[]>();
 		keyComponents.add(Bytes.toBytes(indexName));
-		keyComponents.add(SchemaConstants.INDEX_DELIMITER);
+		keyComponents.add(SpliceConstants.INDEX_DELIMITER);
 		for (IndexColumn column : indexColumns) {
 			byte[] columnName = column.makeColumn();
 			if (baseRowData.containsKey(columnName)) {
@@ -93,13 +93,13 @@ public class Index {
 					LOG.debug("Index column " + column.getColumnName() + " order " + column.getOrder().toString() + " has data " + Bytes.toString(baseRowData.get(column.makeColumn())));
 				byte[] temp = baseRowData.get(column.makeColumn());
 				keyComponents.add(dataToBytes(column, Arrays.copyOfRange(temp, 0, temp.length)));
-				keyComponents.add(SchemaConstants.INDEX_DELIMITER);	
+				keyComponents.add(SpliceConstants.INDEX_DELIMITER);	
 			} else {
 				if (LOG.isDebugEnabled())
 					LOG.debug("Index column " + column.getColumnName() + " order " + column.getOrder().toString() + " doesn't have data ");
 				//Base row data doesn't contain column 
 				keyComponents.add(dataToBytes(column, null));
-				keyComponents.add(SchemaConstants.INDEX_DELIMITER);
+				keyComponents.add(SpliceConstants.INDEX_DELIMITER);
 				/*throw new RuntimeException("Base row data doesn't contain column " + column.getFullColumnName());*/
 			}
 		}
@@ -126,12 +126,12 @@ public class Index {
 	public byte[] createIndexScanKey(Map<String, Object> scanColumns) {
 		List<byte[]> keyComponents = new ArrayList<byte[]>();
 		keyComponents.add(Bytes.toBytes(indexName));
-		keyComponents.add(SchemaConstants.INDEX_DELIMITER);
+		keyComponents.add(SpliceConstants.INDEX_DELIMITER);
 		for (IndexColumn column : indexColumns) {
 			String columnFullName = column.getFullColumnName();
 			if (scanColumns.containsKey(columnFullName) && scanColumns.get(columnFullName) != null) {
 				keyComponents.add(dataToBytes(column, scanColumns.get(columnFullName)));
-				keyComponents.add(SchemaConstants.INDEX_DELIMITER);	
+				keyComponents.add(SpliceConstants.INDEX_DELIMITER);	
 			} else {
 				break;
 			}
@@ -167,7 +167,7 @@ public class Index {
 			dataAsBytes = new byte[0];
 		}
 
-		int totalLength = SchemaConstants.FIELD_FLAGS_SIZE + dataAsBytes.length;
+		int totalLength = SpliceConstants.FIELD_FLAGS_SIZE + dataAsBytes.length;
 
 		byte[] bytes = new byte[totalLength];
 		if (data == null) {

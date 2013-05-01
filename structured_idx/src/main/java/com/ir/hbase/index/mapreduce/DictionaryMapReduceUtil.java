@@ -15,7 +15,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.log4j.Logger;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.hbase.client.index.Index;
 import com.ir.hbase.client.structured.Column;
 import com.ir.hbase.coprocessor.SchemaUtils;
@@ -29,8 +29,8 @@ public class DictionaryMapReduceUtil {
 		if (LOG.isDebugEnabled())
 			LOG.debug("Run MapReduce adding Index " + index.getIndexName() + " to table " + Bytes.toString(tableName));
 		conf.set(TableOutputFormat.QUORUM_ADDRESS, 	"ubuntu2,ubuntu3,ubuntu4");
-		conf.set(SchemaConstants.SERIALIZED_INDEX, index.toJSon());
-		conf.set(TableOutputFormat.OUTPUT_TABLE, SchemaUtils.appendSuffix(Bytes.toString(tableName), SchemaConstants.INDEX));
+		conf.set(SpliceConstants.SERIALIZED_INDEX, index.toJSon());
+		conf.set(TableOutputFormat.OUTPUT_TABLE, SchemaUtils.appendSuffix(Bytes.toString(tableName), SpliceConstants.INDEX));
 		Job job = Job.getInstance(conf);
 		Scan scan = new Scan();
 		for (Column column: index.getAllColumns()) {

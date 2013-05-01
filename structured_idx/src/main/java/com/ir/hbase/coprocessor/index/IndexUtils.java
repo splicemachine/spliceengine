@@ -44,8 +44,8 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
-import com.ir.constants.HBaseConstants;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.TxnConstants;
 import com.ir.constants.bytes.BytesUtil;
 import com.ir.constants.bytes.SortableByteUtil;
@@ -55,7 +55,7 @@ import com.ir.hbase.client.structured.Column;
 import com.ir.hbase.coprocessor.SchemaUtils;
 import com.ir.hbase.index.mapreduce.DictionaryMapReduceUtil;
 
-public class IndexUtils extends SchemaConstants {
+public class IndexUtils extends SpliceConstants {
 	private static Logger LOG = Logger.getLogger(IndexUtils.class);
 	/**
 	 * Check if a table has index definition in zoo. 
@@ -381,13 +381,13 @@ public class IndexUtils extends SchemaConstants {
 		HTableDescriptor idesc = new HTableDescriptor(SchemaUtils.appendSuffix(tableName, INDEX));
 		createIndexTableNode(schemaPath, tableName, rzk);
 		//add default family
-		idesc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-				HBaseConstants.DEFAULT_VERSIONS,
-				HBaseConstants.DEFAULT_COMPRESSION,
-				HBaseConstants.DEFAULT_IN_MEMORY,
-				HBaseConstants.DEFAULT_BLOCKCACHE,
-				HBaseConstants.DEFAULT_TTL,
-				HBaseConstants.DEFAULT_BLOOMFILTER));
+		idesc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
+				SpliceConstants.DEFAULT_VERSIONS,
+				SpliceConstants.DEFAULT_COMPRESSION,
+				SpliceConstants.DEFAULT_IN_MEMORY,
+				SpliceConstants.DEFAULT_BLOCKCACHE,
+				SpliceConstants.DEFAULT_TTL,
+				SpliceConstants.DEFAULT_BLOOMFILTER));
 		if (its != null) {
 			//Create index node and ensure column families for all columns
 			if (its.hasIndexes()) {
@@ -397,7 +397,7 @@ public class IndexUtils extends SchemaConstants {
 					if (LOG.isDebugEnabled())
 						LOG.debug("create index node in zoo " + index.getIndexName() + " json " + index.toJSon());
 					for (String family : index.getAllFamilies()) {
-						if (family.equals(HBaseConstants.DEFAULT_FAMILY)) continue;
+						if (family.equals(SpliceConstants.DEFAULT_FAMILY)) continue;
 						idesc.addFamily(new HColumnDescriptor(family));
 					}
 				}
@@ -414,11 +414,11 @@ public class IndexUtils extends SchemaConstants {
 
 	public static void changeIndex(String schemaPath, String tableNameStr, Put put, RecoverableZooKeeper rzk, ObserverContext<RegionCoprocessorEnvironment> e) {
 		try {
-			if (Bytes.equals(put.getRow(), SchemaConstants.ADD_INDEX_BYTE)) {
+			if (Bytes.equals(put.getRow(), SpliceConstants.ADD_INDEX_BYTE)) {
 				addIndex(schemaPath, tableNameStr, put, rzk, e.getEnvironment().getConfiguration());
 				e.bypass();
 				e.complete();
-			} else if (Bytes.equals(put.getRow(), SchemaConstants.DELETE_INDEX_BYTE)) {
+			} else if (Bytes.equals(put.getRow(), SpliceConstants.DELETE_INDEX_BYTE)) {
 				deleteIndex(schemaPath, tableNameStr, put, rzk, e.getEnvironment().getConfiguration());
 				e.bypass();
 				e.complete();
@@ -439,7 +439,7 @@ public class IndexUtils extends SchemaConstants {
 	public static void addIndex(String schemaPath, String tableNameStr, Put put, RecoverableZooKeeper rzk, Configuration conf) throws InterruptedException, KeeperException, IOException, ClassNotFoundException {
 		if (LOG.isDebugEnabled())
 			LOG.debug("Add index to table " + tableNameStr);
-		String indexStr = Bytes.toString(put.getAttribute(SchemaConstants.SERIALIZED_INDEX));
+		String indexStr = Bytes.toString(put.getAttribute(SpliceConstants.SERIALIZED_INDEX));
 		if (indexStr == null)
 			throw new RuntimeException("Try to add a new index without serialized index definition.");
 		Index index = Index.toIndex(indexStr);
@@ -456,7 +456,7 @@ public class IndexUtils extends SchemaConstants {
 		if (LOG.isDebugEnabled())
 			LOG.debug("Delete index from table " + tableNameStr);
 		//using indexName only for deleting index
-		String indexName = Bytes.toString(put.getAttribute(SchemaConstants.SERIALIZED_INDEX));
+		String indexName = Bytes.toString(put.getAttribute(SpliceConstants.SERIALIZED_INDEX));
 		if (indexName == null)
 			throw new RuntimeException("Try to delete a index without serialized index name.");
 		if (!hasIndex(schemaPath, tableNameStr, indexName, rzk))
@@ -485,7 +485,7 @@ public class IndexUtils extends SchemaConstants {
 	}
 
 	public static boolean isIndexChngeEnv(Put put) {
-		return Bytes.equals(put.getRow(), SchemaConstants.ADD_INDEX_BYTE) || Bytes.equals(put.getRow(), SchemaConstants.DELETE_INDEX_BYTE);
+		return Bytes.equals(put.getRow(), SpliceConstants.ADD_INDEX_BYTE) || Bytes.equals(put.getRow(), SpliceConstants.DELETE_INDEX_BYTE);
 	} 
 
 	public static void deleteIdxTablePathRecursively(String schemaPath, String tableName, ZooKeeperWatcher zkw) {

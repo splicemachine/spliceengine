@@ -30,7 +30,7 @@ import com.ir.hbase.coprocessor.SchemaUtils;
 import com.ir.hbase.coprocessor.index.IndexUtils;
 import com.ir.hbase.txn.coprocessor.region.TransactionalRegionObserver;
 import com.ir.hbase.txn.coprocessor.region.TxnUtils;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.TxnConstants.TableEnv;
 
 public class StructuredRegionObserver extends BaseZkRegionObserver {
@@ -157,7 +157,7 @@ public class StructuredRegionObserver extends BaseZkRegionObserver {
 					for (String column : columns) {
 						byte[] bytes = KeyValue.makeColumn(Bytes.toBytes(family), Bytes.toBytes(column));
 						if (!columnsByName.containsKey(bytes)) {
-							columnsByName.put(bytes, Column.toColumn(Bytes.toString(rzk.getData(schemaPath + SchemaConstants.PATH_DELIMITER + tableName + SchemaConstants.PATH_DELIMITER + family + SchemaConstants.PATH_DELIMITER + column, new OldColumnWatcher(bytes), null))));
+							columnsByName.put(bytes, Column.toColumn(Bytes.toString(rzk.getData(schemaPath + SpliceConstants.PATH_DELIMITER + tableName + SpliceConstants.PATH_DELIMITER + family + SpliceConstants.PATH_DELIMITER + column, new OldColumnWatcher(bytes), null))));
 							columnsDeleted.remove(bytes);
 						}
 					}

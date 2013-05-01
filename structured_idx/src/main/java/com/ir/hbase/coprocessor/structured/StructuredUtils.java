@@ -32,15 +32,15 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
-import com.ir.constants.HBaseConstants;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.hbase.client.structured.Column;
 import com.ir.hbase.client.structured.Family;
 import com.ir.hbase.client.structured.TableStructure;
 import com.ir.hbase.coprocessor.SchemaUtils;
 import com.ir.hbase.index.mapreduce.DictionaryMapReduceUtil;
 
-public class StructuredUtils extends SchemaConstants {
+public class StructuredUtils extends SpliceConstants {
 	private static Logger LOG = Logger.getLogger(StructuredUtils.class);
 	public static boolean hasStructure(String schemaPath, String tableName, RecoverableZooKeeper rzk) {
 		if (LOG.isDebugEnabled())
@@ -130,16 +130,16 @@ public class StructuredUtils extends SchemaConstants {
 		//Create table node
 		createTableNode(schemaPath, tableName, rzk);
 		//Create default family node anyway
-		createFamilyNode(schemaPath, tableName, HBaseConstants.DEFAULT_FAMILY, rzk);
+		createFamilyNode(schemaPath, tableName, SpliceConstants.DEFAULT_FAMILY, rzk);
 		//add default family if not exist
-		if (!desc.hasFamily(HBaseConstants.DEFAULT_FAMILY_BYTES))
-			desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
-					HBaseConstants.DEFAULT_VERSIONS,
-					HBaseConstants.DEFAULT_COMPRESSION,
-					HBaseConstants.DEFAULT_IN_MEMORY,
-					HBaseConstants.DEFAULT_BLOCKCACHE,
-					HBaseConstants.DEFAULT_TTL,
-					HBaseConstants.DEFAULT_BLOOMFILTER));
+		if (!desc.hasFamily(SpliceConstants.DEFAULT_FAMILY_BYTES))
+			desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
+					SpliceConstants.DEFAULT_VERSIONS,
+					SpliceConstants.DEFAULT_COMPRESSION,
+					SpliceConstants.DEFAULT_IN_MEMORY,
+					SpliceConstants.DEFAULT_BLOCKCACHE,
+					SpliceConstants.DEFAULT_TTL,
+					SpliceConstants.DEFAULT_BLOOMFILTER));
 		if (ts != null) { //user defined table table structure
 			if (ts.hasFamilies()) {
 				for (Family family : ts.getFamilies()) {
@@ -156,7 +156,7 @@ public class StructuredUtils extends SchemaConstants {
 			}
 		} else { //no user defined structure, create with table descriptor
 			if (desc.getFamilies().isEmpty()) { //Create default family node
-				createFamilyNode(schemaPath, tableName, HBaseConstants.DEFAULT_FAMILY, rzk);
+				createFamilyNode(schemaPath, tableName, SpliceConstants.DEFAULT_FAMILY, rzk);
 			} else { //Create user-defined family node
 				for (HColumnDescriptor family : desc.getFamilies()) {
 					createFamilyNode(schemaPath, tableName, family.getNameAsString(), rzk);
@@ -167,11 +167,11 @@ public class StructuredUtils extends SchemaConstants {
 
 	public static void changeStructure(String schemaPath, String tableNameStr, Put put, RecoverableZooKeeper rzk, ObserverContext<RegionCoprocessorEnvironment> e) {
 		try {
-			if (Bytes.equals(put.getRow(), SchemaConstants.ADD_COLUMN_BYTE)) {
+			if (Bytes.equals(put.getRow(), SpliceConstants.ADD_COLUMN_BYTE)) {
 				addColumn(schemaPath, tableNameStr, put, rzk, e.getEnvironment().getConfiguration());
 				e.bypass();
 				e.complete();
-			} else if (Bytes.equals(put.getRow(), SchemaConstants.DELETE_COLUMN_BYTE)) {
+			} else if (Bytes.equals(put.getRow(), SpliceConstants.DELETE_COLUMN_BYTE)) {
 				deleteColumn(schemaPath, tableNameStr, put, rzk, e.getEnvironment().getConfiguration());
 				e.bypass();
 				e.complete();
@@ -321,7 +321,7 @@ public class StructuredUtils extends SchemaConstants {
 		}
 	}
 	public static boolean isStructuredChngeEnv(Put put) {
-		return Bytes.equals(put.getRow(), SchemaConstants.ADD_COLUMN_BYTE) || Bytes.equals(put.getRow(), SchemaConstants.DELETE_COLUMN_BYTE);
+		return Bytes.equals(put.getRow(), SpliceConstants.ADD_COLUMN_BYTE) || Bytes.equals(put.getRow(), SpliceConstants.DELETE_COLUMN_BYTE);
 	} 
 	public static void deleteStructuredTablePathRecursively(String schemaPath, String tableName, ZooKeeperWatcher zkw) {
 		RecoverableZooKeeper rzk = zkw.getRecoverableZooKeeper();

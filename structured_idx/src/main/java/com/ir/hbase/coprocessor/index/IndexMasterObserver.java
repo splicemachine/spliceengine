@@ -16,7 +16,7 @@ import com.ir.hbase.client.index.IndexTableStructure;
 import com.ir.hbase.coprocessor.BaseZkMasterObserver;
 import com.ir.hbase.coprocessor.SchemaUtils;
 import com.ir.hbase.coprocessor.structured.StructuredMasterObserver;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.TxnConstants;
 import com.ir.constants.TxnConstants.TableEnv;
 import com.ir.constants.environment.EnvUtils;
@@ -61,10 +61,10 @@ public class IndexMasterObserver extends BaseZkMasterObserver {
 		String tableNameStr = Bytes.toString(tableName);
 		if (EnvUtils.getTableEnv(tableNameStr).equals(TableEnv.OTHER_TABLES) ) {
 			HBaseAdmin admin = new HBaseAdmin(ctx.getEnvironment().getConfiguration());
-			if (admin.tableExists(SchemaUtils.appendSuffix(tableNameStr, SchemaConstants.INDEX))) {
-				if (!admin.isTableDisabled(SchemaUtils.appendSuffix(tableNameStr, SchemaConstants.INDEX)))
-					admin.disableTable(SchemaUtils.appendSuffix(tableNameStr, SchemaConstants.INDEX));
-				admin.deleteTable(SchemaUtils.appendSuffix(tableNameStr, SchemaConstants.INDEX));
+			if (admin.tableExists(SchemaUtils.appendSuffix(tableNameStr, SpliceConstants.INDEX))) {
+				if (!admin.isTableDisabled(SchemaUtils.appendSuffix(tableNameStr, SpliceConstants.INDEX)))
+					admin.disableTable(SchemaUtils.appendSuffix(tableNameStr, SpliceConstants.INDEX));
+				admin.deleteTable(SchemaUtils.appendSuffix(tableNameStr, SpliceConstants.INDEX));
 			}
 			IndexUtils.deleteIdxTablePathRecursively(schemaPath, tableNameStr, zkw);
 		}
@@ -78,8 +78,8 @@ public class IndexMasterObserver extends BaseZkMasterObserver {
 		String tableNameStr = Bytes.toString(tableName);
 		if (EnvUtils.getTableEnv(tableNameStr).equals(TableEnv.OTHER_TABLES) ) {
 			HBaseAdmin admin = new HBaseAdmin(ctx.getEnvironment().getConfiguration());
-			if (admin.tableExists(SchemaUtils.appendSuffix(tableNameStr, SchemaConstants.INDEX))) {
-				admin.enableTable(Bytes.toBytes(SchemaUtils.appendSuffix(tableNameStr, SchemaConstants.INDEX)));
+			if (admin.tableExists(SchemaUtils.appendSuffix(tableNameStr, SpliceConstants.INDEX))) {
+				admin.enableTable(Bytes.toBytes(SchemaUtils.appendSuffix(tableNameStr, SpliceConstants.INDEX)));
 			}
 		}		
 		super.preEnableTable(ctx, tableName);
@@ -92,8 +92,8 @@ public class IndexMasterObserver extends BaseZkMasterObserver {
 		String tableNameStr = Bytes.toString(tableName);
 		if (EnvUtils.getTableEnv(tableNameStr).equals(TableEnv.OTHER_TABLES) ) {
 			HBaseAdmin admin = new HBaseAdmin(ctx.getEnvironment().getConfiguration());			
-			if (admin.tableExists(SchemaUtils.appendSuffix(tableNameStr, SchemaConstants.INDEX))) {
-				admin.disableTable(Bytes.toBytes(SchemaUtils.appendSuffix(tableNameStr, SchemaConstants.INDEX)));
+			if (admin.tableExists(SchemaUtils.appendSuffix(tableNameStr, SpliceConstants.INDEX))) {
+				admin.disableTable(Bytes.toBytes(SchemaUtils.appendSuffix(tableNameStr, SpliceConstants.INDEX)));
 			}
 		}		
 		super.preDisableTable(ctx, tableName);

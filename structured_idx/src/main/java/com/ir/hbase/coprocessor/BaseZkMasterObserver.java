@@ -10,7 +10,7 @@ import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 
 public class BaseZkMasterObserver extends BaseMasterObserver {
 	private static Logger LOG = Logger.getLogger(BaseZkMasterObserver.class);
@@ -23,9 +23,9 @@ public class BaseZkMasterObserver extends BaseMasterObserver {
 			LOG.debug("Initialize ZooKeeper in " + BaseZkMasterObserver.class);
 		zkw = ((MasterCoprocessorEnvironment) ctx).getMasterServices().getZooKeeper();
 		rzk = zkw.getRecoverableZooKeeper();
-		schemaPath = ctx.getConfiguration().get(SchemaConstants.SCHEMA_PATH_NAME,SchemaConstants.DEFAULT_SCHEMA_PATH);
+		schemaPath = ctx.getConfiguration().get(SpliceConstants.SCHEMA_PATH_NAME,SpliceConstants.DEFAULT_SCHEMA_PATH);
 		if (schemaPath == null)
-			throw new IOException("Schema Path Not Set in Configuration for " + SchemaConstants.SCHEMA_PATH_NAME);
+			throw new IOException("Schema Path Not Set in Configuration for " + SpliceConstants.SCHEMA_PATH_NAME);
 		try { //create schema root path if not exist
 			if (rzk.exists(schemaPath, false) == null)
 				SchemaUtils.createWithParents(rzk, schemaPath);

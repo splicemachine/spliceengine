@@ -4,11 +4,11 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.google.gson.Gson;
-import com.ir.constants.HBaseConstants;
+import com.ir.constants.SpliceConstants;
 
 public class Column implements Comparable<Column> {
 	protected String columnName;
-	protected String familyName = HBaseConstants.DEFAULT_FAMILY;
+	protected String familyName = SpliceConstants.DEFAULT_FAMILY;
 	protected String description;
 	protected boolean nullable;
 	private static Gson gson = new Gson();
@@ -43,7 +43,7 @@ public class Column implements Comparable<Column> {
 	}
 	
 	public String getFullColumnName() {
-		return familyName + HBaseConstants.FAMILY_SEPARATOR + columnName;
+		return familyName + SpliceConstants.FAMILY_SEPARATOR + columnName;
 	}
 	
 	public static Column toColumn(String json) {

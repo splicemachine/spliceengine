@@ -15,8 +15,8 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import com.ir.constants.HBaseConstants;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.TxnConstants;
 import com.ir.hbase.client.index.IndexTableStructure;
 import com.ir.hbase.client.index.Index;
@@ -94,7 +94,7 @@ public class IdxTestUtils extends BaseTest {
 	public static HTableDescriptor generateDefaultTableDescriptor(String tableName) {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
 		TableStructure ts = new TableStructure();
-		ts.addFamily(new Family(HBaseConstants.DEFAULT_FAMILY));
+		ts.addFamily(new Family(SpliceConstants.DEFAULT_FAMILY));
 		return TableStructure.setTableStructure(desc, ts);
 	}
 
@@ -131,7 +131,7 @@ public class IdxTestUtils extends BaseTest {
 		List<Put> puts = new ArrayList<Put>();
 		for (; startRow <= endRow; ++startRow) {
 			Put put = new Put(Bytes.toBytes("ROW" + startRow));
-			put.add(HBaseConstants.DEFAULT_FAMILY.getBytes(), COL2, Bytes.toBytes(startRow));
+			put.add(SpliceConstants.DEFAULT_FAMILY.getBytes(), COL2, Bytes.toBytes(startRow));
 			puts.add(put);
 		}
 		htable.put(puts);
@@ -141,7 +141,7 @@ public class IdxTestUtils extends BaseTest {
 		List<Delete> deletes = new ArrayList<Delete>();
 		for (; startRow <= endRow; ++startRow) {
 			Delete delete = new Delete(Bytes.toBytes("ROW" + startRow));
-			delete.deleteColumn(HBaseConstants.DEFAULT_FAMILY.getBytes(), COL2);
+			delete.deleteColumn(SpliceConstants.DEFAULT_FAMILY.getBytes(), COL2);
 			deletes.add(delete);
 		}
 		htable.delete(deletes);
@@ -149,7 +149,7 @@ public class IdxTestUtils extends BaseTest {
 
 	
 	public static void putMultipleColumnsToTable(HTable htable, int startRow, int endRow, String txnID) throws IOException {
-		byte[] family = HBaseConstants.DEFAULT_FAMILY.getBytes();
+		byte[] family = SpliceConstants.DEFAULT_FAMILY.getBytes();
 		char letter = 'A';
 		Integer num = 111;
 
@@ -224,13 +224,13 @@ public class IdxTestUtils extends BaseTest {
 			admin.disableTable(REGULAR_TABLE1);
 			admin.deleteTable(REGULAR_TABLE1);
 		}
-		if (admin.tableExists(Bytes.toBytes(regTable1 + SchemaConstants.INDEX))) {
-			admin.disableTable(Bytes.toBytes(regTable1 + SchemaConstants.INDEX));
-			admin.deleteTable(Bytes.toBytes(regTable1 + SchemaConstants.INDEX));
+		if (admin.tableExists(Bytes.toBytes(regTable1 + SpliceConstants.INDEX))) {
+			admin.disableTable(Bytes.toBytes(regTable1 + SpliceConstants.INDEX));
+			admin.deleteTable(Bytes.toBytes(regTable1 + SpliceConstants.INDEX));
 		}
 		admin.createTable(desc);
 		htable = new HTable(hbaseTestingUtility.getConfiguration(), REGULAR_TABLE1);
-		indexTable = new HTable(hbaseTestingUtility.getConfiguration(), Bytes.toBytes(regTable1 + SchemaConstants.INDEX));
+		indexTable = new HTable(hbaseTestingUtility.getConfiguration(), Bytes.toBytes(regTable1 + SpliceConstants.INDEX));
 	}
 	
 	public static void refreshRegularTable1() throws IOException {

@@ -6,7 +6,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableMapper;
 import org.apache.hadoop.io.NullWritable;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.hbase.client.index.Index;
 import com.ir.hbase.client.structured.Column;
 import com.ir.hbase.coprocessor.index.IndexUtils;
@@ -16,7 +16,7 @@ public class AddIndexMapper extends TableMapper<NullWritable, Put>{
 
 	@Override
 	protected void setup(Context context) throws IOException, InterruptedException {
-		index = Index.toIndex(context.getConfiguration().get(SchemaConstants.SERIALIZED_INDEX));
+		index = Index.toIndex(context.getConfiguration().get(SpliceConstants.SERIALIZED_INDEX));
 	}
 	
 	@Override
@@ -25,7 +25,7 @@ public class AddIndexMapper extends TableMapper<NullWritable, Put>{
 		for (Column column : index.getAllColumns()) {
 			put.add(column.getFamily().getBytes(),column.getColumnName().getBytes(),value.getValue(column.getFamily().getBytes(), column.getColumnName().getBytes()));
 		}
-		put.add(SchemaConstants.INDEX_BASE_FAMILY_BYTE, SchemaConstants.INDEX_BASE_ROW_BYTE, key.get());
+		put.add(SpliceConstants.INDEX_BASE_FAMILY_BYTE, SpliceConstants.INDEX_BASE_ROW_BYTE, key.get());
 		context.write(NullWritable.get(), put);
 	}
 }

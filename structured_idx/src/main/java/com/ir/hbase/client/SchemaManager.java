@@ -15,7 +15,7 @@ import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.TxnConstants;
 import com.ir.hbase.client.index.Index;
 import com.ir.hbase.client.index.IndexTableStructure;
@@ -27,7 +27,7 @@ import com.ir.hbase.coprocessor.index.IndexUtils;
 import com.ir.hbase.coprocessor.structured.StructuredUtils;
 import com.ir.hbase.txn.logger.LogConstants;
 
-public class SchemaManager extends SchemaConstants {
+public class SchemaManager extends SpliceConstants {
 	private static Logger LOG = Logger.getLogger(SchemaManager.class);
 	private String schemaPath;
 	private HBaseAdmin admin;
@@ -39,7 +39,7 @@ public class SchemaManager extends SchemaConstants {
 	@SuppressWarnings("deprecation")
 	public SchemaManager(HBaseAdmin admin) throws IOException {
 		this.config = admin.getConfiguration();
-		schemaPath = config.get(SchemaConstants.SCHEMA_PATH_NAME,SchemaConstants.DEFAULT_SCHEMA_PATH);
+		schemaPath = config.get(SpliceConstants.SCHEMA_PATH_NAME,SpliceConstants.DEFAULT_SCHEMA_PATH);
 		this.admin = admin;
 		this.zkw = admin.getConnection().getZooKeeperWatcher();
 		this.rzk = zkw.getRecoverableZooKeeper();

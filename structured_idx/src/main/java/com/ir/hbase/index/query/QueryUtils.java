@@ -7,7 +7,7 @@ import java.util.Map;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.ir.constants.SchemaConstants;
+import com.ir.constants.SpliceConstants;
 import com.ir.constants.bytes.BytesUtil;
 import com.ir.hbase.client.index.Index;
 import com.ir.hbase.client.index.IndexColumn;
@@ -22,7 +22,7 @@ public class QueryUtils {
 		List<byte[]> keyComponents = new ArrayList<byte[]>();
 		if (scanColumns.size() > 0) {
 			keyComponents.add(index.getIndexName().getBytes());
-			keyComponents.add(SchemaConstants.INDEX_DELIMITER);
+			keyComponents.add(SpliceConstants.INDEX_DELIMITER);
 			for (IndexColumn column : index.getIndexColumns()) {
 				String columnFullName = column.getFullColumnName();
 				if (scanColumns.containsKey(columnFullName)) {
@@ -42,7 +42,7 @@ public class QueryUtils {
 							LOG.trace("Not Incrementing value " + value + " for field " + columnFullName);
 						}
 						keyComponents.add(bytes);
-//						keyComponents.add(SchemaConstants.INDEX_DELIMITER);	
+//						keyComponents.add(SpliceConstants.INDEX_DELIMITER);	
 					}
 				} else {
 					break;
@@ -56,7 +56,7 @@ public class QueryUtils {
 						
 			} else {
 				keyComponents.add(Bytes.toBytes(index.getIndexName()));				
-				keyComponents.add(SchemaConstants.INDEX_DELIMITER);				
+				keyComponents.add(SpliceConstants.INDEX_DELIMITER);				
 			}
 		}
 		int keyLength = 0;
