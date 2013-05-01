@@ -1,7 +1,7 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.hbase.HGet;
@@ -46,10 +46,10 @@ public class SIObserver extends BaseRegionObserver {
         SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
         region = ((RegionCoprocessorEnvironment) e).getRegion();
         tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
-        tableEnvMatch = (EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TransactionConstants.TableEnv.USER_TABLE)
-                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TransactionConstants.TableEnv.USER_INDEX_TABLE)
-                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(TransactionConstants.TableEnv.DERBY_SYS_TABLE))
-                && !tableName.equals(HBaseConstants.TEMP_TABLE);
+        tableEnvMatch = (EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.USER_TABLE)
+                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
+                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE))
+                && !tableName.equals(SpliceConstants.TEMP_TABLE);
         RollForwardAction action = new RollForwardAction() {
             @Override
             public void rollForward(long transactionId, List rowList) throws IOException {

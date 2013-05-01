@@ -2,7 +2,7 @@ package com.splicemachine.si;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
 import com.splicemachine.si.impl.RollForwardQueue;
@@ -20,7 +20,7 @@ import com.splicemachine.si.impl.TransactionStore;
 import java.util.concurrent.TimeUnit;
 
 public class TransactorSetup {
-    final TransactionSchema transactionSchema = new TransactionSchema(TransactionConstants.TRANSACTION_TABLE, "siFamily",
+    final TransactionSchema transactionSchema = new TransactionSchema(SpliceConstants.TRANSACTION_TABLE, "siFamily",
             "siChildrenFamily", -1, "begin", "parent", "dependent", "allowWrites", "readUncommited", "readCommitted",
             "commit", "status", "keepAlive");
     Object family;

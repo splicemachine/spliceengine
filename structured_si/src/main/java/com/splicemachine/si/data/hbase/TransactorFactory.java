@@ -2,8 +2,8 @@ package com.splicemachine.si.data.hbase;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.impl.ImmutableTransaction;
 import com.splicemachine.si.impl.SiTransactor;
 import com.splicemachine.si.impl.SystemClock;
@@ -64,8 +64,8 @@ public class TransactorFactory {
         SDataLib dataLib = new HDataLibAdapter(new HDataLib());
         final STableReader reader = new HTableReaderAdapter(store);
         final STableWriter writer = new HTableWriterAdapter(store);
-        final TransactionSchema transactionSchema = new TransactionSchema(TransactionConstants.TRANSACTION_TABLE,
-                HBaseConstants.DEFAULT_FAMILY,
+        final TransactionSchema transactionSchema = new TransactionSchema(SpliceConstants.TRANSACTION_TABLE,
+                SpliceConstants.DEFAULT_FAMILY,
                 SIConstants.SNAPSHOT_ISOLATION_CHILDREN_FAMILY,
                 SIConstants.EMPTY_BYTE_ARRAY,
                 SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN,
@@ -85,7 +85,7 @@ public class TransactorFactory {
                 "si-transaction-id", "si-delete-put", SIConstants.SNAPSHOT_ISOLATION_FAMILY,
                 SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,
                 SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN,
-                SIConstants.EMPTY_BYTE_ARRAY, HBaseConstants.DEFAULT_FAMILY);
+                SIConstants.EMPTY_BYTE_ARRAY, SpliceConstants.DEFAULT_FAMILY);
         return new SiTransactor(timestampSource, dataLib, writer, rowStore, transactionStore, new SystemClock(),
                 10 * 60 * 1000);
     }

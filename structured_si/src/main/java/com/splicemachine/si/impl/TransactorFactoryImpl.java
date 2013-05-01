@@ -1,6 +1,6 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.HbaseConfigurationSource;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.Transactor;
@@ -50,7 +50,7 @@ public class TransactorFactoryImpl implements TransactorFactory {
             synchronized (TransactorFactoryImpl.class) {
                 final Configuration configuration = configSource.getConfiguration();
                 TransactionTableCreator.createTransactionTableIfNeeded(configuration);
-                TimestampSource timestampSource = new ZooKeeperTimestampSource(TransactionConstants.DEFAULT_TRANSACTION_PATH, configuration);
+                TimestampSource timestampSource = new ZooKeeperTimestampSource(SpliceConstants.DEFAULT_TRANSACTION_PATH, configuration);
                 transactor = com.splicemachine.si.data.hbase.TransactorFactory.getTransactor(configuration, timestampSource);
                 com.splicemachine.si.data.hbase.TransactorFactory.setDefaultTransactor(transactor);
             }

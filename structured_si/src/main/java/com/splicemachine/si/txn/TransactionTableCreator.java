@@ -1,7 +1,7 @@
 package com.splicemachine.si.txn;
 
-import com.splicemachine.constants.HBaseConstants;
-import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -17,16 +17,16 @@ public class TransactionTableCreator {
         try {
             @SuppressWarnings("resource")
             HBaseAdmin admin = new HBaseAdmin(configuration);
-            if (!admin.tableExists(TransactionConstants.TRANSACTION_TABLE_BYTES)) {
-                HTableDescriptor desc = new HTableDescriptor(TransactionConstants.TRANSACTION_TABLE_BYTES);
-                desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY.getBytes(),
+            if (!admin.tableExists(SpliceConstants.TRANSACTION_TABLE_BYTES)) {
+                HTableDescriptor desc = new HTableDescriptor(SpliceConstants.TRANSACTION_TABLE_BYTES);
+                desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
                         5,
-                        admin.getConfiguration().get(HBaseConstants.TABLE_COMPRESSION, HBaseConstants.DEFAULT_COMPRESSION),
-                        HBaseConstants.DEFAULT_IN_MEMORY,
-                        HBaseConstants.DEFAULT_BLOCKCACHE,
+                        admin.getConfiguration().get(SpliceConstants.TABLE_COMPRESSION, SpliceConstants.DEFAULT_COMPRESSION),
+                        SpliceConstants.DEFAULT_IN_MEMORY,
+                        SpliceConstants.DEFAULT_BLOCKCACHE,
                         Integer.MAX_VALUE,
-                        HBaseConstants.DEFAULT_BLOOMFILTER));
-                desc.addFamily(new HColumnDescriptor(HBaseConstants.DEFAULT_FAMILY));
+                        SpliceConstants.DEFAULT_BLOOMFILTER));
+                desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY));
                 desc.addFamily(new HColumnDescriptor(SIConstants.SNAPSHOT_ISOLATION_CHILDREN_FAMILY));
 
                 admin.createTable(desc);

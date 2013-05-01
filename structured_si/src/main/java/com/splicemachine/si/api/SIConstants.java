@@ -2,7 +2,7 @@ package com.splicemachine.si.api;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
-import com.splicemachine.constants.HBaseConstants;
+import com.splicemachine.constants.SpliceConstants;
 
 public class SIConstants {
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
@@ -30,7 +30,7 @@ public class SIConstants {
     public static final byte[] TRANSACTION_STATUS_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_STATUS_COLUMN);
     public static final byte[] TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_COMMIT_TIMESTAMP_COLUMN);
 
-    public static final byte[] TRANSACTION_FAMILY_BYTES = HBaseConstants.DEFAULT_FAMILY.getBytes();
+    public static final byte[] TRANSACTION_FAMILY_BYTES = SpliceConstants.DEFAULT_FAMILY.getBytes();
     public static final int SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN = 0;
     public static final int SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN = 1;
 
