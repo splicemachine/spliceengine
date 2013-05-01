@@ -17,6 +17,7 @@ public class SpliceConstants {
 	public static final String DEFAULT_CONGLOMERATE_SCHEMA_PATH = "/conglomerates";
 	public static final String DEFAULT_DERBY_PROPERTY_PATH = "/derbyPropertyPath";
 	public static final String DEFAULT_QUERY_NODE_PATH = "/queryNodePath";
+	public static final String DEFAULT_STARTUP_PATH = "/startupPath";	
 	
 	// Zookeeper Path Configuration Constants
 	public static final String CONFIG_DEFAULT_BASE_TASK_QUEUE_NODE = "splice.task_queue_node";
@@ -25,6 +26,7 @@ public class SpliceConstants {
 	public static final String CONFIG_DEFAULT_CONGLOMERATE_SCHEMA_PATH = "splice.conglomerates_node";
 	public static final String CONFIG_DEFAULT_DERBY_PROPERTY_PATH = "splice.derby_property_node";
 	public static final String CONFIG_DEFAULT_QUERY_NODE_PATH = "splice.query_node_path";
+	public static final String CONFIG_DEFAULT_STARTUP_PATH = "splice.startup_path";
 	
 	// Zookeeper Actual Paths
 	public static final String zkSpliceTaskPath;
@@ -34,19 +36,18 @@ public class SpliceConstants {
 	public static final String zkSpliceConglomerateSequencePath;
 	public static final String zkSpliceDerbyPropertyPath;
 	public static final String zkSpliceQueryNodePath;
+	public static final String zkSpliceStartupPath;
 	
 	// Configurable Variables
 	public static final Long sleepSplitInterval;
 	
 	// Splice Internal Tables
     public static final String TEMP_TABLE = "SPLICE_TEMP";
-    public static final String PROPERTIES_TABLE_NAME = "SPLICE_PROPERTIES";
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
     public static final String CONGLOMERATE_TABLE = "SPLICE_CONGLOMERATE";
     
     public static byte[] TEMP_TABLE_BYTES = Bytes.toBytes(TEMP_TABLE);
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
-    public static final byte[] PROPERTIES_TABLE_NAME_BYTES = Bytes.toBytes(PROPERTIES_TABLE_NAME);
     public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE);
 	
 	// Splice Family Information
@@ -99,9 +100,12 @@ public class SpliceConstants {
 		zkSpliceDerbyPropertyPath = config.get(CONFIG_DEFAULT_DERBY_PROPERTY_PATH,DEFAULT_DERBY_PROPERTY_PATH);
 		zkSpliceQueryNodePath = config.get(CONFIG_DEFAULT_CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
 		sleepSplitInterval = config.getLong(SPLIT_WAIT_INTERVAL, DEFAULT_SPLIT_WAIT_INTERVAL);
+		zkSpliceStartupPath = config.get(CONFIG_DEFAULT_STARTUP_PATH,DEFAULT_STARTUP_PATH);
 	}
 	
 	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,
-			zkSpliceTransactionPath,zkSpliceConglomeratePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath);
+			zkSpliceTransactionPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath);
 
+	public static List<byte[]> spliceSystables = Lists.newArrayList(TEMP_TABLE_BYTES,TRANSACTION_TABLE_BYTES,CONGLOMERATE_TABLE_NAME_BYTES);
+	
 }
