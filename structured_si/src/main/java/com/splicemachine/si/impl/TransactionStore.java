@@ -102,7 +102,7 @@ public class TransactionStore {
     }
 
     public Transaction getTransaction(long beginTimestamp) throws IOException {
-        return getTransaction(new SiTransactionId(beginTimestamp));
+        return getTransaction(new SITransactionId(beginTimestamp));
     }
 
     public Transaction getTransaction(TransactionId transactionId) throws IOException {

@@ -70,15 +70,15 @@ public class DataStore {
         dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, transactionId.getId(), siNull);
     }
 
-    void setTransactionId(SiTransactionId transactionId, Object operation) {
+    void setTransactionId(SITransactionId transactionId, Object operation) {
         dataLib.addAttribute(operation, transactionIdAttribute, dataLib.encode(transactionId.getTransactionIdString()));
     }
 
-    SiTransactionId getTransactionIdFromOperation(Object put) {
+    SITransactionId getTransactionIdFromOperation(Object put) {
         Object value = dataLib.getAttribute(put, transactionIdAttribute);
         String transactionId = (String) dataLib.decode(value, String.class);
         if (transactionId != null) {
-            return new SiTransactionId(transactionId);
+            return new SITransactionId(transactionId);
         }
         return null;
     }
@@ -139,7 +139,7 @@ public class DataStore {
         dataLib.addAttribute(newPut, SUPPRESS_INDEXING_ATTRIBUTE_NAME, SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
     }
 
-    public void setTombstoneOnPut(Object put, SiTransactionId transactionId) {
+    public void setTombstoneOnPut(Object put, SITransactionId transactionId) {
         dataLib.addKeyValueToPut(put, siFamily, tombstoneQualifier, transactionId.getId(), siNull);
     }
 

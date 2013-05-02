@@ -2,7 +2,7 @@ package com.splicemachine.si.impl;
 
 public class ImmutableTransaction {
     public final long beginTimestamp;
-    private final SiTransactionId transactionId;
+    private final SITransactionId transactionId;
     protected final Boolean dependent;
 
     private final ImmutableTransaction immutableParent;
@@ -18,10 +18,10 @@ public class ImmutableTransaction {
         this.immutableParent = immutableParent;
         this.readUncommitted = readUncommitted;
         this.beginTimestamp = beginTimestamp;
-        this.transactionId = new SiTransactionId(beginTimestamp);
+        this.transactionId = new SITransactionId(beginTimestamp);
     }
 
-    public SiTransactionId getTransactionId() {
+    public SITransactionId getTransactionId() {
         return transactionId;
     }
 

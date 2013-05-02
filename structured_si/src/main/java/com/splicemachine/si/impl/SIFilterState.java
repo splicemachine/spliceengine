@@ -1,14 +1,11 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.api.FilterState;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE;
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.NEXT_COL;
@@ -18,8 +15,8 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
  * Contains the logic for performing an HBase-style filter using "snapshot isolation" logic. This means it filters out
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
-public class SiFilterState implements FilterState {
-    static final Logger LOG = Logger.getLogger(SiFilterState.class);
+public class SIFilterState implements FilterState {
+    static final Logger LOG = Logger.getLogger(SIFilterState.class);
 
     private final ImmutableTransaction myTransaction;
     private final SDataLib dataLib;
@@ -30,7 +27,7 @@ public class SiFilterState implements FilterState {
     private final FilterRowState rowState;
     private DecodedKeyValue keyValue;
 
-    public SiFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
+    public SIFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
                          RollForwardQueue rollForwardQueue, ImmutableTransaction myTransaction) {
         this.dataLib = dataLib;
         this.dataStore = dataStore;

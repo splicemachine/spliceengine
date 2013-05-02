@@ -35,8 +35,8 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
  * row updates in the underlying store.
  */
-public class SiTransactor implements Transactor, ClientTransactor {
-    static final Logger LOG = Logger.getLogger(SiTransactor.class);
+public class SITransactor implements Transactor, ClientTransactor {
+    static final Logger LOG = Logger.getLogger(SITransactor.class);
 
     private final TimestampSource timestampSource;
     private final SDataLib dataLib;
@@ -46,7 +46,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     private final Clock clock;
     private final int transactionTimeoutMS;
 
-    public SiTransactor(TimestampSource timestampSource, SDataLib dataLib, STableWriter dataWriter, DataStore dataStore,
+    public SITransactor(TimestampSource timestampSource, SDataLib dataLib, STableWriter dataWriter, DataStore dataStore,
                         TransactionStore transactionStore, Clock clock, int transactionTimeoutMS) {
         this.timestampSource = timestampSource;
         this.dataLib = dataLib;
@@ -94,7 +94,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
      */
     private TransactionId beginTransactionDirect(TransactionParams params, TransactionStatus status)
             throws IOException {
-        final SiTransactionId transactionId = assignTransactionId();
+        final SITransactionId transactionId = assignTransactionId();
         transactionStore.recordNewTransaction(transactionId, params, status);
         return transactionId;
     }
@@ -104,8 +104,8 @@ public class SiTransactor implements Transactor, ClientTransactor {
      *
      * @return the new transaction ID.
      */
-    private SiTransactionId assignTransactionId() {
-        return new SiTransactionId(timestampSource.nextTimestamp());
+    private SITransactionId assignTransactionId() {
+        return new SITransactionId(timestampSource.nextTimestamp());
     }
 
     /**
@@ -113,7 +113,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
      * given to many callers, and calls to commit, rollback, etc are ignored.
      */
     private TransactionId createLightweightChildTransaction(TransactionId parent) {
-        return new SiTransactionId(parent.getId(), true);
+        return new SITransactionId(parent.getId(), true);
     }
 
     @Override
@@ -152,7 +152,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
      * Update the transaction table to show this transaction is committed.
      */
     private void performCommit(Transaction transaction) throws IOException {
-        final SiTransactionId transactionId = transaction.getTransactionId();
+        final SITransactionId transactionId = transaction.getTransactionId();
         final List<Transaction> childrenToCommit = findChildrenToCommit(transaction);
         if(!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, COMMITTING)) {
             throw new IOException("committing failed");
@@ -222,7 +222,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     private boolean isIndependentReadOnly(TransactionId transactionId) {
-        return ((SiTransactionId) transactionId).independentReadOnly;
+        return ((SITransactionId) transactionId).independentReadOnly;
     }
 
     /***********************************/
@@ -230,7 +230,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     @Override
     public TransactionId transactionIdFromString(String transactionId) {
-        return new SiTransactionId(transactionId);
+        return new SITransactionId(transactionId);
     }
 
     @Override
@@ -256,18 +256,18 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     private void initializeOperation(String transactionId, Object operation) {
-        flagForSiTreatment((SiTransactionId) transactionIdFromString(transactionId), operation);
+        flagForSiTreatment((SITransactionId) transactionIdFromString(transactionId), operation);
     }
 
     @Override
     public Object createDeletePut(TransactionId transactionId, Object rowKey) {
-        return createDeletePutDirect((SiTransactionId) transactionId, rowKey);
+        return createDeletePutDirect((SITransactionId) transactionId, rowKey);
     }
 
     /**
      * Create a "put" operation that will effectively delete a given row.
      */
-    private Object createDeletePutDirect(SiTransactionId transactionId, Object rowKey) {
+    private Object createDeletePutDirect(SITransactionId transactionId, Object rowKey) {
         final Object deletePut = dataLib.newPut(rowKey);
         flagForSiTreatment(transactionId, deletePut);
         dataStore.setTombstoneOnPut(deletePut, transactionId);
@@ -285,7 +285,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
      * Set an attribute on the operation that identifies it as needing "snapshot isolation" treatment. This is so that
      * later when the operation comes through for processing we will know how to handle it.
      */
-    private void flagForSiTreatment(SiTransactionId transactionId, Object operation) {
+    private void flagForSiTreatment(SITransactionId transactionId, Object operation) {
         dataStore.setSiNeededAttribute(operation);
         dataStore.setTransactionId(transactionId, operation);
     }
@@ -313,7 +313,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     }
 
     private void processPutDirect(STable table, RollForwardQueue rollForwardQueue, Object put) throws IOException {
-        final SiTransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
+        final SITransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
         final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
         ensureTransactionAllowsWrites(transaction);
         performPut(table, rollForwardQueue, put, transaction);
@@ -402,7 +402,7 @@ public class SiTransactor implements Transactor, ClientTransactor {
     Object createUltimatePut(ImmutableTransaction transaction, SRowLock lock, Object put) {
         final Object rowKey = dataLib.getPutKey(put);
         final Object newPut = dataLib.newPut(rowKey, lock);
-        final SiTransactionId transactionId = transaction.getTransactionId();
+        final SITransactionId transactionId = transaction.getTransactionId();
         final long timestamp = transactionId.getId();
         dataStore.copyPutKeyValues(put, newPut, timestamp);
         dataStore.addTransactionIdToPut(newPut, transactionId);
@@ -419,13 +419,13 @@ public class SiTransactor implements Transactor, ClientTransactor {
 
     @Override
     public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException {
-        return new SiFilterState(dataLib, dataStore, transactionStore, rollForwardQueue,
+        return new SIFilterState(dataLib, dataStore, transactionStore, rollForwardQueue,
                 transactionStore.getImmutableTransaction(transactionId));
     }
 
     @Override
     public Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException {
-        return ((SiFilterState) filterState).filterKeyValue(keyValue);
+        return ((SIFilterState) filterState).filterKeyValue(keyValue);
     }
 
 

@@ -12,8 +12,8 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.RollForwardQueue;
-import com.splicemachine.si.impl.SiFilterState;
-import com.splicemachine.si.impl.SiTransactionId;
+import com.splicemachine.si.impl.SIFilterState;
+import com.splicemachine.si.impl.SITransactionId;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionStatus;
@@ -39,7 +39,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class SiTransactorTest {
+public class SITransactorTest {
     boolean useSimple = true;
 
     StoreSetup storeSetup;
@@ -242,7 +242,7 @@ public class SiTransactorTest {
 
     private static Object filterResult(StoreSetup storeSetup, TransactorSetup transactorSetup,
                                        FilterState filterState, Object result) throws IOException {
-        SiFilterState siFilterState = (SiFilterState) filterState;
+        SIFilterState siFilterState = (SIFilterState) filterState;
         //ensureTransactionActive(siFilterState.transactionId);
 
         final SDataLib dataLib = storeSetup.getDataLib();
@@ -782,10 +782,10 @@ public class SiTransactorTest {
 
     @Test
     public void nestedReadOnlyIds() {
-        final SiTransactionId id = new SiTransactionId(100L, true);
+        final SITransactionId id = new SITransactionId(100L, true);
         Assert.assertEquals(100L, id.getId());
         Assert.assertEquals("100.IRO", id.getTransactionIdString());
-        final SiTransactionId id2 = new SiTransactionId("200.IRO");
+        final SITransactionId id2 = new SITransactionId("200.IRO");
         Assert.assertEquals(200L, id2.getId());
         Assert.assertEquals("200.IRO", id2.getTransactionIdString());
     }
@@ -1402,7 +1402,7 @@ public class SiTransactorTest {
         try {
             final Object resultTuple = reader.get(testSTable, get);
             for (Object keyValue : dataLib.listResult(resultTuple)) {
-                //System.out.println(((SiTransactor) transactor).shouldKeep(keyValue, t2));
+                //System.out.println(((SITransactor) transactor).shouldKeep(keyValue, t2));
             }
             final FilterState filterState = transactor.newFilterState(transactorSetup.rollForwardQueue, t2);
             if (useSimple) {

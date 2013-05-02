@@ -1,0 +1,47 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] structured_hbase
+[INFO] structured_constants
+[INFO] structured_si
+[INFO] structured_derby
+Downloading: http://repository.codehaus.org/org/apache/maven/plugins/maven-metadata.xml
+Downloading: http://www.datanucleus.org/downloads/maven2/org/apache/maven/plugins/maven-metadata.xml
+Downloading: https://repository.cloudera.com/content/repositories/releases/org/apache/maven/plugins/maven-metadata.xml
+Downloading: http://repository.codehaus.org/org/codehaus/mojo/maven-metadata.xml
+Downloading: http://www.datanucleus.org/downloads/maven2/org/codehaus/mojo/maven-metadata.xml
+Downloading: https://repository.cloudera.com/content/repositories/releases/org/codehaus/mojo/maven-metadata.xml
+268/268 B                           Downloaded: https://repository.cloudera.com/content/repositories/releases/org/codehaus/mojo/maven-metadata.xml (268 B at 0.8 KB/sec)
+Downloading: http://www.datanucleus.org/downloads/maven2/org/codehaus/mojo/exec-maven-plugin/maven-metadata.xml
+Downloading: http://repository.codehaus.org/org/codehaus/mojo/exec-maven-plugin/maven-metadata.xml
+Downloading: https://repository.cloudera.com/content/repositories/releases/org/codehaus/mojo/exec-maven-plugin/maven-metadata.xml
+                                    [INFO]                                                                         
+[INFO] ------------------------------------------------------------------------
+[INFO] Building structured_hbase 1.0.1-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:2.3:clean (default-clean) @ structured_hbase ---
+[INFO] 
+[INFO] --- exec-maven-plugin:1.2.1:exec (default-cli) @ structured_hbase ---
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary:
+[INFO] 
+[INFO] structured_hbase .................................. FAILURE [0.621s]
+[INFO] structured_constants .............................. SKIPPED
+[INFO] structured_si ..................................... SKIPPED
+[INFO] structured_derby .................................. SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 2.121s
+[INFO] Finished at: Thu Apr 25 08:32:29 CDT 2013
+[INFO] Final Memory: 12M/239M
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.codehaus.mojo:exec-maven-plugin:1.2.1:exec (default-cli) on project structured_hbase: The parameters 'executable' for goal org.codehaus.mojo:exec-maven-plugin:1.2.1:exec are missing or invalid -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/PluginParameterException

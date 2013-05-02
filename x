@@ -1,0 +1,10 @@
+structured_si/src/main/java/com/splicemachine/si/api/PutLog.java
+structured_si/src/main/java/com/splicemachine/si/api/Transactor.java
+structured_si/src/main/java/com/splicemachine/si/coprocessors/SIObserver.java
+structured_si/src/main/java/com/splicemachine/si/data/hbase/TransactorFactory.java
+structured_si/src/main/java/com/splicemachine/si/filters/SIFilter.java
+structured_si/src/main/java/com/splicemachine/si/impl/SiFilterState.java
+structured_si/src/main/java/com/splicemachine/si/impl/SiTransactor.java
+structured_si/src/test/java/com/splicemachine/si/SiFilterTest.java
+structured_si/src/test/java/com/splicemachine/si/SiTransactorTest.java
+structured_si/src/test/java/com/splicemachine/si/TransactorSetup.java

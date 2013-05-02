@@ -14,7 +14,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.List;
 
-public class SiFilterTest {
+public class SIFilterTest {
     boolean useSimple = true;
 
     StoreSetup storeSetup;
@@ -33,7 +33,7 @@ public class SiFilterTest {
     }
 
     private void insertAge(TransactionId transactionId, String name, int age) throws IOException {
-        SiTransactorTest.insertAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, age);
+        SITransactorTest.insertAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, age);
     }
 
     Object readEntireTuple(String name) throws IOException {

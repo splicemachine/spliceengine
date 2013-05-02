@@ -5,7 +5,7 @@ import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.TransactionConstants;
 import com.splicemachine.si.impl.ImmutableTransaction;
-import com.splicemachine.si.impl.SiTransactor;
+import com.splicemachine.si.impl.SITransactor;
 import com.splicemachine.si.impl.SystemClock;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionSchema;
@@ -86,7 +86,7 @@ public class TransactorFactory {
                 SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,
                 SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN,
                 SIConstants.EMPTY_BYTE_ARRAY, HBaseConstants.DEFAULT_FAMILY);
-        return new SiTransactor(timestampSource, dataLib, writer, rowStore, transactionStore, new SystemClock(),
+        return new SITransactor(timestampSource, dataLib, writer, rowStore, transactionStore, new SystemClock(),
                 10 * 60 * 1000);
     }
 }

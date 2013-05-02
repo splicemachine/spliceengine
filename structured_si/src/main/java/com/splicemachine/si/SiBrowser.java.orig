@@ -1,8 +1,7 @@
 package com.splicemachine.si;
 
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.si.impl.TransactionStatus;
 import com.splicemachine.si.api.SIConstants;
+import com.splicemachine.si.impl.TransactionStatus;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
@@ -137,7 +136,7 @@ public class SiBrowser {
                 }
             }
             i++;
-            System.out.println(i + " " + row + " " + BytesUtil.debug(row));
+            System.out.println(i + " " + row + " ");
         }
     }
 }

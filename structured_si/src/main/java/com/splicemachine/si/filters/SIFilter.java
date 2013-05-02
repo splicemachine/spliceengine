@@ -1,11 +1,10 @@
 package com.splicemachine.si.filters;
 
-import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.RollForwardQueue;
-import com.splicemachine.si.impl.SiTransactionId;
+import com.splicemachine.si.impl.SITransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.FilterBase;
@@ -45,7 +44,7 @@ public class SIFilter extends FilterBase {
 
     private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
-            filterState = transactor.newFilterState(rollForwardQueue, new SiTransactionId(startTimestamp));
+            filterState = transactor.newFilterState(rollForwardQueue, new SITransactionId(startTimestamp));
         }
     }
 
