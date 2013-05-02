@@ -104,6 +104,15 @@ public class ZkUtils {
                return true;
        }
     }
+
+    public static String create(String path, byte[] bytes, List<ACL> acls, CreateMode createMode) throws KeeperException,InterruptedException{
+            return getRecoverableZooKeeper().create(path,bytes,acls,createMode);
+     }
+  
+    
+//    rzk.create(transactionPath + "/txn-", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+    
+    
 	/**
 	 * Sets the data onto ZooKeeper.
 	 *
