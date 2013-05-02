@@ -10,8 +10,10 @@ import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.light.IncrementingClock;
+import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.RollForwardQueue;
+import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.SIFilterState;
 import com.splicemachine.si.impl.SITransactionId;
 import com.splicemachine.si.impl.Tracer;
@@ -1730,63 +1732,67 @@ public class SITransactorTest {
 
     @Test
     public void noCompaction() throws IOException, InterruptedException {
-        if (!useSimple) {
-            TransactionId t0 = null;
-            for (int i=0; i<10; i++) {
-                TransactionId tx = transactor.beginTransaction(true, false, false);
-                if (i == 0) {
-                    t0 = tx;
-                }
-                insertAge(tx, "joe69-" + i, i);
-                transactor.commit(tx);
+        TransactionId t0 = null;
+        for (int i = 0; i < 10; i++) {
+            TransactionId tx = transactor.beginTransaction(true, false, false);
+            if (i == 0) {
+                t0 = tx;
             }
-            Object result = readRaw("joe69-0");
-            final SDataLib dataLib = storeSetup.getDataLib();
-            final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
-                    dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
-            for (Object c : commitTimestamps) {
-                final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(c), Integer.class);
-                Assert.assertEquals(t0.getId(), dataLib.getKeyValueTimestamp(c));
-                Assert.assertEquals(-1, timestamp);
-            }
+            insertAge(tx, "joe69-" + i, i);
+            transactor.commit(tx);
+        }
+        Object result = readRaw("joe69-0");
+        final SDataLib dataLib = storeSetup.getDataLib();
+        final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
+                dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+        for (Object c : commitTimestamps) {
+            final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(c), Integer.class);
+            Assert.assertEquals(t0.getId(), dataLib.getKeyValueTimestamp(c));
+            Assert.assertEquals(-1, timestamp);
         }
     }
 
     @Test
     public void compaction() throws IOException, InterruptedException {
-        if (!useSimple) {
-            final CountDownLatch latch = new CountDownLatch(2);
-            Tracer.registerCompact(new Runnable() {
-                @Override
-                public void run() {
-                    latch.countDown();
-                }
-            });
+        final CountDownLatch latch = new CountDownLatch(2);
+        Tracer.registerCompact(new Runnable() {
+            @Override
+            public void run() {
+                latch.countDown();
+            }
+        });
 
-            final HBaseTestingUtility testCluster = storeSetup.getTestCluster();
-            final HBaseAdmin admin = testCluster.getHBaseAdmin();
-            TransactionId t0 = null;
-            for (int i=0; i<10; i++) {
-                TransactionId tx = transactor.beginTransaction(true, false, false);
-                if (i == 0) {
-                    t0 = tx;
-                }
-                insertAge(tx, "joe70-" + i, i);
+        final HBaseTestingUtility testCluster = storeSetup.getTestCluster();
+        final HBaseAdmin admin = useSimple ? null : testCluster.getHBaseAdmin();
+        TransactionId t0 = null;
+        for (int i = 0; i < 10; i++) {
+            TransactionId tx = transactor.beginTransaction(true, false, false);
+            if (i == 0) {
+                t0 = tx;
+            }
+            insertAge(tx, "joe70-" + i, i);
+            if (!useSimple) {
                 admin.flush(storeSetup.getPersonTableName());
-                transactor.commit(tx);
             }
+            transactor.commit(tx);
+        }
 
+        if (useSimple) {
+            final LStore store = (LStore) storeSetup.getStore();
+            final SICompactionState compactionState = transactor.newCompactionState();
+            store.compact(compactionState, storeSetup.getPersonTableName());
+        } else {
             admin.majorCompact(storeSetup.getPersonTableName());
-            latch.await(2, TimeUnit.SECONDS);
-            Object result = readRaw("joe70-0");
-            final SDataLib dataLib = storeSetup.getDataLib();
-            final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
-                    dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
-            for (Object c : commitTimestamps) {
-                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(c), Long.class);
-                Assert.assertEquals(t0.getId(), dataLib.getKeyValueTimestamp(c));
-                Assert.assertEquals(t0.getId() + 1, timestamp);
-            }
+            Assert.assertTrue(latch.await(2, TimeUnit.SECONDS));
+        }
+        Object result = readRaw("joe70-0");
+        final SDataLib dataLib = storeSetup.getDataLib();
+        final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
+                dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+        for (Object c : commitTimestamps) {
+            final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(c), Long.class);
+            Assert.assertEquals(t0.getId(), dataLib.getKeyValueTimestamp(c));
+            Assert.assertEquals(t0.getId() + 1, timestamp);
         }
     }
 
@@ -1798,6 +1804,5 @@ public class SITransactorTest {
             regionServer.compactRegion(region, false);
         }
     }
-
 
 }

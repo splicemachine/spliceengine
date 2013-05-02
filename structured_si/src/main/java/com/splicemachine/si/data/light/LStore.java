@@ -7,7 +7,9 @@ import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
+import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.TransactionStatus;
+import org.apache.hadoop.hbase.KeyValue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -305,4 +307,15 @@ public class LStore implements STableReader, STableWriter {
         }
     }
 
+    public void compact(SICompactionState compactionState, String tableName) throws IOException {
+        final List<LTuple> rows = relations.get(tableName);
+        final List<LTuple> newRows = new ArrayList<LTuple>(rows.size());
+        for( LTuple row : rows ) {
+            final ArrayList mutatedValues = new ArrayList();
+            compactionState.mutate(row.values, mutatedValues);
+            LTuple newRow = new LTuple(row.key, mutatedValues, row.attributes);
+            newRows.add(newRow);
+        }
+        relations.put(tableName, newRows);
+    }
 }

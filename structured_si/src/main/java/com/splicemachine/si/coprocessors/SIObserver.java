@@ -156,7 +156,7 @@ public class SIObserver extends BaseRegionObserver {
                                       InternalScanner scanner) {
         if (tableEnvMatch) {
             Transactor transactor = TransactorFactoryImpl.getTransactor();
-            return transactor.newCompactionScanner(scanner);
+            return new SICompactionScanner(transactor, scanner);
         } else {
             return super.preCompact(e, store, scanner);
         }

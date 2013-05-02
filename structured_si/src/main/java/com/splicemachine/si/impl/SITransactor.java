@@ -448,8 +448,8 @@ public class SITransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public InternalScanner newCompactionScanner(InternalScanner scanner) {
-        return new SICompactionScanner(dataStore, dataLib, transactionStore, scanner);
+    public SICompactionState newCompactionState() {
+       return new SICompactionState(dataLib, dataStore, transactionStore);
     }
 
     /***********************************/
