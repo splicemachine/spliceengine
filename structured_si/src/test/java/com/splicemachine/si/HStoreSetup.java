@@ -1,9 +1,9 @@
 package com.splicemachine.si;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.Clock;
-import com.splicemachine.si.api.SIConstants;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;

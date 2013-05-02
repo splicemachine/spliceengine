@@ -1,8 +1,8 @@
 package com.splicemachine.si;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.impl.TransactionStatus;
-import com.splicemachine.si.api.SIConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;

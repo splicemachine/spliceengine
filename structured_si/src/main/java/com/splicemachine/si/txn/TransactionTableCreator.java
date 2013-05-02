@@ -1,8 +1,8 @@
 package com.splicemachine.si.txn;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.api.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -36,10 +36,4 @@ public class TransactionTableCreator {
         }
     }
 
-    public static HColumnDescriptor createTransactionFamily() {
-        final HColumnDescriptor siFamily = new HColumnDescriptor(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES);
-        siFamily.setMaxVersions(Integer.MAX_VALUE);
-        siFamily.setTimeToLive(Integer.MAX_VALUE);
-        return siFamily;
-    }
 }

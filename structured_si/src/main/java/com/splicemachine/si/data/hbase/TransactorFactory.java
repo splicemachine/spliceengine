@@ -2,6 +2,7 @@ package com.splicemachine.si.data.hbase;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.impl.ImmutableTransaction;
@@ -9,7 +10,6 @@ import com.splicemachine.si.impl.SiTransactor;
 import com.splicemachine.si.impl.SystemClock;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionSchema;
-import com.splicemachine.si.api.SIConstants;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
