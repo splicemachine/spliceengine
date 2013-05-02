@@ -9,7 +9,6 @@ import com.splicemachine.si.data.hbase.HDataLibAdapter;
 import com.splicemachine.si.data.hbase.HStore;
 import com.splicemachine.si.data.hbase.HTableReaderAdapter;
 import com.splicemachine.si.data.hbase.HTableWriterAdapter;
-import com.splicemachine.si.data.helper.RelationHelper;
 import org.junit.Assert;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.util.Bytes;

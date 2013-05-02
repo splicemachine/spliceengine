@@ -7,7 +7,6 @@ import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.hbase.HGet;
 import com.splicemachine.si.data.hbase.HScan;
 import com.splicemachine.si.data.hbase.HbRegion;
-import com.splicemachine.si.filters.SIFilter;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.RollForwardAction;

@@ -1,4 +1,4 @@
-package com.splicemachine.si.filters;
+package com.splicemachine.si.coprocessors;
 
 import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TransactionId;
