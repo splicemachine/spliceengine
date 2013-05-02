@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.HbaseConfigurationSource;
 import com.splicemachine.si.api.TimestampSource;
@@ -12,7 +13,7 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 
 import java.io.IOException;
 
-public class TransactorFactoryImpl implements TransactorFactory {
+public class TransactorFactoryImpl extends SIConstants implements TransactorFactory {
     private static volatile Transactor transactor;
 
     @Override
@@ -39,8 +40,7 @@ public class TransactorFactoryImpl implements TransactorFactory {
         return getTransactor(new HbaseConfigurationSource() {
             @Override
             public Configuration getConfiguration() {
-                // TODO: this should call SpliceConfiguration
-                return HBaseConfiguration.create();
+                return config;
             }
         });
     }
@@ -50,7 +50,7 @@ public class TransactorFactoryImpl implements TransactorFactory {
             synchronized (TransactorFactoryImpl.class) {
                 final Configuration configuration = configSource.getConfiguration();
                 TransactionTableCreator.createTransactionTableIfNeeded(configuration);
-                TimestampSource timestampSource = new ZooKeeperTimestampSource(SpliceConstants.DEFAULT_TRANSACTION_PATH, configuration);
+                TimestampSource timestampSource = new ZooKeeperTimestampSource(SpliceConstants.DEFAULT_TRANSACTION_PATH);
                 transactor = com.splicemachine.si.data.hbase.TransactorFactory.getTransactor(configuration, timestampSource);
                 com.splicemachine.si.data.hbase.TransactorFactory.setDefaultTransactor(transactor);
             }
