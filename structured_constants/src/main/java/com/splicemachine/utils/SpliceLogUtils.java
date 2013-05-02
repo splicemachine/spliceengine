@@ -21,7 +21,6 @@ public class SpliceLogUtils {
 		if(logger.isInfoEnabled())logger.info(String.format(messageFormat,args));
 	}
 	
-	
 	public static void debug(Logger logger, String message){
 		if(logger.isDebugEnabled())logger.debug(message);
 	}
