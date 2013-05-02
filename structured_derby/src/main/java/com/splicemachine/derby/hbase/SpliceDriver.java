@@ -14,6 +14,7 @@ import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
 
 import org.apache.derby.drda.NetworkServerControl;
@@ -187,6 +188,9 @@ public class SpliceDriver extends SpliceConstants{
         	System.out.println("Refreshing Zookeeper");
         	ZkUtils.refreshZookeeper();
         	System.out.println("Done Refreshing Zookeeper");
+        	System.out.println("Refreshing Base Tables");        	
+        	SpliceUtilities.createSpliceHBaseTables();
+        	System.out.println("Dropping Base Tables");        	
         	EmbedConnectionMaker maker = new EmbedConnectionMaker();
         	connection = maker.createNew();
         	return true;

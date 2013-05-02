@@ -20,6 +20,7 @@ public class SpliceTestPlatform extends TestConstants {
 	private static final Logger LOG = Logger.getLogger(SpliceTestPlatform.class);
 	protected MiniZooKeeperCluster miniZooKeeperCluster;
 	protected MiniHBaseCluster miniHBaseCluster;
+	protected MiniHBaseCluster miniHBaseCluster2;
 	protected String zookeeperTargetDirectory;
 	protected String hbaseTargetDirectory;
 	
@@ -58,6 +59,10 @@ public class SpliceTestPlatform extends TestConstants {
 		miniZooKeeperCluster = new MiniZooKeeperCluster();
 		miniZooKeeperCluster.startup(new File(zookeeperTargetDirectory),3);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
+		Configuration config2 = new Configuration(config);
+		config2.setInt("hbase.regionserver.port", 60021);
+		config2.setInt("hbase.regionserver.info.port", 60031);
+		miniHBaseCluster2 = new MiniHBaseCluster(config2,0,1); // Startup Second Server on different ports		
 	}
 	public void end() throws Exception {
 
@@ -67,7 +72,7 @@ public class SpliceTestPlatform extends TestConstants {
 		configuration.set("hbase.rootdir", "file://" + hbaseTargetDirectory);
 		configuration.set("hbase.rpc.timeout", "6000");
 		configuration.set("hbase.cluster.distributed", "true");
-		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
+		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");
 		configuration.set("hbase.regionserver.handler.count", "40");
 		coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
@@ -82,11 +87,6 @@ public class SpliceTestPlatform extends TestConstants {
                         SpliceIndexManagementEndpoint.class.getCanonicalName() + "," +
                         SpliceIndexEndpoint.class.getCanonicalName() + "," +
                         CoprocessorTaskScheduler.class.getCanonicalName()+","+
-                        //TransactionalManagerRegionObserver.class.getCanonicalName() + "," +
-                        //TransactionalRegionObserver.class.getCanonicalName()
-                        //comment out SIObserver for now, and when SI is ready,
-                        //uncomment it out and comment out the above old transaction observers
-                        //+ "," +
                         SIObserver.class.getCanonicalName()
         );
 
