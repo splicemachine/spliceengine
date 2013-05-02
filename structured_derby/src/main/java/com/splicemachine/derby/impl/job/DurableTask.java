@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.Task;
@@ -12,7 +13,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 4/4/13
  */
-public abstract class DurableTask implements Task,Externalizable {
+public abstract class DurableTask extends SpliceConstants implements Task,Externalizable {
     protected TaskStatus status;
     protected String taskId;
 

@@ -8,13 +8,14 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJobScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
-import com.splicemachine.derby.utils.ZkUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.ZkUtils;
+
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -33,15 +34,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Scott Fines
  *         Created on: 3/1/13
  */
-public class SpliceDriver {
+public class SpliceDriver extends SpliceConstants{
     private static final Logger LOG = Logger.getLogger(SpliceDriver.class);
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
-    private static final int DEFAULT_PORT = 1527;
-    private static final String DEFAULT_SERVER_ADDRESS = "0.0.0.0";
-    private static final int DEFAULT_MAX_CONCURRENT_TASKS = 10;
-
-
-
     public static enum State{
         NOT_STARTED,
         INITIALIZING,
@@ -75,8 +70,7 @@ public class SpliceDriver {
     private TempCleaner tempCleaner;
 
     private SpliceDriver(){
-        ThreadFactory factory = new ThreadFactoryBuilder()
-                .setNameFormat("splice-lifecycle-manager").build();
+        ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("splice-lifecycle-manager").build();
         executor = Executors.newSingleThreadExecutor(factory);
 
 
@@ -85,7 +79,7 @@ public class SpliceDriver {
             writerPool = TableWriter.create(SpliceUtils.config);
             threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
             jobScheduler = new CoprocessorJobScheduler(ZkUtils.getRecoverableZooKeeper(),SpliceUtils.config);
-            taskMonitor = new ZkTaskMonitor(CoprocessorTaskScheduler.baseQueueNode,ZkUtils.getRecoverableZooKeeper());
+            taskMonitor = new ZkTaskMonitor(zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
             tempCleaner = new TempCleaner(SpliceUtils.config);
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
@@ -187,13 +181,21 @@ public class SpliceDriver {
     }
 
     private boolean bootDatabase() throws Exception {
-        Connection connection = null;
+
+    	Connection connection = null;
         try{
+        	System.out.println("Refreshing Zookeeper");
+        	ZkUtils.refreshZookeeper();
+        	System.out.println("Done Refreshing Zookeeper");
         	EmbedConnectionMaker maker = new EmbedConnectionMaker();
         	connection = maker.createNew();
         	return true;
-        }finally{
-            if(connection!=null)
+        } catch (Exception e) {
+        	System.out.println("Error thrown " + e.getMessage());
+        	throw e;
+        }
+        	finally{
+        	if(connection!=null)
                 connection.close();
         }
     }
@@ -264,7 +266,7 @@ public class SpliceDriver {
         try{
             admin = new HBaseAdmin(SpliceUtils.config);
             if(!admin.tableExists(SpliceConstants.TEMP_TABLE_BYTES)){
-                HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(SpliceConstants.TEMP_TABLE);
+                HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(SpliceConstants.TEMP_TABLE);
                 admin.createTable(td);
                 SpliceLogUtils.info(LOG, SpliceConstants.TEMP_TABLE+" created");
             }
@@ -304,14 +306,9 @@ public class SpliceDriver {
     private boolean startServer() {
         SpliceLogUtils.info(LOG, "Services successfully started, enabling Connections");
         try{
-            String bindAddress = SpliceUtils.config.get("splice.server.address",DEFAULT_SERVER_ADDRESS);
-            int bindPort = SpliceUtils.config.getInt("splice.server.port", DEFAULT_PORT);
-            server = new NetworkServerControl(InetAddress.getByName(bindAddress),bindPort);
+            server = new NetworkServerControl(InetAddress.getByName(derbyBindAddress),derbyBindPort);
             server.setLogConnections(true);
             server.start(new DerbyOutputLoggerWriter());
-//            server.setTimeSlice(100);
-//            server.setMaxThreads(1000);
-
             SpliceLogUtils.info(LOG,"Ready to accept connections");
             return true;
         }catch(Exception e){

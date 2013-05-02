@@ -4,6 +4,7 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.junit.Test;
 import org.junit.Assert;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.utils.ZkUtils;
 
 public class ZKUtilsTest {
 

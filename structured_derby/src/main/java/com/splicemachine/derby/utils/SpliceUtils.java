@@ -1,22 +1,22 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.io.Closeables;
-import com.google.gson.Gson;
-import com.splicemachine.constants.SpliceConfiguration;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.si.api.SIConstants;
 import com.splicemachine.si.data.hbase.HGet;
 import com.splicemachine.si.data.hbase.HScan;
 import com.splicemachine.si.data.hbase.TransactorFactory;
 import com.splicemachine.si.api.ClientTransactor;
-import com.splicemachine.si.txn.TransactionTableCreator;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceUtilities;
+import com.splicemachine.utils.ZkUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
@@ -28,29 +28,17 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.MasterNotRunningException;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
 import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 /**
  * Utility methods
@@ -60,11 +48,9 @@ import java.util.Properties;
  */
 
 @SuppressWarnings(value = "deprecation")
-public class SpliceUtils extends SpliceConstants {
+public class SpliceUtils extends SpliceUtilities {
 	private static Logger LOG = Logger.getLogger(SpliceUtils.class);
 	public static UUIDHexGenerator gen = new UUIDHexGenerator("Splice", null);
-    public static final String NA_TRANSACTION_ID = "NA_TRANSACTION_ID";
-    private static final String SI_EXEMPT = "si-exempt";
 
     /**
      * Populates an array of DataValueDescriptors with a default value based on their type.
@@ -103,56 +89,16 @@ public class SpliceUtils extends SpliceConstants {
     public static Scan createScan(String transactionId) {
         try {
             return (Scan) attachTransaction(new Scan(), transactionId);
-        } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, e);
+        } catch (Exception e) {
+        	SpliceLogUtils.logAndThrowRuntime(LOG, e);
+        	return null;
         }
-        // can't reach this point
-        throw new RuntimeException("Cannot reach this state.");
     }
 
-	protected static String quorum;
-	protected static String transPath;
-	protected static RecoverableZooKeeper rzk = null;
-	protected static ZooKeeperWatcher zkw = null;
-
-    protected static HConnection connection;
-	static {
-		quorum = generateQuorum();
-		try {
-			zkw = (new HBaseAdmin(config)).getConnection().getZooKeeperWatcher();
-			rzk = zkw.getRecoverableZooKeeper();
-            connection = HConnectionManager.getConnection(config);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		} finally {
-
-		}
-	}
-
-	public static HBaseAdmin getAdmin() {
-		try {
-			return new HBaseAdmin(config);
-		} catch (MasterNotRunningException e) {
-			throw new RuntimeException(e);
-		} catch (ZooKeeperConnectionException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 	public static String getTransactionPath() {
-		return transPath;
+		return zkSpliceTransactionPath;
 	}
 
-/*
-	public static String toJSON(Object object) {
-		return gson.toJson(object);
-	}
-
-	public static <T> T fromJSON(String json,Class<T> instanceClass) {
-		return gson.fromJson(json, instanceClass);
-	}
-
-*/
     public static Get createGet(Mutation mutation, byte[] row) throws IOException {
         return createGet(getTransactionId(mutation), row);
     }
@@ -167,18 +113,17 @@ public class SpliceUtils extends SpliceConstants {
 			Get get = createGet(transID, loc.getBytes());
 			if(validColumns!=null){
 				for(int i= validColumns.anySetBit();i!=-1;i = validColumns.anySetBit(i)){
-					get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
+					get.addColumn(DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
 				}
 			}else{
 				for(int i=0;i<destRow.length;i++){
-					get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
+					get.addColumn(DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
 				}
 			}
 
 			return get;
 		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-			return null;
+			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "createGet Failed", e);
 		}
 	}
 
@@ -445,150 +390,14 @@ public class SpliceUtils extends SpliceConstants {
 		}
 		return false;
 	}
-
-	public static String generateQuorum() {
-		LOG.info("generateQuorum");
-		String servers = config.get(SpliceConstants.HBASE_ZOOKEEPER_QUOROM, "localhost");
-		String port = config.get(SpliceConstants.HBASE_ZOOKEEPER_CLIENT_PORT, "2181");
-		StringBuilder sb = new StringBuilder();
-		for (String split: servers.split(",")) {
-			sb.append(split);
-			sb.append(":");
-			sb.append(port);
-			sb.append(",");
-		}
-		sb.delete(sb.length() - 1, sb.length());
-		return sb.toString();
-	}
-
-	public static String generateQueryNodeSequence() {
-		SpliceLogUtils.trace(LOG,"generateQueryNodeSequence");
-		try {
-			String node = rzk.create(DEFAULT_QUERY_NODE_PATH + "/", Bytes.toBytes(OperationTreeStatus.CREATED.toString()), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
-			if (LOG.isTraceEnabled())
-				LOG.trace("generate Query Node Sequence " +node);
-			return node;
-		} catch (KeeperException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		} catch (InterruptedException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		}
-		return null;
-	}
-
+	
 	public static void setQueryWaitNode(String uniqueSequenceID, Watcher watcher) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("setQueryWaitNode");
+		SpliceLogUtils.debug(LOG, "setQueryWaitNode");
 		try {
-			rzk.getData(uniqueSequenceID, watcher, null);
-		} catch (KeeperException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			ZkUtils.getData(uniqueSequenceID, watcher, null);
+		} catch (IOException e) {
+			e.printStackTrace(); // TODO JL - FIX
 		}
-	}
-
-
-
-	public static boolean created() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("started ");
-		try {
-			List<String> paths = rzk.getChildren(DEFAULT_DERBY_PROPERTY_PATH, false);
-			return paths != null && paths.size() > 5;
-		} catch (KeeperException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return false;
-	}
-
-	public static boolean propertyExists(String propertyName) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("propertyExists " + propertyName);
-		try {
-			return rzk.exists(DEFAULT_DERBY_PROPERTY_PATH + "/" + propertyName, false) != null;
-		} catch (KeeperException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return false;
-	}
-
-	public static void addProperty(String propertyName, String propertyValue) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("addProperty name " + propertyName + ", value "+ propertyValue);
-		try {
-			rzk.create(DEFAULT_DERBY_PROPERTY_PATH + "/" + propertyName, Bytes.toBytes(propertyValue), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-		} catch (KeeperException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
-	public static String getProperty(String propertyName) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getProperty " + propertyName);
-		try {
-			byte[] data = rzk.getData(DEFAULT_DERBY_PROPERTY_PATH + "/" + propertyName, false, null);
-			if (LOG.isTraceEnabled())
-				LOG.trace("getProperty name " + propertyName + ", value "+ Bytes.toString(data));
-			return Bytes.toString(data);
-		} catch (KeeperException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	public static Properties getAllProperties(Properties defaultProperties) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getAllProperties " + defaultProperties);
-		Properties properties = new Properties(defaultProperties);
-		try {
-			List<String> keys = rzk.getChildren(DEFAULT_DERBY_PROPERTY_PATH, false);
-			for (String key : keys) {
-				byte[] data = rzk.getData(DEFAULT_DERBY_PROPERTY_PATH + "/" + key, false, null);
-				if (LOG.isTraceEnabled())
-					LOG.trace("getAllProperties retrieved property " + key + ", value " + Bytes.toString(data));
-				properties.put(key, Bytes.toString(data));
-			}
-			return properties;
-		} catch (KeeperException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return properties;
-	}
-
-	public static HTableDescriptor generateDefaultDescriptor(String tableName) {
-		HTableDescriptor desc = new HTableDescriptor(tableName);
-		desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
-				SpliceConstants.DEFAULT_VERSIONS,
-				SpliceConstants.DEFAULT_COMPRESSION,
-				SpliceConstants.DEFAULT_IN_MEMORY,
-				SpliceConstants.DEFAULT_BLOCKCACHE,
-				SpliceConstants.DEFAULT_TTL,
-				SpliceConstants.DEFAULT_BLOOMFILTER));
-        desc.addFamily(TransactionTableCreator.createTransactionFamily());
-        return desc;
 	}
 
 	public static String getTransIDString(Transaction trans) {
@@ -650,8 +459,6 @@ public class SpliceUtils extends SpliceConstants {
 	}
 
     public static void setInstructions(Scan scan, SpliceObserverInstructions instructions){
-        //instructions are already set
-//        if(scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS)!=null) return;
         scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(instructions));
     }
 
@@ -662,5 +469,5 @@ public class SpliceUtils extends SpliceConstants {
         mgr.pushContext(lcc);
         contextService.setCurrentContextManager(mgr);
     }
-
+    
 }

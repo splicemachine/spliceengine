@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
@@ -69,7 +70,7 @@ public abstract class AbstractImportTask extends ZooKeeperTask{
     }
 
     private String buildTaskId(HRegion region) {
-        return CoprocessorTaskScheduler.baseQueueNode+"/"+region.getTableDesc().getNameAsString()+"/"+region.getRegionNameAsString()+"/importTask-";
+        return zkSpliceTaskPath+"/"+region.getTableDesc().getNameAsString()+"/"+region.getRegionNameAsString()+"/importTask-";
     }
 
     @Override

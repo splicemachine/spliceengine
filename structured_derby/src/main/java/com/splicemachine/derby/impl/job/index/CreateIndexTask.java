@@ -46,7 +46,7 @@ public class CreateIndexTask extends ZooKeeperTask {
                            long baseConglomId,
                            int[] indexColsToBaseColMap,
                            boolean unique,String jobId ) {
-        super(jobId, OperationJob.operationTaskPriority);
+        super(jobId, operationTaskPriority);
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
         this.baseConglomId = baseConglomId;

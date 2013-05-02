@@ -102,7 +102,7 @@ public class BlockImportJob extends FileImportJob{
         Map<BlockImportTask,Pair<byte[],byte[]>> taskMap = Maps.newHashMap();
         for(HRegionLocation location:regionBlockMap.keySet()){
             Collection<BlockLocation> blocks = Lists.newArrayList(regionBlockMap.get(location));
-            BlockImportTask task = new BlockImportTask(getJobId(),context,blocks,ImportJob.importTaskPriority);
+            BlockImportTask task = new BlockImportTask(getJobId(),context,blocks,importTaskPriority);
             HRegionInfo info = location.getRegionInfo();
             byte[] start = info.getStartKey();
             byte[] end = info.getEndKey();

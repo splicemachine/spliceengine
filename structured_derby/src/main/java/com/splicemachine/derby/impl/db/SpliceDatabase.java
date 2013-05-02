@@ -25,12 +25,12 @@ public class SpliceDatabase extends BasicDatabase {
 	public void boot(boolean create, Properties startParams) throws StandardException {
 		//System.setProperty("derby.language.logQueryPlan", "true");
         System.setProperty("derby.connection.requireAuthentication","false");
-	    SanityManager.DEBUG_SET("ByteCodeGenInstr");
+//	    SanityManager.DEBUG_SET("ByteCodeGenInstr");
 //	    SanityManager.DEBUG_SET("DumpClassFile");
-        SanityManager.DEBUG_SET("DumpParseTree");
+//      SanityManager.DEBUG_SET("DumpParseTree");
 		create = true; //  Need to figure out the create bit...
-		if (SpliceUtils.created())
-			create = false;
+//		if (SpliceUtils.created())
+//			create = false;
 		if (create)
 			SpliceLogUtils.info(LOG,"Creating the Splice Machine");
 		else {  

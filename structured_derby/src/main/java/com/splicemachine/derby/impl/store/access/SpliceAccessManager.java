@@ -6,7 +6,7 @@ import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Properties;
-
+import org.apache.derby.impl.store.access.PropertyConglomerate;
 import com.google.common.base.Preconditions;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import org.apache.derby.catalog.UUID;
@@ -40,25 +40,15 @@ import org.apache.derby.iapi.store.raw.ContainerKey;
 import org.apache.derby.iapi.store.raw.LockingPolicy;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.shared.common.reference.Attribute;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.HTablePool;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
-
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceUtilities;
 
 
-public class SpliceAccessManager implements AccessFactory, CacheableFactory, ModuleControl, PropertySetCallback {
+public class SpliceAccessManager extends SpliceUtilities implements AccessFactory, CacheableFactory, ModuleControl, PropertySetCallback {
 	private static Logger LOG = Logger.getLogger(SpliceAccessManager.class);
 	private Hashtable implhash;
 	private HBaseStore rawstore;
@@ -74,8 +64,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 	protected LockingPolicy record_level_policy[];
 	protected ConglomerateFactory conglom_map[];
 	private CacheManager    conglom_cache;
-//	private static RecoverableZooKeeper rzk = null;
-//	private String derbyPropertyPath = "/derbyPropertyPath";
 
 	public SpliceAccessManager() {
 		implhash   = new Hashtable();
@@ -109,30 +97,8 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 		singleRPCPool = new HTablePool(HBaseConfiguration.create(), Integer.MAX_VALUE,new SpliceHTableFactory());
 		flushablePool = new HTablePool(HBaseConfiguration.create(), Integer.MAX_VALUE,new SpliceHTableFactory(false));
 		
-//		Configuration config = HBaseConfiguration.create();
-//		//SpliceUtils.generateQuorum();
-//		String conglomeratePath = config.get(SpliceConstants.CONGLOMERATE_PATH_NAME,SpliceConstants.DEFAULT_CONGLOMERATE_SCHEMA_PATH);		
-//		try {
-//			rzk = ZKUtil.connect(config, new Watcher() {			
-//				@Override
-//				public void process(WatchedEvent event) {					
-//				}
-//			});
-//			if (rzk.exists(conglomeratePath, false) == null)
-//				rzk.create(conglomeratePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-//			if (rzk.exists(derbyPropertyPath, false) == null)
-//				rzk.create(derbyPropertyPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-//
-//		} catch (Exception e) {
-//			throw new RuntimeException(e);
-//		} finally {
-//
-//		}
-	}
 
-//	public static RecoverableZooKeeper getZooKeeper() {
-//		return rzk;
-//	}
+	}
 	
 	public static HTablePool getHTableRPCPool() {
 		return singleRPCPool;
@@ -776,15 +742,12 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 	 * Public Methods implementing ModuleControl Interface:
 	 **************************************************************************
 	 */
-	public void boot(boolean create, Properties startParams)
-			throws StandardException
-	{
+	public void boot(boolean create, Properties startParams) throws StandardException {
 		this.serviceProperties = startParams;
 
 		boot_load_conglom_map();
 
-		if (create)
-		{
+		if (create) {
 			// if we are creating the db, then just start the conglomid's at
 			// 1, and proceed from there.  If not create, we delay 
 			// initialization of this until the first ddl which needs a new
@@ -801,9 +764,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 		// /protocol/Database/Storage/Access/Interface/T_AccessFactory.java)
 		// If this module has already been booted by the JDBC layer, this will 
 		// have no effect at all.
-		Monitor.bootServiceModule(
-				create, this, org.apache.derby.iapi.reference.Module.PropertyFactory, 
-				startParams);
+		Monitor.bootServiceModule(create, this, org.apache.derby.iapi.reference.Module.PropertyFactory, startParams);
 
 		// Create the in-memory conglomerate directory
 
@@ -811,10 +772,8 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 
 		// Read in the conglomerate directory from the conglom conglom
 		// Create the conglom conglom from within a separate system xact
-		SpliceTransactionManager tc =
-				(SpliceTransactionManager) getAndNameTransaction(
-						ContextService.getFactory().getCurrentContextManager(),
-						AccessFactoryGlobals.USER_TRANS_NAME);
+		SpliceTransactionManager tc = (SpliceTransactionManager) getAndNameTransaction(
+						ContextService.getFactory().getCurrentContextManager(),AccessFactoryGlobals.USER_TRANS_NAME);
 
 		// looking up lock_mode is dependant on access booting, but
 		// some boot routines need lock_mode and
@@ -898,12 +857,8 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 						LockingPolicy.MODE_RECORD,
 						TransactionController.ISOLATION_SERIALIZABLE, true);
 
-		if (SanityManager.DEBUG)
-		{
-			for (int i = 0;
-					i < TransactionController.ISOLATION_SERIALIZABLE;
-					i++)
-			{
+		if (SanityManager.DEBUG) {
+			for (int i = 0;i < TransactionController.ISOLATION_SERIALIZABLE;i++) {
 				/*
       SanityManager.ASSERT(
           table_level_policy[i] != null,
@@ -918,9 +873,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 		//tc.commit();
 
 		// set up the property validation
-		pf = (PropertyFactory) 
-				Monitor.findServiceModule(
-						this, org.apache.derby.iapi.reference.Module.PropertyFactory);
+		pf = (PropertyFactory) Monitor.findServiceModule(this, org.apache.derby.iapi.reference.Module.PropertyFactory);
 
 		// set up the transaction properties.  On J9, over NFS, runing on a
 		// power PC coprossor, the directories were created fine, but create
@@ -934,14 +887,9 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 		// which may do conglomerate access.
 		bootLookupSystemLockLevel(tc);
 
-		lock_mode =
-				(getSystemLockLevel() == TransactionController.MODE_TABLE ?
-						LockingPolicy.MODE_CONTAINER : LockingPolicy.MODE_RECORD);
+		lock_mode = (getSystemLockLevel() == TransactionController.MODE_TABLE ? LockingPolicy.MODE_CONTAINER : LockingPolicy.MODE_RECORD);
 
-		system_default_locking_policy =
-				tc.getRawStoreXact().newLockingPolicy(
-						lock_mode,
-						TransactionController.ISOLATION_SERIALIZABLE, true);
+		system_default_locking_policy =tc.getRawStoreXact().newLockingPolicy(lock_mode,TransactionController.ISOLATION_SERIALIZABLE, true);
 
 		// set up the callbacl for the lock manager with initialization
 		addPropertySetNotification(getLockFactory(), tc);
@@ -1033,13 +981,5 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 		return getHTableFlushablePool().getTable(tableName);
 	}
 	
-	public static void closeHTableQuietly(HTableInterface table) {
-		try {
-			if (table != null)
-				table.close();
-		} catch (Exception e) {
-			SpliceLogUtils.error(LOG, e);
-		}
-	}
 }
 

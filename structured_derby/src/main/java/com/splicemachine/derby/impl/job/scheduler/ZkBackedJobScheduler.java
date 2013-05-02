@@ -6,11 +6,11 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceZooKeeperManager;
-import com.splicemachine.derby.utils.ZkUtils;
-import com.splicemachine.job.TaskStatus;
 import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceZooKeeperManager;
+import com.splicemachine.utils.ZkUtils;
+
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;

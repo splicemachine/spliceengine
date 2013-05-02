@@ -36,7 +36,8 @@ public class SpliceService implements PersistentService {
 
 	public Properties getServiceProperties(String serviceName, Properties defaultProperties) throws StandardException {
 		SpliceLogUtils.trace(LOG,"getServiceProperties serviceName: %s, defaultProperties %s",serviceName, defaultProperties);
-		Properties service = new Properties(SpliceUtils.getAllProperties(defaultProperties));
+//		Properties service = new Properties(SpliceUtils.getAllProperties(defaultProperties));
+		Properties service = new Properties(defaultProperties);
 		service.setProperty(Property.SERVICE_PROTOCOL,"org.apache.derby.database.Database");
 		service.setProperty(EngineType.PROPERTY,Integer.toString(getEngineType()));
 		service.setProperty(DataDictionary.CORE_DATA_DICTIONARY_VERSION,"10.9");
@@ -50,20 +51,22 @@ public class SpliceService implements PersistentService {
 
 	public void saveServiceProperties(String serviceName, StorageFactory storageFactory, Properties properties, boolean replace) throws StandardException {
 		SpliceLogUtils.trace(LOG,"getServiceProperties serviceName: %s, properties %s, replace %s",serviceName, properties, replace);
-		for (Object key :properties.keySet()) {
+/*		for (Object key :properties.keySet()) {
 			if (!SpliceUtils.propertyExists((String)key)) {
 				SpliceUtils.addProperty((String)key, (String)properties.getProperty((String)key));
 			}
 		}
+		*/
 	}
 
     public void saveServiceProperties(String serviceName,Properties properties) throws StandardException {
 		SpliceLogUtils.trace(LOG,"saveServiceProperties serviceName: %s, properties %s",serviceName, properties);
-		for (Object key :properties.keySet()) {
+/*		for (Object key :properties.keySet()) {
 			if (!SpliceUtils.propertyExists((String)key)) {
 				SpliceUtils.addProperty((String)key, (String)properties.getProperty((String)key));
 			}
 		}
+		*/
 	}
 
 	public String createServiceRoot(String name, boolean deleteExisting) throws StandardException {

@@ -6,6 +6,8 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.ZkUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -87,7 +89,7 @@ public class ConglomerateUtils extends SpliceConstants {
 		HBaseAdmin admin = SpliceUtils.getAdmin();
 		HTableInterface table = null;
 		try{
-			HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(tableName);
+			HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(tableName);
 			admin.createTable(td);
 			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
 		} catch (Exception e) {

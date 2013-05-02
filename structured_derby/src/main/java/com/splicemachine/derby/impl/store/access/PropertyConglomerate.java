@@ -94,6 +94,7 @@ runs recovery. To make a small number of properties (listed in
 servicePropertyList) available during early boot, this copies
 them to services.properties.
 **/
+@Deprecated
 class PropertyConglomerate extends SpliceConstants {
 	private static Logger LOG = Logger.getLogger(PropertyConglomerate.class);
     protected String propertiesId;
@@ -106,19 +107,9 @@ class PropertyConglomerate extends SpliceConstants {
 
     /* Constructors for This class: */
 
-	PropertyConglomerate(
-    TransactionController   tc,
-    boolean                 create,
-    Properties              serviceProperties,
-	PropertyFactory 		pf)
-		throws StandardException
-	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("instantiated transaction controller " + tc + ", properties " + serviceProperties);
-
-		
+	PropertyConglomerate(TransactionController tc,boolean create,Properties serviceProperties,PropertyFactory pf) throws StandardException {
+		SpliceLogUtils.debug(LOG, "instantiated transaction controller %s, properties %s",tc,serviceProperties);		
 		this.pf = pf;
-
 		if (!create) {
 			String id = serviceProperties.getProperty(Property.PROPERTIES_CONGLOM_ID);
 			if (id == null) {
@@ -144,9 +135,6 @@ class PropertyConglomerate extends SpliceConstants {
 			conglomProperties.put(
                 RawStoreFactory.PAGE_RESERVED_SPACE_PARAMETER, 
                 RawStoreFactory.PAGE_RESERVED_ZERO_SPACE_STRING);
-
-
-            createConglomerate();
 //			propertiesConglomId =
 //                    createConglomerate(tc,AccessFactoryGlobals.HEAP,
 //                            template,
@@ -160,9 +148,7 @@ class PropertyConglomerate extends SpliceConstants {
 //                    conglomProperties,
 //                    TransactionController.IS_DEFAULT);
 
-			serviceProperties.put(
-                    Property.PROPERTIES_CONGLOM_ID,
-                    PROPERTIES_TABLE_NAME);
+			serviceProperties.put(Property.PROPERTIES_CONGLOM_ID,PROPERTIES_TABLE_NAME);
 		}
 
 		this.serviceProperties = serviceProperties;
@@ -186,7 +172,7 @@ class PropertyConglomerate extends SpliceConstants {
         try {
             HBaseAdmin admin = new HBaseAdmin(SpliceUtils.config);
             if(!admin.tableExists(PROPERTIES_TABLE_NAME)){
-                HTableDescriptor td = SpliceUtils.generateDefaultDescriptor(PROPERTIES_TABLE_NAME);
+                HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(PROPERTIES_TABLE_NAME);
                 admin.createTable(td);
             }
         } catch (MasterNotRunningException e) {

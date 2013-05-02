@@ -1,13 +1,15 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.google.common.base.Throwables;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.ByteDataInput;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.ZkUtils;
 import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.ZkUtils;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
@@ -34,38 +36,21 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/3/13
  */
 public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements SpliceSchedulerProtocol{
-    private static final String DEFAULT_BASE_TASK_QUEUE_NODE = "/spliceTasks";
-    private static final String DEFAULT_BASE_JOB_QUEUE_NODE = "/spliceJobs";
     private static final Logger LOG = Logger.getLogger(CoprocessorTaskScheduler.class);
     private TaskScheduler<RegionTask> taskScheduler;
     private RecoverableZooKeeper zooKeeper;
     private Set<RegionTask> runningTasks;
-    public static String baseQueueNode;
-    private static String jobQueueNode;
-
     private volatile LoadingTask loader;
 
-    static{
-         baseQueueNode = SpliceUtils.config.get("splice.sink.baseTaskQueueNode",DEFAULT_BASE_TASK_QUEUE_NODE);
-        jobQueueNode = SpliceUtils.config.get("splice.sink.baseJobQueueNode",DEFAULT_BASE_JOB_QUEUE_NODE);
-    }
 
     @Override
     public void start(CoprocessorEnvironment env) {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)env;
         zooKeeper = rce.getRegionServerServices().getZooKeeper().getRecoverableZooKeeper();
-        try {
-            HRegion region = rce.getRegion();
-            runningTasks = SpliceDriver.driver().getTaskMonitor().registerRegion(region.getRegionInfo().getRegionNameAsString());
-            ZkUtils.recursiveSafeCreate(CoprocessorTaskScheduler.baseQueueNode, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-        } catch (KeeperException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        HRegion region = rce.getRegion();
+        runningTasks = SpliceDriver.driver().getTaskMonitor().registerRegion(region.getRegionInfo().getRegionNameAsString());
         taskScheduler = SpliceDriver.driver().getTaskScheduler();
         loader = new LoadingTask();
-
         //submit a task to load any outstanding tasks from the zookeeper region queue
         try {
             doSubmit(loader,rce);
@@ -134,7 +119,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     }
 
     public static String getRegionQueue(HRegionInfo info){
-        String queue = CoprocessorTaskScheduler.baseQueueNode+"/"+info.getTableNameAsString();
+        String queue = SpliceUtils.zkSpliceTaskPath+"/"+info.getTableNameAsString();
 
         byte[] startKey = info.getStartKey();
         if(startKey==null)
@@ -147,7 +132,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     }
 
     public static String getJobPath() {
-        return jobQueueNode;
+        return SpliceUtils.zkSpliceJobPath;
     }
 
     private class LoadingTask implements RegionTask{

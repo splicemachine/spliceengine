@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.operation;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -19,14 +20,7 @@ import java.util.Map;
  * @author Scott Fines
  *         Created on: 4/3/13
  */
-public class OperationJob implements CoprocessorJob,Externalizable {
-    private static final int DEFAULT_OPERATION_PRIORITY = 3;
-    public static final int operationTaskPriority;
-
-    static{
-        operationTaskPriority = SpliceUtils.config.getInt("splice.task.operationPriority",DEFAULT_OPERATION_PRIORITY);
-    }
-
+public class OperationJob extends SpliceConstants implements CoprocessorJob,Externalizable {
     private Scan scan;
     private SpliceObserverInstructions instructions;
     private HTableInterface table;
