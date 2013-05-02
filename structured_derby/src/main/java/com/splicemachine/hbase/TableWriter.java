@@ -114,6 +114,7 @@ public class TableWriter implements WriterStatus{
     private static final Logger CACHE_LOG = Logger.getLogger(RegionCacheLoader.class);
 
     private static final Class<BatchProtocol> batchProtocolClass = BatchProtocol.class;
+    @SuppressWarnings("unchecked")
     private static final Class<? extends CoprocessorProtocol>[] protoClassArray = new Class[]{batchProtocolClass};
 
     private static final int DEFAULT_MAX_PENDING_BUFFERS = 10;
@@ -410,7 +411,7 @@ public class TableWriter implements WriterStatus{
                 try{
                     future.get();
                 }catch(ExecutionException ee){
-                    Throwable t = Throwables.getRootCause(ee);
+                    @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = Throwables.getRootCause(ee);
                     if(t instanceof Exception)
                         throw (Exception)t;
                     else throw ee;
@@ -654,30 +655,6 @@ public class TableWriter implements WriterStatus{
                 }));
             }
             return badRows;
-        }
-
-        /*
-         * Re-bucket the mutations list into new MutationRequests based on a new cache topology for the
-         * table.
-         */
-        private void resetMutations() throws Exception {
-            List<MutationRequest> newMutations = Lists.newArrayList();
-            for(MutationRequest remainingMutation:mutationsToWrite){
-                List<MutationRequest> mutationRequests = bucketMutations(tableName,remainingMutation.getMutations());
-                for(MutationRequest request:mutationRequests){
-                    boolean found = false;
-                    for(MutationRequest newMutation:newMutations){
-                        if(Bytes.equals(newMutation.getRegionStartKey(), request.getRegionStartKey())){
-                            newMutation.addAll(request.getMutations());
-                            found=true;
-                            break;
-                        }
-                    }
-                    if(!found)
-                        newMutations.add(request);
-                }
-            }
-            this.mutationsToWrite = newMutations;
         }
 
         @Override
