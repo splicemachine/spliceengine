@@ -7,10 +7,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Captures the SI logic to perform when a data table is compacted (without explicit HBase dependencies). Provides the
+ * guts for SICompactionScanner.
+ * <p/>
+ * It is handed key-values and can change them.
+ */
 public class SICompactionState {
     private final SDataLib dataLib;
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
+
+    /**
+     * Cache of transactions that have been read during the execution of this compaction.
+     */
     private final Map<Long, Transaction> transactionCache = new HashMap<Long, Transaction>();
 
     public SICompactionState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore) {
@@ -19,26 +29,44 @@ public class SICompactionState {
         this.transactionStore = transactionStore;
     }
 
+    /**
+     * Given a list of key-values, populate the results list with possibly mutated values.
+     *
+     * @param rawList - the input of key values to process
+     * @param results - the output key values
+     */
     public void mutate(List rawList, List results) throws IOException {
         for (Object kv : rawList) {
             results.add(mutate(kv));
         }
     }
 
+    /**
+     * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
+     */
     private Object mutate(Object kv) throws IOException {
-        DecodedKeyValue keyValue = new DecodedKeyValue(dataLib, kv);
-        final KeyValueType keyValueType = dataStore.getKeyValueType(keyValue.family, keyValue.qualifier);
-        if (keyValueType.equals(KeyValueType.COMMIT_TIMESTAMP)) {
-            final Transaction transaction = getFromCache(keyValue.timestamp);
-            if (transaction.isCommitted()) {
-                return dataLib.newKeyValue(keyValue.row, keyValue.family, keyValue.qualifier, keyValue.timestamp,
-                        dataLib.encode(transaction.commitTimestamp));
-            } else {
-                return kv;
-            }
-        } else {
+        DecodedKeyValue decodedKeyValue = new DecodedKeyValue(dataLib, kv);
+        final KeyValueType keyValueType = dataStore.getKeyValueType(decodedKeyValue.family, decodedKeyValue.qualifier);
+        if (keyValueType.equals(KeyValueType.COMMIT_TIMESTAMP)){
+            return mutateCommitTimestamp(decodedKeyValue);
+        }else{
             return kv;
         }
+    }
+
+    /**
+     * Replace unknown commit timestamps with actual commit times.
+     */
+    private Object mutateCommitTimestamp(DecodedKeyValue decodedKeyValue) throws IOException {
+        Object result = decodedKeyValue.keyValue;
+        if (dataStore.isSiNull(decodedKeyValue.value)) {
+            final Transaction transaction = getFromCache(decodedKeyValue.timestamp);
+            if (transaction.isCommitted()) {
+                result = dataLib.newKeyValue(decodedKeyValue.row, decodedKeyValue.family, decodedKeyValue.qualifier,
+                        decodedKeyValue.timestamp, dataLib.encode(transaction.commitTimestamp));
+            }
+        }
+        return result;
     }
 
     private Transaction getFromCache(long timestamp) throws IOException {
