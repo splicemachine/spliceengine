@@ -61,12 +61,12 @@ public class SpliceConstants {
 	// Splice Internal Tables
     public static final String TEMP_TABLE = "SPLICE_TEMP";
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
-    public static final String CONGLOMERATE_TABLE = "SPLICE_CONGLOMERATE";
+    public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
     public static final String PROPERTIES_TABLE_NAME = "SPLICE_PROPS";
     
     public static byte[] TEMP_TABLE_BYTES = Bytes.toBytes(TEMP_TABLE);
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
-    public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE);
+    public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
     public static final byte[]PROPERTIES_TABLE_NAME_BYTES = Bytes.toBytes(PROPERTIES_TABLE_NAME);
     
 	// Splice Family Information
