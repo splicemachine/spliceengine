@@ -153,7 +153,10 @@ public class SpliceDriver extends SpliceConstants{
                     //register JMX items
                     registerJMX();
                     boolean setRunning = true;
+                    System.out.println("Booting Database");
                     setRunning = bootDatabase();
+                    System.out.println("Finished Booting Database");
+
                     if(!setRunning){
                         abortStartup();
                         return null;
@@ -163,12 +166,17 @@ public class SpliceDriver extends SpliceConstants{
                         abortStartup();
                         return null;
                     }
+                    System.out.println("Starting Services");
                     setRunning = startServices();
+                    System.out.println("Done Starting Services");
+
                     if(!setRunning) {
                         abortStartup();
                         return null;
                     }
+                    System.out.println("Starting Server");
                     setRunning = startServer();
+                    System.out.println("Done Starting Server");
                     if(!setRunning) {
                         abortStartup();
                         return null;

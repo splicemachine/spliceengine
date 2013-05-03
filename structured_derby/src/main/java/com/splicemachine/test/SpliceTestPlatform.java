@@ -59,10 +59,10 @@ public class SpliceTestPlatform extends TestConstants {
 		miniZooKeeperCluster = new MiniZooKeeperCluster();
 		miniZooKeeperCluster.startup(new File(zookeeperTargetDirectory),3);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
-		Configuration config2 = new Configuration(config);
-		config2.setInt("hbase.regionserver.port", 60021);
-		config2.setInt("hbase.regionserver.info.port", 60031);
-		miniHBaseCluster2 = new MiniHBaseCluster(config2,0,1); // Startup Second Server on different ports		
+//		Configuration config2 = new Configuration(config);
+//		config2.setInt("hbase.regionserver.port", 60021);
+//		config2.setInt("hbase.regionserver.info.port", 60031);
+//		miniHBaseCluster2 = new MiniHBaseCluster(config2,0,1); // Startup Second Server on different ports		
 	}
 	public void end() throws Exception {
 

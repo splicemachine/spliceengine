@@ -6,7 +6,6 @@ import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Properties;
-import org.apache.derby.impl.store.access.PropertyConglomerate;
 import com.google.common.base.Preconditions;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import org.apache.derby.catalog.UUID;

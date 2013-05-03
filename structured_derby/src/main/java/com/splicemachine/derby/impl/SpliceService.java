@@ -7,6 +7,7 @@ import java.util.Properties;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.EngineType;
 import org.apache.derby.iapi.reference.Property;
+import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.monitor.PersistentService;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.io.StorageFactory;
@@ -14,6 +15,7 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.derby.impl.store.access.PropertyConglomerate2;
 
 public class SpliceService implements PersistentService {
 	protected static final String TYPE = "splice";
@@ -50,23 +52,23 @@ public class SpliceService implements PersistentService {
 	}
 
 	public void saveServiceProperties(String serviceName, StorageFactory storageFactory, Properties properties, boolean replace) throws StandardException {
-		SpliceLogUtils.trace(LOG,"getServiceProperties serviceName: %s, properties %s, replace %s",serviceName, properties, replace);
-/*		for (Object key :properties.keySet()) {
-			if (!SpliceUtils.propertyExists((String)key)) {
-				SpliceUtils.addProperty((String)key, (String)properties.getProperty((String)key));
-			}
+		SpliceLogUtils.trace(LOG,"saveServiceProperties with storageFactory serviceName: %s, properties %s, replace %s",serviceName, properties, replace);
+		for (Object key :properties.keySet()) {
+			System.out.println("saveServiceProperties with stf " + key + " : " + properties.getProperty((String)key));
+//			if (!SpliceUtils.propertyExists((String)key)) {
+//				SpliceUtils.addProperty((String)key, (String)properties.getProperty((String)key));
+//			}
 		}
-		*/
 	}
 
     public void saveServiceProperties(String serviceName,Properties properties) throws StandardException {
 		SpliceLogUtils.trace(LOG,"saveServiceProperties serviceName: %s, properties %s",serviceName, properties);
-/*		for (Object key :properties.keySet()) {
-			if (!SpliceUtils.propertyExists((String)key)) {
-				SpliceUtils.addProperty((String)key, (String)properties.getProperty((String)key));
-			}
+		for (Object key :properties.keySet()) {
+			System.out.println("saveServiceProperties " + key + " : " + properties.getProperty((String)key));
+//			if (!SpliceUtils.propertyExists((String)key)) {
+//				SpliceUtils.addProperty((String)key, (String)properties.getProperty((String)key));
+//			}
 		}
-		*/
 	}
 
 	public String createServiceRoot(String name, boolean deleteExisting) throws StandardException {

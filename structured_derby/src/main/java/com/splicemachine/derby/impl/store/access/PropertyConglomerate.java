@@ -1,38 +1,19 @@
-/*
-
-   Derby - Class org.apache.derby.impl.store.access.PropertyConglomerate
-
-   Licensed to the Apache Software Foundation (ASF) under one or more
-   contributor license agreements.  See the NOTICE file distributed with
-   this work for additional information regarding copyright ownership.
-   The ASF licenses this file to you under the Apache License, Version 2.0
-   (the "License"); you may not use this file except in compliance with
-   the License.  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
- */
-
 package com.splicemachine.derby.impl.store.access;
 
-import com.gotometrics.orderly.StringRowKey;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.Mutations;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.Serializable;
+import java.util.Dictionary;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Properties;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Attribute;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.Formatable;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.FormatableHashtable;
-import org.apache.derby.iapi.services.locks.*;
+import org.apache.derby.iapi.services.locks.LockFactory;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.property.PropertyFactory;
 import org.apache.derby.iapi.services.property.PropertyUtil;
@@ -40,83 +21,45 @@ import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.store.access.AccessFactory;
 import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
+import org.apache.derby.iapi.store.access.ConglomerateController;
+import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.store.access.conglomerate.TransactionManager;
 import org.apache.derby.iapi.store.raw.RawStoreFactory;
-import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.UserType;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
 import org.apache.derby.impl.store.access.UTF;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.MasterNotRunningException;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
+import org.apache.derby.impl.store.access.UTFQualifier;
 
-import java.io.*;
-import java.util.Dictionary;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Properties;
-
-/**
-Stores properties in a congolmerate with complete transactional support.
-<p>
-The PropertyConglomerate contains one row with 2 columns per property.
-Column 0 is the UTF key, and column 1 is the data.
-<p>
-
-<p>
-The property conglomerate manages the storage of database properties
-and thier defaults. Each property is stored as a row in the
-PropertyConglomerate 
-<OL>
-<LI>Column 0 is the UTF key,
-<LI>Column 1 is the data.
-</OL>
-All the property defaults are stored in a single row of the Property
-Conglomerate:
-<OL>
-<LI>Column 0 is the UTF key "derby.defaultPropertyName".
-<LI>Column 1 is a FormatableProperties object with one
-    row per default property.
-</OL>
-<p>
-In general a propery default defines it value if the property
-itself is not defined.
-
-<p>
-Because the properties conglomerate is stored in a conglomerate
-the information it contains is not available before the raw store
-runs recovery. To make a small number of properties (listed in
-servicePropertyList) available during early boot, this copies
-them to services.properties.
-**/
-@Deprecated
-class PropertyConglomerate extends SpliceConstants {
-	private static Logger LOG = Logger.getLogger(PropertyConglomerate.class);
-    protected String propertiesId;
+public class PropertyConglomerate
+{
+	protected long propertiesConglomId;
 	protected Properties serviceProperties;
 	private LockFactory lf;
 	private Dictionary	cachedSet;
-	private CacheLock cachedLock;
 
 	private PropertyFactory  pf;
 
     /* Constructors for This class: */
 
-	PropertyConglomerate(TransactionController tc,boolean create,Properties serviceProperties,PropertyFactory pf) throws StandardException {
-		SpliceLogUtils.debug(LOG, "instantiated transaction controller %s, properties %s",tc,serviceProperties);		
+	public PropertyConglomerate(
+    TransactionController   tc,
+    boolean                 create,
+    Properties              serviceProperties,
+	PropertyFactory 		pf)
+		throws StandardException
+	{
 		this.pf = pf;
+
 		if (!create) {
 			String id = serviceProperties.getProperty(Property.PROPERTIES_CONGLOM_ID);
 			if (id == null) {
 				create = true;
 			} else {
 				try {
-					propertiesId = id;
+					propertiesConglomId = Long.valueOf(id).longValue();
 				} catch (NumberFormatException nfe) {
 					throw Monitor.exceptionStartingModule(nfe) ;
 				}
@@ -135,65 +78,40 @@ class PropertyConglomerate extends SpliceConstants {
 			conglomProperties.put(
                 RawStoreFactory.PAGE_RESERVED_SPACE_PARAMETER, 
                 RawStoreFactory.PAGE_RESERVED_ZERO_SPACE_STRING);
-//			propertiesConglomId =
-//                    createConglomerate(tc,AccessFactoryGlobals.HEAP,
-//                            template,
-//                            conglomProperties,
-//                            TransactionController.IS_DEFAULT);
-//                tc.createConglomerate(
-//                    AccessFactoryGlobals.HEAP,
-//                    template,
-//                    null,
-//                    (int[]) null, // use default collation for property conglom.
-//                    conglomProperties,
-//                    TransactionController.IS_DEFAULT);
 
-			serviceProperties.put(Property.PROPERTIES_CONGLOM_ID,PROPERTIES_TABLE_NAME);
+			propertiesConglomId = 
+                tc.createConglomerate(
+                    AccessFactoryGlobals.HEAP,
+                    template, 
+                    null, 
+                    (int[]) null, // use default collation for property conglom.
+                    conglomProperties, 
+                    TransactionController.IS_DEFAULT);
+
+			serviceProperties.put(
+                Property.PROPERTIES_CONGLOM_ID, 
+                Long.toString(propertiesConglomId));
 		}
 
 		this.serviceProperties = serviceProperties;
-
-		lf = ((SpliceTransactionManager) tc).getAccessManager().getLockFactory();
-		cachedLock = new CacheLock(this);
 
 		PC_XenaVersion softwareVersion = new PC_XenaVersion();
 		if (create)
 			setProperty(tc,DataDictionary.PROPERTY_CONGLOMERATE_VERSION,
 						 softwareVersion, true);
-		else {
-			// XXX - TODO JL FIX
-			//softwareVersion.upgradeIfNeeded(tc,this,serviceProperties);
-		}
+//		else
+//			softwareVersion.upgradeIfNeeded(tc,this,serviceProperties);
+
 		getCachedDbProperties(tc);
 	}
-
-    private void createConglomerate() throws StandardException {
-        SpliceLogUtils.trace(LOG,"creating Properties Conglomerate");
-        try {
-            HBaseAdmin admin = new HBaseAdmin(SpliceUtils.config);
-            if(!admin.tableExists(PROPERTIES_TABLE_NAME)){
-                HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(PROPERTIES_TABLE_NAME);
-                admin.createTable(td);
-            }
-        } catch (MasterNotRunningException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, e);
-        } catch (ZooKeeperConnectionException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, e);
-        } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        }
-    }
 
     /* Private/Protected methods of This class: */
 
     /**
      * Create a new PropertyConglomerate row, with values in it.
      **/
-    private DataValueDescriptor[] makeNewTemplate(String key, Serializable value)
+    public DataValueDescriptor[] makeNewTemplate(String key, Serializable value)
     {
-		if (LOG.isTraceEnabled())
-			LOG.trace("makeNewTemplate key " + key + ", value " + value);
-
 		DataValueDescriptor[] template = new DataValueDescriptor[2];
 
 		template[0] = new UTF(key);
@@ -205,11 +123,8 @@ class PropertyConglomerate extends SpliceConstants {
     /**
      * Create a new empty PropertyConglomerate row, to fetch values into.
      **/
-    private DataValueDescriptor[] makeNewTemplate()
+    public DataValueDescriptor[] makeNewTemplate()
     {
-		if (LOG.isTraceEnabled())
-			LOG.trace("makeNewTemplate ");
-
 		DataValueDescriptor[] template = new DataValueDescriptor[2];
 
 		template[0] = new UTF();
@@ -218,6 +133,53 @@ class PropertyConglomerate extends SpliceConstants {
         return(template);
     }
 
+    /**
+     * Open a scan on the properties conglomerate looking for "key".
+     * <p>
+	 * Open a scan on the properties conglomerate qualified to
+	 * find the row with value key in column 0.  Both column 0
+     * and column 1 are included in the scan list.
+     *
+	 * @return an open ScanController on the PropertyConglomerate. 
+     *
+	 * @param tc        The transaction to do the Conglomerate work under.
+     * @param key       The "key" of the property that is being requested.
+     * @param open_mode Whether we are setting or getting the property.
+     *
+	 * @exception  StandardException  Standard exception policy.
+     **/
+    public ScanController openScan(
+    TransactionController tc, 
+    String                key, 
+    int                   open_mode) 
+		throws StandardException
+    {
+		Qualifier[][] qualifiers = null;
+
+		if (key != null) {
+			// Set up qualifier to look for the row with key value in column[0]
+			qualifiers = new Qualifier[1][];
+            qualifiers[0] = new Qualifier[1];
+			qualifiers[0][0] = new UTFQualifier(0, key);
+		}
+
+        // open the scan, clients will do the fetches and close.
+		ScanController scan = 
+            tc.openScan(
+                propertiesConglomId,
+                false, // don't hold over the commit
+                open_mode,
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_SERIALIZABLE,
+                (FormatableBitSet) null,
+                (DataValueDescriptor[]) null,	// start key
+                ScanController.NA,
+                qualifiers,
+                (DataValueDescriptor[]) null,	// stop key
+                ScanController.NA);
+
+		return(scan);
+	}
     /* Package Methods of This class: */
 
 	/**
@@ -232,13 +194,9 @@ class PropertyConglomerate extends SpliceConstants {
 	 * Set the default for a property.
 	 * @exception  StandardException  Standard exception policy.
 	 */
- 	void setPropertyDefault(TransactionController tc, String key, Serializable value)
+    public void setPropertyDefault(TransactionController tc, String key, Serializable value)
 		 throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("setPropertyDefault TransactionController" + tc + ", key " + key + ", value " + value);
-
-		lockProperties(tc);
 		Serializable valueToSave = null;
 		//
 		//If the default is visible we validate apply and map.
@@ -259,68 +217,71 @@ class PropertyConglomerate extends SpliceConstants {
 		savePropertyDefault(tc,key,valueToSave);
 	}
 
-	boolean propertyDefaultIsVisible(TransactionController tc,String key) throws StandardException
+    public boolean propertyDefaultIsVisible(TransactionController tc,String key) throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("propertyDefaultIsVisible " + tc + ", key " + key);
-
-		lockProperties(tc);
 		return(readProperty(tc,key) == null);
 	}
 	
-	void saveProperty(TransactionController tc, String key, Serializable value)
+    public void saveProperty(TransactionController tc, String key, Serializable value)
 		 throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("saveProperty " + tc + ", key " + key + ", value " + value);
-
 		if (saveServiceProperty(key,value)) return;
 
-        //see if the property is already there
-        HTableInterface table = null;
-        try{
-            table = SpliceAccessManager.getHTable(PROPERTIES_TABLE_NAME_BYTES);
+        // Do a scan to see if the property already exists in the Conglomerate.
+		ScanController scan = 
+            this.openScan(tc, key, TransactionController.OPENMODE_FORUPDATE);
 
-            byte[] keyBytes = key.getBytes();
-            byte[] valColumn = Integer.toString(1).getBytes();
-            String transactionId = getTransactionId(tc);
-            if(value==null){
-                //null value means delete the property
-                SpliceUtils.doDelete(table, transactionId, keyBytes);
-            }
+        DataValueDescriptor[] row = makeNewTemplate();
 
-            //set the value
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(baos);
-            oos.writeObject(value);
+		if (scan.fetchNext(row)) 
+        {
+			if (value == null)
+            {
+				// A null input value means that we should delete the row
+                
+				scan.delete();
+			} 
+            else
+            {
+				// a value already exists, just replace the second columm
 
-            Put put = SpliceUtils.createPut(keyBytes, transactionId);
-            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, valColumn,baos.toByteArray());
+				row[1] = new UserType(value);
 
-            table.put(put);
-        }catch(IOException ioe){
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe);
-        }finally{
-            if(table!=null){
-                try {
-                    table.close();
-                } catch (IOException e) {
-                    SpliceLogUtils.error(LOG,"Unable to close property table",e);
-                }
+				scan.replace(row, (FormatableBitSet) null);
+			}
+
+			scan.close();
+		}
+        else
+        {
+            // The value does not exist in the Conglomerate.
+
+            scan.close();
+            scan = null;
+
+            if (value != null)
+            {
+                // not a delete request, so insert the new property.
+                
+                row = makeNewTemplate(key, value);
+
+                ConglomerateController cc = 
+                    tc.openConglomerate(
+                        propertiesConglomId, 
+                        false,
+                        TransactionController.OPENMODE_FORUPDATE, 
+                        TransactionController.MODE_TABLE,
+                        TransactionController.ISOLATION_SERIALIZABLE);
+
+                cc.insert(row);
+
+                cc.close();
             }
         }
 	}
 
-    private String getTransactionId(TransactionController tc) {
-        Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
-        return SpliceUtils.getTransID(td);
-    }
-
-    private boolean saveServiceProperty(String key, Serializable value)
+    public boolean saveServiceProperty(String key, Serializable value)
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("saveServiceProperty key " + key + ", value " + value);
-
 		if (PropertyUtil.isServiceProperty(key))
 		{
 			if (value != null)
@@ -335,11 +296,9 @@ class PropertyConglomerate extends SpliceConstants {
 		}
 	}
 
-	void savePropertyDefault(TransactionController tc, String key, Serializable value)
+    public void savePropertyDefault(TransactionController tc, String key, Serializable value)
 		 throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("savePropertyDefault TransactionController " + tc + ", key " + key + ", value " + value);
 		if (saveServiceProperty(key,value)) return;
 
 		Dictionary defaults = (Dictionary)readProperty(tc,AccessFactoryGlobals.DEFAULT_PROPERTY_NAME);
@@ -352,12 +311,10 @@ class PropertyConglomerate extends SpliceConstants {
 		saveProperty(tc,AccessFactoryGlobals.DEFAULT_PROPERTY_NAME,(Serializable)defaults);
 	}
 
-	private Serializable validateApplyAndMap(TransactionController tc,
+    public Serializable validateApplyAndMap(TransactionController tc,
 											 String key, Serializable value, boolean dbOnlyProperty)
 		 throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("validateApplyAndMap TransactionController " + tc + ", key " + key + ", value " + value);
 		Dictionary d = new Hashtable();
 		getProperties(tc,d,false/*!stringsOnly*/,false/*!defaultsOnly*/);
 		Serializable mappedValue = pf.doValidateApplyAndMap(tc, key,
@@ -384,13 +341,11 @@ class PropertyConglomerate extends SpliceConstants {
 	  to serialize validations with changes to the set of
 	  property callbacks
 	  */
-	private Serializable map(String key,
+    public Serializable map(String key,
 							 Serializable value,
 							 Dictionary set)
 		 throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("map key " + key + ", value " + value);
 		return pf.doMap(key, value, set);
 	}
 
@@ -403,25 +358,20 @@ class PropertyConglomerate extends SpliceConstants {
 	  property callbacks
 	  */
 
-	private void validate(String key,
+    public void validate(String key,
 						  Serializable value,
 						  Dictionary set)
 		 throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("validate key " + key + ", value " + value);
 		pf.validateSingleProperty(key, value, set);
 	}
 
 
-	private boolean bootPasswordChange(TransactionController tc,
+    public boolean bootPasswordChange(TransactionController tc,
 									   String key,
 									   Serializable value)
 		 throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("bootPasswordChange transactionController " + tc + ", key " + key + ", value " + value);
-
 		// first check for boot password  change - we don't put boot password
 		// in the servicePropertyList because if we do, then we expose the
 		// boot password in clear text
@@ -470,15 +420,12 @@ class PropertyConglomerate extends SpliceConstants {
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-	void setProperty(
+    public void setProperty(
     TransactionController tc,
     String                key,
     Serializable          value, boolean dbOnlyProperty)
 		throws StandardException
     {
-		if (LOG.isTraceEnabled())
-			LOG.trace("setProperty transactionController " + tc + ", key " + key + ", value " + value);
-
 		if (SanityManager.DEBUG)
         {
 
@@ -493,7 +440,6 @@ class PropertyConglomerate extends SpliceConstants {
             }
 		}
 
-		lockProperties(tc);
 		Serializable valueToValidateAndApply = value;
 		//
 		//If we remove a property we validate and apply its default.
@@ -523,47 +469,27 @@ class PropertyConglomerate extends SpliceConstants {
 			saveProperty(tc,key,valueToSave);
 	}
 
-	private Serializable readProperty(TransactionController tc,
+    public Serializable readProperty(TransactionController tc,
 									  String key) throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("readProperty transactionController " + tc + ", key " + key);
-
 		// scan the table for a row with matching "key"
-        HTableInterface table = SpliceAccessManager.getHTable(PROPERTIES_TABLE_NAME_BYTES);
-        try {
-            Get get = SpliceUtils.createGet(getTransactionId(tc), new StringRowKey().serialize(key));
-            get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN);
+		ScanController scan = openScan(tc, key, 0);
 
-            Result result = table.get(get);
+		DataValueDescriptor[] row = makeNewTemplate();
 
-            if(result==null||result.isEmpty()) return null;
-            return getValue(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN));
-        } catch (IOException e) {
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
-        } catch (ClassNotFoundException e) {
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
-        } finally{
-            try {
-                table.close();
-            } catch (IOException e) {
-                SpliceLogUtils.error(LOG,"Unable to close properties table",e);
-            }
-        }
+		// did we find at least one row?
+		boolean isThere = scan.fetchNext(row);
+		
+		scan.close();
+
+		if (!isThere) return null;
+
+		return (Serializable) (((UserType) row[1]).getObject());
 	}
 
-    private Serializable getValue(byte[] value) throws IOException, ClassNotFoundException {
-        ByteArrayInputStream bais = new ByteArrayInputStream(value);
-        ObjectInputStream ois = new ObjectInputStream(bais);
-        return (Serializable)ois.readObject();
-    }
-
-    private Serializable getCachedProperty(TransactionController tc,
+    public Serializable getCachedProperty(TransactionController tc,
 										   String key) throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("getCachedProperty transactionController " + tc + ", key " + key);
-
 		//
 		//Get the cached set of properties.
 		Dictionary dbProps = getCachedDbProperties(tc);
@@ -576,14 +502,11 @@ class PropertyConglomerate extends SpliceConstants {
 			return getCachedPropertyDefault(tc,key,dbProps);
 	}
 
-	private Serializable getCachedPropertyDefault(TransactionController tc,
+    public Serializable getCachedPropertyDefault(TransactionController tc,
 												  String key,
 												  Dictionary dbProps)
 		 throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("getCachedPropertyDefault transactionController " + tc + ", key " + key);
-
 		//
 		//Get the cached set of properties.
 		if (dbProps == null) dbProps = getCachedDbProperties(tc);
@@ -615,21 +538,15 @@ class PropertyConglomerate extends SpliceConstants {
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-	Serializable getProperty(
+    public Serializable getProperty(
     TransactionController tc, 
     String                key) 
 		throws StandardException
     {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getProperty transactionController " + tc + ", key " + key);
-
 		//
 		//Try service properties first.
 		if(PropertyUtil.isServiceProperty(key)) return serviceProperties.getProperty(key);
 
-		// See if I'm the exclusive owner. If so I cannot populate
-		// the cache as it would contain my uncommitted changes.
-		if (iHoldTheUpdateLock(tc))
 		{
 			//
 			//Return the property value if it is defined.
@@ -638,26 +555,17 @@ class PropertyConglomerate extends SpliceConstants {
 
 			return getPropertyDefault(tc,key);
 		}
-		else
-		{
-			return getCachedProperty(tc,key);
-		}
 	}
 
 	/**
 	 * Get the default for a property.
 	 * @exception  StandardException  Standard exception policy.
 	 */
-	Serializable getPropertyDefault(TransactionController tc, String key)
+    public Serializable getPropertyDefault(TransactionController tc, String key)
 		 throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("getPropertyDefault transactionController " + tc + ", key " + key);
-
 		// See if I'm the exclusive owner. If so I cannot populate
 		// the cache as it would contain my uncommitted changes.
-		if (iHoldTheUpdateLock(tc))
-		{
 			//
 			//Return the property default value (may be null) if
 			//defined.
@@ -666,18 +574,10 @@ class PropertyConglomerate extends SpliceConstants {
 				return null;
 			else
 				return (Serializable)defaults.get(key);
-		}
-		else
-		{
-			return getCachedPropertyDefault(tc,key,null);
-		}
 	}
 									
-	private Dictionary copyValues(Dictionary to, Dictionary from, boolean stringsOnly)
+    public Dictionary copyValues(Dictionary to, Dictionary from, boolean stringsOnly)
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("copyValues ");
-
 		if (from == null) return to; 
 		for (Enumeration keys = from.keys(); keys.hasMoreElements(); ) {
 			String key = (String) keys.nextElement();
@@ -692,10 +592,7 @@ class PropertyConglomerate extends SpliceConstants {
 		Fetch the set of properties as a Properties object. This means
 		that only keys that have String values will be included.
 	*/
-	Properties getProperties(TransactionController tc) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getProperties transactionController " + tc);
-
+    public Properties getProperties(TransactionController tc) throws StandardException {
 		Properties p = new Properties();
 		getProperties(tc,p,true/*stringsOnly*/,false/*!defaultsOnly*/);
 		return p;
@@ -706,70 +603,40 @@ class PropertyConglomerate extends SpliceConstants {
 							   boolean stringsOnly,
 							   boolean defaultsOnly) throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("getProperties transactionController " + tc);
-
 		// See if I'm the exclusive owner. If so I cannot populate
 		// the cache as it would contain my uncommitted changes.
-		if (iHoldTheUpdateLock(tc))
-		{
 			Dictionary dbProps = readDbProperties(tc);
 			Dictionary defaults = (Dictionary)dbProps.get(AccessFactoryGlobals.DEFAULT_PROPERTY_NAME);
 			copyValues(d,defaults,stringsOnly);
 			if (!defaultsOnly)copyValues(d,dbProps,stringsOnly);
-		}
-		else
-		{	
-			Dictionary dbProps = getCachedDbProperties(tc);
-			Dictionary defaults = (Dictionary)dbProps.get(AccessFactoryGlobals.DEFAULT_PROPERTY_NAME);
-			copyValues(d,defaults,stringsOnly);
-			if (!defaultsOnly)copyValues(d,dbProps,stringsOnly);
-		}
+		
 	}
 
-	void resetCache() {cachedSet = null;}
+	public void resetCache() {cachedSet = null;}
 
 	/** Read the database properties and add in the service set. */
-	private Dictionary readDbProperties(TransactionController tc)
+	public Dictionary readDbProperties(TransactionController tc)
 		 throws StandardException
 	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("readDbProperties transactionController " + tc);
-
 		Dictionary set = new Hashtable();
 
         // scan the table for a row with no matching "key"
-        HTableInterface table = SpliceAccessManager.getHTable(PROPERTIES_TABLE_NAME_BYTES);
+		ScanController scan = openScan(tc, (String) null, 0);
 
-        Scan scan = SpliceUtils.createScan(getTransactionId(tc));
-        scan.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
-        scan.setCaching(100);
-        scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN);
-//        scan.setFilter(new ColumnNullableFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN,
-//                CompareFilter.CompareOp.GREATER_OR_EQUAL));
-        try{
-            ResultScanner scanner = table.getScanner(scan);
-            Result result;
-            while((result = scanner.next())!=null){
-                if(result.isEmpty()){
-                    break;
-                }
-                String key = Bytes.toString(result.getRow());
-                byte[] valBytes = result.getColumnLatest(SpliceConstants.DEFAULT_FAMILY_BYTES,VALUE_COLUMN).getValue();
-                Object value = getValue(valBytes);
-                set.put(key,value);
-            }
-        } catch (IOException e) {
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
-        } catch (ClassNotFoundException e) {
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
-        } finally{
-            try{
-                if(table!=null) table.close();
-            }catch(IOException e){
-                SpliceLogUtils.error(LOG,"Unable to close properties table",e);
-            }
-        }
+		DataValueDescriptor[] row = makeNewTemplate();
+
+		while (scan.fetchNext(row)) {
+
+			Object key = ((UserType) row[0]).getObject();
+			Object value = ((UserType) row[1]).getObject();
+			if (SanityManager.DEBUG) {
+                if (!(key instanceof String))
+                    SanityManager.THROWASSERT(
+                        "Key is not a string " + key.getClass().getName());
+			}
+			set.put(key, value);
+		}
+		scan.close();
 
 		// add the known properties from the service properties set
 		for (int i = 0; i < PropertyUtil.servicePropertyList.length; i++) {
@@ -780,7 +647,7 @@ class PropertyConglomerate extends SpliceConstants {
 		return set;
 	}
 
-	private Dictionary getCachedDbProperties(TransactionController tc)
+	public Dictionary getCachedDbProperties(TransactionController tc)
 		 throws StandardException
 	{
 		Dictionary dbProps = cachedSet;
@@ -794,53 +661,10 @@ class PropertyConglomerate extends SpliceConstants {
 		return dbProps;
 	}
 
-	/** Lock the database properties for an update. */
-	void lockProperties(TransactionController tc) throws StandardException
-	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("lockProperties transactionController " + tc);
-
-		// lock the property set until the transaction commits.
-		// This allows correct operation of the cache. The cache remains
-		// valid for all transactions except the one that is modifying
-		// it. Thus readers see the old uncommited values. When this
-		// thread releases its exclusive lock the cached is cleared
-		// and the next reader will re-populate the cache.
-		CompatibilitySpace cs = tc.getLockSpace();
-		Object csGroup = cs.getOwner();
-		lf.lockObject(cs, csGroup, cachedLock, ShExQual.EX,
-					  C_LockFactory.TIMED_WAIT);
-	}
-
-	/**
-	  Return true if the caller holds the exclusive update lock on the
-	  property conglomerate.
-	  */
-	private boolean iHoldTheUpdateLock(TransactionController tc) throws StandardException
-	{
-		if (LOG.isTraceEnabled())
-			LOG.trace("iHoldTheUpdateLock transactionController " + tc);
-
-		CompatibilitySpace cs = tc.getLockSpace();
-		Object csGroup = cs.getOwner();
-		return lf.isLockHeld(cs, csGroup, cachedLock, ShExQual.EX);
-	}
 }
 
 /**
 	Only used for exclusive lock purposes.
 */
-class CacheLock extends ShExLockable {
 
-	private PropertyConglomerate pc;
 
-	CacheLock(PropertyConglomerate pc) {
-		this.pc = pc;
-	}
-
-	public void unlockEvent(Latch lockInfo)
-	{
-		super.unlockEvent(lockInfo);		
-		pc.resetCache();
-	}
-}
