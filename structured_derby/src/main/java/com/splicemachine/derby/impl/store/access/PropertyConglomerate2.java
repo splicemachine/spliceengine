@@ -747,6 +747,7 @@ public class PropertyConglomerate2 extends SpliceConstants {
         } catch (ClassNotFoundException e) {
             throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
         } finally{
+        	SpliceAccessManager.closeHTableQuietly(table);
             try{
                 if(table!=null) table.close();
             }catch(IOException e){

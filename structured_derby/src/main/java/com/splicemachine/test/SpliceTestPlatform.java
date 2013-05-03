@@ -7,8 +7,6 @@ import com.splicemachine.si.coprocessors.SIObserver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint;
@@ -17,7 +15,6 @@ import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 
 public class SpliceTestPlatform extends TestConstants {
-	private static final Logger LOG = Logger.getLogger(SpliceTestPlatform.class);
 	protected MiniZooKeeperCluster miniZooKeeperCluster;
 	protected MiniHBaseCluster miniHBaseCluster;
 	protected MiniHBaseCluster miniHBaseCluster2;

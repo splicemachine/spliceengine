@@ -16,6 +16,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.derby.impl.store.access.PropertyConglomerate2;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 
 public class SpliceService implements PersistentService {
 	protected static final String TYPE = "splice";
@@ -52,6 +53,7 @@ public class SpliceService implements PersistentService {
 	}
 
 	public void saveServiceProperties(String serviceName, StorageFactory storageFactory, Properties properties, boolean replace) throws StandardException {
+		SpliceAccessManager test;
 		SpliceLogUtils.trace(LOG,"saveServiceProperties with storageFactory serviceName: %s, properties %s, replace %s",serviceName, properties, replace);
 		for (Object key :properties.keySet()) {
 			System.out.println("saveServiceProperties with stf " + key + " : " + properties.getProperty((String)key));
