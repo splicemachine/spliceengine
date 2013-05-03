@@ -646,7 +646,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 	/**
 	 * Clear the start/stop position and qualifier flags
 	 */
-	void clearScanFlags()
+	public void clearScanFlags()
 	{
 		startKey = false;
 		stopKey = false;
@@ -1069,7 +1069,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 	 * Return whether or not this predicate is a scoped copy of
 	 * another predicate.
 	 */
-	protected boolean isScopedForPush() {
+	public boolean isScopedForPush() {
 		return scoped;
 	}
 
@@ -1235,7 +1235,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 	 * possible.  This method doesn't actually do the push, it just
 	 * returns "true" and then the caller can push as appropriate.
 	 */
-	protected boolean isScopedToSourceResultSet()
+	public boolean isScopedToSourceResultSet()
 		throws StandardException
 	{
 		if (!scoped)

@@ -46,7 +46,7 @@ public class OptimizerFactoryImpl
 	protected boolean ruleBasedOptimization = false;
 	protected boolean noTimeout = false;
 	protected boolean useStatistics = true;
-	protected int maxMemoryPerTable = 1048576;
+	protected int maxMemoryPerTable = Integer.MAX_VALUE;//may need to be long, but this also can be defined in configuration
 
 	/*
 	** The fact that we have one set of join strategies for use by all
@@ -95,8 +95,8 @@ public class OptimizerFactoryImpl
 			int intValue = Integer.parseInt(maxMemValue);
 			if (intValue >= 0)
 				maxMemoryPerTable = intValue * 1024;
-		}
-
+		} 
+		
 		String us =	PropertyUtil.getSystemProperty(Optimizer.USE_STATISTICS); 
 		if (us != null)
 			useStatistics = (Boolean.valueOf(us)).booleanValue();

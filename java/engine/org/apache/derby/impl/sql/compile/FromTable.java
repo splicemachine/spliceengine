@@ -64,7 +64,7 @@ import java.util.HashMap;
  * @see ProjectRestrictNode
  *
  */
-abstract class FromTable extends ResultSetNode implements Optimizable
+public abstract class FromTable extends ResultSetNode implements Optimizable
 {
 	Properties		tableProperties;
 	String		correlationName;
@@ -113,9 +113,9 @@ abstract class FromTable extends ResultSetNode implements Optimizable
 	private HashMap bestPlanMap;
 
 	/** Operations that can be performed on bestPlanMap. */
-	protected static final short REMOVE_PLAN = 0;
-	protected static final short ADD_PLAN = 1;
-	protected static final short LOAD_PLAN = 2;
+	public static final short REMOVE_PLAN = 0;
+	public static final short ADD_PLAN = 1;
+	public static final short LOAD_PLAN = 2;
 
 	/** the original unbound table name */
 	protected TableName origTableName;

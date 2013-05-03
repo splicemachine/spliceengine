@@ -30,7 +30,7 @@ import org.apache.derby.iapi.error.StandardException;
 
 import java.util.Vector;
 
-class RowOrderingImpl implements RowOrdering {
+public class RowOrderingImpl implements RowOrdering {
 
 	/* This vector contains ColumnOrderings */
 	Vector ordering;
@@ -56,7 +56,7 @@ class RowOrderingImpl implements RowOrdering {
 	/* This vector contains unordered Optimizables */
 	Vector unorderedOptimizables;
 
-	RowOrderingImpl() {
+	public RowOrderingImpl() {
 		ordering = new Vector();
 		unorderedOptimizables = new Vector();
 		columnsAlwaysOrdered = new ColumnOrdering(RowOrdering.DONTCARE);

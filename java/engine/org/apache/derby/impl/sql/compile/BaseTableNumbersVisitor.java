@@ -68,7 +68,7 @@ public class BaseTableNumbersVisitor implements Visitor
 	 *
 	 * @param tableMap JBitSet into which we put the table numbers we find.
 	 */
-	protected void setTableMap(JBitSet tableMap)
+	public void setTableMap(JBitSet tableMap)
 	{
 		this.tableMap = tableMap;
 	}
