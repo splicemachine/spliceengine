@@ -1432,13 +1432,47 @@ public class SITransactorTest {
 
     @Test
     public void asynchRollForward() throws IOException, InterruptedException {
+        checkAsynchRollForward(61, true, new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(cell), Long.class);
+                Assert.assertEquals(t.getId() + 1, timestamp);
+                return null;  //To change body of implemented methods use File | Settings | File Templates.
+            }
+        });
+    }
+
+    @Test
+    public void asynchRollForwardRolledBackTransaction() throws IOException, InterruptedException {
+        checkAsynchRollForward(71, false, new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final long timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                Assert.assertEquals(-2, timestamp);
+                return null;  //To change body of implemented methods use File | Settings | File Templates.
+            }
+        });
+    }
+
+    private void checkAsynchRollForward(int testIndex, boolean commit, Function<Object[], Object> timestampDecoder) throws IOException, InterruptedException {
         try {
             Tracer.rollForwardDelayOverride = 100;
             TransactionId t1 = transactor.beginTransaction(true, false, false);
-            insertAge(t1, "joe61", 20);
-            final CountDownLatch latch = makeLatch("joe61");
-            transactor.commit(t1);
-            Object result = readRaw("joe61");
+            final String testRow = "joe" + testIndex;
+            insertAge(t1, testRow, 20);
+            final CountDownLatch latch = makeLatch(testRow);
+            if (commit) {
+                transactor.commit(t1);
+            } else {
+                transactor.rollback(t1);
+            }
+            Object result = readRaw(testRow);
             final SDataLib dataLib = storeSetup.getDataLib();
             final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
                     dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
@@ -1449,16 +1483,19 @@ public class SITransactorTest {
             }
             Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
 
-            Object result2 = readRaw("joe61");
+            Object result2 = readRaw(testRow);
             final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
                     dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
             for (Object c2 : commitTimestamps2) {
-                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(c2), Long.class);
-                Assert.assertEquals(t1.getId() + 1, timestamp);
+                timestampDecoder.apply(new Object[]{t1, c2});
                 Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c2));
             }
             TransactionId t2 = transactor.beginTransaction(false, false, false);
-            Assert.assertEquals("joe61 age=20 job=null", read(t2, "joe61"));
+            if (commit) {
+                Assert.assertEquals(testRow + " age=20 job=null", read(t2, testRow));
+            } else {
+                Assert.assertEquals(testRow + " age=null job=null", read(t2, testRow));
+            }
         } finally {
             Tracer.rollForwardDelayOverride = null;
         }
@@ -1496,14 +1533,49 @@ public class SITransactorTest {
 
     @Test
     public void asynchRollForwardViaScan() throws IOException, InterruptedException {
+        checkAsynchRollForwardViaScan(62, true, new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(cell), Long.class);
+                Assert.assertEquals(t.getId() + 1, timestamp);
+                return null;
+            }
+        });
+    }
+
+    @Test
+    public void asynchRollForwardViaScanRollback() throws IOException, InterruptedException {
+        checkAsynchRollForwardViaScan(72, false, new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final Object keyValueValue = dataLib.getKeyValueValue(cell);
+                final int timestamp = (Integer) dataLib.decode(keyValueValue, Integer.class);
+                Assert.assertEquals(-2, timestamp);
+                return null;
+            }
+        });
+    }
+
+    private void checkAsynchRollForwardViaScan(int testIndex, boolean commit, Function<Object[], Object> timestampProcessor) throws IOException, InterruptedException {
         try {
+            final String testRow = "joe" + testIndex;
             Tracer.rollForwardDelayOverride = 100;
             TransactionId t1 = transactor.beginTransaction(true, false, false);
             final CountDownLatch transactionlatch = makeTransactionLatch(t1);
-            insertAge(t1, "joe62", 20);
+            insertAge(t1, testRow, 20);
             Assert.assertTrue(transactionlatch.await(11, TimeUnit.SECONDS));
-            transactor.commit(t1);
-            Object result = readRaw("joe62");
+            if (commit) {
+                transactor.commit(t1);
+            } else {
+                transactor.rollback(t1);
+            }
+            Object result = readRaw(testRow);
             final SDataLib dataLib = storeSetup.getDataLib();
             final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
                     dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
@@ -1513,18 +1585,21 @@ public class SITransactorTest {
                 Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c));
             }
 
-            final CountDownLatch latch = makeLatch("joe62");
+            final CountDownLatch latch = makeLatch(testRow);
             TransactionId t2 = transactor.beginTransaction(false, false, false);
-            Assert.assertEquals("joe62 age=20 job=null", read(t2, "joe62"));
+            if (commit) {
+                Assert.assertEquals(testRow + " age=20 job=null", read(t2, testRow));
+            } else {
+                Assert.assertEquals(testRow + " age=null job=null", read(t2, testRow));
+            }
             Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
 
-            Object result2 = readRaw("joe62");
+            Object result2 = readRaw(testRow);
 
             final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
                     dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
             for (Object c2 : commitTimestamps2) {
-                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(c2), Long.class);
-                Assert.assertEquals(t1.getId() + 1, timestamp);
+                timestampProcessor.apply(new Object[]{t1, c2});
                 Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c2));
             }
         } finally {
@@ -1732,28 +1807,91 @@ public class SITransactorTest {
 
     @Test
     public void noCompaction() throws IOException, InterruptedException {
+        checkNoCompaction(69, true, new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                Assert.assertEquals(-1, timestamp);
+                return null;
+            }
+        });
+    }
+
+    @Test
+    public void noCompactionRollback() throws IOException, InterruptedException {
+        checkNoCompaction(79, false, new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                Assert.assertEquals(-1, timestamp);
+                return null;
+            }
+        });
+    }
+
+    private void checkNoCompaction(int testIndex, boolean commit, Function<Object[], Object> timestampProcessor) throws IOException {
         TransactionId t0 = null;
+        String testKey = "joe" + testIndex;
         for (int i = 0; i < 10; i++) {
             TransactionId tx = transactor.beginTransaction(true, false, false);
             if (i == 0) {
                 t0 = tx;
             }
-            insertAge(tx, "joe69-" + i, i);
-            transactor.commit(tx);
+            insertAge(tx, testKey + "-" + i, i);
+            if (commit) {
+                transactor.commit(tx);
+            } else {
+                transactor.rollback(tx);
+            }
         }
-        Object result = readRaw("joe69-0");
+        Object result = readRaw(testKey + "-0");
         final SDataLib dataLib = storeSetup.getDataLib();
         final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
                 dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
         for (Object c : commitTimestamps) {
-            final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(c), Integer.class);
+            timestampProcessor.apply(new Object[]{t0, c});
             Assert.assertEquals(t0.getId(), dataLib.getKeyValueTimestamp(c));
-            Assert.assertEquals(-1, timestamp);
         }
     }
 
     @Test
     public void compaction() throws IOException, InterruptedException {
+        checkCompaction(70, true, new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(cell), Long.class);
+                Assert.assertEquals(t.getId() + 1, timestamp);
+                return null;
+            }
+        });
+    }
+
+    @Test
+    public void compactionRollback() throws IOException, InterruptedException {
+        checkCompaction(80, false, new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                Assert.assertEquals(-2, timestamp);
+                return null;
+            }
+        });
+    }
+
+    private void checkCompaction(int testIndex, boolean commit, Function<Object[], Object> timestampProcessor) throws IOException, InterruptedException {
+        final String testRow = "joe" + testIndex;
         final CountDownLatch latch = new CountDownLatch(2);
         Tracer.registerCompact(new Runnable() {
             @Override
@@ -1770,11 +1908,15 @@ public class SITransactorTest {
             if (i == 0) {
                 t0 = tx;
             }
-            insertAge(tx, "joe70-" + i, i);
+            insertAge(tx, testRow + "-" + i, i);
             if (!useSimple) {
                 admin.flush(storeSetup.getPersonTableName());
             }
+            if (commit) {
             transactor.commit(tx);
+            } else {
+                transactor.rollback(tx);
+            }
         }
 
         if (useSimple) {
@@ -1785,14 +1927,13 @@ public class SITransactorTest {
             admin.majorCompact(storeSetup.getPersonTableName());
             Assert.assertTrue(latch.await(2, TimeUnit.SECONDS));
         }
-        Object result = readRaw("joe70-0");
+        Object result = readRaw(testRow + "-0");
         final SDataLib dataLib = storeSetup.getDataLib();
         final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
                 dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
         for (Object c : commitTimestamps) {
-            final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(c), Long.class);
+            timestampProcessor.apply(new Object[] {t0, c});
             Assert.assertEquals(t0.getId(), dataLib.getKeyValueTimestamp(c));
-            Assert.assertEquals(t0.getId() + 1, timestamp);
         }
     }
 

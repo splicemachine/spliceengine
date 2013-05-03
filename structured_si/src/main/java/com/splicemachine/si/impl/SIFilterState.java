@@ -51,7 +51,7 @@ public class SIFilterState implements FilterState {
     }
 
     /**
-     * Look at the column family and qualifier to determing how to "dispatch" the current keyValue.
+     * Look at the column family and qualifier to determine how to "dispatch" the current keyValue.
      */
     private Filter.ReturnCode filterByColumnType() throws IOException {
         final KeyValueType type = dataStore.getKeyValueType(keyValue.family, keyValue.qualifier);
@@ -71,10 +71,16 @@ public class SIFilterState implements FilterState {
      * relevant transaction data to be loaded up into the local cache.
      */
     private Filter.ReturnCode processCommitTimestamp() throws IOException {
-        final Transaction transaction = dataStore.isSiNull(keyValue.value)
-                ? handleUnknownTransactionStatus()
-                // TODO: we should avoid loading the full transaction here once roll-forward is revisited
-                : transactionStore.getTransaction(keyValue.timestamp);
+        Transaction transaction = null;
+
+        if (dataStore.isSiNull(keyValue.value)) {
+            transaction = handleUnknownTransactionStatus();
+        } else if (dataStore.isSiFail(keyValue.value)) {
+            transaction = new Transaction(keyValue.timestamp, 0, null, null, null, false, null, null, TransactionStatus.ERROR, null);
+        } else {
+            // TODO: we should avoid loading the full transaction here once roll-forward is revisited
+            transaction = transactionStore.getTransaction(keyValue.timestamp);
+        }
         rowState.transactionCache.put(transaction.beginTimestamp, transaction);
         return SKIP;
     }
@@ -88,10 +94,8 @@ public class SIFilterState implements FilterState {
         final Transaction cachedTransaction = rowState.transactionCache.get(keyValue.timestamp);
         if (cachedTransaction == null) {
             final Transaction dataTransaction = transactionStore.getTransaction(keyValue.timestamp);
-            if (dataTransaction.isCommitted()) {
+            if (dataTransaction.isCommitted() || dataTransaction.isFailed()) {
                 rollForward(dataTransaction);
-            } else if (dataTransaction.isFailed()) {
-                cleanupErrors();
             } else if (dataTransaction.isCommitting()) {
                 //TODO: needs special handling
             }
@@ -110,10 +114,6 @@ public class SIFilterState implements FilterState {
             // TODO: revisit this in light of nested independent transactions
             dataStore.recordRollForward(rollForwardQueue, transaction, keyValue.row);
         }
-    }
-
-    private void cleanupErrors() {
-        //TODO: implement this
     }
 
     /**

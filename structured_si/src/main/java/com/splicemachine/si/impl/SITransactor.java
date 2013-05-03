@@ -142,7 +142,7 @@ public class SITransactor implements Transactor, ClientTransactor {
      */
     private void performLocalCommit(TransactionId transactionId) throws IOException {
         // perform "local" commit only within the parent transaction
-        if(!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, LOCAL_COMMIT)) {
+        if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, LOCAL_COMMIT)) {
             throw new IOException("local commit failed");
         }
     }
@@ -153,7 +153,7 @@ public class SITransactor implements Transactor, ClientTransactor {
     private void performCommit(Transaction transaction) throws IOException {
         final SITransactionId transactionId = transaction.getTransactionId();
         final List<Transaction> childrenToCommit = findChildrenToCommit(transaction);
-        if(!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, COMMITTING)) {
+        if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, COMMITTING)) {
             throw new IOException("committing failed");
         }
         // TODO: need to sort out how to take child transactions through COMMITTING state, alternatively don't commit
@@ -203,7 +203,7 @@ public class SITransactor implements Transactor, ClientTransactor {
         // currently the application above us tries to rollback already committed transactions.
         // This is poor form, but if it happens just silently ignore it.
         if (transaction.isActive() && !transaction.isLocallyCommitted()) {
-            if(!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ROLLED_BACK)) {
+            if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ROLLED_BACK)) {
                 throw new IOException("rollback failed");
             }
         }
@@ -430,10 +430,14 @@ public class SITransactor implements Transactor, ClientTransactor {
     @Override
     public void rollForward(STable table, long transactionId, List rows) throws IOException {
         final Transaction transaction = transactionStore.getTransaction(transactionId);
-        if (transaction.isCommitted()) {
-            for(Object row : rows) {
+        if (transaction.isCommitted() || transaction.isFailed()) {
+            for (Object row : rows) {
                 try {
-                    dataStore.setCommitTimestamp(table, row, transaction.beginTimestamp, transaction.commitTimestamp);
+                    if (transaction.isCommitted()) {
+                        dataStore.setCommitTimestamp(table, row, transaction.beginTimestamp, transaction.commitTimestamp);
+                    } else {
+                        dataStore.setCommitTimestampToFail(table, row, transaction.beginTimestamp);
+                    }
                     Tracer.trace(row);
                 } catch (NotServingRegionException e) {
                     // If the region split and the row is not here, then just skip it
@@ -445,7 +449,7 @@ public class SITransactor implements Transactor, ClientTransactor {
 
     @Override
     public SICompactionState newCompactionState() {
-       return new SICompactionState(dataLib, dataStore, transactionStore);
+        return new SICompactionState(dataLib, dataStore, transactionStore);
     }
 
     // Helpers

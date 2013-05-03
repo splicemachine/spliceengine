@@ -85,7 +85,8 @@ public class TransactorFactory {
                 "si-transaction-id", "si-delete-put", SIConstants.SNAPSHOT_ISOLATION_FAMILY,
                 SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,
                 SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN,
-                SIConstants.EMPTY_BYTE_ARRAY, HBaseConstants.DEFAULT_FAMILY);
+                SIConstants.EMPTY_BYTE_ARRAY, SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
+                HBaseConstants.DEFAULT_FAMILY);
         return new SITransactor(timestampSource, dataLib, writer, rowStore, transactionStore, new SystemClock(),
                 10 * 60 * 1000);
     }

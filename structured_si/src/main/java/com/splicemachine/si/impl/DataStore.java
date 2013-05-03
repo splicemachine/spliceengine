@@ -32,13 +32,14 @@ public class DataStore {
     private final Object commitTimestampQualifier;
     private final Object tombstoneQualifier;
     private final Object siNull;
+    final Object siFail;
 
     private final Object userColumnFamily;
 
     public DataStore(SDataLib dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
                      String transactionIdAttribute, String deletePutAttribute,
                      String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier, Object siMetaNull,
-                     Object userColumnFamily) {
+                     Object siFail, Object userColumnFamily) {
         this.dataLib = dataLib;
         this.reader = reader;
         this.writer = writer;
@@ -49,6 +50,7 @@ public class DataStore {
         this.commitTimestampQualifier = dataLib.encode(siCommitQualifier);
         this.tombstoneQualifier = dataLib.encode(siTombstoneQualifier);
         this.siNull = dataLib.encode(siMetaNull);
+        this.siFail = dataLib.encode(siFail);
         this.userColumnFamily = dataLib.encode(userColumnFamily);
     }
 
@@ -122,6 +124,10 @@ public class DataStore {
         return dataLib.valuesEqual(value, siNull);
     }
 
+    public boolean isSiFail(Object value) {
+        return dataLib.valuesEqual(value, siFail);
+    }
+
     public void recordRollForward(RollForwardQueue rollForwardQueue, ImmutableTransaction transaction, Object row) {
         if (rollForwardQueue != null) {
             rollForwardQueue.recordRow(transaction.beginTimestamp, row);
@@ -129,9 +135,17 @@ public class DataStore {
     }
 
     public void setCommitTimestamp(STable table, Object rowKey, long beginTimestamp, long commitTimestamp) throws IOException {
+        setCommitTimestampDirect(table, rowKey, beginTimestamp, dataLib.encode(commitTimestamp));
+    }
+
+    public void setCommitTimestampToFail(STable table, Object rowKey, long beginTimestamp) throws IOException {
+        setCommitTimestampDirect(table, rowKey, beginTimestamp, siFail);
+    }
+
+    private void setCommitTimestampDirect(STable table, Object rowKey, long beginTimestamp, Object timestampValue) throws IOException {
         Object put = dataLib.newPut(rowKey);
         suppressIndexing(put);
-        dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, beginTimestamp, dataLib.encode(commitTimestamp));
+        dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, beginTimestamp, timestampValue);
         writer.write(table, put, false);
     }
 

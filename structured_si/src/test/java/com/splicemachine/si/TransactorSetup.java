@@ -51,7 +51,7 @@ public class TransactorSetup {
         SI_DATA_COMMIT_TIMESTAMP_QUALIFIER = "commit";
         SITransactor siTransactor = new SITransactor(new SimpleTimestampSource(), dataLib, writer,
                 new DataStore(dataLib, reader, writer, "si-needed", "si-transaction-id", "si-delete-put",
-                        SI_DATA_FAMILY, SI_DATA_COMMIT_TIMESTAMP_QUALIFIER, "tombstone", -1, userColumnsFamilyName),
+                        SI_DATA_FAMILY, SI_DATA_COMMIT_TIMESTAMP_QUALIFIER, "tombstone", -1, -2, userColumnsFamilyName),
                 transactionStore, storeSetup.getClock(), 1500);
         clientTransactor = siTransactor;
         transactor = siTransactor;
