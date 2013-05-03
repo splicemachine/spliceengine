@@ -51,7 +51,7 @@ public class TransactionState {
 	private HRegion region;
 	private String regionId;
 	private String txnLogPath;
-	private HTablePool tablePool;
+//	private HTablePool tablePool;
 	private TxnLockManager lockManager;
 
 	public TransactionState(final String transactionID, HRegion region, RecoverableZooKeeper rzk, TxnLockManager lockManager, Map<String, TransactionState> transactionStateByID, HTablePool tablePool, String txnLogPath, boolean isRecovered) {

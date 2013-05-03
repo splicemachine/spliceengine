@@ -134,13 +134,16 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
         try{
             zooKeeper.setData(taskId+"/status",statusToBytes(),-1);
         } catch (InterruptedException e) {
+            SpliceLogUtils.error(LOG,"Interrupted while setting status",e);
             throw new CancellationException();
         } catch (KeeperException e) {
             if(e.code()== KeeperException.Code.NONODE&&cancelOnError){
                 status.setStatus(Status.CANCELLED);
                 throw new CancellationException();
-            }else
+            }else{
+                SpliceLogUtils.error(LOG,"Unexpected error setting status",e);
                 throw new ExecutionException(e);
+            }
         } catch (IOException e) {
             throw new ExecutionException(e);
         }

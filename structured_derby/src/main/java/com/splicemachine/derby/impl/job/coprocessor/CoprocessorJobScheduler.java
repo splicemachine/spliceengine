@@ -6,6 +6,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.job.Status;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -120,9 +121,14 @@ public class CoprocessorJobScheduler extends ZkBackedJobScheduler<CoprocessorJob
             tasksToWatch.remove(this);
 
             //make sure that we are wholly within the range needed to resubmit
-            byte[] endRow = new byte[nextTask.startRow.length];
-            System.arraycopy(nextTask.startRow,0,endRow,0,endRow.length);
-            BytesUtil.decrementAtIndex(endRow,endRow.length-1);
+            byte[] endRow;
+            if(nextTask!=null){
+                endRow = new byte[nextTask.startRow.length];
+                System.arraycopy(nextTask.startRow,0,endRow,0,endRow.length);
+
+                BytesUtil.decrementAtIndex(endRow,endRow.length-1);
+            }else
+                endRow = HConstants.EMPTY_END_ROW;
 
             try {
                 submitTask(task, startRow, endRow, table, tasksToWatch);

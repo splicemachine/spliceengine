@@ -243,4 +243,12 @@ public class CreateIndexOperation implements ConstantAction {
 
         return indexPosMap;
     }
+
+    public String getIndexName() {
+        return indexName;
+    }
+
+    public void setIndexName(String indexName) {
+        this.indexName = indexName;
+    }
 }

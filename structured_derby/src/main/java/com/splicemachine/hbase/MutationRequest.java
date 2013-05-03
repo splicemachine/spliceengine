@@ -1,6 +1,7 @@
 package com.splicemachine.hbase;
 
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.Externalizable;
 import java.util.ArrayList;
@@ -36,5 +37,10 @@ public abstract class MutationRequest implements Externalizable {
 
     public void addAll(Collection<Mutation> mutations) {
         this.mutations.addAll(mutations);
+    }
+
+    @Override
+    public String toString() {
+        return "MutationRequest{"+mutations.size()+",regionStart="+ Bytes.toString(regionStartKey)+"}";
     }
 }

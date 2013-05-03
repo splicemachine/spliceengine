@@ -33,7 +33,7 @@ public class SchemaManager extends SchemaConstants {
 	private HBaseAdmin admin;
 	private Configuration config;
 	private RecoverableZooKeeper rzk;
-	private HTablePool tablePool;
+//	private HTablePool tablePool;
 	private ZooKeeperWatcher zkw;
 
 	@SuppressWarnings("deprecation")
@@ -43,7 +43,7 @@ public class SchemaManager extends SchemaConstants {
 		this.admin = admin;
 		this.zkw = admin.getConnection().getZooKeeperWatcher();
 		this.rzk = zkw.getRecoverableZooKeeper();
-		tablePool = new HTablePool();
+//		tablePool = new HTablePool();
 	}
 
 	public boolean hasIndex(String tableName) {

@@ -51,7 +51,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 	private static Logger LOG = Logger.getLogger(SpliceGenericResultSetFactory.class);
-	HTablePool htablePool = new HTablePool();
+//	HTablePool htablePool = new HTablePool();
 	
 	public SpliceGenericResultSetFactory() {
 		super();

@@ -1,27 +1,37 @@
 package com.splicemachine.derby.impl.job.index;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.index.IndexManager;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
+import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.hbase.MutationRequest;
+import com.splicemachine.hbase.MutationResponse;
+import com.splicemachine.hbase.TableWriter;
+import com.splicemachine.hbase.batch.WriteContextFactory;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -102,30 +112,120 @@ public class CreateIndexTask extends ZooKeeperTask {
         }
 
         try{
+            //add index to table watcher
+            WriteContextFactory contextFactory = WriteContextFactoryPool.getContextFactory(baseConglomId);
+            contextFactory.addIndex(indexConglomId, indexColsToBaseColMap, isUnique);
+
+            //backfill the index with previously committed data
             RegionScanner sourceScanner = region.getScanner(regionScan);
 
-            IndexManager indexManager = IndexManager.create(indexConglomId,indexColsToBaseColMap,isUnique);
-
+            byte[] indexBytes = Long.toString(indexConglomId).getBytes();
             CallBuffer<Mutation> writeBuffer =
-                    SpliceDriver.driver().getTableWriter().writeBuffer(Long.toString(indexConglomId).getBytes());
+                    SpliceDriver.driver().getTableWriter().writeBuffer(indexBytes, new TableWriter.FlushWatcher() {
+                        @Override
+                        public List<Mutation> preFlush(List<Mutation> mutations) throws Exception {
+                            return mutations;
+                        }
 
-            List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(indexColsToBaseColMap.length);
+                        @Override
+                        public Response globalError(Throwable t) throws Exception {
+                            if(t instanceof NotServingRegionException) return Response.RETRY;
+                            else if(t instanceof WrongRegionException) return Response.RETRY;
+                            else
+                                return Response.THROW_ERROR;
+                        }
+
+                        @Override
+                        public Response partialFailure(MutationRequest request, MutationResponse response) throws Exception {
+                            for(String failureMessage:response.getFailedRows().values()){
+                                if(failureMessage.contains("NotServingRegion")||failureMessage.contains("WrongRegion"))
+                                    return Response.RETRY;
+                            }
+                            return  Response.THROW_ERROR;
+                        }
+                    });
+
+            List < KeyValue > nextRow = Lists.newArrayListWithExpectedSize(indexColsToBaseColMap.length);
+            //translate down to zero-indexed
+            int[] indexColMap = new int[indexColsToBaseColMap.length];
+            for(int pos=0;pos<indexColsToBaseColMap.length;pos++){
+                indexColMap[pos] = indexColsToBaseColMap[pos]-1;
+            }
             boolean shouldContinue = true;
             while(shouldContinue){
                 nextRow.clear();
                 shouldContinue  = sourceScanner.next(nextRow);
-                List<Put> indexPuts = indexManager.translateResult(transactionId,nextRow);
+                List<Put> indexPuts = translateResult(nextRow,indexColMap);
 
                 writeBuffer.addAll(indexPuts);
             }
             writeBuffer.flushBuffer();
             writeBuffer.close();
 
-            IndexSetPool.getIndex(baseConglomId).addIndex(indexManager);
         } catch (IOException e) {
             throw new ExecutionException(e);
         } catch (Exception e) {
             throw new ExecutionException(e);
         }
+    }
+
+    private List<Put> translateResult(List<KeyValue> result,int[] indexColsToMainColMap) throws IOException{
+        Map<byte[],List<KeyValue>> putConstructors = Maps.newHashMapWithExpectedSize(1);
+        for(KeyValue keyValue:result){
+            List<KeyValue> cols = putConstructors.get(keyValue.getRow());
+            if(cols==null){
+                cols = Lists.newArrayListWithExpectedSize(indexColsToMainColMap.length);
+                putConstructors.put(keyValue.getRow(),cols);
+            }
+            cols.add(keyValue);
+        }
+        //build Puts for each row
+        List<Put> indexPuts = Lists.newArrayListWithExpectedSize(putConstructors.size());
+        for(byte[] mainRow: putConstructors.keySet()){
+            List<KeyValue> rowData = putConstructors.get(mainRow);
+            byte[][] indexRowData = getDataArray();
+            int rowSize=0;
+            for(KeyValue kv:rowData){
+                int colPos = Integer.parseInt(Bytes.toString(kv.getQualifier()));
+                for(int indexPos=0;indexPos<indexColsToMainColMap.length;indexPos++){
+                    if(colPos == indexColsToMainColMap[indexPos]){
+                        byte[] val = kv.getValue();
+                        indexRowData[indexPos] = val;
+                        rowSize+=val.length;
+                        break;
+                    }
+                }
+            }
+            if(!isUnique){
+                byte[] postfix = SpliceUtils.getUniqueKey();
+                indexRowData[indexRowData.length-1] = postfix;
+                rowSize+=postfix.length;
+            }
+
+            byte[] finalIndexRow = new byte[rowSize];
+            int offset =0;
+            for(byte[] indexCol:indexRowData){
+                System.arraycopy(indexCol,0,finalIndexRow,offset,indexCol.length);
+                offset+=indexCol.length;
+            }
+            Put indexPut = SpliceUtils.createPut(finalIndexRow, transactionId);
+            for(int dataPos=0;dataPos<indexRowData.length;dataPos++){
+                byte[] putPos = Integer.toString(dataPos).getBytes();
+                indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
+            }
+
+            indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
+                    Integer.toString(rowData.size()).getBytes(),mainRow);
+            indexPuts.add(indexPut);
+        }
+
+        return indexPuts;
+    }
+
+    private byte[][] getDataArray() {
+        if(isUnique)
+            return new byte[indexColsToBaseColMap.length][];
+        else
+            return new byte[indexColsToBaseColMap.length+1][];
     }
 }

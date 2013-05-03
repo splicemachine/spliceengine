@@ -1,11 +1,12 @@
 package com.splicemachine.job;
 
+import com.google.common.base.Throwables;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.client.Row;
 
 import java.io.*;
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *         Created on: 4/3/13
  */
 public class TaskStatus implements Externalizable{
+    private static final long serialVersionUID = 3l;
     public static interface StatusListener{
        void statusChanged(Status oldStatus,Status newStatus,TaskStatus taskStatus);
     }
@@ -89,11 +91,25 @@ public class TaskStatus implements Externalizable{
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeUTF(status.get().name());
         out.writeBoolean(error!=null);
-        if(error!=null)
-            out.writeObject(error);
+        if(error!=null){
+            writeError(out, error);
+        }
         out.writeBoolean(stats!=null);
         if(stats!=null)
             out.writeObject(stats);
+    }
+
+    private void writeError(ObjectOutput out, Throwable error) throws IOException {
+        Throwable e = Throwables.getRootCause(error);
+
+        if(e instanceof RetriesExhaustedWithDetailsException){
+            RetriesExhaustedWithDetailsException rewde = (RetriesExhaustedWithDetailsException)e;
+            List<String>hostnameAndPorts = Collections.emptyList();
+            RetriesExhaustedWithDetailsException copy = new RetriesExhaustedWithDetailsException(rewde.getCauses(),
+                    Collections.<Row>emptyList(),hostnameAndPorts);
+            e = copy;
+        }
+        out.writeObject(e);
     }
 
     @Override

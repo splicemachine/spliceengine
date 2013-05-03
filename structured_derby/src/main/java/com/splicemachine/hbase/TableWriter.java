@@ -1,6 +1,7 @@
 package com.splicemachine.hbase;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -10,7 +11,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -20,12 +20,9 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
-import org.apache.hadoop.hbase.ipc.ExecRPCInvoker;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Writables;
-import org.apache.hadoop.ipc.RemoteException;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -114,6 +111,7 @@ public class TableWriter implements WriterStatus{
     private static final Logger CACHE_LOG = Logger.getLogger(RegionCacheLoader.class);
 
     private static final Class<BatchProtocol> batchProtocolClass = BatchProtocol.class;
+    @SuppressWarnings("unchecked")
     private static final Class<? extends CoprocessorProtocol>[] protoClassArray = new Class[]{batchProtocolClass};
 
     private static final int DEFAULT_MAX_PENDING_BUFFERS = 10;
@@ -170,12 +168,20 @@ public class TableWriter implements WriterStatus{
                 .setPriority(Thread.NORM_PRIORITY).build();
         ThreadPoolExecutor writerPool = new ThreadPoolExecutor(1,maxThreads,threadKeepAlive,
                 TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),writerFactory);
+        /*
+         * Setting the cache update interval <0 indicates that caching is to be turned off.
+         * This is a performance killer, but is useful when debugging issues.
+         */
         long cacheUpdatePeriod = configuration.getLong("hbase.htable.regioncache.updateinterval",DEFAULT_CACHE_UPDATE_PERIOD);
-        ThreadFactory cacheFactory = new ThreadFactoryBuilder()
-                .setNameFormat("tablewriter-cacheupdater-%d")
-                .setDaemon(true)
-                .setPriority(Thread.NORM_PRIORITY).build();
-        ScheduledExecutorService cacheUpdater = Executors.newSingleThreadScheduledExecutor(cacheFactory);
+        boolean enableRegionCache = cacheUpdatePeriod>0l;
+        ScheduledExecutorService cacheUpdater = null;
+        if(enableRegionCache){
+            ThreadFactory cacheFactory = new ThreadFactoryBuilder()
+                    .setNameFormat("tablewriter-cacheupdater-%d")
+                    .setDaemon(true)
+                    .setPriority(Thread.NORM_PRIORITY).build();
+            cacheUpdater = Executors.newSingleThreadScheduledExecutor(cacheFactory);
+        }
 
         long cacheExpirationPeriod = configuration.getLong("hbase.htable.regioncache.expiration",DEFAULT_CACHE_EXPIRATION);
         LoadingCache<Integer,Set<HRegionInfo>> regionCache = CacheBuilder.newBuilder()
@@ -217,17 +223,135 @@ public class TableWriter implements WriterStatus{
     }
 
     public void start(){
-        cacheUpdater.scheduleAtFixedRate(new RegionCacheLoader(), 0l, cacheUpdatePeriod, TimeUnit.MILLISECONDS);
+        if(cacheUpdater!=null)
+            cacheUpdater.scheduleAtFixedRate(new RegionCacheLoader(), 0l, cacheUpdatePeriod, TimeUnit.MILLISECONDS);
     }
 
     public void shutdown(){
-        cacheUpdater.shutdownNow();
+        if(cacheUpdater!=null)
+            cacheUpdater.shutdownNow();
         writerPool.shutdown();
     }
 
-    public CallBuffer<Mutation> writeBuffer(byte[] tableName) throws Exception{
+
+
+    /**
+     * A Watcher around a Buffer Flush.
+     *
+     * This watcher serves two distinct purposes: adding an additional filter level to
+     * the flush, and defining the failure semantics of an individual flush.
+     *
+     * The Filtering aspect is useful for when one may add an element to a buffer optimistically,
+     * but may later wish to not write that element (e.g. add an entry to a buffer for one index, but
+     * then take it out of the buffer later when a different index fails a constraint).
+     *
+     * The Failure semantics control comes in two different flavors: Global and Partial errors. A
+     * global error is managed when an exception is encountered which prevented the writer from getting
+     * back any metadata at all from the server. This can be due to any number of issues, most notably
+     * network-level failures, and the reaction is often different than otherwise.
+     *
+     * A partial failure, on the other hand, is one where some of the writes succeeded but others failed. This is
+     * the situation when, for example, a Region splits in the middle of writing data. In this situation, a
+     * response is returned which has more than one failed row write. In those cases, a different failure semantic
+     * may be desirable.
+     *
+     * Note: Failures do not indicate a failure of the entire Buffer, but rather some subset of the Buffer
+     * which was tied to a single network call. That is, if a Buffer spans two regions, then there are two
+     * places where a failure may occur--one for each region that is written to.
+     */
+    public static interface FlushWatcher{
+        /**
+         * The response the TableWriter should use for a failure.
+         */
+        public static enum Response{
+            /**
+             * Throw an exception. When the failure is global, this will mean to throw the global exception. When
+             * local, it will mean throwing a RetriesExhaustedWithDetailsException listing all the errors.
+             */
+            THROW_ERROR,
+            /**
+             * Retry the failed process.
+             */
+            RETRY,
+            /**
+             * Return without throwing an exception or retrying. This is useful when the failure semantics are
+             * managed externally to the TableWriter.
+             */
+            RETURN
+        }
+
+        /**
+         * Filter/transform the mutations about to be flushed in batch.
+         *
+         * @param mutations the mutations to be flushed before transformation
+         * @return the final mutations to be flushed
+         * @throws Exception if the transformation goes wrong.
+         */
+        List<Mutation> preFlush(List<Mutation> mutations) throws Exception;
+
+        /**
+         * Called when an unexpected "global" error occurs, such as Connection
+         * Reset, or some form of error that left no information about the success
+         * or failure of rows.
+         *
+         * If Response.THROW_ERROR is returned, then the throwable that was passed
+         * into the method will be thrown back to the buffer.
+         *
+         * If Response.RETRY is returned, the entire batch will be retried. Note that the TableWriter will
+         * only retry a batch for a set number of attempts before it will fail regardless of the returned value
+         * of this method. In that situation, the TableWriter will throw an empty RetriesExhaustedWithDetailsException.
+         *
+         * If Response.RETURN is returned, then the batch will not attempt a retry, and will
+         * not throw an error, it will just move on to the next batch.
+         *
+         * @param t the error that was thrown
+         * @return the Response the TableWriter should use
+         * @throws Exception if something goes wrong.
+         */
+        Response globalError(Throwable t) throws Exception;
+
+        /**
+         * Called when an "expected" "partial" error occurs.
+         *
+         * A Partial error occurs when there was no network problem between the writer and the destination
+         * table, but that <em>at the destination</em> something went wrong which the destination was unable
+         * to resolve. In that situation, a list of the failed rows, and a list of the rows which were not even
+         * attempted will be returned to the writer, and this method is called to determine what to do with them.
+         *
+         * If Response.THROW_ERROR is returned, then a RetriesExhaustedWithDetailsException will be thrown
+         * enumerating the different error messages in the failed rows.
+         *
+         * If Response.RETRY is returned, then the Failed and not-run rows will be rebatched and attempted again.
+         * Note that the TableWriter has a maximum bound on the number of retries it will make, no matter what
+         * the output of this method is. If the number of retries are exhausted, then the TableWriter will throw
+         * an empty RetriesExhaustedWithDetailsException.
+         *
+         * If Response.RETURN is returned, then the batch will not attempt a retry, and will not throw an error,
+         * it will just move on to the next batch in the buffer flush (if there are any remaining).
+         *
+         * @param request the original mutation request.
+         * @param response the response with failed rows
+         * @return a Response dictating the actions of the TableWriter
+         * @throws Exception if something goes wrong.
+         */
+        Response partialFailure(MutationRequest request,MutationResponse response) throws Exception;
+    }
+
+    /**
+     * Get an Asynchronous buffer pointing to the specified table with the default Flush semantics.
+     *
+     * The returned buffer will flush <em>on a different thread</em> than the writer, and errors
+     * from individual flushes will accumulate until close() is called on the returned buffer. All
+     * errors that occur during flush will then be thrown.
+     *
+     * The returned buffer itself is <em>not</em> thread-safe.
+     *
+     * @param tableName the name of the table to write to
+     * @return an asynchronous write buffer with the default Flush semantics.
+     */
+    public CallBuffer<Mutation> writeBuffer(byte[] tableName){
         outstandingCallBuffers.incrementAndGet();
-        final Writer writer = new Writer(tableName, maxPendingBuffers);
+        final Writer writer = new Writer(tableName, maxPendingBuffers, defaultFlushWatcher);
         return new UnsafeCallBuffer<Mutation>(maxHeapSize,maxBufferEntries,writer){
             @Override
             public void close() throws Exception {
@@ -238,9 +362,46 @@ public class TableWriter implements WriterStatus{
         };
     }
 
-    public CallBuffer<Mutation> synchronousWriteBuffer(byte[] tableName) throws Exception{
+    /**
+     * Get an Asynchronous buffer pointing to the specified table with the specified flush semantics.
+     *
+     * The returned buffer will flush <em>on a different thread</em> than the writer, and errors
+     * from individual flushes will accumulate until close() is called on the returned buffer. All
+     * errors that occur during flush will then be thrown. For this reason, it is recommended that the
+     * FlushWatcher be thread-safe, to avoid concurrency issues during buffer flushes.
+     *
+     * The returned buffer itself is <em>not</em> thread-safe.
+     *
+     * @param tableName the name of the table to write to
+     * @return an asynchronous write buffer with the default Flush semantics.
+     */
+    public CallBuffer<Mutation> writeBuffer(byte[] tableName,final FlushWatcher preFlushListener) throws Exception{
         outstandingCallBuffers.incrementAndGet();
-        final SynchronousWriter writer = new SynchronousWriter(tableName);
+        final Writer writer = new Writer(tableName,maxPendingBuffers,preFlushListener);
+        return new UnsafeCallBuffer<Mutation>(maxHeapSize,maxBufferEntries,writer){
+            @Override
+            public void close() throws Exception {
+                writer.ensureFlushed();
+                super.close();
+                outstandingCallBuffers.decrementAndGet();
+            }
+        };
+    }
+
+    /**
+     * Creates a synchronous write buffer for the specified table with the default Flush semantics.
+     *
+     * When the returned buffer flushes, it will do so <em>on the adding thread</em>. If the flush is
+     * desired to by asynchronous, then use {@link #writeBuffer(byte[])} instead.
+     *
+     * The returned buffer is <em>not</em> thread-safe.
+     *
+     * @param tableName the name of the table to write to
+     * @return a writer buffer to the specified table with the default flush semantics.
+     */
+    public CallBuffer<Mutation> synchronousWriteBuffer(byte[] tableName){
+        outstandingCallBuffers.incrementAndGet();
+        final SynchronousWriter writer = new SynchronousWriter(tableName, defaultFlushWatcher);
         return new UnsafeCallBuffer<Mutation>(maxHeapSize,maxBufferEntries,writer){
             @Override
             public void close() throws Exception {
@@ -249,6 +410,63 @@ public class TableWriter implements WriterStatus{
             }
         };
     }
+
+    /**
+     * Creates a synchronous write buffer for the specified table with the specified FlushWatcher attached.
+     *
+     * When the returned buffer flushes, it will do so <em>on the writing thread</em>. If the flush is desired
+     * to be asynchronous, then use {@link #writeBuffer(byte[], com.splicemachine.hbase.TableWriter.FlushWatcher)}
+     * instead.
+     *
+     * The returned buffer is <em>not</em> thread safe, and must be externally synchronized.
+     *
+     * @param tableName the name of the table to write to
+     * @param flushWatcher the flushWatcher to watch flushes with. This determines the failure semantics of
+     *                     the buffer flushes.
+     * @return a synchronous Write buffer with the specified flush semantics.
+     */
+    public CallBuffer<Mutation> synchronousWriteBuffer(byte[] tableName,FlushWatcher flushWatcher){
+        outstandingCallBuffers.incrementAndGet();
+        final SynchronousWriter writer = new SynchronousWriter(tableName,flushWatcher);
+        return new UnsafeCallBuffer<Mutation>(maxHeapSize,maxBufferEntries,writer){
+            @Override
+            public void close() throws Exception {
+                super.close();
+                outstandingCallBuffers.decrementAndGet();
+            }
+        };
+    }
+
+    /*
+     * A Default implementation of a FlushWatcher. This attempts to mimic
+     * the failure semantics of the HBase client, and will retry anything not explicitly
+     * marked as a DoNotRetryIOException, and does nothing to the mutations as they are
+     * passed into the buffer.
+     */
+    private static final FlushWatcher defaultFlushWatcher = new FlushWatcher() {
+        @Override
+        public List<Mutation> preFlush(List<Mutation> mutations) throws Exception {
+            return mutations;
+        }
+
+        @Override
+        public Response globalError(Throwable t) throws Exception {
+            //retry anything that isn't Retryable
+            t = Throwables.getRootCause(t);
+            if (t instanceof DoNotRetryIOException)
+                return Response.THROW_ERROR;
+            return Response.RETRY;
+        }
+
+        @Override
+        public Response partialFailure(MutationRequest request,MutationResponse response) throws Exception {
+            for(String error:response.getFailedRows().values()){
+                if(!error.contains("NotServingRegion")&&!error.contains("WrongRegion"))
+                    return Response.THROW_ERROR;
+            }
+            return Response.RETRY;
+        }
+    };
 
 /******************************************************************************************************************/
     /*MBean methods for JMX management*/
@@ -280,9 +498,11 @@ public class TableWriter implements WriterStatus{
     /*private helper methods*/
     private abstract class BufferListener implements CallBuffer.Listener<Mutation>{
         protected final byte[] tableName;
+        protected final FlushWatcher flushWatcher;
 
-        protected BufferListener(byte[] tableName) {
+        protected BufferListener(byte[] tableName, FlushWatcher flushWatcher) {
             this.tableName = tableName;
+            this.flushWatcher = flushWatcher;
         }
 
         @Override
@@ -296,8 +516,8 @@ public class TableWriter implements WriterStatus{
 
     private class SynchronousWriter extends BufferListener{
 
-        protected SynchronousWriter(byte[] tableName) {
-            super(tableName);
+        protected SynchronousWriter(byte[] tableName,FlushWatcher flushWatcher) {
+            super(tableName, flushWatcher);
         }
 
         @Override
@@ -310,7 +530,7 @@ public class TableWriter implements WriterStatus{
             List<MutationRequest> mutationRequests = bucketMutations(tableName,entries);
             final List<Future<Void>> futures =new ArrayList<Future<Void>>(mutationRequests.size());
             for(MutationRequest mutationRequest:mutationRequests){
-                futures.add(writerPool.submit(new BufferWrite(mutationRequest,tableName,this,new AtomicInteger(1))));
+                futures.add(writerPool.submit(new BufferWrite(mutationRequest,tableName,this,new AtomicInteger(1),flushWatcher)));
             }
             for(Future<Void> future:futures){
                 future.get();
@@ -322,13 +542,15 @@ public class TableWriter implements WriterStatus{
         private final List<Future<Void>> futures = Lists.newArrayList();
         private final Semaphore pendingBuffersPermits;
 
-        private Writer(byte[] tableName, int maxPendingBuffers) {
-            super(tableName);
+        private Writer(byte[] tableName, int maxPendingBuffers,FlushWatcher flushWatcher) {
+            super(tableName, flushWatcher);
             this.pendingBuffersPermits = new Semaphore(maxPendingBuffers);
         }
 
         @Override
         public void bufferFlushed(List<Mutation> entries) throws Exception {
+            /* transform the entries to be flushed according to the FlushWatcher's opinion. */
+            entries = flushWatcher.preFlush(entries);
             /*
              * The write path is as follows:
              *
@@ -377,7 +599,7 @@ public class TableWriter implements WriterStatus{
             List<MutationRequest> bucketedMutations = bucketMutations(tableName,entries);
             final AtomicInteger runningCounts = new AtomicInteger(bucketedMutations.size());
             for(MutationRequest mutationToWrite: bucketedMutations){
-                futures.add(writerPool.submit(new BufferWrite(mutationToWrite,tableName,this,runningCounts)));
+                futures.add(writerPool.submit(new BufferWrite(mutationToWrite,tableName,this,runningCounts,flushWatcher)));
             }
         }
 
@@ -400,7 +622,7 @@ public class TableWriter implements WriterStatus{
                 try{
                     future.get();
                 }catch(ExecutionException ee){
-                    Throwable t = Throwables.getRootCause(ee);
+                    @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = Throwables.getRootCause(ee);
                     if(t instanceof Exception)
                         throw (Exception)t;
                     else throw ee;
@@ -562,18 +784,21 @@ public class TableWriter implements WriterStatus{
         private final byte[] tableName;
         private final BufferListener writer;
         private final AtomicInteger runningCounts;
+        private final FlushWatcher flushWatcher;
 
         private BufferWrite(MutationRequest mutationsToWrite,
                             byte[] tableName,
                             BufferListener writer,
-                            AtomicInteger runningCounts) {
+                            AtomicInteger runningCounts,
+                            FlushWatcher flushWatcher) {
             this.mutationsToWrite = Lists.newArrayList(mutationsToWrite);
             this.tableName = tableName;
             this.writer = writer;
             this.runningCounts = runningCounts;
+            this.flushWatcher = flushWatcher;
         }
 
-        public void tryWrite(int tries) throws Exception {
+        public void tryWrite(int tries,List<MutationRequest> mutationsToWrite) throws Exception {
         /*
          * The workflow is as follows:
          *
@@ -590,44 +815,86 @@ public class TableWriter implements WriterStatus{
             if(tries<=0){
                 throw new RetriesExhaustedWithDetailsException(retryExceptions,getBadRows(),Collections.<String>emptyList());
             }
-            List<MutationRequest> failedMutations = Lists.newArrayListWithExpectedSize(0);
 
             Iterator<MutationRequest> mutations = mutationsToWrite.iterator();
             while(mutations.hasNext()){
                 MutationRequest mutationRequest = mutations.next();
-                try{
-                    NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(configuration,connection,
-                            batchProtocolClass,tableName,mutationRequest.getRegionStartKey(),tries<numRetries);
-                    BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
-                            protoClassArray,invoker );
-                    instance.batchMutate(mutationRequest);
-                    mutations.remove();
-                }catch(IOException ioe){
-                    Throwable t = Throwables.getRootCause(ioe);
-                    if(t instanceof RemoteException)
-                        t= ((RemoteException)t).unwrapRemoteException();
-                    if(Exceptions.shouldLogStackTrace(t))
-                        LOG.info("Error received when trying to write buffer:"+ ioe.getMessage());
-                    else
-                        LOG.info("Received a retryable exception when trying to write buffer: "+ ioe.getClass().getSimpleName());
-                    if(t instanceof DoNotRetryIOException) throw (IOException)t;
-                    else{
-                        retryExceptions.add(t);
-                        failedMutations.add(mutationRequest);
+                doRetry(tries, mutationRequest);
+                mutations.remove();
+            }
+        }
+
+        private void doRetry(int tries, MutationRequest mutationRequest) throws Exception {
+            NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(configuration,connection,
+                    batchProtocolClass,tableName,mutationRequest.getRegionStartKey(),tries<numRetries);
+            BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
+                    protoClassArray, invoker);
+            boolean thrown=false;
+            try{
+                MutationResponse response = instance.batchMutate(mutationRequest);
+                //deal with rows which failed due to a NotServingRegionException or WrongRegionException
+                Map<Integer,String> failedRows = response.getFailedRows();
+                if(failedRows!=null&&failedRows.size()>0){
+                    SpliceLogUtils.debug(LOG,"Received a partial failure response %s",response);
+                    FlushWatcher.Response  partialRetry = flushWatcher.partialFailure(mutationRequest,response);
+                    switch (partialRetry) {
+                        case THROW_ERROR:
+                            thrown=true;
+                            throw parseIntoException(response);
+                        case RETRY:
+                            SpliceLogUtils.trace(LOG,"Retrying failed and not-run rows");
+                            doPartialRetry(tries,mutationRequest,response);
+                        case RETURN:
+                            return;
                     }
                 }
+            }catch(Exception e){
+                //if it's thrown inside the cache block deliberately, then
+                //we need to rethrow it directly
+                if(thrown)
+                    throw e;
+                FlushWatcher.Response response = flushWatcher.globalError(e);
+                switch (response) {
+                    case THROW_ERROR:
+                        throw e;
+                    case RETRY:
+                        Thread.sleep(getWaitTime(numRetries-tries+1));
+                        regionCache.invalidate(Bytes.mapKey(tableName));
+                        //needs to be a mutatable list
+                        tryWrite(tries-1,Lists.newArrayList(mutationRequest));
+                        break;
+                }
             }
+        }
+
+        private Exception parseIntoException(MutationResponse response) {
+            Map<Integer,String> failedRows = response.getFailedRows();
+            List<Throwable> errors = Lists.newArrayList();
+            for(Integer failedRow:failedRows.keySet()){
+                errors.add(Exceptions.fromString(failedRows.get(failedRow)));
+            }
+            return new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
+        }
+
+        private void doPartialRetry(int tries, MutationRequest mutationRequest, MutationResponse response)  throws Exception {
+            List<Integer> notRunRows = response.getNotRunRows();
+            Map<Integer,String> failedRows = response.getFailedRows();
+            List<Integer> rowsToRetry = Lists.newArrayListWithExpectedSize(notRunRows.size() + failedRows.size());
+            rowsToRetry.addAll(notRunRows);
+            rowsToRetry.addAll(failedRows.keySet());
+
+            List<Mutation> allMutations = mutationRequest.getMutations();
+            List<Mutation> failedMutations = Lists.newArrayListWithCapacity(rowsToRetry.size());
+            for(Integer rowToRetry:rowsToRetry){
+                failedMutations.add(allMutations.get(rowToRetry));
+            }
+
             if(failedMutations.size()>0){
-                //we had some mutations that failed due to a retry-able exception.
-                //invalidate the cache, reset them, and try them again
-                //wait for the backoff period before trying
                 Thread.sleep(getWaitTime(numRetries-tries+1));
                 regionCache.invalidate(Bytes.mapKey(tableName));
 
-                resetMutations();
-                tryWrite(tries - 1);
+                tryWrite(tries - 1, bucketMutations(tableName, failedMutations));
             }
-
         }
 
         /*
@@ -646,35 +913,11 @@ public class TableWriter implements WriterStatus{
             return badRows;
         }
 
-        /*
-         * Re-bucket the mutations list into new MutationRequests based on a new cache topology for the
-         * table.
-         */
-        private void resetMutations() throws Exception {
-            List<MutationRequest> newMutations = Lists.newArrayList();
-            for(MutationRequest remainingMutation:mutationsToWrite){
-                List<MutationRequest> mutationRequests = bucketMutations(tableName,remainingMutation.getMutations());
-                for(MutationRequest request:mutationRequests){
-                    boolean found = false;
-                    for(MutationRequest newMutation:newMutations){
-                        if(Bytes.equals(newMutation.getRegionStartKey(), request.getRegionStartKey())){
-                            newMutation.addAll(request.getMutations());
-                            found=true;
-                            break;
-                        }
-                    }
-                    if(!found)
-                        newMutations.add(request);
-                }
-            }
-            this.mutationsToWrite = newMutations;
-        }
-
         @Override
         public Void call() throws Exception {
             runningWrites.incrementAndGet();
             try{
-                tryWrite(numRetries);
+                tryWrite(numRetries,mutationsToWrite);
             }finally{
                 writer.threadFinished(runningCounts);
                 runningWrites.decrementAndGet();

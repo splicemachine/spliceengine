@@ -37,16 +37,13 @@ public class ZooKeeperTimestampSource implements TimestampSource {
                 }
             });
             connSignal.await();
-            HBaseAdmin admin = new HBaseAdmin(new Configuration());
-            createWithParents(rzk, admin.getConfiguration().get(TransactionConstants.TRANSACTION_PATH_NAME, TransactionConstants.DEFAULT_TRANSACTION_PATH));
-        } catch (MasterNotRunningException e) {
-            e.printStackTrace();
+            createWithParents(rzk, config.get(TransactionConstants.TRANSACTION_PATH_NAME, TransactionConstants.DEFAULT_TRANSACTION_PATH));
         } catch (ZooKeeperConnectionException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Fatal Error connecting to ZooKeeper",e);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Fatal Error creating a ZooKeeper transaction oracle",e);
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Fatal Error creating a ZooKeeper transaction oracle",e);
         }
     }
     @Override
@@ -57,9 +54,9 @@ public class ZooKeeperTimestampSource implements TimestampSource {
             id = rzk.create(transactionPath + "/txn-", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
             SpliceLogUtils.debug(LOG,"Begin transaction at server and create znode for transId="+id);
         } catch (KeeperException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Unable to create a new transaction id",e);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Unable to create a new transaction id",e);
         }
         return Long.parseLong(id.substring(id.length()-10, id.length()));
     }
@@ -74,7 +71,6 @@ public class ZooKeeperTimestampSource implements TimestampSource {
                     CreateMode.PERSISTENT);
         } catch(KeeperException.NodeExistsException nee) {
             SpliceLogUtils.debug(LOG,"znode exists during createWithParents: "+znode);
-            return;
         } catch(KeeperException.NoNodeException nne) {
             createWithParents(rzk, getParent(znode));
             createWithParents(rzk, znode);

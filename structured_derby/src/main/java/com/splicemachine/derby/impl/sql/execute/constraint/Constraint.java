@@ -14,6 +14,8 @@ import java.util.Collection;
  */
 public interface Constraint {
 
+    String DELETE_BEFORE_WRITE = "dbw";
+
     /**
      * The type of the Constraint
      */
