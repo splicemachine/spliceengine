@@ -61,7 +61,15 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
     @Override
     public WriteContext create(RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(rce);
+        PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(rce);
+        //add a region handler
+        pwc.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch));
+        return pwc;
+    }
+
+    @Override
+    public WriteContext createPassThrough(RegionCoprocessorEnvironment key) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(key);
         switch (state.get()) {
             case READY_TO_START:
                 SpliceLogUtils.trace(LOG,"Index management for conglomerate %d " +
@@ -91,8 +99,6 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             }
         }
 
-        //add a region handler
-        context.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch));
         return context;
     }
 

@@ -18,6 +18,8 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.filter.CompareFilter;
+import org.apache.hadoop.hbase.filter.WritableByteArrayComparable;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
 
@@ -89,8 +91,13 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,
                           Delete delete, WALEdit edit, boolean writeToWAL) throws IOException {
         //TODO -sf- is this correct?
-        mutate(e.getEnvironment(),delete);
+        mutate(e.getEnvironment(), delete);
         super.preDelete(e, delete, edit, writeToWAL);
+    }
+
+    @Override
+    public boolean preCheckAndPut(ObserverContext<RegionCoprocessorEnvironment> e, byte[] row, byte[] family, byte[] qualifier, CompareFilter.CompareOp compareOp, WritableByteArrayComparable comparator, Put put, boolean result) throws IOException {
+        return super.preCheckAndPut(e, row, family, qualifier, compareOp, comparator, put, result);    //To change body of overridden methods use File | Settings | File Templates.
     }
 
     /*******************************************************************************************************************/
@@ -102,12 +109,13 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null) return;
         WriteContext context;
         try{
-            context = writeContextFactory.create(rce);
+            context = writeContextFactory.createPassThrough(rce);
         }catch(InterruptedException e){
             throw new IOException(e);
         }
         context.sendUpstream(mutation);
         MutationResult mutationResult = context.finish().get(mutation);
+        if(mutationResult==null) return; //we didn't actually do anything, so no worries
         switch (mutationResult.getCode()) {
             case FAILED:
                 throw new IOException(mutationResult.getErrorMsg());
