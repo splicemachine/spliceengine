@@ -21,6 +21,8 @@ public class SpliceConstants {
 //	public static final String DEFAULT_DERBY_PROPERTY_PATH = "/derbyPropertyPath";
 	public static final String DEFAULT_QUERY_NODE_PATH = "/queryNodePath";
 	public static final String DEFAULT_STARTUP_PATH = "/startupPath";	
+	public static final String DEFAULT_LEADER_ELECTION = "/leaderElection";	
+	
 	// Constants
 	public static final String DEFAULT_DERBY_BIND_ADDRESS = "0.0.0.0";	
 	public static final int DEFAULT_DERBY_BIND_PORT = 1527;	
@@ -42,7 +44,9 @@ public class SpliceConstants {
 	public static final String CONFIG_DERBY_BIND_PORT = "splice.server.port";
 	public static final String CONFIG_OPERATION_PRIORITY = "splice.task.operationPriority";
 	public static final String CONFIG_IMPORT_TASK_PRIORITY = "splice.task.importTaskPriority";
+	public static final String CONFIG_LEADER_ELECTION = "splice.leader_election";
 	
+
 	// Zookeeper Actual Paths
 	public static final String zkSpliceTaskPath;
 	public static final String zkSpliceJobPath;
@@ -52,6 +56,7 @@ public class SpliceConstants {
 //	public static final String zkSpliceDerbyPropertyPath;
 	public static final String zkSpliceQueryNodePath;
 	public static final String zkSpliceStartupPath;
+	public static final String zkLeaderElection;
 	public static final String derbyBindAddress;
 	public static final int derbyBindPort;
     public static final int operationTaskPriority;
@@ -118,6 +123,7 @@ public class SpliceConstants {
 		zkSpliceConglomerateSequencePath = zkSpliceConglomeratePath+"/__CONGLOM_SEQUENCE";
 //		zkSpliceDerbyPropertyPath = config.get(CONFIG_DERBY_PROPERTY_PATH,DEFAULT_DERBY_PROPERTY_PATH);
 		zkSpliceQueryNodePath = config.get(CONFIG_CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
+		zkLeaderElection = config.get(CONFIG_LEADER_ELECTION,DEFAULT_LEADER_ELECTION);
 		sleepSplitInterval = config.getLong(SPLIT_WAIT_INTERVAL, DEFAULT_SPLIT_WAIT_INTERVAL);
 		zkSpliceStartupPath = config.get(CONFIG_STARTUP_PATH,DEFAULT_STARTUP_PATH);
         derbyBindAddress = config.get(CONFIG_DERBY_BIND_ADDRESS,DEFAULT_DERBY_BIND_ADDRESS);
