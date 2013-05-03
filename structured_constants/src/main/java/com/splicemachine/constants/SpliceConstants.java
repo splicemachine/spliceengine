@@ -70,7 +70,7 @@ public class SpliceConstants {
     public static final byte[]PROPERTIES_TABLE_NAME_BYTES = Bytes.toBytes(PROPERTIES_TABLE_NAME);
     
 	// Splice Family Information
-	public static final String DEFAULT_FAMILY = "A";
+	public static final String DEFAULT_FAMILY = "V";
 	public static final byte[] DEFAULT_FAMILY_BYTES = Bytes.toBytes(DEFAULT_FAMILY);
 
 	// Splice Default Table Definitions
