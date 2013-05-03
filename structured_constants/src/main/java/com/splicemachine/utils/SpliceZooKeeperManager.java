@@ -16,31 +16,26 @@ import java.io.IOException;
  */
 public class SpliceZooKeeperManager extends SpliceConstants implements Abortable,Closeable {
 	private static final Logger LOG = Logger.getLogger(SpliceZooKeeperManager.class);
-	private ZooKeeperWatcher watcher;
-	private RecoverableZooKeeper rzk;
+	protected ZooKeeperWatcher watcher;
+	protected RecoverableZooKeeper rzk;
 	private volatile boolean isAborted;
-
-	public ZooKeeperWatcher getZooKeeperWatcher() throws ZooKeeperConnectionException {
-		synchronized (this){
-			if(watcher==null) {
-				try {
-					watcher = new ZooKeeperWatcher(config,"spliceconnection",this);
-				} catch (IOException e) {
-					throw new ZooKeeperConnectionException("Unable to connect to zookeeper",e);
-				}
-			}
-			return watcher;
+	
+	public SpliceZooKeeperManager() {
+		try {
+			watcher = new ZooKeeperWatcher(config,"spliceconnection",this);
+			rzk = watcher.getRecoverableZooKeeper();
+		} catch (Exception e) {
+			SpliceLogUtils.error(LOG, e);
+			throw new RuntimeException(e);
 		}
 	}
 
+	public ZooKeeperWatcher getZooKeeperWatcher() throws ZooKeeperConnectionException {
+		return watcher;
+	}
+
 	public RecoverableZooKeeper getRecoverableZooKeeper() throws ZooKeeperConnectionException {
-		synchronized (this){
-			if(rzk==null) {
-				ZooKeeperWatcher zkw = getZooKeeperWatcher();
-				rzk = zkw.getRecoverableZooKeeper();
-			}
-			return rzk;
-		}
+		return rzk;
 	}
 
 	@Override
@@ -58,7 +53,8 @@ public class SpliceZooKeeperManager extends SpliceConstants implements Abortable
 		}
 		if(e!=null)
 			LOG.error(why,e);
-		else LOG.error(why);
+		else 
+			LOG.error(why);
 		this.isAborted=true;
 	}
 
@@ -69,9 +65,11 @@ public class SpliceZooKeeperManager extends SpliceConstants implements Abortable
 
 	@Override
 	public void close() throws IOException {
-		if(watcher!=null)watcher.close();
-		if(rzk!=null) try {
-			rzk.close();
+		if(watcher!=null)
+			watcher.close();
+		if(rzk!=null) 
+			try {
+				rzk.close();
 		} catch (InterruptedException e) {
 			throw new IOException(e);
 		}
