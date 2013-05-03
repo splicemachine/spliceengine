@@ -12,6 +12,10 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 
 import java.io.IOException;
 
+/**
+ * Source of transactors. If code needs a transactor and wasn't handed one, then it can use the static methods here to
+ * obtain "the" transactor.
+ */
 public class TransactorFactoryImpl implements TransactorFactory {
     private static volatile Transactor transactor;
 

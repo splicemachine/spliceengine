@@ -33,7 +33,7 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
 
 /**
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
- * row updates in the underlying store.
+ * row updates in the underlying store. This is the core brains of the SI logic.
  */
 public class SITransactor implements Transactor, ClientTransactor {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
@@ -57,7 +57,6 @@ public class SITransactor implements Transactor, ClientTransactor {
         this.transactionTimeoutMS = transactionTimeoutMS;
     }
 
-    /***********************************/
     // Transaction control
 
     @Override
@@ -225,7 +224,6 @@ public class SITransactor implements Transactor, ClientTransactor {
         return ((SITransactionId) transactionId).independentReadOnly;
     }
 
-    /***********************************/
     // Transaction ID manipulation
 
     @Override
@@ -299,7 +297,6 @@ public class SITransactor implements Transactor, ClientTransactor {
         dataStore.addSiFamilyToReadIfNeeded(read);
     }
 
-    /***********************************/
     // Process update operations
 
     @Override
@@ -409,7 +406,6 @@ public class SITransactor implements Transactor, ClientTransactor {
         return newPut;
     }
 
-    /***********************************/
     // Process read operations
 
     @Override
@@ -429,7 +425,7 @@ public class SITransactor implements Transactor, ClientTransactor {
     }
 
 
-    /************************************/
+    // Roll-forward / compaction
 
     @Override
     public void rollForward(STable table, long transactionId, List rows) throws IOException {
@@ -452,7 +448,6 @@ public class SITransactor implements Transactor, ClientTransactor {
        return new SICompactionState(dataLib, dataStore, transactionStore);
     }
 
-    /***********************************/
     // Helpers
 
     /**

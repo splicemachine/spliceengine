@@ -1,5 +1,9 @@
 package com.splicemachine.si.impl;
 
+/**
+ * Represents the parts of a transaction record that do not change once the transaction is created. It is useful to
+ * represent these immutable parts separately because they can be cached more aggressively.
+ */
 public class ImmutableTransaction {
     public final long beginTimestamp;
     private final SITransactionId transactionId;

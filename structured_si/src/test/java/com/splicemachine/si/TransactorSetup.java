@@ -14,7 +14,6 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.SimpleTimestampSource;
 import com.splicemachine.si.impl.TransactionStore;
 
 import java.util.concurrent.TimeUnit;

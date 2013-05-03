@@ -4,6 +4,9 @@ import org.apache.log4j.Logger;
 
 import java.util.concurrent.Callable;
 
+/**
+ * Wrap a body of code in the calls necessary to setup and teardown a transaction context around it.
+ */
 public class ParentTransactionManager {
     static final Logger LOG = Logger.getLogger(ParentTransactionManager.class);
     private static ThreadLocal<String> parentTransactionIdThreadLocal = new ThreadLocal<String>();

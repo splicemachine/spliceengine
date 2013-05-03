@@ -36,6 +36,9 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * An HBase coprocessor that applies SI logic to HBase read/write operations.
+ */
 public class SIObserver extends BaseRegionObserver {
     private static Logger LOG = Logger.getLogger(SIObserver.class);
     protected HRegion region;

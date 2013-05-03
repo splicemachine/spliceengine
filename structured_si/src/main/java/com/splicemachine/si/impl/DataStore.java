@@ -15,6 +15,10 @@ import java.util.List;
 import static com.splicemachine.constants.TransactionConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 import static com.splicemachine.constants.TransactionConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
 
+/**
+ * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
+ * transaction table).
+ */
 public class DataStore {
     private final SDataLib dataLib;
     private final STableReader reader;

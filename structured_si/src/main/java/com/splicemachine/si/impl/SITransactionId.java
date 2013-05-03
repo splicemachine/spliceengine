@@ -2,6 +2,9 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.TransactionId;
 
+/**
+ * Represents an SI transaction identifier. Exposes it as either a long or a string.
+ */
 public class SITransactionId implements TransactionId {
     private final long id;
     public final boolean independentReadOnly;

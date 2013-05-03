@@ -2,6 +2,10 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.data.api.SDataLib;
 
+/**
+ * Read all of the data out of a key-value object and make it available via simple, immutable field access. Do all of
+ * the clumsy access in one place so the code that needs to use the field values is more compact.
+ */
 public class DecodedKeyValue {
     public final Object keyValue;
     public final Object row;

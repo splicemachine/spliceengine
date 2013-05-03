@@ -218,7 +218,7 @@ public class RollForwardQueue {
         }
     }
 
-    public void clearRowList(long transactionId) {
+    private void clearRowList(long transactionId) {
         synchronized (this) {
             final Set rowSet = transactionMap.get(transactionId);
             transactionMap.remove(transactionId);

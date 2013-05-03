@@ -14,6 +14,9 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
+/**
+ * An HBase filter that applies SI logic when reading data values.
+ */
 public class SIFilter extends FilterBase {
     private static Logger LOG = Logger.getLogger(SIFilter.class);
     private Transactor transactor = null;

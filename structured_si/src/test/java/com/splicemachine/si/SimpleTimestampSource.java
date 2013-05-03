@@ -1,4 +1,4 @@
-package com.splicemachine.si.impl;
+package com.splicemachine.si;
 
 import com.splicemachine.si.api.TimestampSource;
 

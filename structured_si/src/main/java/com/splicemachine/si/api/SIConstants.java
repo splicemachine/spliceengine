@@ -4,6 +4,9 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.constants.HBaseConstants;
 
+/**
+ * Defines the schema used by SI for the transaction table and for additional metadata on data tables.
+ */
 public class SIConstants {
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 

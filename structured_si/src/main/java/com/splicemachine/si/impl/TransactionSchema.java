@@ -2,6 +2,9 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.data.api.SDataLib;
 
+/**
+ * Encapsulate the knowledge of the structure of the transaction table.
+ */
 public class TransactionSchema {
     final String tableName;
     final Object siFamily;
