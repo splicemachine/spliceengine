@@ -5,10 +5,13 @@ import com.google.common.base.Throwables;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.ByteDataInput;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceZooKeeperManager;
 import com.splicemachine.derby.utils.ZkUtils;
 import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
@@ -31,7 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Created on: 4/3/13
  */
 public abstract class ZkBackedJobScheduler<J extends Job> implements JobScheduler<J>,JobSchedulerManagement{
-    protected final RecoverableZooKeeper zooKeeper;
+    protected final SpliceZooKeeperManager zkManager;
 
     private final AtomicLong totalSubmitted = new AtomicLong(0l);
     private final AtomicLong totalCompleted = new AtomicLong(0l);
@@ -39,8 +42,8 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
     private final AtomicLong totalCancelled = new AtomicLong(0l);
     private final AtomicInteger numRunning = new AtomicInteger(0);
 
-    public ZkBackedJobScheduler(RecoverableZooKeeper zooKeeper) {
-        this.zooKeeper = zooKeeper;
+    public ZkBackedJobScheduler(SpliceZooKeeperManager zooKeeper) {
+        this.zkManager = zooKeeper;
     }
 
     @Override
@@ -161,15 +164,20 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
 
             //attach job watcher to watch for job cancellation from JMX
             try {
-                zooKeeper.exists(jobPath,new Watcher() {
+                zkManager.execute(new SpliceZooKeeperManager.Command<Void>() {
                     @Override
-                    public void process(WatchedEvent event) {
-                        //only events that happen to it are node-deleted events
-                        try {
-                            cancel();
-                        } catch (ExecutionException e) {
-                            throw new RuntimeException(Exceptions.parseException(e.getCause()));
-                        }
+                    public Void execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
+                        zooKeeper.exists(jobPath, new Watcher() {
+                            @Override
+                            public void process(WatchedEvent event) {
+                                try {
+                                    cancel();
+                                } catch (ExecutionException e) {
+                                    throw new RuntimeException(Exceptions.parseException(e.getCause()));
+                                }
+                            }
+                        });
+                        return null;  //To change body of implemented methods use File | Settings | File Templates.
                     }
                 });
             } catch (KeeperException e) {
@@ -287,12 +295,14 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         public void cleanup() throws ExecutionException{
             //delete the job node
             try {
-                zooKeeper.delete(jobPath,-1);
+                zkManager.getRecoverableZooKeeper().delete(jobPath, -1);
             } catch (InterruptedException e) {
                 throw new ExecutionException(e);
             } catch (KeeperException e) {
                 if(e.code()!= KeeperException.Code.NONODE)
                     throw new ExecutionException(e);
+            } catch (ZooKeeperConnectionException e) {
+                throw new ExecutionException(e);
             }
 
             for(WatchingTask task:taskFutures){
@@ -361,16 +371,16 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
     protected abstract class WatchingTask implements TaskFuture,Watcher {
         protected final Logger logger;
         protected final TaskFutureContext context;
-        private final RecoverableZooKeeper zooKeeper;
+        private final SpliceZooKeeperManager zkManager;
         private WatchingFuture jobFuture;
 
         protected volatile TaskStatus status = new TaskStatus(Status.PENDING,null);
         private volatile boolean refresh = true;
 
-        public WatchingTask(TaskFutureContext result,RecoverableZooKeeper zooKeeper) {
+        public WatchingTask(TaskFutureContext result, SpliceZooKeeperManager zkManager) {
+            this.zkManager = zkManager;
             logger = Logger.getLogger(this.getClass());
             this.context = result;
-            this.zooKeeper = zooKeeper;
         }
 
         void attachJobFuture(WatchingFuture jobFuture){
@@ -391,25 +401,63 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
             if(!refresh) return status.getStatus();
             else{
                 try {
-                    byte[] data = zooKeeper.getData(context.getTaskNode()+"/status",this,new Stat());
-                    ByteArrayInputStream bais = new ByteArrayInputStream(data);
-                    ObjectInput in = new ObjectInputStream(bais);
-                    status = (TaskStatus)in.readObject();
-                } catch (KeeperException e) {
-                    if(e.code() == KeeperException.Code.NONODE){
-                        status = TaskStatus.cancelled();
-                    }else
-                        throw new ExecutionException(e);
+                    byte[] data = zkManager.executeUnlessExpired(new SpliceZooKeeperManager.Command<byte[]>() {
+                        @Override
+                        public byte[] execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
+                            try{
+                                return zooKeeper.getData(context.getTaskNode()+"/status",WatchingTask.this,new Stat());
+                            }catch(KeeperException ke){
+                                if(ke.code()== KeeperException.Code.NONODE){
+                                    /*
+                                     * The status node can only be missing if
+                                     *
+                                     * 1. I delete it
+                                     * 2. it was removed from ZooKeeper because a session expired on
+                                     * the task executor.
+                                     *
+                                     * since I clearly didn't delete it, it must have been a session expired. Assume
+                                     * that the task failed and blow up.
+                                     *
+                                     */
+                                    return null;
+                                }
+                                throw ke;
+                            }
+                        }
+                    });
+                    if(data==null){
+                        //TODO -sf- this should be treated as retryable, in which case we need to
+                        // rollback the child transaction and restart
+                        status = TaskStatus.failed("task executor failed to update status for task "+getTaskId()+", failing job");
+                        refresh=false;
+                        return status.getStatus();
+                    }else{
+                        ByteDataInput bdi = new ByteDataInput(data);
+                        try {
+                            status = (TaskStatus)bdi.readObject();
+                        } catch (ClassNotFoundException e) {
+                            throw new ExecutionException(e);
+                        } catch (IOException e) {
+                            throw new ExecutionException(e);
+                        }
+                        refresh=false;
+                        return status.getStatus();
+                    }
+
                 } catch (InterruptedException e) {
                     throw new ExecutionException(e);
-                } catch (IOException e) {
-                    throw new ExecutionException(e);
-                } catch (ClassNotFoundException e) {
-                    throw new ExecutionException(e);
+                } catch (KeeperException e) {
+                    if(e.code()== KeeperException.Code.SESSIONEXPIRED){
+                        /*
+                         * We've been expired. That's bad news, it means our job was cancelled out from
+                         * under us, and so all tasks should be treated as cancelled, and a failure should be returned
+                         */
+                        status = TaskStatus.failed("Controller Session expired");
+                        refresh=false;
+                        return status.getStatus();
+                    }else
+                        throw new ExecutionException(e);
                 }
-
-                refresh=false;
-                return status.getStatus();
             }
         }
 
@@ -476,8 +524,15 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         }
 
         public void cleanup() throws ExecutionException {
+            RecoverableZooKeeper zooKeeper;
+            try {
+                zooKeeper = zkManager.getRecoverableZooKeeper();
+            } catch (ZooKeeperConnectionException e) {
+                throw new ExecutionException(e);
+            }
+
             try{
-                zooKeeper.delete(context.getTaskNode()+"/status",-1);
+                zooKeeper.delete(context.getTaskNode() + "/status", -1);
             }catch(KeeperException e){
                 //ignore it if it's already deleted
                if(e.code()!= KeeperException.Code.NONODE)

@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -11,7 +10,6 @@ import com.splicemachine.hbase.batch.WriteHandler;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Row;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -79,14 +77,8 @@ abstract class AbstractIndexWriteHandler implements WriteHandler {
             SpliceLogUtils.error(LOG,e);
             if(e instanceof WriteFailedException){
                 WriteFailedException wfe = (WriteFailedException)e;
-
-                //get the rows that failed
-                int pos=0;
-                for(Row row:wfe.getFailedRows()){
-                    @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = Throwables.getRootCause(wfe.getCause(pos));
-
-                    //noinspection SuspiciousMethodCalls
-                    ctx.failed(indexToMainMutationMap.get(row),t.getClass().getSimpleName()+":"+t.getMessage());
+                for(Mutation originalMutation:indexToMainMutationMap.values()){
+                    ctx.failed(originalMutation,wfe.getMessage());
                 }
             }
             else throw new IOException(e); //something unexpected went bad, need to propagate

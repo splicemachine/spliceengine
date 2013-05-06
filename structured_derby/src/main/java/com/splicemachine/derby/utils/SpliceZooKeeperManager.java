@@ -1,12 +1,12 @@
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Abortable;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -16,7 +16,7 @@ import java.io.IOException;
  *         Created: 2/2/13 9:47 AM
  */
 public class SpliceZooKeeperManager implements Abortable,Closeable {
-	private static final Logger LOG = LoggerFactory.getLogger(SpliceZooKeeperManager.class);
+	private static final Logger LOG = Logger.getLogger(SpliceZooKeeperManager.class);
 	private ZooKeeperWatcher watcher;
 	private RecoverableZooKeeper rzk;
 	private volatile boolean isAborted;
@@ -78,4 +78,58 @@ public class SpliceZooKeeperManager implements Abortable,Closeable {
 		}
 	}
 
+    public interface Command<T>{
+        T execute(RecoverableZooKeeper zooKeeper) throws InterruptedException,KeeperException;
+    }
+
+    public <T> T executeUnlessExpired(Command<T> command) throws InterruptedException,KeeperException{
+        /*
+         * What actually happens is that, in the event of a long network partition, ZooKeeper will throw
+         * ConnectionLoss exceptions, but it will NOT throw a SessionExpired exception until it reconnects, even
+         * if it's been disconnected for CLEARLY longer than the session timeout.
+         *
+         * To deal with this, we have to basically loop through our command repeatedly until we either
+         *
+         * 1. Succeed.
+         * 2. Get a SessionExpired event from ZooKeeper
+         * 3. Spent more than 2*sessionTimeout ms attempting the request
+         * 4. Get some other kind of Zk error (NoNode, etc).
+         */
+        RecoverableZooKeeper rzk;
+        try {
+            rzk = getRecoverableZooKeeper();
+        } catch (ZooKeeperConnectionException e) {
+            throw new KeeperException.SessionExpiredException();
+        }
+        //multiple by 2 to make absolutely certain we're timed out.
+        int sessionTimeout = 2*rzk.getZooKeeper().getSessionTimeout();
+        long nextTime = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
+        while((int)(nextTime-startTime)<sessionTimeout){
+            try{
+                return command.execute(rzk);
+            }catch(KeeperException ke){
+                switch (ke.code()) {
+                    case CONNECTIONLOSS:
+                    case OPERATIONTIMEOUT:
+                        SpliceLogUtils.warn(LOG,"Detected a Connection issue(%s) with ZooKeeper, retrying",ke.code());
+                        nextTime = System.currentTimeMillis();
+                        break;
+                    default:
+                        throw ke;
+                }
+            }
+        }
+
+        //we've run out of time, our session has almost certainly expired. Give up and explode
+        throw new KeeperException.SessionExpiredException();
+    }
+
+    public <T> T execute(Command<T> command) throws InterruptedException,KeeperException{
+        try {
+            return command.execute(getRecoverableZooKeeper());
+        } catch (ZooKeeperConnectionException e) {
+            throw new KeeperException.SessionExpiredException();
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job;
 
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.impl.SITransactionId;
@@ -35,7 +36,7 @@ public abstract class TransactionalTask extends ZooKeeperTask{
     }
 
     @Override
-    public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
+    public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         //check the current state
         try {
             TaskStatus currentStatus = getTaskStatus();

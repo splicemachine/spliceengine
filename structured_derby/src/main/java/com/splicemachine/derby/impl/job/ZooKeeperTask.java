@@ -3,9 +3,11 @@ package com.splicemachine.derby.impl.job;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.ByteDataOutput;
+import com.splicemachine.derby.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.Status;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
@@ -26,7 +28,7 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
     private static final long serialVersionUID=2l;
     protected final Logger LOG;
     private int priority;
-    protected RecoverableZooKeeper zooKeeper;
+    protected SpliceZooKeeperManager zkManager;
     private String statusNode;
     protected String jobId;
 
@@ -49,9 +51,9 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
 
     @Override
     public void prepareTask(HRegion region,
-                            RecoverableZooKeeper zooKeeper) throws ExecutionException {
+                            SpliceZooKeeperManager zkManager) throws ExecutionException {
         this.taskId = buildTaskId(region,jobId ,getTaskType());
-        this.zooKeeper = zooKeeper;
+        this.zkManager = zkManager;
         //write out the payload to a durable node
         ByteDataOutput byteOut = new ByteDataOutput();
         try {
@@ -59,13 +61,14 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
             byte[] payload = byteOut.toByteArray();
 
             String taskId = getTaskId();
+            RecoverableZooKeeper zooKeeper =zkManager.getRecoverableZooKeeper();
             taskId = zooKeeper.create(taskId,payload,
                     ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
             setTaskId(taskId);
 
             byte[] statusData = statusToBytes();
             statusNode = zooKeeper.create(taskId+"/status",statusData,ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                    CreateMode.PERSISTENT);
+                    CreateMode.EPHEMERAL);
             checkNotCancelled();
 
         } catch (IOException e) {
@@ -127,21 +130,26 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
     }
 
     @Override
-    public void updateStatus(boolean cancelOnError) throws CancellationException, ExecutionException {
-        assert zooKeeper!=null;
+    public void updateStatus(final boolean cancelOnError) throws CancellationException, ExecutionException {
+        assert zkManager!=null;
         try{
-            zooKeeper.setData(taskId+"/status",statusToBytes(),-1);
+            final byte[] status = statusToBytes();
+            zkManager.executeUnlessExpired(new SpliceZooKeeperManager.Command<Void>() {
+                @Override
+                public Void execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
+                    SpliceLogUtils.trace(LOG,"Attempting to set status %s for task %s",ZooKeeperTask.this.status.getStatus(),taskId);
+                    zooKeeper.setData(taskId + "/status", status, -1);
+                    return null;
+                }
+            });
         } catch (InterruptedException e) {
-            SpliceLogUtils.error(LOG,"Interrupted while setting status",e);
-            throw new CancellationException();
+            throw new ExecutionException(e);
         } catch (KeeperException e) {
-            if(e.code()== KeeperException.Code.NONODE&&cancelOnError){
+            if(e.code()==KeeperException.Code.NONODE && cancelOnError){
                 status.setStatus(Status.CANCELLED);
                 throw new CancellationException();
-            }else{
-                SpliceLogUtils.error(LOG,"Unexpected error setting status",e);
+            }else
                 throw new ExecutionException(e);
-            }
         } catch (IOException e) {
             throw new ExecutionException(e);
         }
@@ -151,15 +159,15 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
     public void cleanup() throws ExecutionException {
         //delete the task node and status node
         try {
-            zooKeeper.delete(taskId+"/status",-1);
-        } catch (InterruptedException e) {
-            throw new ExecutionException(e);
-        } catch (KeeperException e) {
-            if(e.code()!= KeeperException.Code.NONODE)
-                throw new ExecutionException(e);
-        }
-        try {
-            zooKeeper.delete(taskId,-1);
+            zkManager.execute(new SpliceZooKeeperManager.Command<Void>() {
+                @Override
+                public Void execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
+                    zooKeeper.delete(taskId+"/status",-1);
+                    zooKeeper.delete(taskId,-1);
+
+                    return null;  //To change body of implemented methods use File | Settings | File Templates.
+                }
+            });
         } catch (InterruptedException e) {
             throw new ExecutionException(e);
         } catch (KeeperException e) {
@@ -192,15 +200,15 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
         //call exists() on status to make sure that we notice cancellations
         Stat stat;
         try {
-            stat = zooKeeper.exists(CoprocessorTaskScheduler.getJobPath()+"/"+jobId,new Watcher() {
+            stat = zkManager.getRecoverableZooKeeper().exists(CoprocessorTaskScheduler.getJobPath() + "/" + jobId, new Watcher() {
                 @Override
                 public void process(WatchedEvent event) {
-                    SpliceLogUtils.trace(LOG,"Received WatchedEvent "+ event.getType());
-                    if(event.getType()!=Event.EventType.NodeDeleted)
+                    SpliceLogUtils.trace(LOG, "Received WatchedEvent " + event.getType());
+                    if (event.getType() != Event.EventType.NodeDeleted)
                         return; //nothing to do
-                    try{
+                    try {
                         markCancelled(false);
-                    }catch(ExecutionException ee){
+                    } catch (ExecutionException ee) {
                         SpliceLogUtils.error(LOG, "Unable to cancel task with id " + getTaskId(), ee.getCause());
                     }
                 }
@@ -212,6 +220,8 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
         } catch (KeeperException e) {
             throw new ExecutionException(e);
         } catch (InterruptedException e) {
+            throw new ExecutionException(e);
+        } catch (ZooKeeperConnectionException e) {
             throw new ExecutionException(e);
         }
     }

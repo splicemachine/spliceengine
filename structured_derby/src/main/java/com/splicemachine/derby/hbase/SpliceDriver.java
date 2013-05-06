@@ -87,7 +87,7 @@ public class SpliceDriver {
         try {
             writerPool = TableWriter.create(SpliceUtils.config);
             threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
-            jobScheduler = new CoprocessorJobScheduler(ZkUtils.getRecoverableZooKeeper(),SpliceUtils.config);
+            jobScheduler = new CoprocessorJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(CoprocessorTaskScheduler.baseQueueNode,ZkUtils.getRecoverableZooKeeper());
             tempCleaner = new TempCleaner(SpliceUtils.config);
         } catch (Exception e) {

@@ -8,6 +8,7 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.derby.utils.SpliceZooKeeperManager;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -66,7 +67,7 @@ public abstract class AbstractImportTask extends TransactionalTask{
     }
 
     @Override
-    public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
+    public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         fileSystem = region.getFilesystem();
         this.taskId = buildTaskId(region);
         super.prepareTask(region, zooKeeper);

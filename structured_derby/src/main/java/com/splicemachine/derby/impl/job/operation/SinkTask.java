@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.Status;
 import com.splicemachine.si.api.ParentTransactionManager;
 import com.splicemachine.si.api.TransactionId;
@@ -67,7 +68,7 @@ public class SinkTask extends TransactionalTask {
     }
 
     @Override
-    public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
+    public void prepareTask(HRegion region,SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         //make sure that our task id is properly set
         this.region = region;
         super.prepareTask(region, zooKeeper);

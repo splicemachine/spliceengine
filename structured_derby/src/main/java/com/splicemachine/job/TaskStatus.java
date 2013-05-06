@@ -16,6 +16,12 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class TaskStatus implements Externalizable{
     private static final long serialVersionUID = 3l;
+
+    public static TaskStatus failed(String s) {
+        return new TaskStatus(Status.FAILED,new IOException(s));
+    }
+
+
     public static interface StatusListener{
        void statusChanged(Status oldStatus,Status newStatus,TaskStatus taskStatus);
     }

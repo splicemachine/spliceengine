@@ -237,4 +237,8 @@ public class ZkUtils {
 		throw new IOException("Unable to get next conglomerate sequence, there is an issue" +
 				"speaking with ZooKeeper");
 	}
+
+    public static SpliceZooKeeperManager getZkManager() {
+        return zkManager;
+    }
 }

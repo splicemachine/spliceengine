@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.sql.execute.index.IndexManager;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
 import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.SpliceZooKeeperManager;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.MutationRequest;
 import com.splicemachine.hbase.MutationResponse;
@@ -65,7 +66,7 @@ public class CreateIndexTask extends ZooKeeperTask {
     }
 
     @Override
-    public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
+    public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         this.region = region;
         super.prepareTask(region, zooKeeper);
     }
