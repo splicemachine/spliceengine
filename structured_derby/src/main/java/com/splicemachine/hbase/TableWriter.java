@@ -813,7 +813,7 @@ public class TableWriter implements WriterStatus{
          * will in turn fail the buffer write.
          */
             if(tries<=0){
-                throw new RetriesExhaustedWithDetailsException(retryExceptions,getBadRows(),Collections.<String>emptyList());
+                throw new RetriesExhaustedWithDetailsException(retryExceptions,Collections.<Row>emptyList(),Collections.<String>emptyList());
             }
 
             Iterator<MutationRequest> mutations = mutationsToWrite.iterator();
@@ -882,6 +882,9 @@ public class TableWriter implements WriterStatus{
             List<Integer> rowsToRetry = Lists.newArrayListWithExpectedSize(notRunRows.size() + failedRows.size());
             rowsToRetry.addAll(notRunRows);
             rowsToRetry.addAll(failedRows.keySet());
+
+            //add to error list
+            retryExceptions.add(new WriteFailedException(failedRows.values()));
 
             List<Mutation> allMutations = mutationRequest.getMutations();
             List<Mutation> failedMutations = Lists.newArrayListWithCapacity(rowsToRetry.size());

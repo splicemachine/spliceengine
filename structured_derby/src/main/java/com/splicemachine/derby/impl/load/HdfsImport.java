@@ -124,7 +124,8 @@ public class HdfsImport extends ParallelVTI {
         ImportContext.Builder builder = new ImportContext.Builder()
 				.path(inputFileName)
 				.stripCharacters(charDelimiter)
-				.colDelimiter(delimiter);
+				.colDelimiter(delimiter)
+                .transactionId(transactionId);
 
 		buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder);
 

@@ -7,6 +7,8 @@ import com.google.common.collect.Multimap;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.si.api.TransactionId;
+import com.splicemachine.si.impl.SITransactionId;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -100,9 +102,10 @@ public class BlockImportJob extends FileImportJob{
         }
 
         Map<BlockImportTask,Pair<byte[],byte[]>> taskMap = Maps.newHashMap();
+        TransactionId parentTxnId = new SITransactionId(context.getTransactionId());
         for(HRegionLocation location:regionBlockMap.keySet()){
             Collection<BlockLocation> blocks = Lists.newArrayList(regionBlockMap.get(location));
-            BlockImportTask task = new BlockImportTask(getJobId(),context,blocks,ImportJob.importTaskPriority);
+            BlockImportTask task = new BlockImportTask(getJobId(),context,blocks,ImportJob.importTaskPriority,parentTxnId.getId());
             HRegionInfo info = location.getRegionInfo();
             byte[] start = info.getStartKey();
             byte[] end = info.getEndKey();

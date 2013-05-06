@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.TransactionalTask;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
@@ -32,15 +33,18 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 4/5/13
  */
-public abstract class AbstractImportTask extends ZooKeeperTask{
+public abstract class AbstractImportTask extends TransactionalTask{
     private static final long serialVersionUID = 1l;
     protected ImportContext importContext;
     protected FileSystem fileSystem;
 
     public AbstractImportTask() { }
 
-    public AbstractImportTask(String jobId,ImportContext importContext,int priority) {
-        super(jobId,priority);
+    public AbstractImportTask(String jobId,
+                              ImportContext importContext,
+                              int priority,
+                              long parentTransactionId) {
+        super(jobId,priority,parentTransactionId,false);
         this.importContext = importContext;
     }
 
