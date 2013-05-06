@@ -615,6 +615,7 @@ public class SpliceUtils {
 		return null;
 	}
 
+
 	public static String getTransID(Transaction trans) {
 		String transID = getTransIDString(trans);
 		if (transID == null)

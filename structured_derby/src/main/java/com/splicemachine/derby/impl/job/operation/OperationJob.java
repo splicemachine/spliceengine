@@ -17,7 +17,7 @@ import java.util.Map;
 
 /**
  * @author Scott Fines
- *         Created on: 4/3/13
+ * Created on: 4/3/13
  */
 public class OperationJob implements CoprocessorJob,Externalizable {
     private static final int DEFAULT_OPERATION_PRIORITY = 3;
@@ -31,14 +31,16 @@ public class OperationJob implements CoprocessorJob,Externalizable {
     private SpliceObserverInstructions instructions;
     private HTableInterface table;
     private int taskPriority;
+    private boolean readOnly;
 
     public OperationJob(){}
 
-    public OperationJob(Scan scan, SpliceObserverInstructions instructions, HTableInterface table) {
+    public OperationJob(Scan scan, SpliceObserverInstructions instructions, HTableInterface table,boolean readOnly) {
         this.scan = scan;
         this.instructions = instructions;
         this.table = table;
         this.taskPriority = operationTaskPriority;
+        this.readOnly = readOnly;
     }
 
     @Override
@@ -56,7 +58,7 @@ public class OperationJob implements CoprocessorJob,Externalizable {
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() {
-        return Collections.singletonMap(new SinkTask(getJobId(),scan,instructions,taskPriority),
+        return Collections.singletonMap(new SinkTask(getJobId(),scan,instructions,taskPriority,readOnly),
                 Pair.newPair(scan.getStartRow(),scan.getStartRow()));
     }
 
