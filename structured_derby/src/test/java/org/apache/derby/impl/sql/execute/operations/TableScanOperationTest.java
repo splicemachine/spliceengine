@@ -368,6 +368,7 @@ public class TableScanOperationTest extends SpliceUnitTest {
         Assert.assertFalse(rs.next());
     }
 
+    @Ignore("Bug 420")
     @Test
     public void testScanRealWithEqualsOperation() throws Exception{
         ResultSet rs = methodWatcher.executeQuery("select se4 from" + this.getPaddedTableReference("AB") +"where se4 = 50.0");
@@ -407,6 +408,28 @@ public class TableScanOperationTest extends SpliceUnitTest {
         rs.next();
         int sd = rs.getInt(1);
         Assert.assertEquals(sd,5);
+        Assert.assertFalse(rs.next());
+    }
+
+    @Ignore("Bug 417")
+    @Test
+    public void testScanIntWithFloatInEquals() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select sd1 from" + this.getPaddedTableReference("AB") +"where sd1 = 5.0");
+
+        rs.next();
+        int sd = rs.getInt(1);
+        Assert.assertEquals(sd,5);
+        Assert.assertFalse(rs.next());
+    }
+
+    @Ignore("Bug 417")
+    @Test
+    public void testScanFloatWithIntInEquals() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select se1 from" + this.getPaddedTableReference("AB") +"where se1 = 50");
+
+        rs.next();
+        float sd = rs.getFloat(1);
+        Assert.assertEquals(sd,50.0,0.0);
         Assert.assertFalse(rs.next());
     }
 
