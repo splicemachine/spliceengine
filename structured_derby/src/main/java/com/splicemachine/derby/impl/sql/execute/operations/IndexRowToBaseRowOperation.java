@@ -275,10 +275,12 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                 clearCurrentRow();
                 baseRowLocation= null;
                 retRow = null;
-                try {
-                    table.close();
-                } catch (IOException e) {
-                    SpliceLogUtils.warn(LOG,"Unable to close HTable");
+                if(table!=null){
+                    try {
+                        table.close();
+                    } catch (IOException e) {
+                        SpliceLogUtils.warn(LOG,"Unable to close HTable");
+                    }
                 }
                 break;
             }
