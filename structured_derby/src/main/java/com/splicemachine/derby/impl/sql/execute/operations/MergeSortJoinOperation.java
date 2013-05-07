@@ -283,10 +283,6 @@ public class MergeSortJoinOperation extends JoinOperation {
 		return mergedRow;
 	}
 
-    private boolean areChildrenLeaves(){
-        return leftResultSet instanceof ScanOperation && rightResultSet instanceof ScanOperation;
-    }
- 
    @Override
     public int[] getRootAccessedCols(long tableNumber) {
 
