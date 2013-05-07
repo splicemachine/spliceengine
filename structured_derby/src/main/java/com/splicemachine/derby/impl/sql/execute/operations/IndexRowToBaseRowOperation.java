@@ -160,7 +160,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 			TransactionController tc = activation.getTransactionController();
 			dcoci = tc.getDynamicCompiledConglomInfo(conglomId);
 
-			table = SpliceAccessManager.getHTable(conglomId);
 			// the saved objects, if it exists
 			if (heapColRefItem != -1) {
 				this.accessedHeapCols = (FormatableBitSet)saved[heapColRefItem];
@@ -267,61 +266,72 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		boolean restrict = false;
 		DataValueDescriptor restrictBoolean;
 
-		do{
-			sourceRow = source.getNextRowCore();
-			SpliceLogUtils.trace(LOG,"<%s> retrieved index row %s",indexName,sourceRow);
-			if(sourceRow!=null){
-				baseRowLocation = (RowLocation)sourceRow.getColumn(sourceRow.nColumns());
-				Get get =  SpliceUtils.createGet(baseRowLocation, rowArray, heapOnlyCols, getTransactionID());
-				boolean rowExists = false;
-				try{
-					Result result = table.get(get);
-					SpliceLogUtils.trace(LOG,"<%s> rowArray=%s,accessedHeapCols=%s,heapOnlyCols=%s,baseColumnMap=%s",
-							indexName,Arrays.toString(rowArray),accessedHeapCols,heapOnlyCols,Arrays.toString(baseColumnMap));
-					rowExists = result!=null && !result.isEmpty();
-					if(rowExists){
-						SpliceUtils.populate(result, compactRow.getRowArray(), accessedHeapCols,baseColumnMap);
-					}
-				}catch(IOException ioe){
-					SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
-				}
-				SpliceLogUtils.trace(LOG,"<%s>,rowArray=%s,compactRow=%s",indexName,rowArray,compactRow);
-				if(rowExists){
-					if(!copiedFromSource){
-						copiedFromSource=true;
-						for(int index=0;index < indexCols.length;index++){
-							if(indexCols[index] != -1) {
-								SpliceLogUtils.trace(LOG,"<%s> indexCol overwrite for value %d" ,indexName,indexCols[index]);
-								compactRow.setColumn(index+1,sourceRow.getColumn(indexCols[index]+1));
-							}
-						}
-					}
 
-					SpliceLogUtils.trace(LOG, "<%s>compactRow=%s", indexName,compactRow);
-					setCurrentRow(compactRow);
-					currentRowLocation = baseRowLocation;
+        do{
+            sourceRow = source.getNextRowCore();
+            SpliceLogUtils.trace(LOG,"<%s> retrieved index row %s",indexName,sourceRow);
+            if(sourceRow==null){
+                //No Rows remaining
+                clearCurrentRow();
+                baseRowLocation= null;
+                retRow = null;
+                try {
+                    table.close();
+                } catch (IOException e) {
+                    SpliceLogUtils.warn(LOG,"Unable to close HTable");
+                }
+                break;
+            }
 
-					restrictBoolean = (DataValueDescriptor)
-                            ((restriction == null) ? null: restriction.invoke(activation));
-					restrict = (restrictBoolean ==null) ||
-                            ((!restrictBoolean.isNull()) && restrictBoolean.getBoolean());
-				}
+            //we have a row, get it
+            if(table==null)
+                table = SpliceAccessManager.getHTable(conglomId);
+            baseRowLocation = (RowLocation)sourceRow.getColumn(sourceRow.nColumns());
+            Get get =  SpliceUtils.createGet(baseRowLocation, rowArray, heapOnlyCols, getTransactionID());
+            boolean rowExists = false;
+            try{
+                Result result = table.get(get);
+                SpliceLogUtils.trace(LOG,"<%s> rowArray=%s,accessedHeapCols=%s,heapOnlyCols=%s,baseColumnMap=%s",
+                        indexName,Arrays.toString(rowArray),accessedHeapCols,heapOnlyCols,Arrays.toString(baseColumnMap));
+                rowExists = result!=null && !result.isEmpty();
+                if(rowExists){
+                    SpliceUtils.populate(result, compactRow.getRowArray(), accessedHeapCols,baseColumnMap);
+                }
+            }catch(IOException ioe){
+                SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
+            }
+            SpliceLogUtils.trace(LOG,"<%s>,rowArray=%s,compactRow=%s",indexName,rowArray,compactRow);
+            if(rowExists){
+                if(!copiedFromSource){
+                    copiedFromSource=true;
+                    for(int index=0;index < indexCols.length;index++){
+                        if(indexCols[index] != -1) {
+                            SpliceLogUtils.trace(LOG,"<%s> indexCol overwrite for value %d" ,indexName,indexCols[index]);
+                            compactRow.setColumn(index+1,sourceRow.getColumn(indexCols[index]+1));
+                        }
+                    }
+                }
 
-				if(!restrict || !rowExists){
-					clearCurrentRow();
-					baseRowLocation = null;
-					currentRowLocation=null;
-				}else{
-					currentRow = compactRow;
-				}
-				retRow = currentRow;
+                SpliceLogUtils.trace(LOG, "<%s>compactRow=%s", indexName,compactRow);
+                setCurrentRow(compactRow);
+                currentRowLocation = baseRowLocation;
 
-			}else{
-				clearCurrentRow();
-				baseRowLocation= null;
-				retRow = null;
-			}
-		}while(sourceRow!=null && !restrict);
+                restrictBoolean = (DataValueDescriptor)
+                        ((restriction == null) ? null: restriction.invoke(activation));
+                restrict = (restrictBoolean ==null) ||
+                        ((!restrictBoolean.isNull()) && restrictBoolean.getBoolean());
+            }
+
+            if(!restrict || !rowExists){
+                clearCurrentRow();
+                baseRowLocation = null;
+                currentRowLocation=null;
+            }else{
+                currentRow = compactRow;
+            }
+            retRow = currentRow;
+
+		}while(!restrict);
 		SpliceLogUtils.trace(LOG, "emitting row %s",retRow);
 //        setCurrentRow(retRow);
 		return retRow;
