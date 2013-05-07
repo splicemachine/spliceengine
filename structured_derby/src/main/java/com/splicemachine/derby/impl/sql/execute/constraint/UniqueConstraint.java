@@ -67,7 +67,7 @@ public class UniqueConstraint implements Constraint {
         Result result = region.get(get,null);
 
         boolean rowPresent = result!=null && !result.isEmpty();
-        SpliceLogUtils.trace(logger,rowPresent? "row exists!": "row not yet present");
+//        SpliceLogUtils.trace(logger,rowPresent? "row exists!": "row not yet present");
         if(rowPresent)
             SpliceLogUtils.trace(logger,result.toString());
         return !rowPresent;

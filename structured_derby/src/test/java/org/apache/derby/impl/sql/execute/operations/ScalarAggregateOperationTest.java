@@ -98,6 +98,17 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
 		}
 		Assert.assertEquals(1, i);
 	}
+
+    @Test
+    public void testQualifiedMaxOperation() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select max(i) from %s where i < %d", this.getTableReference(TABLE_NAME),size));
+        int i=0;
+        while(rs.next()){
+            Assert.assertEquals(stats.getMax(),rs.getInt(1));
+            i++;
+        }
+        Assert.assertEquals(1, i);
+    }
 	
 	@Test
 	public void textAvgOperation() throws Exception {

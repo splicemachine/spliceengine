@@ -165,7 +165,7 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
                     zooKeeper.delete(taskId+"/status",-1);
                     zooKeeper.delete(taskId,-1);
 
-                    return null;  //To change body of implemented methods use File | Settings | File Templates.
+                    return null;
                 }
             });
         } catch (InterruptedException e) {

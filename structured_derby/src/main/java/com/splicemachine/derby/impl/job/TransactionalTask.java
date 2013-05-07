@@ -1,13 +1,11 @@
 package com.splicemachine.derby.impl.job;
 
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.impl.SITransactionId;
 import com.splicemachine.si.impl.TransactorFactoryImpl;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -19,7 +17,7 @@ import java.util.concurrent.ExecutionException;
  * Created on: 5/3/13
  */
 public abstract class TransactionalTask extends ZooKeeperTask{
-    private static final long serialVersionUID=1l;
+    private static final long serialVersionUID=2l;
     private String transactionId;
     private long parentTransaction;
     private boolean readOnly;
@@ -67,6 +65,8 @@ public abstract class TransactionalTask extends ZooKeeperTask{
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeBoolean(transactionId!=null);
+        out.writeLong(parentTransaction);
+        out.writeBoolean(readOnly);
         if(transactionId!=null)
             out.writeUTF(transactionId);
     }
@@ -74,8 +74,11 @@ public abstract class TransactionalTask extends ZooKeeperTask{
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
+        parentTransaction = in.readLong();
+        readOnly = in.readBoolean();
         if(in.readBoolean())
             transactionId = in.readUTF();
+
     }
 
     private void rollbackIfNecessary() throws IOException {
