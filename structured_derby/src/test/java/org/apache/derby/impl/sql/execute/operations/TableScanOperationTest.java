@@ -415,7 +415,7 @@ public class TableScanOperationTest extends SpliceUnitTest {
     public void testScanIntWithFloatInEquals() throws Exception{
         ResultSet rs = methodWatcher.executeQuery("select sd1 from" + this.getPaddedTableReference("AB") +"where sd1 = 5.0");
 
-        rs.next();
+        Assert.assertTrue("No results returned",rs.next());
         int sd = rs.getInt(1);
         Assert.assertEquals(sd,5);
         Assert.assertFalse(rs.next());
@@ -425,7 +425,7 @@ public class TableScanOperationTest extends SpliceUnitTest {
     public void testScanFloatWithIntInEquals() throws Exception{
         ResultSet rs = methodWatcher.executeQuery("select se1 from" + this.getPaddedTableReference("AB") +"where se1 = 50");
 
-        rs.next();
+        Assert.assertTrue("No results returned",rs.next());
         float sd = rs.getFloat(1);
         Assert.assertEquals(sd,50.0,0.0);
         Assert.assertFalse(rs.next());

@@ -218,7 +218,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	}
 
     private boolean isFloatType(DataValueDescriptor dvd){
-        if(dvd==null||dvd.isNull()) return false;
+        if(dvd==null) return false;
         int typeId = dvd.getTypeFormatId();
 
         return typeId == StoredFormatIds.SQL_DOUBLE_ID
@@ -227,7 +227,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     }
 
     private boolean isIntegerType(DataValueDescriptor dvd){
-        if(dvd==null||dvd.isNull()) return false;
+        if(dvd==null) return false;
         int typeId = dvd.getTypeFormatId();
 
         return typeId == StoredFormatIds.SQL_INTEGER_ID
