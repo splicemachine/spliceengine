@@ -168,7 +168,7 @@ public class TableScanOperation extends ScanOperation {
 				currentRowLocation = null;
 			} else {
 				result = new Result(keyValues);
-				SpliceUtils.populate(result, currentRow.getRowArray(), accessedCols,baseColumnMap);
+				SpliceUtils.populate(result, currentRow.getRowArray(), accessedCols, baseColumnMap);
 
                 if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()) instanceof RowLocation){
                     /*

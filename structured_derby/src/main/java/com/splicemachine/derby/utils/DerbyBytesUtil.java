@@ -38,7 +38,11 @@ public class DerbyBytesUtil {
             ((HBaseRowLocation)descriptor).setValue(bytes);
             return descriptor;
         }
-		try {
+        if (bytes.length == 0) {
+            descriptor.setToNull();
+            return descriptor;
+        }
+        try {
 			switch (descriptor.getTypeFormatId()) {
 		    	case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
 		    		descriptor.setValue(Bytes.toBoolean((byte[])getRowKey(descriptor).deserialize(bytes)));

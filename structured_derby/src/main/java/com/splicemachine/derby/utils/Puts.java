@@ -193,7 +193,7 @@ public class Puts {
 	/*private helper methods*/
 
     private static void addColumn(Put put, DataValueDescriptor descriptor, int columnNum, Serializer serializer) throws IOException {
-        if(descriptor==null||descriptor.isNull())
+        if(descriptor==null)
             return; //nothing to do
 
         try {
@@ -205,7 +205,7 @@ public class Puts {
     }
 
 	private static void addColumn(Put put,DataValueDescriptor descriptor, int columnNum) throws IOException {
-		if(descriptor==null||descriptor.isNull())
+		if(descriptor==null)
 			return; //nothing to do
 
 		try {

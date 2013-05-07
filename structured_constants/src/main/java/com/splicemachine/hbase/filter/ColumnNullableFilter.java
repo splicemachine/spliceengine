@@ -4,6 +4,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.KeyValue;
@@ -107,22 +108,22 @@ public class ColumnNullableFilter extends FilterBase {
 	}
 
 	public ReturnCode filterKeyValue(KeyValue keyValue) {
-		if (this.foundColumn) 
+        if (this.foundColumn)
 			return ReturnCode.NEXT_ROW;
 
-		if (!keyValue.matchingColumn(this.columnFamily, this.columnQualifier)) {
-			this.foundColumn = false;
-			return ReturnCode.INCLUDE;
-		}
+        if (!keyValue.matchingColumn(this.columnFamily, this.columnQualifier)) {
+            this.foundColumn = false;
+            return ReturnCode.INCLUDE;
+        }
 
-		this.foundColumn = true;
-		return ReturnCode.INCLUDE;
-	}
+        this.foundColumn = keyValue.getValue().length > 0;
+        return ReturnCode.INCLUDE;
+    }
 
-	public boolean filterRow() {
+    public boolean filterRow() {
 		// If column was found, return false if it was filterIfMissing, true if it was not
 		// If column not found, return true if filterMissing, false if not
-		return this.filterIfMissing ? !this.foundColumn : this.foundColumn;
+        return this.filterIfMissing ? !this.foundColumn : this.foundColumn;
 	}
 
 	public void reset() {
