@@ -1,8 +1,10 @@
 package com.splicemachine.derby.impl.store.access.base;
 
+import java.io.IOException;
 import java.util.Properties;
 
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.ConglomerateController;
@@ -24,7 +26,6 @@ import com.splicemachine.derby.utils.SpliceUtils;
 public abstract class SpliceController implements ConglomerateController {
 	protected static Logger LOG = Logger.getLogger(SpliceController.class);
 	protected OpenSpliceConglomerate openSpliceConglomerate;
-	protected HTableInterface htable;
 	protected Transaction trans;
 	protected String transID;
 	
@@ -41,14 +42,13 @@ public abstract class SpliceController implements ConglomerateController {
 		this.transID = SpliceUtils.getTransID(trans);
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("instantiate HBaseControl with openHBase: " + openSpliceConglomerate);
-		htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
+//		htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 	}
 	
 	public void close() throws StandardException {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("close:");
 		try {
-			htable.close();
 			if ((openSpliceConglomerate != null) && (openSpliceConglomerate.getTransactionManager() != null))
 				openSpliceConglomerate.getTransactionManager().closeMe(this);
 		} catch (Exception e) {
@@ -84,12 +84,19 @@ public abstract class SpliceController implements ConglomerateController {
 	public boolean delete(RowLocation loc) throws StandardException {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("delete row location " + loc.getBytes());
+        HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 		try {
             SpliceUtils.doDelete(htable, transID, loc.getBytes());
 			return true;
 		} catch (Exception e) {
 			throw StandardException.newException("delete Failed", e);
-		}
+		}finally{
+            try {
+                htable.close();
+            } catch (IOException e) {
+                SpliceLogUtils.warn(LOG,"Unable to close HTable");
+            }
+        }
 	}
 	
 	public boolean fetch(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns) throws StandardException {
@@ -147,6 +154,8 @@ public abstract class SpliceController implements ConglomerateController {
 	public boolean fetch(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, boolean waitForLock) throws StandardException {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("fetch rowlocation " + loc + ", destRow " + destRow + ", validColumns " + validColumns + ", waitForLock " + waitForLock);
+
+        HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 		try {
 			Get get = SpliceUtils.createGet(loc, destRow, validColumns, transID);
 			Result result = htable.get(get);
@@ -155,14 +164,31 @@ public abstract class SpliceController implements ConglomerateController {
 			return true;
 		} catch (Exception e) {
 			throw new RuntimeException(e.getMessage(), e);
-		}
+		}finally{
+            try {
+                htable.close();
+            } catch (IOException e) {
+                SpliceLogUtils.warn(LOG,"Unable to close HTable");
+            }
+        }
     }
 
 
 	@Override
 	public String toString() {
-		return "SpliceController {conglomId="+Bytes.toString(htable.getTableName())+"}";
+		return "SpliceController {conglomId="+openSpliceConglomerate.getConglomerate().getContainerid()+"}";
 	}
-	
+
+    protected HTableInterface getHTable(){
+        return SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
+    }
+
+    protected void closeHTable(HTableInterface htable){
+        try {
+            htable.close();
+        } catch (IOException e) {
+            SpliceLogUtils.warn(LOG,"Unable to close htable");
+        }
+    }
 	
 }

@@ -25,6 +25,7 @@ import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
@@ -204,6 +205,11 @@ public class CreateIndexOperation implements ConstantAction {
                 } catch (ExecutionException e) {
                     throw Exceptions.parseException(e.getCause());
                 }
+            }
+            try {
+                table.close();
+            } catch (IOException e) {
+                SpliceLogUtils.warn(LOG,"Unable to close HTable",e);
             }
         }
     }

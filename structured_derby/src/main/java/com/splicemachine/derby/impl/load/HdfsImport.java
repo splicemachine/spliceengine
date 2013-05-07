@@ -228,6 +228,12 @@ public class HdfsImport extends ParallelVTI {
             throw Exceptions.parseException(e.getCause());
         } catch (InterruptedException e) {
             throw Exceptions.parseException(e.getCause());
+        } finally{
+            try {
+                table.close();
+            } catch (IOException e) {
+                SpliceLogUtils.warn(LOG,"Unable to close htable",e);
+            }
         }
     }
 
