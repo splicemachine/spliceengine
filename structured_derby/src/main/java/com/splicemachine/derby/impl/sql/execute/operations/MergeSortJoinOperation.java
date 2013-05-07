@@ -283,28 +283,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 		return mergedRow;
 	}
 
-   @Override
-    public int[] getRootAccessedCols(long tableNumber) {
-
-       int[] rootCols = null;
-
-       if(leftResultSet.isReferencingTable(tableNumber)){
-           rootCols = leftResultSet.getRootAccessedCols(tableNumber);
-       }else if(rightResultSet.isReferencingTable(tableNumber)){
-           int leftCols = getLeftNumCols();
-           int[] rightRootCols = rightResultSet.getRootAccessedCols(tableNumber);
-           rootCols = new int[rightRootCols.length];
-
-           for(int i=0; i<rightRootCols.length; i++){
-               rootCols[i] = rightRootCols[i] + leftCols;
-           }
-
-       }
-
-       return rootCols;
-    }
-
-	@Override
+    @Override
 	public List<NodeType> getNodeTypes() {
 		SpliceLogUtils.trace(LOG, "getNodeTypes");
 		return nodeTypes;
