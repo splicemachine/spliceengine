@@ -64,9 +64,9 @@ public abstract class TransactionalTask extends ZooKeeperTask{
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeBoolean(transactionId!=null);
         out.writeLong(parentTransaction);
         out.writeBoolean(readOnly);
+        out.writeBoolean(transactionId!=null);
         if(transactionId!=null)
             out.writeUTF(transactionId);
     }
