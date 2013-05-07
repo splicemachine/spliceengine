@@ -887,18 +887,15 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
     }
 	
-	/*@Override
+	@Override
 	public NoPutResultSet getDeleteCascadeResultSet(NoPutResultSet source, 
 			   int constantActionItem,
 			   ResultSet[] dependentResultSets,
 			   String resultSetId)
 			throws StandardException
 	{
-		return new DeleteCascadeOperation(source, source.getActivation(), 
-				constantActionItem,
-				dependentResultSets, 
-				resultSetId);
-	}*/
+        throw StandardException.newException(SQLState.HEAP_UNIMPLEMENTED_FEATURE);
+	}
 	
 	public NoPutResultSet getRowCountResultSet(
 			NoPutResultSet source,
