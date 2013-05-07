@@ -213,4 +213,10 @@ public class ProjectRestrictOperationTest extends SpliceUnitTest  {
 		}
 		Assert.assertEquals("Incorrect num rows returned!",10,results.size());
 	}
+
+    @Test
+    public void testConstantFalseFilter() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select * from " + this.getPaddedTableReference("A") +"where 2 < 1");
+        Assert.assertFalse(rs.next());
+    }
 }
