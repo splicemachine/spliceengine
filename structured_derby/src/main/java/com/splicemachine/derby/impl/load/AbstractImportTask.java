@@ -116,29 +116,22 @@ public abstract class AbstractImportTask extends TransactionalTask{
 
     protected void doImportRow(String transactionId,String[] line,FormatableBitSet activeCols, ExecRow row,
                              CallBuffer<Mutation> writeBuffer,
-                             RowSerializer rowSerializer,Serializer serializer) throws IOException {
-        try{
-            if(activeCols!=null){
-                for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
-                    row.getColumn(activePos+1).setValue(line[pos]);
-                }
-            }else{
-                for(int pos=0;pos<line.length-1;pos++){
-                    row.getColumn(pos+1).setValue(line[pos]);
-                }
-                //the last entry in the line array can be an empty string, which correlates to the row's nColumns() = line.length-1
-                if(row.nColumns()==line.length){
-                    row.getColumn(line.length).setValue(line[line.length-1]);
-                }
+                             RowSerializer rowSerializer,Serializer serializer) throws Exception {
+        if(activeCols!=null){
+            for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
+                row.getColumn(activePos+1).setValue(line[pos]);
             }
-            Put put = Puts.buildInsertWithSerializer(rowSerializer.serialize(row.getRowArray()),row.getRowArray(),null,transactionId,serializer);
-            writeBuffer.add(put);
-        }catch(StandardException se){
-            throw new DoNotRetryIOException(se.getMessageId());
-        } catch (Exception e) {
-            SpliceLogUtils.error(LOG,"Error importing line %s", Arrays.toString(line));
-            throw Exceptions.getIOException(e);
+        }else{
+            for(int pos=0;pos<line.length-1;pos++){
+                row.getColumn(pos+1).setValue(line[pos]);
+            }
+            //the last entry in the line array can be an empty string, which correlates to the row's nColumns() = line.length-1
+            if(row.nColumns()==line.length){
+                row.getColumn(line.length).setValue(line[line.length-1]);
+            }
         }
+        Put put = Puts.buildInsertWithSerializer(rowSerializer.serialize(row.getRowArray()),row.getRowArray(),null,transactionId,serializer);
+        writeBuffer.add(put);
     }
 
     protected void reportIntermediate(long numRecordsImported){
