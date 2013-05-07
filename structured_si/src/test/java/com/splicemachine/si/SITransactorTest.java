@@ -1432,7 +1432,7 @@ public class SITransactorTest {
 
     @Test
     public void asynchRollForward() throws IOException, InterruptedException {
-        checkAsynchRollForward(61, true, new Function<Object[], Object>() {
+        checkAsynchRollForward(61, "commit", new Function<Object[], Object>() {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
@@ -1447,7 +1447,7 @@ public class SITransactorTest {
 
     @Test
     public void asynchRollForwardRolledBackTransaction() throws IOException, InterruptedException {
-        checkAsynchRollForward(71, false, new Function<Object[], Object>() {
+        checkAsynchRollForward(71, "rollback", new Function<Object[], Object>() {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
@@ -1460,17 +1460,36 @@ public class SITransactorTest {
         });
     }
 
-    private void checkAsynchRollForward(int testIndex, boolean commit, Function<Object[], Object> timestampDecoder) throws IOException, InterruptedException {
+    @Test
+    public void asynchRollForwardFailedTransaction() throws IOException, InterruptedException {
+        checkAsynchRollForward(71, "fail", new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final long timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                Assert.assertEquals(-2, timestamp);
+                return null;  //To change body of implemented methods use File | Settings | File Templates.
+            }
+        });
+    }
+
+    private void checkAsynchRollForward(int testIndex, String commitRollBackOrFail, Function<Object[], Object> timestampDecoder) throws IOException, InterruptedException {
         try {
             Tracer.rollForwardDelayOverride = 100;
             TransactionId t1 = transactor.beginTransaction(true, false, false);
             final String testRow = "joe" + testIndex;
             insertAge(t1, testRow, 20);
             final CountDownLatch latch = makeLatch(testRow);
-            if (commit) {
+            if (commitRollBackOrFail.equals("commit")) {
                 transactor.commit(t1);
-            } else {
+            } else if (commitRollBackOrFail.equals("rollback")) {
                 transactor.rollback(t1);
+            } else if (commitRollBackOrFail.equals("fail")) {
+                transactor.fail(t1);
+            } else {
+                throw new RuntimeException("unknown value");
             }
             Object result = readRaw(testRow);
             final SDataLib dataLib = storeSetup.getDataLib();
@@ -1491,7 +1510,7 @@ public class SITransactorTest {
                 Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c2));
             }
             TransactionId t2 = transactor.beginTransaction(false, false, false);
-            if (commit) {
+            if (commitRollBackOrFail.equals("commit")) {
                 Assert.assertEquals(testRow + " age=20 job=null", read(t2, testRow));
             } else {
                 Assert.assertEquals(testRow + " age=null job=null", read(t2, testRow));
