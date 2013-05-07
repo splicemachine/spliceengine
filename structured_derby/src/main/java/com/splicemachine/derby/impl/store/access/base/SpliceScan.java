@@ -77,7 +77,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		setupScan();
 		attachFilter();
 		tableName = Bytes.toString(SpliceOperationCoprocessor.TEMP_TABLE);
-		table = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
+//		table = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 	}
 
 	
@@ -103,7 +103,6 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		setupScan();
 		attachFilter();
 		tableName = spliceConglomerate.getConglomerate().getContainerid() + "";
-		table = SpliceAccessManager.getHTable(spliceConglomerate.getConglomerate().getContainerid());
 	}
 	
 	public void close() throws StandardException {
@@ -326,6 +325,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		this.stopSearchOperator = stopSearchOperator;
 		setupScan();
 		attachFilter();
+        if(table==null)
+            table = SpliceAccessManager.getHTable(spliceConglomerate.getConglomerate().getContainerid());
 		try {
 			scanner = table.getScanner(scan);
 		} catch (IOException e) {
@@ -434,6 +435,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	public void initialize() {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("initialize on the LazyScan interface");
+        if(table==null)
+            table = SpliceAccessManager.getHTable(spliceConglomerate.getConglomerate().getContainerid());
 		try {
 			scanner = table.getScanner(scan);
 			this.scannerInitialized = true;

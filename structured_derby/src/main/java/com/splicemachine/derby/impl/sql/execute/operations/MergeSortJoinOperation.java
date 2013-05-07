@@ -257,24 +257,6 @@ public class MergeSortJoinOperation extends JoinOperation {
         return ss;
 	}
 
-	private HTableInterface getBufferedTable() throws IOException {
-		return makeBuffered(SpliceOperationCoprocessor.threadLocalEnvironment.get().getTable(SpliceOperationCoprocessor.TEMP_TABLE));
-	}
-
-	private HTableInterface makeBuffered(HTableInterface tableWrapper) {
-		try {
-			final Field tableField = tableWrapper.getClass().getDeclaredField("table");
-			tableField.setAccessible(true);
-			final HTable htable = (HTable) tableField.get(tableWrapper);
-			htable.setAutoFlush(false);
-		} catch (NoSuchFieldException e) {
-			throw new RuntimeException(e);
-		} catch (IllegalAccessException e) {
-			throw new RuntimeException(e);
-		}
-		return tableWrapper;
-	}
-
 	@Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");

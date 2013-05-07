@@ -1,28 +1,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
-
-import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.Exceptions;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.log4j.Logger;
-
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -31,11 +10,32 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.store.access.ColumnOrdering;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
 
 public class SortOperation extends SpliceBaseOperation {
     private static final long serialVersionUID = 2l;
@@ -208,7 +208,7 @@ public class SortOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public TaskStats sink() {
+	public TaskStats sink() throws IOException {
 		/*
 		 * We want to make use of HBase as a sorting mechanism for us.
 		 * To that end, we really just want to read all the data
@@ -219,10 +219,10 @@ public class SortOperation extends SpliceBaseOperation {
         SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for SortOperation at "+stats.getStartTime());
 		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
 		ExecRow row;
-		HTableInterface tempTable = null;
+        CallBuffer<Mutation> writeBuffer;
 		try{
 			Put put;
-			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
+            writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(SpliceOperationCoprocessor.TEMP_TABLE);
 			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,descColumns,sequence[0]);
 			byte[] tempRowKey;
             Serializer serializer  = new Serializer();
@@ -242,23 +242,16 @@ public class SortOperation extends SpliceBaseOperation {
                     tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),SpliceUtils.getUniqueKey());
                 }
                 put = Puts.buildTempTableInsert(tempRowKey, row.getRowArray(), null, serializer);
-                tempTable.put(put);
+                writeBuffer.add(put);
 
                 stats.writeAccumulator().tick(System.nanoTime()-start);
             }while(row!=null);
-			tempTable.flushCommits();
-			tempTable.close();
+            writeBuffer.flushBuffer();
+            writeBuffer.close();
 		}catch (StandardException se){
 			SpliceLogUtils.logAndThrowRuntime(LOG,se);
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		}finally{
-			try {
-				if(tempTable!=null)
-					tempTable.close();
-			} catch (IOException e) {
-				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
-			}
+		} catch (Exception e) {
+            SpliceLogUtils.logAndThrow(LOG,Exceptions.getIOException(e));
 		}
 		
 		TaskStats ss = stats.finish();
