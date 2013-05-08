@@ -411,8 +411,9 @@ public class HBaseConglomerate extends SpliceConglomerate {
 		out.writeInt((int) id.getSegmentId());
         out.writeLong(id.getContainerId());
         out.writeInt(format_ids.length);
-        ConglomerateUtil.writeFormatIdArray(format_ids, out);  
-
+        ConglomerateUtil.writeFormatIdArray(format_ids, out); 
+        out.writeInt(collation_ids.length);
+        ConglomerateUtil.writeFormatIdArray(collation_ids, out); 
     }
 
     /**
@@ -438,7 +439,8 @@ public class HBaseConglomerate extends SpliceConglomerate {
         // read the array of format ids.
         format_ids = ConglomerateUtil.readFormatIdArray(num_columns, in);
         this.conglom_format_id = getTypeFormatId();
-
+        num_columns = in.readInt();
+        collation_ids = ConglomerateUtil.readFormatIdArray(num_columns, in);
     }
 
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
