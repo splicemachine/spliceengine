@@ -20,9 +20,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class SIBrowser {
+public class SIBrowser extends SIConstants{
     public static void main(String[] args) throws IOException {
-        HTable transactionTable = new HTable(SIConstants.TRANSACTION_TABLE);
+        HTable transactionTable = new HTable(TRANSACTION_TABLE);
         Scan scan = new Scan();
         ResultScanner scanner = transactionTable.getScanner(scan);
         Iterator<Result> results = scanner.iterator();
@@ -32,29 +32,29 @@ public class SIBrowser {
         Result toFind = null;
         while (results.hasNext()) {
             Result r = results.next();
-            final byte[] value = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN_BYTES);
+            final byte[] value = r.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_START_TIMESTAMP_COLUMN_BYTES);
             final long beginTimestamp = Bytes.toLong(value);
-            final byte[] statusValue = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_STATUS_COLUMN_BYTES);
+            final byte[] statusValue = r.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_STATUS_COLUMN_BYTES);
             TransactionStatus status = null;
             if (statusValue != null) {
                 status = TransactionStatus.values()[Bytes.toInt(statusValue)];
             }
-            final byte[] endValue = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
+            final byte[] endValue = r.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
             Long commitTimestamp = null;
             if (endValue != null) {
                 commitTimestamp = Bytes.toLong(endValue);
             }
-            final byte[] parentValue = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_PARENT_COLUMN_BYTES);
+            final byte[] parentValue = r.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_PARENT_COLUMN_BYTES);
             Long parent = null;
             if (parentValue != null) {
                 parent = Bytes.toLong(parentValue);
             }
-            final byte[] dependentValue = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_DEPENDENT_COLUMN_BYTES);
+            final byte[] dependentValue = r.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_DEPENDENT_COLUMN_BYTES);
             Boolean dependent = null;
             if (dependentValue != null) {
                 dependent = Bytes.toBoolean(dependentValue);
             }
-            final byte[] writesValue = r.getValue(SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_ALLOW_WRITES_COLUMN_BYTES);
+            final byte[] writesValue = r.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_ALLOW_WRITES_COLUMN_BYTES);
             Boolean writes = null;
             if (writesValue != null) {
                 writes = Bytes.toBoolean(writesValue);
@@ -69,7 +69,7 @@ public class SIBrowser {
         if (toFind != null) {
             System.out.println("killing transaction " + idToFind);
             Put put = new Put(toFind.getRow());
-            KeyValue kv = new KeyValue(toFind.getRow(), SIConstants.TRANSACTION_FAMILY_BYTES, SIConstants.TRANSACTION_STATUS_COLUMN_BYTES,
+            KeyValue kv = new KeyValue(toFind.getRow(), TRANSACTION_FAMILY_BYTES, TRANSACTION_STATUS_COLUMN_BYTES,
                     Bytes.toBytes(TransactionStatus.ERROR.ordinal()));
             put.add(kv);
             transactionTable.put(put);
@@ -112,8 +112,8 @@ public class SIBrowser {
                 final byte[] q = kv.getQualifier();
                 final byte[] v = kv.getValue();
                 final long ts = kv.getTimestamp();
-                if (Arrays.equals(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES, f)
-                        && Arrays.equals(SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, q)) {
+                if (Arrays.equals(SNAPSHOT_ISOLATION_FAMILY_BYTES, f)
+                        && Arrays.equals(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, q)) {
                     Long timestamp = null;
                     if (v.length > 0) {
                         timestamp = Bytes.toLong(v);

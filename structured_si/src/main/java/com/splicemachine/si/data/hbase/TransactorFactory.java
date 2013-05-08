@@ -80,8 +80,8 @@ public class TransactorFactory extends SIConstants {
 
         final DataStore rowStore = new DataStore(dataLib, reader, writer, "si-needed",
                 "si-transaction-id", "si-delete-put", SNAPSHOT_ISOLATION_FAMILY,
-                SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN,
-                SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN,
+                SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING,
+                SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING,
                 EMPTY_BYTE_ARRAY, SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
                 DEFAULT_FAMILY);
         return new SITransactor(timestampSource, dataLib, writer, rowStore, transactionStore, new SystemClock(),10 * 60 * 1000);
