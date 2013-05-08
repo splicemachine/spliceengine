@@ -71,8 +71,6 @@ public class BaseTestOnServer extends TxnConstants {
 	
 	public static HTable createTable(HBaseAdmin admin, String tableName) throws Exception {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
-//		String compression = admin.getConfiguration().get(SpliceConstants.TABLE_COMPRESSION,SpliceConstants.DEFAULT_COMPRESSION);
-		String compression = SpliceConstants.DEFAULT_COMPRESSION;
 		desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
 				SpliceConstants.DEFAULT_VERSIONS,
 				compression,

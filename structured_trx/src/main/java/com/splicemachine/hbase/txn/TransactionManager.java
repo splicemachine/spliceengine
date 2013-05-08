@@ -36,8 +36,7 @@ public abstract class TransactionManager extends TxnConstants {
 				HTableDescriptor desc = new HTableDescriptor(TxnConstants.TRANSACTION_LOG_TABLE_BYTES);
 				desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
 						SpliceConstants.DEFAULT_VERSIONS,
-						SpliceConstants.DEFAULT_COMPRESSION,
-//						config.get(SpliceConstants.TABLE_COMPRESSION,SpliceConstants.DEFAULT_COMPRESSION),
+						compression,
 						SpliceConstants.DEFAULT_IN_MEMORY,
 						SpliceConstants.DEFAULT_BLOCKCACHE,
 						SpliceConstants.DEFAULT_TTL,

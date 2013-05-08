@@ -92,8 +92,7 @@ public class TxnTestUtils extends BaseTest {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
 		desc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
 				SpliceConstants.DEFAULT_VERSIONS,
-				SpliceConstants.DEFAULT_COMPRESSION,
-//				admin.getConfiguration().get(SpliceConstants.TABLE_COMPRESSION,SpliceConstants.DEFAULT_COMPRESSION),
+				compression,
 				SpliceConstants.DEFAULT_IN_MEMORY,
 				SpliceConstants.DEFAULT_BLOCKCACHE,
 				SpliceConstants.DEFAULT_TTL,
