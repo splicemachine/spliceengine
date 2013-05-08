@@ -43,6 +43,8 @@ import java.util.concurrent.*;
  */
 public class TempCleaner {
     private static final Logger LOG = Logger.getLogger(TempCleaner.class);
+    private static final int DEFAULT_CLEANER_JOBS = 4;
+    private static final String CLEANER_JOBS = "splice.temp.maxCleanerJobs";
     private static final int DEFAULT_CLEAN_TASK_PRIORITY = 2;
     private final ExecutorService cleanWatcher;
     private final int taskPriority;
@@ -57,7 +59,10 @@ public class TempCleaner {
                         SpliceLogUtils.error(LOG, "Unexpected error cleaning temp table", e);
                     }
                 }).build();
-        cleanWatcher = Executors.newSingleThreadExecutor(factory);
+
+        int cleanerThreads = configuration.getInt(CLEANER_JOBS,DEFAULT_CLEANER_JOBS);
+        cleanWatcher = new ThreadPoolExecutor(1,cleanerThreads,60,
+                TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(),factory);
         this.taskPriority = configuration.getInt("splice.temp.cleanTaskPriority",DEFAULT_CLEAN_TASK_PRIORITY);
     }
 
@@ -68,24 +73,20 @@ public class TempCleaner {
      * @param finish the finish row to be deleted
      */
     public void deleteRange(String uid, byte[] start, byte[] finish) throws StandardException {
-        TempCleanJob job = new TempCleanJob(uid,start,finish,taskPriority);
-        try {
-            final JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
-            cleanWatcher.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    try{
-                        future.completeAll();
-                    }finally{
-                        SpliceDriver.driver().getJobScheduler().cleanupJob(future);
-                    }
-
-                    return null;
+        final TempCleanJob job = new TempCleanJob(uid,start,finish,taskPriority);
+        cleanWatcher.submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
+                try{
+                    future.completeAll();
+                }finally{
+                    SpliceDriver.driver().getJobScheduler().cleanupJob(future);
                 }
-            });
-        } catch (ExecutionException e) {
-            throw Exceptions.parseException(e);
-        }
+
+                return null;
+            }
+        });
     }
 
     public static class TempCleanJob implements CoprocessorJob {

@@ -171,19 +171,20 @@ public class CreateIndexTask extends ZooKeeperTask {
     }
 
     private List<Put> translateResult(List<KeyValue> result,int[] indexColsToMainColMap) throws IOException{
-        Map<byte[],List<KeyValue>> putConstructors = Maps.newHashMapWithExpectedSize(1);
+        Map<String,List<KeyValue>> putConstructors = Maps.newHashMapWithExpectedSize(1);
         for(KeyValue keyValue:result){
-            List<KeyValue> cols = putConstructors.get(keyValue.getRow());
+            String row = Bytes.toString(keyValue.getRow());
+            List<KeyValue> cols = putConstructors.get(row);
             if(cols==null){
                 cols = Lists.newArrayListWithExpectedSize(indexColsToMainColMap.length);
-                putConstructors.put(keyValue.getRow(),cols);
+                putConstructors.put(row,cols);
             }
             cols.add(keyValue);
         }
         //build Puts for each row
         List<Put> indexPuts = Lists.newArrayListWithExpectedSize(putConstructors.size());
-        for(byte[] mainRow: putConstructors.keySet()){
-            List<KeyValue> rowData = putConstructors.get(mainRow);
+        for(String mainRowStr: putConstructors.keySet()){
+            List<KeyValue> rowData = putConstructors.get(mainRowStr);
             byte[][] indexRowData = getDataArray();
             int rowSize=0;
             for(KeyValue kv:rowData){
@@ -216,7 +217,7 @@ public class CreateIndexTask extends ZooKeeperTask {
             }
 
             indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
-                    Integer.toString(rowData.size()).getBytes(),mainRow);
+                    Integer.toString(rowData.size()).getBytes(),Bytes.toBytes(mainRowStr));
             indexPuts.add(indexPut);
         }
 
