@@ -61,15 +61,16 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
             byte[] payload = byteOut.toByteArray();
 
             String taskId = getTaskId();
-            //TODO -sf- if the taskId already exists, don't create a new one
-            RecoverableZooKeeper zooKeeper =zkManager.getRecoverableZooKeeper();
-            taskId = zooKeeper.create(taskId,payload,
-                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
-            setTaskId(taskId);
+            if(taskId==null||taskId.endsWith("-")){
+                RecoverableZooKeeper zooKeeper =zkManager.getRecoverableZooKeeper();
+                taskId = zooKeeper.create(taskId,payload,
+                        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+                setTaskId(taskId);
+                byte[] statusData = statusToBytes();
+                statusNode = zooKeeper.create(taskId+"/status",statusData,ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.EPHEMERAL);
+            }
 
-            byte[] statusData = statusToBytes();
-            statusNode = zooKeeper.create(taskId+"/status",statusData,ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                    CreateMode.EPHEMERAL);
             checkNotCancelled();
 
         } catch (IOException e) {

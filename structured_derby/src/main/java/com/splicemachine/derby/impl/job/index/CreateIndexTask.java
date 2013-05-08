@@ -187,7 +187,10 @@ public class CreateIndexTask extends ZooKeeperTask {
             List<KeyValue> rowData = putConstructors.get(mainRowStr);
             byte[][] indexRowData = getDataArray();
             int rowSize=0;
+            byte[] rowKey = null;
             for(KeyValue kv:rowData){
+                if(rowKey==null)
+                    rowKey = kv.getRow();
                 int colPos = Integer.parseInt(Bytes.toString(kv.getQualifier()));
                 for(int indexPos=0;indexPos<indexColsToMainColMap.length;indexPos++){
                     if(colPos == indexColsToMainColMap[indexPos]){
@@ -217,7 +220,7 @@ public class CreateIndexTask extends ZooKeeperTask {
             }
 
             indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
-                    Integer.toString(rowData.size()).getBytes(),Bytes.toBytes(mainRowStr));
+                    Integer.toString(rowData.size()).getBytes(),rowKey);
             indexPuts.add(indexPut);
         }
 
