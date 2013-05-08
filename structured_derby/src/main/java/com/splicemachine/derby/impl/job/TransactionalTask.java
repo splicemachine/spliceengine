@@ -1,12 +1,11 @@
 package com.splicemachine.derby.impl.job;
 
-import com.splicemachine.derby.utils.SpliceZooKeeperManager;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.impl.SITransactionId;
 import com.splicemachine.si.impl.TransactorFactoryImpl;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

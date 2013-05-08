@@ -4,9 +4,7 @@ import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.MasterNotRunningException;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.google.common.collect.Lists;
 
@@ -31,7 +29,27 @@ public class SpliceConstants {
 	public static final int DEFAULT_IMPORT_TASK_PRIORITY = 3;
     public static final String NA_TRANSACTION_ID = "NA_TRANSACTION_ID";
     public static final String SI_EXEMPT = "si-exempt";
+    public static final int DEFAULT_POOL_MAX_SIZE = Integer.MAX_VALUE;
+    public static final int DEFAULT_POOL_CORE_SIZE = 100;
+    public static final long DEFAULT_POOL_CLEANER_INTERVAL = 60;
+    public static final int DEFAULT_MAX_PENDING_BUFFERS = 10;
+    public static final long DEFAULT_CACHE_UPDATE_PERIOD = 30000;
+    public static final long DEFAULT_CACHE_EXPIRATION = 60;
+    public static final long DEFAULT_WRITE_BUFFER_SIZE = 2097152;
+    public static final int DEFAULT_MAX_BUFFER_ENTRIES = -1;
+    public static final int DEFAULT_HBASE_HTABLE_THREADS_MAX = Integer.MAX_VALUE;
+    public static final long DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME = 60;
+    public static final int DEFAULT_HBASE_CLIENT_RETRIES_NUMBER = HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER;
+    public static final boolean DEFAULT_HBASE_CLIENT_COMPRESS_WRITES = false;
+    
 
+    
+    /*
+     * Setting the cache update interval <0 indicates that caching is to be turned off.
+     * This is a performance killer, but is useful when debugging issues.
+     */
+
+    
 	
 	// Zookeeper Path Configuration Constants
 	public static final String CONFIG_BASE_TASK_QUEUE_NODE = "splice.task_queue_node";
@@ -46,8 +64,20 @@ public class SpliceConstants {
 	public static final String CONFIG_OPERATION_PRIORITY = "splice.task.operationPriority";
 	public static final String CONFIG_IMPORT_TASK_PRIORITY = "splice.task.importTaskPriority";
 	public static final String CONFIG_LEADER_ELECTION = "splice.leader_election";
-	
-
+    private static final String CONFIG_POOL_MAX_SIZE = "splice.table.pool.maxsize";
+    private static final String CONFIG_POOL_CORE_SIZE = "splice.table.pool.coresize";
+    private static final String CONFIG_POOL_CLEANER_INTERVAL = "splice.table.pool.cleaner.interval";
+    private static final String CONFIG_WRITE_BUFFER_SIZE = "hbase.client.write.buffer";
+    private static final String CONFIG_WRITE_BUFFER_MAX_FLUSHES = "hbase.client.write.buffers.maxflushes";
+    private static final String CONFIG_BUFFER_ENTRIES = "hbase.client.write.buffer.maxentries";
+    private static final String CONFIG_HBASE_HTABLE_THREADS_MAX = "hbase.htable.threads.max";
+    public static final String CONFIG_HBASE_HTABLE_THREADS_KEEPALIVETIME = "hbase.htable.threads.keepalivetime";
+    public static final String CONFIG_HBASE_CLIENT_RETRIES_NUMBER = HConstants.HBASE_CLIENT_RETRIES_NUMBER;
+    public static final String CONFIG_CACHE_UPDATE_PERIOD = "hbase.htable.regioncache.updateinterval";
+    public static final String CONFIG_CACHE_EXPIRATION = "hbase.htable.regioncache.expiration";
+    public static final String CONFIG_HBASE_CLIENT_COMPRESS_WRITES = "hbase.client.compress.writes";
+    
+    
 	// Zookeeper Actual Paths
 	public static String zkSpliceTaskPath;
 	public static String zkSpliceJobPath;
@@ -63,6 +93,27 @@ public class SpliceConstants {
     public static int operationTaskPriority;
     public static int importTaskPriority;
 	public static Long sleepSplitInterval;
+	public static int tablePoolMaxSize;
+	public static int tablePoolCoreSize;
+	public static long tablePoolCleanerInterval;
+	public static long writeBufferSize;
+	public static int maxBufferEntries;
+	public static int maxPendingBuffers;
+	public static int maxThreads;
+	public static long threadKeepAlive; 
+    public static int numRetries;
+    public static boolean enableRegionCache;
+    public static long cacheExpirationPeriod;
+    public static boolean compressWrites;
+
+    
+    /*
+     * Setting the cache update interval <0 indicates that caching is to be turned off.
+     * This is a performance killer, but is useful when debugging issues.
+     */
+    public static long cacheUpdatePeriod;
+
+	
 	
 	// Splice Internal Tables
     public static final String TEMP_TABLE = "SPLICE_TEMP";
@@ -141,13 +192,26 @@ public class SpliceConstants {
         derbyBindPort = config.getInt(CONFIG_DERBY_BIND_PORT, DEFAULT_DERBY_BIND_PORT);
         operationTaskPriority = config.getInt(CONFIG_OPERATION_PRIORITY, DEFAULT_OPERATION_PRIORITY);
         importTaskPriority = config.getInt(CONFIG_IMPORT_TASK_PRIORITY, DEFAULT_IMPORT_TASK_PRIORITY);
+        tablePoolMaxSize = config.getInt(CONFIG_POOL_MAX_SIZE,DEFAULT_POOL_MAX_SIZE);
+        tablePoolCoreSize = config.getInt(CONFIG_POOL_CORE_SIZE,DEFAULT_POOL_CORE_SIZE);
+        tablePoolCleanerInterval = config.getLong(CONFIG_POOL_CLEANER_INTERVAL,DEFAULT_POOL_CLEANER_INTERVAL);
+        writeBufferSize = config.getLong(CONFIG_WRITE_BUFFER_SIZE, DEFAULT_WRITE_BUFFER_SIZE);
+        maxBufferEntries = config.getInt(CONFIG_BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
+        maxPendingBuffers = config.getInt(CONFIG_WRITE_BUFFER_MAX_FLUSHES,DEFAULT_MAX_PENDING_BUFFERS);
+        maxThreads = config.getInt(CONFIG_HBASE_HTABLE_THREADS_MAX,DEFAULT_HBASE_HTABLE_THREADS_MAX);
+        if(maxThreads==0)
+        	maxThreads = 1;
+        threadKeepAlive = config.getLong(CONFIG_HBASE_HTABLE_THREADS_KEEPALIVETIME, DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME);
+        numRetries = config.getInt(CONFIG_HBASE_CLIENT_RETRIES_NUMBER,DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
+        cacheUpdatePeriod = config.getLong(CONFIG_CACHE_UPDATE_PERIOD,DEFAULT_CACHE_UPDATE_PERIOD);
+        enableRegionCache = cacheUpdatePeriod>0l;
+        cacheExpirationPeriod = config.getLong(CONFIG_CACHE_EXPIRATION,DEFAULT_CACHE_EXPIRATION);
+        compressWrites = config.getBoolean(CONFIG_HBASE_CLIENT_COMPRESS_WRITES,DEFAULT_HBASE_CLIENT_COMPRESS_WRITES);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {
-		System.out.println("YOOO");
 		HBaseConfiguration.merge(config,configuration);
 		setParameters();
-		System.out.println("Derby Bind Port: " + derbyBindPort);
 	}
 	
 }
