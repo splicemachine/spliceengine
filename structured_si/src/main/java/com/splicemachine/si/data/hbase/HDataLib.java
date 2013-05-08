@@ -231,8 +231,22 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
+    public void setReadMaxVersions(Get get, int max) {
+        try {
+            get.setMaxVersions(max);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public void setReadMaxVersions(Get get) {
         get.setMaxVersions();
+    }
+
+    @Override
+    public void setReadMaxVersions(Scan scan, int max) {
+        scan.setMaxVersions(max);
     }
 
     @Override
