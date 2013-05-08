@@ -2,6 +2,7 @@ package com.splicemachine.constants;
 
 import java.util.List;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
@@ -18,7 +19,7 @@ public class SpliceConstants {
     public static final String DEFAULT_BASE_JOB_QUEUE_NODE = "/spliceJobs";
     public static final String DEFAULT_TRANSACTION_PATH = "/transactions";
 	public static final String DEFAULT_CONGLOMERATE_SCHEMA_PATH = "/conglomerates";
-//	public static final String DEFAULT_DERBY_PROPERTY_PATH = "/derbyPropertyPath";
+	public static final String DEFAULT_DERBY_PROPERTY_PATH = "/derbyPropertyPath";
 	public static final String DEFAULT_QUERY_NODE_PATH = "/queryNodePath";
 	public static final String DEFAULT_STARTUP_PATH = "/startupPath";	
 	public static final String DEFAULT_LEADER_ELECTION = "/leaderElection";	
@@ -37,7 +38,7 @@ public class SpliceConstants {
     public static final String CONFIG_BASE_JOB_QUEUE_NODE = "splice.job_queue_node";
     public static final String CONFIG_TRANSACTION_PATH = "splice.transactions_node";
 	public static final String CONFIG_CONGLOMERATE_SCHEMA_PATH = "splice.conglomerates_node";
-//	public static final String CONFIG_DERBY_PROPERTY_PATH = "splice.derby_property_node";
+	public static final String CONFIG_DERBY_PROPERTY_PATH = "splice.derby_property_node";
 	public static final String CONFIG_QUERY_NODE_PATH = "splice.query_node_path";
 	public static final String CONFIG_STARTUP_PATH = "splice.startup_path";
 	public static final String CONFIG_DERBY_BIND_ADDRESS = "splice.server.address";
@@ -48,20 +49,20 @@ public class SpliceConstants {
 	
 
 	// Zookeeper Actual Paths
-	public static final String zkSpliceTaskPath;
-	public static final String zkSpliceJobPath;
-	public static final String zkSpliceTransactionPath;
-	public static final String zkSpliceConglomeratePath;
-	public static final String zkSpliceConglomerateSequencePath;
-//	public static final String zkSpliceDerbyPropertyPath;
-	public static final String zkSpliceQueryNodePath;
-	public static final String zkSpliceStartupPath;
-	public static final String zkLeaderElection;
-	public static final String derbyBindAddress;
-	public static final int derbyBindPort;
-    public static final int operationTaskPriority;
-    public static final int importTaskPriority;
-	public static final Long sleepSplitInterval;
+	public static String zkSpliceTaskPath;
+	public static String zkSpliceJobPath;
+	public static String zkSpliceTransactionPath;
+	public static String zkSpliceConglomeratePath;
+	public static String zkSpliceConglomerateSequencePath;
+	public static String zkSpliceDerbyPropertyPath;
+	public static String zkSpliceQueryNodePath;
+	public static String zkSpliceStartupPath;
+	public static String zkLeaderElection;
+	public static String derbyBindAddress;
+	public static int derbyBindPort;
+    public static int operationTaskPriority;
+    public static int importTaskPriority;
+	public static Long sleepSplitInterval;
 	
 	// Splice Internal Tables
     public static final String TEMP_TABLE = "SPLICE_TEMP";
@@ -99,6 +100,7 @@ public class SpliceConstants {
     public static final byte[] SUPPRESS_INDEXING_ATTRIBUTE_VALUE = new byte[]{};
     public static final byte[] VALUE_COLUMN = Integer.toString(1).getBytes();
 	public static final long DEFAULT_SPLIT_WAIT_INTERVAL = 500l;
+	public static final String SPLICE_DB = "spliceDB";
 	
     // Default Configuration Options
 	public static final String SPLIT_WAIT_INTERVAL = "splice.splitWaitInterval";
@@ -116,12 +118,21 @@ public class SpliceConstants {
     public enum SpliceConglomerate {HEAP,BTREE}
 
 	static {
+		setParameters();
+	}
+	
+	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,
+			zkSpliceTransactionPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath);
+
+	public static List<byte[]> spliceSystables = Lists.newArrayList(TEMP_TABLE_BYTES,TRANSACTION_TABLE_BYTES,CONGLOMERATE_TABLE_NAME_BYTES);
+	
+	public static void setParameters() {
 		zkSpliceTaskPath = config.get(CONFIG_BASE_TASK_QUEUE_NODE,DEFAULT_BASE_TASK_QUEUE_NODE);
 		zkSpliceJobPath = config.get(CONFIG_BASE_JOB_QUEUE_NODE,DEFAULT_BASE_JOB_QUEUE_NODE);
 		zkSpliceTransactionPath = config.get(CONFIG_TRANSACTION_PATH,DEFAULT_TRANSACTION_PATH);		
 		zkSpliceConglomeratePath = config.get(CONFIG_CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
 		zkSpliceConglomerateSequencePath = zkSpliceConglomeratePath+"/__CONGLOM_SEQUENCE";
-//		zkSpliceDerbyPropertyPath = config.get(CONFIG_DERBY_PROPERTY_PATH,DEFAULT_DERBY_PROPERTY_PATH);
+		zkSpliceDerbyPropertyPath = config.get(CONFIG_DERBY_PROPERTY_PATH,DEFAULT_DERBY_PROPERTY_PATH);
 		zkSpliceQueryNodePath = config.get(CONFIG_CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
 		zkLeaderElection = config.get(CONFIG_LEADER_ELECTION,DEFAULT_LEADER_ELECTION);
 		sleepSplitInterval = config.getLong(SPLIT_WAIT_INTERVAL, DEFAULT_SPLIT_WAIT_INTERVAL);
@@ -132,10 +143,11 @@ public class SpliceConstants {
         importTaskPriority = config.getInt(CONFIG_IMPORT_TASK_PRIORITY, DEFAULT_IMPORT_TASK_PRIORITY);
 	}
 	
-	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,
-			zkSpliceTransactionPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,zkSpliceQueryNodePath);
-
-	public static List<byte[]> spliceSystables = Lists.newArrayList(TEMP_TABLE_BYTES,TRANSACTION_TABLE_BYTES,CONGLOMERATE_TABLE_NAME_BYTES);
-	
+	public static void reloadConfiguration(Configuration configuration) {
+		System.out.println("YOOO");
+		HBaseConfiguration.merge(config,configuration);
+		setParameters();
+		System.out.println("Derby Bind Port: " + derbyBindPort);
+	}
 	
 }
