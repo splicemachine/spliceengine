@@ -270,16 +270,16 @@ public class SpliceDriver extends SIConstants {
         HBaseAdmin admin = null;
         try{
             admin = new HBaseAdmin(SpliceUtils.config);
-            if(!admin.tableExists(SpliceConstants.TEMP_TABLE_BYTES)){
-                HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(SpliceConstants.TEMP_TABLE);
+            if(!admin.tableExists(TEMP_TABLE_BYTES)){
+                HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(TEMP_TABLE);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG, SpliceConstants.TEMP_TABLE+" created");
+                SpliceLogUtils.info(LOG, TEMP_TABLE+" created");
             }
             if (!admin.tableExists(TRANSACTION_TABLE_BYTES)) {
                 HTableDescriptor desc = new HTableDescriptor(TRANSACTION_TABLE_BYTES);
                 desc.addFamily(new HColumnDescriptor(DEFAULT_FAMILY.getBytes(),
                         Integer.MAX_VALUE,
-                        admin.getConfiguration().get(TABLE_COMPRESSION, DEFAULT_COMPRESSION),
+                        compression,
                         DEFAULT_IN_MEMORY,
                         DEFAULT_BLOCKCACHE,
                         Integer.MAX_VALUE,
