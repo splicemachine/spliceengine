@@ -11,6 +11,7 @@ import com.splicemachine.si.data.api.STableWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static com.splicemachine.constants.TransactionConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 import static com.splicemachine.constants.TransactionConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
@@ -159,6 +160,26 @@ public class DataStore {
 
     public void setTombstoneOnPut(Object put, SITransactionId transactionId) {
         dataLib.addKeyValueToPut(put, siFamily, tombstoneQualifier, transactionId.getId(), siNull);
+    }
+
+    public void setTombstonesOnColumns(STable table, long timestamp, Object put) throws IOException {
+        final Map userData = getUserData(table, dataLib.getPutKey(put));
+        if (userData != null) {
+            for (Object qualifier : userData.keySet()) {
+                dataLib.addKeyValueToPut(put, userColumnFamily, qualifier, timestamp, siNull);
+            }
+        }
+    }
+
+    private Map getUserData(STable table, Object rowKey) throws IOException {
+        final List<Object> families = Arrays.asList(userColumnFamily);
+        SGet get = dataLib.newGet(rowKey, families, null, null);
+        dataLib.setReadMaxVersions(get, 1);
+        Object result = reader.get(table, get);
+        if (result != null) {
+            return dataLib.getResultFamilyMap(result, userColumnFamily);
+        }
+        return null;
     }
 
     public void addSiFamilyToReadIfNeeded(SRead get) {

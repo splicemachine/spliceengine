@@ -1,7 +1,5 @@
 package com.splicemachine.si.data.api;
 
-import org.apache.hadoop.hbase.KeyValue;
-
 import java.util.List;
 import java.util.Map;
 
@@ -39,5 +37,6 @@ public interface SDataLib {
     SScan newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp);
     void setReadTimeRange(SRead get, long minTimestamp, long maxTimestamp);
     void setReadMaxVersions(SRead get);
+    void setReadMaxVersions(SRead get, int max);
     void addFamilyToReadIfNeeded(SRead get, Object family);
 }

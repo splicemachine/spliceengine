@@ -111,6 +111,10 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
+    public void setReadMaxVersions(SRead get, int max) {
+    }
+
+    @Override
     public void addFamilyToReadIfNeeded(SRead get, Object family) {
         ensureFamilyDirect((LGet) get, family);
     }
