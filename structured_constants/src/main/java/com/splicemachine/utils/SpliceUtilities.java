@@ -62,7 +62,7 @@ public class SpliceUtilities extends SIConstants {
             HTableDescriptor desc = new HTableDescriptor(SpliceConstants.TRANSACTION_TABLE_BYTES);
             desc.addFamily(new HColumnDescriptor(DEFAULT_FAMILY.getBytes(),
                     5,
-                    DEFAULT_COMPRESSION,
+                    compression,
                     DEFAULT_IN_MEMORY,
                     DEFAULT_BLOCKCACHE,
                     Integer.MAX_VALUE,
@@ -75,7 +75,7 @@ public class SpliceUtilities extends SIConstants {
 	public static HColumnDescriptor createDataFamily() {
 		return new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
 				SpliceConstants.DEFAULT_VERSIONS,
-				SpliceConstants.DEFAULT_COMPRESSION,
+				compression,
 				SpliceConstants.DEFAULT_IN_MEMORY,
 				SpliceConstants.DEFAULT_BLOCKCACHE,
 				SpliceConstants.DEFAULT_TTL,

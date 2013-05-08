@@ -41,7 +41,7 @@ public class SpliceConstants {
     public static final long DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME = 60;
     public static final int DEFAULT_HBASE_CLIENT_RETRIES_NUMBER = HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER;
     public static final boolean DEFAULT_HBASE_CLIENT_COMPRESS_WRITES = false;
-    
+	public static final String DEFAULT_COMPRESSION = "none";
 
     
     /*
@@ -76,7 +76,7 @@ public class SpliceConstants {
     public static final String CONFIG_CACHE_UPDATE_PERIOD = "hbase.htable.regioncache.updateinterval";
     public static final String CONFIG_CACHE_EXPIRATION = "hbase.htable.regioncache.expiration";
     public static final String CONFIG_HBASE_CLIENT_COMPRESS_WRITES = "hbase.client.compress.writes";
-    
+    public static final String CONFIG_COMPRESSION = "splice.compression";
     
 	// Zookeeper Actual Paths
 	public static String zkSpliceTaskPath;
@@ -105,6 +105,7 @@ public class SpliceConstants {
     public static boolean enableRegionCache;
     public static long cacheExpirationPeriod;
     public static boolean compressWrites;
+    public static String compression;
 
     
     /*
@@ -132,7 +133,7 @@ public class SpliceConstants {
 
 	// Splice Default Table Definitions
 	public static final int DEFAULT_VERSIONS = HColumnDescriptor.DEFAULT_VERSIONS;
-	public static final String DEFAULT_COMPRESSION = "none";
+
 	public static final Boolean DEFAULT_IN_MEMORY = HColumnDescriptor.DEFAULT_IN_MEMORY;
 	public static final Boolean DEFAULT_BLOCKCACHE=HColumnDescriptor.DEFAULT_BLOCKCACHE;
 	public static final int DEFAULT_TTL = HColumnDescriptor.DEFAULT_TTL;
@@ -207,6 +208,7 @@ public class SpliceConstants {
         enableRegionCache = cacheUpdatePeriod>0l;
         cacheExpirationPeriod = config.getLong(CONFIG_CACHE_EXPIRATION,DEFAULT_CACHE_EXPIRATION);
         compressWrites = config.getBoolean(CONFIG_HBASE_CLIENT_COMPRESS_WRITES,DEFAULT_HBASE_CLIENT_COMPRESS_WRITES);
+        compression = config.get(CONFIG_COMPRESSION, DEFAULT_COMPRESSION);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {
