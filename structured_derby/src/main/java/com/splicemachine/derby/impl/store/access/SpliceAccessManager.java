@@ -6,9 +6,11 @@ import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
 import com.splicemachine.derby.utils.ConglomerateUtils;
+import com.splicemachine.hbase.BetterHTablePool;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
@@ -60,11 +62,14 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceAccessManager implements AccessFactory, CacheableFactory, ModuleControl, PropertySetCallback {
 	private static Logger LOG = Logger.getLogger(SpliceAccessManager.class);
-	private Hashtable implhash;
+    private static final int DEFAULT_POOL_MAX_SIZE = Integer.MAX_VALUE;
+    private static final int DEFAULT_POOL_CORE_SIZE = 100;
+    private static final long DEFAULT_POOL_CLEANER_INTERVAL = 60;
+    private Hashtable implhash;
 	private HBaseStore rawstore;
 	private int system_lock_level = TransactionController.MODE_RECORD;
-	protected static HTablePool singleRPCPool;
-	protected static HTablePool flushablePool;
+	protected static BetterHTablePool singleRPCPool;
+	protected static BetterHTablePool flushablePool;
 	private Hashtable formathash;
 	private Properties serviceProperties;
 	LockingPolicy system_default_locking_policy;
@@ -80,6 +85,17 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 	public SpliceAccessManager() {
 		implhash   = new Hashtable();
 		formathash = new Hashtable();
+
+        int tablePoolMaxSize = SpliceUtils.config.getInt("splice.table.pool.maxsize",DEFAULT_POOL_MAX_SIZE);
+        int tablePoolCoreSize = SpliceUtils.config.getInt("splice.table.pool.coresize",DEFAULT_POOL_CORE_SIZE);
+        long tablePoolCleanerInterval = SpliceUtils.config.getLong("splice.table.pool.cleaner.interval",DEFAULT_POOL_CLEANER_INTERVAL);
+
+        singleRPCPool = new BetterHTablePool(new SpliceHTableFactory(),
+                tablePoolCleanerInterval,
+                TimeUnit.SECONDS,tablePoolMaxSize,tablePoolCoreSize);
+        flushablePool = new BetterHTablePool(new SpliceHTableFactory(false),
+                tablePoolCleanerInterval,
+                TimeUnit.SECONDS,tablePoolMaxSize,tablePoolCoreSize);
 	}
 
 	protected LockingPolicy getDefaultLockingPolicy() {
@@ -106,9 +122,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 					SQLState.AM_NO_SUCH_CONGLOMERATE_TYPE, "BTREE");
 		}
 		conglom_map[ConglomerateFactory.BTREE_FACTORY_ID] = (ConglomerateFactory) mfactory;
-		singleRPCPool = new HTablePool(HBaseConfiguration.create(), Integer.MAX_VALUE,new SpliceHTableFactory());
-		flushablePool = new HTablePool(HBaseConfiguration.create(), Integer.MAX_VALUE,new SpliceHTableFactory(false));
-		
+
 //		Configuration config = HBaseConfiguration.create();
 //		//SpliceUtils.generateQuorum();
 //		String conglomeratePath = config.get(SchemaConstants.CONGLOMERATE_PATH_NAME,SchemaConstants.DEFAULT_CONGLOMERATE_SCHEMA_PATH);		
@@ -134,13 +148,13 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 //		return rzk;
 //	}
 	
-	public static HTablePool getHTableRPCPool() {
-		return singleRPCPool;
-	}
+//	public static HTablePool getHTableRPCPool() {
+//		return singleRPCPool;
+//	}
 
-	public static HTablePool getHTableFlushablePool() {
-		return flushablePool;
-	}
+//	public static HTablePool getHTableFlushablePool() {
+//		return flushablePool;
+//	}
 
 	protected int getSystemLockLevel() {
 		return system_lock_level;
@@ -1024,19 +1038,19 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 	public static HTableInterface getHTable(Long id) {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("Getting HTable " + id);
-		return getHTableRPCPool().getTable(Long.toString(id));
+		return singleRPCPool.getTable(Long.toString(id));
 	}
 
 	public static HTableInterface getHTable(byte[] tableName) {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("Getting HTable " + Bytes.toString(tableName));
-		return getHTableRPCPool().getTable(tableName);
+		return singleRPCPool.getTable(Bytes.toString(tableName));
 	}
 
 	public static HTableInterface getFlushableHTable(byte[] tableName) {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("Getting HTable " + Bytes.toString(tableName));
-		return getHTableFlushablePool().getTable(tableName);
+		return flushablePool.getTable(Bytes.toString(tableName));
 	}
 	
 }
