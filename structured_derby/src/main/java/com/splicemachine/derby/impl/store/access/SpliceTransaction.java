@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.store.access;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.ParentTransactionManager;
-import com.splicemachine.si.impl.SiTransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -21,7 +20,6 @@ import org.apache.derby.iapi.store.raw.StreamContainerHandle;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.store.raw.log.LogInstant;
 import org.apache.derby.iapi.types.DataValueFactory;
-import org.apache.derby.iapi.types.J2SEDataValueFactory;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;

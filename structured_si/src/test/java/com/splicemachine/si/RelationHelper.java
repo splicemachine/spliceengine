@@ -1,4 +1,4 @@
-package com.splicemachine.si.data.helper;
+package com.splicemachine.si;
 
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STable;

@@ -8,8 +8,8 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.ZkUtils;
-
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
@@ -24,11 +24,9 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -38,19 +36,15 @@ import java.util.concurrent.ExecutionException;
 public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements SpliceSchedulerProtocol{
     private static final Logger LOG = Logger.getLogger(CoprocessorTaskScheduler.class);
     private TaskScheduler<RegionTask> taskScheduler;
-    private RecoverableZooKeeper zooKeeper;
     private Set<RegionTask> runningTasks;
-    private volatile LoadingTask loader;
-
 
     @Override
     public void start(CoprocessorEnvironment env) {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)env;
-        zooKeeper = rce.getRegionServerServices().getZooKeeper().getRecoverableZooKeeper();
         HRegion region = rce.getRegion();
         runningTasks = SpliceDriver.driver().getTaskMonitor().registerRegion(region.getRegionInfo().getRegionNameAsString());
         taskScheduler = SpliceDriver.driver().getTaskScheduler();
-        loader = new LoadingTask();
+        LoadingTask loader = new LoadingTask();
         //submit a task to load any outstanding tasks from the zookeeper region queue
         try {
             doSubmit(loader,rce);
@@ -109,7 +103,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
             });
 
             //prepare the task for this specific region
-            task.prepareTask(rce.getRegion(),zooKeeper);
+            task.prepareTask(rce.getRegion(),ZkUtils.getZkManager());
             TaskFuture future = taskScheduler.submit(task);
             return new TaskFutureContext(future.getTaskId(),future.getEstimatedCost());
         } catch (ExecutionException e) {
@@ -138,7 +132,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     private class LoadingTask implements RegionTask{
         private HRegion regionToLoad;
         private volatile TaskStatus status = new TaskStatus(Status.PENDING,null);
-        private RecoverableZooKeeper zooKeeper;
+        private SpliceZooKeeperManager zooKeeper;
         private String taskID;
 
 
@@ -166,53 +160,76 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         @Override
         public void execute() throws ExecutionException, InterruptedException {
             //get List of Tasks that are waiting on this region's queue
-            String regionQueue = getRegionQueue(regionToLoad.getRegionInfo());
-            List<String> tasks;
-            try{
-                tasks = zooKeeper.getChildren(regionQueue, false);
+            final String regionQueue = getRegionQueue(regionToLoad.getRegionInfo());
+            try {
+                zooKeeper.execute(new SpliceZooKeeperManager.Command<Void>() {
+                    @Override
+                    public Void execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
+                        List<String> tasks;
+                        try{
+                            tasks = zooKeeper.getChildren(regionQueue,false);
+                        }catch(KeeperException e){
+                            //if the exception is nonode, then there are no tasks to process
+                            //shouldn't ever happen, but just in case
+                            if(e.code()!= KeeperException.Code.NONODE)
+                                throw e;
+                            else
+                                return null;
+                        }
+
+                        for(String taskNode:tasks){
+                            TaskStatus taskStatus;
+                            ByteDataInput bdi;
+                            try{
+                                String statusNode = regionQueue+"/"+taskNode+"/status";
+                                bdi = new ByteDataInput(zooKeeper.getData(statusNode,false,new Stat()));
+                                taskStatus = (TaskStatus)bdi.readObject();
+                            }catch(KeeperException ke){
+                                if(ke.code()== KeeperException.Code.NONODE){
+                                    taskStatus = new TaskStatus(Status.EXECUTING,null);
+                                }else
+                                    throw ke;
+                            } catch (ClassNotFoundException e) {
+                                //won't happen
+                                throw new RuntimeException(e);
+                            } catch (IOException e) {
+                                //won't happen
+                                throw new RuntimeException(e);
+                            }
+
+                            switch (status.getStatus()) {
+                                case FAILED:
+                                case COMPLETED:
+                                case CANCELLED:
+                                    continue;
+                            }
+
+                            bdi =  new ByteDataInput(zooKeeper.getData(regionQueue+"/"+taskNode,false,new Stat()));
+                            try {
+                                Task task = (Task)bdi.readObject();
+                                task.getTaskStatus().setStatus(taskStatus.getStatus());
+
+                                if(task instanceof RegionTask){
+                                    RegionTask regionTask = (RegionTask)task;
+                                    regionTask.prepareTask(regionToLoad, ZkUtils.getZkManager());
+                                    taskScheduler.submit(regionTask);
+                                }
+                            } catch (ClassNotFoundException e1) {
+                                throw new RuntimeException(e1);
+                            } catch (IOException e1) {
+                                throw new RuntimeException(e1);
+                            } catch (ExecutionException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        return null;
+                    }
+                });
             } catch (KeeperException e) {
-                if(e.code()== KeeperException.Code.NONODE){
-                    //probably won't happen, but still
-                    //there are obviously no tasks to load, so no worries there
-                    return;
-                }
                 throw new ExecutionException(e);
-            }
-            for(String taskNode:tasks){
-                try{
-                    ByteDataInput bdi = new ByteDataInput(zooKeeper.getData(regionQueue+"/"+taskNode+"/status",false,new Stat()));
-                    //read status node and ensure status is something that we need to execute
-                    TaskStatus status = (TaskStatus)bdi.readObject();
-                    switch (status.getStatus()) {
-                        case FAILED:
-                        case COMPLETED:
-                        case CANCELLED:
-                            //don't resubmit
-                            continue;
-                    }
-
-                    //task needs to be re-run, so read it out and submit it
-                    bdi = new ByteDataInput(zooKeeper.getData(regionQueue+"/"+taskNode,false,new Stat()));
-                    Task task = (Task)bdi.readObject();
-
-                    //we need to run this task
-                    task.getTaskStatus().setStatus(status.getStatus());
-
-                    if(task instanceof RegionTask){
-                        RegionTask regionTask = (RegionTask)task;
-                        regionTask.prepareTask(regionToLoad, zooKeeper);
-                        taskScheduler.submit(regionTask);
-                    }
-                } catch (KeeperException e) {
-                    //skip any tasks which were cancelled on us
-                    if(e.code()!= KeeperException.Code.NONODE){
-                       throw new ExecutionException(e);
-                    }
-                } catch (ClassNotFoundException e) {
-                    throw new ExecutionException(e);
-                } catch (IOException e) {
-                    throw new ExecutionException(e);
-                }
+            } catch(RuntimeException e){
+                if(e.getCause() instanceof ExecutionException)
+                    throw (ExecutionException)e.getCause();
             }
         }
 
@@ -255,7 +272,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         }
 
         @Override
-        public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
+        public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
             this.regionToLoad =region;
             this.zooKeeper = zooKeeper;
         }

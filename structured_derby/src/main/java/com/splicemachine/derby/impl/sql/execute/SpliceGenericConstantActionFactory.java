@@ -95,7 +95,7 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                      String schemaName,
                                                      UUID tableId,
                                                      long tableConglomerateId) {
-    	SpliceLogUtils.trace(LOG, "getDropIndexConstantAction for index {%s} on {%s.%s} with columnNames %s",fullIndexName, schemaName, tableName);
+    	SpliceLogUtils.trace(LOG, "getDropIndexConstantAction for index {%s} on {%s.%s}",fullIndexName, schemaName, tableName);
         return new DropIndexOperation(fullIndexName,indexName,
                 tableName,schemaName,tableId,tableConglomerateId);
     }

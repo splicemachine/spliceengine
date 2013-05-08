@@ -213,4 +213,16 @@ public class ProjectRestrictOperationTest extends SpliceUnitTest  {
 		}
 		Assert.assertEquals("Incorrect num rows returned!",10,results.size());
 	}
+
+    @Test
+    public void testConstantIntCompareFalseFilter() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select * from " + this.getPaddedTableReference("A") +"where 2 < 1");
+        Assert.assertFalse("1 or more results were found when none were expected",rs.next());
+    }
+
+    @Test
+    public void testConstantBooleanFalseFilter() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select * from " + this.getPaddedTableReference("A") +"where false");
+        Assert.assertFalse("1 or more results were found when none were expected",rs.next());
+    }
 }

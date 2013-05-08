@@ -65,4 +65,8 @@ public class SpliceLogUtils {
 	public static void warn(Logger log, String messagePattern,Object...args) {
 		log.warn(String.format(messagePattern,args));
 	}
+
+    public static void warn(Logger log, String message,Throwable error) {
+        log.warn(message,error);
+    }
 }

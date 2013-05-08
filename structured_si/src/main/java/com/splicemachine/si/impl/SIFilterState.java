@@ -1,14 +1,14 @@
 package com.splicemachine.si.impl;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.api.FilterState;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE;
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.NEXT_COL;
@@ -18,8 +18,13 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
  * Contains the logic for performing an HBase-style filter using "snapshot isolation" logic. This means it filters out
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
-public class SiFilterState implements FilterState {
-    static final Logger LOG = Logger.getLogger(SiFilterState.class);
+public class SIFilterState implements FilterState {
+    static final Logger LOG = Logger.getLogger(SIFilterState.class);
+
+    /**
+     * The transactions that have been loaded as part of running this filter.
+     */
+    final Cache<Long, Transaction> transactionCache;
 
     private final ImmutableTransaction myTransaction;
     private final SDataLib dataLib;
@@ -30,13 +35,15 @@ public class SiFilterState implements FilterState {
     private final FilterRowState rowState;
     private DecodedKeyValue keyValue;
 
-    public SiFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
+    public SIFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
                          RollForwardQueue rollForwardQueue, ImmutableTransaction myTransaction) {
         this.dataLib = dataLib;
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
         this.rollForwardQueue = rollForwardQueue;
         this.myTransaction = myTransaction;
+
+        transactionCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
         // initialize internal state
         this.rowState = new FilterRowState(dataLib);
@@ -54,7 +61,7 @@ public class SiFilterState implements FilterState {
     }
 
     /**
-     * Look at the column family and qualifier to determing how to "dispatch" the current keyValue.
+     * Look at the column family and qualifier to determine how to "dispatch" the current keyValue.
      */
     private Filter.ReturnCode filterByColumnType() throws IOException {
         final KeyValueType type = dataStore.getKeyValueType(keyValue.family, keyValue.qualifier);
@@ -74,12 +81,27 @@ public class SiFilterState implements FilterState {
      * relevant transaction data to be loaded up into the local cache.
      */
     private Filter.ReturnCode processCommitTimestamp() throws IOException {
-        final Transaction transaction = dataStore.isSiNull(keyValue.value)
-                ? handleUnknownTransactionStatus()
-                // TODO: we should avoid loading the full transaction here once roll-forward is revisited
-                : transactionStore.getTransaction(keyValue.timestamp);
+        Transaction transaction = null;
+
+        if (dataStore.isSiNull(keyValue.value)) {
+            transaction = handleUnknownTransactionStatus();
+        } else if (dataStore.isSiFail(keyValue.value)) {
+            transaction = new Transaction(keyValue.timestamp, 0, null, null, null, false, null, null, TransactionStatus.ERROR, null);
+        } else {
+            // TODO: we should avoid loading the full transaction here once roll-forward is revisited
+            transaction = getTransactionFromFilterCache();
+        }
         rowState.transactionCache.put(transaction.beginTimestamp, transaction);
         return SKIP;
+    }
+
+    private Transaction getTransactionFromFilterCache() throws IOException {
+        Transaction transaction = transactionCache.getIfPresent(keyValue.timestamp);
+        if (transaction == null) {
+            transaction = transactionStore.getTransaction(keyValue.timestamp);
+            transactionCache.put(transaction.beginTimestamp, transaction);
+        }
+        return transaction;
     }
 
     /**
@@ -90,11 +112,9 @@ public class SiFilterState implements FilterState {
     private Transaction handleUnknownTransactionStatus() throws IOException {
         final Transaction cachedTransaction = rowState.transactionCache.get(keyValue.timestamp);
         if (cachedTransaction == null) {
-            final Transaction dataTransaction = transactionStore.getTransaction(keyValue.timestamp);
-            if (dataTransaction.isCommitted()) {
+            final Transaction dataTransaction = getTransactionFromFilterCache();
+            if (dataTransaction.isCommitted() || dataTransaction.isFailed()) {
                 rollForward(dataTransaction);
-            } else if (dataTransaction.isFailed()) {
-                cleanupErrors();
             } else if (dataTransaction.isCommitting()) {
                 //TODO: needs special handling
             }
@@ -113,10 +133,6 @@ public class SiFilterState implements FilterState {
             // TODO: revisit this in light of nested independent transactions
             dataStore.recordRollForward(rollForwardQueue, transaction, keyValue.row);
         }
-    }
-
-    private void cleanupErrors() {
-        //TODO: implement this
     }
 
     /**

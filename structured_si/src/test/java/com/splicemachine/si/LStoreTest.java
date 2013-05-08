@@ -3,7 +3,6 @@ package com.splicemachine.si;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.STable;
-import com.splicemachine.si.data.helper.RelationHelper;
 import com.splicemachine.si.data.light.LDataLib;
 import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.data.light.ManualClock;

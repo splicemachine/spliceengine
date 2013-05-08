@@ -6,6 +6,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationProtocol;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.TaskStats;
@@ -133,7 +134,8 @@ public abstract class MultiScanRowProvider implements RowProvider {
                            SpliceObserverInstructions instructions,
                            Scan scan) throws StandardException {
         SpliceUtils.setInstructions(scan, instructions);
-        OperationJob job = new OperationJob(scan,instructions,table);
+        boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
+        OperationJob job = new OperationJob(scan,instructions,table,readOnly);
         try {
             return SpliceDriver.driver().getJobScheduler().submit(job);
         } catch (Throwable throwable) {

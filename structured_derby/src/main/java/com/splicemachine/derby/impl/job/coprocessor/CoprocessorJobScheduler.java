@@ -3,9 +3,12 @@ package com.splicemachine.derby.impl.job.coprocessor;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.scheduler.ZkBackedJobScheduler;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.Status;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -30,7 +33,7 @@ public class CoprocessorJobScheduler extends ZkBackedJobScheduler<CoprocessorJob
     private static final int DEFAULT_MAX_RESUBMISSIONS = 3;
     private final int maxResubmissionAttempts;
 
-    public CoprocessorJobScheduler(RecoverableZooKeeper zooKeeper,Configuration configuration) {
+    public CoprocessorJobScheduler(SpliceZooKeeperManager zooKeeper,Configuration configuration) {
         super(zooKeeper);
 
         maxResubmissionAttempts = configuration.getInt("splice.task.maxResubmissions",DEFAULT_MAX_RESUBMISSIONS);
@@ -70,7 +73,7 @@ public class CoprocessorJobScheduler extends ZkBackedJobScheduler<CoprocessorJob
                 }, new Batch.Callback<TaskFutureContext>() {
                     @Override
                     public void update(byte[] region, byte[] row, TaskFutureContext result) {
-                        tasks.add(new RegionWatchingTask(result, zooKeeper, row, task, table, tasks));
+                        tasks.add(new RegionWatchingTask(result, row, task, table, tasks));
                     }
                 }
         );
@@ -84,12 +87,11 @@ public class CoprocessorJobScheduler extends ZkBackedJobScheduler<CoprocessorJob
         private final AtomicInteger submissionAttempts = new AtomicInteger(0);
 
         public RegionWatchingTask(TaskFutureContext result,
-                                  RecoverableZooKeeper zooKeeper,
                                   byte[] startRow,
                                   RegionTask task,
                                   HTableInterface table,
                                   NavigableSet<RegionWatchingTask> taskSet ) {
-            super(result,zooKeeper);
+            super(result,zkManager);
             this.startRow = startRow;
             this.task = task;
             this.tasksToWatch = taskSet;
@@ -120,9 +122,14 @@ public class CoprocessorJobScheduler extends ZkBackedJobScheduler<CoprocessorJob
             tasksToWatch.remove(this);
 
             //make sure that we are wholly within the range needed to resubmit
-            byte[] endRow = new byte[nextTask.startRow.length];
-            System.arraycopy(nextTask.startRow,0,endRow,0,endRow.length);
-            BytesUtil.decrementAtIndex(endRow,endRow.length-1);
+            byte[] endRow;
+            if(nextTask!=null){
+                endRow = new byte[nextTask.startRow.length];
+                System.arraycopy(nextTask.startRow,0,endRow,0,endRow.length);
+
+                BytesUtil.decrementAtIndex(endRow,endRow.length-1);
+            }else
+                endRow = HConstants.EMPTY_END_ROW;
 
             try {
                 submitTask(task, startRow, endRow, table, tasksToWatch);

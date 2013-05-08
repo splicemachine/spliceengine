@@ -2,13 +2,16 @@
 package com.splicemachine.derby.impl.store.access.btree;
 
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
@@ -17,6 +20,8 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
+
+import java.io.IOException;
 
 
 public class IndexController  extends SpliceController  {
@@ -33,8 +38,8 @@ public class IndexController  extends SpliceController  {
 
 	@Override
 	public int insert(DataValueDescriptor[] row) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("insert " + row + ", row ");	
+        SpliceLogUtils.trace(LOG,"insert row %s",row);
+        HTableInterface htable = getHTable();
 		try {
 			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
@@ -43,7 +48,9 @@ public class IndexController  extends SpliceController  {
 			return 0;
 		} catch (Exception e) {
 			LOG.error(e.getMessage(),e);
-		}
+		}finally{
+           closeHTable(htable);
+        }
 		return -1;
 	}
 
@@ -51,7 +58,8 @@ public class IndexController  extends SpliceController  {
 	public void insertAndFetchLocation(DataValueDescriptor[] row,
 			RowLocation destRowLocation) throws StandardException {
 		if (LOG.isTraceEnabled())
-			LOG.trace("insertAndFetchLocation row " + row);	
+			LOG.trace("insertAndFetchLocation row " + row);
+        HTableInterface htable = getHTable();
 		try {
 			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
@@ -63,13 +71,16 @@ public class IndexController  extends SpliceController  {
 			htable.put(put);
 		} catch (Exception e) {
 			throw StandardException.newException("insert and fetch location error",e);
-		}	
+		} finally{
+            closeHTable(htable);
+        }
 	}
 
 	@Override
 	public boolean replace(RowLocation loc, DataValueDescriptor[] row, FormatableBitSet validColumns) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("replace rowlocation " + loc + ", destRow " + row + ", validColumns " + validColumns);
+        HTableInterface htable = getHTable();
 		try {
 			boolean[] sortOrder = ((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			if (openSpliceConglomerate.cloneRowTemplate().length == row.length && validColumns == null) {
@@ -90,7 +101,10 @@ public class IndexController  extends SpliceController  {
 			return true;			
 		} catch (Exception e) {
 			throw StandardException.newException("Error during replace " + e);
-		}
+		} finally{
+            closeHTable(htable);
+        }
+
 	}
 
 	@Override

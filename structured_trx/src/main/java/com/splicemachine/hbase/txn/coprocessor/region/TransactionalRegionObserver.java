@@ -36,7 +36,7 @@ public class TransactionalRegionObserver extends BaseTxnRegionObserver {
 	private static Logger LOG = Logger.getLogger(TransactionalRegionObserver.class);
 
 	private ConcurrentHashMap<String, TransactionState> transactionStateByID = new ConcurrentHashMap<String, TransactionState>();
-	private HTablePool tablePool;
+//	private HTablePool tablePool;
 	private boolean tableEnvMatch = false;
 	private boolean isDerbySysTable = false;
 

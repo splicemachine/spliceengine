@@ -8,12 +8,12 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-public class SiFilterHBaseTest extends SiFilterTest {
+public class SIFilterHBaseTest extends SIFilterTest {
     static StoreSetup classStoreSetup;
     static TransactorSetup classTransactorSetup;
     static Transactor classTransactor;
 
-    public SiFilterHBaseTest() {
+    public SIFilterHBaseTest() {
         useSimple = false;
     }
 

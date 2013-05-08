@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.NavigableMap;
 
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Mutations;
@@ -189,10 +190,11 @@ public class UpdateOperation extends DMLWriteOperation{
             writeBuffer.flushBuffer();
             writeBuffer.close();
 		} catch (Exception e) {
-            if(Exceptions.shouldLogStackTrace(e))
-                SpliceLogUtils.logAndThrow(LOG,Exceptions.getIOException(e));
-            else
+            if(Exceptions.shouldLogStackTrace(e)){
+                throw SpliceStandardLogUtils.generateSpliceIOException(LOG, e.getMessage(),e);
+            }else{
                 throw Exceptions.getIOException(e);
+            }
 		}
         //return stats.finish();
 		TaskStats ss = stats.finish();

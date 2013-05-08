@@ -2,9 +2,13 @@ package com.splicemachine.constants;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
+/**
+ * Defines the schema used by SI for the transaction table and for additional metadata on data tables.
+ */
 
 public class SIConstants extends SpliceConstants {
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    public static final byte[] SNAPSHOT_ISOLATION_FAILED_TIMESTAMP = new byte[] {-1};
 
     public static final String SNAPSHOT_ISOLATION_FAMILY = "S";
     public static final byte[] SNAPSHOT_ISOLATION_FAMILY_BYTES = SNAPSHOT_ISOLATION_FAMILY.getBytes();

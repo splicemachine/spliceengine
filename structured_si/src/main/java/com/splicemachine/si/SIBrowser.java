@@ -20,7 +20,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class SiBrowser {
+public class SIBrowser {
     public static void main(String[] args) throws IOException {
         HTable transactionTable = new HTable(SIConstants.TRANSACTION_TABLE);
         Scan scan = new Scan();

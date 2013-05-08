@@ -118,7 +118,7 @@ public class MergeSortRegionAwareRowProvider extends SingleScanRowProvider {
         if(populated)return true;
         try{
             Result result = getResult();
-            if(result!=null){
+            if(result!=null && !result.isEmpty()){
         		rowType = (SQLInteger) serializer.deserialize(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN),rowType);
     			if (rowType.getInt() == JoinSide.RIGHT.ordinal()) {
     				SpliceUtils.populate(result, fbt, rightRow.getRowArray(),serializer);

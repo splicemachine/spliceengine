@@ -2,12 +2,14 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.TransactionalTask;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.derby.utils.SpliceZooKeeperManager;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -33,15 +35,18 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 4/5/13
  */
-public abstract class AbstractImportTask extends ZooKeeperTask{
+public abstract class AbstractImportTask extends TransactionalTask{
     private static final long serialVersionUID = 1l;
     protected ImportContext importContext;
     protected FileSystem fileSystem;
 
     public AbstractImportTask() { }
 
-    public AbstractImportTask(String jobId,ImportContext importContext,int priority) {
-        super(jobId,priority);
+    public AbstractImportTask(String jobId,
+                              ImportContext importContext,
+                              int priority,
+                              long parentTransactionId) {
+        super(jobId,priority,parentTransactionId,false);
         this.importContext = importContext;
     }
 
@@ -63,7 +68,7 @@ public abstract class AbstractImportTask extends ZooKeeperTask{
     }
 
     @Override
-    public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
+    public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         fileSystem = region.getFilesystem();
         this.taskId = buildTaskId(region);
         super.prepareTask(region, zooKeeper);
@@ -112,29 +117,22 @@ public abstract class AbstractImportTask extends ZooKeeperTask{
 
     protected void doImportRow(String transactionId,String[] line,FormatableBitSet activeCols, ExecRow row,
                              CallBuffer<Mutation> writeBuffer,
-                             RowSerializer rowSerializer,Serializer serializer) throws IOException {
-        try{
-            if(activeCols!=null){
-                for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
-                    row.getColumn(activePos+1).setValue(line[pos]);
-                }
-            }else{
-                for(int pos=0;pos<line.length-1;pos++){
-                    row.getColumn(pos+1).setValue(line[pos]);
-                }
-                //the last entry in the line array can be an empty string, which correlates to the row's nColumns() = line.length-1
-                if(row.nColumns()==line.length){
-                    row.getColumn(line.length).setValue(line[line.length-1]);
-                }
+                             RowSerializer rowSerializer,Serializer serializer) throws Exception {
+        if(activeCols!=null){
+            for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
+                row.getColumn(activePos+1).setValue(line[pos]);
             }
-            Put put = Puts.buildInsertWithSerializer(rowSerializer.serialize(row.getRowArray()),row.getRowArray(),null,transactionId,serializer);
-            writeBuffer.add(put);
-        }catch(StandardException se){
-            throw new DoNotRetryIOException(se.getMessageId());
-        } catch (Exception e) {
-            SpliceLogUtils.error(LOG,"Error importing line %s", Arrays.toString(line));
-            throw Exceptions.getIOException(e);
+        }else{
+            for(int pos=0;pos<line.length-1;pos++){
+                row.getColumn(pos+1).setValue(line[pos]);
+            }
+            //the last entry in the line array can be an empty string, which correlates to the row's nColumns() = line.length-1
+            if(row.nColumns()==line.length){
+                row.getColumn(line.length).setValue(line[line.length-1]);
+            }
         }
+        Put put = Puts.buildInsertWithSerializer(rowSerializer.serialize(row.getRowArray()),row.getRowArray(),null,transactionId,serializer);
+        writeBuffer.add(put);
     }
 
     protected void reportIntermediate(long numRecordsImported){

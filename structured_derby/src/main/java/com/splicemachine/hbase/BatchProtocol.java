@@ -20,7 +20,7 @@ public interface BatchProtocol extends CoprocessorProtocol {
      * @param mutationsToApply the mutations to apply
      * @throws IOException if something goes wrong applying the mutation
      */
-    public void batchMutate(MutationRequest mutationsToApply) throws IOException;
+    public MutationResponse batchMutate(MutationRequest mutationsToApply) throws IOException;
 
     /**
      * Delete the first row that appears after the specified rowKey, but *only* if it
@@ -32,5 +32,5 @@ public interface BatchProtocol extends CoprocessorProtocol {
      * @param rowKey the start to search
      * @throws IOException if something goes wrong
      */
-    public void deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException;
+    public MutationResult deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException;
 }

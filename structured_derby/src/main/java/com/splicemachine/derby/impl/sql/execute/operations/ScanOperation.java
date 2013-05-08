@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.splicemachine.derby.iapi.store.access.AutoCastedQualifier;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.CursorResultSet;
@@ -16,6 +18,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.execute.SelectConstantAction;
@@ -214,10 +217,96 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		return null;
 	}
 
+    private boolean isFloatType(DataValueDescriptor dvd){
+        if(dvd==null) return false;
+        int typeId = dvd.getTypeFormatId();
+
+        return typeId == StoredFormatIds.SQL_DOUBLE_ID
+                || typeId == StoredFormatIds.SQL_DECIMAL_ID
+                || typeId == StoredFormatIds.SQL_REAL_ID;
+    }
+
+    private boolean isIntegerType(DataValueDescriptor dvd){
+        if(dvd==null) return false;
+        int typeId = dvd.getTypeFormatId();
+
+        return typeId == StoredFormatIds.SQL_INTEGER_ID
+                || typeId == StoredFormatIds.SQL_LONGINT_ID
+                || typeId == StoredFormatIds.SQL_TINYINT_ID
+                || typeId == StoredFormatIds.SQL_SMALLINT_ID;
+    }
+
+    private boolean isCastingNeeded(Qualifier[][] scanQualifiers, ExecRow candidateRow) throws StandardException{
+
+        boolean isNeeded = false;
+
+        if(scanQualifiers != null){
+
+            DataValueDescriptor dvds[] = candidateRow.getRowArray();
+
+            for(int i=0; i < scanQualifiers.length && !isNeeded; i++ ){
+                for(int j=0; j< scanQualifiers[i].length && !isNeeded; j++){
+                    int column = scanQualifiers[i][j].getColumnId();
+                    DataValueDescriptor columnDvd = dvds[column];
+                    DataValueDescriptor filterDvd = scanQualifiers[i][j].getOrderable();
+                    if((isIntegerType(columnDvd) && isFloatType(filterDvd))
+                            || (isIntegerType(filterDvd) && isFloatType(columnDvd))){
+                        isNeeded = true;
+                    }
+                }
+
+            }
+        }
+
+        return isNeeded;
+    }
+
+    private Qualifier[][] createAutoCastedQualifiers(Qualifier[][] scanQualifiers, ExecRow candidateRow) throws StandardException{
+        DataValueDescriptor[] dvds = candidateRow.getRowArray();
+
+        Qualifier[][] castedQualifiers = new Qualifier[scanQualifiers.length][];
+
+        for(int i = 0; i < scanQualifiers.length; i++){
+
+            castedQualifiers[i] = new Qualifier[scanQualifiers[i].length];
+
+            for(int j = 0; j < scanQualifiers[i].length; j++){
+                int column = scanQualifiers[i][j].getColumnId();
+                DataValueDescriptor newDvd = dvds[column].cloneValue(false);
+                DataValueDescriptor filterDvd = scanQualifiers[i][j].getOrderable();
+
+                if(isIntegerType(newDvd) && isFloatType(filterDvd)){
+                    newDvd.setValue(filterDvd.getInt());
+                    castedQualifiers[i][j] = new AutoCastedQualifier(scanQualifiers[i][j],newDvd);
+                }else if(isIntegerType(filterDvd) && isFloatType(newDvd)){
+                    newDvd.setValue(filterDvd.getDouble());
+                    castedQualifiers[i][j] = new AutoCastedQualifier(scanQualifiers[i][j],newDvd);
+                }else{
+                    castedQualifiers[i][j] = scanQualifiers[i][j];
+                }
+            }
+        }
+
+        return castedQualifiers;
+    }
+
     protected Scan getScan() throws IOException {
+
+        Qualifier[][] autoCastedQuals = null;
+
+        try{
+            if(isCastingNeeded(scanQualifiers, candidate)){
+                autoCastedQuals = createAutoCastedQualifiers(scanQualifiers, candidate);
+            }else{
+                autoCastedQuals = scanQualifiers;
+            }
+        }catch(StandardException e){
+            SpliceLogUtils.logAndThrowRuntime(LOG, e);
+        }
+
         return Scans.setupScan(startPosition == null ? null : startPosition.getRowArray(), startSearchOperator,
                 stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator,
-                scanQualifiers, conglomerate.getAscDescInfo(), pkCols,accessedCols,
+                autoCastedQuals, conglomerate.getAscDescInfo(), pkCols,accessedCols,
                 getTransactionID());
     }
 

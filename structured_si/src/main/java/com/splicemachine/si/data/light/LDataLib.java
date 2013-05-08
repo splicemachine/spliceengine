@@ -208,6 +208,11 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
+    public Object newKeyValue(Object rowKey, Object family, Object qualifier, Long timestamp, Object value) {
+        return new LKeyValue((String) rowKey, (String) family, (String) qualifier, timestamp, value);
+    }
+
+    @Override
     public Object getKeyValueRow(Object keyValue) {
         return ((LKeyValue) keyValue).rowKey;
     }

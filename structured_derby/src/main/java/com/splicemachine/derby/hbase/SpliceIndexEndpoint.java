@@ -1,13 +1,17 @@
 package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
-import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
+import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.MutationRequest;
+import com.splicemachine.hbase.MutationResponse;
+import com.splicemachine.hbase.MutationResult;
+import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.batch.WriteContextFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
@@ -18,14 +22,15 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -36,7 +41,9 @@ import java.util.List;
  */
 public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements BatchProtocol{
     private static final Logger LOG = Logger.getLogger(SpliceIndexEndpoint.class);
-    private volatile IndexSet indexSet;
+
+    private volatile WriteContextFactory<RegionCoprocessorEnvironment> writeContextFactory;
+    //TODO -sf- instantiate!
 
     @Override
     public void start(CoprocessorEnvironment env) {
@@ -47,17 +54,18 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         }catch(NumberFormatException nfe){
             SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
                     "index management for batch operations will be diabled",tableName);
-            indexSet = IndexSet.noIndex();
+            writeContextFactory = WriteContextFactoryPool.getDefaultFactory();
             super.start(env);
             return;
         }
 
-        indexSet = IndexSetPool.getIndex(conglomId);
+        writeContextFactory = WriteContextFactoryPool.getContextFactory(conglomId);
         SpliceDriver.Service service = new SpliceDriver.Service(){
 
             @Override
             public boolean start() {
-                indexSet.prepare();
+                if(writeContextFactory instanceof LocalWriteContextFactory)
+                    ((LocalWriteContextFactory) writeContextFactory).prepare();
                 SpliceDriver.driver().deregisterService(this);
                 return true;
             }
@@ -72,25 +80,41 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     }
 
     @Override
-    public void batchMutate(MutationRequest mutationsToApply) throws IOException {
-        RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
-        indexSet.update(mutationsToApply.getMutations(), rce);
-
-        //apply the local mutations
-        HRegion region = rce.getRegion();
-        for(Mutation mutation:mutationsToApply.getMutations()){
-            mutation.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
-            if(mutation instanceof Put) {
-                Pair<Put, Integer> putsAndLocks[] = new Pair[] {new Pair<Put, Integer>((Put) mutation, null)};
-                region.put(putsAndLocks);
-            } else {
-                region.delete((Delete)mutation,null,true);
-            }
-        }
+    public void stop(CoprocessorEnvironment env) {
+        WriteContextFactoryPool.releaseContextFactory((LocalWriteContextFactory) writeContextFactory);
     }
 
     @Override
-    public void deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException {
+    public MutationResponse batchMutate(MutationRequest mutationsToApply) throws IOException {
+//        SpliceLogUtils.trace(LOG,"received request %s",mutationsToApply);
+        RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
+        WriteContext context;
+        try {
+            context = writeContextFactory.create(rce);
+        } catch (InterruptedException e) {
+            //was interrupted while trying to create a write context.
+            //we're done, someone else will have to write this batch
+            throw new IOException(e);
+        }
+        for(Mutation mutation:mutationsToApply.getMutations()){
+            context.sendUpstream(mutation); //send all writes along the pipeline
+        }
+        Map<Mutation,MutationResult> resultMap = context.finish();
+
+        MutationResponse response = new MutationResponse();
+        List<Mutation> mutations = mutationsToApply.getMutations();
+        int pos=0;
+        for(Mutation mutation:mutations){
+            MutationResult result = resultMap.get(mutation);
+            response.addResult(pos,result);
+            pos++;
+        }
+
+        return response;
+    }
+
+    @Override
+    public MutationResult deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         final HRegion region = rce.getRegion();
         Scan scan = SpliceUtils.createScan(transactionId);
@@ -107,11 +131,36 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             if(Bytes.compareTo(rowBytes,limit)<0){
                 Mutation mutation = Mutations.getDeleteOp(transactionId,rowBytes);
                 mutation.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
-                if(mutation instanceof Put)
-                    region.put(new Pair[]{Pair.newPair((Put)mutation,null)});
-                else
-                    region.delete((Delete)mutation,null,true);
+                if(mutation instanceof Put){
+                    try{
+                        OperationStatus[] statuses = region.put(new Pair[]{Pair.newPair((Put)mutation,null)});
+                        OperationStatus status = statuses[0];
+                        switch (status.getOperationStatusCode()) {
+                            case NOT_RUN:
+                                return MutationResult.notRun();
+                            case SUCCESS:
+                                return MutationResult.success();
+                            default:
+                                return new MutationResult(MutationResult.Code.FAILED,status.getExceptionMsg());
+                        }
+                    }catch(IOException ioe){
+                        return new MutationResult(MutationResult.Code.FAILED,ioe.getMessage());
+                    }
+                }else{
+                    try{
+                        region.delete((Delete)mutation,null,true);
+                        return MutationResult.success();
+                    }catch(IOException ioe){
+                        return new MutationResult(MutationResult.Code.FAILED,ioe.getMessage());
+                    }
+                }
+            }else{
+                //we've gone past our stop point, so we can't delete anything
+                return MutationResult.notRun();
             }
+        }else{
+            //there are no rows matching this scan, so we can't delete anything
+            return MutationResult.notRun();
         }
     }
 

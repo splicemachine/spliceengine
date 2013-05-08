@@ -6,8 +6,11 @@ import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import com.google.common.base.Preconditions;
 import com.splicemachine.derby.utils.ConglomerateUtils;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.BetterHTablePool;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
@@ -42,6 +45,7 @@ import org.apache.derby.shared.common.reference.Attribute;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.HTablePool;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
@@ -49,11 +53,11 @@ import com.splicemachine.utils.SpliceUtilities;
 
 public class SpliceAccessManager extends SpliceUtilities implements AccessFactory, CacheableFactory, ModuleControl, PropertySetCallback {
 	private static Logger LOG = Logger.getLogger(SpliceAccessManager.class);
-	private Hashtable implhash;
+    private Hashtable implhash;
 	private HBaseStore rawstore;
 	private int system_lock_level = TransactionController.MODE_RECORD;
-	protected static HTablePool singleRPCPool;
-	protected static HTablePool flushablePool;
+	protected static BetterHTablePool singleRPCPool;
+	protected static BetterHTablePool flushablePool;
 	private Hashtable formathash;
 	private Properties serviceProperties;
 	LockingPolicy system_default_locking_policy;
@@ -67,6 +71,12 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 	public SpliceAccessManager() {
 		implhash   = new Hashtable();
 		formathash = new Hashtable();
+        singleRPCPool = new BetterHTablePool(new SpliceHTableFactory(),
+                tablePoolCleanerInterval,
+                TimeUnit.SECONDS,tablePoolMaxSize,tablePoolCoreSize);
+        flushablePool = new BetterHTablePool(new SpliceHTableFactory(false),
+                tablePoolCleanerInterval,
+                TimeUnit.SECONDS,tablePoolMaxSize,tablePoolCoreSize);
 	}
 
 	protected LockingPolicy getDefaultLockingPolicy() {
@@ -93,19 +103,15 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 					SQLState.AM_NO_SUCH_CONGLOMERATE_TYPE, "BTREE");
 		}
 		conglom_map[ConglomerateFactory.BTREE_FACTORY_ID] = (ConglomerateFactory) mfactory;
-		singleRPCPool = new HTablePool(HBaseConfiguration.create(), Integer.MAX_VALUE,new SpliceHTableFactory());
-		flushablePool = new HTablePool(HBaseConfiguration.create(), Integer.MAX_VALUE,new SpliceHTableFactory(false));
-		
-
 	}
 	
-	public static HTablePool getHTableRPCPool() {
-		return singleRPCPool;
-	}
+//	public static HTablePool getHTableRPCPool() {
+//		return singleRPCPool;
+//	}
 
-	public static HTablePool getHTableFlushablePool() {
-		return flushablePool;
-	}
+//	public static HTablePool getHTableFlushablePool() {
+//		return flushablePool;
+//	}
 
 	protected int getSystemLockLevel() {
 		return system_lock_level;
@@ -968,15 +974,21 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 	}
 
 	public static HTableInterface getHTable(Long id) {
-		return getHTableRPCPool().getTable(Long.toString(id));
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("Getting HTable " + id);
+		return singleRPCPool.getTable(Long.toString(id));
 	}
 
 	public static HTableInterface getHTable(byte[] tableName) {
-		return getHTableRPCPool().getTable(tableName);
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("Getting HTable " + Bytes.toString(tableName));
+		return singleRPCPool.getTable(Bytes.toString(tableName));
 	}
 
 	public static HTableInterface getFlushableHTable(byte[] tableName) {
-		return getHTableFlushablePool().getTable(tableName);
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("Getting HTable " + Bytes.toString(tableName));
+		return flushablePool.getTable(Bytes.toString(tableName));
 	}
 	
 }

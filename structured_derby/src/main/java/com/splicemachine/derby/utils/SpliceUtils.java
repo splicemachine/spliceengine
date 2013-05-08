@@ -417,6 +417,7 @@ public class SpliceUtils extends SpliceUtilities {
 		return null;
 	}
 
+
 	public static String getTransID(Transaction trans) {
 		String transID = getTransIDString(trans);
 		if (transID == null)

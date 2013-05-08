@@ -3,16 +3,14 @@ package com.splicemachine.hbase;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
-import org.junit.Assert;
+import org.junit.*;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Random;
@@ -22,41 +20,48 @@ import java.util.concurrent.*;
  * @author Scott Fines
  *         Created on: 3/21/13
  */
-public class TableWriterTest {
+public class TableWriterTest extends SpliceConstants {
     private static final Logger LOG = Logger.getLogger(TableWriterTest.class);
 
-    private HBaseAdmin admin;
+    private static HBaseAdmin admin;
     private String tableName = "TABLEWRITER_TEST";
     private int numWrites = 10000;
     private ExecutorService executor;
 
-    @Before
-    public void setupTest() throws Exception{
+    @BeforeClass
+    public static void setupClass() throws Exception{
         LOG.debug("Starting Hbase admin");
         admin = new HBaseAdmin(SpliceUtils.config);
+    }
 
-        executor = Executors.newSingleThreadExecutor();
+    @Before
+    public void setupTest() throws Exception{
 
         LOG.debug("Creating hbase table");
         HTableDescriptor tableDesc = new HTableDescriptor(tableName);
         tableDesc.addCoprocessor("com.splicemachine.derby.hbase.SpliceIndexEndpoint");
-        tableDesc.addFamily(new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY_BYTES));
+        tableDesc.addFamily(new HColumnDescriptor(DEFAULT_FAMILY_BYTES));
+        if(admin.tableExists(tableName)){
+            cleanupTest();
+        }
+
         admin.createTable(tableDesc);
         while(!admin.isTableAvailable(tableName)){
-            Thread.sleep(100);
+            Thread.sleep(50);
         }
+        executor = Executors.newSingleThreadExecutor();
 
     }
 
     @After
     public void cleanupTest() throws Exception{
         LOG.info("Dropping table");
-        admin.disableTableAsync(tableName);
-        while(!admin.isTableDisabled(tableName)){
-            Thread.sleep(100);
+        if(admin.isTableEnabled(tableName)){
+            admin.disableTable(tableName);
         }
         admin.deleteTable(tableName);
-        executor.shutdownNow();
+        if(executor!=null)
+            executor.shutdownNow();
     }
 
     @Test
@@ -148,7 +153,7 @@ public class TableWriterTest {
                     break;
                 }
             }
-            Thread.sleep(100);
+            Thread.sleep(50);
         }
     }
 }

@@ -13,7 +13,6 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import com.splicemachine.constants.SpliceConstants;
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -276,7 +275,8 @@ public class ZkUtils extends SpliceConstants {
 		throw new IOException("Unable to get next conglomerate sequence, there is an issue" +
 				"speaking with ZooKeeper");
 	}
-    public static void cleanZookeeper() throws InterruptedException, KeeperException {
+
+	public static void cleanZookeeper() throws InterruptedException, KeeperException {
     	RecoverableZooKeeper rzk = getRecoverableZooKeeper();
     	for (String path: SpliceConstants.zookeeperPaths) {
     		if (rzk.exists(path, false) != null) {
@@ -325,5 +325,7 @@ public class ZkUtils extends SpliceConstants {
     	rzk.create(zkSpliceStartupPath, Bytes.toBytes(0l), ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
     }
     
-    
+    public static SpliceZooKeeperManager getZkManager() {
+        return zkManager;
+    }
 }

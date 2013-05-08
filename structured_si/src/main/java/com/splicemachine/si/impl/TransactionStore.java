@@ -17,6 +17,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Library of functions used by the SI module when accessing the transaction table. Encapsulates low-level data access
+ * calls so the other classes can be expressed at a higher level.
+ */
 public class TransactionStore {
     static final Logger LOG = Logger.getLogger(TransactionStore.class);
 
@@ -102,7 +106,7 @@ public class TransactionStore {
     }
 
     public Transaction getTransaction(long beginTimestamp) throws IOException {
-        return getTransaction(new SiTransactionId(beginTimestamp));
+        return getTransaction(new SITransactionId(beginTimestamp));
     }
 
     public Transaction getTransaction(TransactionId transactionId) throws IOException {

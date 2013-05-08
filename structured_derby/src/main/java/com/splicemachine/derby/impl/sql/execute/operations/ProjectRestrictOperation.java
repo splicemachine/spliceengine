@@ -40,7 +40,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	protected boolean[] cloneMap;
 	protected boolean shortCircuitOpen;
 	protected SpliceOperation source;
-	protected static List<NodeType> nodeTypes; 
+	protected static List<NodeType> nodeTypes;
+    private boolean alwaysFalse;
 	
 	// Set in init method
 	protected GeneratedMethod restriction;
@@ -138,7 +139,14 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				GeneratedMethod constantRestriction = statement.getActivationClass().getMethod(this.constantRestrictionMethodName);
 				DataValueDescriptor restrictBoolean = (DataValueDescriptor) constantRestriction.invoke(activation);
 				shortCircuitOpen  = (restrictBoolean == null) || ((restrictBoolean!=null)&&(! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
-			}
+
+                if(restrictBoolean != null && !restrictBoolean.isNull()){
+                    alwaysFalse = !restrictBoolean.getBoolean();
+                }else{
+                    alwaysFalse = false;
+                }
+
+            }
 			if (restrictionMethodName != null)
 				restriction = statement.getActivationClass().getMethod(restrictionMethodName);
 			if (projectionMethodName != null)
@@ -232,6 +240,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
     @Override
 	public ExecRow getNextRowCore() throws StandardException {
+
+        if(alwaysFalse){
+            return null;
+        }
+
 		ExecRow candidateRow = null;
 		ExecRow result = null;
 		boolean restrict = false;

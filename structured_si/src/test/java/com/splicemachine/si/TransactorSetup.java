@@ -6,7 +6,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
 import com.splicemachine.si.impl.RollForwardQueue;
-import com.splicemachine.si.impl.SiTransactor;
+import com.splicemachine.si.impl.SITransactor;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionSchema;
 import com.splicemachine.si.data.api.SDataLib;
@@ -14,7 +14,6 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.SimpleTimestampSource;
 import com.splicemachine.si.impl.TransactionStore;
 
 import java.util.concurrent.TimeUnit;
@@ -50,9 +49,9 @@ public class TransactorSetup {
 
         SI_DATA_FAMILY = "_si";
         SI_DATA_COMMIT_TIMESTAMP_QUALIFIER = "commit";
-        SiTransactor siTransactor = new SiTransactor(new SimpleTimestampSource(), dataLib, writer,
+        SITransactor siTransactor = new SITransactor(new SimpleTimestampSource(), dataLib, writer,
                 new DataStore(dataLib, reader, writer, "si-needed", "si-transaction-id", "si-delete-put",
-                        SI_DATA_FAMILY, SI_DATA_COMMIT_TIMESTAMP_QUALIFIER, "tombstone", -1, userColumnsFamilyName),
+                        SI_DATA_FAMILY, SI_DATA_COMMIT_TIMESTAMP_QUALIFIER, "tombstone", -1, -2, userColumnsFamilyName),
                 transactionStore, storeSetup.getClock(), 1500);
         clientTransactor = siTransactor;
         transactor = siTransactor;

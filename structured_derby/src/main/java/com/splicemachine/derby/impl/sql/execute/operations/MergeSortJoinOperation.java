@@ -257,24 +257,6 @@ public class MergeSortJoinOperation extends JoinOperation {
         return ss;
 	}
 
-	private HTableInterface getBufferedTable() throws IOException {
-		return makeBuffered(SpliceOperationCoprocessor.threadLocalEnvironment.get().getTable(SpliceOperationCoprocessor.TEMP_TABLE));
-	}
-
-	private HTableInterface makeBuffered(HTableInterface tableWrapper) {
-		try {
-			final Field tableField = tableWrapper.getClass().getDeclaredField("table");
-			tableField.setAccessible(true);
-			final HTable htable = (HTable) tableField.get(tableWrapper);
-			htable.setAutoFlush(false);
-		} catch (NoSuchFieldException e) {
-			throw new RuntimeException(e);
-		} catch (IllegalAccessException e) {
-			throw new RuntimeException(e);
-		}
-		return tableWrapper;
-	}
-
 	@Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
@@ -283,32 +265,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 		return mergedRow;
 	}
 
-    private boolean areChildrenLeaves(){
-        return leftResultSet instanceof ScanOperation && rightResultSet instanceof ScanOperation;
-    }
- 
-   @Override
-    public int[] getRootAccessedCols(long tableNumber) {
-
-       int[] rootCols = null;
-
-       if(leftResultSet.isReferencingTable(tableNumber)){
-           rootCols = leftResultSet.getRootAccessedCols(tableNumber);
-       }else if(rightResultSet.isReferencingTable(tableNumber)){
-           int leftCols = getLeftNumCols();
-           int[] rightRootCols = rightResultSet.getRootAccessedCols(tableNumber);
-           rootCols = new int[rightRootCols.length];
-
-           for(int i=0; i<rightRootCols.length; i++){
-               rootCols[i] = rightRootCols[i] + leftCols;
-           }
-
-       }
-
-       return rootCols;
-    }
-
-	@Override
+    @Override
 	public List<NodeType> getNodeTypes() {
 		SpliceLogUtils.trace(LOG, "getNodeTypes");
 		return nodeTypes;

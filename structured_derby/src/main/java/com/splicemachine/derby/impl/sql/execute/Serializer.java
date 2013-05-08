@@ -28,6 +28,9 @@ public class Serializer {
     private RowKey stringRowKey;
 
     public byte[] serialize(DataValueDescriptor descriptor) throws IOException, StandardException {
+        if (descriptor.isNull()) {
+            return new byte[] {};
+        }
         if(descriptor instanceof HBaseRowLocation){
             return ((HBaseRowLocation)descriptor).getBytes();
         }
@@ -85,6 +88,10 @@ public class Serializer {
     public DataValueDescriptor deserialize(byte[] bytes, DataValueDescriptor descriptor) throws StandardException,IOException{
         if(descriptor instanceof HBaseRowLocation){
             ((HBaseRowLocation)descriptor).setValue(bytes);
+        }
+        if (bytes.length == 0) {
+            descriptor.setToNull();
+            return descriptor;
         }
         switch (descriptor.getTypeFormatId()) {
             case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();

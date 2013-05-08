@@ -2,22 +2,25 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.TransactionId;
 
-public class SiTransactionId implements TransactionId {
+/**
+ * Represents an SI transaction identifier. Exposes it as either a long or a string.
+ */
+public class SITransactionId implements TransactionId {
     private final long id;
     public final boolean independentReadOnly;
     private final String IRO = ".IRO";
 
-    public SiTransactionId(long id) {
+    public SITransactionId(long id) {
         this.id = id;
         this.independentReadOnly = false;
     }
 
-    public SiTransactionId(long id, boolean independentReadOnly) {
+    public SITransactionId(long id, boolean independentReadOnly) {
         this.id = id;
         this.independentReadOnly = independentReadOnly;
     }
 
-    public SiTransactionId(String transactionId) {
+    public SITransactionId(String transactionId) {
         if (transactionId.endsWith(IRO)) {
             this.id = Long.parseLong(transactionId.substring(0, transactionId.length() - IRO.length()));
             this.independentReadOnly = true;

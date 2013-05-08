@@ -2,10 +2,15 @@ package com.splicemachine.si.impl;
 
 import com.google.common.base.Function;
 
+/**
+ * Provides hooks for tests to provide callbacks. Mainly used to provide thread coordination in tests. It allows tests
+ * to "trace" the internals of the SI execution.
+ */
 public class Tracer {
     private static transient Function<Object, Object> f = null;
     private static transient Function<Long, Object> fTransaction = null;
     private static transient Function<Object[], Object> fStatus = null;
+    public static transient Runnable fCompact = null;
 
     public static Integer rollForwardDelayOverride = null;
 
@@ -19,6 +24,10 @@ public class Tracer {
 
     public static void registerStatus(Function<Object[], Object> f) {
         Tracer.fStatus = f;
+    }
+
+    public static void registerCompact(Runnable f) {
+        Tracer.fCompact = f;
     }
 
     public static void trace(Object key) {
@@ -38,4 +47,11 @@ public class Tracer {
             fStatus.apply(new Object[] {transactionId, newStatus, beforeChange});
         }
     }
+
+    public static void compact() {
+        if (fCompact != null) {
+            fCompact.run();
+        }
+    }
+
 }

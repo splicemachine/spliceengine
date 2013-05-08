@@ -19,6 +19,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Iterator;
@@ -49,51 +50,41 @@ public class InnerJoinTest extends SpliceUnitTest {
 		.around(spliceTableWatcher1)
         .around(spliceTableWatcher2)
         .around(spliceTableWatcher3)
-		.around(new SpliceDataWatcher(){
-			@Override
-			protected void starting(Description description) {
-				try {
-				PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s (si, sa, sc,sd,se) values (?,?,?,?,?)",TABLE_NAME_1));
-				for (int i =0; i< 10; i++) {
-					ps.setString(1, "" + i);
-					ps.setString(2, "i");
-					ps.setString(3, "" + i*10);
-					ps.setInt(4, i);
-					ps.setFloat(5,10.0f*i);
-					ps.executeUpdate();
-				}
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-				finally {
-					spliceClassWatcher.closeAll();
-				}
-			}
-			
-		}).around(new SpliceDataWatcher(){
+		.around(new SpliceDataWatcher() {
+            @Override
+            protected void starting(Description description) {
+                try {
+                    PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s (si, sa, sc,sd,se) values (?,?,?,?,?)", TABLE_NAME_1));
+                    for (int i = 0; i < 10; i++) {
+                        ps.setString(1, "" + i);
+                        ps.setString(2, "i");
+                        ps.setString(3, "" + i * 10);
+                        ps.setInt(4, i);
+                        ps.setFloat(5, 10.0f * i);
+                        ps.executeUpdate();
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    spliceClassWatcher.closeAll();
+                }
+            }
+
+        }).around(new SpliceDataWatcher() {
 
                 @Override
                 protected void starting(Description description) {
                     try {
-                        insertData("CC","DD", spliceClassWatcher);
+                        insertData("CC", "DD", spliceClassWatcher);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
-                    }
-                    finally {
+                    } finally {
                         spliceClassWatcher.closeAll();
                     }
                 }
-            }).around(new SpliceDataWatcher() {
-                @Override
-                protected void starting(Description description) {
-
-                    try {
-                        TestUtils.executeSqlFile(spliceClassWatcher, "small_msdatasample/startup.sql", CLASS_NAME);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            });
+            }).around(TestUtils.createFileDataWatcher(spliceClassWatcher, "small_msdatasample/startup.sql", CLASS_NAME))
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME));
 
     @Rule
     public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
@@ -147,6 +138,15 @@ public class InnerJoinTest extends SpliceUnitTest {
 			}
 		}	
 		Assert.assertEquals(9, j);
+    }
+
+    @Test
+    public void testTwoTableJoinWithNoResults() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("SELECT a.c1, a.c2, b.c1, b.c2 FROM table1 a JOIN table2 b ON a.c1 = b.c1 WHERE a.c1 < -1 " +
+                "ORDER BY a.c1, a.c2, b.c1, b.c2");
+
+        Assert.assertFalse("Should not return any results",rs.next());
+
     }
 
     @Test
@@ -316,6 +316,26 @@ public class InnerJoinTest extends SpliceUnitTest {
         List<Map> results = TestUtils.resultSetToMaps(rs);
 
         Assert.assertEquals(2, results.size());
+    }
+
+    @Test
+    public void testThreeTableNestedLoopJoin() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("SELECT STAFF.EMPNUM,WORKS.HOURS,UPUNIQ.COL2 FROM STAFF,WORKS,UPUNIQ\n" +
+                "WHERE STAFF.EMPNUM = WORKS.EMPNUM AND UPUNIQ.COL2 = 'A'");
+
+        List<Map> results = TestUtils.resultSetToMaps(rs);
+
+        Assert.assertEquals(12, results.size());
+
+        Map<String,String> first = results.get(0);
+
+        Assert.assertEquals("E1",results.get(0).get("EMPNUM"));
+        Assert.assertEquals(new BigDecimal("40"), results.get(0).get("HOURS"));
+        Assert.assertEquals("A",results.get(0).get("COL2"));
+
+        Assert.assertEquals("E2",results.get(6).get("EMPNUM"));
+        Assert.assertEquals(new BigDecimal("40"),results.get(6).get("HOURS"));
+        Assert.assertEquals("A",results.get(6).get("COL2"));
     }
 
 	@Test

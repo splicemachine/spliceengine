@@ -78,7 +78,6 @@ public class NullableColumnTest extends SpliceUnitTest {
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-
     @Test
     public void testScanNullableColumns() throws Exception{
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s",this.getTableReference(TABLE_NAME_1)));
@@ -121,6 +120,32 @@ public class NullableColumnTest extends SpliceUnitTest {
             rowsReturned++;
         }
         Assert.assertEquals("Incorrect rows returned!",1,rowsReturned);
+    }
+
+    @Test
+    public void testWildcardWhereNull() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name is null", this.getTableReference(TABLE_NAME_2)));
+        int rowsReturned =0;
+        while(rs.next()){
+            String name = rs.getString(1);
+            int value = rs.getInt(2);
+            Assert.assertNull(name);
+            Assert.assertEquals(rowsReturned * 3, value);
+            rowsReturned++;
+        }
+        Assert.assertEquals("Incorrect rows returned!", 4, rowsReturned);
+    }
+
+    @Test
+    public void testSingleColumnWhereNull() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery(format("select name from %s where name is null", this.getTableReference(TABLE_NAME_2)));
+        int rowsReturned =0;
+        while(rs.next()){
+            String name = rs.getString(1);
+            Assert.assertNull(name);
+            rowsReturned++;
+        }
+        Assert.assertEquals("Incorrect rows returned!", 4, rowsReturned);
     }
 
 }

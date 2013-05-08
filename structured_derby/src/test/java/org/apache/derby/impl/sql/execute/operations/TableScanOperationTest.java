@@ -23,13 +23,16 @@ public class TableScanOperationTest extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = TableScanOperationTest.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME = "A";
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	public static final String TABLE_NAME2 = "AB";
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float)");
-	
+    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME2,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd1 int, sd2 smallint, sd3 bigint, se1 float, se2 double, se3 decimal(4,2), se4 REAL)");
+
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher)
+        .around(spliceTableWatcher2)
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
@@ -51,7 +54,34 @@ public class TableScanOperationTest extends SpliceUnitTest {
 				}
 			}
 			
-		});
+		}).around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (si, sa, sc,sd1, sd2, sd3,se1,se2,se3,se4) values (?,?,?,?,?,?,?,?,?,?)",CLASS_NAME, TABLE_NAME2));
+                        for (int i =0; i< 10; i++) {
+                            ps.setString(1, "" + i);
+                            ps.setString(2, "i");
+                            ps.setString(3, "" + i*10);
+                            ps.setInt(4, i);
+                            ps.setInt(5, i);
+                            ps.setInt(6, i);
+
+                            ps.setFloat(7,10.0f*i);
+                            ps.setFloat(8,10.0f*i);
+                            ps.setFloat(9,10.0f*i);
+                            ps.setFloat(10,10.0f*i);
+                            ps.executeUpdate();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    finally {
+                        spliceClassWatcher.closeAll();
+                    }
+                }
+
+            });
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -301,4 +331,104 @@ public class TableScanOperationTest extends SpliceUnitTest {
 		}
 		Assert.assertEquals("Incorrect rows returned!",9,results.size());
 	}
+
+    @Test
+    public void testScanFloatWithEqualsOperator() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select se1 from" + this.getPaddedTableReference("AB") +"where se1 = 50.0");
+
+        rs.next();
+
+        float res = rs.getFloat(1);
+        Assert.assertEquals(50.0f,res,0.0);
+
+        Assert.assertFalse(rs.next());
+    }
+
+    @Test
+    public void testScanDoubleWithEqualsOperator() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select se2 from" + this.getPaddedTableReference("AB") +"where se2 = 50.0");
+
+        rs.next();
+
+        double res = rs.getDouble(1);
+        Assert.assertEquals(50.0,res,0.0);
+
+        Assert.assertFalse(rs.next());
+    }
+
+    @Test
+    public void testScanDecimalWithEqualsOperator() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select se3 from" + this.getPaddedTableReference("AB") +"where se3 = 50.0");
+
+        rs.next();
+
+        double res = rs.getDouble(1);
+        Assert.assertEquals(50.0,res,0.0);
+
+        Assert.assertFalse(rs.next());
+    }
+
+    @Ignore("Bug 420")
+    @Test
+    public void testScanRealWithEqualsOperation() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select se4 from" + this.getPaddedTableReference("AB") +"where se4 = 50.0");
+
+        rs.next();
+
+        double res = rs.getDouble(1);
+        Assert.assertEquals(50.0,res,0.0);
+
+        Assert.assertFalse(rs.next());
+    }
+
+    @Test
+    public void testScanIntWithEqualsOperator() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select sd1 from" + this.getPaddedTableReference("AB") +"where sd1 = 5");
+
+        rs.next();
+        int sd = rs.getInt(1);
+        Assert.assertEquals(sd,5);
+        Assert.assertFalse(rs.next());
+    }
+
+    @Test
+    public void testScanSmallIntWithEqualsOperator() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select sd2 from" + this.getPaddedTableReference("AB") +"where sd2 = 5");
+
+        rs.next();
+        int sd = rs.getInt(1);
+        Assert.assertEquals(sd,5);
+        Assert.assertFalse(rs.next());
+    }
+
+    @Test
+    public void testScanBigIntWithEqualsOperator() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select sd3 from" + this.getPaddedTableReference("AB") +"where sd3 = 5");
+
+        rs.next();
+        int sd = rs.getInt(1);
+        Assert.assertEquals(sd,5);
+        Assert.assertFalse(rs.next());
+    }
+
+    @Test
+    public void testScanIntWithFloatInEquals() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select sd1 from" + this.getPaddedTableReference("AB") +"where sd1 = 5.0");
+
+        Assert.assertTrue("No results returned",rs.next());
+        int sd = rs.getInt(1);
+        Assert.assertEquals(sd,5);
+        Assert.assertFalse(rs.next());
+    }
+
+    @Test
+    public void testScanFloatWithIntInEquals() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select se1 from" + this.getPaddedTableReference("AB") +"where se1 = 50");
+
+        Assert.assertTrue("No results returned",rs.next());
+        float sd = rs.getFloat(1);
+        Assert.assertEquals(sd,50.0,0.0);
+        Assert.assertFalse(rs.next());
+    }
+
 }

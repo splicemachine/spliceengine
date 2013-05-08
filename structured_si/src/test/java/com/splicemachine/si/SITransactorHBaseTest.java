@@ -11,12 +11,12 @@ import org.junit.BeforeClass;
 
 import java.util.concurrent.Executors;
 
-public class SiTransactorHBaseTest extends SiTransactorTest {
+public class SITransactorHBaseTest extends SITransactorTest {
 
     private static HStoreSetup classStoreSetup;
     private static TransactorSetup classTransactorSetup;
 
-    public SiTransactorHBaseTest() {
+    public SITransactorHBaseTest() {
         useSimple = false;
     }
 

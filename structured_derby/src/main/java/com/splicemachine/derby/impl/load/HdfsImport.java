@@ -124,7 +124,8 @@ public class HdfsImport extends ParallelVTI {
         ImportContext.Builder builder = new ImportContext.Builder()
 				.path(inputFileName)
 				.stripCharacters(charDelimiter)
-				.colDelimiter(delimiter);
+				.colDelimiter(delimiter)
+                .transactionId(transactionId);
 
 		buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder);
 
@@ -227,6 +228,12 @@ public class HdfsImport extends ParallelVTI {
             throw Exceptions.parseException(e.getCause());
         } catch (InterruptedException e) {
             throw Exceptions.parseException(e.getCause());
+        } finally{
+            try {
+                table.close();
+            } catch (IOException e) {
+                SpliceLogUtils.warn(LOG,"Unable to close htable",e);
+            }
         }
     }
 

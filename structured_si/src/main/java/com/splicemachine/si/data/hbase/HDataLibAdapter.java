@@ -66,6 +66,11 @@ public class HDataLibAdapter implements SDataLib {
     }
 
     @Override
+    public Object newKeyValue(Object rowKey, Object family, Object qualifier, Long timestamp, Object value) {
+        return dataLib.newKeyValue((byte[]) rowKey, (byte[]) family, (byte[]) qualifier, timestamp, (byte[]) value);
+    }
+
+    @Override
     public Object getKeyValueRow(Object keyValue) {
         return dataLib.getKeyValueRow((KeyValue) keyValue);
     }

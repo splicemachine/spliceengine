@@ -15,6 +15,10 @@ import java.util.List;
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
 
+/**
+ * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
+ * transaction table).
+ */
 public class DataStore {
     private final SDataLib dataLib;
     private final STableReader reader;
@@ -28,13 +32,14 @@ public class DataStore {
     private final Object commitTimestampQualifier;
     private final Object tombstoneQualifier;
     private final Object siNull;
+    final Object siFail;
 
     private final Object userColumnFamily;
 
     public DataStore(SDataLib dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
                      String transactionIdAttribute, String deletePutAttribute,
                      String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier, Object siMetaNull,
-                     Object userColumnFamily) {
+                     Object siFail, Object userColumnFamily) {
         this.dataLib = dataLib;
         this.reader = reader;
         this.writer = writer;
@@ -45,6 +50,7 @@ public class DataStore {
         this.commitTimestampQualifier = dataLib.encode(siCommitQualifier);
         this.tombstoneQualifier = dataLib.encode(siTombstoneQualifier);
         this.siNull = dataLib.encode(siMetaNull);
+        this.siFail = dataLib.encode(siFail);
         this.userColumnFamily = dataLib.encode(userColumnFamily);
     }
 
@@ -70,15 +76,15 @@ public class DataStore {
         dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, transactionId.getId(), siNull);
     }
 
-    void setTransactionId(SiTransactionId transactionId, Object operation) {
+    void setTransactionId(SITransactionId transactionId, Object operation) {
         dataLib.addAttribute(operation, transactionIdAttribute, dataLib.encode(transactionId.getTransactionIdString()));
     }
 
-    SiTransactionId getTransactionIdFromOperation(Object put) {
+    SITransactionId getTransactionIdFromOperation(Object put) {
         Object value = dataLib.getAttribute(put, transactionIdAttribute);
         String transactionId = (String) dataLib.decode(value, String.class);
         if (transactionId != null) {
-            return new SiTransactionId(transactionId);
+            return new SITransactionId(transactionId);
         }
         return null;
     }
@@ -118,6 +124,10 @@ public class DataStore {
         return dataLib.valuesEqual(value, siNull);
     }
 
+    public boolean isSiFail(Object value) {
+        return dataLib.valuesEqual(value, siFail);
+    }
+
     public void recordRollForward(RollForwardQueue rollForwardQueue, ImmutableTransaction transaction, Object row) {
         if (rollForwardQueue != null) {
             rollForwardQueue.recordRow(transaction.beginTimestamp, row);
@@ -125,9 +135,17 @@ public class DataStore {
     }
 
     public void setCommitTimestamp(STable table, Object rowKey, long beginTimestamp, long commitTimestamp) throws IOException {
+        setCommitTimestampDirect(table, rowKey, beginTimestamp, dataLib.encode(commitTimestamp));
+    }
+
+    public void setCommitTimestampToFail(STable table, Object rowKey, long beginTimestamp) throws IOException {
+        setCommitTimestampDirect(table, rowKey, beginTimestamp, siFail);
+    }
+
+    private void setCommitTimestampDirect(STable table, Object rowKey, long beginTimestamp, Object timestampValue) throws IOException {
         Object put = dataLib.newPut(rowKey);
         suppressIndexing(put);
-        dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, beginTimestamp, dataLib.encode(commitTimestamp));
+        dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, beginTimestamp, timestampValue);
         writer.write(table, put, false);
     }
 
@@ -139,7 +157,7 @@ public class DataStore {
         dataLib.addAttribute(newPut, SUPPRESS_INDEXING_ATTRIBUTE_NAME, SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
     }
 
-    public void setTombstoneOnPut(Object put, SiTransactionId transactionId) {
+    public void setTombstoneOnPut(Object put, SITransactionId transactionId) {
         dataLib.addKeyValueToPut(put, siFamily, tombstoneQualifier, transactionId.getId(), siNull);
     }
 

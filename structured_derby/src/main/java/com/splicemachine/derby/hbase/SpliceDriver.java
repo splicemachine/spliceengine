@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -17,6 +18,7 @@ import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.derby.drda.NetworkServerControl;
+import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
@@ -29,12 +31,13 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 
 /**
  * @author Scott Fines
  *         Created on: 3/1/13
  */
-public class SpliceDriver extends SpliceConstants {
+public class SpliceDriver extends SIConstants {
     private static final Logger LOG = Logger.getLogger(SpliceDriver.class);
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     public static enum State{
@@ -78,7 +81,7 @@ public class SpliceDriver extends SpliceConstants {
         try {
             writerPool = TableWriter.create(SpliceUtils.config);
             threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
-            jobScheduler = new CoprocessorJobScheduler(ZkUtils.getRecoverableZooKeeper(),SpliceUtils.config);
+            jobScheduler = new CoprocessorJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
             tempCleaner = new TempCleaner(SpliceUtils.config);
         } catch (Exception e) {
@@ -143,7 +146,7 @@ public class SpliceDriver extends SpliceConstants {
             executor.submit(new Callable<Void>(){
                 @Override
                 public Void call() throws Exception {
-
+                    SpliceLogUtils.info(LOG,"Booting the SpliceDriver");
                     writerPool.start();
 
                     //all we have to do is create it, it will register itself for us
@@ -271,6 +274,19 @@ public class SpliceDriver extends SpliceConstants {
                 HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(SpliceConstants.TEMP_TABLE);
                 admin.createTable(td);
                 SpliceLogUtils.info(LOG, SpliceConstants.TEMP_TABLE+" created");
+            }
+            if (!admin.tableExists(TRANSACTION_TABLE_BYTES)) {
+                HTableDescriptor desc = new HTableDescriptor(TRANSACTION_TABLE_BYTES);
+                desc.addFamily(new HColumnDescriptor(DEFAULT_FAMILY.getBytes(),
+                        Integer.MAX_VALUE,
+                        admin.getConfiguration().get(TABLE_COMPRESSION, DEFAULT_COMPRESSION),
+                        DEFAULT_IN_MEMORY,
+                        DEFAULT_BLOCKCACHE,
+                        Integer.MAX_VALUE,
+                        DEFAULT_BLOOMFILTER));
+                desc.addFamily(new HColumnDescriptor(DEFAULT_FAMILY));
+                desc.addFamily(new HColumnDescriptor(SNAPSHOT_ISOLATION_CHILDREN_FAMILY));
+                admin.createTable(desc);
             }
             return true;
         }catch(Exception e){

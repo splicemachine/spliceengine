@@ -51,7 +51,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 	private static Logger LOG = Logger.getLogger(SpliceGenericResultSetFactory.class);
-	HTablePool htablePool = new HTablePool();
+//	HTablePool htablePool = new HTablePool();
 	
 	public SpliceGenericResultSetFactory() {
 		super();
@@ -887,18 +887,15 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
     }
 	
-	/*@Override
+	@Override
 	public NoPutResultSet getDeleteCascadeResultSet(NoPutResultSet source, 
 			   int constantActionItem,
 			   ResultSet[] dependentResultSets,
 			   String resultSetId)
 			throws StandardException
 	{
-		return new DeleteCascadeOperation(source, source.getActivation(), 
-				constantActionItem,
-				dependentResultSets, 
-				resultSetId);
-	}*/
+        throw StandardException.newException(SQLState.HEAP_UNIMPLEMENTED_FEATURE);
+	}
 	
 	public NoPutResultSet getRowCountResultSet(
 			NoPutResultSet source,

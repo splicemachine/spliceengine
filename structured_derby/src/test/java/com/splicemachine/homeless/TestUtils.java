@@ -1,8 +1,11 @@
 package com.splicemachine.homeless;
 
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.apache.commons.dbutils.BasicRowProcessor;
 import org.apache.commons.io.IOUtils;
+import org.junit.runner.Description;
+
 import java.io.IOException;
 import java.net.URL;
 import java.sql.ResultSet;
@@ -66,5 +69,19 @@ public class TestUtils {
         }
 
         return results;
+    }
+
+    public static SpliceDataWatcher createFileDataWatcher(final SpliceWatcher watcher, final String fileName, final String className){
+        return new SpliceDataWatcher() {
+            @Override
+            protected void starting(Description description) {
+
+                try {
+                    TestUtils.executeSqlFile(watcher, fileName, className);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
     }
 }

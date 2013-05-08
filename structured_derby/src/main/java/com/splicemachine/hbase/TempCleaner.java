@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -157,7 +158,7 @@ public class TempCleaner {
         }
 
         @Override
-        public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
+        public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
             this.region = region;
             try {
                 this.scanner = region.getScanner(scan);

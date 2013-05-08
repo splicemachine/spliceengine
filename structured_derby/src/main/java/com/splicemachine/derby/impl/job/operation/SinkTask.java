@@ -4,12 +4,17 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.job.TransactionalTask;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.Status;
 import com.splicemachine.si.api.ParentTransactionManager;
+import com.splicemachine.si.api.TransactionId;
+import com.splicemachine.si.impl.SITransactionId;
+import com.splicemachine.si.impl.TransactorFactoryImpl;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextService;
@@ -33,7 +38,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 4/3/13
  */
-public class SinkTask extends ZooKeeperTask {
+public class SinkTask extends TransactionalTask {
     private static final long serialVersionUID = 1l;
     private static final Logger LOG = Logger.getLogger(SinkTask.class);
     private HRegion region;
@@ -51,14 +56,19 @@ public class SinkTask extends ZooKeeperTask {
     public SinkTask(String jobId,
                     Scan scan,
                     SpliceObserverInstructions instructions,
-                    int priority) {
-        super(jobId,priority);
+                    int priority,
+                    boolean readOnly ) {
+        super(jobId,priority,getParentTransactionId(instructions),readOnly);
         this.scan = scan;
         this.instructions = instructions;
     }
 
+    private static long getParentTransactionId(SpliceObserverInstructions instructions) {
+        return new SITransactionId(instructions.getTransactionId()).getId();
+    }
+
     @Override
-    public void prepareTask(HRegion region, RecoverableZooKeeper zooKeeper) throws ExecutionException {
+    public void prepareTask(HRegion region,SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         //make sure that our task id is properly set
         this.region = region;
         super.prepareTask(region, zooKeeper);

@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.TaskStats;
@@ -14,6 +15,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.si.impl.TransactorFactoryImpl;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -36,6 +38,7 @@ public abstract class SingleScanRowProvider  implements RowProvider {
 
 
     private static final Logger LOG = Logger.getLogger(SingleScanRowProvider.class);
+
 
     @Override
     public JobStats shuffleRows(SpliceObserverInstructions instructions ) throws StandardException {
@@ -87,7 +90,12 @@ public abstract class SingleScanRowProvider  implements RowProvider {
                            SpliceObserverInstructions instructions, Scan scan) throws StandardException {
         //TODO -sf- attach statistics
         SpliceUtils.setInstructions(scan,instructions);
-        OperationJob job = new OperationJob(scan,instructions,table);
+
+        //get transactional stuff from scan
+
+        //determine if top operation writes data
+        boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
+        OperationJob job = new OperationJob(scan,instructions,table,readOnly);
         JobFuture future = null;
         StandardException baseError = null;
         try {
