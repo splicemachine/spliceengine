@@ -22,7 +22,7 @@ import java.util.Map;
 
 public class SiBrowser {
     public static void main(String[] args) throws IOException {
-        HTable transactionTable = new HTable("__TXN");
+        HTable transactionTable = new HTable(SIConstants.TRANSACTION_TABLE);
         Scan scan = new Scan();
         ResultScanner scanner = transactionTable.getScanner(scan);
         Iterator<Result> results = scanner.iterator();
@@ -85,8 +85,8 @@ public class SiBrowser {
             //dumpTable("conglomerates", "16");
             //dumpTable("SYCOLUMNS_INDEX2", "161");
 
-            dumpTable("p", "1168");
-            dumpTable("p2", "1184");
+            dumpTable("p", "16");
+            //dumpTable("p2", "1184");
         }
     }
 
