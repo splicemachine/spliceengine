@@ -1,15 +1,12 @@
 package com.splicemachine.derby.impl.load;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.TransactionalTask;
-import com.splicemachine.derby.impl.job.ZooKeeperTask;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.SpliceZooKeeperManager;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -19,23 +16,19 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
  * Created on: 4/5/13
  */
-public abstract class AbstractImportTask extends TransactionalTask{
+public abstract class AbstractImportTask extends TransactionalTask {
     private static final long serialVersionUID = 1l;
     protected ImportContext importContext;
     protected FileSystem fileSystem;

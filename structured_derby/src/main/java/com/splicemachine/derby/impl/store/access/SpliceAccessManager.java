@@ -9,7 +9,6 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import com.google.common.base.Preconditions;
 import com.splicemachine.derby.utils.ConglomerateUtils;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BetterHTablePool;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;

@@ -1,10 +1,8 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
-import com.splicemachine.derby.utils.SpliceZooKeeperManager;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.Task;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-
 import java.util.concurrent.ExecutionException;
 
 /**

@@ -1,37 +1,23 @@
 package com.splicemachine.derby.impl.job.operation;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.job.TransactionalTask;
-import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.SpliceZooKeeperManager;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.Status;
-import com.splicemachine.si.api.ParentTransactionManager;
-import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.impl.SITransactionId;
-import com.splicemachine.si.impl.TransactorFactoryImpl;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /**

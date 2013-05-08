@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.job;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.ByteDataOutput;
-import com.splicemachine.derby.utils.SpliceZooKeeperManager;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.Status;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
