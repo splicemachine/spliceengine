@@ -9,13 +9,14 @@ import java.util.List;
 import java.util.Properties;
 import org.junit.Ignore;
 
+import com.splicemachine.constants.SpliceConstants;
+
 @Ignore
 public class SpliceEmbedConnection {
     protected static String framework = "embedded";
     protected static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
     protected static String protocol = "jdbc:derby:splice/";
     protected static Properties props = new Properties();
-	protected static final String dbName = "wombat"; // gd for derby test compatibility
 	protected static Connection conn = null;
 	protected static List<Statement> statements = new ArrayList<Statement>();
 	protected static boolean loaded;
@@ -23,7 +24,6 @@ public class SpliceEmbedConnection {
     protected synchronized static void loadDriver() {
         try {
             Class.forName(driver).newInstance();
-            System.out.println("Loaded the appropriate driver");
         } catch (ClassNotFoundException cnfe) {
             System.err.println("\nUnable to load the JDBC driver " + driver);
             System.err.println("Please check your CLASSPATH.");
@@ -54,7 +54,7 @@ public class SpliceEmbedConnection {
     public static Connection getConnection() throws Exception {
     	if (!loaded)
     		loadDriver();
-        return DriverManager.getConnection(protocol + dbName + ";create=true", props);
+        return DriverManager.getConnection(protocol + SpliceConstants.SPLICE_DB + ";create=true", props);
     }
     
 }

@@ -12,6 +12,8 @@ import java.util.Properties;
 import org.apache.log4j.Logger;
 import org.junit.Ignore;
 
+import com.splicemachine.constants.SpliceConstants;
+
 @Ignore
 public class SpliceNetDerbyTest {
 	private static final Logger LOG = Logger.getLogger(SpliceNetDerbyTest.class);
@@ -19,14 +21,12 @@ public class SpliceNetDerbyTest {
     protected static String driver = "org.apache.derby.jdbc.ClientDriver";
     protected static String protocol = "jdbc:derby://localhost:1527/";
     protected static Properties props = new Properties();
-	protected static final String dbName = "wombat"; // gd for derby test compatibility
 	protected static Connection conn = null;
 	protected static List<Statement> statements = new ArrayList<Statement>();
 	
     protected static void loadDriver() {
         try {
             Class.forName(driver).newInstance();
-            System.out.println("Loaded the appropriate driver");
         } catch (ClassNotFoundException cnfe) {
             System.err.println("\nUnable to load the JDBC driver " + driver);
             System.err.println("Please check your CLASSPATH.");
@@ -55,8 +55,7 @@ public class SpliceNetDerbyTest {
 
     public static void startConnection() throws Exception {
         loadDriver();
-        conn = DriverManager.getConnection(protocol + dbName + ";create=true", props);
-        System.out.println("Conn: " + conn);
+        conn = DriverManager.getConnection(protocol + SpliceConstants.SPLICE_DB + ";create=true", props);
     }
 	
 	public static void stopConnection() throws SQLException {

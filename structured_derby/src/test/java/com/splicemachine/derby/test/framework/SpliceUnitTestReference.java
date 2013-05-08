@@ -47,10 +47,6 @@ public class SpliceUnitTestReference extends SpliceUnitTest {
 		Assert.assertEquals(10, resultSetSize(methodWatcher.executeQuery("select * from"+getPaddedTableReference("A"))));	
 	}
 	
-	@Test
-	public void testGetPaddedTableReference() {
-		System.out.println(this.getPaddedTableReference("A"));
-	}
 	
 	@Test
 	public void test2() throws Exception {
