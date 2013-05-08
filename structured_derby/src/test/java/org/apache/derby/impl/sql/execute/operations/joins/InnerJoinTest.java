@@ -82,27 +82,9 @@ public class InnerJoinTest extends SpliceUnitTest {
                         spliceClassWatcher.closeAll();
                     }
                 }
-            }).around(new SpliceDataWatcher() {
-                @Override
-                protected void starting(Description description) {
-
-                    try {
-                        TestUtils.executeSqlFile(spliceClassWatcher, "small_msdatasample/startup.sql", CLASS_NAME);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }).around(new SpliceDataWatcher() {
-                @Override
-                protected void starting(Description description) {
-
-                    try {
-                        TestUtils.executeSqlFile(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            });
+            }).around(TestUtils.createFileDataWatcher(spliceClassWatcher, "small_msdatasample/startup.sql", CLASS_NAME))
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME));
 
     @Rule
     public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
@@ -156,6 +138,15 @@ public class InnerJoinTest extends SpliceUnitTest {
 			}
 		}	
 		Assert.assertEquals(9, j);
+    }
+
+    @Test
+    public void testTwoTableJoinWithNoResults() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("SELECT a.c1, a.c2, b.c1, b.c2 FROM table1 a JOIN table2 b ON a.c1 = b.c1 WHERE a.c1 < -1 " +
+                "ORDER BY a.c1, a.c2, b.c1, b.c2");
+
+        Assert.assertFalse("Should not return any results",rs.next());
+
     }
 
     @Test
