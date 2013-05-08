@@ -68,24 +68,20 @@ public class TempCleaner {
      * @param finish the finish row to be deleted
      */
     public void deleteRange(String uid, byte[] start, byte[] finish) throws StandardException {
-        TempCleanJob job = new TempCleanJob(uid,start,finish,taskPriority);
-        try {
-            final JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
-            cleanWatcher.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    try{
-                        future.completeAll();
-                    }finally{
-                        SpliceDriver.driver().getJobScheduler().cleanupJob(future);
-                    }
-
-                    return null;
+        final TempCleanJob job = new TempCleanJob(uid,start,finish,taskPriority);
+        cleanWatcher.submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
+                try{
+                    future.completeAll();
+                }finally{
+                    SpliceDriver.driver().getJobScheduler().cleanupJob(future);
                 }
-            });
-        } catch (ExecutionException e) {
-            throw Exceptions.parseException(e);
-        }
+
+                return null;
+            }
+        });
     }
 
     public static class TempCleanJob implements CoprocessorJob {

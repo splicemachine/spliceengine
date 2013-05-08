@@ -76,10 +76,11 @@ public abstract class SingleScanRowProvider  implements RowProvider {
     @Override
     public void close() {
         Scan scan = toScan();
+
         try {
             SpliceDriver.driver().getTempCleaner().deleteRange(SpliceUtils.getUniqueKeyString(),scan.getStartRow(),scan.getStopRow());
         } catch (StandardException e) {
-            throw new RuntimeException(e);
+            SpliceLogUtils.error(LOG,"Unexpected error cleaning TEMP",e);
         }
     }
 
@@ -99,19 +100,25 @@ public abstract class SingleScanRowProvider  implements RowProvider {
         JobFuture future = null;
         StandardException baseError = null;
         try {
+            SpliceLogUtils.trace(LOG,"submitting parallel task");
             future = SpliceDriver.driver().getJobScheduler().submit(job);
+            SpliceLogUtils.trace(LOG,"Parallel task submitted");
             //wait for everyone to complete, or somebody to error out
             future.completeAll();
+            SpliceLogUtils.trace(LOG,"Parallel task completed successfully");
 
             return future.getJobStats();
         } catch (ExecutionException ee) {
+            SpliceLogUtils.error(LOG,"Parallel task failed",ee);
             baseError = Exceptions.parseException(ee.getCause());
             throw baseError;
         } catch (InterruptedException e) {
+            SpliceLogUtils.info(LOG,"Parallel task interrupted",e);
             baseError = Exceptions.parseException(e);
             throw baseError;
         }finally{
             if(future!=null){
+                SpliceLogUtils.trace(LOG,"Cleaning up parallel job ");
                 try{
                     SpliceDriver.driver().getJobScheduler().cleanupJob(future);
                 } catch (ExecutionException e) {
