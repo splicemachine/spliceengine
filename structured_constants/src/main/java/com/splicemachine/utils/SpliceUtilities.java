@@ -2,6 +2,7 @@ package com.splicemachine.utils;
 
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
@@ -27,6 +28,22 @@ public class SpliceUtilities extends SIConstants {
 			throw new RuntimeException(e);
 		}
 	}
+
+	public static Configuration getConfig() {
+		return config;
+	}
+	
+	public static HBaseAdmin getAdmin(Configuration configuration) {
+		try {
+			return new HBaseAdmin(configuration);
+		} catch (MasterNotRunningException e) {
+			throw new RuntimeException(e);
+		} catch (ZooKeeperConnectionException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	
 
 	public static HTableDescriptor generateDefaultSIGovernedTable(String tableName) {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
@@ -72,10 +89,21 @@ public class SpliceUtilities extends SIConstants {
         return siFamily;
     }
 
-    
-
-    
-    
+    public static void refreshHbase() {
+    	 SpliceLogUtils.info(LOG, "Refresh HBase");
+         HBaseAdmin admin = null;
+         try{
+             admin = getAdmin();
+             HTableDescriptor[] descriptors = admin.listTables();
+             for (HTableDescriptor desc : descriptors) {
+            	 admin.deleteTable(desc.getName());
+             }
+         }catch(Exception e){
+             SpliceLogUtils.error(LOG,"Unable to Refresh Hbase",e);
+         }finally{
+         	Closeables.closeQuietly(admin);
+         }
+    }
     
     public static boolean createSpliceHBaseTables () {
         SpliceLogUtils.info(LOG, "Creating Splice Required HBase Tables");
@@ -85,18 +113,18 @@ public class SpliceUtilities extends SIConstants {
             admin = getAdmin();
             if(!admin.tableExists(TEMP_TABLE_BYTES)){
                 HTableDescriptor td = generateDefaultSIGovernedTable(TEMP_TABLE);
-                admin.createTable(td);
+                admin.createTableAsync(td,null);
                 SpliceLogUtils.info(LOG, SpliceConstants.TEMP_TABLE+" created");
             }
             if(!admin.tableExists(SpliceConstants.TRANSACTION_TABLE_BYTES)){
                 HTableDescriptor td = generateTransactionTable(TRANSACTION_TABLE);
-                admin.createTable(td);
+                admin.createTableAsync(td,null);
                 SpliceLogUtils.info(LOG, SpliceConstants.TRANSACTION_TABLE_BYTES+" created");
             }
 
             if(!admin.tableExists(SpliceConstants.CONGLOMERATE_TABLE_NAME_BYTES)){
                 HTableDescriptor td = generateDefaultSIGovernedTable(CONGLOMERATE_TABLE_NAME);
-                admin.createTable(td);
+                admin.createTableAsync(td,null);
                 SpliceLogUtils.info(LOG, SpliceConstants.CONGLOMERATE_TABLE_NAME_BYTES+" created");
             }
 

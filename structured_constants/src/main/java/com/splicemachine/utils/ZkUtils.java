@@ -13,6 +13,7 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import com.splicemachine.constants.SpliceConstants;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -22,7 +23,7 @@ import java.util.List;
  * Created: 2/2/13 9:38 AM
  */
 public class ZkUtils extends SpliceConstants {
-	private static final Logger LOGGER = Logger.getLogger(ZkUtils.class);
+	private static final Logger LOG = Logger.getLogger(ZkUtils.class);
 	private static final SpliceZooKeeperManager zkManager = new SpliceZooKeeperManager();
 
 	/**
@@ -34,7 +35,7 @@ public class ZkUtils extends SpliceConstants {
 		try {
 			return zkManager.getRecoverableZooKeeper();
 		} catch (ZooKeeperConnectionException e) {
-			LOGGER.error("Unable to connect to zookeeper, aborting",e);
+			LOG.error("Unable to connect to zookeeper, aborting",e);
 			throw new RuntimeException(e);
 		}
 	}
@@ -46,7 +47,7 @@ public class ZkUtils extends SpliceConstants {
 		try {
 			return zkManager.getZooKeeperWatcher();
 		} catch (ZooKeeperConnectionException e) {
-			LOGGER.error("Unable to connect to zookeeper, aborting",e);
+			LOG.error("Unable to connect to zookeeper, aborting",e);
 			throw new RuntimeException(e);
 		}
 	}
@@ -108,9 +109,6 @@ public class ZkUtils extends SpliceConstants {
     public static String create(String path, byte[] bytes, List<ACL> acls, CreateMode createMode) throws KeeperException,InterruptedException{
             return getRecoverableZooKeeper().create(path,bytes,acls,createMode);
      }
-  
-    
-//    rzk.create(transactionPath + "/txn-", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
     
     
 	/**
@@ -281,12 +279,19 @@ public class ZkUtils extends SpliceConstants {
     public static void cleanZookeeper() throws InterruptedException, KeeperException {
     	RecoverableZooKeeper rzk = getRecoverableZooKeeper();
     	for (String path: SpliceConstants.zookeeperPaths) {
-        	System.out.println("clean Zookeeper " + path);
     		if (rzk.exists(path, false) != null) {
+    			for (String child: rzk.getChildren(path, false)) {
+    				rzk.delete(child, 0);
+    			}
     			System.out.println("attempt to clean Zookeeper: " + path);
     			rzk.delete(path, 0);
     		}
     	}
+    }
+    
+    public static void delete(String path) throws InterruptedException, KeeperException {
+    	RecoverableZooKeeper rzk = getRecoverableZooKeeper();
+		rzk.delete(path, 0);    	
     }
 
     public static void initializeZookeeper() throws InterruptedException, KeeperException {
@@ -318,6 +323,7 @@ public class ZkUtils extends SpliceConstants {
     public static void spliceFinishedLoading() throws InterruptedException, KeeperException {
     	RecoverableZooKeeper rzk = getRecoverableZooKeeper();
     	rzk.create(zkSpliceStartupPath, Bytes.toBytes(0l), ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
-    }    
+    }
+    
     
 }
