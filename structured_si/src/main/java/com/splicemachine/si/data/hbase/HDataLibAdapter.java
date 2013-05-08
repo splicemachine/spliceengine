@@ -171,6 +171,15 @@ public class HDataLibAdapter implements SDataLib {
     }
 
     @Override
+    public void setReadMaxVersions(SRead read, int max) {
+        if (read instanceof HGet) {
+            dataLib.setReadMaxVersions(((HGet) read).getGet(), max);
+        } else {
+            dataLib.setReadMaxVersions(((HScan) read).getScan(), max);
+        }
+    }
+
+    @Override
     public void addFamilyToReadIfNeeded(SRead read, Object family) {
         if (read instanceof HGet) {
             dataLib.addFamilyToReadIfNeeded(((HGet) read).get, (byte[]) family);

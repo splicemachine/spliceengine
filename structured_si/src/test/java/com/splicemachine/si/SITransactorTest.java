@@ -683,6 +683,40 @@ public class SITransactorTest {
     }
 
     @Test
+    public void writeDeleteSameTransaction() throws IOException {
+        TransactionId t0 = transactor.beginTransaction(true, false, false);
+        insertAge(t0, "joe81", 19);
+        transactor.commit(t0);
+
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe81", 20);
+        deleteRow(t1, "joe81");
+        Assert.assertEquals("joe81 age=null job=null", read(t1, "joe81"));
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction(true, false, false);
+        Assert.assertEquals("joe81 age=null job=null", read(t2, "joe81"));
+        transactor.commit(t2);
+    }
+
+    @Test
+    public void deleteWriteSameTransaction() throws IOException {
+        TransactionId t0 = transactor.beginTransaction(true, false, false);
+        insertAge(t0, "joe82", 19);
+        transactor.commit(t0);
+
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        deleteRow(t1, "joe82");
+        insertAge(t1, "joe82", 20);
+        Assert.assertEquals("joe82 age=20 job=null", read(t1, "joe82"));
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction(true, false, false);
+        Assert.assertEquals("joe82 age=20 job=null", read(t2, "joe82"));
+        transactor.commit(t2);
+    }
+
+    @Test
     public void fourTransactions() throws Exception {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe7", 20);
