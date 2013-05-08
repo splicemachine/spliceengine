@@ -1,5 +1,6 @@
 package com.splicemachine.si;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.STable;
@@ -14,7 +15,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.List;
 
-public class SIFilterTest {
+public class SIFilterTest extends SIConstants {
     boolean useSimple = true;
 
     StoreSetup storeSetup;
@@ -64,7 +65,7 @@ public class SIFilterTest {
         insertAge(t2, "bill", 30);
 
         Object row = readEntireTuple("bill");
-        final List keyValues = dataLib.getResultColumn(row, dataLib.encode("_si"), dataLib.encode("commit"));
+        final List keyValues = dataLib.getResultColumn(row, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY), dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
         for (Object kv : keyValues) {
             transactor.filterKeyValue(filterState, kv);
         }

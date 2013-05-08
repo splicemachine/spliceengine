@@ -1,6 +1,7 @@
 package com.splicemachine.si;
 
 import com.google.common.base.Function;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
@@ -41,7 +42,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class SITransactorTest {
+public class SITransactorTest extends SIConstants {
     boolean useSimple = true;
 
     StoreSetup storeSetup;
@@ -1371,7 +1372,7 @@ public class SITransactorTest {
 
         final Object testKey = dataLib.newRowKey(new Object[]{"jim"});
         Object put = dataLib.newPut(testKey);
-        Object family = dataLib.encode("attributes");
+        Object family = dataLib.encode(DEFAULT_FAMILY);
         Object ageQualifier = dataLib.encode("age");
         dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(25));
         TransactionId t = transactor.beginTransaction(true, false, false);
@@ -1493,8 +1494,8 @@ public class SITransactorTest {
             }
             Object result = readRaw(testRow);
             final SDataLib dataLib = storeSetup.getDataLib();
-            final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
-                    dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+            final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+                    dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
             for (Object c : commitTimestamps) {
                 final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(c), Integer.class);
                 Assert.assertEquals(-1, timestamp);
@@ -1503,8 +1504,8 @@ public class SITransactorTest {
             Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
 
             Object result2 = readRaw(testRow);
-            final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
-                    dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+            final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+                    dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
             for (Object c2 : commitTimestamps2) {
                 timestampDecoder.apply(new Object[]{t1, c2});
                 Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c2));
@@ -1596,8 +1597,8 @@ public class SITransactorTest {
             }
             Object result = readRaw(testRow);
             final SDataLib dataLib = storeSetup.getDataLib();
-            final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
-                    dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+            final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+                    dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
             for (Object c : commitTimestamps) {
                 final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(c), Integer.class);
                 Assert.assertEquals(-1, timestamp);
@@ -1614,9 +1615,9 @@ public class SITransactorTest {
             Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
 
             Object result2 = readRaw(testRow);
-
-            final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
-                    dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+            
+            final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+                    dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
             for (Object c2 : commitTimestamps2) {
                 timestampProcessor.apply(new Object[]{t1, c2});
                 Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c2));
@@ -1871,8 +1872,8 @@ public class SITransactorTest {
         }
         Object result = readRaw(testKey + "-0");
         final SDataLib dataLib = storeSetup.getDataLib();
-        final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
-                dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+        final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+                dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN));
         for (Object c : commitTimestamps) {
             timestampProcessor.apply(new Object[]{t0, c});
             Assert.assertEquals(t0.getId(), dataLib.getKeyValueTimestamp(c));
@@ -1948,8 +1949,8 @@ public class SITransactorTest {
         }
         Object result = readRaw(testRow + "-0");
         final SDataLib dataLib = storeSetup.getDataLib();
-        final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(transactorSetup.SI_DATA_FAMILY),
-                dataLib.encode(transactorSetup.SI_DATA_COMMIT_TIMESTAMP_QUALIFIER));
+        final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+                dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
         for (Object c : commitTimestamps) {
             timestampProcessor.apply(new Object[] {t0, c});
             Assert.assertEquals(t0.getId(), dataLib.getKeyValueTimestamp(c));
