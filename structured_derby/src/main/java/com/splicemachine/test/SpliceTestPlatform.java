@@ -58,7 +58,6 @@ public class SpliceTestPlatform extends TestConstants {
 		miniZooKeeperCluster = new MiniZooKeeperCluster();
 		miniZooKeeperCluster.startup(new File(zookeeperTargetDirectory),3);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
-		System.out.println("Starting - is this working? " + miniHBaseCluster.getMaster().getConfiguration().get("hbase.coprocessor.master.classes"));
 	}
 	public void end() throws Exception {
 

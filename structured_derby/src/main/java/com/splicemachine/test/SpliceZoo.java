@@ -10,6 +10,8 @@ import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 import org.apache.zookeeper.server.quorum.QuorumPeer;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
 
+import com.splicemachine.utils.SpliceLogUtils;
+
 public class SpliceZoo implements Runnable {
 	private static final Logger LOG = Logger.getLogger(SpliceZoo.class);
 	protected QuorumPeerConfig config;
@@ -43,12 +45,11 @@ public class SpliceZoo implements Runnable {
                 .getDataDir(), config.getDataLogDir(), config
                 .getSnapRetainCount(), config.getPurgeInterval());
         purgeMgr.start();
-		LOG.trace("Client Addresss: " + config.getClientPortAddress());			
+        SpliceLogUtils.trace(LOG, "Client Address: %s",config.getClientPortAddress());
 		try {
-			LOG.trace("Starting Addresss: " + config.getClientPortAddress());			
 			 peer.start();
-			  System.out.println("Attempting to join " + config.getClientPortAddress());
-			  peer.join();
+		     SpliceLogUtils.trace(LOG, "Attempting to Join: %s",config.getClientPortAddress());
+			 peer.join();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

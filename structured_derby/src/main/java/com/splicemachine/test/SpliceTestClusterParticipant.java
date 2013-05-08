@@ -41,9 +41,7 @@ public class SpliceTestClusterParticipant extends TestConstants {
 	
 	public void start() throws Exception {
 		Configuration config = HBaseConfiguration.create();
-		System.out.println("Running1 ---");
 		setBaselineConfigurationParameters(config);
-		System.out.println("Running2 ---");
 		miniHBaseCluster = new MiniHBaseCluster(config,0,1);
 	}
 	public void end() throws Exception {
