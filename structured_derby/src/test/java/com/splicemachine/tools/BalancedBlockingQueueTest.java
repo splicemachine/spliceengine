@@ -2,10 +2,8 @@ package com.splicemachine.tools;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import junit.framework.Assert;
-import org.apache.hadoop.hbase.util.Pair;
+import org.junit.Assert;
 import org.junit.Test;
-
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
