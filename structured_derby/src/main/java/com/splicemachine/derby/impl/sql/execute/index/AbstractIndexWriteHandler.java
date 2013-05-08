@@ -4,6 +4,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.*;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
@@ -21,7 +22,7 @@ import java.util.Map;
  * @author Scott Fines
  * Created on: 5/1/13
  */
-abstract class AbstractIndexWriteHandler implements WriteHandler {
+abstract class AbstractIndexWriteHandler extends SpliceConstants implements WriteHandler {
     /*
     * Maps the columns in the index to the columns in the main table.
     * e.g. if indexColsToMainColMap[0] = 1, then the first entry

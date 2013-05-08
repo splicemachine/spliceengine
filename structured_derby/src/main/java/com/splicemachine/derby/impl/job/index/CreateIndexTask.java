@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.job.index;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.google.common.collect.Maps;
-import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
@@ -213,10 +213,10 @@ public class CreateIndexTask extends ZooKeeperTask {
             Put indexPut = SpliceUtils.createPut(finalIndexRow, transactionId);
             for(int dataPos=0;dataPos<indexRowData.length;dataPos++){
                 byte[] putPos = Integer.toString(dataPos).getBytes();
-                indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
+                indexPut.add(DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
             }
 
-            indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
+            indexPut.add(DEFAULT_FAMILY_BYTES,
                     Integer.toString(rowData.size()).getBytes(),mainRow);
             indexPuts.add(indexPut);
         }

@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.Puts;
@@ -53,7 +52,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
         for(int indexPos=0;indexPos<indexColsToMainColMap.length;indexPos++){
             byte[] putPos = mainColPos[indexPos];
-            byte[] data = put.get(HBaseConstants.DEFAULT_FAMILY_BYTES,putPos).get(0).getValue();
+            byte[] data = put.get(DEFAULT_FAMILY_BYTES,putPos).get(0).getValue();
             rowKeyBuilder[indexPos] = data;
             size+=data.length+1;
         }
@@ -64,11 +63,11 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             Put indexPut = SpliceUtils.createPut(indexRowKey, put);
             for(int i=0;i<indexColsToMainColMap.length;i++){
                 byte[] indexPos = Integer.toString(i).getBytes();
-                indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos,rowKeyBuilder[i]);
+                indexPut.add(DEFAULT_FAMILY_BYTES,indexPos,rowKeyBuilder[i]);
             }
 
             byte[] locPos = Integer.toString(indexColsToMainColMap.length).getBytes();
-            indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES, locPos, put.getRow());
+            indexPut.add(DEFAULT_FAMILY_BYTES, locPos, put.getRow());
 
             indexToMainMutationMap.put(indexPut,put);
             indexBuffer.add(indexPut);
@@ -96,7 +95,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
         boolean indexNeedsUpdating = false;
         for(byte[] indexColPos:mainColPos){
-            if(mutation.has(HBaseConstants.DEFAULT_FAMILY_BYTES,indexColPos)){
+            if(mutation.has(DEFAULT_FAMILY_BYTES,indexColPos)){
                 indexNeedsUpdating=true;
                 break;
             }
@@ -111,7 +110,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         try {
             Get oldGet = SpliceUtils.createGet(mutation, mutation.getRow());
             for(byte[] indexColPos:mainColPos){
-                oldGet.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,indexColPos);
+                oldGet.addColumn(DEFAULT_FAMILY_BYTES,indexColPos);
             }
             Result r = ctx.getRegion().get(oldGet,null);
             if(r ==null|| r.isEmpty()){
@@ -123,7 +122,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             byte[][] rowToDelete = getDataArray();
             int size =0;
             for(int indexPos=0;indexPos<mainColPos.length;indexPos++){
-                byte[] data = r.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColPos[indexPos]);
+                byte[] data = r.getValue(DEFAULT_FAMILY_BYTES,mainColPos[indexPos]);
                 rowToDelete[indexPos] = data;
                 size+=data.length+1;
             }
@@ -135,12 +134,12 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             Put newPut = Mutations.translateToPut(mutation,null);
             for(byte[] indexPos:mainColPos){
                 byte[] data;
-                if(mutation.has(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos))
-                    data = mutation.get(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos).get(0).getValue();
+                if(mutation.has(DEFAULT_FAMILY_BYTES,indexPos))
+                    data = mutation.get(DEFAULT_FAMILY_BYTES,indexPos).get(0).getValue();
                 else
-                    data = r.getValue(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos);
+                    data = r.getValue(DEFAULT_FAMILY_BYTES,indexPos);
 
-                newPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,indexPos,data);
+                newPut.add(DEFAULT_FAMILY_BYTES,indexPos,data);
             }
             return newPut;
         } catch (IOException e) {

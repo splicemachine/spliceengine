@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -11,7 +10,6 @@ import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.NavigableMap;
@@ -76,7 +74,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
             Get get = SpliceUtils.createGet(mutation, mutation.getRow());
 
             for(byte[] mainColumn:mainColPos){
-                get.addColumn(HBaseConstants.DEFAULT_FAMILY_BYTES,mainColumn);
+                get.addColumn(DEFAULT_FAMILY_BYTES,mainColumn);
             }
 
             Result result = ctx.getRegion().get(get,null);
@@ -86,7 +84,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
                 return;
             }
 
-            NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(HBaseConstants.DEFAULT_FAMILY_BYTES);
+            NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(DEFAULT_FAMILY_BYTES);
             final byte[] indexRowKey = getDeleteKey(familyMap);
 
             Mutation delete = Mutations.getDeleteOp(mutation,indexRowKey);
