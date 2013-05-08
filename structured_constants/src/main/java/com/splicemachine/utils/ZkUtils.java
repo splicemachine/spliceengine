@@ -283,7 +283,6 @@ public class ZkUtils extends SpliceConstants {
     			for (String child: rzk.getChildren(path, false)) {
     				rzk.delete(child, 0);
     			}
-    			System.out.println("attempt to clean Zookeeper: " + path);
     			rzk.delete(path, 0);
     		}
     	}
@@ -296,7 +295,6 @@ public class ZkUtils extends SpliceConstants {
 
     public static void initializeZookeeper() throws InterruptedException, KeeperException {
     	for (String path: SpliceConstants.zookeeperPaths) {
-    		System.out.println("initialize " + path);
     		recursiveSafeCreate(path, Bytes.toBytes(0l), ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
     	}
     }
