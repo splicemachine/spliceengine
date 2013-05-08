@@ -47,9 +47,7 @@ public interface IHDataLib {
     void setReadTimeRange(Get get, long minTimestamp, long maxTimestamp);
     void setReadTimeRange(Scan get, long minTimestamp, long maxTimestamp);
     void setReadMaxVersions(Get get);
-    void setReadMaxVersions(Get get, int max);
     void setReadMaxVersions(Scan scan);
-    void setReadMaxVersions(Scan scan, int max);
     void addFamilyToReadIfNeeded(Get get, byte[] family);
     void addFamilyToReadIfNeeded(Scan scan, byte[] family);
 }

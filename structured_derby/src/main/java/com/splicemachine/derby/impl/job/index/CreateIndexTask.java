@@ -171,26 +171,22 @@ public class CreateIndexTask extends ZooKeeperTask {
     }
 
     private List<Put> translateResult(List<KeyValue> result,int[] indexColsToMainColMap) throws IOException{
-        Map<String,List<KeyValue>> putConstructors = Maps.newHashMapWithExpectedSize(1);
+        Map<byte[],List<KeyValue>> putConstructors = Maps.newHashMapWithExpectedSize(1);
         for(KeyValue keyValue:result){
-            String row = Bytes.toString(keyValue.getRow());
-            List<KeyValue> cols = putConstructors.get(row);
+            List<KeyValue> cols = putConstructors.get(keyValue.getRow());
             if(cols==null){
                 cols = Lists.newArrayListWithExpectedSize(indexColsToMainColMap.length);
-                putConstructors.put(row,cols);
+                putConstructors.put(keyValue.getRow(),cols);
             }
             cols.add(keyValue);
         }
         //build Puts for each row
         List<Put> indexPuts = Lists.newArrayListWithExpectedSize(putConstructors.size());
-        for(String mainRowStr: putConstructors.keySet()){
-            List<KeyValue> rowData = putConstructors.get(mainRowStr);
+        for(byte[] mainRow: putConstructors.keySet()){
+            List<KeyValue> rowData = putConstructors.get(mainRow);
             byte[][] indexRowData = getDataArray();
             int rowSize=0;
-            byte[] rowKey = null;
             for(KeyValue kv:rowData){
-                if(rowKey==null)
-                    rowKey = kv.getRow();
                 int colPos = Integer.parseInt(Bytes.toString(kv.getQualifier()));
                 for(int indexPos=0;indexPos<indexColsToMainColMap.length;indexPos++){
                     if(colPos == indexColsToMainColMap[indexPos]){
@@ -220,7 +216,7 @@ public class CreateIndexTask extends ZooKeeperTask {
             }
 
             indexPut.add(HBaseConstants.DEFAULT_FAMILY_BYTES,
-                    Integer.toString(rowData.size()).getBytes(),rowKey);
+                    Integer.toString(rowData.size()).getBytes(),mainRow);
             indexPuts.add(indexPut);
         }
 

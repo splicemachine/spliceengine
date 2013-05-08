@@ -61,16 +61,14 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
             byte[] payload = byteOut.toByteArray();
 
             String taskId = getTaskId();
-            if(taskId==null||taskId.endsWith("-")){
-                RecoverableZooKeeper zooKeeper =zkManager.getRecoverableZooKeeper();
-                taskId = zooKeeper.create(taskId,payload,
-                        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
-                setTaskId(taskId);
-                byte[] statusData = statusToBytes();
-                statusNode = zooKeeper.create(taskId+"/status",statusData,ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                        CreateMode.EPHEMERAL);
-            }
+            RecoverableZooKeeper zooKeeper =zkManager.getRecoverableZooKeeper();
+            taskId = zooKeeper.create(taskId,payload,
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+            setTaskId(taskId);
 
+            byte[] statusData = statusToBytes();
+            statusNode = zooKeeper.create(taskId+"/status",statusData,ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                    CreateMode.EPHEMERAL);
             checkNotCancelled();
 
         } catch (IOException e) {
@@ -96,7 +94,7 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
         status.setStatus(Status.EXECUTING);
         updateStatus(true);
         //reset the cancellation watch to notify us if the node is deleted
-//        checkNotCancelled();
+        checkNotCancelled();
 
     }
 
@@ -198,25 +196,16 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
     }
 
     private void checkNotCancelled()throws ExecutionException {
-        SpliceLogUtils.trace(LOG,"Attaching existence watcher to job %s",jobId);
+        SpliceLogUtils.trace(LOG,"Attaching existence watcher to task %s",taskId);
         //call exists() on status to make sure that we notice cancellations
         Stat stat;
         try {
             stat = zkManager.getRecoverableZooKeeper().exists(CoprocessorTaskScheduler.getJobPath() + "/" + jobId, new Watcher() {
                 @Override
                 public void process(WatchedEvent event) {
-                    SpliceLogUtils.trace(LOG, "Received WatchedEvent %s on node %s",event.getType(),event.getPath());
+                    SpliceLogUtils.trace(LOG, "Received WatchedEvent " + event.getType());
                     if (event.getType() != Event.EventType.NodeDeleted)
                         return; //nothing to do
-
-                    //if we are in a terminal state, then don't cancel
-                    switch (status.getStatus()) {
-                        case FAILED:
-                        case COMPLETED:
-                        case CANCELLED:
-                            return;
-                    }
-
                     try {
                         markCancelled(false);
                     } catch (ExecutionException ee) {

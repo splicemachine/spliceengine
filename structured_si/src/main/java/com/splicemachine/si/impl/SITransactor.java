@@ -23,7 +23,6 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
 import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
@@ -324,7 +323,7 @@ public class SITransactor implements Transactor, ClientTransactor {
         // This is the critical section that runs while the row is locked.
         try {
             ensureNoWriteConflict(transaction, table, rowKey);
-            final Object newPut = createUltimatePut(transaction, lock, put, table);
+            final Object newPut = createUltimatePut(transaction, lock, put);
             dataStore.suppressIndexing(newPut);
             dataWriter.write(table, newPut, lock);
         } finally {
@@ -397,16 +396,13 @@ public class SITransactor implements Transactor, ClientTransactor {
      * Create a new operation, with the lock, that has all of the keyValues from the original operation.
      * This will also set the timestamp of the data being updated to reflect the transaction doing the update.
      */
-    Object createUltimatePut(ImmutableTransaction transaction, SRowLock lock, Object put, STable table) throws IOException {
+    Object createUltimatePut(ImmutableTransaction transaction, SRowLock lock, Object put) {
         final Object rowKey = dataLib.getPutKey(put);
         final Object newPut = dataLib.newPut(rowKey, lock);
         final SITransactionId transactionId = transaction.getTransactionId();
         final long timestamp = transactionId.getId();
         dataStore.copyPutKeyValues(put, newPut, timestamp);
         dataStore.addTransactionIdToPut(newPut, transactionId);
-        if (isDeletePut(put)) {
-            dataStore.setTombstonesOnColumns(table, timestamp, newPut);
-        }
         return newPut;
     }
 

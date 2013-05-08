@@ -216,7 +216,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
             int futuresRemaining = getOutstandingCount();
             while(!found&&futuresRemaining>0){
                 changedFuture = changedFutures.take();
-                SpliceLogUtils.trace(logger,"task %s has changed status",changedFuture.getTaskId());
+                SpliceLogUtils.trace(logger,"Received a task with a changed status, updating state");
 
                 found = !completedFutures.contains(changedFuture) &&
                         !failedFutures.contains(changedFuture) &&
@@ -245,9 +245,8 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                         case INVALID:
                             SpliceLogUtils.trace(logger,"Task "+ changedFuture.getTaskId()+" was invalidated, managing");
                             ((WatchingTask)changedFuture).manageInvalidated();
-                            break;
                         default:
-                            SpliceLogUtils.trace(logger,"State of Task %s is %s", changedFuture.getTaskId(),status);
+                            SpliceLogUtils.trace(logger,"Unable to determine state of task "+ changedFuture.getTaskId());
                             found=false; //circle around because we aren't finished yet
                     }
                 }
@@ -261,7 +260,6 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                 }else
                     totalCompleted.incrementAndGet();
             }
-            SpliceLogUtils.trace(logger,"completeNext finished");
         }
 
         private int getOutstandingCount() {
@@ -295,30 +293,20 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         }
 
         public void cleanup() throws ExecutionException{
-            SpliceLogUtils.trace(logger,"Cleanup of job %s requested",jobPath);
             //delete the job node
             try {
-                zkManager.execute(new SpliceZooKeeperManager.Command<Void>() {
-                    @Override
-                    public Void execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
-                        try{
-                            zooKeeper.delete(jobPath,-1);
-                        }catch(KeeperException ke){
-                            if(ke.code()!= KeeperException.Code.NONODE)
-                                throw ke;
-                        }
-
-                        for(WatchingTask task:taskFutures){
-                            task.cleanup(zooKeeper);
-                        }
-                        return null;
-                    }
-                });
+                zkManager.getRecoverableZooKeeper().delete(jobPath, -1);
             } catch (InterruptedException e) {
-                SpliceLogUtils.error(logger,"Unable to clean up job "+jobPath,e);
-                Thread.currentThread().interrupt();
+                throw new ExecutionException(e);
             } catch (KeeperException e) {
-                SpliceLogUtils.error(logger, "Unable to clean up job " + jobPath, e);
+                if(e.code()!= KeeperException.Code.NONODE)
+                    throw new ExecutionException(e);
+            } catch (ZooKeeperConnectionException e) {
+                throw new ExecutionException(e);
+            }
+
+            for(WatchingTask task:taskFutures){
+               task.cleanup();
             }
         }
     }
@@ -535,20 +523,31 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
             return context.getTaskNode();
         }
 
-        public void cleanup(RecoverableZooKeeper zooKeeper) throws KeeperException,InterruptedException {
+        public void cleanup() throws ExecutionException {
+            RecoverableZooKeeper zooKeeper;
+            try {
+                zooKeeper = zkManager.getRecoverableZooKeeper();
+            } catch (ZooKeeperConnectionException e) {
+                throw new ExecutionException(e);
+            }
+
             try{
                 zooKeeper.delete(context.getTaskNode() + "/status", -1);
             }catch(KeeperException e){
                 //ignore it if it's already deleted
                if(e.code()!= KeeperException.Code.NONODE)
-                   throw e;
+                  throw new ExecutionException(e);
+            } catch (InterruptedException e) {
+                throw new ExecutionException(e);
             }
             try{
                 zooKeeper.delete(context.getTaskNode(),-1);
-            }  catch (KeeperException e) {
+            } catch (InterruptedException e) {
+                throw new ExecutionException(e);
+            } catch (KeeperException e) {
                 //ignore the error if the node isn't present
                 if(e.code()!= KeeperException.Code.NONODE)
-                    throw e;
+                    throw new ExecutionException(e);
             }
         }
     }

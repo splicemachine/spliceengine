@@ -193,9 +193,7 @@ public class SIFilterState implements FilterState {
      * Is there a row level tombstone that supercedes the current cell?
      */
     private boolean tombstoneAfterData() {
-        return rowState.tombstoneTimestamp != null
-                && (keyValue.timestamp < rowState.tombstoneTimestamp
-                    || (keyValue.timestamp == rowState.tombstoneTimestamp && dataStore.isSiNull(keyValue.value)));
+        return rowState.tombstoneTimestamp != null && keyValue.timestamp < rowState.tombstoneTimestamp;
     }
 
     /**

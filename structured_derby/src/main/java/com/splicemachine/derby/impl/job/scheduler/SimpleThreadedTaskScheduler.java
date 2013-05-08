@@ -104,7 +104,6 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
                 switch (task.getTaskStatus().getStatus()) {
                     case INVALID:
                         SpliceLogUtils.trace(WORKER_LOG, "Task %s has been invalidated, cleaning up and skipping", task.getTaskId());
-                        //TODO -sf- is this appropriate? Seems like this should be done by the job
                         cleanUpTask(task);
                         return null;
                     case FAILED:
