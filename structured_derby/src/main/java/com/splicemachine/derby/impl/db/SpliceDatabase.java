@@ -12,13 +12,16 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.db.BasicDatabase;
 import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.KeeperException;
 
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.store.access.HBaseStore;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceLockSpace;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.ZkUtils;
 
 public class SpliceDatabase extends BasicDatabase {
 	private static Logger LOG = Logger.getLogger(SpliceDatabase.class);
@@ -28,9 +31,12 @@ public class SpliceDatabase extends BasicDatabase {
 //	    SanityManager.DEBUG_SET("ByteCodeGenInstr");
 //	    SanityManager.DEBUG_SET("DumpClassFile");
 //      SanityManager.DEBUG_SET("DumpParseTree");
-		create = true; //  Need to figure out the create bit...
-//		if (SpliceUtils.created())
-//			create = false;
+		try {
+			create = !ZkUtils.isSpliceLoaded();
+		} catch (Exception e) {
+			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "isSpliceLoadedOnBoot failure", e);
+		}
+		
 		if (create)
 			SpliceLogUtils.info(LOG,"Creating the Splice Machine");
 		else {  

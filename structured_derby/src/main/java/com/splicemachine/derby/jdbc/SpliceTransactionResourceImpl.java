@@ -31,7 +31,7 @@ public final class SpliceTransactionResourceImpl {
 	protected LanguageConnectionContext lcc;
 
 	public SpliceTransactionResourceImpl() throws SQLException {
-		this ("jdbc:derby:wombat;create=true", new Properties());
+		this ("jdbc:derby:spliceDB;create=true", new Properties());
 	}
 	
 	public SpliceTransactionResourceImpl(String url, Properties info) throws SQLException {
@@ -52,6 +52,8 @@ public final class SpliceTransactionResourceImpl {
                 }
                 database = (SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE,dbname);
             } catch (StandardException e) {
+            	SpliceLogUtils.error(LOG, e);
+            	e.printStackTrace();
                 throw PublicAPI.wrapStandardException(e);
             }
         }

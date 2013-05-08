@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl;
 
 import java.io.IOException;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Properties;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.EngineType;
@@ -12,13 +13,18 @@ import org.apache.derby.iapi.services.monitor.PersistentService;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.io.StorageFactory;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.ZkUtils;
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.store.access.PropertyConglomerate2;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 
-public class SpliceService implements PersistentService {
+public class SpliceService extends SpliceConstants implements PersistentService {
 	protected static final String TYPE = "splice";
 	private static Logger LOG = Logger.getLogger(SpliceService.class);
 	public SpliceService() {
@@ -37,10 +43,21 @@ public class SpliceService implements PersistentService {
 		return null;
 	}
 
+	@Override
 	public Properties getServiceProperties(String serviceName, Properties defaultProperties) throws StandardException {
+		Properties service = new Properties(defaultProperties);
+		try {
+			List<String> children = ZkUtils.getChildren(zkSpliceDerbyPropertyPath, false);
+			for (String child: children) {
+				String value = Bytes.toString(ZkUtils.getData(zkSpliceDerbyPropertyPath + "/" + child));
+				service.setProperty(child, value);
+			}
+		} catch (Exception e) {
+			SpliceStandardLogUtils.logAndReturnStandardException(LOG, "getServiceProperties Failed", e);
+		}
 		SpliceLogUtils.trace(LOG,"getServiceProperties serviceName: %s, defaultProperties %s",serviceName, defaultProperties);
 //		Properties service = new Properties(SpliceUtils.getAllProperties(defaultProperties));
-		Properties service = new Properties(defaultProperties);
+
 		service.setProperty(Property.SERVICE_PROTOCOL,"org.apache.derby.database.Database");
 		service.setProperty(EngineType.PROPERTY,Integer.toString(getEngineType()));
 		service.setProperty(DataDictionary.CORE_DATA_DICTIONARY_VERSION,"10.9");
@@ -53,23 +70,20 @@ public class SpliceService implements PersistentService {
 	}
 
 	public void saveServiceProperties(String serviceName, StorageFactory storageFactory, Properties properties, boolean replace) throws StandardException {
-		SpliceAccessManager test;
 		SpliceLogUtils.trace(LOG,"saveServiceProperties with storageFactory serviceName: %s, properties %s, replace %s",serviceName, properties, replace);
 		for (Object key :properties.keySet()) {
-			System.out.println("saveServiceProperties with stf " + key + " : " + properties.getProperty((String)key));
-//			if (!SpliceUtils.propertyExists((String)key)) {
-//				SpliceUtils.addProperty((String)key, (String)properties.getProperty((String)key));
-//			}
+			if (!SpliceUtils.propertyExists((String)key)) {
+				SpliceUtils.addProperty((String)key, (String)properties.getProperty((String)key));
+			}
 		}
 	}
 
     public void saveServiceProperties(String serviceName,Properties properties) throws StandardException {
 		SpliceLogUtils.trace(LOG,"saveServiceProperties serviceName: %s, properties %s",serviceName, properties);
 		for (Object key :properties.keySet()) {
-			System.out.println("saveServiceProperties " + key + " : " + properties.getProperty((String)key));
-//			if (!SpliceUtils.propertyExists((String)key)) {
-//				SpliceUtils.addProperty((String)key, (String)properties.getProperty((String)key));
-//			}
+			if (!SpliceUtils.propertyExists((String)key)) {
+				SpliceUtils.addProperty((String)key, (String)properties.getProperty((String)key));
+			}
 		}
 	}
 

@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -28,18 +29,24 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.store.access.conglomerate.TransactionManager;
 import org.apache.derby.iapi.store.raw.RawStoreFactory;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.iapi.types.UserType;
+import org.apache.derby.impl.sql.execute.GenericScanQualifier;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
-import org.apache.derby.impl.store.access.UTF;
-import org.apache.derby.impl.store.access.UTFQualifier;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
-public class PropertyConglomerate
-{
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.ZkUtils;
+
+public class PropertyConglomerate {
+	private static Logger LOG = Logger.getLogger(PropertyConglomerate.class);
 	protected long propertiesConglomId;
 	protected Properties serviceProperties;
 	private LockFactory lf;
 	private Dictionary	cachedSet;
-
 	private PropertyFactory  pf;
 
     /* Constructors for This class: */
@@ -52,9 +59,10 @@ public class PropertyConglomerate
 		throws StandardException
 	{
 		this.pf = pf;
-
+		
 		if (!create) {
-			String id = serviceProperties.getProperty(Property.PROPERTIES_CONGLOM_ID);
+			SpliceUtils.getProperty(Property.PROPERTIES_CONGLOM_ID);
+			String id = Bytes.toString(SpliceUtils.getProperty(Property.PROPERTIES_CONGLOM_ID));
 			if (id == null) {
 				create = true;
 			} else {
@@ -91,8 +99,20 @@ public class PropertyConglomerate
 			serviceProperties.put(
                 Property.PROPERTIES_CONGLOM_ID, 
                 Long.toString(propertiesConglomId));
+			serviceProperties.setProperty(DataDictionary.CORE_DATA_DICTIONARY_VERSION,"10.9");
+			
 		}
 
+		try {
+			List<String> children = ZkUtils.getChildren(SpliceConstants.zkSpliceDerbyPropertyPath, false);
+			for (String child: children) {
+				String value = Bytes.toString(ZkUtils.getData(SpliceConstants.zkSpliceDerbyPropertyPath + "/" + child));
+				serviceProperties.setProperty(child, value);
+			}
+		} catch (Exception e) {
+			SpliceStandardLogUtils.logAndReturnStandardException(LOG, "getServiceProperties Failed", e);
+		}
+		
 		this.serviceProperties = serviceProperties;
 
 		PC_XenaVersion softwareVersion = new PC_XenaVersion();
@@ -114,7 +134,7 @@ public class PropertyConglomerate
     {
 		DataValueDescriptor[] template = new DataValueDescriptor[2];
 
-		template[0] = new UTF(key);
+		template[0] = new SQLVarchar(key);
 		template[1] = new UserType(value);
 
         return(template);
@@ -127,7 +147,7 @@ public class PropertyConglomerate
     {
 		DataValueDescriptor[] template = new DataValueDescriptor[2];
 
-		template[0] = new UTF();
+		template[0] = new SQLVarchar();
 		template[1] = new UserType();
 
         return(template);
@@ -154,13 +174,16 @@ public class PropertyConglomerate
     int                   open_mode) 
 		throws StandardException
     {
+    	    	
 		Qualifier[][] qualifiers = null;
 
 		if (key != null) {
 			// Set up qualifier to look for the row with key value in column[0]
 			qualifiers = new Qualifier[1][];
             qualifiers[0] = new Qualifier[1];
-			qualifiers[0][0] = new UTFQualifier(0, key);
+            GenericScanQualifier gsq = new GenericScanQualifier();
+            gsq.setQualifier(0, new SQLVarchar(key),DataValueDescriptor.ORDER_OP_EQUALS, false, false, false);
+			qualifiers[0][0] = gsq;
 		}
 
         // open the scan, clients will do the fetches and close.
@@ -627,7 +650,7 @@ public class PropertyConglomerate
 
 		while (scan.fetchNext(row)) {
 
-			Object key = ((UserType) row[0]).getObject();
+			Object key = ((SQLVarchar) row[0]).getObject();
 			Object value = ((UserType) row[1]).getObject();
 			if (SanityManager.DEBUG) {
                 if (!(key instanceof String))

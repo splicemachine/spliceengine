@@ -42,9 +42,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
 	 * where the hbase scanner will be limited (ProjectRestrictOperation) or where new records would be added (LeftOuterJoin).
 	 */
 	@Override
-	public RegionScanner postScannerOpen(
-			ObserverContext<RegionCoprocessorEnvironment> e, Scan scan,
-			RegionScanner s) throws IOException {
+	public RegionScanner postScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan,RegionScanner s) throws IOException {
 		if (scan.getAttribute(SPLICE_OBSERVER_INSTRUCTIONS) != null){
 			SpliceLogUtils.trace(LOG, "postScannerOpen called, wrapping SpliceOperationRegionScanner");
 			return super.postScannerOpen(e, scan, new SpliceOperationRegionScanner(s,scan,e.getEnvironment().getRegion()));

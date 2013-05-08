@@ -329,7 +329,6 @@ public class IndexSet {
         	impl.marshallTransaction(txnID.getTransactionIdString());
             DataDictionary dataDictionary = impl.getLcc().getDataDictionary();
             ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(conglomId);
-
             dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
             TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
 	            /*

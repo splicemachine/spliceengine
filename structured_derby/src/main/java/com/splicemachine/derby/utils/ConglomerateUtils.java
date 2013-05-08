@@ -50,7 +50,7 @@ public class ConglomerateUtils extends SpliceConstants {
 		try {
 			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
 			SpliceUtils.createGet(transactionID, Bytes.toBytes(conglomId));
-			Result result = table.get(SpliceUtils.createGet(transactionID, Bytes.toBytes(conglomId))); // ADD SI Lingo
+			Result result = table.get(SpliceUtils.createGet(transactionID, Bytes.toBytes(conglomId)));		
 			byte[] data = result.getValue(DEFAULT_FAMILY_BYTES, VALUE_COLUMN);
 			if(data!=null) {
 				return DerbyBytesUtil.fromBytes(data, instanceClass);
@@ -71,7 +71,7 @@ public class ConglomerateUtils extends SpliceConstants {
 	 * @throws IOException if something goes wrong and the data can't be stored.
 	 */
 	public static void createConglomerate(long conglomId, Conglomerate conglomerate, String transactionID) throws StandardException {
-		createConglomerate(Long.toString(conglomId),DerbyBytesUtil.toBytes(conglomerate),transactionID);
+		createConglomerate(Long.toString(conglomId), conglomId, DerbyBytesUtil.toBytes(conglomerate),transactionID);
 	}
 
 	/**
@@ -81,7 +81,7 @@ public class ConglomerateUtils extends SpliceConstants {
 	 * @param conglomerate the conglomerate to store
 	 * @throws IOException if something goes wrong and the data can't be stored.
 	 */
-	public static void createConglomerate(String tableName, byte[] conglomData, String transactionID) throws StandardException {
+	public static void createConglomerate(String tableName, long conglomId, byte[] conglomData, String transactionID) throws StandardException {
 		SpliceLogUtils.debug(LOG, "creating Hbase table for conglom {%s} with data {%s}", tableName, conglomData);
 		Preconditions.checkNotNull(transactionID);
 		Preconditions.checkNotNull(conglomData);		
@@ -92,6 +92,9 @@ public class ConglomerateUtils extends SpliceConstants {
 			HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(tableName);
 			admin.createTable(td);
 			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
+			Put put = SpliceUtils.createPut(Bytes.toBytes(conglomId), transactionID);
+			put.add(DEFAULT_FAMILY_BYTES, VALUE_COLUMN, conglomData);
+			table.put(put);
 		} catch (Exception e) {
 			SpliceStandardLogUtils.logAndReturnStandardException(LOG, "Erorr Creating Conglomerate", e);
 		}finally{

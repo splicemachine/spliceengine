@@ -43,6 +43,8 @@ import junit.framework.TestSuite;
 
 import org.junit.Ignore;
 
+import com.splicemachine.constants.SpliceConstants;
+
 /**
  * Class which holds information about the configuration of a Test.
  * 
@@ -68,8 +70,7 @@ public final class TestConfiguration {
     /**
      * Default values for configurations
      */
-    // private final static String DEFAULT_DBNAME = "wombat";
-    private final static String DEFAULT_DBNAME = "splice:wombat";
+    private final static String DEFAULT_DBNAME = "splice:" + SpliceConstants.SPLICE_DB;
     private final static String DEFAULT_DBNAME_SQL = "dbsqlauth";
     
     // private final static String DEFAULT_USER_NAME = "APP";

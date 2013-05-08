@@ -1,5 +1,6 @@
 package com.splicemachine.perf.runner;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.perf.runner.qualifiers.Result;
 import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -138,7 +139,7 @@ public class Data {
             //attempt to load the driver
             Class.forName("org.apache.derby.jdbc.AutoloadedDriver40");
             //fetch the driver for the url
-            jdbcPath = "jdbc:derby://"+server+"/wombat;create=true";
+            jdbcPath = "jdbc:derby://"+server+"/" + SpliceConstants.SPLICE_DB + ";create=true";
             driver = DriverManager.getDriver(jdbcPath);
         }
 

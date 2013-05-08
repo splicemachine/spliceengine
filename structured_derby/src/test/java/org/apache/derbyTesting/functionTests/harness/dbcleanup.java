@@ -36,6 +36,8 @@ import java.util.Vector;
 
 import org.apache.derby.tools.JDBCDisplayUtil;
 
+import com.splicemachine.constants.SpliceConstants;
+
 /*
  **
  ** dbcleanup
@@ -45,13 +47,13 @@ import org.apache.derby.tools.JDBCDisplayUtil;
  **	are present when a fresh database is created.  There are
  **	some gaps still-- sync objects, and I have not done SYSFILES.
  **	I have probably missed other things as well.  At present this
- **	is hardwired for jdbc:derby:wombat, the focus of our
+ **	is hardwired for jdbc:derby:spliceDB, the focus of our
  **	attention in the embedded tests.
  **
  */
 public class dbcleanup {
 
-	static String dbURL = "jdbc:derby:splice:wombat";
+	static String dbURL = "jdbc:derby:splice:" + SpliceConstants.SPLICE_DB;
 	static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
 	static boolean dbIsDirty = false;
 

@@ -1,6 +1,7 @@
 package com.splicemachine.test;
 
 import java.io.File;
+import java.util.Arrays;
 
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.si.coprocessors.SIObserver;
@@ -11,6 +12,7 @@ import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
+import com.splicemachine.derby.hbase.SpliceMasterObserver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 
@@ -56,10 +58,7 @@ public class SpliceTestPlatform extends TestConstants {
 		miniZooKeeperCluster = new MiniZooKeeperCluster();
 		miniZooKeeperCluster.startup(new File(zookeeperTargetDirectory),3);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
-//		Configuration config2 = new Configuration(config);
-//		config2.setInt("hbase.regionserver.port", 60021);
-//		config2.setInt("hbase.regionserver.info.port", 60031);
-//		miniHBaseCluster2 = new MiniHBaseCluster(config2,0,1); // Startup Second Server on different ports		
+		System.out.println("Starting - is this working? " + miniHBaseCluster.getMaster().getConfiguration().get("hbase.coprocessor.master.classes"));
 	}
 	public void end() throws Exception {
 
@@ -69,6 +68,7 @@ public class SpliceTestPlatform extends TestConstants {
 		configuration.set("hbase.rootdir", "file://" + hbaseTargetDirectory);
 		configuration.set("hbase.rpc.timeout", "6000");
 		configuration.set("hbase.cluster.distributed", "true");
+		configuration.setInt("hbase.balancer.period", 10000);
 		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");
 		configuration.set("hbase.regionserver.handler.count", "40");
 		coprocessorBaseline(configuration);
@@ -86,8 +86,7 @@ public class SpliceTestPlatform extends TestConstants {
                         CoprocessorTaskScheduler.class.getCanonicalName()+","+
                         SIObserver.class.getCanonicalName()
         );
-
-
+        configuration.set("hbase.coprocessor.master.classes", SpliceMasterObserver.class.getCanonicalName() + "");
     }
 
 }

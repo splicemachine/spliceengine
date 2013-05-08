@@ -1,5 +1,6 @@
 package com.splicemachine.tools;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import org.apache.derby.jdbc.EmbeddedDriver;
 
@@ -13,7 +14,6 @@ import java.sql.SQLException;
 public final class EmbedConnectionMaker implements ConnectionPool.Supplier {
     private static final String DRIVER_CLASS_NAME = "org.apache.derby.jdbc.EmbeddedDriver";
     private static final String protocol = "jdbc:derby:splice:";
-    private static final String dbName = "wombat";
 
     private static final Class<EmbeddedDriver> driverClass;
 
@@ -39,7 +39,7 @@ public final class EmbedConnectionMaker implements ConnectionPool.Supplier {
 
     @Override
     public Connection createNew() throws SQLException {
-        return driver.connect(protocol+dbName+";create=true",
+        return driver.connect(protocol+SpliceConstants.SPLICE_DB+";create=true",
                 SpliceDriver.driver().getProperties());
     }
 

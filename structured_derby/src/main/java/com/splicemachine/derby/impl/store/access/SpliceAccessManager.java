@@ -227,7 +227,7 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 		synchronized (conglom_cache) {
 			CacheableConglomerate cache_entry = 
 					(CacheableConglomerate) conglom_cache.findCached(conglomid_obj);
-
+			
 			if (cache_entry != null) {
 				conglom = cache_entry.getConglom();
 				conglom_cache.release(cache_entry);
@@ -476,8 +476,7 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 
 			TransactionController tc = rtc.getTransactionManager();
 
-			if (xactProperties != null)
-			{
+			if (xactProperties != null) {
 				rawtran.setup(tc);
 				//tc.commit();
 			}

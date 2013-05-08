@@ -8,7 +8,6 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationTree.OperationTreeStatus;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.si.data.hbase.HGet;
 import com.splicemachine.si.data.hbase.HScan;
@@ -30,8 +29,11 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooDefs;
 import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -469,5 +471,33 @@ public class SpliceUtils extends SpliceUtilities {
         mgr.pushContext(lcc);
         contextService.setCurrentContextManager(mgr);
     }
-    
+    public static boolean propertyExists(String propertyName) throws StandardException {
+    	SpliceLogUtils.trace(LOG, "propertyExists %s",propertyName);
+    	RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+        try {
+        	return rzk.exists(zkSpliceDerbyPropertyPath + "/" + propertyName, false) != null;
+        } catch (Exception e) {
+        	throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "propertyExists Exception", e);
+        }
+    }
+
+    public static byte[] getProperty(String propertyName) throws StandardException {
+    	SpliceLogUtils.trace(LOG, "propertyExists %s",propertyName);
+    	RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+        try {
+        	return rzk.getData(zkSpliceDerbyPropertyPath + "/" + propertyName, false, null);
+        } catch (Exception e) {
+        	throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "propertyExists Exception", e);
+        }
+    }
+
+    public static void addProperty(String propertyName, String propertyValue) throws StandardException {
+    		SpliceLogUtils.trace(LOG, "addProperty name %s , value %s", propertyName, propertyValue);
+    	   	RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+            try {
+                    rzk.create(zkSpliceDerbyPropertyPath + "/" + propertyName, Bytes.toBytes(propertyValue), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+            } catch (Exception e) {
+            	throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "addProperty Exception", e);
+            }
+    }
 }

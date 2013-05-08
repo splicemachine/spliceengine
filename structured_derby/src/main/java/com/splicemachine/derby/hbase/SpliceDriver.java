@@ -1,22 +1,21 @@
 package com.splicemachine.derby.hbase;
 
+import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJobScheduler;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
-
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -35,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Scott Fines
  *         Created on: 3/1/13
  */
-public class SpliceDriver extends SpliceConstants{
+public class SpliceDriver extends SpliceConstants {
     private static final Logger LOG = Logger.getLogger(SpliceDriver.class);
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     public static enum State{
@@ -52,7 +51,7 @@ public class SpliceDriver extends SpliceConstants{
         boolean shutdown();
     }
 
-
+    private String startNode;
     private static final SpliceDriver INSTANCE = new SpliceDriver();
 
     private AtomicReference<State> stateHolder = new AtomicReference<State>(State.NOT_STARTED);
@@ -153,30 +152,24 @@ public class SpliceDriver extends SpliceConstants{
                     //register JMX items
                     registerJMX();
                     boolean setRunning = true;
-                    System.out.println("Booting Database");
+                    SpliceLogUtils.debug(LOG, "Booting Database");
                     setRunning = bootDatabase();
-                    System.out.println("Finished Booting Database");
+                    SpliceLogUtils.debug(LOG, "Finished Booting Database");
 
                     if(!setRunning){
                         abortStartup();
                         return null;
                     }
-                    setRunning = ensureHBaseTablesPresent();
-                    if(!setRunning) {
-                        abortStartup();
-                        return null;
-                    }
-                    System.out.println("Starting Services");
+                    SpliceLogUtils.debug(LOG, "Starting Services");
                     setRunning = startServices();
-                    System.out.println("Done Starting Services");
-
+                    SpliceLogUtils.debug(LOG, "Done Starting Services");
                     if(!setRunning) {
                         abortStartup();
                         return null;
                     }
-                    System.out.println("Starting Server");
+                    SpliceLogUtils.debug(LOG, "Starting Server");
                     setRunning = startServer();
-                    System.out.println("Done Starting Server");
+                    SpliceLogUtils.debug(LOG, "Done Starting Server");
                     if(!setRunning) {
                         abortStartup();
                         return null;
@@ -190,25 +183,22 @@ public class SpliceDriver extends SpliceConstants{
     }
 
     private boolean bootDatabase() throws Exception {
-
+    	HBaseAdmin admin = null;
     	Connection connection = null;
         try{
-        	System.out.println("Refreshing Zookeeper");
-        	ZkUtils.refreshZookeeper();
-        	System.out.println("Done Refreshing Zookeeper");
-        	System.out.println("Refreshing Base Tables");        	
-        	SpliceUtilities.createSpliceHBaseTables();
-        	System.out.println("Dropping Base Tables");        	
-        	EmbedConnectionMaker maker = new EmbedConnectionMaker();
-        	connection = maker.createNew();
-        	return true;
+        	admin = SpliceAccessManager.getAdmin(config);
+        	HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.INIT_TABLE);
+        	admin.createTable(desc);
+        	return false;
         } catch (Exception e) {
-        	System.out.println("Error thrown " + e.getMessage());
-        	throw e;
+			EmbedConnectionMaker maker = new EmbedConnectionMaker();
+			connection = maker.createNew();        	
+			return true;
         }
-        	finally{
-        	if(connection!=null)
-                connection.close();
+        finally{
+        	if (connection != null)
+        		connection.close();
+        	Closeables.close(admin,true);
         }
     }
 
@@ -328,4 +318,5 @@ public class SpliceDriver extends SpliceConstants{
             return false;
         }
     }
+    
 }

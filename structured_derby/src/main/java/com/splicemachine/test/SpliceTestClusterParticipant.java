@@ -1,5 +1,7 @@
 package com.splicemachine.test;
 
+import com.splicemachine.constants.SpliceConfiguration;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.si.coprocessors.SIObserver;
 import org.apache.hadoop.conf.Configuration;
@@ -39,7 +41,9 @@ public class SpliceTestClusterParticipant extends TestConstants {
 	
 	public void start() throws Exception {
 		Configuration config = HBaseConfiguration.create();
+		System.out.println("Running1 ---");
 		setBaselineConfigurationParameters(config);
+		System.out.println("Running2 ---");
 		miniHBaseCluster = new MiniHBaseCluster(config,0,1);
 	}
 	public void end() throws Exception {
@@ -54,8 +58,10 @@ public class SpliceTestClusterParticipant extends TestConstants {
 		configuration.set("hbase.regionserver.handler.count", "40");
 		configuration.setInt("hbase.regionserver.port", port);
 		configuration.setInt("hbase.regionserver.info.port", infoPort);
+		configuration.setInt(SpliceConstants.CONFIG_DERBY_BIND_PORT, 1528);
 		coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
+		SpliceConstants.reloadConfiguration(configuration);
 	}
 
     public void coprocessorBaseline(Configuration configuration) {
