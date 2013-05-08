@@ -43,6 +43,8 @@ import java.util.concurrent.*;
  */
 public class TempCleaner {
     private static final Logger LOG = Logger.getLogger(TempCleaner.class);
+    private static final int DEFAULT_CLEANER_JOBS = 4;
+    private static final String CLEANER_JOBS = "splice.temp.maxCleanerJobs";
     private static final int DEFAULT_CLEAN_TASK_PRIORITY = 2;
     private final ExecutorService cleanWatcher;
     private final int taskPriority;
@@ -57,7 +59,10 @@ public class TempCleaner {
                         SpliceLogUtils.error(LOG, "Unexpected error cleaning temp table", e);
                     }
                 }).build();
-        cleanWatcher = Executors.newSingleThreadExecutor(factory);
+
+        int cleanerThreads = configuration.getInt(CLEANER_JOBS,DEFAULT_CLEANER_JOBS);
+        cleanWatcher = new ThreadPoolExecutor(1,cleanerThreads,60,
+                TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(),factory);
         this.taskPriority = configuration.getInt("splice.temp.cleanTaskPriority",DEFAULT_CLEAN_TASK_PRIORITY);
     }
 
