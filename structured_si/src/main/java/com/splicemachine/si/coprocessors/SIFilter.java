@@ -4,7 +4,6 @@ import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.RollForwardQueue;
-import com.splicemachine.si.impl.SITransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.FilterBase;
@@ -20,7 +19,7 @@ import java.io.IOException;
 public class SIFilter extends FilterBase {
     private static Logger LOG = Logger.getLogger(SIFilter.class);
     private Transactor transactor = null;
-    protected long startTimestamp;
+    protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
 
     private FilterState filterState = null;
@@ -30,7 +29,7 @@ public class SIFilter extends FilterBase {
 
     public SIFilter(Transactor transactor, TransactionId transactionId, RollForwardQueue rollForwardQueue) throws IOException {
         this.transactor = transactor;
-        this.startTimestamp = transactionId.getId();
+        this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
     }
 
@@ -47,17 +46,17 @@ public class SIFilter extends FilterBase {
 
     private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
-            filterState = transactor.newFilterState(rollForwardQueue, new SITransactionId(startTimestamp));
+            filterState = transactor.newFilterState(rollForwardQueue, transactor.transactionIdFromString(transactionIdString));
         }
     }
 
     @Override
     public void readFields(DataInput in) throws IOException {
-        startTimestamp = in.readLong();
+        transactionIdString = in.readUTF();
     }
 
     @Override
     public void write(DataOutput out) throws IOException {
-        out.writeLong(startTimestamp);
+        out.writeUTF(transactionIdString);
     }
 }

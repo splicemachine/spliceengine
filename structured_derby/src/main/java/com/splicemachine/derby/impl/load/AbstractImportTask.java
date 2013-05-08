@@ -44,7 +44,7 @@ public abstract class AbstractImportTask extends TransactionalTask{
     public AbstractImportTask(String jobId,
                               ImportContext importContext,
                               int priority,
-                              long parentTransactionId) {
+                              String parentTransactionId) {
         super(jobId,priority,parentTransactionId,false);
         this.importContext = importContext;
     }

@@ -34,7 +34,7 @@ public class BlockImportTask extends AbstractImportTask{
 
     public BlockImportTask(String jobId,ImportContext importContext,
                            Collection<BlockLocation> locations,int priority,
-                           long parentTransactionid) {
+                           String parentTransactionid) {
         super(jobId,importContext,priority,parentTransactionid);
         this.locations = locations;
     }
