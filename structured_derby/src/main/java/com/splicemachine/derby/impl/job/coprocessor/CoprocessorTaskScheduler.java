@@ -55,14 +55,6 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
             throw new RuntimeException(e);
         }
         taskScheduler = SpliceDriver.driver().getTaskScheduler();
-        LoadingTask loader = new LoadingTask();
-
-        //submit a task to load any outstanding tasks from the zookeeper region queue
-        try {
-            doSubmit(loader,rce);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
         super.start(env);
     }
 

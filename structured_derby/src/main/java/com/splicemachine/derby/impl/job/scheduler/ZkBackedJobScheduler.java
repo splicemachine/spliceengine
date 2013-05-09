@@ -72,7 +72,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
         return path;
     }
 
-    @Override
+//    @Override
     public void cleanupJob(JobFuture future) throws ExecutionException {
         //make sure that we CAN clean up this job
         Preconditions.checkArgument(
@@ -272,11 +272,11 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
 
         @Override
         public void cancel() throws ExecutionException {
-            for(TaskFuture future:taskFutures){
-                future.cancel();
-                if(future.getStatus()==Status.CANCELLED)
-                    changedFutures.offer(future);
-            }
+//            for(TaskFuture future:taskFutures){
+//                future.cancel();
+//                if(future.getStatus()==Status.CANCELLED)
+//                    changedFutures.offer(future);
+//            }
         }
 
         @Override
@@ -527,7 +527,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
             }
         }
 
-        @Override
+//        @Override
         public void cancel() throws ExecutionException {
             //nothing to do if it's in one of these states
             switch (status.getStatus()) {

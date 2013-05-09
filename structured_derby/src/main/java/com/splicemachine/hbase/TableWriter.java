@@ -233,6 +233,9 @@ public class TableWriter implements WriterStatus{
         writerPool.shutdown();
     }
 
+    public Collection<HRegionInfo> getCachedRegions(byte[] tableName) throws ExecutionException {
+        return Collections.unmodifiableSet(regionCache.get(Bytes.mapKey(tableName)));
+    }
 
 
     /**

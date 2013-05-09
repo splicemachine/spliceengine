@@ -1,9 +1,14 @@
 package com.splicemachine.derby.impl.job.operation;
 
+import com.google.common.collect.Maps;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.si.api.TransactionId;
+import com.splicemachine.si.impl.SITransactionId;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
@@ -12,8 +17,10 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -58,12 +65,22 @@ public class OperationJob implements CoprocessorJob,Externalizable {
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() {
-        return Collections.singletonMap(new SinkTask(getJobId(),scan,instructions,taskPriority,readOnly),
+        return Collections.singletonMap(new SinkTask(getJobId(),scan,instructions, readOnly, taskPriority),
                 Pair.newPair(scan.getStartRow(),scan.getStartRow()));
     }
 
     public HTableInterface getTable(){
         return table;
+    }
+
+    @Override
+    public TransactionId getParentTransaction() {
+        return new SITransactionId(instructions.getTransactionId());
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.splicemachine.job.Job;
+import com.splicemachine.si.api.TransactionId;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
 
@@ -17,4 +18,8 @@ public interface CoprocessorJob extends Job {
     Map<? extends RegionTask,Pair<byte[],byte[]>> getTasks() throws Exception;
 
     HTableInterface getTable();
+
+    TransactionId getParentTransaction();
+
+    boolean isReadOnly();
 }

@@ -3,6 +3,7 @@ package com.splicemachine.derby.hbase;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.constants.TransactionConstants;
+import com.splicemachine.derby.impl.job.scheduler.AsyncJobScheduler;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
@@ -87,7 +88,7 @@ public class SpliceDriver {
         try {
             writerPool = TableWriter.create(SpliceUtils.config);
             threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
-            jobScheduler = new CoprocessorJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
+            jobScheduler = new AsyncJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(CoprocessorTaskScheduler.baseQueueNode,ZkUtils.getRecoverableZooKeeper());
             tempCleaner = new TempCleaner(SpliceUtils.config);
         } catch (Exception e) {

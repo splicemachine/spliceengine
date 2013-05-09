@@ -11,6 +11,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.conf.Configuration;
@@ -81,7 +82,7 @@ public class TempCleaner {
                 try{
                     future.completeAll();
                 }finally{
-                    SpliceDriver.driver().getJobScheduler().cleanupJob(future);
+                    future.cleanup();
                 }
 
                 return null;
@@ -114,6 +115,16 @@ public class TempCleaner {
         @Override
         public String getJobId() {
             return jobId;
+        }
+
+        @Override
+        public TransactionId getParentTransaction() {
+            return null;
+        }
+
+        @Override
+        public boolean isReadOnly() {
+            return false;
         }
     }
 
