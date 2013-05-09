@@ -22,8 +22,11 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
 import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
@@ -321,9 +324,10 @@ public class SITransactor implements Transactor, ClientTransactor {
             throws IOException {
         final Object rowKey = dataLib.getPutKey(put);
         final SRowLock lock = dataWriter.lockRow(table, rowKey);
+        Set<Long> dataTransactionsToRollForward;
         // This is the critical section that runs while the row is locked.
         try {
-            ensureNoWriteConflict(transaction, table, rowKey);
+            dataTransactionsToRollForward = ensureNoWriteConflict(transaction, table, rowKey);
             final Object newPut = createUltimatePut(transaction, lock, put, table);
             dataStore.suppressIndexing(newPut);
             dataWriter.write(table, newPut, lock);
@@ -331,31 +335,47 @@ public class SITransactor implements Transactor, ClientTransactor {
             dataWriter.unLockRow(table, lock);
         }
         dataStore.recordRollForward(rollForwardQueue, transaction, rowKey);
+        for (Long id : dataTransactionsToRollForward) {
+            dataStore.recordRollForward(rollForwardQueue, id, rowKey);
+        }
     }
 
     /**
      * While we hold the lock on the row, check to make sure that no transactions have updated the row since the
      * updating transaction started.
      */
-    private void ensureNoWriteConflict(ImmutableTransaction updateTransaction, STable table, Object rowKey)
+    private Set<Long> ensureNoWriteConflict(ImmutableTransaction updateTransaction, STable table, Object rowKey)
             throws IOException {
         final List dataCommitKeyValues = dataStore.getCommitTimestamp(table, rowKey);
         if (dataCommitKeyValues != null) {
-            checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValues);
+            return checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValues);
         }
+        return Collections.EMPTY_SET;
     }
 
     /**
      * Look at all of the values in the "commitTimestamp" column to see if there are write collisions.
      */
-    private void checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, List dataCommitKeyValues)
+    private Set<Long> checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, List dataCommitKeyValues)
             throws IOException {
+        Set<Long> toRollForward = new HashSet<Long>();
         for (Object dataCommitKeyValue : dataCommitKeyValues) {
             final long dataTransactionId = dataLib.getKeyValueTimestamp(dataCommitKeyValue);
-            Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
-            dataTransaction = checkTransactionTimeout(dataTransaction);
-            checkTransactionConflict(updateTransaction, dataTransaction);
+            final Object commitTimestampValue = dataLib.getKeyValueValue(dataCommitKeyValue);
+            if (dataStore.isSiNull(commitTimestampValue)) {
+                Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
+                dataTransaction = checkTransactionTimeout(dataTransaction);
+                checkTransactionConflict(updateTransaction, dataTransaction);
+                toRollForward.add(dataTransactionId);
+            } else if (dataStore.isSiFail(commitTimestampValue)) {
+            } else {
+                final long dataCommitTimestamp = (Long) dataLib.decode(commitTimestampValue, Long.class);
+                if (dataCommitTimestamp > updateTransaction.beginTimestamp) {
+                    failOnWriteConflict(updateTransaction);
+                }
+            }
         }
+        return toRollForward;
     }
 
     /**

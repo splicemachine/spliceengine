@@ -1467,7 +1467,7 @@ public class SITransactorTest extends SIConstants {
 
     @Test
     public void asynchRollForward() throws IOException, InterruptedException {
-        checkAsynchRollForward(61, "commit", new Function<Object[], Object>() {
+        checkAsynchRollForward(61, "commit", false, new Function<Object[], Object>() {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
@@ -1482,7 +1482,7 @@ public class SITransactorTest extends SIConstants {
 
     @Test
     public void asynchRollForwardRolledBackTransaction() throws IOException, InterruptedException {
-        checkAsynchRollForward(71, "rollback", new Function<Object[], Object>() {
+        checkAsynchRollForward(71, "rollback", false, new Function<Object[], Object>() {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
@@ -1497,7 +1497,7 @@ public class SITransactorTest extends SIConstants {
 
     @Test
     public void asynchRollForwardFailedTransaction() throws IOException, InterruptedException {
-        checkAsynchRollForward(71, "fail", new Function<Object[], Object>() {
+        checkAsynchRollForward(71, "fail", false, new Function<Object[], Object>() {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
@@ -1510,10 +1510,29 @@ public class SITransactorTest extends SIConstants {
         });
     }
 
-    private void checkAsynchRollForward(int testIndex, String commitRollBackOrFail, Function<Object[], Object> timestampDecoder) throws IOException, InterruptedException {
+    @Test
+    public void asynchRollForwardFollowedByWriteConflict() throws IOException, InterruptedException {
+        checkAsynchRollForward(83, "commit", true, new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(cell), Long.class);
+                Assert.assertEquals(t.getId() + 2, timestamp);
+                return null;  //To change body of implemented methods use File | Settings | File Templates.
+            }
+        });
+    }
+
+    private void checkAsynchRollForward(int testIndex, String commitRollBackOrFail, boolean conflictingWrite, Function<Object[], Object> timestampDecoder) throws IOException, InterruptedException {
         try {
             Tracer.rollForwardDelayOverride = 100;
             TransactionId t1 = transactor.beginTransaction(true, false, false);
+            TransactionId t1b = null;
+            if (conflictingWrite) {
+                t1b = transactor.beginTransaction(true, false, false);
+            }
             final String testRow = "joe" + testIndex;
             insertAge(t1, testRow, 20);
             final CountDownLatch latch = makeLatch(testRow);
@@ -1549,6 +1568,15 @@ public class SITransactorTest extends SIConstants {
                 Assert.assertEquals(testRow + " age=20 job=null", read(t2, testRow));
             } else {
                 Assert.assertEquals(testRow + " age=null job=null", read(t2, testRow));
+            }
+            if (conflictingWrite) {
+                try {
+                    insertAge(t1b, testRow, 21);
+                    Assert.fail();
+                } catch (WriteConflict e) {
+                } catch (RetriesExhaustedWithDetailsException e) {
+                    assertWriteConflict(e);
+                }
             }
         } finally {
             Tracer.rollForwardDelayOverride = null;
