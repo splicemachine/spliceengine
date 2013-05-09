@@ -251,7 +251,7 @@ public class HashScanOperation extends ScanOperation {
                 //get the next row
                 keyValues = new ArrayList<KeyValue>(currentRow.nColumns());
                 regionScanner.next(keyValues);
-                if(keyValues==null) continue;
+                if(keyValues==null || keyValues.isEmpty()) continue;
                 stats.readAccumulator().tick(System.nanoTime()-start);
 
                 //sink the row by hashing
@@ -313,8 +313,6 @@ public class HashScanOperation extends ScanOperation {
 			Qualifier[][] probe = (Qualifier[][]) activation.getClass().getField(nextQualifierField).get(activation);
 			Scan scan = Scans.newScan(DerbyBytesUtil.generateSortedHashScan(probe,sequence[0]),
 																DerbyBytesUtil.generateIncrementedSortedHashScan(probe,sequence[0]), getTransactionID());
-//			Scan scan = SpliceUtils.generateScan(sequence[0], DerbyBytesUtil.generateSortedHashScan(probe, sequence[0]),
-//					DerbyBytesUtil.generateIncrementedSortedHashScan(probe, sequence[0]), transactionID);
 			return new SpliceNoPutResultSet(scan,Bytes.toString(SpliceOperationCoprocessor.TEMP_TABLE),activation,this, currentRow);
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "executeProbeScan failed!", e);
