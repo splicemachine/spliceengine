@@ -115,7 +115,7 @@ public class ConglomerateUtils extends SpliceConstants {
 		HTableInterface table = null;
 		try{
 			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
-			Put put = new Put(Bytes.toBytes(conglomerate.getContainerid()));
+			Put put = SpliceUtils.createPut(Bytes.toBytes(conglomerate.getContainerid()), transactionID);
 			SpliceUtils.createPut(Bytes.toBytes(conglomerate.getContainerid()), transactionID);
 			put.add(DEFAULT_FAMILY_BYTES, VALUE_COLUMN, DerbyBytesUtil.toBytes(conglomerate));
 			table.put(put);
