@@ -395,7 +395,6 @@ public class Scans {
                                                                         FormatableBitSet primaryKeys,
                                                                         FormatableBitSet scanColumnList,
 																		boolean[] sortOrder) throws IOException {
-
 		if(scanColumnList!=null){
 			if(qualifiers!=null && qualifiers.length>0){
 				for(Qualifier[] andQualifiers:qualifiers){
@@ -405,9 +404,9 @@ public class Scans {
 							scanColumnList.set(pos);
 					}
 				}
-				for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
-					scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
-				}
+			}
+			for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
+				scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
 			}
 		}
 
