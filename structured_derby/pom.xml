@@ -116,6 +116,7 @@
 	  <resources>
         <resource>
             <directory>src/main/resources</directory>
+            <filtering>true</filtering>
         </resource>
       </resources>
       <testResources>
@@ -129,8 +130,6 @@
 			and the site phase. These plugins inherit their options from the <reporting> 
 			section below. These settings can be overwritten here. -->
 		<plugins>
-
-
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
@@ -152,6 +151,31 @@
 						<version>1.0.1-SNAPSHOT</version>
 					</dependency>
 				</dependencies>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>buildnumber-maven-plugin</artifactId>
+				<version>1.2</version>
+				<executions>
+					<execution>
+						<phase>validate</phase>
+						<goals>
+							<goal>create</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<shortRevisionLength>10</shortRevisionLength>
+					<doCheck>false</doCheck>
+					<doUpdate>false</doUpdate>
+                    <format>{0,date,YYYY-mm-dd HH:MM:SS}</format>
+                    <items>
+                        <item>timestamp</item>
+                        <item>buildNumber</item>
+                        <item>scmBranch</item>
+                    </items>
+					<buildNumberPropertiesFileLocation>${basedir}/src/main/resources/build.properties</buildNumberPropertiesFileLocation>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
