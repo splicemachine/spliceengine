@@ -6,6 +6,7 @@ import org.apache.commons.dbutils.BasicRowProcessor;
 import org.apache.commons.io.IOUtils;
 import org.junit.runner.Description;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.sql.ResultSet;
@@ -25,8 +26,16 @@ public class TestUtils {
 
         String sqlStatementStrings = null;
         try {
+            File f = new File(fileSuffix);
+            URL pathToFile = null;
 
-            URL pathToFile = getClasspathResource(fileSuffix);
+            if(f.isAbsolute()){
+                pathToFile = f.toURL();
+
+            }else{
+                pathToFile = getClasspathResource(fileSuffix);
+            }
+
             sqlStatementStrings = IOUtils.toString(pathToFile);
 
         } catch (IOException e) {
