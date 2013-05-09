@@ -1,11 +1,17 @@
 package com.splicemachine.derby.impl.job;
 
+import com.splicemachine.derby.utils.ByteDataOutput;
 import com.splicemachine.derby.utils.SpliceZooKeeperManager;
+import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.impl.SITransactionId;
 import com.splicemachine.si.impl.TransactorFactoryImpl;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -34,7 +40,7 @@ public abstract class TransactionalTask extends ZooKeeperTask{
     }
 
     @Override
-    public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+    public void prepareTask(HRegion region, SpliceZooKeeperManager zkManager) throws ExecutionException {
         //check the current state
         try {
             TaskStatus currentStatus = getTaskStatus();
@@ -55,10 +61,34 @@ public abstract class TransactionalTask extends ZooKeeperTask{
             TransactionId id = TransactorFactoryImpl.getTransactor().beginChildTransaction(
                     new SITransactionId(parentTransaction), !readOnly, !readOnly, null,null);
             transactionId = id.getTransactionIdString();
+
+            /*
+             * If our taskId is non-null, then we are a re-run of an earlier attempt, which
+             * means that we needed to roll back the transaction and create a new one. This
+             * in turn means that our state representation has changed, and we need to update
+             * it to reflect the new transaction.
+             */
+            if(taskId!=null){
+                ByteDataOutput byteOut = new ByteDataOutput();
+                byteOut.writeObject(this);
+                byte[] payload = byteOut.toByteArray();
+
+                RecoverableZooKeeper zooKeeper =zkManager.getRecoverableZooKeeper();
+                zooKeeper.setData(taskId,payload,-1);
+
+                getTaskStatus().setStatus(Status.PENDING);
+                byte[] statusData = statusToBytes();
+                zooKeeper.create(taskId+"/status",statusData,ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.EPHEMERAL);
+            }
         } catch (IOException e) {
             throw new ExecutionException(e);
+        } catch (InterruptedException e) {
+            throw new ExecutionException(e);
+        } catch (KeeperException e) {
+            throw new ExecutionException(e);
         }
-        super.prepareTask(region, zooKeeper);
+        super.prepareTask(region, zkManager);
     }
 
     @Override

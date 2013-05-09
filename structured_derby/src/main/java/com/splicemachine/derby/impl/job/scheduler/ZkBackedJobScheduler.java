@@ -420,6 +420,7 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                                 return zooKeeper.getData(context.getTaskNode()+"/status",WatchingTask.this,new Stat());
                             }catch(KeeperException ke){
                                 if(ke.code()== KeeperException.Code.NONODE){
+                                    SpliceLogUtils.error(logger,"Received a NoNode exception reading status information for task "+getTaskId());
                                     /*
                                      * The status node can only be missing if
                                      *
@@ -428,9 +429,20 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                                      * the task executor.
                                      *
                                      * since I clearly didn't delete it, it must have been a session expired. Assume
-                                     * that the task failed and blow up.
+                                     * that the task failed and will be retried at some point. This means
+                                     * it'll be created again at some point, so we need to attach an existence
+                                     * listener to catch that change.
+                                     *
+                                     * However, there's a race condition--between the first time that the node
+                                     * was found to not exist and the output of exists, the node could have been
+                                     * created. Thus, we have to loop around and retry if we find out that the
+                                     * node actually exists.
                                      *
                                      */
+                                    Stat exists = zooKeeper.exists(context.getTaskNode() + "/status", WatchingTask.this);
+                                    if(exists!=null){
+                                        return zooKeeper.getData(context.getTaskNode()+"/status",WatchingTask.this,new Stat());
+                                    }
                                     return null;
                                 }
                                 throw ke;
@@ -438,10 +450,13 @@ public abstract class ZkBackedJobScheduler<J extends Job> implements JobSchedule
                         }
                     });
                     if(data==null){
-                        //TODO -sf- this should be treated as retryable, in which case we need to
-                        // rollback the child transaction and restart
-                        status = TaskStatus.failed("task executor failed to update status for task "+getTaskId()+", failing job");
-                        refresh=false;
+                        /*
+                         *data is null => someone failed while attempting to complete this task.
+                         * Since another node will pick it up and begin operating on it, just reset
+                         * the status back to PENDING and wait for data to be returned
+                         */
+                        status = new TaskStatus(Status.PENDING,null);
+                        refresh=true;
                         return status.getStatus();
                     }else{
                         ByteDataInput bdi = new ByteDataInput(data);
