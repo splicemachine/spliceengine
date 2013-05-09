@@ -281,16 +281,19 @@ public class ZkUtils extends SpliceConstants {
     	for (String path: SpliceConstants.zookeeperPaths) {
     		if (rzk.exists(path, false) != null) {
     			for (String child: rzk.getChildren(path, false)) {
-    				rzk.delete(child, 0);
+    				for (String grandChild: rzk.getChildren(path + "/" + child,false)) {
+        				rzk.delete(path + "/" + child + "/" + grandChild, -1);    					
+    				}
+    				rzk.delete(path + "/" + child, -1);    					    				
     			}
-    			rzk.delete(path, 0);
+    			rzk.delete(path, -1);
     		}
     	}
     }
     
     public static void delete(String path) throws InterruptedException, KeeperException {
     	RecoverableZooKeeper rzk = getRecoverableZooKeeper();
-		rzk.delete(path, 0);    	
+		rzk.delete(path, -1);    	
     }
 
     public static void initializeZookeeper() throws InterruptedException, KeeperException {
