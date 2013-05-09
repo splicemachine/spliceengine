@@ -30,12 +30,11 @@ import org.apache.derby.iapi.services.sanity.SanityManager;
  *
  */
 
-public abstract class IndexConstantAction extends DDLSingleTableConstantAction
-{
+public abstract class IndexConstantAction extends DDLSingleTableConstantAction {
 
-	String				indexName;
-	String				tableName;
-	String				schemaName;
+	public String				indexName;
+	public String				tableName;
+	public String				schemaName;
 
 	// CONSTRUCTORS
 
