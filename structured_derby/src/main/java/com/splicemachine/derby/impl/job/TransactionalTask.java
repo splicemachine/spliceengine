@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.job;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.impl.SITransactionId;
+import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.TransactorFactoryImpl;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import java.io.IOException;
@@ -18,14 +18,14 @@ import java.util.concurrent.ExecutionException;
 public abstract class TransactionalTask extends ZooKeeperTask{
     private static final long serialVersionUID=2l;
     private String transactionId;
-    private long parentTransaction;
+    private String parentTransaction;
     private boolean readOnly;
 
     protected TransactionalTask() {
         super();
     }
 
-    protected TransactionalTask(String jobId, int priority, long parentTransaction,boolean readOnly) {
+    protected TransactionalTask(String jobId, int priority, String parentTransaction,boolean readOnly) {
         super(jobId, priority);
         this.parentTransaction = parentTransaction;
         this.transactionId = null;
@@ -51,8 +51,9 @@ public abstract class TransactionalTask extends ZooKeeperTask{
             }
 
             //create a new child transaction of the parent transaction
-            TransactionId id = TransactorFactoryImpl.getTransactor().beginChildTransaction(
-                    new SITransactionId(parentTransaction), !readOnly, !readOnly, null,null);
+            final Transactor transactor = TransactorFactoryImpl.getTransactor();
+            TransactionId id = transactor.beginChildTransaction(
+                    transactor.transactionIdFromString(parentTransaction), !readOnly, !readOnly, null, null);
             transactionId = id.getTransactionIdString();
         } catch (IOException e) {
             throw new ExecutionException(e);
@@ -63,7 +64,7 @@ public abstract class TransactionalTask extends ZooKeeperTask{
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeLong(parentTransaction);
+        out.writeUTF(parentTransaction);
         out.writeBoolean(readOnly);
         out.writeBoolean(transactionId!=null);
         if(transactionId!=null)
@@ -73,7 +74,7 @@ public abstract class TransactionalTask extends ZooKeeperTask{
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        parentTransaction = in.readLong();
+        parentTransaction = in.readUTF();
         readOnly = in.readBoolean();
         if(in.readBoolean())
             transactionId = in.readUTF();
@@ -83,8 +84,8 @@ public abstract class TransactionalTask extends ZooKeeperTask{
     private void rollbackIfNecessary() throws IOException {
         if(transactionId==null) return; //nothing to roll back just yet
 
-        TransactionId txnId = new SITransactionId(transactionId);
-        TransactorFactoryImpl.getTransactor().rollback(txnId);
+        final Transactor transactor = TransactorFactoryImpl.getTransactor();
+        transactor.rollback(transactor.transactionIdFromString(transactionId));
 
     }
 }

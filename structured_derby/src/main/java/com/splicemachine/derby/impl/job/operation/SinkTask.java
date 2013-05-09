@@ -44,13 +44,9 @@ public class SinkTask extends TransactionalTask {
                     SpliceObserverInstructions instructions,
                     int priority,
                     boolean readOnly ) {
-        super(jobId,priority,getParentTransactionId(instructions),readOnly);
+        super(jobId,priority, instructions.getTransactionId(),readOnly);
         this.scan = scan;
         this.instructions = instructions;
-    }
-
-    private static long getParentTransactionId(SpliceObserverInstructions instructions) {
-        return new SITransactionId(instructions.getTransactionId()).getId();
     }
 
     @Override

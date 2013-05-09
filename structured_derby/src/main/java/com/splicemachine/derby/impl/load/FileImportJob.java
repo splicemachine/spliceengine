@@ -3,8 +3,6 @@ package com.splicemachine.derby.impl.load;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.impl.SITransactionId;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -52,7 +50,6 @@ public class FileImportJob extends ImportJob{
             end = endRow;
         }
 
-        TransactionId parentTxn = new SITransactionId(context.getTransactionId());
-        return Collections.singletonMap(new FileImportTask(getJobId(),context,ImportJob.importTaskPriority,parentTxn.getId()),Pair.newPair(start,end));
+        return Collections.singletonMap(new FileImportTask(getJobId(),context,ImportJob.importTaskPriority, context.getTransactionId()),Pair.newPair(start,end));
     }
 }
