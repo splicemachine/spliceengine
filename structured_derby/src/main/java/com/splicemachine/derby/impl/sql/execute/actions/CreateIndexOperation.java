@@ -22,6 +22,7 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
+import org.apache.derby.impl.sql.execute.IndexConstantAction;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 
@@ -35,13 +36,11 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 3/7/13
  */
-public class CreateIndexOperation implements ConstantAction {
+public class CreateIndexOperation extends IndexConstantAction implements ConstantAction {
     private static final long serialVersionUID = 1l;
     private static final Logger LOG = Logger.getLogger(CreateIndexOperation.class);
 
-    private String schemaName;
-    private String indexName;
-    private String tableName;
+
     private String[] columnNames;
     private boolean[] ascending;
     private UUID tableId;
@@ -55,9 +54,8 @@ public class CreateIndexOperation implements ConstantAction {
                                 String[] columnNames,boolean[] isAscending,
                                 UUID tableId, UUID conglomerateUUID,
                                 boolean unique, String indexType, Properties properties) {
-        this.schemaName = schemaName;
-        this.indexName = indexName;
-        this.tableName = tableName;
+    	super(tableId, indexName, tableName, schemaName);
+		
         this.columnNames = columnNames;
         ascending = isAscending;
         this.tableId = tableId;
@@ -70,10 +68,7 @@ public class CreateIndexOperation implements ConstantAction {
     public CreateIndexOperation(ConglomerateDescriptor indexConglomDescriptor,
                                 TableDescriptor mainTableDescriptor,
                                 Properties properties) throws StandardException {
-        this.schemaName = mainTableDescriptor.getSchemaName();
-        this.indexName = indexConglomDescriptor.getConglomerateName();
-        this.tableName = mainTableDescriptor.getName();
-        this.tableId = mainTableDescriptor.getUUID();
+    	super(mainTableDescriptor.getUUID(), indexConglomDescriptor.getConglomerateName(), mainTableDescriptor.getName(), mainTableDescriptor.getSchemaName());
         this.conglomerateUUID = indexConglomDescriptor.getUUID();
         this.indexType = indexConglomDescriptor.getIndexDescriptor().indexType();
         this.properties = properties;
