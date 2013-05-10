@@ -14,7 +14,7 @@ public class StringSerializer implements SerializerThunk {
 
     @Override
     public void deserialize(byte[] bytes, DataValueDescriptor dvd) throws Exception {
-        dvd.setValue((String) rowKey.deserialize(bytes));
+        dvd.setValue(new String( (byte[]) rowKey.deserialize(bytes)));
     }
 
     @Override

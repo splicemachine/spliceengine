@@ -38,15 +38,14 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
         this.serializerThunk = serializerThunk;
     }
 
-    public void initForDeserialization(byte[] bytes, SerializerThunk serializerThunk){
+    public void initForDeserialization(byte[] bytes){
         this.dvdBytes = bytes;
-        this.serializerThunk = serializerThunk;
         isDeserialized = false;
         getDvd().setToNull();
     }
 
     private void forceDeserialization(){
-        if(!isDeserialized && getDvd() == null && dvdBytes != null){
+        if(!isDeserialized && getDvd() != null && dvdBytes != null){
             try{
                 serializerThunk.deserialize(dvdBytes, getDvd());
                 isDeserialized = true;
