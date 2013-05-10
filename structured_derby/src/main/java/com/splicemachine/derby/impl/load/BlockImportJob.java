@@ -105,7 +105,8 @@ public class BlockImportJob extends FileImportJob{
         TransactionId parentTxnId = new SITransactionId(context.getTransactionId());
         for(HRegionLocation location:regionBlockMap.keySet()){
             Collection<BlockLocation> blocks = Lists.newArrayList(regionBlockMap.get(location));
-            BlockImportTask task = new BlockImportTask(getJobId(),context,blocks,ImportJob.importTaskPriority,parentTxnId.getId());
+            BlockImportTask task = new BlockImportTask(getJobId(),context,blocks,
+                    ImportJob.importTaskPriority,parentTxnId.getTransactionIdString());
             HRegionInfo info = location.getRegionInfo();
             byte[] start = info.getStartKey();
             byte[] end = info.getEndKey();

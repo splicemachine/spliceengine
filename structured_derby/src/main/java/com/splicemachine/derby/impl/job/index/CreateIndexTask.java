@@ -4,10 +4,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.HBaseConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.ZooKeeperTask;
+import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
-import com.splicemachine.derby.impl.sql.execute.index.IndexManager;
-import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
 import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.SpliceZooKeeperManager;
@@ -26,7 +24,6 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -39,7 +36,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 4/5/13
  */
-public class CreateIndexTask extends ZooKeeperTask {
+public class CreateIndexTask extends ZkTask {
     private static final long serialVersionUID = 2l;
     private String transactionId;
     private long indexConglomId;
@@ -56,8 +53,9 @@ public class CreateIndexTask extends ZooKeeperTask {
                            long indexConglomId,
                            long baseConglomId,
                            int[] indexColsToBaseColMap,
-                           boolean unique,String jobId ) {
-        super(jobId, OperationJob.operationTaskPriority);
+                           boolean unique,
+                           String jobId ) {
+        super(jobId, OperationJob.operationTaskPriority,transactionId,false);
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
         this.baseConglomId = baseConglomId;
@@ -71,7 +69,7 @@ public class CreateIndexTask extends ZooKeeperTask {
         super.prepareTask(region, zooKeeper);
     }
 
-    @Override
+//    @Override
     protected String getTaskType() {
         return "createIndexTask";
     }

@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.ZooKeeperTask;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -61,7 +62,7 @@ public class TempCleaner {
                     }
                 }).build();
 
-        int cleanerThreads = configuration.getInt(CLEANER_JOBS,DEFAULT_CLEANER_JOBS);
+        int cleanerThreads = configuration.getInt(CLEANER_JOBS, DEFAULT_CLEANER_JOBS);
         cleanWatcher = new ThreadPoolExecutor(1,cleanerThreads,60,
                 TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(),factory);
         this.taskPriority = configuration.getInt("splice.temp.cleanTaskPriority",DEFAULT_CLEAN_TASK_PRIORITY);
@@ -128,7 +129,7 @@ public class TempCleaner {
         }
     }
 
-    public static class TempCleanTask extends ZooKeeperTask {
+    public static class TempCleanTask extends ZkTask {
         private Scan scan;
         private RegionScanner scanner;
         private HRegion region;
@@ -136,11 +137,11 @@ public class TempCleaner {
         public TempCleanTask(){}
 
         public TempCleanTask(String jobId,Scan scan,int priority){
-            super(jobId,priority);
+            super(jobId,priority,null,false); // we are non-transactional
             this.scan = scan;
         }
 
-        @Override
+//        @Override
         protected String getTaskType() {
             return "tempCleanTask";
         }

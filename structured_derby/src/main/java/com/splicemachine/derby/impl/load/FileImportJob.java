@@ -53,6 +53,7 @@ public class FileImportJob extends ImportJob{
         }
 
         TransactionId parentTxn = new SITransactionId(context.getTransactionId());
-        return Collections.singletonMap(new FileImportTask(getJobId(),context,ImportJob.importTaskPriority,parentTxn.getId()),Pair.newPair(start,end));
+        return Collections.singletonMap(new FileImportTask(getJobId(),context,
+                ImportJob.importTaskPriority,parentTxn.getTransactionIdString()),Pair.newPair(start,end));
     }
 }

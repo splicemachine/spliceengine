@@ -210,7 +210,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                         public byte[] execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
                             try{
                                 return zooKeeper.getData(
-                                        CoprocessorTaskScheduler.baseQueueNode+"/"+taskFutureContext.getTaskNode(),
+                                        taskFutureContext.getTaskNode(),
                                         new org.apache.zookeeper.Watcher() {
                                     @Override
                                     public void process(WatchedEvent event) {
@@ -351,6 +351,22 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         public TaskStats getTaskStats() {
             return taskStatus.getStats();
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof RegionTaskWatcher)) return false;
+
+            RegionTaskWatcher that = (RegionTaskWatcher) o;
+
+            return taskFutureContext.getTaskNode().equals(that.taskFutureContext.getTaskNode());
+
+        }
+
+        @Override
+        public int hashCode() {
+            return taskFutureContext.getTaskNode().hashCode();
+        }
     }
 
     private static class JobStatsAccumulator implements JobStats{
@@ -456,7 +472,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
 
                         for(TaskFuture task:tasksToWatch){
                             try{
-                                zooKeeper.delete(CoprocessorTaskScheduler.baseQueueNode+"/"+task.getTaskId(),-1);
+                                zooKeeper.delete(task.getTaskId(),-1);
                             }catch(KeeperException ke){
                                 if(ke.code()!= KeeperException.Code.NONODE)
                                     throw ke;
@@ -509,22 +525,28 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                     Status status = changedFuture.getStatus();
                     switch (status) {
                         case INVALID:
+                            SpliceLogUtils.trace(LOG,"Task %s is invalid, resubmitting",changedFuture.getTaskId());
                             invalidCount.incrementAndGet();
                             changedFuture.resubmit();
                             break;
                         case FAILED:
+                            SpliceLogUtils.trace(LOG,"Task %s failed",changedFuture.getTaskId());
                             failedTasks.add(changedFuture);
                             changedFuture.complete(); //will throw an error directly
                             break;
                         case COMPLETED:
+                            SpliceLogUtils.trace(LOG,"Task %s completed successfully",changedFuture.getTaskId());
                             TaskStats stats = changedFuture.getTaskStats();
                             if(stats!=null)
                                 this.stats.taskStatsMap.put(changedFuture.getTaskId(),stats);
+                            completedTasks.add(changedFuture);
                             return;
                         case CANCELLED:
+                            SpliceLogUtils.trace(LOG,"Task %s is cancelled",changedFuture.getTaskId());
                             cancelledTasks.add(changedFuture);
                             throw new CancellationException();
                         default:
+                            SpliceLogUtils.trace(LOG,"Task %s is in state %s",changedFuture.getTaskId(),status);
                             found=false;
                     }
                 }

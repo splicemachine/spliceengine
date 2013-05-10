@@ -29,7 +29,7 @@ import java.util.concurrent.ExecutionException;
  *         Created on: 5/9/13
  */
 public abstract class ZkTask implements RegionTask,Externalizable {
-    private static final long serialVersionUID = 2l;
+    private static final long serialVersionUID = 3l;
     protected final Logger LOG;
     protected TaskStatus status;
     //job scheduler creates the task id
@@ -45,6 +45,14 @@ public abstract class ZkTask implements RegionTask,Externalizable {
         this.status = new TaskStatus(Status.PENDING,null);
     }
 
+    /**
+     *
+     * @param jobId
+     * @param priority
+     * @param parentTxnId the parent Transaction id, or {@code null} if
+     *                    the task is non-transactional.
+     * @param readOnly
+     */
     protected ZkTask(String jobId, int priority,String parentTxnId,boolean readOnly) {
         this.LOG = Logger.getLogger(this.getClass());
         this.jobId = jobId;
@@ -103,12 +111,11 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 
             //create a status node
             final byte[] statusData = statusToBytes();
-            zooKeeper.execute(new SpliceZooKeeperManager.Command<Void>() {
+            taskId = zooKeeper.execute(new SpliceZooKeeperManager.Command<String>() {
                 @Override
-                public Void execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
-                    zooKeeper.create(CoprocessorTaskScheduler.baseQueueNode+"/"+taskId,
+                public String execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
+                    return zooKeeper.create(CoprocessorTaskScheduler.baseQueueNode+"/"+taskId,
                             statusData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
-                    return null;
                 }
             });
         } catch (InterruptedException e) {
@@ -179,7 +186,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
             zkManager.executeUnlessExpired(new SpliceZooKeeperManager.Command<Void>() {
                 @Override
                 public Void execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
-                    zooKeeper.setData(CoprocessorTaskScheduler.baseQueueNode+"/"+taskId,status,-1);
+                    zooKeeper.setData(taskId,status,-1);
                     return null;
                 }
             });
