@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.google.common.base.Throwables;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.ByteDataInput;
 import com.splicemachine.derby.utils.Exceptions;
@@ -18,9 +17,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.MD5Hash;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
@@ -44,13 +41,6 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         HRegion region = rce.getRegion();
         runningTasks = SpliceDriver.driver().getTaskMonitor().registerRegion(region.getRegionInfo().getRegionNameAsString());
         taskScheduler = SpliceDriver.driver().getTaskScheduler();
-        LoadingTask loader = new LoadingTask();
-        //submit a task to load any outstanding tasks from the zookeeper region queue
-        try {
-            doSubmit(loader,rce);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
         super.start(env);
     }
 
@@ -185,6 +175,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
                                 bdi = new ByteDataInput(zooKeeper.getData(statusNode,false,new Stat()));
                                 taskStatus = (TaskStatus)bdi.readObject();
                             }catch(KeeperException ke){
+                                SpliceLogUtils.trace(LOG,"No Status node found for task %s, assuming failed task, resubmitting as EXECUTING state",taskNode);
                                 if(ke.code()== KeeperException.Code.NONODE){
                                     taskStatus = new TaskStatus(Status.EXECUTING,null);
                                 }else
@@ -201,8 +192,10 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
                                 case FAILED:
                                 case COMPLETED:
                                 case CANCELLED:
+                                    SpliceLogUtils.trace(LOG,"Task %s is marked %s, not re-executing",taskNode,status.getStatus());
                                     continue;
                             }
+                            SpliceLogUtils.trace(LOG,"Submitting task %s for re-execution",taskNode);
 
                             bdi =  new ByteDataInput(zooKeeper.getData(regionQueue+"/"+taskNode,false,new Stat()));
                             try {

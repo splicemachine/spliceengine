@@ -69,4 +69,6 @@ public interface JobFuture {
      * @return statistics for this job, or {@code null} if statistics are not available.
      */
     JobStats getJobStats();
+
+    void cleanup() throws ExecutionException;
 }

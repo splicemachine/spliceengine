@@ -216,7 +216,7 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
             return cost;
         }
 
-        @Override
+        //@Override
         public void cancel() throws ExecutionException {
             task.markCancelled();
             future.cancel(true);

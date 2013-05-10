@@ -77,7 +77,7 @@ public abstract class MultiScanRowProvider implements RowProvider {
                 }
                 for(JobFuture completedJob:completedJobs){
                     try {
-                        SpliceDriver.driver().getJobScheduler().cleanupJob(completedJob);
+                        completedJob.cleanup();
                     } catch (ExecutionException e) {
                         SpliceLogUtils.error(LOG,"Unable to clean up job",e.getCause());
                     }
@@ -99,7 +99,7 @@ public abstract class MultiScanRowProvider implements RowProvider {
         for(JobFuture jobToCancel:jobs){
             try {
                 jobToCancel.cancel();
-                SpliceDriver.driver().getJobScheduler().cleanupJob(jobToCancel);
+                jobToCancel.cleanup();
             } catch (ExecutionException e) {
                 SpliceLogUtils.error(LOG, "Unable to cancel job", e.getCause());
             }

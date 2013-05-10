@@ -75,6 +75,19 @@ public class ZkUtils extends SpliceConstants {
 		}
 	}
 
+    public static boolean safeDelete(String path, int version) throws KeeperException, InterruptedException {
+        try{
+            getRecoverableZooKeeper().delete(path,version);
+            return true;
+        }  catch (KeeperException e) {
+            if(e.code()!= KeeperException.Code.NONODE)
+                throw e;
+            else
+                return false;
+        }
+    }
+
+
     public static boolean recursiveSafeCreate(String path,byte[] bytes, List<ACL> acls, CreateMode createMode) throws InterruptedException, KeeperException {
         if(path==null||path.length()<=0) return true; //nothing to do, we've gone all the way to the root
         RecoverableZooKeeper rzk = getRecoverableZooKeeper();

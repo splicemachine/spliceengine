@@ -3,12 +3,11 @@ package com.splicemachine.derby.impl.job.operation;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.job.TransactionalTask;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.job.Status;
-import com.splicemachine.si.impl.SITransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.Activation;
@@ -24,7 +23,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 4/3/13
  */
-public class SinkTask extends TransactionalTask {
+public class SinkTask extends ZkTask {
     private static final long serialVersionUID = 1l;
     private static final Logger LOG = Logger.getLogger(SinkTask.class);
     private HRegion region;
@@ -42,9 +41,9 @@ public class SinkTask extends TransactionalTask {
     public SinkTask(String jobId,
                     Scan scan,
                     SpliceObserverInstructions instructions,
-                    int priority,
-                    boolean readOnly ) {
-        super(jobId,priority, instructions.getTransactionId(),readOnly);
+                    boolean readOnly,
+                    int priority) {
+        super(jobId,priority,instructions.getTransactionId(),readOnly);
         this.scan = scan;
         this.instructions = instructions;
     }
@@ -67,7 +66,7 @@ public class SinkTask extends TransactionalTask {
         try {
             SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
             ContextService.getFactory().setCurrentContextManager(impl.getContextManager());
-            impl.marshallTransaction(instructions.getTransactionId());                        
+            impl.marshallTransaction(status.getTransactionId());
             Activation activation = instructions.getActivation(impl.getLcc());
             SpliceOperationContext opContext = new SpliceOperationContext(region,scan,activation,instructions.getStatement(),impl.getLcc());
             SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),opContext);
@@ -92,16 +91,6 @@ public class SinkTask extends TransactionalTask {
         return status.getStatus()==Status.CANCELLED;
     }
 
-    @Override
-    public int getPriority() {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
-    }
-
-    @Override
-    protected String getTaskType() {
-        return instructions.getTopOperation().getClass().getSimpleName();
-    }
-
     public HRegion getRegion() {
         return region;
     }
@@ -120,5 +109,10 @@ public class SinkTask extends TransactionalTask {
         scan.readFields(in);
 
         instructions = (SpliceObserverInstructions)in.readObject();
+    }
+
+    @Override
+    protected String getTaskType() {
+        return instructions.getTopOperation().getClass().getSimpleName();
     }
 }

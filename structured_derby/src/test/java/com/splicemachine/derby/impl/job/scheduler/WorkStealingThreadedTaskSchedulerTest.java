@@ -121,40 +121,6 @@ public class WorkStealingThreadedTaskSchedulerTest {
         SpliceLogUtils.trace(LOG,"final future state is correct");
     }
 
-    @Test(timeout=1000l)
-    public void testCanCancelAfterSubmitting() throws Exception{
-        CountDownLatch latch = new CountDownLatch(1);
-        WaitTask task = new WaitTask("testFailure",latch);
-        SpliceLogUtils.trace(LOG,"Submitting cancelled task");
-
-        TaskFuture future = scheduler.submit(task);
-        latch.await(); //make sure that the task is executing before cancelling
-        Thread.sleep(100);
-        SpliceLogUtils.trace(LOG,"Cancelling task");
-        future.cancel();
-        Assert.assertTrue("Test Error: markCancelled did not set cancelled state correctly!",task.isCancelled());
-
-        try{
-            future.complete();
-            Assert.fail("Did not receive a cancellation notification!");
-        }catch(CancellationException ce){
-
-        }
-
-        //ensure that the state transitions were correct
-        Assert.assertEquals("Task never entered the Executing State!",1,task.started.get());
-        Assert.assertEquals("Task never entered the completed state!", 0, task.completed.get());
-        Assert.assertEquals("Task entered the failed state!", 0, task.failed.get());
-        Assert.assertEquals("Task entered the cancelled state!", 1, task.cancelled.get());
-        Assert.assertNull("Task has an Error!",task.getTaskStatus().getError());
-
-        SpliceLogUtils.trace(LOG,"State Transitions were correct!");
-
-        //ensure that the final state is complete
-        Assert.assertEquals("Incorrect final state on future!", Status.CANCELLED,future.getStatus());
-        SpliceLogUtils.trace(LOG,"final future state is correct");
-    }
-
     private static class CountDownTask implements Task {
         AtomicInteger started = new AtomicInteger(0);
         AtomicInteger completed = new AtomicInteger(0);

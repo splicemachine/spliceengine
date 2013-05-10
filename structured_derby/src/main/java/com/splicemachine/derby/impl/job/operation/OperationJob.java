@@ -4,7 +4,8 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.si.api.TransactionId;
+import com.splicemachine.si.impl.SITransactionId;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
@@ -52,12 +53,22 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() {
-        return Collections.singletonMap(new SinkTask(getJobId(),scan,instructions,taskPriority,readOnly),
-                Pair.newPair(scan.getStartRow(),scan.getStartRow()));
+        return Collections.singletonMap(new SinkTask(getJobId(),scan,instructions, readOnly, taskPriority),
+                Pair.newPair(scan.getStartRow(),scan.getStopRow()));
     }
 
     public HTableInterface getTable(){
         return table;
+    }
+
+    @Override
+    public TransactionId getParentTransaction() {
+        return new SITransactionId(instructions.getTransactionId());
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
     @Override

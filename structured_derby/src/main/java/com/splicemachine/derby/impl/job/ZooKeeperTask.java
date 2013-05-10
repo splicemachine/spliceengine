@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.job;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.ByteDataOutput;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.Status;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -25,11 +26,10 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/4/13
  */
 public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
-    private static final long serialVersionUID=2l;
+    private static final long serialVersionUID=3l;
     protected final Logger LOG;
     private int priority;
     protected SpliceZooKeeperManager zkManager;
-    private String statusNode;
     protected String jobId;
 
     protected ZooKeeperTask(){
@@ -52,32 +52,43 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
     @Override
     public void prepareTask(HRegion region,
                             SpliceZooKeeperManager zkManager) throws ExecutionException {
-        this.taskId = buildTaskId(region,jobId ,getTaskType());
         this.zkManager = zkManager;
-        //write out the payload to a durable node
-        ByteDataOutput byteOut = new ByteDataOutput();
-        try {
-            byteOut.writeObject(this);
-            byte[] payload = byteOut.toByteArray();
+        if(taskId==null){
+            /*
+             * If no taskId has been assigned, then this is a new task,
+             * and we need to create a Task node and status node for it.
+             * Otherwise, it's a re-run of an already initialized task, so we just
+             * want to reset to PENDING and resubmit
+             */
+            this.taskId = buildTaskId(region,jobId ,getTaskType());
 
-            String taskId = getTaskId();
-            RecoverableZooKeeper zooKeeper =zkManager.getRecoverableZooKeeper();
-            taskId = zooKeeper.create(taskId,payload,
-                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
-            setTaskId(taskId);
+            //write out the payload to a durable node
+            ByteDataOutput byteOut = new ByteDataOutput();
+            try {
+                byteOut.writeObject(this);
+                byte[] payload = byteOut.toByteArray();
 
-            byte[] statusData = statusToBytes();
-            statusNode = zooKeeper.create(taskId+"/status",statusData,ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                    CreateMode.EPHEMERAL);
-            checkNotCancelled();
+                String taskId = getTaskId();
+                RecoverableZooKeeper zooKeeper =zkManager.getRecoverableZooKeeper();
+                taskId = zooKeeper.create(taskId,payload,
+                        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+                setTaskId(taskId);
 
-        } catch (IOException e) {
-            throw new ExecutionException(e);
-        } catch (InterruptedException e) {
-            throw new ExecutionException(e);
-        } catch (KeeperException e) {
-            throw new ExecutionException(e);
+                byte[] statusData = statusToBytes();
+                zooKeeper.create(taskId+"/status",statusData,ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.EPHEMERAL);
+                checkNotCancelled();
+
+            } catch (IOException e) {
+                throw new ExecutionException(e);
+            } catch (InterruptedException e) {
+                throw new ExecutionException(e);
+            } catch (KeeperException e) {
+                throw new ExecutionException(e);
+            }
         }
+        //make sure that we haven't been cancelled while we were busy
+        checkNotCancelled();
     }
 
     protected abstract String getTaskType();
@@ -190,9 +201,9 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
             updateStatus(false);
     }
 
-    private static String buildTaskId(HRegion region,String jobId,String taskType) {
+    protected String buildTaskId(HRegion region,String jobId,String taskType) {
         HRegionInfo regionInfo = region.getRegionInfo();
-        return CoprocessorTaskScheduler.getRegionQueue(regionInfo)+"_"+jobId+"_"+taskType+"-";
+        return CoprocessorTaskScheduler.getRegionQueue(regionInfo)+"_"+jobId+"_"+taskType+"-"+ SpliceUtils.getUniqueKeyString();
     }
 
     private void checkNotCancelled()throws ExecutionException {
@@ -230,11 +241,16 @@ public abstract class ZooKeeperTask extends DurableTask implements RegionTask {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         jobId = in.readUTF();
         priority = in.readInt();
+        if(in.readBoolean())
+            taskId = in.readUTF();
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeUTF(jobId);
         out.writeInt(priority);
+        out.writeBoolean(taskId!=null);
+        if(taskId!=null)
+            out.writeUTF(taskId);
     }
 }

@@ -15,10 +15,14 @@ import java.util.concurrent.atomic.AtomicReference;
  *         Created on: 4/3/13
  */
 public class TaskStatus implements Externalizable{
-    private static final long serialVersionUID = 3l;
+    private static final long serialVersionUID = 4l;
 
     public static TaskStatus failed(String s) {
         return new TaskStatus(Status.FAILED,new IOException(s));
+    }
+
+    public String getTransactionId() {
+        return txnId;
     }
 
 
@@ -29,6 +33,7 @@ public class TaskStatus implements Externalizable{
     private volatile Throwable error;
     private final Set<StatusListener> listeners;
     private volatile TaskStats stats;
+    private volatile String txnId;
 
     public TaskStatus(){
        this.listeners = Collections.newSetFromMap(new ConcurrentHashMap<StatusListener, Boolean>());
@@ -38,6 +43,10 @@ public class TaskStatus implements Externalizable{
         this();
         this.status = new AtomicReference<Status>(status);
         this.error = error;
+    }
+
+    public void setTxnId(String txnId){
+        this.txnId = txnId;
     }
 
     public Throwable getError(){
@@ -103,6 +112,9 @@ public class TaskStatus implements Externalizable{
         out.writeBoolean(stats!=null);
         if(stats!=null)
             out.writeObject(stats);
+        out.writeBoolean(txnId !=null);
+        if(txnId !=null)
+            out.writeUTF(txnId);
     }
 
     private void writeError(ObjectOutput out, Throwable error) throws IOException {
@@ -127,6 +139,9 @@ public class TaskStatus implements Externalizable{
         if(in.readBoolean()){
             stats = (TaskStats)in.readObject();
         }
+
+        if(in.readBoolean())
+            txnId = in.readUTF();
     }
 
     public void attachListener(StatusListener listener) {

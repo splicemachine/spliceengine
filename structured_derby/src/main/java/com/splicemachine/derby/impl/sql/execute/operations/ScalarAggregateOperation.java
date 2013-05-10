@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -11,6 +12,7 @@ import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.derby.utils.*;
+import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -22,6 +24,7 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
@@ -248,7 +251,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		ExecRow row;
 		try{
 			Put put;
-			HTableInterface tempTable = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
+            CallBuffer<Mutation> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(SpliceOperationCoprocessor.TEMP_TABLE);
             Serializer serializer = new Serializer();
             do{
                 row = doAggregation(false,stats.readAccumulator());
@@ -260,16 +263,16 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 //                        row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
 //                        Bytes.compareTo(key,reduceScan.getStopRow())<0);
                 put = Puts.buildInsert(key,row.getRowArray(), getTransactionID(),serializer);
-                SpliceLogUtils.trace(LOG, "put=%s",put);
-                tempTable.put(put);
+                SpliceLogUtils.trace(LOG, "put=%s", put);
+                writeBuffer.add(put);
 
                 stats.writeAccumulator().tick(System.nanoTime() - pTs);
             }while(row!=null);
-			tempTable.flushCommits();
-			tempTable.close();
-		}catch(StandardException se){
-            throw Exceptions.getIOException(se);
-		}
+            writeBuffer.flushBuffer();
+            writeBuffer.close();
+		}catch (Exception e) {
+            throw Exceptions.getIOException(e);
+        }
         //return stats.finish();
 		TaskStats ss = stats.finish();
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for ScalarAggregation at "+stats.getFinishTime());

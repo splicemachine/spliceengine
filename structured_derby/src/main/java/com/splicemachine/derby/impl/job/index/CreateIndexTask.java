@@ -1,22 +1,19 @@
 package com.splicemachine.derby.impl.job.index;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
 import com.google.common.collect.Maps;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.ZooKeeperTask;
+import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
-import com.splicemachine.derby.impl.sql.execute.index.IndexManager;
-import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
 import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.MutationRequest;
 import com.splicemachine.hbase.MutationResponse;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.batch.WriteContextFactory;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -27,7 +24,6 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -40,7 +36,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 4/5/13
  */
-public class CreateIndexTask extends ZooKeeperTask {
+public class CreateIndexTask extends ZkTask {
     private static final long serialVersionUID = 2l;
     private String transactionId;
     private long indexConglomId;
@@ -57,8 +53,9 @@ public class CreateIndexTask extends ZooKeeperTask {
                            long indexConglomId,
                            long baseConglomId,
                            int[] indexColsToBaseColMap,
-                           boolean unique,String jobId ) {
-        super(jobId, operationTaskPriority);
+                           boolean unique,
+                           String jobId ) {
+        super(jobId, OperationJob.operationTaskPriority,transactionId,false);
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
         this.baseConglomId = baseConglomId;
@@ -213,10 +210,10 @@ public class CreateIndexTask extends ZooKeeperTask {
             Put indexPut = SpliceUtils.createPut(finalIndexRow, transactionId);
             for(int dataPos=0;dataPos<indexRowData.length;dataPos++){
                 byte[] putPos = Integer.toString(dataPos).getBytes();
-                indexPut.add(DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
+                indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
             }
 
-            indexPut.add(DEFAULT_FAMILY_BYTES,
+            indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,
                     Integer.toString(rowData.size()).getBytes(),mainRow);
             indexPuts.add(indexPut);
         }
