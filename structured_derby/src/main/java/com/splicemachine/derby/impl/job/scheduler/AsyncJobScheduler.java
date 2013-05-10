@@ -313,15 +313,17 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
 
             watcher.tasksToWatch.remove(this);
             //rollback child transaction
-            try {
-                Transactor transactor = TransactorFactory.getDefaultTransactor();
-                TransactionId txnId = transactor.transactionIdFromString(taskStatus.getTransactionId());
-                TransactorFactory.getDefaultTransactor().rollback(txnId);
-            } catch (IOException e) {
-                Exception error = new DoNotRetryIOException("Unable to roll back child transaction",e);
-                taskStatus.setError(error);
-                taskStatus.setStatus(Status.FAILED);
-                throw new ExecutionException(error);
+            if(taskStatus.getTransactionId()!=null){
+                try {
+                    Transactor transactor = TransactorFactory.getDefaultTransactor();
+                    TransactionId txnId = transactor.transactionIdFromString(taskStatus.getTransactionId());
+                    TransactorFactory.getDefaultTransactor().rollback(txnId);
+                } catch (IOException e) {
+                    Exception error = new DoNotRetryIOException("Unable to roll back child transaction",e);
+                    taskStatus.setError(error);
+                    taskStatus.setStatus(Status.FAILED);
+                    throw new ExecutionException(error);
+                }
             }
 
             byte[] endRow;
