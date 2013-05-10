@@ -22,8 +22,12 @@ public class SpliceTestPlatform extends TestConstants {
 	protected MiniHBaseCluster miniHBaseCluster2;
 	protected String zookeeperTargetDirectory;
 	protected String hbaseTargetDirectory;
-	
-	public SpliceTestPlatform() {
+    protected Integer masterPort;
+    protected Integer masterInfoPort;
+    protected Integer regionServerPort;
+    protected Integer regionServerInfoPort;
+
+    public SpliceTestPlatform() {
 		super();
 	}
 	
@@ -31,21 +35,34 @@ public class SpliceTestPlatform extends TestConstants {
 		this(targetDirectory + "zookeeper",targetDirectory + "hbase");
 	}
 
-	public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory) {
+    public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory) {
+        this(zookeeperTargetDirectory, hbaseTargetDirectory, null, null, null, null);
+    }
+
+
+	public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory, Integer masterPort, Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort) {
 		this.zookeeperTargetDirectory = zookeeperTargetDirectory;
 		this.hbaseTargetDirectory = hbaseTargetDirectory;
+
+        this.masterPort = masterPort;
+        this.masterInfoPort = masterInfoPort;
+        this.regionServerPort = regionServerPort;
+        this.regionServerInfoPort = regionServerInfoPort;
 	}
 
 	public static void main(String[] args) throws Exception {
 		SpliceTestPlatform spliceTestPlatform;
 		if (args.length == 1) {
 			spliceTestPlatform = new SpliceTestPlatform(args[0]);
-		}
-		if (args.length == 2) {
+            spliceTestPlatform.start();
+		}else if (args.length == 2) {
 			spliceTestPlatform = new SpliceTestPlatform(args[0],args[1]);
 			spliceTestPlatform.start();
-		}
-		if (args.length == 0 || args.length > 2) {
+		}else if (args.length == 6) {
+            spliceTestPlatform = new SpliceTestPlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]));
+            spliceTestPlatform.start();
+
+        }else{
 			System.out.println("Splice Test Platform supports one argument providing the target directory" +
 					" or two arguments dictating the zookeeper and hbase directory.");
 			System.exit(1);
@@ -63,6 +80,12 @@ public class SpliceTestPlatform extends TestConstants {
 
 	}
 
+    private void setInt(Configuration configuration, String property, Integer intProperty){
+        if(intProperty != null){
+            configuration.setInt(property, intProperty.intValue());
+        }
+    }
+
 	public void setBaselineConfigurationParameters(Configuration configuration) {
 		configuration.set("hbase.rootdir", "file://" + hbaseTargetDirectory);
 		configuration.set("hbase.rpc.timeout", "6000");
@@ -70,7 +93,14 @@ public class SpliceTestPlatform extends TestConstants {
 		configuration.setInt("hbase.balancer.period", 10000);
 		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");
 		configuration.set("hbase.regionserver.handler.count", "40");
-		coprocessorBaseline(configuration);
+
+        setInt(configuration, "hbase.master.port", masterPort);
+        setInt(configuration, "hbase.master.info.port", masterInfoPort);
+
+        setInt(configuration, "hbase.regionserver.port", regionServerPort);
+        setInt(configuration, "hbase.regionserver.info.port", regionServerInfoPort);
+
+        coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
 	}
 
