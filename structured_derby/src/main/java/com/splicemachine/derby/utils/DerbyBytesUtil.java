@@ -14,6 +14,7 @@ import com.google.common.io.Closeables;
 import com.gotometrics.orderly.*;
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -75,6 +76,11 @@ public class DerbyBytesUtil {
         if (bytes.length == 0) {
             descriptor.setToNull();
             return descriptor;
+        }
+        if(descriptor instanceof LazyDataValueDescriptor){
+            LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) descriptor;
+            ldvd.initForDeserialization(bytes);
+            return ldvd;
         }
         try {
 			switch (descriptor.getTypeFormatId()) {
