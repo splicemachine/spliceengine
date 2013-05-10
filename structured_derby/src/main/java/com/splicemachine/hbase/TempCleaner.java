@@ -76,19 +76,19 @@ public class TempCleaner {
      */
     public void deleteRange(String uid, byte[] start, byte[] finish) throws StandardException {
         final TempCleanJob job = new TempCleanJob(uid,start,finish,taskPriority);
-        cleanWatcher.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
-                try{
-                    future.completeAll();
-                }finally{
-                    future.cleanup();
-                }
-
-                return null;
-            }
-        });
+//        cleanWatcher.submit(new Callable<Void>() {
+//            @Override
+//            public Void call() throws Exception {
+//                JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
+//                try{
+//                    future.completeAll();
+//                }finally{
+//                    future.cleanup();
+//                }
+//
+//                return null;
+//            }
+//        });
     }
 
     public static class TempCleanJob implements CoprocessorJob {
@@ -141,7 +141,7 @@ public class TempCleaner {
             this.scan = scan;
         }
 
-//        @Override
+        @Override
         protected String getTaskType() {
             return "tempCleanTask";
         }

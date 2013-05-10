@@ -69,7 +69,7 @@ public class CreateIndexTask extends ZkTask {
         super.prepareTask(region, zooKeeper);
     }
 
-//    @Override
+    @Override
     protected String getTaskType() {
         return "createIndexTask";
     }

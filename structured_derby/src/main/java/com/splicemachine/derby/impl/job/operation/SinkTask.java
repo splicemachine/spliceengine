@@ -112,4 +112,9 @@ public class SinkTask extends ZkTask {
 
         instructions = (SpliceObserverInstructions)in.readObject();
     }
+
+    @Override
+    protected String getTaskType() {
+        return instructions.getTopOperation().getClass().getSimpleName();
+    }
 }

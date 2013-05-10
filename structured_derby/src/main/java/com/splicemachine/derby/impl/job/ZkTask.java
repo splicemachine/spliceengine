@@ -94,7 +94,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     @Override
     public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper)
                                                                 throws ExecutionException {
-        taskId = jobId+"_"+ SpliceUtils.getUniqueKeyString();
+        taskId = jobId+"_"+ getTaskType()+"-"+SpliceUtils.getUniqueKeyString();
         this.zkManager = zooKeeper;
         try {
             //create a child transaction
@@ -128,8 +128,9 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 
         //attach a listener to the job node
         checkNotCancelled();
-
     }
+
+    protected abstract String getTaskType();
 
     private void checkNotCancelled() throws ExecutionException{
         Stat stat;

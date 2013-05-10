@@ -87,7 +87,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         TransactionId parentTxn = job.getParentTransaction();
         boolean readOnly = job.isReadOnly();
 
-        Watcher watcher = new Watcher(job,parentTxn,readOnly);
+        Watcher watcher = new Watcher(job);
         for(final RegionTask task:tasks.keySet()){
             submit(watcher,task, tasks.get(task), table);
         }
@@ -128,26 +128,30 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         return numRunning.get();
     }
 
-    private void submit(Watcher watcher,
+    private void submit(final Watcher watcher,
                         final RegionTask task,
                               Pair<byte[],byte[]> range,
-                              HTableInterface table) throws ExecutionException{
+                              final HTableInterface table) throws ExecutionException{
         final byte[] start = range.getFirst();
         byte[] stop = range.getSecond();
         try {
-            Map<byte[], TaskFutureContext> contextMap = table.coprocessorExec(SpliceSchedulerProtocol.class, start
+            table.coprocessorExec(SpliceSchedulerProtocol.class, start
                     , stop, new Batch.Call<SpliceSchedulerProtocol, TaskFutureContext>() {
                 @Override
                 public TaskFutureContext call(SpliceSchedulerProtocol instance) throws IOException {
                     return instance.submit(task);
                 }
-            });
+            },new Batch.Callback<TaskFutureContext>() {
+                        @Override
+                        public void update(byte[] region, byte[] row, TaskFutureContext result) {
+                            RegionTaskWatcher taskWatcher = new RegionTaskWatcher(watcher, row, task, result, table);
+                            watcher.tasksToWatch.add(taskWatcher);
+                        }
+                    });
 
-            for(byte[] region:contextMap.keySet()){
-                RegionTaskWatcher taskWatcher = new RegionTaskWatcher(watcher, start, task, contextMap.get(region), table);
-                watcher.tasksToWatch.add(taskWatcher);
-                //attach a watcher
-                taskWatcher.getStatus();
+            //attach a watcher
+            for(TaskFuture future:watcher.tasksToWatch){
+                future.getStatus();
             }
         } catch (Throwable throwable) {
             throw new ExecutionException(throwable);
@@ -214,6 +218,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                                         new org.apache.zookeeper.Watcher() {
                                     @Override
                                     public void process(WatchedEvent event) {
+                                        SpliceLogUtils.trace(LOG,"Received %s event on node %s",event.getType(),event.getPath());
                                         refresh=true;
                                         watcher.taskChanged(RegionTaskWatcher.this);
                                     }
@@ -300,6 +305,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         }
 
         private void resubmit() throws ExecutionException{
+            SpliceLogUtils.debug(LOG,"resubmitting task %s",task.getTaskId());
             //only submit so many time
             if(submissionAttemps.incrementAndGet()>=maxResubmissionAttempts){
                 ExecutionException ee = new ExecutionException(
@@ -354,21 +360,6 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
             return taskStatus.getStats();
         }
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof RegionTaskWatcher)) return false;
-
-            RegionTaskWatcher that = (RegionTaskWatcher) o;
-
-            return taskFutureContext.getTaskNode().equals(that.taskFutureContext.getTaskNode());
-
-        }
-
-        @Override
-        public int hashCode() {
-            return taskFutureContext.getTaskNode().hashCode();
-        }
     }
 
     private static class JobStatsAccumulator implements JobStats{
@@ -439,17 +430,13 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         private final Set<RegionTaskWatcher> cancelledTasks;
         private volatile boolean cancelled = false;
         private JobStatsAccumulator stats;
-        private final TransactionId jobTxnId;
-        private final boolean readOnly;
 
 
         public AtomicInteger invalidCount = new AtomicInteger(0);
 
-        private Watcher(CoprocessorJob job,TransactionId jobTxnId,boolean readOnly) {
+        private Watcher(CoprocessorJob job) {
             this.job = job;
-            this.jobTxnId = jobTxnId;
             this.tasksToWatch = new ConcurrentSkipListSet<RegionTaskWatcher>();
-            this.readOnly = readOnly;
 
             this.changedTasks = new LinkedBlockingQueue<RegionTaskWatcher>();
             this.failedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskWatcher, Boolean>());
@@ -461,6 +448,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
 
         @Override
         public void cleanup() throws ExecutionException {
+            SpliceLogUtils.trace(LOG,"cleaning up job %s",job.getJobId());
             try {
                 zkManager.execute(new SpliceZooKeeperManager.Command<Void>() {
                     @Override
@@ -500,8 +488,14 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
 
         @Override
         public void completeAll() throws ExecutionException, InterruptedException, CancellationException {
-            while(getOutstandingCount()>0)
+            int outStandingCount = getOutstandingCount();
+            while(outStandingCount>0){
+                SpliceLogUtils.trace(LOG,"%d tasks remaining",outStandingCount);
                 completeNext();
+                outStandingCount = getOutstandingCount();
+            }
+
+            numRunning.decrementAndGet();
         }
 
         @Override
@@ -514,6 +508,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
             boolean found = false;
             RegionTaskWatcher changedFuture;
             int futuresRemaining = getOutstandingCount();
+            SpliceLogUtils.trace(LOG,"Tasks remaining: %d",futuresRemaining);
             while(!found && futuresRemaining>0){
                 changedFuture = changedTasks.take(); //block until one becomes available
 
@@ -553,6 +548,16 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                     }
                 }
             }
+            if(getOutstandingCount()<=0){
+                numRunning.decrementAndGet();
+                if(failedTasks.size()>0){
+                    totalFailed.incrementAndGet();
+                } else if(cancelledTasks.size()>0){
+                    totalCancelled.incrementAndGet();
+                }else
+                    totalCompleted.incrementAndGet();
+            }
+            SpliceLogUtils.trace(LOG,"completeNext finished");
         }
 
         @Override
