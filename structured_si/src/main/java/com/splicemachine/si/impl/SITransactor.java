@@ -5,7 +5,6 @@ import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.coprocessors.SICompactionScanner;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SRead;
@@ -17,7 +16,6 @@ import com.splicemachine.si.api.Clock;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -25,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
@@ -253,12 +250,21 @@ public class SITransactor implements Transactor, ClientTransactor {
     }
 
     @Override
+    public void initializeScan(String transactionId, SScan scan, boolean siOnly) {
+        initializeOperation(transactionId, scan, siOnly);
+    }
+
+    @Override
     public void initializePut(String transactionId, Object put) {
         initializeOperation(transactionId, put);
     }
 
     private void initializeOperation(String transactionId, Object operation) {
-        flagForSiTreatment((SITransactionId) transactionIdFromString(transactionId), operation);
+        initializeOperation(transactionId, operation, false);
+    }
+
+    private void initializeOperation(String transactionId, Object operation, boolean siOnly) {
+        flagForSiTreatment((SITransactionId) transactionIdFromString(transactionId), siOnly, operation);
     }
 
     @Override
@@ -271,7 +277,7 @@ public class SITransactor implements Transactor, ClientTransactor {
      */
     private Object createDeletePutDirect(SITransactionId transactionId, Object rowKey) {
         final Object deletePut = dataLib.newPut(rowKey);
-        flagForSiTreatment(transactionId, deletePut);
+        flagForSiTreatment(transactionId, false, deletePut);
         dataStore.setTombstoneOnPut(deletePut, transactionId);
         dataStore.setDeletePutAttribute(deletePut);
         return deletePut;
@@ -287,8 +293,8 @@ public class SITransactor implements Transactor, ClientTransactor {
      * Set an attribute on the operation that identifies it as needing "snapshot isolation" treatment. This is so that
      * later when the operation comes through for processing we will know how to handle it.
      */
-    private void flagForSiTreatment(SITransactionId transactionId, Object operation) {
-        dataStore.setSiNeededAttribute(operation);
+    private void flagForSiTreatment(SITransactionId transactionId, boolean siOnly, Object operation) {
+        dataStore.setSiNeededAttribute(operation, siOnly ? (short) 1 : (short) 0);
         dataStore.setTransactionId(transactionId, operation);
     }
 
@@ -298,7 +304,12 @@ public class SITransactor implements Transactor, ClientTransactor {
     public void preProcessRead(SRead read) throws IOException {
         dataLib.setReadTimeRange(read, 0, Long.MAX_VALUE);
         dataLib.setReadMaxVersions(read);
-        dataStore.addSiFamilyToReadIfNeeded(read);
+        final Short siNeededAttribute = dataStore.getSiNeededAttribute(read);
+        if (siNeededAttribute.equals((short) 1)) {
+            dataStore.addSiFamilyToRead(read);
+        } else {
+            dataStore.addSiFamilyToReadIfNeeded(read);
+        }
     }
 
     // Process update operations
@@ -438,8 +449,13 @@ public class SITransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException {
-        return new SIFilterState(dataLib, dataStore, transactionStore, rollForwardQueue,
+    public boolean isSIOnly(SRead read) {
+        return dataStore.getSiNeededAttribute(read) == (short) 1;
+    }
+
+    @Override
+    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean siOnly) throws IOException {
+        return new SIFilterState(dataLib, dataStore, transactionStore, rollForwardQueue, siOnly,
                 transactionStore.getImmutableTransaction(transactionId));
     }
 
@@ -482,11 +498,8 @@ public class SITransactor implements Transactor, ClientTransactor {
      * Is this operation supposed to be handled by "snapshot isolation".
      */
     private boolean isFlaggedForSiTreatment(Object put) {
-        return isTrue(dataStore.getSiNeededAttribute(put));
-    }
-
-    private boolean isTrue(Boolean b) {
-        return b != null && b;
+        final Short siNeededAttribute = dataStore.getSiNeededAttribute(put);
+        return siNeededAttribute != null;
     }
 
     /**

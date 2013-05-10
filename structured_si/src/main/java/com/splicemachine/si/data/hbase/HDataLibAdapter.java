@@ -180,6 +180,15 @@ public class HDataLibAdapter implements SDataLib {
     }
 
     @Override
+    public void addFamilyToRead(SRead read, Object family) {
+        if (read instanceof HGet) {
+            dataLib.addFamilyToRead(((HGet) read).get, (byte[]) family);
+        } else {
+            dataLib.addFamilyToRead(((HScan) read).scan, (byte[]) family);
+        }
+    }
+
+    @Override
     public void addFamilyToReadIfNeeded(SRead read, Object family) {
         if (read instanceof HGet) {
             dataLib.addFamilyToReadIfNeeded(((HGet) read).get, (byte[]) family);

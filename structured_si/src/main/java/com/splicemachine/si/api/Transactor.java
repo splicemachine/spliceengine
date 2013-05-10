@@ -4,6 +4,7 @@ import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
+import com.splicemachine.si.data.hbase.HScan;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -36,10 +37,11 @@ public interface Transactor extends ClientTransactor {
 
     boolean processPut(STable table, RollForwardQueue rollForwardQueue, Object put) throws IOException;
     boolean isFilterNeeded(Object operation);
+    boolean isSIOnly(SRead read);
 
     void preProcessRead(SRead readOperation) throws IOException;
 
-    FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException;
+    FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean siOnly) throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
 
     void rollForward(STable table, long transactionId, List rows) throws IOException;

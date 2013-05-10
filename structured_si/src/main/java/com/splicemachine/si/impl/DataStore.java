@@ -55,13 +55,13 @@ public class DataStore {
         this.userColumnFamily = dataLib.encode(userColumnFamily);
     }
 
-    void setSiNeededAttribute(Object put) {
-        dataLib.addAttribute(put, siNeededAttribute, dataLib.encode(true));
+    void setSiNeededAttribute(Object put, short value) {
+        dataLib.addAttribute(put, siNeededAttribute, dataLib.encode(value));
     }
 
-    Boolean getSiNeededAttribute(Object put) {
+    Short getSiNeededAttribute(Object put) {
         Object neededValue = dataLib.getAttribute(put, siNeededAttribute);
-        return (Boolean) dataLib.decode(neededValue, Boolean.class);
+        return (Short) dataLib.decode(neededValue, Short.class);
     }
 
     void setDeletePutAttribute(Object put) {
@@ -186,8 +186,11 @@ public class DataStore {
         return null;
     }
 
-    public void addSiFamilyToReadIfNeeded(SRead get) {
-        dataLib.addFamilyToReadIfNeeded(get, siFamily);
+    public void addSiFamilyToRead(SRead read) {
+        dataLib.addFamilyToRead(read, siFamily);
     }
 
+    public void addSiFamilyToReadIfNeeded(SRead read) {
+        dataLib.addFamilyToReadIfNeeded(read, siFamily);
+    }
 }

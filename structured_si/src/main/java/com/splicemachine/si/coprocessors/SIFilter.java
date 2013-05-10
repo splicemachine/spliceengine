@@ -21,16 +21,18 @@ public class SIFilter extends FilterBase {
     private Transactor transactor = null;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
+    private boolean siOnly;
 
     private FilterState filterState = null;
 
     public SIFilter() {
     }
 
-    public SIFilter(Transactor transactor, TransactionId transactionId, RollForwardQueue rollForwardQueue) throws IOException {
+    public SIFilter(Transactor transactor, TransactionId transactionId, RollForwardQueue rollForwardQueue, boolean siOnly) throws IOException {
         this.transactor = transactor;
         this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
+        this.siOnly = siOnly;
     }
 
     @Override
@@ -46,8 +48,13 @@ public class SIFilter extends FilterBase {
 
     private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
-            filterState = transactor.newFilterState(rollForwardQueue, transactor.transactionIdFromString(transactionIdString));
+            filterState = transactor.newFilterState(rollForwardQueue, transactor.transactionIdFromString(transactionIdString), siOnly);
         }
+    }
+
+    @Override
+    public boolean filterRow() {
+        return super.filterRow();    //To change body of overridden methods use File | Settings | File Templates.
     }
 
     @Override

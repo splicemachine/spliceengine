@@ -115,6 +115,11 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
+    public void addFamilyToRead(SRead get, Object family) {
+        ((LGet) get).families.add(family);
+    }
+
+    @Override
     public void addFamilyToReadIfNeeded(SRead get, Object family) {
         ensureFamilyDirect((LGet) get, family);
     }

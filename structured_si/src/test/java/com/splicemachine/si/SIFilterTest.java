@@ -57,7 +57,7 @@ public class SIFilterTest extends SIConstants {
         final Transactor transactor = transactorSetup.transactor;
         final TransactionId t1 = transactor.beginTransaction(true, false, false);
         STable table = storeSetup.getReader().open(storeSetup.getPersonTableName());
-        final FilterState filterState = transactor.newFilterState(transactorSetup.rollForwardQueue, t1);
+        final FilterState filterState = transactor.newFilterState(transactorSetup.rollForwardQueue, t1, false);
         insertAge(t1, "bill", 20);
         transactor.commit(t1);
 

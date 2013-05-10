@@ -52,4 +52,6 @@ public interface IHDataLib {
     void setReadMaxVersions(Scan scan, int max);
     void addFamilyToReadIfNeeded(Get get, byte[] family);
     void addFamilyToReadIfNeeded(Scan scan, byte[] family);
+    void addFamilyToRead(Get get, byte[] family);
+    void addFamilyToRead(Scan scan, byte[] family);
 }

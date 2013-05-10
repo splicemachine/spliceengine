@@ -15,6 +15,7 @@ public interface ClientTransactor {
 
     void initializeGet(String transactionId, SGet get) throws IOException;
     void initializeScan(String transactionId, SScan scan);
+    void initializeScan(String transactionId, SScan scan, boolean siOnly);
     void initializePut(String transactionId, Object put);
 
     Object createDeletePut(TransactionId transactionId, Object rowKey);

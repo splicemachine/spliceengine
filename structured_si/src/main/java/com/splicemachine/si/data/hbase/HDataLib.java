@@ -110,6 +110,8 @@ public class HDataLib implements IHDataLib {
         final byte[] bytes = value;
         if (type.equals(Boolean.class)) {
             return Bytes.toBoolean(bytes);
+        } else if (type.equals(Short.class)) {
+            return Bytes.toShort(bytes);
         } else if (type.equals(Integer.class)) {
             return Bytes.toInt(bytes);
         } else if (type.equals(Long.class)) {
@@ -250,6 +252,16 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
+    public void addFamilyToRead(Get get, byte[] family) {
+        get.addFamily(family);
+    }
+
+    @Override
+    public void addFamilyToRead(Scan scan, byte[] family) {
+        scan.addFamily(family);
+    }
+
+    @Override
     public void addFamilyToReadIfNeeded(Get get, byte[] family) {
         if (get.hasFamilies()) {
             get.addFamily(family);
@@ -268,6 +280,8 @@ public class HDataLib implements IHDataLib {
             return Bytes.toBytes((String) value);
         } else if (value instanceof Integer) {
             return Bytes.toBytes((Integer) value);
+        } else if (value instanceof Short) {
+            return Bytes.toBytes((Short) value);
         } else if (value instanceof Long) {
             return Bytes.toBytes((Long) value);
         } else if (value instanceof Boolean) {

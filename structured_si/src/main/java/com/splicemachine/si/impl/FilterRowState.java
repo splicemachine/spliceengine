@@ -2,7 +2,9 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.data.api.SDataLib;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,7 +26,7 @@ public class FilterRowState {
     /**
      * If a tombstone was detected on the row, then the associated timestamp will be stored here.
      */
-    Long tombstoneTimestamp = null;
+    List<Long> tombstoneTimestamps = null;
 
     /**
      * The transactions that have been loaded as part of processing this row.
@@ -43,7 +45,7 @@ public class FilterRowState {
         if (currentRowKey == null || !dataLib.valuesEqual(currentRowKey, rowKey)) {
             currentRowKey = rowKey;
             lastValidQualifier = null;
-            tombstoneTimestamp = null;
+            tombstoneTimestamps = new ArrayList<Long>();
             transactionCache = new HashMap<Long, Transaction>();
         }
     }
@@ -52,6 +54,6 @@ public class FilterRowState {
      * Record that a tombstone marker was encountered on the current row.
      */
     public void setTombstoneTimestamp(long tombstoneTimestamp) {
-        this.tombstoneTimestamp = tombstoneTimestamp;
+        this.tombstoneTimestamps.add(tombstoneTimestamp);
     }
 }

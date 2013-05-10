@@ -48,7 +48,7 @@ public class TransactorSetup extends SIConstants {
 
         SITransactor siTransactor = new SITransactor(new SimpleTimestampSource(), dataLib, writer,
                 new DataStore(dataLib, reader, writer, "si-needed", "si-transaction-id", "si-delete-put",
-                		SNAPSHOT_ISOLATION_FAMILY, SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING, "tombstone", -1, -2, userColumnsFamilyName),
+                		SNAPSHOT_ISOLATION_FAMILY, SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING, SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING, -1, -2, userColumnsFamilyName),
                 transactionStore, storeSetup.getClock(), 1500);
         clientTransactor = siTransactor;
         transactor = siTransactor;

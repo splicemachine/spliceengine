@@ -31,16 +31,18 @@ public class SIFilterState implements FilterState {
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
+    private final boolean siOnly;
 
     private final FilterRowState rowState;
     private DecodedKeyValue keyValue;
 
     public SIFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
-                         RollForwardQueue rollForwardQueue, ImmutableTransaction myTransaction) {
+                         RollForwardQueue rollForwardQueue, boolean siOnly, ImmutableTransaction myTransaction) {
         this.dataLib = dataLib;
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
         this.rollForwardQueue = rollForwardQueue;
+        this.siOnly = siOnly;
         this.myTransaction = myTransaction;
 
         transactionCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(10, TimeUnit.MINUTES).build();
@@ -66,7 +68,12 @@ public class SIFilterState implements FilterState {
     private Filter.ReturnCode filterByColumnType() throws IOException {
         final KeyValueType type = dataStore.getKeyValueType(keyValue.family, keyValue.qualifier);
         if (type.equals(KeyValueType.COMMIT_TIMESTAMP)) {
-            return processCommitTimestamp();
+            if (siOnly) {
+                processCommitTimestamp();
+                return processUserData();
+            } else {
+                return processCommitTimestamp();
+            }
         } else if (type.equals(KeyValueType.TOMBSTONE)) {
             return processTombstone();
         } else if (type.equals(KeyValueType.USER_DATA)) {
@@ -140,12 +147,8 @@ public class SIFilterState implements FilterState {
      * those values in for a given row and stores the tombstone timestamp so it can be used later to filter user data.
      */
     private Filter.ReturnCode processTombstone() throws IOException {
-        if (isVisibleToCurrentTransaction()) {
-            rowState.setTombstoneTimestamp(keyValue.timestamp);
-            return NEXT_COL;
-        } else {
-            return SKIP;
-        }
+        rowState.setTombstoneTimestamp(keyValue.timestamp);
+        return SKIP;
     }
 
     /**
@@ -193,9 +196,13 @@ public class SIFilterState implements FilterState {
      * Is there a row level tombstone that supercedes the current cell?
      */
     private boolean tombstoneAfterData() {
-        return rowState.tombstoneTimestamp != null
-                && (keyValue.timestamp < rowState.tombstoneTimestamp
-                    || (keyValue.timestamp == rowState.tombstoneTimestamp && dataStore.isSiNull(keyValue.value)));
+        for (long tombstone : rowState.tombstoneTimestamps) {
+            if (keyValue.timestamp < tombstone
+                    || (keyValue.timestamp == tombstone && dataStore.isSiNull(keyValue.value))) {
+                return true;
+            };
+        }
+        return false;
     }
 
     /**
