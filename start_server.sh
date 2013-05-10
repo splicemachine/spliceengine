@@ -1,7 +1,6 @@
 #!/bin/bash
 
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
-mvn clean install -DskipTests
 cd structured_derby
 mvn exec:exec -DspliceCI > server.log &
 
