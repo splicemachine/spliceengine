@@ -29,7 +29,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  *         Created on: 5/9/13
  */
-public abstract class ZkTask implements RegionTask,Externalizable {
+public abstract class ZkTask extends SpliceConstants implements RegionTask,Externalizable {
     private static final long serialVersionUID = 3l;
     protected final Logger LOG;
     protected TaskStatus status;
