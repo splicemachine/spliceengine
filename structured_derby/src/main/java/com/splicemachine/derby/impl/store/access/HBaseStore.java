@@ -1,10 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
-
-
 import java.util.Properties;
-
-import com.splicemachine.si.api.TransactorFactory;
 import com.splicemachine.si.impl.TransactorFactoryImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;

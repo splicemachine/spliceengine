@@ -10,16 +10,9 @@ import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.store.access.AccessFactory;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.db.BasicDatabase;
-import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.KeeperException;
-
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
-import com.splicemachine.derby.impl.store.access.HBaseStore;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.SpliceLockSpace;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 
