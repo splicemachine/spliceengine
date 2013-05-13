@@ -8,21 +8,17 @@ import java.util.Properties;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.EngineType;
 import org.apache.derby.iapi.reference.Property;
-import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.monitor.PersistentService;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.io.StorageFactory;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
-import com.splicemachine.derby.impl.store.access.PropertyConglomerate2;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 
 public class SpliceService extends SpliceConstants implements PersistentService {
 	protected static final String TYPE = "splice";
