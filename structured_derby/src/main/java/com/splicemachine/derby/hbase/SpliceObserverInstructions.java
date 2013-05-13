@@ -257,7 +257,8 @@ public class SpliceObserverInstructions implements Externalizable {
             }
         }
 
-        @Override
+        @SuppressWarnings("unchecked")
+		@Override
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
             this.setOps = (Map<String,Integer>)in.readObject();
             this.statementAtomic = in.readBoolean();
