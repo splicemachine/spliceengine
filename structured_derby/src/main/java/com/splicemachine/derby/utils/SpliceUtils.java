@@ -512,7 +512,7 @@ public class SpliceUtils extends SpliceUtilities {
 		return transID;
 	}
 
-    private static ClientTransactor<Put, Get, Scan, Mutation> getTransactor() {
+    protected static ClientTransactor<Put, Get, Scan, Mutation> getTransactor() {
         return TransactorFactory.getDefaultClientTransactor();
     }
 
