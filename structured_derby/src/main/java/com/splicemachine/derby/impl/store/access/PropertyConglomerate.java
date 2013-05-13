@@ -650,8 +650,6 @@ public class PropertyConglomerate {
 		DataValueDescriptor[] row = makeNewTemplate();
 
 		while (scan.fetchNext(row)) {
-
-			System.out.println("reading DB Properties " + row[0] + " : " + row[1]);
 			
 			Object key = ((SQLVarchar) row[0]).getObject();
 			Object value = ((UserType) row[1]).getObject();

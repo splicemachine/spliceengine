@@ -1526,7 +1526,6 @@ public class SpliceTransactionManager implements XATransactionController,
 	public Serializable getProperty(String key) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getProperty key " + key);		
-		System.out.println("getProperty: " + key);
 		return (accessmanager.getTransactionalProperties().getProperty(this,
 				key));
 	}
@@ -1552,7 +1551,6 @@ public class SpliceTransactionManager implements XATransactionController,
 			boolean dbOnlyProperty) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("setProperty key " + key);
-		System.out.println("setProperty: " + key + " : " + value + " : " + dbOnlyProperty);
 		accessmanager.getTransactionalProperties().setProperty(this, key,
 				value, dbOnlyProperty);
 	}
