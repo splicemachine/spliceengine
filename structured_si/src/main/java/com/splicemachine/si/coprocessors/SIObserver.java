@@ -157,7 +157,7 @@ public class SIObserver extends BaseRegionObserver {
 
     @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e, Store store,
-                                      InternalScanner scanner) {
+                                      InternalScanner scanner) throws IOException {
         if (tableEnvMatch) {
             Transactor transactor = TransactorFactoryImpl.getTransactor();
             return new SICompactionScanner(transactor, scanner);

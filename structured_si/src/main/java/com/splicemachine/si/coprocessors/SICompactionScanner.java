@@ -46,4 +46,17 @@ public class SICompactionScanner implements InternalScanner {
     public void close() throws IOException {
         delegate.close();
     }
+
+	@Override
+	public boolean next(List<KeyValue> results, String metric) throws IOException {
+		
+		return false;
+	}
+
+	@Override
+	public boolean next(List<KeyValue> result, int limit, String metric)
+			throws IOException {
+		// TODO Auto-generated method stub
+		return false;
+	}
 }
