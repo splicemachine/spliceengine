@@ -165,6 +165,66 @@
 	</repositories>
 	<profiles>
 	
+	<profile>
+			<id>cloudera-cdh4.2.1</id>
+			<properties>
+				<zookeeper.version>3.4.5-cdh4.2.1</zookeeper.version>
+			  	<hbase.version>0.94.2-cdh4.2.1</hbase.version>
+  				<hadoop.version>2.0.0-cdh4.2.1</hadoop.version>
+			</properties>
+			
+		<activation>
+      		<activeByDefault>true</activeByDefault>
+    	</activation>
+			    	<dependencies>
+    		<dependency>
+			<groupId>org.apache.hbase</groupId>
+			<artifactId>hbase</artifactId>
+			<version>${hbase.version}</version>
+		</dependency>
+				<dependency>
+			<groupId>org.apache.hbase</groupId>
+			<artifactId>hbase</artifactId>
+			<version>${hbase.version}</version>
+			<classifier>tests</classifier>
+		</dependency>
+				<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-common</artifactId>
+			<version>${hadoop.version}</version>
+			<classifier>tests</classifier>
+			                <exclusions>
+                    	<exclusion>
+                    		<artifactId>junit</artifactId>
+                    		<groupId>junit</groupId>
+                    	</exclusion>
+                    </exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-common</artifactId>
+			<version>${hadoop.version}</version>
+			                <exclusions>
+                    	<exclusion>
+                    		<artifactId>junit</artifactId>
+                    		<groupId>junit</groupId>
+                    	</exclusion>
+                    </exclusions>
+		</dependency>
+				<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-hdfs</artifactId>
+			<version>${hadoop.version}</version>
+			<classifier>tests</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-hdfs</artifactId>
+			<version>${hadoop.version}</version>
+		</dependency>
+    	</dependencies>
+		</profile>
+	
 		<profile>
 			<id>cloudera-cdh4.2.0</id>
 			<properties>
@@ -172,6 +232,7 @@
 			  	<hbase.version>0.94.2-cdh4.2.0</hbase.version>
   				<hadoop.version>2.0.0-cdh4.2.0</hadoop.version>
 			</properties>
+
 			    	<dependencies>
     		<dependency>
 			<groupId>org.apache.hbase</groupId>
@@ -393,9 +454,7 @@
   				<hadoop.version>2.0.0-cdh4.0.1</hadoop.version>
 			</properties>
 			
-		 <activation>
-      		<activeByDefault>true</activeByDefault>
-    	</activation>
+
     	<dependencies>
     		<dependency>
 			<groupId>org.apache.hbase</groupId>
