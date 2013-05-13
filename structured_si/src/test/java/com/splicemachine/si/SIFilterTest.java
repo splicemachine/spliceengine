@@ -25,7 +25,7 @@ public class SIFilterTest extends SIConstants {
     @Before
     public void setUp() {
         storeSetup = new LStoreSetup();
-        transactorSetup = new TransactorSetup(storeSetup);
+        transactorSetup = new TransactorSetup(storeSetup, true);
         transactor = transactorSetup.transactor;
     }
 

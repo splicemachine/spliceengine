@@ -1,6 +1,6 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.ClientTransactor;
+import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.TransactionId;
@@ -12,7 +12,6 @@ import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.api.Clock;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -36,7 +35,8 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
-public class SITransactor implements Transactor, ClientTransactor {
+public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, MutationOp>
+        implements Transactor<PutOp, GetOp, ScanOp, MutationOp> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
 
     private final TimestampSource timestampSource;
@@ -233,14 +233,24 @@ public class SITransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public TransactionId transactionIdFromOperation(Object operation) {
+    public TransactionId transactionIdFromGet(GetOp operation) {
+        return dataStore.getTransactionIdFromOperation(operation);
+    }
+
+    @Override
+    public TransactionId transactionIdFromScan(ScanOp operation) {
+        return dataStore.getTransactionIdFromOperation(operation);
+    }
+
+    @Override
+    public TransactionId transactionIdFromPut(PutOp operation) {
         return dataStore.getTransactionIdFromOperation(operation);
     }
 
     // Operation initialization. These are expected to be called "client-side" when operations are created.
 
     @Override
-    public void initializeGet(String transactionId, SGet get) throws IOException {
+    public void initializeGet(String transactionId, GetOp get) throws IOException {
         initializeOperation(transactionId, get);
     }
 
@@ -268,15 +278,15 @@ public class SITransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public Object createDeletePut(TransactionId transactionId, Object rowKey) {
+    public PutOp createDeletePut(TransactionId transactionId, Object rowKey) {
         return createDeletePutDirect((SITransactionId) transactionId, rowKey);
     }
 
     /**
      * Create a "put" operation that will effectively delete a given row.
      */
-    private Object createDeletePutDirect(SITransactionId transactionId, Object rowKey) {
-        final Object deletePut = dataLib.newPut(rowKey);
+    private PutOp createDeletePutDirect(SITransactionId transactionId, Object rowKey) {
+        final PutOp deletePut = (PutOp) dataLib.newPut(rowKey);
         flagForSiTreatment(transactionId, false, deletePut);
         dataStore.setTombstoneOnPut(deletePut, transactionId);
         dataStore.setDeletePutAttribute(deletePut);
@@ -284,7 +294,7 @@ public class SITransactor implements Transactor, ClientTransactor {
     }
 
     @Override
-    public boolean isDeletePut(Object put) {
+    public boolean isDeletePut(MutationOp put) {
         final Boolean deleteAttribute = dataStore.getDeletePutAttribute(put);
         return (deleteAttribute != null && deleteAttribute);
     }
@@ -300,8 +310,18 @@ public class SITransactor implements Transactor, ClientTransactor {
 
     // Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
 
+
     @Override
-    public void preProcessRead(SRead read) throws IOException {
+    public void preProcessGet(GetOp readOperation) throws IOException {
+        preProcessRead(readOperation);
+    }
+
+    @Override
+    public void preProcessScan(ScanOp readOperation) throws IOException {
+        preProcessRead(readOperation);
+    }
+
+    private void preProcessRead(SRead read) throws IOException {
         dataLib.setReadTimeRange(read, 0, Long.MAX_VALUE);
         dataLib.setReadMaxVersions(read);
         final Short siNeededAttribute = dataStore.getSiNeededAttribute(read);
@@ -317,21 +337,21 @@ public class SITransactor implements Transactor, ClientTransactor {
     @Override
     public boolean processPut(STable table, RollForwardQueue rollForwardQueue, Object put) throws IOException {
         if (isFlaggedForSiTreatment(put)) {
-            processPutDirect(table, rollForwardQueue, put);
+            processPutDirect(table, rollForwardQueue, (PutOp) put);
             return true;
         } else {
             return false;
         }
     }
 
-    private void processPutDirect(STable table, RollForwardQueue rollForwardQueue, Object put) throws IOException {
+    private void processPutDirect(STable table, RollForwardQueue rollForwardQueue, PutOp put) throws IOException {
         final SITransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
         final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
         ensureTransactionAllowsWrites(transaction);
         performPut(table, rollForwardQueue, put, transaction);
     }
 
-    private void performPut(STable table, RollForwardQueue rollForwardQueue, Object put, ImmutableTransaction transaction)
+    private void performPut(STable table, RollForwardQueue rollForwardQueue, PutOp put, ImmutableTransaction transaction)
             throws IOException {
         final Object rowKey = dataLib.getPutKey(put);
         final SRowLock lock = dataWriter.lockRow(table, rowKey);
@@ -428,14 +448,14 @@ public class SITransactor implements Transactor, ClientTransactor {
      * Create a new operation, with the lock, that has all of the keyValues from the original operation.
      * This will also set the timestamp of the data being updated to reflect the transaction doing the update.
      */
-    Object createUltimatePut(ImmutableTransaction transaction, SRowLock lock, Object put, STable table) throws IOException {
+    Object createUltimatePut(ImmutableTransaction transaction, SRowLock lock, PutOp put, STable table) throws IOException {
         final Object rowKey = dataLib.getPutKey(put);
         final Object newPut = dataLib.newPut(rowKey, lock);
         final SITransactionId transactionId = transaction.getTransactionId();
         final long timestamp = transactionId.getId();
         dataStore.copyPutKeyValues(put, newPut, timestamp);
         dataStore.addTransactionIdToPut(newPut, transactionId);
-        if (isDeletePut(put)) {
+        if (isDeletePut((MutationOp) put)) {
             dataStore.setTombstonesOnColumns(table, timestamp, newPut);
         }
         return newPut;
@@ -444,12 +464,21 @@ public class SITransactor implements Transactor, ClientTransactor {
     // Process read operations
 
     @Override
-    public boolean isFilterNeeded(Object operation) {
+    public boolean isFilterNeededGet(GetOp operation) {
         return isFlaggedForSiTreatment(operation);
     }
 
     @Override
-    public boolean isSIOnly(SRead read) {
+    public boolean isFilterNeededScan(ScanOp operation) {
+        return isFlaggedForSiTreatment(operation);
+    }
+
+    @Override
+    public boolean isScanSIOnly(ScanOp read) {
+        return isSIOnly(read);
+    }
+
+    private boolean isSIOnly(SRead read) {
         return dataStore.getSiNeededAttribute(read) == (short) 1;
     }
 

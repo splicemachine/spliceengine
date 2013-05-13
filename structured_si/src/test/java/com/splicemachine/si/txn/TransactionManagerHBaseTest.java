@@ -11,7 +11,7 @@ public class TransactionManagerHBaseTest extends TransactionManagerTest {
     @BeforeClass
     public static void setUp() {
         storeSetup = new HStoreSetup();
-        transactorSetup = new TransactorSetup(storeSetup);
+        transactorSetup = new TransactorSetup(storeSetup, false);
         TransactorFactory.setDefaultTransactor(transactor);
         TransactorFactoryImpl.setTransactor(transactor);
         baseSetUp();
