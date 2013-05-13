@@ -42,6 +42,12 @@ public class SpliceConstants {
     public static final int DEFAULT_HBASE_CLIENT_RETRIES_NUMBER = HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER;
     public static final boolean DEFAULT_HBASE_CLIENT_COMPRESS_WRITES = false;
 	public static final String DEFAULT_COMPRESSION = "none";
+	/**
+	 * The Default Cache size for Scans.
+	 *
+	 * This determines the default number of rows that will be cached on each scan returned.
+	 */
+	public static final int DEFAULT_CACHE_SIZE = 100;
 
     
     /*
@@ -150,7 +156,7 @@ public class SpliceConstants {
     public static final byte[] EOF_MARKER = new byte[] {0, 0, 0, 0};
     public static final String SUPPRESS_INDEXING_ATTRIBUTE_NAME = "iu";
     public static final byte[] SUPPRESS_INDEXING_ATTRIBUTE_VALUE = new byte[]{};
-    public static final byte[] VALUE_COLUMN = Integer.toString(1).getBytes();
+    public static final byte[] VALUE_COLUMN = Bytes.toBytes(1);
 	public static final long DEFAULT_SPLIT_WAIT_INTERVAL = 500l;
 	public static final String SPLICE_DB = "spliceDB";
 	

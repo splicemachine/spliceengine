@@ -397,7 +397,7 @@ public class WorkStealingThreadedTaskScheduler<T extends Task> implements TaskSc
             return cost;
         }
 
-        @Override
+//        @Override
         public void cancel() throws ExecutionException {
             task.markCancelled();
         }

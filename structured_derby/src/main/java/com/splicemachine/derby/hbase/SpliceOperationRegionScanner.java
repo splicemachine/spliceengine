@@ -108,9 +108,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	        }
 	        return false;
 		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,"error during next call: ",e);
+			throw SpliceStandardLogUtils.generateSpliceIOException(LOG, "next Failed", e);
         }
-        return false;
 	}
 
 

@@ -7,6 +7,7 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 
@@ -20,7 +21,7 @@ import java.io.IOException;
  */
 public class Puts {
 
-    private static final byte[] NULL_COLUMN_MARKER = Integer.toString(-Integer.MAX_VALUE).getBytes();
+    private static final byte[] NULL_COLUMN_MARKER = Bytes.toBytes(-Integer.MAX_VALUE);
     public static final byte[] FOR_UPDATE = "U".getBytes();
     public static final String PUT_TYPE = "t";
 
@@ -198,7 +199,7 @@ public class Puts {
 
         try {
             byte[] data = serializer.serialize(descriptor);
-            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(columnNum).getBytes(),data);
+            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(columnNum),data);
         } catch (StandardException e) {
             throw new IOException(e);
         }
@@ -210,7 +211,7 @@ public class Puts {
 
 		try {
 			byte[] data = DerbyBytesUtil.generateBytes(descriptor);
-			put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(columnNum).getBytes(),data);
+			put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(columnNum),data);
 		} catch (StandardException e) {
 			throw new IOException(e);
 		}

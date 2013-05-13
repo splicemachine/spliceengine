@@ -82,12 +82,7 @@ public class OperationResultSet implements NoPutResultSet {
     @Override
     public ExecRow getNextRowCore() throws StandardException {
         checkDelegate();
-        try {
-        	return delegate.getNextRowCore();
-        } catch (StandardException s) {
-        	LOG.trace("XXXXX - getNextRowCore failed with standard exception " + s.getErrorCode());
-        	throw s;
-        }
+        return delegate.getNextRowCore();
     }
 
     @Override

@@ -4,12 +4,12 @@ import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJobScheduler;
+import com.splicemachine.derby.impl.job.scheduler.AsyncJobScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
@@ -22,6 +22,7 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
+
 import javax.management.*;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -31,7 +32,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
-import com.splicemachine.utils.SpliceZooKeeperManager;
 
 /**
  * @author Scott Fines
@@ -81,8 +81,8 @@ public class SpliceDriver extends SIConstants {
         try {
             writerPool = TableWriter.create(SpliceUtils.config);
             threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
-            jobScheduler = new CoprocessorJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
-            taskMonitor = new ZkTaskMonitor(zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
+            jobScheduler = new AsyncJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
+            taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
             tempCleaner = new TempCleaner(SpliceUtils.config);
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);

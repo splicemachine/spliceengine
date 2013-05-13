@@ -265,7 +265,7 @@ public class PropertyConglomerate2 extends SpliceConstants {
             table = SpliceAccessManager.getHTable(PROPERTIES_TABLE_NAME_BYTES);
 
             byte[] keyBytes = key.getBytes();
-            byte[] valColumn = Integer.toString(1).getBytes();
+            byte[] valColumn = Bytes.toBytes(1);
             String transactionId = getTransactionId(tc);
             if(value==null){
                 //null value means delete the property

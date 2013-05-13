@@ -202,6 +202,9 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         writerPool.shutdown();
     }
 
+    public Collection<HRegionInfo> getCachedRegions(byte[] tableName) throws ExecutionException {
+        return Collections.unmodifiableSet(regionCache.get(Bytes.mapKey(tableName)));
+    }
 
 
     /**

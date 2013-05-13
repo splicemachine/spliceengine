@@ -113,11 +113,12 @@
         </dependency>
 	</dependencies>
 	<build>
-	  <resources>
+        <resources>
         <resource>
             <directory>src/main/resources</directory>
+            <filtering>true</filtering>
         </resource>
-      </resources>
+    </resources>
       <testResources>
           <testResource>
             <directory>src/test/resources</directory>
@@ -129,8 +130,24 @@
 			and the site phase. These plugins inherit their options from the <reporting> 
 			section below. These settings can be overwritten here. -->
 		<plugins>
-
-
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <version>1.2</version>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <shortRevisionLength>10</shortRevisionLength>
+                    <doCheck>false</doCheck>
+                    <doUpdate>false</doUpdate>
+                </configuration>
+            </plugin>
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
@@ -153,6 +170,7 @@
 					</dependency>
 				</dependencies>
 			</plugin>
+
 		</plugins>
 	</build>
 
@@ -256,6 +274,7 @@
                                 <argument>-cp</argument>
                                 <classpath>${maven.runtime.classpath}</classpath>
                                 <argument>-Xdebug</argument>
+                                <argument>-XX:+UseConcMarkSweepGC</argument>
                                 <argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
                                 <argument>-Xmx2g</argument>
                                 <argument>-Xms1g</argument>

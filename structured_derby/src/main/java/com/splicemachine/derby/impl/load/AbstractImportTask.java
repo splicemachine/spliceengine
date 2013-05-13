@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.TransactionalTask;
+import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
 import com.splicemachine.derby.utils.Exceptions;
@@ -28,7 +28,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 4/5/13
  */
-public abstract class AbstractImportTask extends TransactionalTask {
+public abstract class AbstractImportTask extends ZkTask {
     private static final long serialVersionUID = 1l;
     protected ImportContext importContext;
     protected FileSystem fileSystem;
@@ -43,7 +43,7 @@ public abstract class AbstractImportTask extends TransactionalTask {
         this.importContext = importContext;
     }
 
-    @Override
+//    @Override
     protected String getTaskType() {
         return "importTask";
     }
@@ -63,12 +63,7 @@ public abstract class AbstractImportTask extends TransactionalTask {
     @Override
     public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         fileSystem = region.getFilesystem();
-        this.taskId = buildTaskId(region);
         super.prepareTask(region, zooKeeper);
-    }
-
-    private String buildTaskId(HRegion region) {
-        return zkSpliceTaskPath+"/"+region.getTableDesc().getNameAsString()+"/"+region.getRegionNameAsString()+"/importTask-";
     }
 
     @Override

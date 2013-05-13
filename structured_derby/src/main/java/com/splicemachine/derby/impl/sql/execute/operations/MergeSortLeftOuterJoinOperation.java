@@ -48,6 +48,7 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 				this.wasRightOuterJoin = wasRightOuterJoin;
                 init(SpliceOperationContext.newContext(activation));
                 recordConstructorTime(); 
+                
 	}
 	
 	@Override

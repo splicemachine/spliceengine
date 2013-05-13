@@ -257,9 +257,8 @@ public class HashScanOperation extends ScanOperation {
                 //sink the row by hashing
                 start = System.nanoTime();
                 SpliceLogUtils.trace(LOG, "Sinking Record ");
-                result = new Result(keyValues);
                 SpliceLogUtils.trace(LOG, "accessedColsToGrab=%s",accessedCols);
-                SpliceUtils.populate(result, currentRow.getRowArray(),accessedCols,baseColumnMap,serializer);
+                SpliceUtils.populate(keyValues, currentRow.getRowArray(),accessedCols,baseColumnMap,serializer);
                 byte[] tempRowKey ;
                 if (eliminateDuplicates) {
                     tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),scannedTableName);
@@ -344,11 +343,11 @@ public class HashScanOperation extends ScanOperation {
 			regionScanner.next(keyValues);
 			while (!keyValues.isEmpty()) {
 				SpliceLogUtils.trace(LOG, "getNextRowCore retrieved hbase values " + keyValues);
-				  Result result = new Result(keyValues);
-				  SpliceUtils.populate(result, currentRow.getRowArray());
+				  
+				  SpliceUtils.populate(keyValues, currentRow.getRowArray());
 				  SpliceLogUtils.trace(LOG, "getNextRowCore retrieved derby row " + currentRow);
 				  this.setCurrentRow(currentRow);
-				  currentRowLocation = new HBaseRowLocation(result.getRow());
+				  currentRowLocation = new HBaseRowLocation(keyValues.get(0).getRow());
 				  return currentRow;
 			}
 		  } catch (Exception e) {

@@ -196,7 +196,7 @@ public class CreateIndexOperation extends IndexConstantAction implements Constan
         }finally{
             if(future!=null){
                 try {
-                    SpliceDriver.driver().getJobScheduler().cleanupJob(future);
+                    future.cleanup();
                 } catch (ExecutionException e) {
                     throw Exceptions.parseException(e.getCause());
                 }

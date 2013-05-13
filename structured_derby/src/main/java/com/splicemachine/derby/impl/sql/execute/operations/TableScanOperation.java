@@ -41,7 +41,6 @@ public class TableScanOperation extends ScanOperation {
 	protected static List<NodeType> nodeTypes;
 	protected int indexColItem;
 	protected int[] indexCols;
-	protected Result result;
 	public String userSuppliedOptimizerOverrides;
 	public int rowsPerRead;
 	
@@ -167,8 +166,7 @@ public class TableScanOperation extends ScanOperation {
 				currentRow = null;
 				currentRowLocation = null;
 			} else {
-				result = new Result(keyValues);
-				SpliceUtils.populate(result, currentRow.getRowArray(), accessedCols, baseColumnMap);
+				SpliceUtils.populate(keyValues, currentRow.getRowArray(), accessedCols, baseColumnMap);
 
                 if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()) instanceof RowLocation){
                     /*
@@ -178,7 +176,7 @@ public class TableScanOperation extends ScanOperation {
                      */
                     currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
                 }else
-                    currentRowLocation = new HBaseRowLocation(result.getRow());
+                    currentRowLocation = new HBaseRowLocation(keyValues.get(0).getRow());
 			}
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrow(LOG, tableName+":Error during getNextRowCore",

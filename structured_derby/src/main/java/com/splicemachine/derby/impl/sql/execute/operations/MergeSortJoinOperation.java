@@ -26,12 +26,11 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -61,10 +60,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 	public int emptyRightRowsReturned = 0;
 	
 	static {
-		nodeTypes = new ArrayList<NodeType>();
-		nodeTypes.add(NodeType.REDUCE);
-		nodeTypes.add(NodeType.SCAN);
-		nodeTypes.add(NodeType.SINK);
+		nodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SCAN,NodeType.SINK);
 	}
 	
 	public MergeSortJoinOperation() {
@@ -148,7 +144,7 @@ public class MergeSortJoinOperation extends JoinOperation {
             SpliceLogUtils.trace(LOG,"leftHashkeyItem=%d,rightHashKeyItem=%d",leftHashKeyItem,rightHashKeyItem);
             emptyRightRowsReturned = 0;
 			leftHashKeys = generateHashKeys(leftHashKeyItem, (SpliceBaseOperation) this.leftResultSet);
-			rightHashKeys = generateHashKeys(rightHashKeyItem, (SpliceBaseOperation) this.rightResultSet);
+			rightHashKeys = generateHashKeys(rightHashKeyItem, (SpliceBaseOperation) this.rightResultSet);			
 			mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
 			rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
 			byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
@@ -238,7 +234,6 @@ public class MergeSortJoinOperation extends JoinOperation {
                 SpliceLogUtils.trace(LOG, "sinking row %s",row);
                 byte[] rowKey = hasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors);
                 put = Puts.buildInsert(rowKey, row.getRowArray(),null, SpliceUtils.NA_TRANSACTION_ID, serializer, additionalDescriptors);
-//                put.setWriteToWAL(false); // Seeing if this speeds stuff up a bit...
                 writeBuffer.add(put);
                 stats.writeAccumulator().tick(System.nanoTime()-start);
             }while(row!=null);

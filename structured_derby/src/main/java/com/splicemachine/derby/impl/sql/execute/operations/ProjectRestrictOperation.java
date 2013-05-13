@@ -172,7 +172,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		SpliceLogUtils.trace(LOG, "getNodeTypes");
 		return nodeTypes;
 	}
-
+	
 	private ExecRow doProjection(ExecRow sourceRow) throws StandardException {
 		SpliceLogUtils.trace(LOG, "doProjection");
 		ExecRow result;
@@ -218,12 +218,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		LOG.trace("regionOperation="+regionOperation);
 		RowProvider provider;
         ExecRow fromResults = getExecRowDefinition();
-//        ExecRow fromResults = null;
-//        try{
-//            fromResults = getFromResultDescription(activation.getResultDescription());
-//        }catch(StandardException se){
-//            SpliceLogUtils.logAndThrowRuntime(LOG,se);
-//        }
         if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
 			SpliceLogUtils.trace(LOG,"scanning Temp Table");
 			provider = regionOperation.getReduceRowProvider(this,fromResults);
@@ -237,6 +231,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	}
 
 
+	private ExecRow candidateRow;
+	private ExecRow result;
+	private boolean restrict;
+	private DataValueDescriptor restrictBoolean;
 
     @Override
 	public ExecRow getNextRowCore() throws StandardException {
@@ -245,10 +243,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             return null;
         }
 
-		ExecRow candidateRow = null;
-		ExecRow result = null;
-		boolean restrict = false;
-		DataValueDescriptor restrictBoolean;
+		candidateRow = null;
+		result = null;
+		restrict = false;
+		restrictBoolean = null;
 		long beginRT = 0;
 
 		beginTime = getCurrentTimeMillis();

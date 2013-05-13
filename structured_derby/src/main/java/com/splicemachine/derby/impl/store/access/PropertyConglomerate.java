@@ -45,6 +45,7 @@ public class PropertyConglomerate {
 	private static Logger LOG = Logger.getLogger(PropertyConglomerate.class);
 	protected long propertiesConglomId;
 	protected Properties serviceProperties;
+	protected Properties loadedProperties;
 	private LockFactory lf;
 	private Dictionary	cachedSet;
 	private PropertyFactory  pf;
@@ -649,7 +650,7 @@ public class PropertyConglomerate {
 		DataValueDescriptor[] row = makeNewTemplate();
 
 		while (scan.fetchNext(row)) {
-
+			
 			Object key = ((SQLVarchar) row[0]).getObject();
 			Object value = ((UserType) row[1]).getObject();
 			if (SanityManager.DEBUG) {

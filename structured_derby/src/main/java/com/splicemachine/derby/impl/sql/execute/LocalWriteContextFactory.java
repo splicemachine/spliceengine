@@ -15,6 +15,7 @@ import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -323,7 +324,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
             mainColPos = new byte[baseIndexedColumns.length][];
             for(int i=0;i<baseIndexedColumns.length;i++){
-                mainColPos[i] = Integer.toString(baseIndexedColumns[i]-1).getBytes();
+                mainColPos[i] = Bytes.toBytes(baseIndexedColumns[i]-1);
             }
         }
 

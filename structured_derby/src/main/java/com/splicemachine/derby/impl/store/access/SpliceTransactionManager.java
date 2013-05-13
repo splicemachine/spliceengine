@@ -1526,7 +1526,6 @@ public class SpliceTransactionManager implements XATransactionController,
 	public Serializable getProperty(String key) throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getProperty key " + key);		
-		
 		return (accessmanager.getTransactionalProperties().getProperty(this,
 				key));
 	}
