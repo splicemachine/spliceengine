@@ -1,7 +1,5 @@
 package com.splicemachine.utils;
 
-import java.util.List;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -10,8 +8,6 @@ import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
-
-import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
@@ -73,13 +69,16 @@ public class SpliceUtilities extends SIConstants {
 	}
 	
 	public static HColumnDescriptor createDataFamily() {
-		return new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
-				SpliceConstants.DEFAULT_VERSIONS,
+		HColumnDescriptor desc = new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
+				DEFAULT_VERSIONS,
 				compression,
-				SpliceConstants.DEFAULT_IN_MEMORY,
-				SpliceConstants.DEFAULT_BLOCKCACHE,
-				SpliceConstants.DEFAULT_TTL,
-				SpliceConstants.DEFAULT_BLOOMFILTER);
+				DEFAULT_IN_MEMORY,
+				DEFAULT_BLOCKCACHE,
+				DEFAULT_TTL,
+				DEFAULT_BLOOMFILTER);
+        desc.setMaxVersions(Integer.MAX_VALUE);
+        desc.setTimeToLive(Integer.MAX_VALUE);
+        return desc;
 	}
 	
     public static HColumnDescriptor createTransactionFamily() {
