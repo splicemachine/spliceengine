@@ -88,7 +88,8 @@ public class SpliceTestPlatform extends TestConstants {
 
 	public void setBaselineConfigurationParameters(Configuration configuration) {
 		configuration.set("hbase.rootdir", "file://" + hbaseTargetDirectory);
-		configuration.set("hbase.rpc.timeout", "6000");
+		configuration.setInt("hbase.rpc.timeout", 90000);
+		configuration.setInt("hbase.regionserver.lease.period", 90000);		
 		configuration.set("hbase.cluster.distributed", "true");
 		configuration.setInt("hbase.balancer.period", 10000);
 		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");

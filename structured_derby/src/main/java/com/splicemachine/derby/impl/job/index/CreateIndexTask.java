@@ -102,12 +102,12 @@ public class CreateIndexTask extends ZkTask {
     @Override
     public void execute() throws ExecutionException, InterruptedException {
         Scan regionScan = SpliceUtils.createScan(transactionId);
-        regionScan.setCaching(100);
+        regionScan.setCaching(DEFAULT_CACHE_SIZE);
         regionScan.setStartRow(region.getStartKey());
         regionScan.setStopRow(region.getEndKey());
 
         for(int mainTablePos:indexColsToBaseColMap){
-            regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(mainTablePos-1).getBytes());
+            regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(mainTablePos-1));
         }
 
         try{
@@ -185,7 +185,7 @@ public class CreateIndexTask extends ZkTask {
             byte[][] indexRowData = getDataArray();
             int rowSize=0;
             for(KeyValue kv:rowData){
-                int colPos = Integer.parseInt(Bytes.toString(kv.getQualifier()));
+                int colPos = Bytes.toInt(kv.getQualifier());
                 for(int indexPos=0;indexPos<indexColsToMainColMap.length;indexPos++){
                     if(colPos == indexColsToMainColMap[indexPos]){
                         byte[] val = kv.getValue();
@@ -209,12 +209,12 @@ public class CreateIndexTask extends ZkTask {
             }
             Put indexPut = SpliceUtils.createPut(finalIndexRow, transactionId);
             for(int dataPos=0;dataPos<indexRowData.length;dataPos++){
-                byte[] putPos = Integer.toString(dataPos).getBytes();
-                indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
+                byte[] putPos = Bytes.toBytes(dataPos);
+                indexPut.add(DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
             }
 
-            indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,
-                    Integer.toString(rowData.size()).getBytes(),mainRow);
+            indexPut.add(DEFAULT_FAMILY_BYTES,
+            		Bytes.toBytes(rowData.size()),mainRow);
             indexPuts.add(indexPut);
         }
 

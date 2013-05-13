@@ -21,6 +21,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 /**
@@ -119,6 +120,7 @@ public class MergeSortRegionAwareRowProvider extends SingleScanRowProvider {
         try{
             Result result = getResult();
             if(result!=null && !result.isEmpty()){
+            	
         		rowType = (SQLInteger) serializer.deserialize(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN),rowType);
     			if (rowType.getInt() == JoinSide.RIGHT.ordinal()) {
     				SpliceUtils.populate(result, fbt, rightRow.getRowArray(),serializer);

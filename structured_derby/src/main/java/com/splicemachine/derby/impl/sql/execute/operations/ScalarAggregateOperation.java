@@ -183,16 +183,14 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 			regionScanner.next(keyValues);
 			SpliceLogUtils.trace(LOG,"keyValues.length=%d, regionScanner=%s",keyValues.size(),regionScanner);
 		}catch(IOException ioe){
-			SpliceLogUtils.logAndThrow(LOG, 
-					StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION, ioe));
+			SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION, ioe));
 		}
-		Result result = new Result(keyValues);
 		if(keyValues.isEmpty())
 			return null;
 		else{
 			SpliceLogUtils.trace(LOG,"populating next row");
 			ExecIndexRow row = (ExecIndexRow)sourceExecIndexRow.getClone();
-			SpliceUtils.populate(result,row.getRowArray());
+			SpliceUtils.populate(keyValues,row.getRowArray());
 			SpliceLogUtils.trace(LOG, "returned row = %s",row);
 			return row;
 		}

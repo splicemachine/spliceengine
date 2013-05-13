@@ -74,7 +74,7 @@ public class IndexManager {
 
         mainColPos = new byte[baseColumnMap.length][];
         for(int i=0;i<baseColumnMap.length;i++){
-            mainColPos[i] = Integer.toString(baseColumnMap[i]-1).getBytes();
+            mainColPos[i] = Bytes.toBytes(baseColumnMap[i]-1);
         }
     }
 
@@ -175,12 +175,11 @@ public class IndexManager {
             }
             Put indexPut = SpliceUtils.createPut(finalIndexRow, transactionId);
             for(int dataPos=0;dataPos<indexRowData.length;dataPos++){
-                byte[] putPos = Integer.toString(dataPos).getBytes();
+                byte[] putPos = Bytes.toBytes(dataPos);
                 indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
             }
 
-            indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,
-                    Integer.toString(rowData.size()).getBytes(),mainRow);
+            indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(rowData.size()),mainRow);
             indexPuts.add(indexPut);
         }
 
@@ -318,12 +317,12 @@ public class IndexManager {
 
         Put indexPut = SpliceUtils.createPut(indexRowKey, mainPut);
         for(int i=0;i<indexColsToMainColMap.length;i++){
-            byte[] indexPos = Integer.toString(i).getBytes();
+            byte[] indexPos = Bytes.toBytes(i);
             indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,indexPos,rowKeyBuilder[i]);
         }
 
         //add the put rowKey as the row location at the end of the row
-        byte[] locPos = Integer.toString(indexColsToMainColMap.length).getBytes();
+        byte[] locPos = Bytes.toBytes(indexColsToMainColMap.length);
 
         indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,locPos,put.getRow());
 

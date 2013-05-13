@@ -19,8 +19,10 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
+import com.splicemachine.si.data.hbase.HScan;
 
 /**
  * Utility methods and classes related to building HBase Scans
@@ -29,7 +31,7 @@ import com.splicemachine.hbase.filter.ColumnNullableFilter;
  * @author Scott Fines
  * Created: 1/24/13 10:50 AM
  */
-public class Scans {
+public class Scans extends SpliceUtils {
     private static Comparator<? super Qualifier> qualifierComparator = new Comparator<Qualifier>() {
         @Override
         public int compare(Qualifier o1, Qualifier o2) {
@@ -46,12 +48,6 @@ public class Scans {
 
     private Scans(){} //can't construct me
 
-	/**
-	 * The Default Cache size for Scans.
-	 *
-	 * This determines the default number of rows that will be cached on each scan returned.
-	 */
-	public static final int DEFAULT_CACHE_SIZE = 100;
 
 
 	/**
@@ -271,7 +267,7 @@ public class Scans {
 					byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
 					if(bytes.length>0){
 						masterList.addFilter(new SingleColumnValueFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
-								Integer.toString(pos).getBytes(),
+								Bytes.toBytes(pos),
 								getCompareOp(compareOp,false),
 								bytes));
 					}
@@ -315,11 +311,11 @@ public class Scans {
 					CompareFilter.CompareOp compareOp = qualifier.negateCompareResult()?
 							CompareFilter.CompareOp.NOT_EQUAL: CompareFilter.CompareOp.EQUAL;
 					list.addFilter(new ColumnNullableFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
-							Integer.toString(qualifier.getColumnId()).getBytes(),
+							Bytes.toBytes(qualifier.getColumnId()),
 							compareOp));
 				}else{
 					SingleColumnValueFilter filter = new SingleColumnValueFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
-							Integer.toString(qualifier.getColumnId()).getBytes(),
+							Bytes.toBytes(qualifier.getColumnId()),
 							getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),
 							DerbyBytesUtil.generateBytes(dvd));
 					filter.setFilterIfMissing(true);
@@ -394,7 +390,7 @@ public class Scans {
 																		Qualifier[][] qualifiers,
                                                                         FormatableBitSet primaryKeys,
                                                                         FormatableBitSet scanColumnList,
-																		boolean[] sortOrder) throws IOException {
+																		boolean[] sortOrder) throws IOException {		
 		if(scanColumnList!=null){
 			if(qualifiers!=null && qualifiers.length>0){
 				for(Qualifier[] andQualifiers:qualifiers){
@@ -404,11 +400,17 @@ public class Scans {
 							scanColumnList.set(pos);
 					}
 				}
-            }
-            for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
-                scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(i).getBytes());
-            }
-        }
+			}
+			
+			if (scanColumnList.anySetBit() == -1) {
+				getTransactor().initializeScan(getTransactor().transactionIdFromOperation(new HScan(scan)).getTransactionIdString(), new HScan(scan), true);
+			} else {
+			
+				for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
+					scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(i));
+				}
+			} 
+		}
 
 		try{
 			boolean generateKey = true;

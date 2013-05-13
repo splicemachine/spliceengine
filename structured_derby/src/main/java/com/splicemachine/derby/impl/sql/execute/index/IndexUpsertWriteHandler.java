@@ -62,11 +62,11 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         try {
             Put indexPut = SpliceUtils.createPut(indexRowKey, put);
             for(int i=0;i<indexColsToMainColMap.length;i++){
-                byte[] indexPos = Integer.toString(i).getBytes();
+                byte[] indexPos = Bytes.toBytes(i);
                 indexPut.add(DEFAULT_FAMILY_BYTES,indexPos,rowKeyBuilder[i]);
             }
 
-            byte[] locPos = Integer.toString(indexColsToMainColMap.length).getBytes();
+            byte[] locPos = Bytes.toBytes(indexColsToMainColMap.length);
             indexPut.add(DEFAULT_FAMILY_BYTES, locPos, put.getRow());
 
             indexToMainMutationMap.put(indexPut,put);

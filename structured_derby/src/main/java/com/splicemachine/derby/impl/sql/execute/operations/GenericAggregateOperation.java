@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -46,10 +47,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 	protected long rowsInput;
 	
 	static {
-		nodeTypes = new ArrayList<NodeType>();
-//		nodeTypes.add(NodeType.MAP);
-		nodeTypes.add(NodeType.REDUCE);
-		nodeTypes.add(NodeType.SINK);
+		nodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SINK);
 	}
     public GenericAggregateOperation () {
     	super();
@@ -114,7 +112,6 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 			rowAllocator = (rowAllocatorMethodName == null) ? null : statement.getActivationClass().getMethod(rowAllocatorMethodName);
 			aggInfoList = (AggregatorInfoList) (statement.getSavedObject(aggregateItem));
 			aggregates = getSortAggregators(aggInfoList, false, lcc);
-//			tempTable = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 			ExecutionFactory factory = activation.getExecutionFactory();
 			sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(activation));
 			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);

@@ -175,13 +175,8 @@ public class OnceOperation extends SpliceBaseOperation {
 		}
 		return new SpliceNoPutResultSet(activation,this, new RowProviders.DelegatingRowProvider(provider) {
 			@Override
-			public ExecRow next() {
-				try {
+			public ExecRow next() throws StandardException {
 					return nextRow(provider);
-				} catch (StandardException e) {
-					SpliceLogUtils.logAndThrowRuntime(LOG,e);
-					return null;
-				}
 			}
 		});
 	}

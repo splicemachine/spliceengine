@@ -130,10 +130,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			keyColumns[index] = order[index].getColumnId();
 			descAscInfo[index] = order[index].getIsAscending();
 		}
-//		if(isRollup)
-//			resultRows = new ExecIndexRow[numGCols()+1];
-//		else
-//			resultRows = new ExecIndexRow[1];
 		if(numDistinctAggs>0)
 			distinctValues = (HashSet<String>[][])new HashSet[resultRows.length][aggregates.length];
 
@@ -239,9 +235,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		@Override
 		public void merge(ExecIndexRow curr,ExecIndexRow next){
 			try {
-//				SpliceLogUtils.trace(LOG, "merging %s with %s",curr,next);
 				mergeVectorAggregates(next,curr,-1);
-//				SpliceLogUtils.trace(LOG,"merged result = %s",curr);
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
