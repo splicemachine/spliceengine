@@ -8,14 +8,12 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimeUtils;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.si.api.ParentTransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -30,7 +28,6 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 
-
 public class SpliceOperationRegionScanner implements RegionScanner {
     private static Logger LOG = Logger.getLogger(SpliceOperationRegionScanner.class);
     protected GenericStorablePreparedStatement statement;
@@ -39,9 +36,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     protected Iterator<ExecRow> currentRows;
     protected List<KeyValue> currentResult;
     protected Activation activation; // has to be passed by reference... jl
-    private String parentTransactionId;
     private Serializer serializer = new Serializer();
-
     private TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
     private TaskStats finalStats;
     private SpliceOperationContext context;
@@ -172,4 +167,19 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 .append("\t").append(finalStats.getWriteStats());
         logger.debug(summaryBuilder.toString());
     }
+
+	@Override
+	public boolean next(List<KeyValue> results, String metric)throws IOException {
+		return next(results);
+	}
+
+	@Override
+	public boolean next(List<KeyValue> result, int limit, String metric) throws IOException {
+		throw new IOException("next with metric not supported " + metric);
+	}
+
+	@Override
+	public boolean reseek(byte[] row) throws IOException {
+		throw new IOException("reseek not supported");
+	}
 }
