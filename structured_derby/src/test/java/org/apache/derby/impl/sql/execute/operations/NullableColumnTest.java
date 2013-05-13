@@ -1,8 +1,6 @@
 package org.apache.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.splicemachine.derby.test.DerbyTestRule;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -10,8 +8,6 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.junit.Assert;
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -20,10 +16,8 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Scott Fines

@@ -2,14 +2,10 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.splicemachine.derby.test.DerbyTestRule;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;

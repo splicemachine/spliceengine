@@ -1,15 +1,12 @@
 
 package org.apache.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Maps;
-import com.splicemachine.derby.test.DerbyTestRule;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.suites.Stats;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;

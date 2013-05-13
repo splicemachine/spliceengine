@@ -189,7 +189,7 @@ public class SpliceWatcher extends TestWatcher {
 			HTable table = null;
 			ResultScanner scanner = null;
 			try {
-				table = new HTable(conglomId+"");
+				table = new HTable(SpliceConstants.config,conglomId+"");
 				scanner = table.getScanner(scan);
 				int count = 0;
 				Result result = null;

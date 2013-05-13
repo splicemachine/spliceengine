@@ -20,6 +20,7 @@ import com.splicemachine.utils.ZkUtils;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
 
@@ -193,7 +194,13 @@ public class SpliceDriver extends SIConstants {
         	HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.INIT_TABLE);
         	admin.createTable(desc);
         	return false;
-        } catch (Exception e) {
+        } 
+        catch (PleaseHoldException pe) {
+        	Thread.currentThread().sleep(1000);
+        	return bootDatabase();
+        }
+        catch (Exception e) {
+        	e.printStackTrace();
 			EmbedConnectionMaker maker = new EmbedConnectionMaker();
 			connection = maker.createNew();        	
 			return true;

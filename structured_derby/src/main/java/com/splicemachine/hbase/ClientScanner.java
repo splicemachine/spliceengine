@@ -227,7 +227,7 @@ class ClientScanner implements ResultScanner {
 
     private ScannerCallable getScannerCallable(byte[] newStartKey, int nbRows) {
         scan.setStartRow(newStartKey);
-        ScannerCallable s = new ScannerCallable(connection,tableName,scan);
+        ScannerCallable s = new ScannerCallable(connection,tableName,scan,null);
         s.setCaching(nbRows);
         return s;
     }

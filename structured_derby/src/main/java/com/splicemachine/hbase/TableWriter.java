@@ -694,6 +694,11 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
                         regions.add(info);
                     return true;
                 }
+
+				@Override
+				public void close() throws IOException {
+					// not used ... -- JL
+				}
             };
 
             try {
@@ -734,6 +739,11 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
                     }
                     return true;
                 }
+
+				@Override
+				public void close() throws IOException {
+					// We do not use this... -- JL
+				}
             };
 
             try {

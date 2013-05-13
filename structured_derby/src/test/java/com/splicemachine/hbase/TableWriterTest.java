@@ -1,6 +1,7 @@
 package com.splicemachine.hbase;
 
 import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import org.junit.*;
@@ -109,14 +110,18 @@ public class TableWriterTest extends SpliceConstants {
         validateWrites(rows);
     }
 
-    private void validateWrites(List<Row> rows) throws IOException {
+	private void validateWrites(List<Row> rows) throws IOException {
         LOG.info("Validating writes to table "+ tableName);
-        HTableInterface table = new HTable(tableName);
-        for(Row row:rows){
-            Get get = new Get(row.getRow());
-            get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,"1".getBytes());
-
-            Assert.assertTrue("Row " + Bytes.toInt(row.getRow()) + " does not exist!", table.exists(get));
+        HTableInterface table = null;
+        try {
+	        table = new HTable(SpliceConstants.config,tableName);
+	        for(Row row:rows){
+	            Get get = new Get(row.getRow());
+	            get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,"1".getBytes());
+	            Assert.assertTrue("Row " + Bytes.toInt(row.getRow()) + " does not exist!", table.exists(get));
+	        }
+        } finally {
+			Closeables.closeQuietly(table);
         }
     }
 

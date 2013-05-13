@@ -1,11 +1,7 @@
 package org.apache.derby.impl.sql.execute.operations.joins;
 
 import java.sql.PreparedStatement;
-
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.junit.Ignore;
-
-import com.splicemachine.derby.test.DerbyTestRule;
 import com.splicemachine.derby.test.SpliceDerbyTest;
 
 

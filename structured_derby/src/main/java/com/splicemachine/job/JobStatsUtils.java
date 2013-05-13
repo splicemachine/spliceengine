@@ -2,11 +2,11 @@ package com.splicemachine.job;
 
 import com.splicemachine.derby.stats.Stats;
 import com.splicemachine.derby.stats.TaskStats;
-import org.apache.hadoop.hbase.metrics.histogram.Sample;
-import org.apache.hadoop.hbase.metrics.histogram.Snapshot;
-import org.apache.hadoop.hbase.metrics.histogram.UniformSample;
-import org.apache.log4j.Logger;
+import com.yammer.metrics.stats.Sample;
+import com.yammer.metrics.stats.Snapshot;
+import com.yammer.metrics.stats.UniformSample;
 
+import org.apache.log4j.Logger;
 import java.util.Collection;
 import java.util.Map;
 

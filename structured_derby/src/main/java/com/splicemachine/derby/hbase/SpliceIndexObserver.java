@@ -4,14 +4,12 @@ import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
-import com.splicemachine.derby.impl.sql.execute.index.IndexSetPool;
 import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
 import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteContextFactory;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -22,9 +20,7 @@ import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.WritableByteArrayComparable;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * Region Observer for managing indices.
@@ -129,6 +125,10 @@ public class SpliceIndexObserver extends BaseRegionObserver {
                 throw ConstraintViolation.create(Constraint.Type.CHECK);
             case WRITE_CONFLICT:
                 throw new WriteConflict(mutationResult.getErrorMsg());
+		case NOT_RUN:
+		case SUCCESS:
+		default:
+			break;
         }
     }
 }

@@ -94,13 +94,10 @@ public class SpliceTestPlatform extends TestConstants {
 		configuration.setInt("hbase.balancer.period", 10000);
 		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");
 		configuration.set("hbase.regionserver.handler.count", "40");
-
         setInt(configuration, "hbase.master.port", masterPort);
         setInt(configuration, "hbase.master.info.port", masterInfoPort);
-
         setInt(configuration, "hbase.regionserver.port", regionServerPort);
         setInt(configuration, "hbase.regionserver.info.port", regionServerInfoPort);
-
         coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
 	}

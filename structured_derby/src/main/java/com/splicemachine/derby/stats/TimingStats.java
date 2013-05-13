@@ -1,10 +1,10 @@
 package com.splicemachine.derby.stats;
 
 import com.google.common.util.concurrent.AtomicDouble;
-import org.apache.hadoop.hbase.metrics.histogram.ExponentiallyDecayingSample;
-import org.apache.hadoop.hbase.metrics.histogram.Sample;
-import org.apache.hadoop.hbase.metrics.histogram.Snapshot;
-import org.apache.hadoop.hbase.metrics.histogram.UniformSample;
+import com.yammer.metrics.stats.ExponentiallyDecayingSample;
+import com.yammer.metrics.stats.Sample;
+import com.yammer.metrics.stats.Snapshot;
+import com.yammer.metrics.stats.UniformSample;
 
 import java.io.IOException;
 import java.io.ObjectInput;

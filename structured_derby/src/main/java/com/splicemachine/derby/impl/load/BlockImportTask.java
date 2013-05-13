@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.CallBuffer;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -91,8 +92,18 @@ public class BlockImportTask extends AbstractImportTask{
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeInt(locations.size());
-        for(BlockLocation location:locations){
-            location.write(out);
+        for(BlockLocation location : locations){
+        	out.writeInt(location.getHosts().length);
+        	for (String host: location.getHosts())
+        		out.writeUTF(host);
+        	out.writeInt(location.getNames().length);
+        	for (String name: location.getNames())
+        		out.writeUTF(name);
+        	for (String topologyPath: location.getTopologyPaths())
+        		out.writeUTF(topologyPath);
+        	out.writeLong(location.getOffset());
+        	out.writeLong(location.getLength());
+        	out.writeBoolean(location.isCorrupt());
         }
     }
 
@@ -103,7 +114,24 @@ public class BlockImportTask extends AbstractImportTask{
         locations = Lists.newArrayListWithExpectedSize(locationSize);
         for(int i=0;i<locationSize;i++){
             BlockLocation location = new BlockLocation();
-            location.readFields(in);
+            String[] hosts = new String[in.readInt()];
+            for (int j = 0; i<hosts.length; i++) {
+            	hosts[j] = in.readUTF();
+            }	
+            String[] names = new String[in.readInt()];
+            for (int j = 0; i<names.length; i++) {
+            	names[j] = in.readUTF();
+            }	
+            String[] topologyPaths = new String[in.readInt()];
+            for (int j = 0; i<topologyPaths.length; i++) {
+            	topologyPaths[j] = in.readUTF();
+            }	
+            location.setHosts(hosts);
+            location.setNames(names);
+            location.setTopologyPaths(topologyPaths);
+            location.setOffset(in.readLong());
+            location.setLength(in.readLong());
+            location.setCorrupt(in.readBoolean());
             locations.add(location);
         }
     }

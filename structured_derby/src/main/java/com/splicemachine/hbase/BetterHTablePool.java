@@ -170,15 +170,6 @@ public class BetterHTablePool {
             return table.getTableDescriptor();
         }
 
-        @Override
-        public void batch(List<Row> actions, Object[] results) throws IOException, InterruptedException {
-            table.batch(actions, results);
-        }
-
-        @Override
-        public Object[] batch(List<Row> actions) throws IOException, InterruptedException {
-            return table.batch(actions);
-        }
 
         @Override
         public Result getRowOrBefore(byte[] row, byte[] family) throws IOException {
@@ -242,5 +233,45 @@ public class BetterHTablePool {
         public <T extends CoprocessorProtocol, R> void coprocessorExec(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws IOException, Throwable {
             table.coprocessorExec(protocol, startKey, endKey, callable, callback);
         }
+
+		@Override
+		public void batch(List<? extends Row> actions, Object[] results) throws IOException, InterruptedException {
+			table.batch(actions, results);
+		}
+
+		@Override
+		public Object[] batch(List<? extends Row> actions) throws IOException, InterruptedException {
+			return table.batch(actions);
+		}
+
+		@Override
+		public void mutateRow(RowMutations rm) throws IOException {
+			table.mutateRow(rm);
+		}
+
+		@Override
+		public Result append(Append append) throws IOException {
+			return table.append(append);
+		}
+
+		@Override
+		public void setAutoFlush(boolean autoFlush) {
+			table.setAutoFlush(autoFlush);			
+		}
+
+		@Override
+		public void setAutoFlush(boolean autoFlush, boolean clearBufferOnFail) {
+			table.setAutoFlush(autoFlush, clearBufferOnFail);			
+		}
+
+		@Override
+		public long getWriteBufferSize() {
+			return table.getWriteBufferSize();
+		}
+
+		@Override
+		public void setWriteBufferSize(long writeBufferSize) throws IOException {
+			table.setWriteBufferSize(writeBufferSize);			
+		}
     }
 }
