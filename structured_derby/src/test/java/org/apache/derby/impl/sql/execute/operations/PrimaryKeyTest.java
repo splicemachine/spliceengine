@@ -70,7 +70,7 @@ public class PrimaryKeyTest extends SpliceUnitTest {
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
    
-    @Test(expected=SQLException.class)
+    @Test(expected=SQLException.class,timeout =10000)
     public void cannotInsertDuplicatePks() throws Exception{
     	try {
     		PreparedStatement ps = methodWatcher.prepareStatement(INSERT);
@@ -93,7 +93,7 @@ public class PrimaryKeyTest extends SpliceUnitTest {
     	}
     }
 
-    @Test
+    @Test(timeout=10000)
     public void updateKeyColumn() throws Exception{
         PreparedStatement updateStatement = methodWatcher.prepareStatement(UPDATE_NAME_BY_NAME);
         updateStatement.setString(1,"jzhang");
@@ -117,7 +117,7 @@ public class PrimaryKeyTest extends SpliceUnitTest {
         Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
     }
 
-    @Test
+    @Test(timeout=10000)
     public void updateNonKeyColumn() throws Exception{
         PreparedStatement updateStatement = methodWatcher.prepareStatement(UPDATE_VALUE_BY_NAME);
         updateStatement.setInt(1,20);
@@ -138,7 +138,7 @@ public class PrimaryKeyTest extends SpliceUnitTest {
         Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
     }
 
-    @Test
+    @Test(timeout=10000)
     public void scanningPrimaryKeyTableWithBaseRowLookup() throws Exception{
         PreparedStatement test = methodWatcher.prepareStatement(SELECT_BY_NAME);
         test.setString(1,"sfines");
@@ -147,7 +147,7 @@ public class PrimaryKeyTest extends SpliceUnitTest {
         	Assert.assertTrue("Cannot lookup sfines by primary key",false);
     }
 
-    @Test
+    @Test(timeout=10000)
     @Ignore("Bug 336")
     public void scanningPrimaryKeyTableByPkOnly() throws Exception{
         PreparedStatement test = methodWatcher.prepareStatement(SELECT_NAME_BY_NAME);
@@ -157,7 +157,7 @@ public class PrimaryKeyTest extends SpliceUnitTest {
     		Assert.assertTrue("Cannot lookup sfines by primary key",false);        
     }
 
-    @Test
+    @Test(timeout=10000)
     public void testCanRetrievePrimaryKeysFromMetadata() throws Exception{
         ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getPrimaryKeys(null,CLASS_NAME,TABLE_NAME);
         List<String> results = Lists.newArrayList();
@@ -177,7 +177,7 @@ public class PrimaryKeyTest extends SpliceUnitTest {
         Assert.assertTrue("No Pks returned!",results.size()>0);
     }
 
-    @Test
+    @Test(timeout=10000)
     public void testCall() throws Exception{
         PreparedStatement ps = methodWatcher.prepareStatement("SELECT CAST ('' AS VARCHAR(128)) AS TABLE_CAT, " +
                 "                   S.SCHEMANAME AS TABLE_SCHEM, T.TABLENAME AS TABLE_NAME, " +

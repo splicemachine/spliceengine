@@ -62,7 +62,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    @Test
+    @Test(timeout=10000)
     public void testCanCreateIndexWithMultipleEntries() throws Exception{
         new SpliceIndexWatcher(TABLE_NAME_2,spliceSchemaWatcher.schemaName,INDEX_21,spliceSchemaWatcher.schemaName,"(n_1,n_2)").starting(null);
         PreparedStatement ps = methodWatcher.prepareStatement(format("insert into %s (n_1,n_2,val) values (?,?,?)",this.getTableReference(TABLE_NAME_2)));
@@ -103,7 +103,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
      * then scan for data through the index and make sure that the
      * correct data returns.
      */
-    @Test
+    @Test(timeout=10000)
     public void testCanUseIndex() throws Exception{
         new SpliceIndexWatcher(TABLE_NAME_1,spliceSchemaWatcher.schemaName,INDEX_11,spliceSchemaWatcher.schemaName,"(name)").starting(null);
         String name = "sfines";
@@ -129,7 +129,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
      * then perform a lookup on that same data via the index to ensure
      * that the index will find those values.
      */
-    @Test
+    @Test(timeout=10000)
     public void testCanCreateIndexFromExistingData() throws Exception{
         String name = "sfines";
         int value =2;
@@ -155,7 +155,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
      * Basically, add some data, create an index off of that, and then
      * add some more data, and check to make sure that the new data shows up as well
      */
-    @Test
+    @Test(timeout=10000)
     public void testCanCreateIndexFromExistingDataAndThenAddData() throws Exception{
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('sfines',2)",this.getTableReference(TABLE_NAME_4)));
     	new SpliceIndexWatcher(TABLE_NAME_4,spliceSchemaWatcher.schemaName,INDEX_41,spliceSchemaWatcher.schemaName,"(name)").starting(null);
@@ -177,7 +177,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
         Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
     }
     
-    @Test
+    @Test(timeout=10000)
     public void testCanAddDuplicateAndDelete() throws Exception{
     	new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
         methodWatcher.getStatement().execute(format("insert into %s.%s (name,val) values ('sfines',2)",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
@@ -196,7 +196,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
         assertSelectCorrect(spliceSchemaWatcher.schemaName,TABLE_NAME_5,"sfines",1);
     }
 
-    @Test
+    @Test(timeout=10000)
     public void testCanUpdateEntryIndexChanges() throws Exception{
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('sfines',2)",this.getTableReference(TABLE_NAME_6)));
     	new SpliceIndexWatcher(TABLE_NAME_6,spliceSchemaWatcher.schemaName,INDEX_61,spliceSchemaWatcher.schemaName,"(name)").starting(null);
@@ -214,7 +214,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
      * Regression test for Bug 149. Confirm that we can add a view and then add an index
      * and stuff
      */
-    @Test
+    @Test(timeout=10000)
     public void testCanAddIndexToViewedTable() throws Exception{
 /*        rule.getStatement().execute("create view t_view as select name,val from t where val > 1");
         try{

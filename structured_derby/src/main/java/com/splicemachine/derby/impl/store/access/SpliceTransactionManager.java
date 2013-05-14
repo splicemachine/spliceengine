@@ -202,8 +202,7 @@ public class SpliceTransactionManager implements XATransactionController,
 			// loop from end to beginning, removing scans which are not held.
 			for (int i = scanControllers.size() - 1; i >= 0; i--) {
 				ScanManager sc = (ScanManager) scanControllers.get(i);
-
-				if (sc.closeForEndTransaction(closeHeldControllers)) {
+                if(sc!=null && sc.closeForEndTransaction(closeHeldControllers)) {
 					// TODO - now counting on scan's removing themselves by
 					// calling the closeMe() method.
 					/* scanControllers.removeElementAt(i); */
