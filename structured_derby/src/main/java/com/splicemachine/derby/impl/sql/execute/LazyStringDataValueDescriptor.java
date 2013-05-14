@@ -43,78 +43,92 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
     @Override
     public StringDataValue concatenate(StringDataValue leftOperand, StringDataValue rightOperand, StringDataValue result) throws StandardException {
+        forceDeserialization();
         return getDvd().concatenate(unwrap(leftOperand), unwrap(rightOperand), result);
     }
 
     @Override
     public BooleanDataValue like(DataValueDescriptor pattern) throws StandardException {
+        forceDeserialization();
         return getDvd().like(unwrap(pattern));
     }
 
     @Override
     public BooleanDataValue like(DataValueDescriptor pattern, DataValueDescriptor escape) throws StandardException {
+        forceDeserialization();
         return getDvd().like(unwrap(pattern), unwrap(escape));
     }
 
     @Override
     public StringDataValue ansiTrim(int trimType, StringDataValue trimChar, StringDataValue result) throws StandardException {
-        return null;
+        forceDeserialization();
+        return getDvd().ansiTrim(trimType, trimChar, result);
     }
 
     @Override
     public StringDataValue upper(StringDataValue result) throws StandardException {
+        forceDeserialization();
         return getDvd().upper(unwrap(result));
     }
 
     @Override
     public StringDataValue lower(StringDataValue result) throws StandardException {
+        forceDeserialization();
         return getDvd().upper(unwrap(result));
     }
 
     @Override
     public NumberDataValue locate(StringDataValue searchFrom, NumberDataValue start, NumberDataValue result) throws StandardException {
+        forceDeserialization();
         return getDvd().locate(searchFrom, start, result);
     }
 
     @Override
     public char[] getCharArray() throws StandardException {
+        forceDeserialization();
         char[] c = getDvd().getCharArray();
-        resetForSerialization();
         return c;
     }
 
     @Override
     public StringDataValue getValue(RuleBasedCollator collatorForComparison) {
+        forceDeserialization();
         return getDvd().getValue(collatorForComparison);
     }
 
     @Override
     public StreamHeaderGenerator getStreamHeaderGenerator() {
+        forceDeserialization();
         return getDvd().getStreamHeaderGenerator();
     }
 
     @Override
     public void setStreamHeaderFormat(Boolean usePreTenFiveHdrFormat) {
+        forceDeserialization();
         getDvd().setStreamHeaderFormat(usePreTenFiveHdrFormat);
     }
 
     @Override
     public CharacterStreamDescriptor getStreamWithDescriptor() throws StandardException {
+        forceDeserialization();
         return getDvd().getStreamWithDescriptor();
     }
 
     @Override
     public NumberDataValue charLength(NumberDataValue result) throws StandardException {
+        forceDeserialization();
         return getDvd().charLength(result);
     }
 
     @Override
     public ConcatableDataValue substring(NumberDataValue start, NumberDataValue length, ConcatableDataValue result, int maxLen) throws StandardException {
+        forceDeserialization();
         return getDvd().substring(start, length, result, maxLen);
     }
 
     @Override
     public void setWidth(int desiredWidth, int desiredScale, boolean errorOnTrunc) throws StandardException {
+        forceDeserialization();
         getDvd().setWidth(desiredWidth, desiredScale, errorOnTrunc);
         resetForSerialization();
     }
