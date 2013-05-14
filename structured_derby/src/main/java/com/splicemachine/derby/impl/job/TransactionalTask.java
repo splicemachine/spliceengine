@@ -7,6 +7,10 @@ import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.TransactorFactoryImpl;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.zookeeper.CreateMode;
@@ -58,7 +62,7 @@ public abstract class TransactionalTask extends ZooKeeperTask{
             }
 
             //create a new child transaction of the parent transaction
-            final Transactor transactor = TransactorFactoryImpl.getTransactor();
+            final Transactor<Put, Get, Scan, Mutation> transactor = TransactorFactoryImpl.getTransactor();
             TransactionId id = transactor.beginChildTransaction(
                     transactor.transactionIdFromString(parentTransaction), !readOnly, !readOnly, null, null);
             transactionId = id.getTransactionIdString();
@@ -115,7 +119,7 @@ public abstract class TransactionalTask extends ZooKeeperTask{
     private void rollbackIfNecessary() throws IOException {
         if(transactionId==null) return; //nothing to roll back just yet
 
-        final Transactor transactor = TransactorFactoryImpl.getTransactor();
+        final Transactor<Put, Get, Scan, Mutation> transactor = TransactorFactoryImpl.getTransactor();
         transactor.rollback(transactor.transactionIdFromString(transactionId));
 
     }
