@@ -24,7 +24,7 @@ public class TransactionManagerTest {
     @BeforeClass
     public static void setUp() {
         storeSetup = new LStoreSetup();
-        transactorSetup = new TransactorSetup(storeSetup);
+        transactorSetup = new TransactorSetup(storeSetup, true);
         baseSetUp();
     }
 

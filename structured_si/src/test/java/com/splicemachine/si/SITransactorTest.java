@@ -65,7 +65,7 @@ public class SITransactorTest extends SIConstants {
     public void setUp() {
         RollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
         storeSetup = new LStoreSetup();
-        transactorSetup = new TransactorSetup(storeSetup);
+        transactorSetup = new TransactorSetup(storeSetup, true);
         baseSetUp();
     }
 
@@ -195,12 +195,12 @@ public class SITransactorTest extends SIConstants {
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{name});
-        SScan get = dataLib.newScan(key, key, new ArrayList(), null, null);
-        transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), get, true);
-        transactorSetup.transactor.preProcessRead(get);
+        SScan scan = dataLib.newScan(key, key, new ArrayList(), null, null);
+        transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), scan, true);
+        transactorSetup.transactor.preProcessScan(scan);
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
-            Iterator results = reader.scan(testSTable, get);
+            Iterator results = reader.scan(testSTable, scan);
             if (deleted) {
             } else {
                 Assert.assertTrue(results.hasNext());
@@ -1470,7 +1470,7 @@ public class SITransactorTest extends SIConstants {
         Object put2 = dataLib.newPut(testKey);
         dataLib.addKeyValueToPut(put2, family, ageQualifier, null, dataLib.encode(27));
         transactorSetup.clientTransactor.initializePut(
-                transactorSetup.clientTransactor.transactionIdFromOperation(put).getTransactionIdString(),
+                transactorSetup.clientTransactor.transactionIdFromPut(put).getTransactionIdString(),
                 put2);
         Assert.assertTrue(dataLib.valuesEqual(dataLib.encode((short) 0), dataLib.getAttribute(put2, "si-needed")));
         STable testSTable = reader.open(storeSetup.getPersonTableName());
