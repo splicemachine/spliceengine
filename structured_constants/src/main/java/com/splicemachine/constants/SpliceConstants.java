@@ -42,6 +42,11 @@ public class SpliceConstants {
     public static final int DEFAULT_HBASE_CLIENT_RETRIES_NUMBER = HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER;
     public static final boolean DEFAULT_HBASE_CLIENT_COMPRESS_WRITES = false;
 	public static final String DEFAULT_COMPRESSION = "none";
+	public static final String DEFAULT_MULTICAST_GROUP_ADDRESS = "230.0.0.1";
+	public static final int DEFAULT_MULTICAST_GROUP_PORT = 4446;
+	public static final int DEFAULT_RMI_PORT = 40001;
+	public static final int DEFAULT_RMI_REMOTE_OBJECT_PORT = 47000;
+	
 	/**
 	 * The Default Cache size for Scans.
 	 *
@@ -83,6 +88,11 @@ public class SpliceConstants {
     public static final String CONFIG_CACHE_EXPIRATION = "hbase.htable.regioncache.expiration";
     public static final String CONFIG_HBASE_CLIENT_COMPRESS_WRITES = "hbase.client.compress.writes";
     public static final String CONFIG_COMPRESSION = "splice.compression";
+    public static final String CONFIG_MULTICAST_GROUP_ADDRESS = "splice.multicast_group_address";
+    public static final String CONFIG_MULTICAST_GROUP_PORT = "splice.multicast_group_port";
+    public static final String CONFIG_RMI_PORT = "splice.rmi_port";
+    public static final String CONFIG_RMI_REMOTE_OBJECT_PORT = "splice.rmi_remote_object_port";
+       
     
 	// Zookeeper Actual Paths
 	public static String zkSpliceTaskPath;
@@ -112,7 +122,12 @@ public class SpliceConstants {
     public static long cacheExpirationPeriod;
     public static boolean compressWrites;
     public static String compression;
-
+    public static String multicastGroupAddress;
+    public static int multicastGroupPort;
+    public static int rmiPort;
+    public static int rmiRemoteObjectPort;
+    
+    
     
     /*
      * Setting the cache update interval <0 indicates that caching is to be turned off.
@@ -215,6 +230,10 @@ public class SpliceConstants {
         cacheExpirationPeriod = config.getLong(CONFIG_CACHE_EXPIRATION,DEFAULT_CACHE_EXPIRATION);
         compressWrites = config.getBoolean(CONFIG_HBASE_CLIENT_COMPRESS_WRITES,DEFAULT_HBASE_CLIENT_COMPRESS_WRITES);
         compression = config.get(CONFIG_COMPRESSION, DEFAULT_COMPRESSION);
+        multicastGroupAddress = config.get(CONFIG_MULTICAST_GROUP_ADDRESS,DEFAULT_MULTICAST_GROUP_ADDRESS);
+        multicastGroupPort = config.getInt(CONFIG_MULTICAST_GROUP_PORT, DEFAULT_MULTICAST_GROUP_PORT);
+        rmiPort = config.getInt(CONFIG_RMI_PORT, DEFAULT_RMI_PORT);
+        rmiRemoteObjectPort = config.getInt(CONFIG_RMI_REMOTE_OBJECT_PORT, DEFAULT_RMI_REMOTE_OBJECT_PORT);   
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {
