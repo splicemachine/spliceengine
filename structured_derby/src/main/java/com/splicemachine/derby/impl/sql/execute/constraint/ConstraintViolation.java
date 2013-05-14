@@ -63,6 +63,11 @@ public class ConstraintViolation extends DoNotRetryIOException{
         public PrimaryKeyViolation() { super(); }
         public PrimaryKeyViolation(String message) { super(message); }
         public PrimaryKeyViolation(String message, Throwable cause) { super(message, cause);}
+
+        @Override
+        public String toString(){
+            return "PrimaryKeyViolation["+super.toString()+"]";
+        }
     }
 
     public static class UniqueConstraintViolation extends DoNotRetryIOException{
@@ -73,6 +78,12 @@ public class ConstraintViolation extends DoNotRetryIOException{
         public UniqueConstraintViolation() {super(); }
         public UniqueConstraintViolation(String message) { super(message); }
         public UniqueConstraintViolation(String message, Throwable cause) { super(message, cause); }
+
+        @Override
+        public String toString(){
+            String superStr = super.toString();
+            return "UniqueConstraintViolation["+superStr+"]";
+        }
     }
 
     public static class NotNullConstraintViolation extends DoNotRetryIOException{
@@ -80,5 +91,10 @@ public class ConstraintViolation extends DoNotRetryIOException{
         public NotNullConstraintViolation() { }
         public NotNullConstraintViolation(String message) { super(message); }
         public NotNullConstraintViolation(String message, Throwable cause) { super(message, cause); }
+
+        @Override
+        public String toString(){
+            return "NotNullConstraintViolation["+super.toString()+"]";
+        }
     }
 }

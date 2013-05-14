@@ -12,11 +12,13 @@ import com.splicemachine.si.data.hbase.TransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.ZkUtils;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.RetriesExhaustedException;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
@@ -29,10 +31,7 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.NavigableSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -296,8 +295,17 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         private void dealWithError() throws ExecutionException{
             Throwable error = taskStatus.getError();
             //TODO -sf- is this an adequate guard?
-            if(error instanceof DoNotRetryIOException){
+            if(error instanceof DoNotRetryIOException
+                    || error instanceof StandardException ){
                 throw new ExecutionException(error);
+            }else if(error instanceof RetriesExhaustedWithDetailsException){
+                List<Throwable> errors = ((RetriesExhaustedWithDetailsException)error).getCauses();
+                for(Throwable e:errors){
+                    if(e instanceof DoNotRetryIOException||e instanceof StandardException)
+                        throw new ExecutionException(e);
+                }
+                //retryable error
+                resubmit();
             }else{
                 //retryable error
                 resubmit();

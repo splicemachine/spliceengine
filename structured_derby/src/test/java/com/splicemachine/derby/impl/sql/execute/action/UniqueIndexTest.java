@@ -83,7 +83,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
      * then scan for data through the index and make sure that the
      * correct data returns.
      */
-    @Test
+    @Test(timeout=10000)
     public void testCanUseUniqueIndex() throws Exception{
     	new SpliceIndexWatcher(TABLE_NAME_1,CLASS_NAME,INDEX_11,CLASS_NAME,"(name)",true).starting(null);
         //now add some data
@@ -111,7 +111,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
      * then perform a lookup on that same data via the index to ensure
      * that the index will find those values.
      */
-    @Test
+    @Test(timeout=10000)
     public void testCanCreateIndexFromExistingData() throws Exception{
         String name = "sfines";
         int value =2;
@@ -138,7 +138,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
      * Basically, add some data, create an index off of that, and then
      * add some more data, and check to make sure that the new data shows up as well
      */
-    @Test
+    @Test(timeout=10000)
     public void testCanCreateIndexFromExistingDataAndThenAddData() throws Exception{
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_3),"sfines",2));
         //create the index
@@ -167,7 +167,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
      * add some duplicate data, and validate that the duplicate
      * data cannot succeed.
      */
-    @Test(expected=SQLException.class)
+    @Test(expected=SQLException.class,timeout=10000)
     public void testViolateUniqueConstraint() throws Exception{
         new SpliceIndexWatcher(TABLE_NAME_4,CLASS_NAME,INDEX_41,CLASS_NAME,"(name)",true).starting(null);
         String name = "sfines";
@@ -191,7 +191,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
      * and validate that A) the uniqueness constraint doesn't hold
      * and B) the index is no longer used in the lookup.
      */
-    @Test
+    @Test(timeout=10000)
     public void testCanDropIndex() throws Exception{
 
         //ensure that the uniqueness constraint holds
@@ -229,7 +229,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
      * present, then delete some data and check that it's not
      * there anymore
      */
-    @Test
+    @Test(timeout = 10000)
     public void testCanDeleteEntry() throws Exception{
     	new SpliceIndexWatcher(TABLE_NAME_6,CLASS_NAME,INDEX_61,CLASS_NAME,"(name)",true).starting(null);
         String name = "sfines";
@@ -240,7 +240,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
         Assert.assertTrue("Rows are returned incorrectly",!rs.next());
     }
 
-    @Test
+    @Test(timeout= 10000)
     public void testCanUpdateEntryIndexChanges() throws Exception{
        	new SpliceIndexWatcher(TABLE_NAME_7,CLASS_NAME,INDEX_71,CLASS_NAME,"(name)",true).starting(null);
         String name = "sfines";
@@ -265,7 +265,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
 
     }
 
-    @Test
+    @Test(timeout = 10000)
     @Ignore("Ignored until Bug 332 is resolved")
     public void testUniqueInTableCreationViolatesPrimaryKey() throws Exception{
         String name = "sfines";
