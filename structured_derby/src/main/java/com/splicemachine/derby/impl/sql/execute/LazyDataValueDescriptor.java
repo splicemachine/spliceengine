@@ -44,7 +44,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
         getDvd().setToNull();
     }
 
-    private void forceDeserialization(){
+    protected void forceDeserialization(){
         if(!isDeserialized && getDvd() != null && dvdBytes != null){
             try{
                 serializerThunk.deserialize(dvdBytes, getDvd());
@@ -55,7 +55,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
         }
     }
 
-    private void forceSerialization(){
+    protected void forceSerialization(){
         if(!isSerialized && dvdBytes == null){
             try{
                 dvdBytes = serializerThunk.serialize(getDvd());
@@ -393,6 +393,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
         if(dvd instanceof LazyDataValueDescriptor){
             LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) dvd;
+            ldvd.forceDeserialization();
             unwrapped = ldvd.getDvd();
         }else{
             unwrapped = dvd;
