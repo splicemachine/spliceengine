@@ -154,6 +154,10 @@ public class SpliceConstants {
 	public static final String DEFAULT_FAMILY = "V";
 	public static final byte[] DEFAULT_FAMILY_BYTES = Bytes.toBytes(DEFAULT_FAMILY);
 
+    //TEMP Table task column--used for filtering out failed tasks from the temp
+    //table
+    public static final String TASK_ID_COL = "tid";
+
 	// Splice Default Table Definitions
 	public static final int DEFAULT_VERSIONS = HColumnDescriptor.DEFAULT_VERSIONS;
 

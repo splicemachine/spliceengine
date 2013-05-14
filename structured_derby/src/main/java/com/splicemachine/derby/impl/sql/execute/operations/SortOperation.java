@@ -1,6 +1,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Function;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
@@ -29,6 +30,8 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -206,8 +209,31 @@ public class SortOperation extends SpliceBaseOperation {
 		nextTime += getCurrentTimeMillis() - beginTime;
 		return rs;
 	}
-	
-	@Override
+
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException{
+        try{
+            final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,descColumns,sequence[0]);
+            final Serializer serializer = new Serializer();
+
+            return new OperationSink.Translator() {
+                @Override
+                @Nonnull public Put translate(@Nonnull ExecRow row) throws IOException {
+                    try {
+                        byte[] tempRowKey = distinct?hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),null):
+                                hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(), SpliceUtils.getUniqueKey());
+                        return Puts.buildTempTableInsert(tempRowKey,row.getRowArray(),null,serializer);
+                    } catch (StandardException e) {
+                        throw Exceptions.getIOException(e);
+                    }
+                }
+            };
+        }catch(StandardException se){
+            throw Exceptions.getIOException(se);
+        }
+    }
+
+    @Override
 	public TaskStats sink() throws IOException {
 		/*
 		 * We want to make use of HBase as a sorting mechanism for us.

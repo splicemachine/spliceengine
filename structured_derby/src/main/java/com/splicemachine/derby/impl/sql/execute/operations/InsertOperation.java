@@ -15,9 +15,11 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.InsertConstantAction;
+import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 
 /**
@@ -57,8 +59,30 @@ public class InsertOperation extends DMLWriteOperation {
                 pkColumns = fromIntArray(pks);
         }
 	}
-	
-	@Override
+
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException {
+        final Serializer serializer = new Serializer();
+        try {
+            final RowSerializer rowKeySerializer = new RowSerializer(getExecRowDefinition().getRowArray(),pkColumns,pkColumns==null);
+            return new OperationSink.Translator() {
+                @Nonnull
+                @Override
+                public Mutation translate(@Nonnull ExecRow row) throws IOException {
+                    try {
+                        byte[ ]rowKey = rowKeySerializer.serialize(row.getRowArray());
+                        return Puts.buildInsert(rowKey,row.getRowArray(),getTransactionID(),serializer);
+                    } catch (StandardException e) {
+                        throw Exceptions.getIOException(e);
+                    }
+                }
+            };
+        } catch (StandardException e) {
+            throw Exceptions.getIOException(e);
+        }
+    }
+
+    @Override
 	public TaskStats sink() throws IOException {
 //		SpliceLogUtils.trace(LOG,"sink on transactinID="+transactionID);
 		/*

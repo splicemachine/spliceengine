@@ -30,17 +30,19 @@ public class SpliceOperationContext {
     private final Scan scan;
     private RegionScanner scanner;
     private LanguageConnectionContext lcc;
+    private boolean isSink;
 
     public SpliceOperationContext(HRegion region,
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
-                                  LanguageConnectionContext lcc){
+                                  LanguageConnectionContext lcc,boolean isSink){
         this.region= region;
         this.scan = scan;
         this.activation = activation;
         this.preparedStatement = preparedStatement;
         this.lcc = lcc;
+        this.isSink = isSink;
     }
 
     public SpliceOperationContext(RegionScanner scanner,
@@ -48,17 +50,23 @@ public class SpliceOperationContext {
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
-                                  LanguageConnectionContext lcc){
+                                  LanguageConnectionContext lcc,
+                                  boolean isSink){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
         this.scanner = scanner;
         this.region=region;
         this.scan = scan;
         this.lcc = lcc;
+        this.isSink=isSink;
     }
 
     public HRegion getRegion(){
         return region;
+    }
+
+    public boolean isSink() {
+        return isSink;
     }
 
     public RegionScanner getScanner() throws IOException {
@@ -104,7 +112,7 @@ public class SpliceOperationContext {
         return new SpliceOperationContext(null,null,
                 a,
                 (GenericStorablePreparedStatement)a.getPreparedStatement(),
-                null);
+                null,false);
     }
 
 }

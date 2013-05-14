@@ -63,6 +63,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
 		this.regionScanner = regionScanner;
 
+
         try {
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
 	        statement = soi.getStatement();
@@ -70,7 +71,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	        SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
 	        impl.marshallTransaction(soi.getTransactionId());
 	        activation = soi.getActivation(impl.getLcc());
-	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc());
+	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false);
 	        topOperation.init(context);
 	        List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
 	        topOperation.generateLeftOperationStack(opStack);

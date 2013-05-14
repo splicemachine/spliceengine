@@ -148,6 +148,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		isScan = hasScan;
 	}
 
+    public byte[] getDestinationTable(){
+        return Long.toString(heapConglom).getBytes();
+    }
+
 	@Override
 	public SpliceOperation getLeftOperation() {
 		return (SpliceOperation)source;
@@ -216,7 +220,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
-		return null;
+        return source.getNextRowCore();
 	}
 
     protected FormatableBitSet fromIntArray(int[] values){

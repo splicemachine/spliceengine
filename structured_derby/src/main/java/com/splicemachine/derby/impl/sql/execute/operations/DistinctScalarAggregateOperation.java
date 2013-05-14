@@ -5,6 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -14,6 +15,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.log4j.Logger;
 
@@ -23,6 +25,8 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import javax.annotation.Nonnull;
 
 
 /**
@@ -133,8 +137,28 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
     		accumulateScalarAggregation(execIndexRow, aggResult, true,isScan);
     	return aggResult;
     }
-	
-	@Override
+
+
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException {
+        final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
+        final byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
+        final Serializer serializer = new Serializer();
+        return new OperationSink.Translator() {
+            @Nonnull
+            @Override
+            public Mutation translate(@Nonnull ExecRow row) throws IOException {
+                try {
+                    byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
+                    return Puts.buildTempTableInsert(rowKey, row.getRowArray(), null, serializer);
+                } catch (StandardException e) {
+                    throw Exceptions.getIOException(e);
+                }
+            }
+        };
+    }
+
+    @Override
 	public TaskStats sink() {
         TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();

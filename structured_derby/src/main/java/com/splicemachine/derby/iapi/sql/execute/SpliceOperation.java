@@ -1,6 +1,8 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
+import com.google.common.base.Function;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.stats.TaskStats;
 
 import java.io.IOException;
@@ -9,6 +11,7 @@ import java.util.List;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.hadoop.hbase.client.Put;
 
 /**
  * 
@@ -58,6 +61,13 @@ public interface SpliceOperation extends NoPutResultSet {
      * IOException for unexpected connectivity issues, etc.
 	 */
 	public TaskStats sink() throws IOException;
+
+    /**
+     * Only needs to be implemented by parallel-type tasks (e.g. tasks which also implement sink()).
+     *
+     * @return a function converting non-null ExecRow objects into Put objects.
+     */
+    public OperationSink.Translator getTranslator() throws IOException;
 	/**
 	 * Initializes the node with the statement and the language context from the SpliceEngine.
 	 * 

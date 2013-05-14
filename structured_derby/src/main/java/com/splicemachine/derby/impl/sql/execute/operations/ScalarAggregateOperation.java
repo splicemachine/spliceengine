@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -29,10 +30,12 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 /**
  * Operation for performing Scalar Aggregations (sum, avg, max/min, etc.). 
@@ -51,6 +54,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	protected boolean isOpen=false;
     protected Accumulator scanAccumulator = TimingStats.uniformAccumulator();
+    /*indicates whether or not this operation is looking at the TEMP space*/
+    private boolean isTemp;
 
     public ScalarAggregateOperation () {
 		super();
@@ -114,6 +119,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		try {
 			sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(activation));
 			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
+
+            isTemp = !context.isSink();
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
@@ -122,7 +129,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getNextRowCore");
-		return doAggregation(true,scanAccumulator);
+		return doAggregation(isTemp,scanAccumulator);
 	}
 
 	protected ExecRow doAggregation(boolean useScan,Accumulator stats) throws StandardException{
@@ -240,8 +247,26 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 			}
 		}
 	}
-	
-	@Override
+
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException {
+        final Serializer serializer = new Serializer();
+
+        return new OperationSink.Translator() {
+            @Nonnull
+            @Override
+            public Put translate(@Nonnull ExecRow row) throws IOException {
+                try {
+                    byte[] key = DerbyBytesUtil.generatePrefixedRowKey(sequence[0]);
+                    return Puts.buildTempTableInsert(key,row.getRowArray(),null,serializer);
+                } catch (StandardException e) {
+                    throw Exceptions.getIOException(e);
+                }
+            }
+        };
+    }
+
+    @Override
 	public TaskStats sink() throws IOException {
         TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();

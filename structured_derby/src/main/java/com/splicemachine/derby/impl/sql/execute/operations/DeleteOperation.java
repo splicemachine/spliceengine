@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -16,6 +17,7 @@ import org.apache.derby.impl.sql.execute.DeleteConstantAction;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 
 /**
@@ -48,7 +50,24 @@ public class DeleteOperation extends DMLWriteOperation{
 		heapConglom = ((DeleteConstantAction)constants).getConglomerateId();
 	}
 
-	@Override
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException {
+        return new OperationSink.Translator() {
+            @Nonnull
+            @Override
+            public Mutation translate(@Nonnull ExecRow row) throws IOException {
+                RowLocation locToDelete;
+                try {
+                    locToDelete = (RowLocation)row.getColumn(row.nColumns()).getObject();
+                    return Mutations.getDeleteOp(getTransactionID(),locToDelete.getBytes());
+                } catch (StandardException e) {
+                    throw Exceptions.getIOException(e);
+                }
+            }
+        };
+    }
+
+    @Override
 	public TaskStats sink() throws IOException {
 		SpliceLogUtils.trace(LOG,"sink on transactinID="+getTransactionID());
         TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();

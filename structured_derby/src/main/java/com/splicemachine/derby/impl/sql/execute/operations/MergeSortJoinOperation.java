@@ -26,6 +26,8 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.log4j.Logger;
+
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -47,7 +49,11 @@ public class MergeSortJoinOperation extends JoinOperation {
 	protected ExecRow rightTemplate;
 	protected static List<NodeType> nodeTypes; 
 	protected Scan reduceScan;
-	protected enum JoinSide {RIGHT,LEFT};
+    protected boolean isTemp;
+
+    private SpliceOperation resultSetToRead;
+
+    protected enum JoinSide {RIGHT,LEFT};
 	protected JoinSide joinSide;
 	protected RowProvider clientProvider;
 	protected MergeSortRegionAwareRowProvider serverProvider;
@@ -114,21 +120,39 @@ public class MergeSortJoinOperation extends JoinOperation {
 
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG, "getNextRowCore");
-		beginTime = getCurrentTimeMillis();
-		if (mergeSortIterator == null)
-			mergeSortIterator = new MergeSortNextRowIterator(false);
-		if (mergeSortIterator.hasNext()) {
-			ExecRow next = mergeSortIterator.next();
-			nextTime += getElapsedMillis(beginTime);
-			return next;
-		} else {
-			setCurrentRow(null);
-			return null;
-		}
-	}
+        return next(false);
+    }
 
-	@Override
+    protected ExecRow next(boolean outer) throws StandardException {
+        if(isTemp){
+            SpliceLogUtils.trace(LOG, "getNextRowCore");
+            beginTime = getCurrentTimeMillis();
+            if (mergeSortIterator == null)
+                mergeSortIterator = new MergeSortNextRowIterator(outer);
+            if (mergeSortIterator.hasNext()) {
+                ExecRow next = mergeSortIterator.next();
+                nextTime += getElapsedMillis(beginTime);
+                return next;
+            } else {
+                setCurrentRow(null);
+                return null;
+            }
+        }else{
+            if(resultSetToRead==null){
+                switch (joinSide) {
+                    case RIGHT:
+                        resultSetToRead = rightResultSet;
+                        break;
+                    case LEFT:
+                        resultSetToRead = leftResultSet;
+                        break;
+                }
+            }
+            return resultSetToRead.getNextRowCore();
+        }
+    }
+
+    @Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template){
         if(clientProvider==null){
             SpliceUtils.setInstructions(reduceScan,activation,top);
@@ -137,29 +161,30 @@ public class MergeSortJoinOperation extends JoinOperation {
         return clientProvider;
 	}
 
-	@Override
-	public void init(SpliceOperationContext context) throws StandardException{
-		SpliceLogUtils.trace(LOG, "init");
-		super.init(context);
-            SpliceLogUtils.trace(LOG,"leftHashkeyItem=%d,rightHashKeyItem=%d",leftHashKeyItem,rightHashKeyItem);
-            emptyRightRowsReturned = 0;
-			leftHashKeys = generateHashKeys(leftHashKeyItem, (SpliceBaseOperation) this.leftResultSet);
-			rightHashKeys = generateHashKeys(rightHashKeyItem, (SpliceBaseOperation) this.rightResultSet);			
-			mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
-			rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
-			byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
-			byte[] finish = BytesUtil.copyAndIncrement(start);
-            rowType = (SQLInteger) activation.getDataValueFactory().getNullInteger(null);
-			Hasher leftHasher = new Hasher(leftRow.getRowArray(),leftHashKeys,null,sequence[0]); 
-			Hasher rightHasher = new Hasher(rightRow.getRowArray(),rightHashKeys,null,sequence[0]); 
-			if(regionScanner==null){
-				reduceScan = Scans.newScan(start,finish, getTransactionID());
-			}else{
-				serverProvider = new MergeSortRegionAwareRowProvider(getTransactionID(), context.getRegion(),SpliceOperationCoprocessor.TEMP_TABLE,SpliceConstants.DEFAULT_FAMILY_BYTES,
-						start,finish,leftHasher,leftRow,rightHasher,rightRow,null,rowType);		
-				serverProvider.open();
-			}
-	}
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException{
+        SpliceLogUtils.trace(LOG, "init");
+        super.init(context);
+        SpliceLogUtils.trace(LOG,"leftHashkeyItem=%d,rightHashKeyItem=%d",leftHashKeyItem,rightHashKeyItem);
+        emptyRightRowsReturned = 0;
+        leftHashKeys = generateHashKeys(leftHashKeyItem, (SpliceBaseOperation) this.leftResultSet);
+        rightHashKeys = generateHashKeys(rightHashKeyItem, (SpliceBaseOperation) this.rightResultSet);
+        mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
+        rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
+        byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
+        byte[] finish = BytesUtil.copyAndIncrement(start);
+        rowType = (SQLInteger) activation.getDataValueFactory().getNullInteger(null);
+        Hasher leftHasher = new Hasher(leftRow.getRowArray(),leftHashKeys,null,sequence[0]);
+        Hasher rightHasher = new Hasher(rightRow.getRowArray(),rightHashKeys,null,sequence[0]);
+        if(regionScanner==null){
+            reduceScan = Scans.newScan(start,finish, getTransactionID());
+        }else{
+            serverProvider = new MergeSortRegionAwareRowProvider(getTransactionID(), context.getRegion(),SpliceOperationCoprocessor.TEMP_TABLE,SpliceConstants.DEFAULT_FAMILY_BYTES,
+                    start,finish,leftHasher,leftRow,rightHasher,rightRow,null,rowType);
+            serverProvider.open();
+        }
+        isTemp =!context.isSink();
+    }
 	
 	@Override
 	public void executeShuffle() throws StandardException {
@@ -196,8 +221,39 @@ public class MergeSortJoinOperation extends JoinOperation {
 		return new SpliceNoPutResultSet(activation,this,provider);
 	}
 
-	
-	@Override		
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException {
+        final Serializer serializer = new Serializer();
+        try {
+            final DataValueDescriptor[] additionalDescriptors = {activation.getDataValueFactory().getDataValue(joinSide.ordinal(), null)};
+            Hasher hasher = null;
+            switch (joinSide) {
+                case LEFT:
+                    hasher = new Hasher(leftResultSet.getExecRowDefinition().getRowArray(),leftHashKeys,null,sequence[0],additionalDescriptors,null);
+                    break;
+                case RIGHT:
+                    hasher = new Hasher(rightResultSet.getExecRowDefinition().getRowArray(),rightHashKeys,null,sequence[0],additionalDescriptors,null);
+                    break;
+            }
+            final Hasher transHasher = hasher;
+            return new OperationSink.Translator() {
+                @Nonnull
+                @Override
+                public Mutation translate(@Nonnull ExecRow row) throws IOException {
+                    try {
+                        byte[] rowKey = transHasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors);
+                        return Puts.buildInsert(rowKey, row.getRowArray(),null, SpliceUtils.NA_TRANSACTION_ID, serializer, additionalDescriptors);
+                    } catch (StandardException e) {
+                        throw Exceptions.getIOException(e);
+                    }
+                }
+            };
+        } catch (StandardException e) {
+            throw Exceptions.getIOException(e);
+        }
+    }
+
+    @Override
 	public TaskStats sink() throws IOException {
         TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();

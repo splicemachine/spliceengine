@@ -69,18 +69,7 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 	
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG, "getNextRowCore");
-		beginTime = getCurrentTimeMillis();
-		if (mergeSortIterator == null)
-			mergeSortIterator = new MergeSortNextRowIterator(true);
-		if (mergeSortIterator.hasNext()) {
-			nextTime += getElapsedMillis(beginTime);
-			rowsReturned++;
-			return mergeSortIterator.next();
-		} else {
-			setCurrentRow(null);
-			return null;
-		}
+        return next(true);
 	}
 	
 	@Override
@@ -95,8 +84,7 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 			try {
 				emptyRow =  (ExecRow) emptyRowFun.invoke(activation);
 			} catch (StandardException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+                SpliceLogUtils.error(LOG,e);
 			}
 		return emptyRow;
 	}	

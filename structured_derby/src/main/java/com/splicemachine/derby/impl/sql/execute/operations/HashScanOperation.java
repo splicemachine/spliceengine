@@ -29,14 +29,12 @@ import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -231,7 +229,33 @@ public class HashScanOperation extends ScanOperation {
 		}
 	}
 
-	@Override		
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException {
+        hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
+        final Serializer serializer = new Serializer();
+        final byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
+        //TODO -sf- does this even work?
+        return new OperationSink.Translator() {
+            @Nonnull
+            @Override
+            public Mutation translate(@Nonnull ExecRow row) throws IOException {
+                try{
+                    byte[] tempRow;
+                    if(eliminateDuplicates)
+                        tempRow = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
+                    else
+                        tempRow = hasher.generateSortedHashKey(row.getRowArray());
+
+                    return Puts.buildTempTableInsert(tempRow,row.getRowArray(),null,serializer);
+                }catch(StandardException se){
+                    throw Exceptions.getIOException(se);
+                }
+
+            }
+        };
+    }
+
+    @Override
 	public TaskStats sink() {
         TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();

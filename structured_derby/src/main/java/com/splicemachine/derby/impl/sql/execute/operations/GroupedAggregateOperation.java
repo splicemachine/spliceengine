@@ -46,6 +46,8 @@ import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import javax.annotation.Nonnull;
+
 public class GroupedAggregateOperation extends GenericAggregateOperation {	
 	private static Logger LOG = Logger.getLogger(GroupedAggregateOperation.class);
 	protected boolean isInSortedOrder;
@@ -63,6 +65,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
     protected RowProvider rowProvider;
     private Accumulator scanAccumulator = TimingStats.uniformAccumulator();
+    /*used to determine whether or not to fetch from a scan*/
+    private boolean isTemp;
 
     public GroupedAggregateOperation () {
     	super();
@@ -137,6 +141,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             byte[] finish = BytesUtil.copyAndIncrement(start);
 			if(regionScanner==null){
 				reduceScan = Scans.newScan(start,finish, getTransactionID());
+                isTemp = true;
 			}else{
 				Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
 				rowProvider = new SimpleRegionAwareRowProvider(
@@ -147,6 +152,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						start,finish,hasher,
 						sourceExecIndexRow,null);
 				rowProvider.open();
+                isTemp = !context.isSink();
 			}
 	}
 
@@ -160,7 +166,24 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return provider;
 	}
 
-	@Override		
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException {
+        final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
+        final Serializer serializer = new Serializer();
+        return new OperationSink.Translator() {
+            @Nonnull
+            @Override
+            public Mutation translate(@Nonnull ExecRow row) throws IOException {
+                try {
+                    return Puts.buildTempTableInsert(hasher.generateSortedHashKey(row.getRowArray()),row.getRowArray(),null,serializer);
+                } catch (StandardException e) {
+                    throw Exceptions.getIOException(e);
+                }
+            }
+        };
+    }
+
+    @Override
 	public TaskStats sink() throws IOException{
 		/*
 		 * Sorts the data by sinking into the TEMP table. From there, the 
@@ -218,7 +241,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getNextRowCore");
-		return doAggregation(true,scanAccumulator);
+		return doAggregation(isTemp,scanAccumulator);
 	}
 	
 	private final RingBuffer.Merger<ExecIndexRow> merger = new RingBuffer.Merger<ExecIndexRow>() {

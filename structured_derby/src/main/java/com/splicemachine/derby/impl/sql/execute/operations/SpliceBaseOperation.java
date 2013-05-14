@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Function;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -25,6 +26,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.Orderable;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 
@@ -552,7 +554,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		throw new RuntimeException("Sink Not Implemented for this node " + this.getClass());					
 	}
 
-	@Override
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException {
+        throw new UnsupportedOperationException("Sink not implemented for this node: "+ this.getClass());
+    }
+
+    @Override
 	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
 		throw new UnsupportedOperationException("MapRowProviders not implemented for this node: "+ this.getClass());
 	}
