@@ -498,7 +498,7 @@ public class DerbyBytesUtil {
     /**
      * String RowKey which trims off extraneous whitespace and empty characters before serializing.
      */
-    private static class NullRemovingRowKey extends UTF8RowKey {
+    public static class NullRemovingRowKey extends UTF8RowKey {
 
         private static final char NULL_CHAR = '\u0000';
 

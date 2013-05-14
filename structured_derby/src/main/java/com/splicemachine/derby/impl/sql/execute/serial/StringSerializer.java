@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.serial;
 import com.gotometrics.orderly.RowKey;
 import com.gotometrics.orderly.UTF8RowKey;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -10,11 +11,11 @@ import java.io.IOException;
 
 public class StringSerializer implements SerializerThunk {
 
-    private RowKey rowKey = new UTF8RowKey();
+    private RowKey rowKey = new DerbyBytesUtil.NullRemovingRowKey();
 
     @Override
     public void deserialize(byte[] bytes, DataValueDescriptor dvd) throws Exception {
-        dvd.setValue(new String( (byte[]) rowKey.deserialize(bytes)));
+        dvd.setValue((String) rowKey.deserialize(bytes));
     }
 
     @Override
