@@ -69,8 +69,8 @@ public class HTransactor<PutOp extends Put, GetOp extends Get, ScanOp extends Sc
     }
 
     @Override
-    public boolean isScanSIOnly(ScanOp read) {
-        return delegate.isScanSIOnly(new HScan(read));
+    public boolean isScanSIFamilyOnly(ScanOp read) {
+        return delegate.isScanSIFamilyOnly(new HScan(read));
     }
 
     @Override
@@ -134,8 +134,8 @@ public class HTransactor<PutOp extends Put, GetOp extends Get, ScanOp extends Sc
     }
 
     @Override
-    public void initializeScan(String transactionId, ScanOp scan, boolean siOnly) {
-        delegate.initializeScan(transactionId, new HScan(scan), siOnly);
+    public void initializeScan(String transactionId, ScanOp scan, boolean siFamilyOnly) {
+        delegate.initializeScan(transactionId, new HScan(scan), siFamilyOnly);
     }
 
     @Override

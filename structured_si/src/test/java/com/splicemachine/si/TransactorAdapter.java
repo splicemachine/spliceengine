@@ -71,8 +71,8 @@ public class TransactorAdapter<PutOp, GetOp, ScanOp, MutationOp>
     }
 
     @Override
-    public boolean isScanSIOnly(ScanOp scan) {
-        return delegate.isScanSIOnly(prepScan(scan));
+    public boolean isScanSIFamilyOnly(ScanOp scan) {
+        return delegate.isScanSIFamilyOnly(prepScan(scan));
     }
 
     @Override
@@ -136,8 +136,8 @@ public class TransactorAdapter<PutOp, GetOp, ScanOp, MutationOp>
     }
 
     @Override
-    public void initializeScan(String transactionId, ScanOp scan, boolean siOnly) {
-        delegate.initializeScan(transactionId, prepScan(scan), siOnly);
+    public void initializeScan(String transactionId, ScanOp scan, boolean siFamilyOnly) {
+        delegate.initializeScan(transactionId, prepScan(scan), siFamilyOnly);
     }
 
     @Override

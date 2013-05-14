@@ -38,7 +38,7 @@ public interface Transactor<PutOp, GetOp, ScanOp, MutationOp> extends ClientTran
     boolean processPut(STable table, RollForwardQueue rollForwardQueue, PutOp put) throws IOException;
     boolean isFilterNeededGet(GetOp get);
     boolean isFilterNeededScan(ScanOp scan);
-    boolean isScanSIOnly(ScanOp scan);
+    boolean isScanSIFamilyOnly(ScanOp scan);
 
     void preProcessGet(GetOp get) throws IOException;
     void preProcessScan(ScanOp scan) throws IOException;

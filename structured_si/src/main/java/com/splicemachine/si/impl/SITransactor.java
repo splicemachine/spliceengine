@@ -260,8 +260,8 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     @Override
-    public void initializeScan(String transactionId, SScan scan, boolean siOnly) {
-        initializeOperation(transactionId, scan, siOnly);
+    public void initializeScan(String transactionId, SScan scan, boolean siFamilyOnly) {
+        initializeOperation(transactionId, scan, siFamilyOnly);
     }
 
     @Override
@@ -273,8 +273,8 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
         initializeOperation(transactionId, operation, false);
     }
 
-    private void initializeOperation(String transactionId, Object operation, boolean siOnly) {
-        flagForSiTreatment((SITransactionId) transactionIdFromString(transactionId), siOnly, operation);
+    private void initializeOperation(String transactionId, Object operation, boolean siFamilyOnly) {
+        flagForSiTreatment((SITransactionId) transactionIdFromString(transactionId), siFamilyOnly, operation);
     }
 
     @Override
@@ -303,8 +303,8 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      * Set an attribute on the operation that identifies it as needing "snapshot isolation" treatment. This is so that
      * later when the operation comes through for processing we will know how to handle it.
      */
-    private void flagForSiTreatment(SITransactionId transactionId, boolean siOnly, Object operation) {
-        dataStore.setSiNeededAttribute(operation, siOnly ? (short) 1 : (short) 0);
+    private void flagForSiTreatment(SITransactionId transactionId, boolean siFamilyOnly, Object operation) {
+        dataStore.setSiNeededAttribute(operation, siFamilyOnly);
         dataStore.setTransactionId(transactionId, operation);
     }
 
@@ -324,8 +324,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     private void preProcessRead(SRead read) throws IOException {
         dataLib.setReadTimeRange(read, 0, Long.MAX_VALUE);
         dataLib.setReadMaxVersions(read);
-        final Short siNeededAttribute = dataStore.getSiNeededAttribute(read);
-        if (siNeededAttribute.equals((short) 1)) {
+        if (dataStore.isSIFamilyOnly(read)) {
             dataStore.addSiFamilyToRead(read);
         } else {
             dataStore.addSiFamilyToReadIfNeeded(read);
@@ -474,12 +473,8 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     @Override
-    public boolean isScanSIOnly(ScanOp read) {
-        return isSIOnly(read);
-    }
-
-    private boolean isSIOnly(SRead read) {
-        return dataStore.getSiNeededAttribute(read) == (short) 1;
+    public boolean isScanSIFamilyOnly(ScanOp read) {
+        return dataStore.isSIFamilyOnly(read);
     }
 
     @Override
@@ -527,8 +522,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      * Is this operation supposed to be handled by "snapshot isolation".
      */
     private boolean isFlaggedForSiTreatment(Object put) {
-        final Short siNeededAttribute = dataStore.getSiNeededAttribute(put);
-        return siNeededAttribute != null;
+        return dataStore.getSiNeededAttribute(put) != null;
     }
 
     /**

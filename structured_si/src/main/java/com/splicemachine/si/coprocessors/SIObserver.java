@@ -3,8 +3,6 @@ package com.splicemachine.si.coprocessors;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.si.data.api.STable;
-import com.splicemachine.si.data.hbase.HGet;
-import com.splicemachine.si.data.hbase.HScan;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
@@ -120,7 +118,7 @@ public class SIObserver extends BaseRegionObserver {
 
     private void addSiFilterToScan(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan) throws IOException {
         Transactor<Put, Get, Scan, Mutation> transactor = TransactorFactoryImpl.getTransactor();
-        Filter newFilter = makeSiFilter(e, transactor.transactionIdFromScan(scan), scan.getFilter(), transactor.isScanSIOnly(scan));
+        Filter newFilter = makeSiFilter(e, transactor.transactionIdFromScan(scan), scan.getFilter(), transactor.isScanSIFamilyOnly(scan));
         scan.setFilter(newFilter);
     }
 
