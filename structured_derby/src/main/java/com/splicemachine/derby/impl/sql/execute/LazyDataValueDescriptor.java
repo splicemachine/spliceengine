@@ -557,4 +557,24 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
     protected void setDvd(DataValueDescriptor dvd) {
         this.dvd = dvd;
     }
+
+    @Override
+    public int hashCode() {
+        forceDeserialization();
+        return getDvd().hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+
+        forceDeserialization();
+
+        Object other = o;
+
+        if(o instanceof LazyDataValueDescriptor){
+           other = unwrap((LazyDataValueDescriptor) o);
+        }
+
+        return getDvd().equals(other);
+    }
 }

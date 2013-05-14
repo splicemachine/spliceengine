@@ -32,6 +32,7 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
         if(sdv instanceof LazyStringDataValueDescriptor){
             LazyStringDataValueDescriptor ldvd = (LazyStringDataValueDescriptor) sdv;
+            ldvd.forceDeserialization();
             unwrapped = ldvd.getDvd();
         }else{
             unwrapped = sdv;

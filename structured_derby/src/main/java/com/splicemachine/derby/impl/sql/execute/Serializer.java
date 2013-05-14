@@ -93,6 +93,13 @@ public class Serializer {
             descriptor.setToNull();
             return descriptor;
         }
+
+        if(descriptor instanceof LazyDataValueDescriptor){
+            LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) descriptor;
+            ldvd.initForDeserialization(bytes);
+            return ldvd;
+        }
+
         switch (descriptor.getTypeFormatId()) {
             case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
                 descriptor.setValue(Bytes.toBoolean((byte[])getByteRowKey().deserialize(bytes)));
