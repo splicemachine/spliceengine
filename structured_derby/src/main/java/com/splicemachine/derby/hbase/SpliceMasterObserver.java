@@ -47,12 +47,11 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 			try {
 		        SpliceLogUtils.debug(LOG, "Creating Splice");
 				createSplice();
-				throw new DoNotRetryIOException("pre create succeeeded");
 			} catch (Exception e) {
 				throw SpliceStandardLogUtils.generateSpliceIOException(LOG, "preCreateTable Error", e);
 			} finally {
+				throw new DoNotRetryIOException("pre create succeeeded");
 			}
-			
 		}
 	}
 

@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.google.gson.JsonSerializationContext;
 import com.gotometrics.orderly.*;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.StandardException;
