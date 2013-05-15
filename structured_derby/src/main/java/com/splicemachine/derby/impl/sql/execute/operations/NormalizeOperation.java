@@ -7,6 +7,7 @@ import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 
+import com.splicemachine.derby.iapi.storage.RowProvider;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
@@ -88,7 +89,12 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		startCol = computeStartColumn(forUpdate,resultDescription);
 	}
 
-	private int computeStartColumn(boolean forUpdate,
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top,template);
+    }
+
+    private int computeStartColumn(boolean forUpdate,
 			ResultDescription resultDescription) {
 		int count = resultDescription.getColumnCount();
 		return forUpdate ? ((count-1)/2)+1 : 1;

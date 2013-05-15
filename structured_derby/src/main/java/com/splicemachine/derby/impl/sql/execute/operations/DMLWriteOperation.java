@@ -29,6 +29,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
@@ -175,26 +176,19 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		return new SpliceNoPutResultSet(activation,this,modifiedProvider,false);
 	}
 
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top, template);
+    }
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return ((SpliceOperation)source).getReduceRowProvider(top,template);
+    }
 
     @Override
     public void executeShuffle() throws StandardException {
-        long start = System.currentTimeMillis();
-        SpliceLogUtils.trace(LOG,"shuffling %s",toString());
-        List<SpliceOperation> opStack = getOperationStack();
-        SpliceLogUtils.trace(LOG, "operationStack=%s",opStack);
-        final SpliceOperation regionOperation = opStack.get(0);
-        final SpliceOperation topOperation = opStack.get(opStack.size()-1);
-        SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-        final RowProvider rowProvider;
-        if(regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation){
-            rowProvider = regionOperation.getReduceRowProvider(topOperation,topOperation.getExecRowDefinition());
-        }else {
-            rowProvider = regionOperation.getMapRowProvider(topOperation,topOperation.getExecRowDefinition());
-        }
-
-        nextTime+= System.currentTimeMillis()-start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),topOperation);
-        JobStats jobStats = rowProvider.shuffleRows(soi);
+        JobStats jobStats = super.doShuffle();
         JobStatsUtils.logStats(jobStats, LOG);
         Map<String,TaskStats> taskStats = jobStats.getTaskStats();
         long rowsModified = 0;

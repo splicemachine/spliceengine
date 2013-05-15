@@ -134,7 +134,19 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 		}
 		return new SpliceNoPutResultSet(activation,this, rowProvider);
 	}
-	@Override
+
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        //TODO -sf- is this right?
+        return ((SpliceOperation)getRightResultSet()).getMapRowProvider(top, template);
+    }
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return getLeftOperation().getReduceRowProvider(top,template);
+    }
+
+    @Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 		getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition());

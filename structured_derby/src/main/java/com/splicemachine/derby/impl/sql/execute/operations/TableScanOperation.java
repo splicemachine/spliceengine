@@ -137,7 +137,12 @@ public class TableScanOperation extends ScanOperation {
 		return provider;
 	}
 
-	@Override
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return getMapRowProvider(top,template);
+    }
+
+    @Override
 	public List<NodeType> getNodeTypes() {
 //		SpliceLogUtils.trace(LOG,"getNodeTypes");
 		return nodeTypes;

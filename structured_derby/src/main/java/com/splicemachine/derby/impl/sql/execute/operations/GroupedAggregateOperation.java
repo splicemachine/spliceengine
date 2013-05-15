@@ -3,11 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.stats.TaskStats;
@@ -152,7 +148,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						start,finish,hasher,
 						sourceExecIndexRow,null);
 				rowProvider.open();
-                isTemp = !context.isSink();
+                isTemp = !context.isSink() || context.getTopOperation()!=this;
 			}
 	}
 
@@ -167,15 +163,21 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	}
 
     @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top, template);
+    }
+
+    @Override
     public OperationSink.Translator getTranslator() throws IOException {
         final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
         final Serializer serializer = new Serializer();
         return new OperationSink.Translator() {
             @Nonnull
             @Override
-            public Mutation translate(@Nonnull ExecRow row) throws IOException {
+            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
                 try {
-                    return Puts.buildTempTableInsert(hasher.generateSortedHashKey(row.getRowArray()),row.getRowArray(),null,serializer);
+                    Put put = Puts.buildTempTableInsert(hasher.generateSortedHashKey(row.getRowArray()),row.getRowArray(),null,serializer);
+                    return Collections.<Mutation>singletonList(put);
                 } catch (StandardException e) {
                     throw Exceptions.getIOException(e);
                 }

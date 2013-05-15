@@ -17,10 +17,13 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.InsertConstantAction;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 
@@ -68,10 +71,11 @@ public class InsertOperation extends DMLWriteOperation {
             return new OperationSink.Translator() {
                 @Nonnull
                 @Override
-                public Mutation translate(@Nonnull ExecRow row) throws IOException {
+                public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
                     try {
                         byte[ ]rowKey = rowKeySerializer.serialize(row.getRowArray());
-                        return Puts.buildInsert(rowKey,row.getRowArray(),getTransactionID(),serializer);
+                        Put put =  Puts.buildInsert(rowKey, row.getRowArray(), getTransactionID(), serializer);
+                        return Collections.<Mutation>singletonList(put);
                     } catch (StandardException e) {
                         throw Exceptions.getIOException(e);
                     }
@@ -135,7 +139,6 @@ public class InsertOperation extends DMLWriteOperation {
         return ss;
 	}
 
-	
 	@Override
 	public String toString() {
 		return "Insert{destTable="+heapConglom+",source=" + source + "}";

@@ -231,7 +231,17 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		return new SpliceNoPutResultSet(activation,this, provider);
 	}
 
-	@Override
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return source.getMapRowProvider(top, template);
+    }
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return source.getReduceRowProvider(top,template);
+    }
+
+    @Override
 	public SpliceOperation getLeftOperation() {
 //		SpliceLogUtils.trace(LOG,"getLeftOperation ",source);
 		return this.source;

@@ -113,8 +113,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 			j++;
 			Assert.assertNotNull(rs.getString(1));
 			if (!rs.getString(1).equals("9")) {
-				Assert.assertNotNull(rs.getString(2));
-				Assert.assertEquals(rs.getString(1),rs.getString(2));
+				Assert.assertNotNull("dd.si = null",rs.getString(2));
+				Assert.assertEquals("dd.si != cc.si",rs.getString(1),rs.getString(2));
 			} else {
 				Assert.assertNull(rs.getString(2));
 			}

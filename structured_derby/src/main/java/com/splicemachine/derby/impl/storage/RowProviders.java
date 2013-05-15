@@ -1,10 +1,13 @@
 package com.splicemachine.derby.impl.storage;
 
+import java.util.Map;
 import java.util.NoSuchElementException;
 
+import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stats.RegionStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -46,6 +49,11 @@ public class RowProviders {
 	public static RowProvider sourceProvider(NoPutResultSet source, Logger log){
 		return new SourceRowProvider(source,log);
 	}
+
+    public static RowProvider combine(RowProvider first,RowProvider second){
+        return new CombinedRowProvider(first,second);
+    }
+
     public static RowProvider emptyProvider() {
         return EMPTY_PROVIDER;
     }
@@ -161,6 +169,133 @@ public class RowProviders {
 			//populated=false;
 			return nextEntry;
 		}
-
 	}
+
+    private static class CombinedRowProvider implements RowProvider{
+        private final RowProvider firstRowProvider;
+        private final RowProvider secondRowProvider;
+        private boolean onFirst = true;
+
+        private CombinedRowProvider(RowProvider firstRowProvider, RowProvider secondRowProvider) {
+            this.firstRowProvider = firstRowProvider;
+            this.secondRowProvider = secondRowProvider;
+        }
+
+        @Override
+        public void open() {
+            firstRowProvider.open();
+            secondRowProvider.open();
+        }
+
+        @Override
+        public void close() {
+            //guarantee that both get close() called to avoid leaks
+            try{
+                firstRowProvider.close();
+            }finally{
+                secondRowProvider.close();
+            }
+        }
+
+        @Override
+        public RowLocation getCurrentRowLocation() {
+            if(onFirst)
+                return firstRowProvider.getCurrentRowLocation();
+            else return secondRowProvider.getCurrentRowLocation();
+        }
+
+        @Override
+        public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+            JobStats firstStats = firstRowProvider.shuffleRows(instructions);
+            JobStats secondStats = secondRowProvider.shuffleRows(instructions);
+            return new CombinedJobStats(firstStats,secondStats);
+        }
+
+        @Override
+        public byte[] getTableName() {
+            if(onFirst) return firstRowProvider.getTableName();
+            else return secondRowProvider.getTableName();
+        }
+
+        @Override
+        public int getModifiedRowCount() {
+            return firstRowProvider.getModifiedRowCount()+secondRowProvider.getModifiedRowCount();
+        }
+
+        @Override
+        public boolean hasNext() throws StandardException {
+            if(onFirst){
+                if(!firstRowProvider.hasNext()){
+                    onFirst=false;
+                }else
+                    return true;
+            }
+            return secondRowProvider.hasNext();
+        }
+
+        @Override
+        public ExecRow next() throws StandardException {
+            if(onFirst)
+                return firstRowProvider.next();
+            else return secondRowProvider.next();
+        }
+    }
+
+    private static class CombinedJobStats implements JobStats{
+        private final JobStats firstJobStats;
+        private final JobStats secondJobStats;
+
+        private CombinedJobStats(JobStats firstJobStats, JobStats secondJobStats) {
+            this.firstJobStats = firstJobStats;
+            this.secondJobStats = secondJobStats;
+        }
+
+        @Override
+        public int getNumTasks() {
+            return firstJobStats.getNumTasks()+secondJobStats.getNumTasks();
+        }
+
+        @Override
+        public long getTotalTime() {
+            return firstJobStats.getTotalTime()+secondJobStats.getTotalTime();
+        }
+
+        @Override
+        public int getNumSubmittedTasks() {
+            return firstJobStats.getNumSubmittedTasks()+secondJobStats.getNumSubmittedTasks();
+        }
+
+        @Override
+        public int getNumCompletedTasks() {
+            return firstJobStats.getNumCompletedTasks()+secondJobStats.getNumCompletedTasks();
+        }
+
+        @Override
+        public int getNumFailedTasks() {
+            return firstJobStats.getNumFailedTasks()+secondJobStats.getNumFailedTasks();
+        }
+
+        @Override
+        public int getNumInvalidatedTasks() {
+            return firstJobStats.getNumInvalidatedTasks() + secondJobStats.getNumInvalidatedTasks();
+        }
+
+        @Override
+        public int getNumCancelledTasks() {
+            return firstJobStats.getNumCancelledTasks()+secondJobStats.getNumCancelledTasks();
+        }
+
+        @Override
+        public Map<String, TaskStats> getTaskStats() {
+            Map<String,TaskStats> taskStats = Maps.newHashMap(firstJobStats.getTaskStats());
+            taskStats.putAll(secondJobStats.getTaskStats());
+            return taskStats;
+        }
+
+        @Override
+        public String getJobName() {
+            return "combinedJob["+firstJobStats.getJobName()+","+secondJobStats.getJobName()+"]";
+        }
+    }
+
 }

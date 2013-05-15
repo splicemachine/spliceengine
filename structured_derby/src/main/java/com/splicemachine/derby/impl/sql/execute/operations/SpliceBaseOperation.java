@@ -559,11 +559,33 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         throw new UnsupportedOperationException("Sink not implemented for this node: "+ this.getClass());
     }
 
+    /**
+     * Called during the executeShuffle() phase, for the execution of parallel operations.
+     *
+     * If the operation does a transformation (e.g. ProjectRestrict, Normalize, IndexRowToBaseRow), then
+     * this should delegate to the operation's source.
+     *
+     * @param top the top operation to be executed
+     * @param template the template rows to be returned
+     * @return a MapRowProvider
+     * @throws StandardException if something goes wrong
+     */
     @Override
 	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
 		throw new UnsupportedOperationException("MapRowProviders not implemented for this node: "+ this.getClass());
 	}
 
+    /**
+     * Called during the executeScan() phase, for the execution of sequential operations.
+     *
+     * If the operation does a transformation (e.g. ProjectRestrict, Normalize, IndexRowToBaseRow), then
+     * this should delegate to the operation's source.
+     *
+     * @param top the top operation to be executed
+     * @param template the template rows to be returned
+     * @return a ReduceRowProvider
+     * @throws StandardException if something goes wrong
+     */
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
         throw new UnsupportedOperationException("ReduceRowProviders not implemented for this node: "+ this.getClass());
@@ -576,26 +598,30 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     @Override
     public void executeShuffle() throws StandardException {
+        JobStats stats = doShuffle();
+        JobStatsUtils.logStats(stats,LOG);
+
+	}
+
+    protected JobStats doShuffle() throws StandardException {
         long start = System.currentTimeMillis();
-        SpliceLogUtils.trace(LOG,"shuffling %s",toString());
+        SpliceLogUtils.trace(LOG, "shuffling %s", toString());
         List<SpliceOperation> opStack = getOperationStack();
         SpliceLogUtils.trace(LOG, "operationStack=%s",opStack);
         final SpliceOperation regionOperation = opStack.get(0);
         final SpliceOperation topOperation = opStack.get(opStack.size()-1);
         SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-        final RowProvider rowProvider;
-        if(regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation){
-            rowProvider = regionOperation.getReduceRowProvider(topOperation,topOperation.getExecRowDefinition());
-        }else {
-            rowProvider = regionOperation.getMapRowProvider(topOperation,topOperation.getExecRowDefinition());
-        }
+        final RowProvider rowProvider = topOperation.getMapRowProvider(topOperation, topOperation.getExecRowDefinition());
+//        if(regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation){
+//            rowProvider = regionOperation.getReduceRowProvider(topOperation,topOperation.getExecRowDefinition());
+//        }else {
+//            rowProvider = regionOperation.getMapRowProvider(topOperation,topOperation.getExecRowDefinition());
+//        }
 
         nextTime+= System.currentTimeMillis()-start;
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),topOperation);
-        JobStats stats = rowProvider.shuffleRows(soi);
-        JobStatsUtils.logStats(stats,LOG);
-
-	}
+        return rowProvider.shuffleRows(soi);
+    }
 
     protected ExecRow getFromResultDescription(ResultDescription resultDescription) throws StandardException {
         ExecRow row = new ValueRow(resultDescription.getColumnCount());

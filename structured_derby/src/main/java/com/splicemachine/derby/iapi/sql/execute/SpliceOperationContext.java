@@ -31,18 +31,20 @@ public class SpliceOperationContext {
     private RegionScanner scanner;
     private LanguageConnectionContext lcc;
     private boolean isSink;
+    private SpliceOperation topOperation;
 
     public SpliceOperationContext(HRegion region,
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
-                                  LanguageConnectionContext lcc,boolean isSink){
+                                  LanguageConnectionContext lcc,boolean isSink,SpliceOperation topOperation){
         this.region= region;
         this.scan = scan;
         this.activation = activation;
         this.preparedStatement = preparedStatement;
         this.lcc = lcc;
         this.isSink = isSink;
+        this.topOperation = topOperation;
     }
 
     public SpliceOperationContext(RegionScanner scanner,
@@ -51,7 +53,7 @@ public class SpliceOperationContext {
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
                                   LanguageConnectionContext lcc,
-                                  boolean isSink){
+                                  boolean isSink,SpliceOperation topOperation ){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
         this.scanner = scanner;
@@ -59,6 +61,7 @@ public class SpliceOperationContext {
         this.scan = scan;
         this.lcc = lcc;
         this.isSink=isSink;
+        this.topOperation = topOperation;
     }
 
     public HRegion getRegion(){
@@ -112,7 +115,10 @@ public class SpliceOperationContext {
         return new SpliceOperationContext(null,null,
                 a,
                 (GenericStorablePreparedStatement)a.getPreparedStatement(),
-                null,false);
+                null,false,null);
     }
 
+    public SpliceOperation getTopOperation() {
+        return topOperation;
+    }
 }

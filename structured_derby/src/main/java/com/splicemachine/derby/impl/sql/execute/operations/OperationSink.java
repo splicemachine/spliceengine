@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -24,7 +25,7 @@ import java.util.Arrays;
  */
 public class OperationSink {
     public static interface Translator{
-        @Nonnull Mutation translate(@Nonnull ExecRow row) throws IOException;
+        @Nonnull List<Mutation> translate(@Nonnull ExecRow row) throws IOException;
     }
     private final TableWriter tableWriter;
     private final SpliceOperation operation;
@@ -74,7 +75,7 @@ public class OperationSink {
                 stats.readAccumulator().tick(System.nanoTime()-start);
 
                 start = System.nanoTime();
-                Mutation mutation = translator.translate(row);
+                List<Mutation> mutations = translator.translate(row);
 
 
                 /*
@@ -82,10 +83,12 @@ public class OperationSink {
                  * if a task fails and must be retried, we can filter out any rows which
                  * have already been written.
                  */
-                if(isTempTable && mutation instanceof Put)
-                    ((Put)mutation).add(SpliceConstants.DEFAULT_FAMILY_BYTES,taskIdCol,taskId);
+                for(Mutation mutation:mutations){
+                    if(isTempTable && mutation instanceof Put)
+                        ((Put)mutation).add(SpliceConstants.DEFAULT_FAMILY_BYTES,taskIdCol,taskId);
 
-                writeBuffer.add(mutation);
+                    writeBuffer.add(mutation);
+                }
 
                 stats.writeAccumulator().tick(System.nanoTime()-start);
             }while(row!=null);

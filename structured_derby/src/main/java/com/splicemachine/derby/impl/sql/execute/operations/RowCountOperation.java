@@ -249,7 +249,17 @@ public class RowCountOperation extends SpliceBaseOperation {
 		return def;
 	}
 
-	@Override
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top,template);
+    }
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return ((SpliceOperation)source).getReduceRowProvider(top,template);
+    }
+
+    @Override
 	public NoPutResultSet executeScan() throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeScan");
 		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();

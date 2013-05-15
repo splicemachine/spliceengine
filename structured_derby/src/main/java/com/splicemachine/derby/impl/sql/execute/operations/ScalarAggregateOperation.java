@@ -36,6 +36,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 /**
  * Operation for performing Scalar Aggregations (sum, avg, max/min, etc.). 
@@ -70,7 +71,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                                     boolean singleInputRow,
                                     double optimizerEstimatedRowCount,
                                     double optimizerEstimatedCost) throws StandardException  {
-        super(s,aggregateItem,a,ra,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+        super(s, aggregateItem, a, ra, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.isInSortedOrder = isInSortedOrder;
         this.singleInputRow = singleInputRow;
 
@@ -112,7 +113,12 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
 	}
 
-	@Override
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top,template);
+    }
+
+    @Override
 	public void init(SpliceOperationContext context) throws StandardException{
 		super.init(context);
 		ExecutionFactory factory = activation.getExecutionFactory();
@@ -120,7 +126,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 			sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(activation));
 			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
 
-            isTemp = !context.isSink();
+            isTemp = !context.isSink()||context.getTopOperation()!=this;
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
@@ -255,10 +261,11 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         return new OperationSink.Translator() {
             @Nonnull
             @Override
-            public Put translate(@Nonnull ExecRow row) throws IOException {
+            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
                 try {
                     byte[] key = DerbyBytesUtil.generatePrefixedRowKey(sequence[0]);
-                    return Puts.buildTempTableInsert(key,row.getRowArray(),null,serializer);
+                    Put put = Puts.buildTempTableInsert(key,row.getRowArray(),null,serializer);
+                    return Collections.<Mutation>singletonList(put);
                 } catch (StandardException e) {
                     throw Exceptions.getIOException(e);
                 }

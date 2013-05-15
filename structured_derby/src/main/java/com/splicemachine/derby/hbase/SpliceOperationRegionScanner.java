@@ -71,7 +71,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	        SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
 	        impl.marshallTransaction(soi.getTransactionId());
 	        activation = soi.getActivation(impl.getLcc());
-	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false);
+	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false,topOperation);
 	        topOperation.init(context);
 	        List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
 	        topOperation.generateLeftOperationStack(opStack);

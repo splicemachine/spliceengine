@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationProtocol;
+import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
@@ -133,7 +134,8 @@ public abstract class MultiScanRowProvider implements RowProvider {
     private JobFuture doShuffle(HTableInterface table,
                            SpliceObserverInstructions instructions,
                            Scan scan) throws StandardException {
-        SpliceUtils.setInstructions(scan, instructions);
+        if(scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS)==null)
+            SpliceUtils.setInstructions(scan, instructions);
         boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
         OperationJob job = new OperationJob(scan,instructions,table,readOnly);
         try {

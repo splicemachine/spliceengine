@@ -19,6 +19,8 @@ import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 
@@ -55,11 +57,11 @@ public class DeleteOperation extends DMLWriteOperation{
         return new OperationSink.Translator() {
             @Nonnull
             @Override
-            public Mutation translate(@Nonnull ExecRow row) throws IOException {
+            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
                 RowLocation locToDelete;
                 try {
                     locToDelete = (RowLocation)row.getColumn(row.nColumns()).getObject();
-                    return Mutations.getDeleteOp(getTransactionID(),locToDelete.getBytes());
+                    return Collections.singletonList(Mutations.getDeleteOp(getTransactionID(),locToDelete.getBytes()));
                 } catch (StandardException e) {
                     throw Exceptions.getIOException(e);
                 }

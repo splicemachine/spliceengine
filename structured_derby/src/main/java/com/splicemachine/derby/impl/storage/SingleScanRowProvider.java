@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.storage;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationProtocol;
+import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -89,7 +90,8 @@ public abstract class SingleScanRowProvider  implements RowProvider {
     private JobStats doShuffle(HTableInterface table,
                            SpliceObserverInstructions instructions, Scan scan) throws StandardException {
         //TODO -sf- attach statistics
-        SpliceUtils.setInstructions(scan,instructions);
+        if(scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS)==null)
+            SpliceUtils.setInstructions(scan,instructions);
 
         //get transactional stuff from scan
 

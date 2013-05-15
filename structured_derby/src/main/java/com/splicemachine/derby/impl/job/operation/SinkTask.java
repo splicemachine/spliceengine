@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.job.Status;
@@ -29,7 +30,7 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/3/13
  */
 public class SinkTask extends ZkTask {
-    private static final long serialVersionUID = 1l;
+    private static final long serialVersionUID = 2l;
     private static final Logger LOG = Logger.getLogger(SinkTask.class);
     private HRegion region;
 
@@ -45,12 +46,11 @@ public class SinkTask extends ZkTask {
 
     public SinkTask(String jobId,
                     Scan scan,
-                    SpliceObserverInstructions instructions,
+                    String transactionId,
                     boolean readOnly,
                     int priority) {
-        super(jobId,priority,instructions.getTransactionId(),readOnly);
+        super(jobId,priority,transactionId,readOnly);
         this.scan = scan;
-        this.instructions = instructions;
     }
 
     @Override
@@ -72,10 +72,14 @@ public class SinkTask extends ZkTask {
             SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
             ContextService.getFactory().setCurrentContextManager(impl.getContextManager());
             impl.marshallTransaction(status.getTransactionId());
+
+            if(instructions==null)
+                instructions = SpliceUtils.getSpliceObserverInstructions(scan);
             Activation activation = instructions.getActivation(impl.getLcc());
             SpliceOperationContext opContext = new SpliceOperationContext(region,
-                    scan,activation,instructions.getStatement(),impl.getLcc(),true);
+                    scan,activation,instructions.getStatement(),impl.getLcc(),true,instructions.getTopOperation());
             //init the operation stack
+
             SpliceOperation op = instructions.getTopOperation();
             op.init(opContext);
 
@@ -111,7 +115,6 @@ public class SinkTask extends ZkTask {
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         scan.write(out);
-        out.writeObject(instructions);
     }
 
     @Override
@@ -119,12 +122,12 @@ public class SinkTask extends ZkTask {
         super.readExternal(in);
         scan  = new Scan();
         scan.readFields(in);
-
-        instructions = (SpliceObserverInstructions)in.readObject();
     }
 
     @Override
     protected String getTaskType() {
+        if(instructions==null)
+            instructions = SpliceUtils.getSpliceObserverInstructions(scan);
         return instructions.getTopOperation().getClass().getSimpleName();
     }
 }

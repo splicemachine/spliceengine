@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -11,10 +12,13 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider;
+import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.job.JobStats;
+import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -24,17 +28,16 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public class MergeSortJoinOperation extends JoinOperation {
     private static final long serialVersionUID = 2l;
@@ -88,8 +91,8 @@ public class MergeSortJoinOperation extends JoinOperation {
 			   double optimizerEstimatedCost,
 			   String userSuppliedOptimizerOverrides) throws StandardException {		
 				super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
-						activation, restriction, resultSetNumber,oneRowRightSide, notExistsRightSide,
-						optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides);
+                        activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide,
+                        optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides);
 				SpliceLogUtils.trace(LOG, "instantiate");
 				this.leftHashKeyItem = leftHashKeyItem;
 				this.rightHashKeyItem = rightHashKeyItem;
@@ -162,6 +165,11 @@ public class MergeSortJoinOperation extends JoinOperation {
 	}
 
     @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return getReduceRowProvider(top,template);
+    }
+
+    @Override
     public void init(SpliceOperationContext context) throws StandardException{
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
@@ -183,23 +191,38 @@ public class MergeSortJoinOperation extends JoinOperation {
                     start,finish,leftHasher,leftRow,rightHasher,rightRow,null,rowType);
             serverProvider.open();
         }
-        isTemp =!context.isSink();
-    }
-	
+        isTemp =!context.isSink() ||context.getTopOperation()!=this;
+	}
+
 	@Override
 	public void executeShuffle() throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeShuffle");
 		long start = System.currentTimeMillis();
-		joinSide = JoinSide.LEFT;
-		OperationBranch operationBranch = new OperationBranch(getActivation(),getOperationStack(),leftResultSet.getExecRowDefinition());
-		SpliceLogUtils.trace(LOG, "merge sort shuffling left");
-		operationBranch.execCoprocessor(this.getClass().getName());
-		joinSide = JoinSide.RIGHT;
-		SpliceLogUtils.trace(LOG, "merge sort shuffling right");
-		operationBranch = new OperationBranch(getActivation(),getRightOperationStack(),rightResultSet.getExecRowDefinition());
-		operationBranch.execCoprocessor(this.getClass().getName());
-		nextTime += System.currentTimeMillis() - start;
-		SpliceLogUtils.trace(LOG, "shuffle finished");	
+        JoinSide oldSide = joinSide;
+
+        ExecRow template = getExecRowDefinition();
+        joinSide = JoinSide.LEFT;
+        RowProvider leftProvider = leftResultSet.getMapRowProvider(this,template);
+
+        joinSide = JoinSide.RIGHT;
+        RowProvider rightProvider = rightResultSet.getMapRowProvider(this,template);
+
+        RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
+
+        joinSide = oldSide;
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
+        JobStats stats = combined.shuffleRows(soi);
+        JobStatsUtils.logStats(stats, LOG);
+        nextTime+=System.currentTimeMillis()-start;
+//		OperationBranch operationBranch = new OperationBranch(getActivation(),getOperationStack(),leftResultSet.getExecRowDefinition());
+//		SpliceLogUtils.trace(LOG, "merge sort shuffling left");
+//		operationBranch.execCoprocessor(this.getClass().getName());
+//		joinSide = JoinSide.RIGHT;
+//		SpliceLogUtils.trace(LOG, "merge sort shuffling right");
+//		operationBranch = new OperationBranch(getActivation(),getRightOperationStack(),rightResultSet.getExecRowDefinition());
+//		operationBranch.execCoprocessor(this.getClass().getName());
+//		nextTime += System.currentTimeMillis() - start;
+//		SpliceLogUtils.trace(LOG, "shuffle finished");
 	}
 	
 	@Override
@@ -212,12 +235,12 @@ public class MergeSortJoinOperation extends JoinOperation {
 		// Get the topmost value, instead of the bottommost, in case it's you
 		SpliceOperation regionOperation = opStack.get(opStack.size()-1); 
 		SpliceLogUtils.trace(LOG,"regionOperation=%s",opStack);
-		RowProvider provider;
-		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)){
-			provider = regionOperation.getReduceRowProvider(this,getExecRowDefinition());
-		}else {
-			provider = regionOperation.getMapRowProvider(this,getExecRowDefinition());
-		}
+		RowProvider provider = getReduceRowProvider(this,getExecRowDefinition());
+//		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)){
+//			provider = regionOperation.getReduceRowProvider(this,getExecRowDefinition());
+//		}else {
+//			provider = regionOperation.getMapRowProvider(this,getExecRowDefinition());
+//		}
 		return new SpliceNoPutResultSet(activation,this,provider);
 	}
 
@@ -239,10 +262,12 @@ public class MergeSortJoinOperation extends JoinOperation {
             return new OperationSink.Translator() {
                 @Nonnull
                 @Override
-                public Mutation translate(@Nonnull ExecRow row) throws IOException {
+                public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
                     try {
                         byte[] rowKey = transHasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors);
-                        return Puts.buildInsert(rowKey, row.getRowArray(),null, SpliceUtils.NA_TRANSACTION_ID, serializer, additionalDescriptors);
+                        return Collections.<Mutation>singletonList(Puts.buildInsert(rowKey,
+                                row.getRowArray(), null,
+                                SpliceUtils.NA_TRANSACTION_ID, serializer, additionalDescriptors));
                     } catch (StandardException e) {
                         throw Exceptions.getIOException(e);
                     }

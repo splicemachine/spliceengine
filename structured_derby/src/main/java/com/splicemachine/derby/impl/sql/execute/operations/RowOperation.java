@@ -201,9 +201,8 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow rowTemplate){
-		SpliceLogUtils.info(LOG, "getReduceRowProvider,top="+top);
-		return RowProviders.singletonProvider(getExecRowDefinition());
+	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow rowTemplate) throws StandardException {
+        return getMapRowProvider(top,rowTemplate);
 	}
 
 	@Override

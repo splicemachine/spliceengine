@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Collections;
+import java.util.List;
 
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
@@ -147,10 +149,11 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
         return new OperationSink.Translator() {
             @Nonnull
             @Override
-            public Mutation translate(@Nonnull ExecRow row) throws IOException {
+            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
                 try {
                     byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
-                    return Puts.buildTempTableInsert(rowKey, row.getRowArray(), null, serializer);
+                    Put put = Puts.buildTempTableInsert(rowKey, row.getRowArray(), null, serializer);
+                    return Collections.<Mutation>singletonList(put);
                 } catch (StandardException e) {
                     throw Exceptions.getIOException(e);
                 }

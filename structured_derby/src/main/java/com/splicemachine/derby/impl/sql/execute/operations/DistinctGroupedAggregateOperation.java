@@ -27,6 +27,7 @@ import org.apache.log4j.Logger;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -85,10 +86,11 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
         return new OperationSink.Translator() {
             @Nonnull
             @Override
-            public Mutation translate(@Nonnull ExecRow row) throws IOException {
+            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
                 try {
                     byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
-                    return Puts.buildTempTableInsert(rowKey,row.getRowArray(),null,serializer);
+                    Put put = Puts.buildTempTableInsert(rowKey,row.getRowArray(),null,serializer);
+                    return Collections.<Mutation>singletonList(put);
                 } catch (StandardException e) {
                     throw Exceptions.getIOException(e);
                 }

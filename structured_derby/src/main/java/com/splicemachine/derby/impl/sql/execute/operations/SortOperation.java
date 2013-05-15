@@ -35,10 +35,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 public class SortOperation extends SpliceBaseOperation {
     private static final long serialVersionUID = 2l;
@@ -188,6 +185,7 @@ public class SortOperation extends SpliceBaseOperation {
 		return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
 	}
 
+
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeScan");
@@ -218,11 +216,12 @@ public class SortOperation extends SpliceBaseOperation {
 
             return new OperationSink.Translator() {
                 @Override
-                @Nonnull public Put translate(@Nonnull ExecRow row) throws IOException {
+                @Nonnull public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
                     try {
                         byte[] tempRowKey = distinct?hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),null):
                                 hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(), SpliceUtils.getUniqueKey());
-                        return Puts.buildTempTableInsert(tempRowKey,row.getRowArray(),null,serializer);
+                        Put put = Puts.buildTempTableInsert(tempRowKey,row.getRowArray(),null,serializer);
+                        return Collections.<Mutation>singletonList(put);
                     } catch (StandardException e) {
                         throw Exceptions.getIOException(e);
                     }
@@ -286,8 +285,9 @@ public class SortOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template){
-        return RowProviders.sourceProvider(top,LOG);
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top,template);
+//        return RowProviders.sourceProvider(top,LOG);
     }
 	
 	@Override
