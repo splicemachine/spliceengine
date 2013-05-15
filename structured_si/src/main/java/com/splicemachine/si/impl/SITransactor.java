@@ -352,6 +352,10 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
 
     private void performPut(STable table, RollForwardQueue rollForwardQueue, PutOp put, ImmutableTransaction transaction)
             throws IOException {
+//        if (table instanceof HbRegion) {
+//            LOG.error("performPut table = " + ((HbRegion) table).region.toString());
+//            LOG.error("performPut transaction = " + transaction.getTransactionId().getTransactionIdString());
+//        }
         final Object rowKey = dataLib.getPutKey(put);
         final SRowLock lock = dataWriter.lockRow(table, rowKey);
         Set<Long> dataTransactionsToRollForward;

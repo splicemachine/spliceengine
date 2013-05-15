@@ -56,6 +56,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	protected Activation activation;
 	protected int resultSetNumber;
     private String transactionID;
+
+    /**
+     * Used to communicate a child transaction ID down to the sink operation in a sub-class.
+     * Since some write operations occur in sub-transactions, it is important that all do. This is so that the SI
+     * logic can identify the order in which events occurred.
+     */
+    private String childTransactionID;
 	protected boolean isTopResultSet = false;
 	protected String uniqueSequenceID;
 	protected ExecRow currentRow;
@@ -800,8 +807,18 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         return (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
     }
 
+    public void setChildTransactionID(String childTransactionID) {
+        this.childTransactionID = childTransactionID;
+    }
+
+    public void clearChildTransactionID() {
+        this.childTransactionID = null;
+    }
+
     protected String getTransactionID() {
-        if (activation == null) {
+        if (childTransactionID != null) {
+            return childTransactionID;
+        } else if (activation == null) {
             return transactionID;
         } else {
             return (getTrans() == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
