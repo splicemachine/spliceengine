@@ -185,58 +185,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         };
     }
 
-    @Override
-	public TaskStats sink() throws IOException{
-		/*
-		 * Sorts the data by sinking into the TEMP table. From there, the 
-		 * getNextRowCore() method can be used to pull the data out in sequence and perform 
-		 * the aggregation
-		 */
-        TaskStats.SinkAccumulator statsAccumulator = TaskStats.uniformAccumulator();
-        statsAccumulator.start();
-        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for GroupedAggregation at "+statsAccumulator.getStartTime());
-		SpliceLogUtils.trace(LOG, "sink");
-		ExecRow row;
-
-        CallBuffer<Mutation> writer;
-        try{
-            writer = SpliceDriver.driver().getTableWriter().writeBuffer(SpliceOperationCoprocessor.TEMP_TABLE);
-			Put put;
-			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
-            Serializer serializer = new Serializer();
-            Accumulator sinkAccumulator = statsAccumulator.writeAccumulator();
-            do{
-                row = doAggregation(false,statsAccumulator.readAccumulator());
-
-                if(row==null)continue;
-
-                long processStart = System.nanoTime();
-                SpliceLogUtils.trace(LOG, "sinking row %s",row);
-                put = Puts.buildTempTableInsert(hasher.generateSortedHashKey(row.getRowArray()), row.getRowArray(), null, serializer);
-                writer.add(put);
-
-                sinkAccumulator.tick(System.nanoTime() - processStart);
-            }while(row!=null);
-            writer.flushBuffer();
-            writer.close();
-		}catch (StandardException se){
-			SpliceLogUtils.logAndThrow(LOG, Exceptions.getIOException(se));
-		} catch (Exception e) {
-            SpliceLogUtils.logAndThrow(LOG,Exceptions.getIOException(e));
-        } finally{
-			try {
-				if(tempTable!=null)
-					tempTable.close();
-			} catch (IOException e) {
-				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
-			}
-		}
-		
-		TaskStats ss = statsAccumulator.finish();
-		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for GroupedAggregation at "+statsAccumulator.getFinishTime());
-        return ss;
-	}
-	
 	@Override
 	public void cleanup() { }
 

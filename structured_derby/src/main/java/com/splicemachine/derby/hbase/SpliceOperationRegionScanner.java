@@ -148,7 +148,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 	public TaskStats sink() throws IOException{
 		SpliceLogUtils.trace(LOG,"sink");
-		return topOperation.sink();
+        throw new UnsupportedOperationException("Wrong code path!");
+//		return topOperation.sink();
 	}
 
     public void reportMetrics() {

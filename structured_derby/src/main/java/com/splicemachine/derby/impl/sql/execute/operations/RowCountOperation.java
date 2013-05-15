@@ -275,7 +275,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 		return new SpliceNoPutResultSet(activation,this,provider);
 	}
 
-	@Override
+	//@Override
 	public TaskStats sink() { // gd not sure I want any of this, or at least the sorted part
         TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
@@ -322,7 +322,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for RowCountOperation at "+stats.getFinishTime());
         return ss;
 	}
-	
+
 	@Override
 	public void close() throws StandardException {
 		SpliceLogUtils.trace(LOG, "close in RowCount");	

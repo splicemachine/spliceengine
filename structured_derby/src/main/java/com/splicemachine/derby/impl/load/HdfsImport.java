@@ -251,7 +251,7 @@ public class HdfsImport extends ParallelVTI {
 	@Override public void open() throws StandardException { openCore(); }
 
 	/*no op methods*/
-	@Override public TaskStats sink() { return null; }
+//	@Override public TaskStats sink() { return null; }
 	@Override public ExecRow getExecRowDefinition() { return null; }
 	@Override public boolean next() { return false; }
     @Override public SpliceOperation getRightOperation() { return null; } //noop

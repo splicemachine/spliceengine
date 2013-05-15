@@ -86,59 +86,6 @@ public class InsertOperation extends DMLWriteOperation {
         }
     }
 
-    @Override
-	public TaskStats sink() throws IOException {
-//		SpliceLogUtils.trace(LOG,"sink on transactinID="+transactionID);
-		/*
-		 * write out the data to the correct location.
-		 * 
-		 * If you compare this implementation to that of InsertResultSet, you'll notice
-		 * that there is a whole lot less going on. That's because Triggers, Primary Keys, Check
-		 * Constraints, and Secondary Indices are all handled through Coprocessors, and are thus transparent
-		 * to the writer. This dramatically simplifies this code, at the cost of adding conceptual complexity
-		 * in coprocessor logic
-		 */
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-        stats.start();
-        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for InsertOperation at "+stats.getStartTime());
-		ExecRow nextRow=null;
-		//Use HTable to do inserts instead of HeapConglomerateController - see Bug 188
-        Serializer serializer = new Serializer();
-		try {
-            CallBuffer<Mutation> writer = SpliceDriver.driver().getTableWriter()
-                    .writeBuffer(Long.toString(heapConglom).getBytes());
-            DataValueDescriptor[] template = ((SpliceOperation)source).getExecRowDefinition().getRowArray();
-            RowSerializer rowKeySerializer =
-                    new RowSerializer(template,pkColumns,pkColumns==null);
-            do{
-                long start =System.nanoTime();
-
-                nextRow = source.getNextRowCore();
-                if(nextRow==null)continue;
-                stats.readAccumulator().tick(System.nanoTime()-start);
-
-                start = System.nanoTime();
-//                SpliceLogUtils.trace(LOG,"InsertOperation sink, nextRow="+nextRow);
-
-                byte[] rowKey = rowKeySerializer.serialize(nextRow.getRowArray());
-                writer.add(Puts.buildInsert(rowKey, nextRow.getRowArray(), this.getTransactionID(), serializer)); // Buffered
-
-                stats.writeAccumulator().tick(System.nanoTime()-start);
-            }while(nextRow!=null);
-            writer.flushBuffer();
-            writer.close();
-		} catch (Exception e) {
-			//TODO -sf- abort transaction
-            if(Exceptions.shouldLogStackTrace(e))
-                SpliceLogUtils.logAndThrowRuntime(LOG,e);
-            else
-                throw Exceptions.getIOException(e);
-		}
-		TaskStats ss = stats.finish();
-		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for InsertOperation at "+stats.getFinishTime());
-        return ss;
-	}
-
 	@Override
 	public String toString() {
 		return "Insert{destTable="+heapConglom+",source=" + source + "}";

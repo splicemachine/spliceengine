@@ -48,20 +48,6 @@ public interface SpliceOperation extends NoPutResultSet {
 	 */
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow outputRowFormat) throws StandardException;
 		
-	/**
-	 * Performs the traditional MapReduce shuffle operation for node types of SINK or REDUCE.
-	 * 
-	 * <p>Note: Implementations {@bold cannot} call {@code this.getNextRowCore()} from inside this
-	 * method, as it may result in steps being repeated twice, which can cause incorrect results
-	 * to be returned. The only exception
-	 * 
-	 * @param keyValues
-	 * @return rows
-     * @throws org.apache.hadoop.hbase.DoNotRetryIOException if an error occurs that is not retriable,
-     * IOException for unexpected connectivity issues, etc.
-	 */
-	public TaskStats sink() throws IOException;
-
     /**
      * Only needs to be implemented by parallel-type tasks (e.g. tasks which also implement sink()).
      *

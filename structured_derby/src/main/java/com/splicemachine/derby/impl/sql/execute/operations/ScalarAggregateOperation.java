@@ -273,42 +273,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         };
     }
 
-    @Override
-	public TaskStats sink() throws IOException {
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-        stats.start();
-        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for ScalaAggregation at "+stats.getStartTime());
-		ExecRow row;
-		try{
-			Put put;
-            CallBuffer<Mutation> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(SpliceOperationCoprocessor.TEMP_TABLE);
-            Serializer serializer = new Serializer();
-            do{
-                row = doAggregation(false,stats.readAccumulator());
-                if(row==null)continue;
-
-                long pTs = System.nanoTime();
-                byte[] key = DerbyBytesUtil.generatePrefixedRowKey(sequence[0]);
-//                SpliceLogUtils.trace(LOG,"row=%s, key.length=%d, afterPrefix?%b,beforeEnd?%b",
-//                        row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
-//                        Bytes.compareTo(key,reduceScan.getStopRow())<0);
-                put = Puts.buildInsert(key,row.getRowArray(), getTransactionID(),serializer);
-                SpliceLogUtils.trace(LOG, "put=%s", put);
-                writeBuffer.add(put);
-
-                stats.writeAccumulator().tick(System.nanoTime() - pTs);
-            }while(row!=null);
-            writeBuffer.flushBuffer();
-            writeBuffer.close();
-		}catch (Exception e) {
-            throw Exceptions.getIOException(e);
-        }
-        //return stats.finish();
-		TaskStats ss = stats.finish();
-		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for ScalarAggregation at "+stats.getFinishTime());
-        return ss;
-	}
-
 	@Override
 	public String toString() {
 		return "ScalarAggregateOperation {source=" + source + "}";

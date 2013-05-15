@@ -254,67 +254,6 @@ public class HashScanOperation extends ScanOperation {
         };
     }
 
-    @Override
-	public TaskStats sink() {
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-        stats.start();
-        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for HashScan at "+stats.getStartTime());
-		SpliceLogUtils.trace(LOG, "sink called on" + regionScanner.getRegionInfo().getTableNameAsString());
-		HTableInterface tempTable = null;
-		Put put = null;
-		try{
-			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
-			hasher = new Hasher(currentRow.getRowArray(),keyColumns,null,sequence[0]);
-			byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
-            Serializer serializer = new Serializer();
-            List<KeyValue> keyValues;
-            do{
-                long start = System.nanoTime();
-
-                //get the next row
-                keyValues = new ArrayList<KeyValue>(currentRow.nColumns());
-                regionScanner.next(keyValues);
-                if(keyValues==null || keyValues.isEmpty()) continue;
-                stats.readAccumulator().tick(System.nanoTime()-start);
-
-                //sink the row by hashing
-                start = System.nanoTime();
-                SpliceLogUtils.trace(LOG, "Sinking Record ");
-                SpliceLogUtils.trace(LOG, "accessedColsToGrab=%s",accessedCols);
-                SpliceUtils.populate(keyValues, currentRow.getRowArray(),accessedCols,baseColumnMap,serializer);
-                byte[] tempRowKey ;
-                if (eliminateDuplicates) {
-                    tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),scannedTableName);
-                } else {
-                    tempRowKey = hasher.generateSortedHashKey(currentRow.getRowArray());
-                }
-                SpliceLogUtils.trace(LOG, "row to hash =%s, key=%s", currentRow, Arrays.toString(tempRowKey));
-                put = Puts.buildTempTableInsert(tempRowKey, currentRow.getRowArray(), null, serializer);
-                tempTable.put(put);	// TODO Buffer via list or configuration. JL
-
-                stats.writeAccumulator().tick(System.nanoTime()-start);
-
-            }while(!keyValues.isEmpty());
-
-			tempTable.flushCommits();
-		}catch (StandardException se){
-			SpliceLogUtils.logAndThrowRuntime(LOG,se);
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		}finally{
-			try {
-				if(tempTable!=null)
-					tempTable.close();
-			} catch (IOException e) {
-				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
-			}
-		}
-        //return stats.finish();
-		TaskStats ss = stats.finish();
-		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for HashScan at "+stats.getFinishTime());
-        return ss;
-	}
-	
 	@Override
 	public SpliceOperation getLeftOperation() {
 		return null;

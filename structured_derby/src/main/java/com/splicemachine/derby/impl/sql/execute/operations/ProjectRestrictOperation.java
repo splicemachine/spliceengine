@@ -224,15 +224,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		LOG.trace("regionOperation="+regionOperation);
 		RowProvider provider;
         ExecRow fromResults = getExecRowDefinition();
-<<<<<<< HEAD
-        if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
-			SpliceLogUtils.trace(LOG,"scanning Temp Table");
-			provider = regionOperation.getReduceRowProvider(this,fromResults);
-		} else {
-			SpliceLogUtils.trace(LOG,"scanning Map Table");
-			provider = regionOperation.getMapRowProvider(this,fromResults);
-		}
-=======
 //        ExecRow fromResults = null;
 //        try{
 //            fromResults = getFromResultDescription(activation.getResultDescription());
@@ -247,7 +238,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 //			provider = regionOperation.getMapRowProvider(this,fromResults);
 //		}
         provider = getReduceRowProvider(this,fromResults);
->>>>>>> UnionOperation re-written
         SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
 		nextTime += getCurrentTimeMillis() - beginTime;
 		return rs;

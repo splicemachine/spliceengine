@@ -183,7 +183,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return ((SpliceOperation)source).getReduceRowProvider(top,template);
+        return ((SpliceOperation)source).getReduceRowProvider(top, template);
     }
 
     @Override
@@ -258,7 +258,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                     final Transactor<Put,Get,Scan,Mutation,Result> transactor = TransactorFactoryImpl.getTransactor();
                     final TransactionId childID = transactor.beginChildTransaction(transactor.transactionIdFromString(getTransactionID()), true, true, null, null);
                     setChildTransactionID(childID.getTransactionIdString());
-                    TaskStats stats = sink();
+                    OperationSink opSink = OperationSink.create(DMLWriteOperation.this,null);
+                    TaskStats stats= opSink.sink(getDestinationTable());
                     rowsModified = (int)stats.getReadStats().getTotalRecords();
                     transactor.commit(childID);
                 }catch(IOException ioe){

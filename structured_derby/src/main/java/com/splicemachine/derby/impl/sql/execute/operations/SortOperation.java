@@ -232,58 +232,6 @@ public class SortOperation extends SpliceBaseOperation {
         }
     }
 
-    @Override
-	public TaskStats sink() throws IOException {
-		/*
-		 * We want to make use of HBase as a sorting mechanism for us.
-		 * To that end, we really just want to read all the data
-		 * out of source and write it into the TEMP Table.
-		 */
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-        stats.start();
-        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for SortOperation at "+stats.getStartTime());
-		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
-		ExecRow row;
-        CallBuffer<Mutation> writeBuffer;
-		try{
-			Put put;
-            writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(SpliceOperationCoprocessor.TEMP_TABLE);
-			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,descColumns,sequence[0]);
-			byte[] tempRowKey;
-            Serializer serializer  = new Serializer();
-
-            do{
-                long start = System.nanoTime();
-                row = getNextRowCore();
-                if(row==null)continue;
-
-                stats.readAccumulator().tick(System.nanoTime()-start);
-
-                start = System.nanoTime();
-                SpliceLogUtils.trace(LOG, "row="+row);
-                if (this.distinct) {
-                    tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),null);
-                } else {
-                    tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),SpliceUtils.getUniqueKey());
-                }
-                put = Puts.buildTempTableInsert(tempRowKey, row.getRowArray(), null, serializer);
-                writeBuffer.add(put);
-
-                stats.writeAccumulator().tick(System.nanoTime()-start);
-            }while(row!=null);
-            writeBuffer.flushBuffer();
-            writeBuffer.close();
-		}catch (StandardException se){
-			SpliceLogUtils.logAndThrowRuntime(LOG,se);
-		} catch (Exception e) {
-            SpliceLogUtils.logAndThrow(LOG,Exceptions.getIOException(e));
-		}
-		
-		TaskStats ss = stats.finish();
-		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SortOperation at "+stats.getFinishTime());
-        return ss;
-	}
-
 	@Override
     public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
         return ((SpliceOperation)source).getMapRowProvider(top,template);

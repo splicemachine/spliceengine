@@ -372,10 +372,6 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 	}
 
 	@Override
-	public abstract TaskStats sink();
-
-
-	@Override
 	public void cleanup() {
 		throw new UnsupportedOperationException();
 	}

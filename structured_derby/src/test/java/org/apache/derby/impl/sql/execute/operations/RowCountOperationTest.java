@@ -40,10 +40,12 @@ public class RowCountOperationTest extends SpliceUnitTest {
 			protected void starting(Description description) {
 				try {
 					PreparedStatement s = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?)",CLASS_NAME,TABLE_NAME));
-					for (int i = 1; i<11;i++) {
+                    int size = 10;
+					for (int i = 1; i<=size;i++) {
 						s.setInt(1, i);
 						s.executeUpdate();
 					}
+//                    spliceClassWatcher.splitTable(TABLE_NAME,CLASS_NAME,size/3);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}

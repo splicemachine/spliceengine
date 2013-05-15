@@ -84,7 +84,7 @@ public class OperationSink {
                  * have already been written.
                  */
                 for(Mutation mutation:mutations){
-                    if(isTempTable && mutation instanceof Put)
+                    if(isTempTable && mutation instanceof Put && taskIdCol!=null)
                         ((Put)mutation).add(SpliceConstants.DEFAULT_FAMILY_BYTES,taskIdCol,taskId);
 
                     writeBuffer.add(mutation);

@@ -161,52 +161,6 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
         };
     }
 
-    @Override
-	public TaskStats sink() {
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-        stats.start();
-		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
-		ExecRow row = null;
-		HTableInterface tempTable = null;
-		Put put = null;
-		try{
-			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
-			Hasher hasher = new Hasher(((SpliceBaseOperation)source).getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
-			byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
-            Serializer serializer = new Serializer();
-
-            do{
-                long pTs = System.nanoTime();
-                row = source.getNextRowCore();
-                if(row==null) continue;
-
-                stats.readAccumulator().tick(System.nanoTime()-pTs);
-
-                pTs = System.nanoTime();
-                SpliceLogUtils.trace(LOG, "row="+row);
-                byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
-                put = Puts.buildTempTableInsert(rowKey, row.getRowArray(), null, serializer);
-                tempTable.put(put);
-
-                stats.writeAccumulator().tick(System.nanoTime()-pTs);
-            }while(row!=null);
-			tempTable.flushCommits();
-			tempTable.close();
-		}catch (StandardException se){
-			SpliceLogUtils.logAndThrowRuntime(LOG,se);
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		}finally{
-			try {
-				if(tempTable!=null)
-					tempTable.close();
-			} catch (IOException e) {
-				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
-			}
-		}
-        return stats.finish();
-	}
-
 	@Override
 	public void close() throws StandardException
     {

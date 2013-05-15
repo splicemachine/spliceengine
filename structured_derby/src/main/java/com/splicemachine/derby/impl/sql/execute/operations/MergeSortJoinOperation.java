@@ -278,61 +278,6 @@ public class MergeSortJoinOperation extends JoinOperation {
         }
     }
 
-    @Override
-	public TaskStats sink() throws IOException {
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-        stats.start();
-        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for MergeSortJoin at "+stats.getStartTime());
-		SpliceLogUtils.trace(LOG, "sink with joinSide= %s",joinSide);
-		ExecRow row = null;
-        CallBuffer<Mutation> writeBuffer;
-		try{
-			Put put;
-			Hasher hasher = null;
-            writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(SpliceOperationCoprocessor.TEMP_TABLE);
-			NoPutResultSet resultSet = null;
-			DataValueDescriptor[] additionalDescriptors = {activation.getDataValueFactory().getDataValue(joinSide.ordinal(), null)};
-			switch (joinSide) {
-				case LEFT: 
-					hasher = new Hasher(leftResultSet.getExecRowDefinition().getRowArray(),leftHashKeys,null,sequence[0],additionalDescriptors,null);
-					resultSet = leftResultSet;					
-					break;
-				case RIGHT: 
-					hasher = new Hasher(rightResultSet.getExecRowDefinition().getRowArray(),rightHashKeys,null,sequence[0],additionalDescriptors,null);
-					resultSet = rightResultSet;
-					break;
-			}
-            Serializer serializer = new Serializer();
-
-            do{
-                long start = System.nanoTime();
-
-                row = resultSet.getNextRowCore();
-                if(row==null)continue;
-                stats.readAccumulator().tick(System.nanoTime()-start);
-
-                start = System.nanoTime();
-                SpliceLogUtils.trace(LOG, "sinking row %s",row);
-                byte[] rowKey = hasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors);
-                put = Puts.buildInsert(rowKey, row.getRowArray(),null, SpliceUtils.NA_TRANSACTION_ID, serializer, additionalDescriptors);
-                writeBuffer.add(put);
-                stats.writeAccumulator().tick(System.nanoTime()-start);
-            }while(row!=null);
-            writeBuffer.flushBuffer();
-            writeBuffer.close();
-		}catch (StandardException se){
-			SpliceLogUtils.logAndThrowRuntime(LOG,se);
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		} catch (Exception e) {
-            SpliceLogUtils.logAndThrow(LOG,Exceptions.getIOException(e));
-        }
-        //return stats.finish();
-		TaskStats ss = stats.finish();
-		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for MergeSortJoin at "+stats.getFinishTime());
-        return ss;
-	}
-
 	@Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");

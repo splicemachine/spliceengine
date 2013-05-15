@@ -69,41 +69,6 @@ public class DeleteOperation extends DMLWriteOperation{
         };
     }
 
-    @Override
-	public TaskStats sink() throws IOException {
-		SpliceLogUtils.trace(LOG,"sink on transactinID="+getTransactionID());
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-        stats.start();
-        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for DeleteOperation at "+stats.getStartTime());
-		ExecRow nextRow;
-		try {
-            CallBuffer<Mutation> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(Long.toString(heapConglom).getBytes());
-            do{
-                long processStart = System.nanoTime();
-                nextRow = source.getNextRowCore();
-                if(nextRow==null) continue;
-                stats.readAccumulator().tick(System.nanoTime()-processStart);
-
-                processStart = System.nanoTime();
-                //there is a row to delete, so delete it
-                SpliceLogUtils.trace(LOG, "DeleteOperation sink, nextRow=" + nextRow);
-                RowLocation locToDelete = (RowLocation) nextRow.getColumn(nextRow.nColumns()).getObject();
-                writeBuffer.add(Mutations.getDeleteOp(getTransactionID(),locToDelete.getBytes()));
-
-                stats.writeAccumulator().tick(System.nanoTime()-processStart);
-            }while(nextRow!=null);
-            writeBuffer.flushBuffer();
-            writeBuffer.close();
-		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		}
-        //return stats.finish();
-		TaskStats ss = stats.finish();
-		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for DeleteOperation at "+stats.getFinishTime());
-        return ss;
-	}
-
-
 	@Override
 	public String toString() {
 		return "Delete{destTable="+heapConglom+",source=" + source + "}";
