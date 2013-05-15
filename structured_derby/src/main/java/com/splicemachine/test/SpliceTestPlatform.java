@@ -3,6 +3,7 @@ package com.splicemachine.test;
 import java.io.File;
 import java.util.Arrays;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.si.coprocessors.SIObserver;
 import org.apache.hadoop.conf.Configuration;
@@ -88,8 +89,8 @@ public class SpliceTestPlatform extends TestConstants {
 
 	public void setBaselineConfigurationParameters(Configuration configuration) {
 		configuration.set("hbase.rootdir", "file://" + hbaseTargetDirectory);
-		configuration.setInt("hbase.rpc.timeout", 90000);
-		configuration.setInt("hbase.regionserver.lease.period", 90000);		
+		configuration.setInt("hbase.rpc.timeout", 120000);
+		configuration.setInt("hbase.regionserver.lease.period", 120000);		
 		configuration.set("hbase.cluster.distributed", "true");
 		configuration.setInt("hbase.balancer.period", 10000);
 		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");
@@ -100,6 +101,7 @@ public class SpliceTestPlatform extends TestConstants {
         setInt(configuration, "hbase.regionserver.info.port", regionServerInfoPort);
         coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
+		SIConstants.reloadConfiguration(configuration);
 	}
 
     public void coprocessorBaseline(Configuration configuration) {

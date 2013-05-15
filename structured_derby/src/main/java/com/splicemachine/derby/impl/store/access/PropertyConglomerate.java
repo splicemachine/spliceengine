@@ -6,7 +6,6 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Properties;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Attribute;
 import org.apache.derby.iapi.reference.Property;
@@ -14,7 +13,6 @@ import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.Formatable;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.FormatableHashtable;
-import org.apache.derby.iapi.services.locks.LockFactory;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.property.PropertyFactory;
 import org.apache.derby.iapi.services.property.PropertyUtil;
@@ -35,9 +33,9 @@ import org.apache.derby.impl.sql.execute.GenericScanQualifier;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.ZkUtils;
 
@@ -46,21 +44,13 @@ public class PropertyConglomerate {
 	protected long propertiesConglomId;
 	protected Properties serviceProperties;
 	protected Properties loadedProperties;
-	private LockFactory lf;
 	private Dictionary	cachedSet;
 	private PropertyFactory  pf;
 
     /* Constructors for This class: */
 
-	public PropertyConglomerate(
-    TransactionController   tc,
-    boolean                 create,
-    Properties              serviceProperties,
-	PropertyFactory 		pf)
-		throws StandardException
-	{
+	public PropertyConglomerate(TransactionController tc, boolean create, Properties serviceProperties, PropertyFactory pf) throws StandardException {
 		this.pf = pf;
-		
 		if (!create) {
 			SpliceUtils.getProperty(Property.PROPERTIES_CONGLOM_ID);
 			String id = Bytes.toString(SpliceUtils.getProperty(Property.PROPERTIES_CONGLOM_ID));
@@ -77,17 +67,13 @@ public class PropertyConglomerate {
 
 		if (create) {
 			DataValueDescriptor[] template = makeNewTemplate();
-
 			Properties conglomProperties = new Properties();
-
 			conglomProperties.put(
                 Property.PAGE_SIZE_PARAMETER, 
                 RawStoreFactory.PAGE_SIZE_STRING);
-
 			conglomProperties.put(
                 RawStoreFactory.PAGE_RESERVED_SPACE_PARAMETER, 
                 RawStoreFactory.PAGE_RESERVED_ZERO_SPACE_STRING);
-
 			propertiesConglomId = 
                 tc.createConglomerate(
                     AccessFactoryGlobals.HEAP,
@@ -96,10 +82,7 @@ public class PropertyConglomerate {
                     (int[]) null, // use default collation for property conglom.
                     conglomProperties, 
                     TransactionController.IS_DEFAULT);
-
-			serviceProperties.put(
-                Property.PROPERTIES_CONGLOM_ID, 
-                Long.toString(propertiesConglomId));
+			serviceProperties.put(Property.PROPERTIES_CONGLOM_ID, Long.toString(propertiesConglomId));
 			serviceProperties.setProperty(DataDictionary.CORE_DATA_DICTIONARY_VERSION,"10.9");
 			
 		}
@@ -113,16 +96,10 @@ public class PropertyConglomerate {
 		} catch (Exception e) {
 			SpliceStandardLogUtils.logAndReturnStandardException(LOG, "getServiceProperties Failed", e);
 		}
-		
 		this.serviceProperties = serviceProperties;
-
 		PC_XenaVersion softwareVersion = new PC_XenaVersion();
 		if (create)
-			setProperty(tc,DataDictionary.PROPERTY_CONGLOMERATE_VERSION,
-						 softwareVersion, true);
-//		else
-//			softwareVersion.upgradeIfNeeded(tc,this,serviceProperties);
-
+			setProperty(tc,DataDictionary.PROPERTY_CONGLOMERATE_VERSION,softwareVersion, true);
 		getCachedDbProperties(tc);
 	}
 
@@ -131,26 +108,20 @@ public class PropertyConglomerate {
     /**
      * Create a new PropertyConglomerate row, with values in it.
      **/
-    public DataValueDescriptor[] makeNewTemplate(String key, Serializable value)
-    {
+    public DataValueDescriptor[] makeNewTemplate(String key, Serializable value) {
 		DataValueDescriptor[] template = new DataValueDescriptor[2];
-
 		template[0] = new SQLVarchar(key);
 		template[1] = new UserType(value);
-
         return(template);
     }
 
     /**
      * Create a new empty PropertyConglomerate row, to fetch values into.
      **/
-    public DataValueDescriptor[] makeNewTemplate()
-    {
+    public DataValueDescriptor[] makeNewTemplate() {
 		DataValueDescriptor[] template = new DataValueDescriptor[2];
-
 		template[0] = new SQLVarchar();
 		template[1] = new UserType();
-
         return(template);
     }
 
@@ -169,26 +140,16 @@ public class PropertyConglomerate {
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public ScanController openScan(
-    TransactionController tc, 
-    String                key, 
-    int                   open_mode) 
-		throws StandardException
-    {
-    	    	
+    public ScanController openScan(TransactionController tc, String key, int open_mode) throws StandardException {
 		Qualifier[][] qualifiers = null;
-
-		if (key != null) {
-			// Set up qualifier to look for the row with key value in column[0]
+		if (key != null) { 			// Set up qualifier to look for the row with key value in column[0]
 			qualifiers = new Qualifier[1][];
             qualifiers[0] = new Qualifier[1];
             GenericScanQualifier gsq = new GenericScanQualifier();
             gsq.setQualifier(0, new SQLVarchar(key),DataValueDescriptor.ORDER_OP_EQUALS, false, false, false);
 			qualifiers[0][0] = gsq;
 		}
-
-        // open the scan, clients will do the fetches and close.
-		ScanController scan = 
+		ScanController scan =         // open the scan, clients will do the fetches and close.
             tc.openScan(
                 propertiesConglomId,
                 false, // don't hold over the commit
@@ -201,7 +162,6 @@ public class PropertyConglomerate {
                 qualifiers,
                 (DataValueDescriptor[]) null,	// stop key
                 ScanController.NA);
-
 		return(scan);
 	}
     /* Package Methods of This class: */
@@ -218,19 +178,15 @@ public class PropertyConglomerate {
 	 * Set the default for a property.
 	 * @exception  StandardException  Standard exception policy.
 	 */
-    public void setPropertyDefault(TransactionController tc, String key, Serializable value)
-		 throws StandardException
-	{
+    public void setPropertyDefault(TransactionController tc, String key, Serializable value) throws StandardException {
 		Serializable valueToSave = null;
 		//
 		//If the default is visible we validate apply and map.
 		//otherwise we just map.
-		if (propertyDefaultIsVisible(tc,key))
-		{
+		if (propertyDefaultIsVisible(tc,key)) {
 			valueToSave = validateApplyAndMap(tc,key,value,false);
 		}
-		else
-		{
+		else {
 			synchronized (this) {
 				Hashtable defaults = new Hashtable();
 				getProperties(tc,defaults,false/*!stringsOnly*/,true/*defaultsOnly*/);
@@ -241,54 +197,36 @@ public class PropertyConglomerate {
 		savePropertyDefault(tc,key,valueToSave);
 	}
 
-    public boolean propertyDefaultIsVisible(TransactionController tc,String key) throws StandardException
-	{
+    public boolean propertyDefaultIsVisible(TransactionController tc,String key) throws StandardException {
 		return(readProperty(tc,key) == null);
 	}
 	
-    public void saveProperty(TransactionController tc, String key, Serializable value)
-		 throws StandardException
-	{
+    public void saveProperty(TransactionController tc, String key, Serializable value) throws StandardException {
 		if (saveServiceProperty(key,value)) return;
 
         // Do a scan to see if the property already exists in the Conglomerate.
-		ScanController scan = 
-            this.openScan(tc, key, TransactionController.OPENMODE_FORUPDATE);
+		ScanController scan = this.openScan(tc, key, TransactionController.OPENMODE_FORUPDATE);
 
         DataValueDescriptor[] row = makeNewTemplate();
-
-		if (scan.fetchNext(row)) 
-        {
-			if (value == null)
-            {
+		if (scan.fetchNext(row)) {
+			if (value == null) {
 				// A null input value means that we should delete the row
-                
 				scan.delete();
 			} 
-            else
-            {
+            else {
 				// a value already exists, just replace the second columm
-
 				row[1] = new UserType(value);
-
 				scan.replace(row, (FormatableBitSet) null);
 			}
-
 			scan.close();
 		}
-        else
-        {
+        else {
             // The value does not exist in the Conglomerate.
-
             scan.close();
             scan = null;
-
-            if (value != null)
-            {
+            if (value != null) {
                 // not a delete request, so insert the new property.
-                
                 row = makeNewTemplate(key, value);
-
                 ConglomerateController cc = 
                     tc.openConglomerate(
                         propertiesConglomId, 
@@ -298,31 +236,25 @@ public class PropertyConglomerate {
                         TransactionController.ISOLATION_SERIALIZABLE);
 
                 cc.insert(row);
-
                 cc.close();
             }
         }
 	}
 
-    public boolean saveServiceProperty(String key, Serializable value)
-	{
-		if (PropertyUtil.isServiceProperty(key))
-		{
+    public boolean saveServiceProperty(String key, Serializable value) {
+		if (PropertyUtil.isServiceProperty(key)) {
 			if (value != null)
 				serviceProperties.put(key, value);
 			else
 				serviceProperties.remove(key);
 			return true;
 		}
-		else
-		{
+		else {
 			return false;
 		}
 	}
 
-    public void savePropertyDefault(TransactionController tc, String key, Serializable value)
-		 throws StandardException
-	{
+    public void savePropertyDefault(TransactionController tc, String key, Serializable value) throws StandardException {
 		if (saveServiceProperty(key,value)) return;
 
 		Dictionary defaults = (Dictionary)readProperty(tc,AccessFactoryGlobals.DEFAULT_PROPERTY_NAME);
@@ -335,20 +267,14 @@ public class PropertyConglomerate {
 		saveProperty(tc,AccessFactoryGlobals.DEFAULT_PROPERTY_NAME,(Serializable)defaults);
 	}
 
-    public Serializable validateApplyAndMap(TransactionController tc,
-											 String key, Serializable value, boolean dbOnlyProperty)
-		 throws StandardException
-	{
+    public Serializable validateApplyAndMap(TransactionController tc, String key, Serializable value, boolean dbOnlyProperty) throws StandardException {
 		Dictionary d = new Hashtable();
 		getProperties(tc,d,false/*!stringsOnly*/,false/*!defaultsOnly*/);
-		Serializable mappedValue = pf.doValidateApplyAndMap(tc, key,
-																   value, d, dbOnlyProperty);
+		Serializable mappedValue = pf.doValidateApplyAndMap(tc, key,value, d, dbOnlyProperty);
 		//
 		// RESOLVE: log device cannot be changed on the fly right now
-		if (key.equals(Attribute.LOG_DEVICE))
-        {
-			throw StandardException.newException(
-                    SQLState.RAWSTORE_CANNOT_CHANGE_LOGDEVICE);
+		if (key.equals(Attribute.LOG_DEVICE)) {
+			throw StandardException.newException(SQLState.RAWSTORE_CANNOT_CHANGE_LOGDEVICE);
         }
 
 		if (mappedValue == null)
@@ -365,11 +291,7 @@ public class PropertyConglomerate {
 	  to serialize validations with changes to the set of
 	  property callbacks
 	  */
-    public Serializable map(String key,
-							 Serializable value,
-							 Dictionary set)
-		 throws StandardException
-	{
+    public Serializable map(String key, Serializable value, Dictionary set) throws StandardException {
 		return pf.doMap(key, value, set);
 	}
 
@@ -382,25 +304,16 @@ public class PropertyConglomerate {
 	  property callbacks
 	  */
 
-    public void validate(String key,
-						  Serializable value,
-						  Dictionary set)
-		 throws StandardException
-	{
+    public void validate(String key, Serializable value, Dictionary set) throws StandardException {
 		pf.validateSingleProperty(key, value, set);
 	}
 
 
-    public boolean bootPasswordChange(TransactionController tc,
-									   String key,
-									   Serializable value)
-		 throws StandardException
-	{
+    public boolean bootPasswordChange(TransactionController tc, String key, Serializable value) throws StandardException {
 		// first check for boot password  change - we don't put boot password
 		// in the servicePropertyList because if we do, then we expose the
 		// boot password in clear text
-		if (key.equals(Attribute.BOOT_PASSWORD))
-		{
+		if (key.equals(Attribute.BOOT_PASSWORD)) {
 			// The user is trying to change the secret key.
 			// The secret key is never stored in clear text, but we
 			// store the encrypted form in the services.properties
@@ -418,8 +331,7 @@ public class PropertyConglomerate {
 			serviceProperties.put(RawStoreFactory.ENCRYPTED_KEY,value);
 			return true;
 		}
-		else
-		{
+		else {
 			return false;
 		}
 	}
@@ -444,19 +356,10 @@ public class PropertyConglomerate {
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public void setProperty(
-    TransactionController tc,
-    String                key,
-    Serializable          value, boolean dbOnlyProperty)
-		throws StandardException
-    {
-		if (SanityManager.DEBUG)
-        {
-
-			if (!((value == null) || (value instanceof Formatable)))
-            {
-                if (!(value.getClass().getName().startsWith("java.")))
-                {
+    public void setProperty(TransactionController tc, String key, Serializable value, boolean dbOnlyProperty) throws StandardException {
+		if (SanityManager.DEBUG) {
+			if (!((value == null) || (value instanceof Formatable))) {
+                if (!(value.getClass().getName().startsWith("java."))) {
                     SanityManager.THROWASSERT(
                         "Non-formattable, non-java class - " +
                         value.getClass().getName());
@@ -493,27 +396,18 @@ public class PropertyConglomerate {
 			saveProperty(tc,key,valueToSave);
 	}
 
-    public Serializable readProperty(TransactionController tc,
-									  String key) throws StandardException
-	{
+    public Serializable readProperty(TransactionController tc, String key) throws StandardException {
 		// scan the table for a row with matching "key"
 		ScanController scan = openScan(tc, key, 0);
-
 		DataValueDescriptor[] row = makeNewTemplate();
-
 		// did we find at least one row?
 		boolean isThere = scan.fetchNext(row);
-		
 		scan.close();
-
 		if (!isThere) return null;
-
 		return (Serializable) (((UserType) row[1]).getObject());
 	}
 
-    public Serializable getCachedProperty(TransactionController tc,
-										   String key) throws StandardException
-	{
+    public Serializable getCachedProperty(TransactionController tc, String key) throws StandardException {
 		//
 		//Get the cached set of properties.
 		Dictionary dbProps = getCachedDbProperties(tc);
@@ -526,11 +420,7 @@ public class PropertyConglomerate {
 			return getCachedPropertyDefault(tc,key,dbProps);
 	}
 
-    public Serializable getCachedPropertyDefault(TransactionController tc,
-												  String key,
-												  Dictionary dbProps)
-		 throws StandardException
-	{
+    public Serializable getCachedPropertyDefault(TransactionController tc, String key, Dictionary dbProps) throws StandardException {
 		//
 		//Get the cached set of properties.
 		if (dbProps == null) dbProps = getCachedDbProperties(tc);
@@ -562,15 +452,10 @@ public class PropertyConglomerate {
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public Serializable getProperty(
-    TransactionController tc, 
-    String                key) 
-		throws StandardException
-    {
+    public Serializable getProperty(TransactionController tc, String key)  throws StandardException {
 		//
 		//Try service properties first.
 		if(PropertyUtil.isServiceProperty(key)) return serviceProperties.getProperty(key);
-
 		{
 			//
 			//Return the property value if it is defined.
@@ -585,9 +470,7 @@ public class PropertyConglomerate {
 	 * Get the default for a property.
 	 * @exception  StandardException  Standard exception policy.
 	 */
-    public Serializable getPropertyDefault(TransactionController tc, String key)
-		 throws StandardException
-	{
+    public Serializable getPropertyDefault(TransactionController tc, String key) throws StandardException {
 		// See if I'm the exclusive owner. If so I cannot populate
 		// the cache as it would contain my uncommitted changes.
 			//
@@ -600,8 +483,7 @@ public class PropertyConglomerate {
 				return (Serializable)defaults.get(key);
 	}
 									
-    public Dictionary copyValues(Dictionary to, Dictionary from, boolean stringsOnly)
-	{
+    public Dictionary copyValues(Dictionary to, Dictionary from, boolean stringsOnly) {
 		if (from == null) return to; 
 		for (Enumeration keys = from.keys(); keys.hasMoreElements(); ) {
 			String key = (String) keys.nextElement();
@@ -622,26 +504,26 @@ public class PropertyConglomerate {
 		return p;
 	}
 
-	public void getProperties(TransactionController tc,
-							   Dictionary d,
-							   boolean stringsOnly,
-							   boolean defaultsOnly) throws StandardException
-	{
+	public void getProperties(TransactionController tc, Dictionary d, boolean stringsOnly, boolean defaultsOnly) throws StandardException {
 		// See if I'm the exclusive owner. If so I cannot populate
 		// the cache as it would contain my uncommitted changes.
-			Dictionary dbProps = readDbProperties(tc);
-			Dictionary defaults = (Dictionary)dbProps.get(AccessFactoryGlobals.DEFAULT_PROPERTY_NAME);
-			copyValues(d,defaults,stringsOnly);
-			if (!defaultsOnly)copyValues(d,dbProps,stringsOnly);
+		Dictionary dbProps = getCachedDbProperties(tc);
+		Dictionary defaults = (Dictionary)dbProps.get(AccessFactoryGlobals.DEFAULT_PROPERTY_NAME);
+		copyValues(d,defaults,stringsOnly);
+		if (!defaultsOnly)
+			copyValues(d,dbProps,stringsOnly);
+		
+//			Dictionary dbProps = readDbProperties(tc);
+//			Dictionary defaults = (Dictionary)dbProps.get(AccessFactoryGlobals.DEFAULT_PROPERTY_NAME);
+//			copyValues(d,defaults,stringsOnly);
+//			if (!defaultsOnly)copyValues(d,dbProps,stringsOnly);
 		
 	}
 
 	public void resetCache() {cachedSet = null;}
 
 	/** Read the database properties and add in the service set. */
-	public Dictionary readDbProperties(TransactionController tc)
-		 throws StandardException
-	{
+	public Dictionary readDbProperties(TransactionController tc) throws StandardException {
 		Dictionary set = new Hashtable();
 
         // scan the table for a row with no matching "key"
@@ -650,7 +532,6 @@ public class PropertyConglomerate {
 		DataValueDescriptor[] row = makeNewTemplate();
 
 		while (scan.fetchNext(row)) {
-			
 			Object key = ((SQLVarchar) row[0]).getObject();
 			Object value = ((UserType) row[1]).getObject();
 			if (SanityManager.DEBUG) {
@@ -671,17 +552,13 @@ public class PropertyConglomerate {
 		return set;
 	}
 
-	public Dictionary getCachedDbProperties(TransactionController tc)
-		 throws StandardException
-	{
+	public Dictionary getCachedDbProperties(TransactionController tc) throws StandardException {
 		Dictionary dbProps = cachedSet;
 		//Get the cached set of properties.
-		if (dbProps == null)
-		{
+		if (dbProps == null) {
 			dbProps = readDbProperties(tc);
 			cachedSet = dbProps;
 		}
-		
 		return dbProps;
 	}
 

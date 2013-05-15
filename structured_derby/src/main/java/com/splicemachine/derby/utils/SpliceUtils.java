@@ -91,13 +91,12 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Scan createScan(String transactionId) {
-/*
+
     	try {
     		throw new Exception("Transactional Scan");    		
     	} catch (Exception e) {
     		e.printStackTrace();
     	}
-  */
         try {
             return (Scan) attachTransaction(new Scan(), transactionId);
         } catch (Exception e) {

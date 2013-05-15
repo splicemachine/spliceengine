@@ -4,6 +4,7 @@ import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.cache.SpliceCache;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.scheduler.AsyncJobScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
@@ -23,7 +24,6 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
-
 import javax.management.*;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class SpliceDriver extends SIConstants {
     private static final Logger LOG = Logger.getLogger(SpliceDriver.class);
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
+    protected SpliceCache cache;
     public static enum State{
         NOT_STARTED,
         INITIALIZING,
@@ -147,7 +148,13 @@ public class SpliceDriver extends SIConstants {
             executor.submit(new Callable<Void>(){
                 @Override
                 public Void call() throws Exception {
+
                     SpliceLogUtils.info(LOG,"Booting the SpliceDriver");
+
+                    SpliceLogUtils.info(LOG,"Starting Cache");
+                    startCache();
+                    
+                    
                     writerPool.start();
 
                     //all we have to do is create it, it will register itself for us
@@ -200,7 +207,6 @@ public class SpliceDriver extends SIConstants {
         	return bootDatabase();
         }
         catch (Exception e) {
-        	e.printStackTrace();
 			EmbedConnectionMaker maker = new EmbedConnectionMaker();
 			connection = maker.createNew();        	
 			return true;
@@ -340,6 +346,11 @@ public class SpliceDriver extends SIConstants {
             SpliceLogUtils.error(LOG,"Unable to start Client/Server Protocol",e);
             return false;
         }
+    }
+    
+    private boolean startCache() {
+    		cache = new SpliceCache("Splice");
+    		return true;    	
     }
     
 }

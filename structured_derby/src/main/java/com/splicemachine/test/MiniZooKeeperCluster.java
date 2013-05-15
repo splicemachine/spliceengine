@@ -40,10 +40,9 @@ public class MiniZooKeeperCluster {
 			Properties startupProperties = new Properties();
 			startupProperties.setProperty("tickTime", "2000");
 			startupProperties.setProperty("dataDir", dir.getAbsolutePath());
-			startupProperties.setProperty("initLimit", "5");
-			startupProperties.setProperty("syncLimit", "2");	
-			startupProperties.setProperty("syncLimit", "2");
-			startupProperties.setProperty("maxClientCnxns", "0");
+			startupProperties.setProperty("initLimit", "10");
+			startupProperties.setProperty("syncLimit", "5");	
+			startupProperties.setProperty("maxClientCnxns", "100");
 			
 			for (int j = 0; j<numZooKeeperServers;j++) {
 				int m = j+1;

@@ -279,7 +279,7 @@
                                 <argument>-cp</argument>
                                 <classpath>${maven.runtime.classpath}</classpath>
                                 <argument>-Xdebug</argument>
-                                <argument>-XX:+UseConcMarkSweepGC</argument>
+<!--                                 <argument>-XX:+UseConcMarkSweepGC</argument> -->
                                 <argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
                                 <argument>-Xmx2g</argument>
                                 <argument>-Xms1g</argument>
