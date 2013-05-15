@@ -11,6 +11,7 @@ import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
+import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
 import com.splicemachine.si.impl.SITransactor;
@@ -80,10 +81,11 @@ public class TransactorFactory extends SIConstants {
                 TRANSACTION_READ_COMMITTED_COLUMN_BYTES,
                 TRANSACTION_COMMIT_TIMESTAMP_COLUMN, TRANSACTION_STATUS_COLUMN,
                 TRANSACTION_KEEP_ALIVE_COLUMN);
-        final Cache<Long, Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         final Cache<Long, ImmutableTransaction> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-        final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, cache,
-                immutableCache);
+        final Cache<Long, ActiveTransactionCacheEntry> activeCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+        final Cache<Long, Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+        final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
+                immutableCache, activeCache, cache);
 
         final DataStore rowStore = new DataStore(dataLib, reader, writer, "si-needed", SI_NEEDED_VALUE,
                 ONLY_SI_FAMILY_NEEDED_VALUE,

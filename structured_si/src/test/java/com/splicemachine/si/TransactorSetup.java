@@ -5,6 +5,7 @@ import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.data.hbase.HTransactor;
+import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
 import com.splicemachine.si.impl.RollForwardQueue;
@@ -47,9 +48,10 @@ public class TransactorSetup extends SIConstants {
         ageQualifier = dataLib.encode("age");
         jobQualifier = dataLib.encode("job");
 
-        final Cache<Long, Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         final Cache<Long, ImmutableTransaction> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-        transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, cache, immutableCache);
+        final Cache<Long, ActiveTransactionCacheEntry> activeCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+        final Cache<Long, Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+        transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, immutableCache, activeCache, cache);
 
         transactor = new SITransactor(new SimpleTimestampSource(), dataLib, writer,
                 new DataStore(dataLib, reader, writer, "si-needed", SI_NEEDED_VALUE, ONLY_SI_FAMILY_NEEDED_VALUE,
