@@ -11,7 +11,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
 
     @Override
     public StringDataValue getVarcharDataValue(String value) {
-        return new LazyStringDataValueDescriptor(new SQLVarchar(), new StringSerializer());
+        return new LazyStringDataValueDescriptor(new SQLVarchar(value), new StringSerializer());
     }
 
     @Override
@@ -27,9 +27,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
                 previous.setValue(value);
                 result = new LazyStringDataValueDescriptor(previous, new StringSerializer());
             }else{
-                SQLVarchar newDvd = new SQLVarchar();
-                newDvd.setValue(value);
-                result = new LazyStringDataValueDescriptor(newDvd, new StringSerializer());
+                result = new LazyStringDataValueDescriptor(new SQLVarchar(value), new StringSerializer());
             }
         }
 
