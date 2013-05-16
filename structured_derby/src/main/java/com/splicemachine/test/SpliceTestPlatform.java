@@ -72,8 +72,8 @@ public class SpliceTestPlatform extends TestConstants {
 	public void start() throws Exception {
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
-		miniZooKeeperCluster = new MiniZooKeeperCluster();
-		miniZooKeeperCluster.startup(new File(zookeeperTargetDirectory),3);
+		//miniZooKeeperCluster = new MiniZooKeeperCluster();
+		//miniZooKeeperCluster.startup(new File(zookeeperTargetDirectory),3);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
 	}
 	public void end() throws Exception {
@@ -92,7 +92,7 @@ public class SpliceTestPlatform extends TestConstants {
 		configuration.setInt("hbase.regionserver.lease.period", 90000);		
 		configuration.set("hbase.cluster.distributed", "true");
 		configuration.setInt("hbase.balancer.period", 10000);
-		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");
+		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
 		configuration.set("hbase.regionserver.handler.count", "40");
 
         setInt(configuration, "hbase.master.port", masterPort);
