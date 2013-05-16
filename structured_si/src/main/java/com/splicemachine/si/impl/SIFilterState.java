@@ -128,8 +128,6 @@ public class SIFilterState implements FilterState {
             final Transaction dataTransaction = getTransactionFromFilterCache();
             if (dataTransaction.isCommitted() || dataTransaction.isFailed()) {
                 rollForward(dataTransaction);
-            } else if (dataTransaction.isCommitting()) {
-                //TODO: needs special handling
             }
             return dataTransaction;
         } else {

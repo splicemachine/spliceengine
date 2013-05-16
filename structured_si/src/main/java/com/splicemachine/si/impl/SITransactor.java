@@ -157,11 +157,12 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
         if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, COMMITTING)) {
             throw new IOException("committing failed");
         }
+        Tracer.traceCommitting(transaction.getTransactionId().getId());
         // TODO: need to sort out how to take child transactions through COMMITTING state, alternatively don't commit
         // TODO: children directly, rather let them inherit their commit status from their parent
         final long endId = timestampSource.nextTimestamp();
         if (!transactionStore.recordTransactionEnd(transactionId, endId, COMMITTING, COMMITTED)) {
-            throw new IOException("commit failed");
+            throw new DoNotRetryIOException("commit failed");
         }
         commitAll(childrenToCommit, endId);
     }

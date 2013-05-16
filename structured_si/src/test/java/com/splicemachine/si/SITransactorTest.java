@@ -190,7 +190,7 @@ public class SITransactorTest extends SIConstants {
     }
 
     static String scanNoColumnsDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
-                                TransactionId transactionId, String name, boolean deleted) throws IOException {
+                                      TransactionId transactionId, String name, boolean deleted) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
@@ -606,6 +606,11 @@ public class SITransactorTest extends SIConstants {
     private void assertWriteConflict(RetriesExhaustedWithDetailsException e) {
         Assert.assertEquals(1, e.getNumExceptions());
         Assert.assertTrue(e.getMessage().startsWith("Failed 1 action: WriteConflict: 1 time"));
+    }
+
+    private void assertWriteFailed(RetriesExhaustedWithDetailsException e) {
+        Assert.assertEquals(1, e.getNumExceptions());
+        Assert.assertTrue(e.getMessage().startsWith("commit failed"));
     }
 
     @Test
@@ -1733,7 +1738,7 @@ public class SITransactorTest extends SIConstants {
             Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
 
             Object result2 = readRaw(testRow);
-            
+
             final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
                     dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
             for (Object c2 : commitTimestamps2) {
@@ -2051,7 +2056,7 @@ public class SITransactorTest extends SIConstants {
                 admin.flush(storeSetup.getPersonTableName());
             }
             if (commit) {
-            transactor.commit(tx);
+                transactor.commit(tx);
             } else {
                 transactor.rollback(tx);
             }
@@ -2070,7 +2075,7 @@ public class SITransactorTest extends SIConstants {
         final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
                 dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
         for (Object c : commitTimestamps) {
-            timestampProcessor.apply(new Object[] {t0, c});
+            timestampProcessor.apply(new Object[]{t0, c});
             Assert.assertEquals(t0.getId(), dataLib.getKeyValueTimestamp(c));
         }
     }
@@ -2081,6 +2086,220 @@ public class SITransactorTest extends SIConstants {
         final List<HRegionInfo> regions = regionServer.getOnlineRegions();
         for (HRegionInfo region : regions) {
             regionServer.compactRegion(region, false);
+        }
+    }
+
+    @Test
+    public void committingRace() throws IOException {
+        try {
+            final CountDownLatch latch = new CountDownLatch(1);
+            final CountDownLatch latch2 = new CountDownLatch(1);
+            final CountDownLatch latch3 = new CountDownLatch(1);
+            final Boolean[] success = new Boolean[]{false};
+            final Boolean[] waits = new Boolean[] {false, false};
+            Tracer.registerCommitting(new Function<Long, Object>() {
+                @Override
+                public Object apply(@Nullable Long aLong) {
+                    latch.countDown();
+                    try {
+                        waits[1] = latch2.await(2, TimeUnit.SECONDS);
+                        Assert.assertTrue(waits[1]);
+                    } catch (InterruptedException e) {
+                        Assert.fail();
+                    }
+                    return null;
+                }
+            });
+            Tracer.registerWaiting(new Function<Long, Object>() {
+                @Override
+                public Object apply(@Nullable Long aLong) {
+                    latch2.countDown();
+                    return null;
+                }
+            });
+            TransactionId t1 = transactor.beginTransaction(true, false, false);
+            insertAge(t1, "joe86", 20);
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        waits[0] = latch.await(2, TimeUnit.SECONDS);
+                        Assert.assertTrue(waits[0]);
+                        TransactionId t2 = transactor.beginTransaction(true, false, false);
+                        try {
+                            insertAge(t2, "joe86", 21);
+                            Assert.fail();
+                        } catch (WriteConflict e) {
+                        } catch (RetriesExhaustedWithDetailsException e) {
+                            assertWriteConflict(e);
+                        }
+                        success[0] = true;
+                        latch3.countDown();
+                    } catch (InterruptedException e) {
+                        Assert.fail();
+                    } catch (IOException e) {
+                        Assert.fail(e.getMessage());
+                    }
+                }
+            }).start();
+
+            transactor.commit(t1);
+            Assert.assertTrue(latch3.await(2, TimeUnit.SECONDS));
+            Assert.assertTrue(waits[0]);
+            Assert.assertTrue(waits[1]);
+            Assert.assertTrue(success[0]);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            Tracer.registerCommitting(null);
+            Tracer.registerWaiting(null);
+        }
+    }
+
+    @Test
+    public void committingRaceNested() throws IOException {
+        try {
+            final CountDownLatch latch = new CountDownLatch(1);
+            final CountDownLatch latch2 = new CountDownLatch(1);
+            final CountDownLatch latch3 = new CountDownLatch(1);
+            final Boolean[] success = new Boolean[]{false};
+            final Boolean[] waits = new Boolean[]{false, false};
+            final TransactionId t1 = transactor.beginTransaction(true, false, false);
+            Tracer.registerCommitting(new Function<Long, Object>() {
+                @Override
+                public Object apply(@Nullable Long timestamp) {
+                    if (timestamp.equals(t1.getId())) {
+                        latch.countDown();
+                        try {
+                            waits[1] = latch2.await(2, TimeUnit.SECONDS);
+                            Assert.assertTrue(waits[1]);
+                        } catch (InterruptedException e) {
+                            Assert.fail();
+                        }
+                    }
+                    return null;
+                }
+            });
+            final TransactionId t1a = transactor.beginChildTransaction(t1, true, true, null, null);
+            insertAge(t1a, "joe88", 20);
+            Tracer.registerWaiting(new Function<Long, Object>() {
+                @Override
+                public Object apply(@Nullable Long timestamp) {
+                    if (timestamp.equals(t1a.getId())) {
+                        latch2.countDown();
+                    }
+                    return null;
+                }
+            });
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        waits[0] = latch.await(2, TimeUnit.SECONDS);
+                        Assert.assertTrue(waits[0]);
+                        TransactionId t2 = transactor.beginTransaction(true, false, false);
+                        try {
+                            insertAge(t2, "joe88", 21);
+                            Assert.fail();
+                        } catch (WriteConflict e) {
+                        } catch (RetriesExhaustedWithDetailsException e) {
+                            assertWriteConflict(e);
+                        }
+                        success[0] = true;
+                        latch3.countDown();
+                    } catch (InterruptedException e) {
+                        Assert.fail();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }).start();
+
+            transactor.commit(t1);
+            Assert.assertTrue(latch3.await(2, TimeUnit.SECONDS));
+            Assert.assertTrue(waits[0]);
+            Assert.assertTrue(waits[1]);
+            Assert.assertTrue(success[0]);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            Tracer.registerCommitting(null);
+            Tracer.registerWaiting(null);
+        }
+    }
+
+    @Test
+    public void committingRaceCommitFails() throws Exception {
+        try {
+            final CountDownLatch latch = new CountDownLatch(1);
+            final CountDownLatch latch2 = new CountDownLatch(1);
+            final CountDownLatch latch3 = new CountDownLatch(1);
+            final Boolean[] success = new Boolean[]{false};
+            final Exception[] exception = new Exception[]{null};
+            Tracer.registerCommitting(new Function<Long, Object>() {
+                @Override
+                public Object apply(@Nullable Long aLong) {
+                    latch.countDown();
+                    try {
+                        Assert.assertTrue(latch2.await(5, TimeUnit.SECONDS));
+                    } catch (InterruptedException e) {
+                        Assert.fail();
+                    }
+                    return null;
+                }
+            });
+            final TransactionId t1 = transactor.beginTransaction(true, false, false);
+            Tracer.registerWaiting(new Function<Long, Object>() {
+                @Override
+                public Object apply(@Nullable Long aLong) {
+                    try {
+                        Assert.assertTrue(transactorSetup.transactionStore.recordTransactionStatusChange(t1, TransactionStatus.COMMITTING, TransactionStatus.ERROR));
+                    } catch (IOException e) {
+                        exception[0] = e;
+                        throw new RuntimeException(e);
+                    }
+                    latch2.countDown();
+                    return null;
+                }
+            });
+            insertAge(t1, "joe87", 20);
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Assert.assertTrue(latch.await(5, TimeUnit.SECONDS));
+                        TransactionId t2 = transactor.beginTransaction(true, false, false);
+                        insertAge(t2, "joe87", 21);
+                        success[0] = true;
+                        latch3.countDown();
+                    } catch (InterruptedException e) {
+                        Assert.fail();
+                    } catch (IOException e) {
+                        Assert.fail(e.getMessage());
+                    }
+                }
+            }).start();
+
+            try {
+                transactor.commit(t1);
+                Assert.fail();
+            } catch (DoNotRetryIOException e) {
+            } catch (RetriesExhaustedWithDetailsException e) {
+                assertWriteFailed(e);
+            }
+            Assert.assertTrue(latch3.await(5, TimeUnit.SECONDS));
+            if (exception[0] != null) {
+                throw exception[0];
+            }
+            Assert.assertTrue(success[0]);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            Tracer.registerCommitting(null);
+            Tracer.registerWaiting(null);
         }
     }
 
