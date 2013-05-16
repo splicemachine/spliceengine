@@ -145,11 +145,13 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
     @Override
     public DataValueDescriptor cloneHolder() {
+        forceDeserialization();
         return new LazyStringDataValueDescriptor((StringDataValue) getDvd().cloneHolder(), serializerThunk);
     }
 
     @Override
     public DataValueDescriptor cloneValue(boolean forceMaterialization) {
+        forceDeserialization();
         return new LazyStringDataValueDescriptor((StringDataValue)  getDvd().cloneValue(forceMaterialization), serializerThunk);
     }
 
