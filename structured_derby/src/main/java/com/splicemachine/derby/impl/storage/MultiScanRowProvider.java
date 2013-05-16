@@ -40,8 +40,10 @@ import java.util.concurrent.ExecutionException;
 public abstract class MultiScanRowProvider implements RowProvider {
     private static final Logger LOG = Logger.getLogger(MultiScanRowProvider.class);
 
+    private boolean shuffled = false;
     @Override
     public JobStats shuffleRows( SpliceObserverInstructions instructions) throws StandardException {
+        shuffled = true;
         List<Scan> scans = getScans();
         HTableInterface table = SpliceAccessManager.getHTable(getTableName());
         LinkedList<JobFuture> jobs = Lists.newLinkedList();
@@ -113,11 +115,12 @@ public abstract class MultiScanRowProvider implements RowProvider {
      * @return all scans which cover the row space
      * @throws StandardException if something goes wrong while getting scans.
      */
-    protected abstract List<Scan> getScans() throws StandardException;
+    public abstract List<Scan> getScans() throws StandardException;
 
 
     @Override
     public void close() {
+        if(!shuffled) //no-op if scans aren't performed
         try {
             List<Scan> scans = getScans();
             TempCleaner cleaner = SpliceDriver.driver().getTempCleaner();

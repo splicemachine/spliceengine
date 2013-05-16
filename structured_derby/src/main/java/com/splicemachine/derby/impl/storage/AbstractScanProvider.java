@@ -67,6 +67,14 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 
 	protected abstract Result getResult() throws StandardException;
 
+    public FormatableBitSet getFbt(){
+        return fbt;
+    }
+
+    public ExecRow getRowTemplate(){
+        return currentRow;
+    }
+
 	@Override
 	public ExecRow next() throws StandardException{
 		SpliceLogUtils.trace(LOG, "next");

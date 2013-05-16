@@ -873,7 +873,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 			double optimizerEstimatedRowCount,
 			double optimizerEstimatedCost) throws StandardException {		 
 		SpliceLogUtils.trace(LOG, "getRowCountResultSet");
-		return new RowCountOperation(source,
+		return new RowCountOperation((SpliceOperation)source,
 				activation,
 				resultSetNumber,
 				offsetMethod,

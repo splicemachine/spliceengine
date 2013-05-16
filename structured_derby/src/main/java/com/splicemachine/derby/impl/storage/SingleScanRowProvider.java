@@ -41,10 +41,11 @@ public abstract class SingleScanRowProvider  implements RowProvider {
 
 
     private static final Logger LOG = Logger.getLogger(SingleScanRowProvider.class);
-
+    private boolean shuffled = false;
 
     @Override
     public JobStats shuffleRows(SpliceObserverInstructions instructions ) throws StandardException {
+        shuffled=true;
         Scan scan = toScan();
         if(scan==null){
             //operate locally
@@ -78,10 +79,11 @@ public abstract class SingleScanRowProvider  implements RowProvider {
      * @return a scan representation of the row provider, or {@code null} if the operation
      * is to be shuffled locally.
      */
-    protected abstract Scan toScan();
+    public abstract Scan toScan();
 
     @Override
     public void close() {
+        if(!shuffled) return; //no need to clean temp, it's just a scan
         Scan scan = toScan();
         try {
             SpliceDriver.driver().getTempCleaner().deleteRange(SpliceUtils.getUniqueKeyString(),scan.getStartRow(),scan.getStopRow());
