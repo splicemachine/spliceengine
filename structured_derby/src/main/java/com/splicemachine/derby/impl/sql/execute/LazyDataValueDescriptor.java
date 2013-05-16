@@ -25,8 +25,6 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
     protected byte[] dvdBytes;
     protected DVDSerializer DVDSerializer;
-    protected boolean isSerialized;
-    protected boolean isDeserialized;
 
     public LazyDataValueDescriptor(){
 
@@ -39,15 +37,13 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
     public void initForDeserialization(byte[] bytes){
         this.dvdBytes = bytes;
-        isDeserialized = false;
         getDvd().setToNull();
     }
 
     protected void forceDeserialization(){
-        if(!isDeserialized && getDvd() != null && dvdBytes != null){
+        if(getDvd() != null && dvdBytes != null){
             try{
                 DVDSerializer.deserialize(dvdBytes, getDvd());
-                isDeserialized = true;
             }catch(Exception e){
                 SpliceLogUtils.logAndThrowRuntime(LOG, "Error lazily deserializing bytes",e);
             }
@@ -55,10 +51,9 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
     }
 
     protected void forceSerialization(){
-        if(!isSerialized && dvdBytes == null){
+        if(dvdBytes == null){
             try{
                 dvdBytes = DVDSerializer.serialize(getDvd());
-                isSerialized = true;
             }catch(Exception e){
                 SpliceLogUtils.logAndThrowRuntime(LOG, "Error serializing DataValueDescriptor to bytes", e);
             }
@@ -67,11 +62,9 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
     protected void resetForSerialization(){
         dvdBytes = null;
-        isSerialized = false;
     }
 
     protected void resetForDeserialization(){
-        isDeserialized = false;
         getDvd().setToNull();
     }
 
