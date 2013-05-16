@@ -35,8 +35,8 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
-public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, MutationOp>
-        implements Transactor<PutOp, GetOp, ScanOp, MutationOp> {
+public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, MutationOp, ResultType>
+        implements Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
 
     private final TimestampSource timestampSource;
@@ -483,6 +483,11 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     @Override
+    public FilterState newFilterState(TransactionId transactionId) throws IOException {
+        return newFilterState(null, transactionId, false);
+    }
+
+    @Override
     public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean siOnly) throws IOException {
         return new SIFilterState(dataLib, dataStore, transactionStore, rollForwardQueue, siOnly,
                 transactionStore.getImmutableTransaction(transactionId));
@@ -493,6 +498,46 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
         return ((SIFilterState) filterState).filterKeyValue(keyValue);
     }
 
+    @Override
+    public ResultType filterResult(FilterState filterState, ResultType result) throws IOException {
+        final SDataLib dataLib = dataStore.dataLib;
+        final List<Object> filteredCells = new ArrayList<Object>();
+        final List keyValues = dataLib.listResult(result);
+        if (keyValues != null) {
+            Object qualifierToSkip = null;
+            Object familyToSkip = null;
+
+            for (Object keyValue : keyValues) {
+                if (familyToSkip != null
+                        && dataLib.valuesEqual(familyToSkip, dataLib.getKeyValueFamily(keyValue))
+                        && dataLib.valuesEqual(qualifierToSkip, dataLib.getKeyValueQualifier(keyValue))) {
+                    // skipping to next column
+                } else {
+                    familyToSkip = null;
+                    qualifierToSkip = null;
+                    Filter.ReturnCode returnCode = filterKeyValue(filterState, keyValue);
+                    switch (returnCode) {
+                        case SKIP:
+                            break;
+                        case INCLUDE:
+                            filteredCells.add(keyValue);
+                            qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
+                            familyToSkip = dataLib.getKeyValueFamily(keyValue);
+                            break;
+                        case NEXT_COL:
+                            qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
+                            familyToSkip = dataLib.getKeyValueFamily(keyValue);
+                            break;
+                    }
+                }
+            }
+        }
+        if (filteredCells.isEmpty()) {
+            return null;
+        } else {
+            return (ResultType) dataLib.newResult(dataLib.getResultKey(result), filteredCells);
+        }
+    }
 
     // Roll-forward / compaction
 

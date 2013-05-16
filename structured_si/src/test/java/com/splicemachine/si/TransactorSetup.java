@@ -21,6 +21,7 @@ import com.splicemachine.si.impl.TransactionStore;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 
 import java.util.concurrent.TimeUnit;
@@ -60,7 +61,7 @@ public class TransactorSetup extends SIConstants {
                         -1, -2, userColumnsFamilyName),
                 transactionStore, storeSetup.getClock(), 1500);
         if (!simple) {
-            transactor = new TransactorAdapter(new HTransactor<Put, Get, Scan, Mutation>(transactor));
+            transactor = new TransactorAdapter(new HTransactor<Put, Get, Scan, Mutation, Result>(transactor));
         }
         clientTransactor = transactor;
     }

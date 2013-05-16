@@ -140,7 +140,7 @@ public class SIFilterState implements FilterState {
      * transaction up in the transaction table again the next time this row is read.
      */
     private void rollForward(Transaction transaction) throws IOException {
-        if (!transaction.isNestedDependent()) {
+        if (rollForwardQueue != null && !transaction.isNestedDependent()) {
             // TODO: revisit this in light of nested independent transactions
             dataStore.recordRollForward(rollForwardQueue, transaction, keyValue.row);
         }

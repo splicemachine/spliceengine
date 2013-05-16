@@ -15,7 +15,6 @@ import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
-import com.splicemachine.si.impl.SIFilterState;
 import com.splicemachine.si.impl.SITransactionId;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.Transaction;
@@ -26,7 +25,6 @@ import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
 import org.junit.After;
 import org.junit.Assert;
@@ -161,8 +159,7 @@ public class SITransactorTest extends SIConstants {
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Object rawTuple = reader.get(testSTable, get);
-            return readRawTuple(useSimple, storeSetup, transactorSetup, transactionId, name, dataLib, testSTable,
-                    rawTuple, true, false);
+            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, true, false);
         } finally {
             reader.close(testSTable);
         }
@@ -182,8 +179,7 @@ public class SITransactorTest extends SIConstants {
             Assert.assertTrue(results.hasNext());
             Object rawTuple = results.next();
             Assert.assertTrue(!results.hasNext());
-            return readRawTuple(useSimple, storeSetup, transactorSetup, transactionId, name, dataLib, testSTable,
-                    rawTuple, false, false);
+            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, false, false);
         } finally {
             reader.close(testSTable);
         }
@@ -207,8 +203,7 @@ public class SITransactorTest extends SIConstants {
             }
             Object rawTuple = results.next();
             Assert.assertTrue(!results.hasNext());
-            return readRawTuple(useSimple, storeSetup, transactorSetup, transactionId, name, dataLib, testSTable,
-                    rawTuple, false, true);
+            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, false, true);
         } finally {
             reader.close(testSTable);
         }
@@ -230,8 +225,7 @@ public class SITransactorTest extends SIConstants {
             while (results.hasNext()) {
                 final Object value = results.next();
                 final String name = (String) dataLib.decode(dataLib.getResultKey(value), String.class);
-                final String s = readRawTuple(useSimple, storeSetup, transactorSetup, transactionId, name, dataLib, testSTable,
-                        value, false, false);
+                final String s = readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, value, false, false);
                 result.append(s);
                 if (s.length() > 0) {
                     result.append("\n");
@@ -243,9 +237,9 @@ public class SITransactorTest extends SIConstants {
         }
     }
 
-    private static String readRawTuple(boolean useSimple, StoreSetup storeSetup, TransactorSetup transactorSetup,
-                                       TransactionId transactionId, String name, SDataLib dataLib, STable testSTable,
-                                       Object rawTuple, boolean singleRowRead, boolean siOnly) throws IOException {
+    private static String readRawTuple(boolean useSimple, TransactorSetup transactorSetup, TransactionId transactionId,
+                                       String name, SDataLib dataLib, Object rawTuple, boolean singleRowRead,
+                                       boolean siOnly) throws IOException {
         if (rawTuple != null) {
             Object result = rawTuple;
             if (useSimple) {
@@ -255,14 +249,10 @@ public class SITransactorTest extends SIConstants {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                result = filterResult(storeSetup, transactorSetup, filterState, rawTuple);
+                result = transactorSetup.transactor.filterResult(filterState, rawTuple);
             }
             if (result != null) {
-                final Object ageValue = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.ageQualifier);
-                Integer age = (Integer) dataLib.decode(ageValue, Integer.class);
-                final Object jobValue = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.jobQualifier);
-                String job = (String) dataLib.decode(jobValue, String.class);
-                return name + " age=" + age + " job=" + job;
+                return resultToStringDirect(transactorSetup, name, dataLib, result);
             }
         }
         if (singleRowRead) {
@@ -272,48 +262,16 @@ public class SITransactorTest extends SIConstants {
         }
     }
 
-    private static Object filterResult(StoreSetup storeSetup, TransactorSetup transactorSetup,
-                                       FilterState filterState, Object result) throws IOException {
-        SIFilterState siFilterState = (SIFilterState) filterState;
-        //ensureTransactionActive(siFilterState.transactionId);
+    private String resultToString(String name, Object result) {
+        return resultToStringDirect(transactorSetup, name, storeSetup.getDataLib(), result);
+    }
 
-        final SDataLib dataLib = storeSetup.getDataLib();
-        List<Object> filteredCells = new ArrayList<Object>();
-        final List keyValues = dataLib.listResult(result);
-        if (keyValues != null) {
-            Object qualifierToSkip = null;
-            Object familyToSkip = null;
-
-            for (Object keyValue : keyValues) {
-                if (familyToSkip != null
-                        && dataLib.valuesEqual(familyToSkip, dataLib.getKeyValueFamily(keyValue))
-                        && dataLib.valuesEqual(qualifierToSkip, dataLib.getKeyValueQualifier(keyValue))) {
-                    // skipping to next column
-                } else {
-                    familyToSkip = null;
-                    qualifierToSkip = null;
-                    Filter.ReturnCode returnCode = transactorSetup.transactor.filterKeyValue(filterState, keyValue);
-                    switch (returnCode) {
-                        case SKIP:
-                            break;
-                        case INCLUDE:
-                            filteredCells.add(keyValue);
-                            qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
-                            familyToSkip = dataLib.getKeyValueFamily(keyValue);
-                            break;
-                        case NEXT_COL:
-                            qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
-                            familyToSkip = dataLib.getKeyValueFamily(keyValue);
-                            break;
-                    }
-                }
-            }
-        }
-        if (filteredCells.isEmpty()) {
-            return null;
-        } else {
-            return dataLib.newResult(dataLib.getResultKey(result), filteredCells);
-        }
+    private static String resultToStringDirect(TransactorSetup transactorSetup, String name, SDataLib dataLib, Object result) {
+        final Object ageValue = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.ageQualifier);
+        Integer age = (Integer) dataLib.decode(ageValue, Integer.class);
+        final Object jobValue = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.jobQualifier);
+        String job = (String) dataLib.decode(jobValue, String.class);
+        return name + " age=" + age + " job=" + job;
     }
 
     private void dumpStore() {
@@ -1486,7 +1444,7 @@ public class SITransactorTest extends SIConstants {
             transactorSetup.clientTransactor.initializeGet(t.getTransactionIdString(), get1);
             Object result = reader.get(testSTable, get1);
             if (useSimple) {
-                result = filterResult(storeSetup, transactorSetup, transactor.newFilterState(transactorSetup.rollForwardQueue, t, false), result);
+                result = transactor.filterResult(transactor.newFilterState(transactorSetup.rollForwardQueue, t, false), result);
             }
             final int ageRead = (Integer) dataLib.decode(dataLib.getResultValue(result, family, ageQualifier), Integer.class);
             Assert.assertEquals(27, ageRead);
@@ -1504,7 +1462,7 @@ public class SITransactorTest extends SIConstants {
             }
             final FilterState filterState = transactor.newFilterState(transactorSetup.rollForwardQueue, t2, false);
             if (useSimple) {
-                filterResult(storeSetup, transactorSetup, filterState, resultTuple);
+                transactor.filterResult(filterState, resultTuple);
             }
         } finally {
             reader.close(testSTable);
@@ -1751,15 +1709,22 @@ public class SITransactorTest extends SIConstants {
     }
 
     private Object readRaw(String name) throws IOException {
-        return readAgeRawDirect(storeSetup, name);
+        return readAgeRawDirect(storeSetup, name, false);
     }
 
-    static Object readAgeRawDirect(StoreSetup storeSetup, String name) throws IOException {
+    private Object readRaw(String name, boolean allVersions) throws IOException {
+        return readAgeRawDirect(storeSetup, name, allVersions);
+    }
+
+    static Object readAgeRawDirect(StoreSetup storeSetup, String name, boolean allversions) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{name});
         SGet get = dataLib.newGet(key, null, null, null);
+        if (allversions) {
+            dataLib.setReadMaxVersions(get);
+        }
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             return reader.get(testSTable, get);
@@ -2301,6 +2266,22 @@ public class SITransactorTest extends SIConstants {
             Tracer.registerCommitting(null);
             Tracer.registerWaiting(null);
         }
+    }
+
+    @Test
+    public void writeReadViaFilterResult() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe89", 20);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction(true, false, false);
+        insertAge(t2, "joe89", 21);
+
+        TransactionId t3 = transactor.beginTransaction(true, false, false);
+        Object result = readRaw("joe89", true);
+        final FilterState filterState = transactorSetup.transactor.newFilterState(t3);
+        result = transactor.filterResult(filterState, result);
+        Assert.assertEquals("joe89 age=20 job=null", resultToString("joe89", result));
     }
 
 }

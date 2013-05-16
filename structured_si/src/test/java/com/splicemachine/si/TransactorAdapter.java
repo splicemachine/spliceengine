@@ -11,17 +11,18 @@ import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 
 import java.io.IOException;
 import java.util.List;
 
-public class TransactorAdapter<PutOp, GetOp, ScanOp, MutationOp>
-        implements Transactor<PutOp, GetOp, ScanOp, MutationOp> {
-    private Transactor<Put, Get, Scan, Mutation> delegate;
+public class TransactorAdapter<PutOp, GetOp, ScanOp, MutationOp, ResultType>
+        implements Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> {
+    private Transactor<Put, Get, Scan, Mutation, Result> delegate;
 
-    public TransactorAdapter(Transactor<Put, Get, Scan, Mutation> delegate) {
+    public TransactorAdapter(Transactor<Put, Get, Scan, Mutation, Result> delegate) {
         this.delegate = delegate;
     }
 
@@ -86,6 +87,11 @@ public class TransactorAdapter<PutOp, GetOp, ScanOp, MutationOp>
     }
 
     @Override
+    public FilterState newFilterState(TransactionId transactionId) throws IOException {
+        return delegate.newFilterState(transactionId);
+    }
+
+    @Override
     public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean siOnly) throws IOException {
         return delegate.newFilterState(rollForwardQueue, transactionId, siOnly);
     }
@@ -93,6 +99,11 @@ public class TransactorAdapter<PutOp, GetOp, ScanOp, MutationOp>
     @Override
     public Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException {
         return delegate.filterKeyValue(filterState, keyValue);
+    }
+
+    @Override
+    public ResultType filterResult(FilterState filterState, ResultType result) throws IOException {
+        return (ResultType) delegate.filterResult(filterState, (Result) result);
     }
 
     @Override

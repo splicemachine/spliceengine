@@ -39,6 +39,7 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -256,7 +257,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 			}
 			if(!getNodeTypes().contains(NodeType.REDUCE)){
                 try{
-                    final Transactor<Put,Get,Scan,Mutation> transactor = TransactorFactoryImpl.getTransactor();
+                    final Transactor<Put,Get,Scan,Mutation,Result> transactor = TransactorFactoryImpl.getTransactor();
                     final TransactionId childID = transactor.beginChildTransaction(transactor.transactionIdFromString(getTransactionID()), true, true, null, null);
                     setChildTransactionID(childID.getTransactionIdString());
                     TaskStats stats = sink();
