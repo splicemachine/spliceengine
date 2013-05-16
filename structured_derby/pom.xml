@@ -293,6 +293,37 @@
                 </plugins>
 		</build>
 	</profile>
+	
+	 <profile>
+            <id>spliceZoo</id>
+            <activation><property><name>zoo</name></property></activation>
+            <build>
+                   <plugins>            
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.2.1</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <mainClass>org.apache.zookeeper.server.ZooKeeperServerMain</mainClass>
+                            <executable>maven</executable>
+                            <arguments>
+                                <argument>2181</argument>
+                               <argument>${project.build.directory}/zookeeper</argument>
+                               <argument>10</argument>
+                               <argument>0</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+		</build>
+	</profile>
 	<profile>
             <id>spliceCI</id>
             <activation><property><name>spliceCI</name></property></activation>

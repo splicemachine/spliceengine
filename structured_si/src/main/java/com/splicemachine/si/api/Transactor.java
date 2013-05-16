@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * The primary interface to the transaction module.
  */
-public interface Transactor extends ClientTransactor {
+public interface Transactor<PutOp, GetOp, ScanOp, MutationOp> extends ClientTransactor<PutOp, GetOp, ScanOp, MutationOp> {
     TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
     /**
      *
@@ -35,11 +35,13 @@ public interface Transactor extends ClientTransactor {
     void rollback(TransactionId transactionId) throws IOException;
     void fail(TransactionId transactionId) throws IOException;
 
-    boolean processPut(STable table, RollForwardQueue rollForwardQueue, Object put) throws IOException;
-    boolean isFilterNeeded(Object operation);
-    boolean isSIOnly(SRead read);
+    boolean processPut(STable table, RollForwardQueue rollForwardQueue, PutOp put) throws IOException;
+    boolean isFilterNeededGet(GetOp get);
+    boolean isFilterNeededScan(ScanOp scan);
+    boolean isScanSIFamilyOnly(ScanOp scan);
 
-    void preProcessRead(SRead readOperation) throws IOException;
+    void preProcessGet(GetOp get) throws IOException;
+    void preProcessScan(ScanOp scan) throws IOException;
 
     FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean siOnly) throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;

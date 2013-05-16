@@ -26,6 +26,8 @@ public class DataStore {
     private final STableWriter writer;
 
     private final String siNeededAttribute;
+    private final Object siNeededValue;
+    private final Object onlySIFamilyNeededValue;
     private final String transactionIdAttribute;
     private final String deletePutAttribute;
 
@@ -38,6 +40,7 @@ public class DataStore {
     private final Object userColumnFamily;
 
     public DataStore(SDataLib dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
+                     Object siNeededValue, Object onlySIFamilyNeededValue,
                      String transactionIdAttribute, String deletePutAttribute,
                      String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier, Object siMetaNull,
                      Object siFail, Object userColumnFamily) {
@@ -45,6 +48,8 @@ public class DataStore {
         this.reader = reader;
         this.writer = writer;
         this.siNeededAttribute = siNeededAttribute;
+        this.siNeededValue = dataLib.encode(siNeededValue);
+        this.onlySIFamilyNeededValue = dataLib.encode(onlySIFamilyNeededValue);
         this.transactionIdAttribute = transactionIdAttribute;
         this.deletePutAttribute = deletePutAttribute;
         this.siFamily = dataLib.encode(siMetaFamily);
@@ -55,13 +60,16 @@ public class DataStore {
         this.userColumnFamily = dataLib.encode(userColumnFamily);
     }
 
-    void setSiNeededAttribute(Object put, short value) {
-        dataLib.addAttribute(put, siNeededAttribute, dataLib.encode(value));
+    void setSiNeededAttribute(Object put, boolean siFamilyOnly) {
+        dataLib.addAttribute(put, siNeededAttribute, dataLib.encode(siFamilyOnly ? onlySIFamilyNeededValue : siNeededValue));
     }
 
-    Short getSiNeededAttribute(Object put) {
-        Object neededValue = dataLib.getAttribute(put, siNeededAttribute);
-        return (Short) dataLib.decode(neededValue, Short.class);
+    Object getSiNeededAttribute(Object put) {
+        return dataLib.getAttribute(put, siNeededAttribute);
+    }
+
+    boolean isSIFamilyOnly(Object put) {
+        return dataLib.valuesEqual(dataLib.getAttribute(put, siNeededAttribute), onlySIFamilyNeededValue);
     }
 
     void setDeletePutAttribute(Object put) {

@@ -12,6 +12,9 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.JobStatsUtils;
+import com.splicemachine.si.api.TransactionId;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.impl.TransactorFactoryImpl;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;
@@ -32,7 +35,10 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -250,13 +256,19 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 			}
 			if(!getNodeTypes().contains(NodeType.REDUCE)){
                 try{
+                    final Transactor<Put,Get,Scan,Mutation> transactor = TransactorFactoryImpl.getTransactor();
+                    final TransactionId childID = transactor.beginChildTransaction(transactor.transactionIdFromString(getTransactionID()), true, true, null, null);
+                    setChildTransactionID(childID.getTransactionIdString());
                     TaskStats stats = sink();
                     rowsModified = (int)stats.getReadStats().getTotalRecords();
+                    transactor.commit(childID);
                 }catch(IOException ioe){
                     if(Exceptions.shouldLogStackTrace(ioe)){
                         SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
                     }else
                         throw new RuntimeException(ioe);
+                } finally {
+                    clearChildTransactionID();
                 }
 			}
 		}

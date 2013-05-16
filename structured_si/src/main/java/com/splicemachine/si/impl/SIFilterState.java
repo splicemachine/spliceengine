@@ -105,7 +105,13 @@ public class SIFilterState implements FilterState {
     private Transaction getTransactionFromFilterCache() throws IOException {
         Transaction transaction = transactionCache.getIfPresent(keyValue.timestamp);
         if (transaction == null) {
-            transaction = transactionStore.getTransaction(keyValue.timestamp);
+            final ImmutableTransaction immutableTransaction = transactionStore.getImmutableTransaction(keyValue.timestamp);
+            if (!myTransaction.getEffectiveReadCommitted() && !myTransaction.getEffectiveReadUncommitted()
+                    && (immutableTransaction.getRootBeginTimestamp() != myTransaction.getRootBeginTimestamp())) {
+                transaction = transactionStore.getTransactionAsOf(keyValue.timestamp, myTransaction.getTransactionId());
+            } else {
+                transaction = transactionStore.getTransaction(keyValue.timestamp);
+            }
             transactionCache.put(transaction.beginTimestamp, transaction);
         }
         return transaction;
@@ -200,7 +206,8 @@ public class SIFilterState implements FilterState {
             if (keyValue.timestamp < tombstone
                     || (keyValue.timestamp == tombstone && dataStore.isSiNull(keyValue.value))) {
                 return true;
-            };
+            }
+            ;
         }
         return false;
     }

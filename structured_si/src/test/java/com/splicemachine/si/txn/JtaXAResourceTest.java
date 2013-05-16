@@ -29,7 +29,7 @@ public class JtaXAResourceTest {
     @BeforeClass
     public static void setUp() {
         storeSetup = new LStoreSetup();
-        transactorSetup = new TransactorSetup(storeSetup);
+        transactorSetup = new TransactorSetup(storeSetup, true);
         baseSetUp();
     }
 

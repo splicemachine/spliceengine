@@ -27,6 +27,7 @@ public class TransactionStore {
     private final SDataLib dataLib;
     private final STableReader reader;
     private final Cache<Long, ImmutableTransaction> immutableTransactionCache;
+    private final Cache<Long, ActiveTransactionCacheEntry> activeTransactionCache;
     private final Cache<Long, Transaction> transactionCache;
     private final STableWriter writer;
 
@@ -34,12 +35,14 @@ public class TransactionStore {
     private final TransactionSchema encodedSchema;
 
     public TransactionStore(TransactionSchema transactionSchema, SDataLib dataLib,
-                            STableReader reader, STableWriter writer, Cache<Long, Transaction> transactionCache,
-                            Cache<Long, ImmutableTransaction> immutableTransactionCache) {
+                            STableReader reader, STableWriter writer,
+                            Cache<Long, ImmutableTransaction> immutableTransactionCache, Cache<Long, ActiveTransactionCacheEntry> activeTransactionCache,
+                            Cache<Long, Transaction> transactionCache) {
         this.transactionSchema = transactionSchema;
         this.encodedSchema = transactionSchema.encodedSchema(dataLib);
         this.dataLib = dataLib;
         this.reader = reader;
+        this.activeTransactionCache = activeTransactionCache;
         this.transactionCache = transactionCache;
         this.immutableTransactionCache = immutableTransactionCache;
         this.writer = writer;
@@ -91,6 +94,10 @@ public class TransactionStore {
         writePut(makeKeepAliveTuple(startTransactionTimestamp));
     }
 
+    public ImmutableTransaction getImmutableTransaction(long beginTimestamp) throws IOException {
+        return getImmutableTransaction(new SITransactionId(beginTimestamp));
+    }
+
     public ImmutableTransaction getImmutableTransaction(TransactionId transactionId) throws IOException {
         final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId.getId());
         if (cachedTransaction != null) {
@@ -109,12 +116,31 @@ public class TransactionStore {
         return getTransaction(new SITransactionId(beginTimestamp));
     }
 
+    public Transaction getTransactionAsOf(long beginTimestamp, TransactionId perspective) throws IOException {
+        TransactionId transactionId = new SITransactionId(beginTimestamp);
+        final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId.getId());
+        if (cachedTransaction != null) {
+            return cachedTransaction;
+        }
+        final ActiveTransactionCacheEntry activeEntry = activeTransactionCache.getIfPresent(transactionId.getId());
+        if (activeEntry != null && activeEntry.effectiveTimestamp >= perspective.getId()) {
+            return activeEntry.transaction;
+        }
+        final Transaction transaction = loadTransaction(transactionId);
+        activeTransactionCache.put(transactionId.getId(), new ActiveTransactionCacheEntry(perspective.getId(), transaction));
+        return transaction;
+    }
+
     public Transaction getTransaction(TransactionId transactionId) throws IOException {
         final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId.getId());
         if (cachedTransaction != null) {
             //LOG.warn("cache HIT " + transactionId.getTransactionIdString());
             return cachedTransaction;
         }
+        return loadTransaction(transactionId);
+    }
+
+    private Transaction loadTransaction(TransactionId transactionId) throws IOException {
         Object tupleKey = dataLib.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
 
         STable transactionSTable = reader.open(transactionSchema.tableName);
