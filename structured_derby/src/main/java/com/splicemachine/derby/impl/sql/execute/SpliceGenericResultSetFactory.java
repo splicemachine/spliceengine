@@ -38,7 +38,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             OnceOperation op = new OnceOperation(source, source.getActivation(), emptyRowFun, cardinalityCheck,
                     resultSetNumber, subqueryNumber, pointOfAttachment,
                     optimizerEstimatedRowCount, optimizerEstimatedCost);
-            op.markAsTopResultSet();
+//            op.markAsTopResultSet();
             OperationTree operationTree = new OperationTree();
             return new OperationResultSet(source.getActivation(),operationTree,op);
         }catch(Exception e){

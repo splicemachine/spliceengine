@@ -1,10 +1,12 @@
 package com.splicemachine.derby.utils;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.DataValueFactory;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -18,13 +20,25 @@ import java.io.ObjectOutput;
  * Created: 1/29/13 11:20 AM
  */
 public class SerializingIndexRow implements ExecIndexRow,Externalizable {
-	private static final long serialVersionUID = 1l;
+	private static final long serialVersionUID = 2l;
 	private ExecRow valueRow;
 
+    private boolean[] orderedNulls;
+
+    @Deprecated
+    public SerializingIndexRow(){}
+
 	public SerializingIndexRow(ExecRow valueRow) {
-		this.valueRow = valueRow instanceof SerializingExecRow ?
-																			(SerializingExecRow)valueRow:new SerializingExecRow(valueRow);
+		this.valueRow = valueRow instanceof SerializingExecRow ? (SerializingExecRow)valueRow:new SerializingExecRow(valueRow);
+        orderedNulls = new boolean[valueRow.nColumns()];
+        if(valueRow instanceof ExecIndexRow){
+            ExecIndexRow val = (ExecIndexRow)valueRow;
+            for(int col=0;col<valueRow.nColumns();col++){
+                orderedNulls[col] = val.areNullsOrdered(col);
+            }
+        }
 	}
+
 
 	/*
 	 * class interface
@@ -82,8 +96,12 @@ public class SerializingIndexRow implements ExecIndexRow,Externalizable {
 	/*
 	 * ExecIndexRow interface
 	 */
-	@Override public void orderedNulls(int columnPosition) { throw new UnsupportedOperationException(); }
-	@Override public boolean areNullsOrdered(int columnPosition) { throw new UnsupportedOperationException(); }
+	@Override public void orderedNulls(int columnPosition) {
+        orderedNulls[columnPosition] = true;
+    }
+	@Override public boolean areNullsOrdered(int columnPosition) {
+        return orderedNulls[columnPosition];
+    }
 
 	@Override public void execRowToExecIndexRow(ExecRow valueRow) { this.valueRow = valueRow; }
 	@Override public void getNewObjectArray() { valueRow.getNewObjectArray(); }
@@ -93,10 +111,18 @@ public class SerializingIndexRow implements ExecIndexRow,Externalizable {
 		//delegate to the valueRow, and rely on the fact that we wrap out the value
 		//row with a serializable form in the constructor.
 		out.writeObject(valueRow);
-	}
+        ArrayUtil.writeBooleanArray(out,orderedNulls);
+    }
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		valueRow = (ExecRow)in.readObject();
+        orderedNulls = ArrayUtil.readBooleanArray(in);
 	}
+
+    public void populateNullValues(DataValueFactory dvf) throws StandardException {
+        if(valueRow instanceof SerializingExecRow){ //always true
+            ((SerializingExecRow)valueRow).populateNulls(dvf);
+        }
+    }
 }

@@ -24,7 +24,7 @@ public class SpliceDatabase extends BasicDatabase {
         System.setProperty("derby.language.logStatementText", Boolean.toString(true));
         System.setProperty("derby.connection.requireAuthentication","false");
 //	    SanityManager.DEBUG_SET("ByteCodeGenInstr");
-//	    SanityManager.DEBUG_SET("DumpClassFile");
+	    SanityManager.DEBUG_SET("DumpClassFile");
       SanityManager.DEBUG_SET("DumpOptimizedTree");
 		try {
 			create = !ZkUtils.isSpliceLoaded();

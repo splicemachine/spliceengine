@@ -119,4 +119,28 @@ public class UpdateOperationTest extends SpliceUnitTest {
         }
         Assert.assertTrue("No row returned!",results.size()>0);
     }
+
+    @Test
+    public void testUpdateFromValues() throws Exception{
+        /*
+         * Regression test for Bug #286
+         */
+        int updated= methodWatcher.getStatement().executeUpdate("update "+spliceTableWatcher+" set addr=(values '5') where num=100");
+        Assert.assertEquals("Incorrect num rows updated!",1,updated);
+        ResultSet rs = methodWatcher.executeQuery("select * from "+spliceTableWatcher+" where num = 100");
+        List<String> results = Lists.newArrayListWithCapacity(1);
+        while(rs.next()){
+            Integer num = rs.getInt(1);
+            String addr = rs.getString(2);
+            String zip = rs.getString(3);
+            Assert.assertNotNull("no zip returned!",zip);
+            Assert.assertEquals("Incorrect num returned!",100,num.intValue());
+            Assert.assertEquals("Address incorrect","5",addr);
+            results.add(String.format("num:%d,addr:%s,zip:%s",num,addr,zip));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+        Assert.assertEquals("Incorrect rows returned!",1,results.size());
+    }
 }

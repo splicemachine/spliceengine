@@ -1,5 +1,6 @@
 package com.splicemachine.derby.hbase;
 
+import com.google.common.collect.Maps;
 import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
@@ -19,14 +20,14 @@ import org.apache.derby.iapi.sql.conn.StatementContext;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
+import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.impl.sql.GenericActivationHolder;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.util.*;
 /**
@@ -135,8 +136,16 @@ public class SpliceObserverInstructions implements Externalizable {
         return transaction.getTransactionId().getTransactionIdString();
     }
 
+    /*
+     * Serializer class for Activation objects, to ensure that they are properly sent over the wire
+     * while retaining their state completely.
+     *
+     * A lot of this crap is reflective Field setting, because there's currently no other way to make
+     * the activation properly serialize. Someday, it would be nice to move all of this into making
+     * Activation properly serializable.
+     */
     private static class ActivationContext implements Externalizable{
-        private static final long serialVersionUID = 1l;
+        private static final long serialVersionUID = 2l;
         private ExecRow[] currentRows;
         private Map<String,Integer> setOps;
         private boolean statementAtomic;
@@ -145,7 +154,8 @@ public class SpliceObserverInstructions implements Externalizable {
         private boolean stmtRollBackParentContext;
         private long stmtTimeout;
         private ParameterValueSet pvs;
-
+        private Map<String, Serializable> storedValues;
+        private Map<String, Integer> nullDvds;
 
 
         @SuppressWarnings("unused")
@@ -155,7 +165,9 @@ public class SpliceObserverInstructions implements Externalizable {
 
         public ActivationContext(ExecRow[] currentRows, ParameterValueSet pvs, Map<String, Integer> setOps,
                                  boolean statementAtomic, boolean statementReadOnly,
-                                 String stmtText, boolean stmtRollBackParentContext, long stmtTimeout) {
+                                 String stmtText, boolean stmtRollBackParentContext, long stmtTimeout,
+                                 Map<String,Serializable>storedValues,
+                                 Map<String,Integer> nullDvds) {
             this.currentRows = currentRows;
             this.pvs = pvs;
             this.setOps = setOps;
@@ -164,16 +176,22 @@ public class SpliceObserverInstructions implements Externalizable {
             this.stmtText = stmtText;
             this.stmtRollBackParentContext = stmtRollBackParentContext;
             this.stmtTimeout = stmtTimeout;
+            this.storedValues = storedValues;
+            this.nullDvds = nullDvds;
         }
 
         public static ActivationContext create(Activation activation,SpliceOperation topOperation){
             List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
             Map<String,Integer> setOps = new HashMap<String,Integer>(operations.size());
             topOperation.generateLeftOperationStack(operations);
+            Map<String,Serializable> storedValues = new HashMap<String,Serializable>();
+            Map<String,Integer> nullDvds = new HashMap<String,Integer>();
             for(Field field:activation.getClass().getDeclaredFields()){
-                if(ResultSet.class.isAssignableFrom(field.getType())){
-                    try {
-                        if(!field.isAccessible())field.setAccessible(true); //make it accessible to me
+                if(!field.isAccessible())field.setAccessible(true); //make it accessible to me
+                if(isQualifierField(field.getType()))
+                    continue; //don't serialize qualifiers
+                try{
+                    if(ResultSet.class.isAssignableFrom(field.getType())){
 
                         final Object fieldValue = field.get(activation);
                         SpliceOperation op;
@@ -188,9 +206,30 @@ public class SpliceObserverInstructions implements Externalizable {
                                 break;
                             }
                         }
-                    } catch (IllegalAccessException e) {
-                        SpliceLogUtils.logAndThrowRuntime(LOG,e);
+                    }else if(DataValueDescriptor.class.isAssignableFrom(field.getType())){
+                        Object o = field.get(activation);
+                        if(o!=null){
+                            DataValueDescriptor dvd = (DataValueDescriptor)o;
+                            if(!dvd.isNull())
+                                storedValues.put(field.getName(),dvd);
+                            else
+                                nullDvds.put(field.getName(),dvd.getTypeFormatId());
+                        }
+                    }else if(Serializable.class.isAssignableFrom(field.getType())){
+                        Object o = field.get(activation);
+                        if(o!=null)
+                            storedValues.put(field.getName(),(Serializable)o);
+                    }else if(ExecIndexRow.class.isAssignableFrom(field.getType())){
+                        Object o = field.get(activation);
+                        if(o!=null)
+                            storedValues.put(field.getName(),new SerializingIndexRow((ExecIndexRow)o));
+                    }else if(ExecRow.class.isAssignableFrom(field.getType())){
+                        Object o = field.get(activation);
+                        if(o!=null)
+                            storedValues.put(field.getName(),new SerializingExecRow((ExecRow)o));
                     }
+                } catch (IllegalAccessException e) {
+                    SpliceLogUtils.logAndThrowRuntime(LOG,e);
                 }
             }
 
@@ -237,7 +276,14 @@ public class SpliceObserverInstructions implements Externalizable {
 
             ParameterValueSet pvs = activation.getParameterValueSet().getClone();
             return new ActivationContext(currentRows,pvs,setOps,statementAtomic,statementReadOnly,
-                    stmtText,stmtRollBackParentContext,stmtTimeout);
+                    stmtText,stmtRollBackParentContext,stmtTimeout,storedValues,nullDvds);
+        }
+
+        private static boolean isQualifierField(Class clazz) {
+            if(Qualifier.class.isAssignableFrom(clazz)) return true;
+            else if(clazz.isArray()){
+               return isQualifierField(clazz.getComponentType());
+            }else return false;
         }
 
         @Override
@@ -254,6 +300,16 @@ public class SpliceObserverInstructions implements Externalizable {
             out.writeBoolean(currentRows!=null);
             if(currentRows!=null){
                 ArrayUtil.writeArray(out,currentRows);
+            }
+            out.writeInt(storedValues.size());
+            for(String storedFieldName:storedValues.keySet()){
+                out.writeUTF(storedFieldName);
+                out.writeObject(storedValues.get(storedFieldName));
+            }
+            out.writeInt(nullDvds.size());
+            for(String nullDvdFieldName:nullDvds.keySet()){
+                out.writeUTF(nullDvdFieldName);
+                out.writeInt(nullDvds.get(nullDvdFieldName));
             }
         }
 
@@ -272,6 +328,22 @@ public class SpliceObserverInstructions implements Externalizable {
             if(in.readBoolean()){
                 this.currentRows = new ExecRow[in.readInt()];
                 ArrayUtil.readArrayItems(in,currentRows);
+            }
+
+            int storedValuesSize = in.readInt();
+            storedValues = Maps.newHashMapWithExpectedSize(storedValuesSize);
+            for(int i=0;i<storedValuesSize;i++){
+                String fieldName = in.readUTF();
+                Serializable s = (Serializable)in.readObject();
+                storedValues.put(fieldName,s);
+            }
+
+            int nullDvdsSize = in.readInt();
+            nullDvds = Maps.newHashMapWithExpectedSize(nullDvdsSize);
+            for(int i=0;i<nullDvdsSize;i++){
+                String fieldName = in.readUTF();
+                int typeId = in.readInt();
+                nullDvds.put(fieldName,typeId);
             }
         }
 
@@ -300,6 +372,38 @@ public class SpliceObserverInstructions implements Externalizable {
                     Field fieldToSet = activation.getClass().getDeclaredField(setField);
                     if(!fieldToSet.isAccessible())fieldToSet.setAccessible(true);
                     fieldToSet.set(activation, op);
+                }
+
+                /*
+                 * Set the stored values into the object reflectively
+                 */
+                Class activationClass = activation.getClass();
+                DataValueFactory dvf = activation.getDataValueFactory();
+                for(String storedValueFieldName:storedValues.keySet()){
+                    Object o = storedValues.get(storedValueFieldName);
+                    if(o instanceof SerializingExecRow){
+                        ((SerializingExecRow)o).populateNulls(dvf);
+                    }else if(o instanceof SerializingIndexRow){
+                        ((SerializingIndexRow)o).populateNullValues(dvf);
+                    }
+                    Field field = activationClass.getDeclaredField(storedValueFieldName);
+                    if(!field.isAccessible()){
+                        field.setAccessible(true);
+                        field.set(activation,o);
+                        field.setAccessible(false);
+                    }else
+                        field.set(activation, o);
+                }
+
+                for(String nullDvdFieldName:nullDvds.keySet()){
+                    DataValueDescriptor dvd = dvf.getNull(nullDvds.get(nullDvdFieldName),0);
+                    Field field = activationClass.getDeclaredField(nullDvdFieldName);
+                    if(!field.isAccessible()){
+                        field.setAccessible(true);
+                        field.set(activation,dvd);
+                        field.setAccessible(false);
+                    }else
+                        field.set(activation,dvd);
                 }
 
                 if(pvs!=null)activation.setParameters(pvs,statement.getParameterTypes());
