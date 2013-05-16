@@ -34,6 +34,12 @@ public class Serializer {
         if(descriptor instanceof HBaseRowLocation){
             return ((HBaseRowLocation)descriptor).getBytes();
         }
+
+        if(descriptor instanceof LazyDataValueDescriptor){
+            LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) descriptor;
+            return ldvd.getBytes();
+        }
+
         switch(descriptor.getTypeFormatId()){
             case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
                 return getByteRowKey().serialize(Bytes.toBytes(descriptor.getBoolean()));
