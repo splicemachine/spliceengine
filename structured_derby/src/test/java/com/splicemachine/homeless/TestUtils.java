@@ -43,10 +43,13 @@ public class TestUtils {
         }
 
         try {
-            for( String s : sqlStatementStrings.replaceAll("<SCHEMA>", "'" + schema + "'").split(";")){
-                Statement stmt = spliceWatcher.getStatement();
-                stmt.execute(s);
-                spliceWatcher.commit();
+            for (String s : sqlStatementStrings.replaceAll("<SCHEMA>", schema).split(";")){
+                String trimmed = s.trim();
+                if (!trimmed.equals("")){
+                    Statement stmt = spliceWatcher.getStatement();
+                    stmt.execute(s);
+                    spliceWatcher.commit();
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Error loading SQL file at path : " + fileSuffix, e);
