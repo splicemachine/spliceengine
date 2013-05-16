@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.derby.impl.sql.execute.serial.SerializerThunk;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.CharacterStreamDescriptor;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -21,9 +20,9 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
     public LazyStringDataValueDescriptor(){}
 
-    public LazyStringDataValueDescriptor(StringDataValue sdv, SerializerThunk serializerThunk){
+    public LazyStringDataValueDescriptor(StringDataValue sdv, DVDSerializer DVDSerializer){
         this.sdv = sdv;
-        this.serializerThunk = serializerThunk;
+        this.DVDSerializer = DVDSerializer;
 
     }
 
@@ -146,13 +145,13 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
     @Override
     public DataValueDescriptor cloneHolder() {
         forceDeserialization();
-        return new LazyStringDataValueDescriptor((StringDataValue) getDvd().cloneHolder(), serializerThunk);
+        return new LazyStringDataValueDescriptor((StringDataValue) getDvd().cloneHolder(), DVDSerializer);
     }
 
     @Override
     public DataValueDescriptor cloneValue(boolean forceMaterialization) {
         forceDeserialization();
-        return new LazyStringDataValueDescriptor((StringDataValue)  getDvd().cloneValue(forceMaterialization), serializerThunk);
+        return new LazyStringDataValueDescriptor((StringDataValue)  getDvd().cloneValue(forceMaterialization), DVDSerializer);
     }
 
     @Override
@@ -162,7 +161,7 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
     @Override
     public DataValueDescriptor getNewNull() {
-        return new LazyStringDataValueDescriptor((StringDataValue) getDvd().getNewNull(), serializerThunk);
+        return new LazyStringDataValueDescriptor((StringDataValue) getDvd().getNewNull(), DVDSerializer);
     }
 
     @Override
@@ -180,7 +179,7 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
             out.writeObject(new FormatableBitSet(dvdBytes));
         }
 
-        out.writeUTF(serializerThunk.getClass().getCanonicalName());
+        out.writeUTF(DVDSerializer.getClass().getCanonicalName());
     }
 
     @Override
@@ -196,7 +195,7 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
         }
 
         try{
-            serializerThunk = (SerializerThunk) Class.forName(in.readUTF()).newInstance();
+            DVDSerializer = (DVDSerializer) Class.forName(in.readUTF()).newInstance();
         }catch(Exception e){
             throw new RuntimeException("Error deserializing serialization class", e);
         }

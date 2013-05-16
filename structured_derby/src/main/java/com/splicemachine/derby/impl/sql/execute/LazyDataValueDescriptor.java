@@ -1,10 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.derby.impl.sql.execute.serial.SerializerThunk;
+import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayInputStream;
-import org.apache.derby.iapi.services.io.Formatable;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.types.BooleanDataValue;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -25,7 +24,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
     private DataValueDescriptor dvd;
 
     protected byte[] dvdBytes;
-    protected SerializerThunk serializerThunk;
+    protected DVDSerializer DVDSerializer;
     protected boolean isSerialized;
     protected boolean isDeserialized;
 
@@ -33,9 +32,9 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
     }
 
-    public LazyDataValueDescriptor(DataValueDescriptor dvd, SerializerThunk serializerThunk){
+    public LazyDataValueDescriptor(DataValueDescriptor dvd, DVDSerializer DVDSerializer){
         this.setDvd(dvd);
-        this.serializerThunk = serializerThunk;
+        this.DVDSerializer = DVDSerializer;
     }
 
     public void initForDeserialization(byte[] bytes){
@@ -47,7 +46,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
     protected void forceDeserialization(){
         if(!isDeserialized && getDvd() != null && dvdBytes != null){
             try{
-                serializerThunk.deserialize(dvdBytes, getDvd());
+                DVDSerializer.deserialize(dvdBytes, getDvd());
                 isDeserialized = true;
             }catch(Exception e){
                 SpliceLogUtils.logAndThrowRuntime(LOG, "Error lazily deserializing bytes",e);
@@ -58,7 +57,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
     protected void forceSerialization(){
         if(!isSerialized && dvdBytes == null){
             try{
-                dvdBytes = serializerThunk.serialize(getDvd());
+                dvdBytes = DVDSerializer.serialize(getDvd());
                 isSerialized = true;
             }catch(Exception e){
                 SpliceLogUtils.logAndThrowRuntime(LOG, "Error serializing DataValueDescriptor to bytes", e);
@@ -186,12 +185,12 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public DataValueDescriptor cloneHolder() {
-        return new LazyDataValueDescriptor(getDvd().cloneHolder(), serializerThunk);
+        return new LazyDataValueDescriptor(getDvd().cloneHolder(), DVDSerializer);
     }
 
     @Override
     public DataValueDescriptor cloneValue(boolean forceMaterialization) {
-        return new LazyDataValueDescriptor(getDvd().cloneValue(forceMaterialization), serializerThunk);
+        return new LazyDataValueDescriptor(getDvd().cloneValue(forceMaterialization), DVDSerializer);
     }
 
     @Override
@@ -201,7 +200,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public DataValueDescriptor getNewNull() {
-        return new LazyDataValueDescriptor(getDvd().getNewNull(), serializerThunk);
+        return new LazyDataValueDescriptor(getDvd().getNewNull(), DVDSerializer);
     }
 
     @Override
@@ -522,7 +521,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
             out.writeObject(new FormatableBitSet(dvdBytes));
         }
 
-        out.writeUTF(serializerThunk.getClass().getCanonicalName());
+        out.writeUTF(DVDSerializer.getClass().getCanonicalName());
     }
 
     @Override
@@ -538,7 +537,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
         }
 
         try{
-            serializerThunk = (SerializerThunk) Class.forName(in.readUTF()).newInstance();
+            DVDSerializer = (DVDSerializer) Class.forName(in.readUTF()).newInstance();
         }catch(Exception e){
             throw new RuntimeException("Error deserializing serialization class", e);
         }

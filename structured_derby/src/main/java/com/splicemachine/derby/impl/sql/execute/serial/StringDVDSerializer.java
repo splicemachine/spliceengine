@@ -1,15 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.serial;
 
 import com.gotometrics.orderly.RowKey;
-import com.gotometrics.orderly.UTF8RowKey;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.IOException;
-
-public class StringSerializer implements SerializerThunk {
+public class StringDVDSerializer implements DVDSerializer {
 
     private RowKey rowKey = new DerbyBytesUtil.NullRemovingRowKey();
 
