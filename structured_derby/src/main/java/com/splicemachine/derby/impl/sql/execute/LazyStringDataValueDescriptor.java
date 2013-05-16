@@ -75,7 +75,7 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
     @Override
     public StringDataValue lower(StringDataValue result) throws StandardException {
         forceDeserialization();
-        return getDvd().upper(unwrap(result));
+        return getDvd().lower(unwrap(result));
     }
 
     @Override
