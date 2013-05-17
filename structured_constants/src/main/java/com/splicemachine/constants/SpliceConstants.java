@@ -241,7 +241,6 @@ public class SpliceConstants {
 	public static void reloadConfiguration(Configuration configuration) {
 		HBaseConfiguration.merge(config,configuration);
 		setParameters();
-		System.out.println("XXXXX" + config.getInt("hbase.rpc.timeout", 10));
 	}
 	
 }
