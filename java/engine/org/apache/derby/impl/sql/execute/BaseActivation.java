@@ -1557,13 +1557,15 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	public NoPutResultSet materializeResultSetIfPossible(NoPutResultSet rs)
 		throws StandardException
 	{
+		int maxMemoryPerTable = getLanguageConnectionContext().getOptimizerFactory().getMaxMemoryPerTable();
+		if(maxMemoryPerTable<=0)
+			return rs;
 		rs.openCore();
 		Vector rowCache = new Vector();
 		ExecRow aRow;
 		int cacheSize = 0;
 		FormatableBitSet toClone = null;
 
-		int maxMemoryPerTable = getLanguageConnectionContext().getOptimizerFactory().getMaxMemoryPerTable();
 
 		aRow = rs.getNextRowCore();
 		if (aRow != null)
