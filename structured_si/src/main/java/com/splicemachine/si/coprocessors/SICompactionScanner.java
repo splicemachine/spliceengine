@@ -28,7 +28,17 @@ public class SICompactionScanner implements InternalScanner {
     }
 
     @Override
+    public boolean next(List<KeyValue> results, String metric) throws IOException {
+        return nextDirect(results, -1);
+    }
+
+    @Override
     public boolean next(List<KeyValue> results, int limit) throws IOException {
+        return nextDirect(results, limit);
+    }
+
+    @Override
+    public boolean next(List<KeyValue> results, int limit, String metric) throws IOException {
         return nextDirect(results, limit);
     }
 
@@ -46,17 +56,4 @@ public class SICompactionScanner implements InternalScanner {
     public void close() throws IOException {
         delegate.close();
     }
-
-	@Override
-	public boolean next(List<KeyValue> results, String metric) throws IOException {
-		
-		return false;
-	}
-
-	@Override
-	public boolean next(List<KeyValue> result, int limit, String metric)
-			throws IOException {
-		// TODO Auto-generated method stub
-		return false;
-	}
 }
