@@ -56,7 +56,7 @@ public class SpliceService extends SpliceConstants implements PersistentService 
 
 		service.setProperty(Property.SERVICE_PROTOCOL,"org.apache.derby.database.Database");
 		service.setProperty(EngineType.PROPERTY,Integer.toString(getEngineType()));
-		service.setProperty(DataDictionary.CORE_DATA_DICTIONARY_VERSION,"10.9");
+		//service.setProperty(DataDictionary.CORE_DATA_DICTIONARY_VERSION,"10.9");
 //		service.setProperty(Property.REQUIRE_AUTHENTICATION_PARAMETER, "true");
 //		service.setProperty("derby.language.logQueryPlan", "true"); // unclear of this...
 		if (LOG.isTraceEnabled()) {

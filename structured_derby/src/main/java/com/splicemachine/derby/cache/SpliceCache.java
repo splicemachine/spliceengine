@@ -38,7 +38,7 @@ import net.sf.ehcache.config.Configuration;
  * @author johnleach
  *
  */
-public class SpliceCache {
+public class SpliceCache extends SpliceConstants {
 	protected CacheManager cacheManager;	
 	
 	public SpliceCache(String name) {
@@ -51,7 +51,7 @@ public class SpliceCache {
 		config.addCacheManagerPeerProviderFactory(new SplicePeerProviderFactoryConfiguration(SpliceConstants.multicastGroupAddress,SpliceConstants.multicastGroupPort));
 		config.addCacheManagerPeerListenerFactory(new SplicePeerListenerFactoryConfiguration(port,objectPort));
 		cacheManager = new CacheManager(config);
-		Cache cache = new Cache(new SpliceCacheConfiguration("properties", 1000));		
+		Cache cache = new Cache(new SpliceCacheConfiguration(PROPERTIES_CACHE, 1000));		
 		cacheManager.addCache(cache);		
 	}
 

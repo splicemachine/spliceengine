@@ -18,6 +18,9 @@ import com.splicemachine.job.*;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
+
+import net.sf.ehcache.Cache;
+
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -351,6 +354,10 @@ public class SpliceDriver extends SIConstants {
     private boolean startCache() {
     		cache = new SpliceCache("Splice");
     		return true;    	
+    }
+    
+    public Cache getPropertiesCache() {
+    	return cache.getCacheManager().getCache(SpliceConstants.PROPERTIES_CACHE);
     }
     
 }

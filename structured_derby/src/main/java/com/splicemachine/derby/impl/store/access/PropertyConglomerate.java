@@ -49,9 +49,11 @@ public class PropertyConglomerate {
 
     /* Constructors for This class: */
 
-	public PropertyConglomerate(TransactionController tc, boolean create, Properties serviceProperties, PropertyFactory pf) throws StandardException {
+	public PropertyConglomerate(TransactionController tc, boolean create, Properties properties, PropertyFactory pf) throws StandardException {
+		serviceProperties = new Properties();
 		this.pf = pf;
 		if (!create) {
+			
 			SpliceUtils.getProperty(Property.PROPERTIES_CONGLOM_ID);
 			String id = Bytes.toString(SpliceUtils.getProperty(Property.PROPERTIES_CONGLOM_ID));
 			if (id == null) {
@@ -64,7 +66,7 @@ public class PropertyConglomerate {
 				}
 			}
 		}
-
+		
 		if (create) {
 			DataValueDescriptor[] template = makeNewTemplate();
 			Properties conglomProperties = new Properties();
@@ -82,16 +84,24 @@ public class PropertyConglomerate {
                     (int[]) null, // use default collation for property conglom.
                     conglomProperties, 
                     TransactionController.IS_DEFAULT);
+
 			serviceProperties.put(Property.PROPERTIES_CONGLOM_ID, Long.toString(propertiesConglomId));
-			serviceProperties.setProperty(DataDictionary.CORE_DATA_DICTIONARY_VERSION,"10.9");
-			
+			serviceProperties.put("derby.storage.rowLocking", "false");
+			serviceProperties.put("derby.language.logStatementText", "false");
+			serviceProperties.put("derby.language.logQueryPlan", "false");
+			serviceProperties.put("derby.locks.escalationThreshold", "500");
+			serviceProperties.put("derby.database.propertiesOnly", "false");
+			serviceProperties.put("derby.database.defaultConnectionMode", "fullAccess");
+			for (Object key: serviceProperties.keySet()) {
+				SpliceUtils.addProperty((String)key, serviceProperties.getProperty((String)key));
+			}
 		}
 
 		try {
 			List<String> children = ZkUtils.getChildren(SpliceConstants.zkSpliceDerbyPropertyPath, false);
 			for (String child: children) {
 				String value = Bytes.toString(ZkUtils.getData(SpliceConstants.zkSpliceDerbyPropertyPath + "/" + child));
-				serviceProperties.setProperty(child, value);
+				serviceProperties.put(child, value);
 			}
 		} catch (Exception e) {
 			SpliceStandardLogUtils.logAndReturnStandardException(LOG, "getServiceProperties Failed", e);
@@ -203,7 +213,6 @@ public class PropertyConglomerate {
 	
     public void saveProperty(TransactionController tc, String key, Serializable value) throws StandardException {
 		if (saveServiceProperty(key,value)) return;
-
         // Do a scan to see if the property already exists in the Conglomerate.
 		ScanController scan = this.openScan(tc, key, TransactionController.OPENMODE_FORUPDATE);
 
@@ -453,17 +462,18 @@ public class PropertyConglomerate {
 	 * @exception  StandardException  Standard exception policy.
      **/
     public Serializable getProperty(TransactionController tc, String key)  throws StandardException {
+
 		//
 		//Try service properties first.
-		if(PropertyUtil.isServiceProperty(key)) return serviceProperties.getProperty(key);
-		{
-			//
-			//Return the property value if it is defined.
-			Serializable v = readProperty(tc,key);
-			if (v != null) return v;
-
-			return getPropertyDefault(tc,key);
-		}
+		if(PropertyUtil.isServiceProperty(key) || serviceProperties.containsKey(key) ||
+				key.equals("derby.database.fullAccessUsers") || key.equals("derby.database.readOnlyAccessUsers"))
+			return serviceProperties.getProperty(key);
+		//
+		//Return the property value if it is defined.
+		Serializable v = readProperty(tc,key);
+		if (v != null) return v;
+		v =  getPropertyDefault(tc,key);
+		return v;
 	}
 
 	/**
@@ -483,7 +493,7 @@ public class PropertyConglomerate {
 				return (Serializable)defaults.get(key);
 	}
 									
-    public Dictionary copyValues(Dictionary to, Dictionary from, boolean stringsOnly) {
+    public Dictionary copyValues(Dictionary to, Dictionary from, boolean stringsOnly) {    	
 		if (from == null) return to; 
 		for (Enumeration keys = from.keys(); keys.hasMoreElements(); ) {
 			String key = (String) keys.nextElement();
@@ -499,8 +509,9 @@ public class PropertyConglomerate {
 		that only keys that have String values will be included.
 	*/
     public Properties getProperties(TransactionController tc) throws StandardException {
+
 		Properties p = new Properties();
-		getProperties(tc,p,true/*stringsOnly*/,false/*!defaultsOnly*/);
+		getProperties(tc,p,true/*stringsOnly*/,false/*!defaultsOnly*/);		
 		return p;
 	}
 
