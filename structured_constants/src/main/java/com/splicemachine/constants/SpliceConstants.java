@@ -142,6 +142,8 @@ public class SpliceConstants {
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
     public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
     public static final String PROPERTIES_TABLE_NAME = "SPLICE_PROPS";
+    public static final String PROPERTIES_CACHE = "properties";
+    
     
     public static byte[] TEMP_TABLE_BYTES = Bytes.toBytes(TEMP_TABLE);
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
