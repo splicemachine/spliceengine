@@ -10,6 +10,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 
 import java.io.IOException;
@@ -19,7 +20,7 @@ import java.io.IOException;
  * obtain "the" transactor.
  */
 public class TransactorFactoryImpl extends SIConstants implements TransactorFactory {
-    private static volatile Transactor<Put, Get, Scan, Mutation> transactor;
+    private static volatile Transactor<Put, Get, Scan, Mutation, Result> transactor;
     //deliberate boxing here to ensure the lock is not shared by anyone else
     private static final Object lock = new Integer(1);
 
@@ -28,11 +29,11 @@ public class TransactorFactoryImpl extends SIConstants implements TransactorFact
         return getTransactor(configSource);
     }
 
-    public static void setTransactor(Transactor<Put, Get, Scan, Mutation> newTransactor) {
+    public static void setTransactor(Transactor<Put, Get, Scan, Mutation, Result> newTransactor) {
         transactor = newTransactor;
     }
 
-    public static Transactor<Put, Get, Scan, Mutation> getTransactor() {
+    public static Transactor<Put, Get, Scan, Mutation, Result> getTransactor() {
         return getTransactor(new HbaseConfigurationSource() {
             @Override
             public Configuration getConfiguration() {
@@ -42,7 +43,7 @@ public class TransactorFactoryImpl extends SIConstants implements TransactorFact
     }
 
 
-    public static Transactor<Put, Get, Scan, Mutation> getTransactor(final Configuration conf){
+    public static Transactor<Put, Get, Scan, Mutation, Result> getTransactor(final Configuration conf){
         return getTransactor(new HbaseConfigurationSource() {
             @Override
             public Configuration getConfiguration() {
@@ -51,7 +52,7 @@ public class TransactorFactoryImpl extends SIConstants implements TransactorFact
         });
     }
 
-    public static Transactor<Put, Get, Scan, Mutation> getTransactor(HbaseConfigurationSource configSource) {
+    public static Transactor<Put, Get, Scan, Mutation, Result> getTransactor(HbaseConfigurationSource configSource) {
         if(transactor!=null) return transactor;
         synchronized (lock) {
             //double-checked locking--make sure someone else didn't already create it

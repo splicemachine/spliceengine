@@ -21,7 +21,7 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
  * transaction table).
  */
 public class DataStore {
-    private final SDataLib dataLib;
+    final SDataLib dataLib;
     private final STableReader reader;
     private final STableWriter writer;
 

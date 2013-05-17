@@ -25,19 +25,20 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 
 import java.util.concurrent.TimeUnit;
 
 public class TransactorFactory extends SIConstants {
-    private static Transactor<Put, Get, Scan, Mutation> defaultTransactor;
+    private static Transactor<Put, Get, Scan, Mutation, Result> defaultTransactor;
     private static volatile HTablePool hTablePool;
 
-    public static void setDefaultTransactor(Transactor<Put, Get, Scan, Mutation> transactorToUse) {
+    public static void setDefaultTransactor(Transactor<Put, Get, Scan, Mutation, Result> transactorToUse) {
         defaultTransactor = transactorToUse;
     }
 
-    public static Transactor<Put, Get, Scan, Mutation> getDefaultTransactor() {
+    public static Transactor<Put, Get, Scan, Mutation, Result> getDefaultTransactor() {
         return defaultTransactor;
     }
 
@@ -45,7 +46,7 @@ public class TransactorFactory extends SIConstants {
         return defaultTransactor;
     }
 
-    public static Transactor<Put, Get, Scan, Mutation> getTransactor(Configuration configuration, TimestampSource timestampSource) {
+    public static Transactor<Put, Get, Scan, Mutation, Result> getTransactor(Configuration configuration, TimestampSource timestampSource) {
         if (hTablePool == null) {
             synchronized (TransactorFactory.class) {
                 if (hTablePool == null) {
@@ -56,15 +57,15 @@ public class TransactorFactory extends SIConstants {
         return getTransactor(hTablePool, timestampSource);
     }
 
-    public static Transactor<Put, Get, Scan, Mutation> getTransactor(HTablePool pool, TimestampSource timestampSource) {
+    public static Transactor<Put, Get, Scan, Mutation, Result> getTransactor(HTablePool pool, TimestampSource timestampSource) {
         return getTransactorDirect(new HPoolTableSource(pool), timestampSource);
     }
 
-    public static Transactor<Put, Get, Scan, Mutation> getTransactor(CoprocessorEnvironment environment, TimestampSource timestampSource) {
+    public static Transactor<Put, Get, Scan, Mutation, Result> getTransactor(CoprocessorEnvironment environment, TimestampSource timestampSource) {
         return getTransactorDirect(new HCoprocessorTableSource(environment), timestampSource);
     }
 
-    public static Transactor<Put, Get, Scan, Mutation> getTransactorDirect(HTableSource tableSource, TimestampSource timestampSource) {
+    public static Transactor<Put, Get, Scan, Mutation, Result> getTransactorDirect(HTableSource tableSource, TimestampSource timestampSource) {
         HStore store = new HStore(tableSource);
         SDataLib dataLib = new HDataLibAdapter(new HDataLib());
         final STableReader reader = new HTableReaderAdapter(store);
@@ -85,7 +86,7 @@ public class TransactorFactory extends SIConstants {
         final Cache<Long, ActiveTransactionCacheEntry> activeCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         final Cache<Long, Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
-                immutableCache, activeCache, cache);
+                immutableCache, activeCache, cache, 1000);
 
         final DataStore rowStore = new DataStore(dataLib, reader, writer, "si-needed", SI_NEEDED_VALUE,
                 ONLY_SI_FAMILY_NEEDED_VALUE,
@@ -94,8 +95,8 @@ public class TransactorFactory extends SIConstants {
                 SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING,
                 EMPTY_BYTE_ARRAY, SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
                 DEFAULT_FAMILY);
-        return new HTransactor<Put, Get, Scan, Mutation>
-                (new SITransactor<Object, SGet, SScan, Mutation>
+        return new HTransactor<Put, Get, Scan, Mutation, Result>
+                (new SITransactor<Object, SGet, SScan, Mutation, Result>
                         (timestampSource, dataLib, writer, rowStore, transactionStore,
                                 new SystemClock(), 10 * 60 * 1000));
     }

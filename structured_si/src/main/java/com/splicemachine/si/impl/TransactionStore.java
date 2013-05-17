@@ -8,6 +8,7 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.api.TransactionId;
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -33,11 +34,12 @@ public class TransactionStore {
 
     private final TransactionSchema transactionSchema;
     private final TransactionSchema encodedSchema;
+    private int waitForCommittingMS;
 
     public TransactionStore(TransactionSchema transactionSchema, SDataLib dataLib,
                             STableReader reader, STableWriter writer,
                             Cache<Long, ImmutableTransaction> immutableTransactionCache, Cache<Long, ActiveTransactionCacheEntry> activeTransactionCache,
-                            Cache<Long, Transaction> transactionCache) {
+                            Cache<Long, Transaction> transactionCache, int waitForCommittingMS) {
         this.transactionSchema = transactionSchema;
         this.encodedSchema = transactionSchema.encodedSchema(dataLib);
         this.dataLib = dataLib;
@@ -46,6 +48,7 @@ public class TransactionStore {
         this.transactionCache = transactionCache;
         this.immutableTransactionCache = immutableTransactionCache;
         this.writer = writer;
+        this.waitForCommittingMS = waitForCommittingMS;
     }
 
     public void recordNewTransaction(TransactionId startTransactionTimestamp, TransactionParams params,
@@ -107,13 +110,21 @@ public class TransactionStore {
         if (immutableCachedTransaction != null) {
             return immutableCachedTransaction;
         }
-        immutableCachedTransaction = getTransaction(transactionId.getId());
+        immutableCachedTransaction = getImmutableTransactionDirect(transactionId);
         immutableTransactionCache.put(transactionId.getId(), immutableCachedTransaction);
         return immutableCachedTransaction;
     }
 
     public Transaction getTransaction(long beginTimestamp) throws IOException {
-        return getTransaction(new SITransactionId(beginTimestamp));
+        return getTransactionDirect(new SITransactionId(beginTimestamp), false);
+    }
+
+    public Transaction getTransaction(TransactionId transactionId) throws IOException {
+        return getTransactionDirect(transactionId, false);
+    }
+
+    public Transaction getImmutableTransactionDirect(TransactionId transactionId) throws IOException {
+        return getTransactionDirect(transactionId, true);
     }
 
     public Transaction getTransactionAsOf(long beginTimestamp, TransactionId perspective) throws IOException {
@@ -126,21 +137,48 @@ public class TransactionStore {
         if (activeEntry != null && activeEntry.effectiveTimestamp >= perspective.getId()) {
             return activeEntry.transaction;
         }
-        final Transaction transaction = loadTransaction(transactionId);
+        final Transaction transaction = loadTransaction(transactionId, false);
         activeTransactionCache.put(transactionId.getId(), new ActiveTransactionCacheEntry(perspective.getId(), transaction));
         return transaction;
     }
 
-    public Transaction getTransaction(TransactionId transactionId) throws IOException {
+    private Transaction getTransactionDirect(TransactionId transactionId, boolean immutableOnly) throws IOException {
         final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId.getId());
         if (cachedTransaction != null) {
             //LOG.warn("cache HIT " + transactionId.getTransactionIdString());
             return cachedTransaction;
         }
-        return loadTransaction(transactionId);
+        return loadTransaction(transactionId, immutableOnly);
     }
 
-    private Transaction loadTransaction(TransactionId transactionId) throws IOException {
+    private Transaction loadTransaction(TransactionId transactionId, boolean immutableOnly) throws IOException {
+        if (immutableOnly) {
+           return loadTransactionDirect(transactionId);
+        } else {
+            TransactionId rootId = new SITransactionId(getImmutableTransaction(transactionId).getRootBeginTimestamp());
+
+            Transaction transaction = loadTransactionDirect(rootId);
+            if (transaction.isCommitting()) {
+                try {
+                    Tracer.traceWaiting(transactionId.getId());
+                    Thread.sleep(waitForCommittingMS);
+                } catch (InterruptedException e) {
+                    //ignore this
+                }
+                transaction = loadTransactionDirect(rootId);
+                if (transaction.isCommitting()) {
+                    throw new DoNotRetryIOException("Transaction is committing: " + transactionId.getTransactionIdString());
+                }
+            }
+            if (rootId.getTransactionIdString().equals(transactionId.getTransactionIdString())) {
+                return transaction;
+            } else {
+                return loadTransactionDirect(transactionId);
+            }
+        }
+    }
+
+    private Transaction loadTransactionDirect(TransactionId transactionId) throws IOException {
         Object tupleKey = dataLib.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
 
         STable transactionSTable = reader.open(transactionSchema.tableName);

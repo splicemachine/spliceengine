@@ -128,8 +128,6 @@ public class SIFilterState implements FilterState {
             final Transaction dataTransaction = getTransactionFromFilterCache();
             if (dataTransaction.isCommitted() || dataTransaction.isFailed()) {
                 rollForward(dataTransaction);
-            } else if (dataTransaction.isCommitting()) {
-                //TODO: needs special handling
             }
             return dataTransaction;
         } else {
@@ -142,7 +140,7 @@ public class SIFilterState implements FilterState {
      * transaction up in the transaction table again the next time this row is read.
      */
     private void rollForward(Transaction transaction) throws IOException {
-        if (!transaction.isNestedDependent()) {
+        if (rollForwardQueue != null && !transaction.isNestedDependent()) {
             // TODO: revisit this in light of nested independent transactions
             dataStore.recordRollForward(rollForwardQueue, transaction, keyValue.row);
         }

@@ -9,14 +9,15 @@ import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 
 import java.io.IOException;
 import java.util.List;
 
-public class HTransactor<PutOp extends Put, GetOp extends Get, ScanOp extends Scan, MutationOp extends Mutation>
-        implements Transactor<PutOp, GetOp, ScanOp, MutationOp> {
+public class HTransactor<PutOp extends Put, GetOp extends Get, ScanOp extends Scan, MutationOp extends Mutation, ResultType extends Result>
+        implements Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> {
     Transactor delegate;
 
     public HTransactor(Transactor delegate) {
@@ -84,6 +85,11 @@ public class HTransactor<PutOp extends Put, GetOp extends Get, ScanOp extends Sc
     }
 
     @Override
+    public FilterState newFilterState(TransactionId transactionId) throws IOException {
+        return delegate.newFilterState(transactionId);
+    }
+
+    @Override
     public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean siOnly) throws IOException {
         return delegate.newFilterState(rollForwardQueue, transactionId, siOnly);
     }
@@ -91,6 +97,11 @@ public class HTransactor<PutOp extends Put, GetOp extends Get, ScanOp extends Sc
     @Override
     public Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException {
         return delegate.filterKeyValue(filterState, keyValue);
+    }
+
+    @Override
+    public ResultType filterResult(FilterState filterState, ResultType result) throws IOException {
+        return (ResultType) delegate.filterResult(filterState, result);
     }
 
     @Override

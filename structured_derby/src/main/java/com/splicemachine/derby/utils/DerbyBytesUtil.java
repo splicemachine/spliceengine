@@ -14,6 +14,7 @@ import com.google.common.io.Closeables;
 import com.gotometrics.orderly.*;
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -75,6 +76,11 @@ public class DerbyBytesUtil {
         if (bytes.length == 0) {
             descriptor.setToNull();
             return descriptor;
+        }
+        if(descriptor instanceof LazyDataValueDescriptor){
+            LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) descriptor;
+            ldvd.initForDeserialization(bytes);
+            return ldvd;
         }
         try {
 			switch (descriptor.getTypeFormatId()) {
@@ -148,21 +154,19 @@ public class DerbyBytesUtil {
         /*
          * Don't bother to re-serialize HBaseRowLocations, they're already just bytes.
          */
+
+        byte[] result;
+
         if(descriptor instanceof HBaseRowLocation){
-            return ((HBaseRowLocation)descriptor).getBytes();
+            result = ((HBaseRowLocation)descriptor).getBytes();
+        }else if(descriptor instanceof LazyDataValueDescriptor){
+            LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) descriptor;
+            result = ldvd.getBytes();
+        }else{
+            result = getRowKey(descriptor).serialize(getObject(descriptor));
         }
-        return getRowKey(descriptor).serialize(getObject(descriptor));
-		//SpliceLogUtils.trace(LOG,"generateBytes for descriptor %s with value %s",descriptor,descriptor.getTraceString());
-//		try {
-////		    	case StoredFormatIds.SQL_DECIMAL_ID:
-////		    		return getRowKey(descriptor).serialize((BigDecimal) descriptor.getObject());
-////		        default:
-////		        	throw new RuntimeException("Attempt to serialize an unimplemented serializable object " + descriptor.getClass());
-////			}
-//		} catch (Exception e) {
-//				SpliceLogUtils.logAndThrowRuntime(LOG,"Byte array generation failed ",e);
-//				return null;
-//		}
+
+        return result;
 	}
 
 	
@@ -492,7 +496,7 @@ public class DerbyBytesUtil {
     /**
      * String RowKey which trims off extraneous whitespace and empty characters before serializing.
      */
-    private static class NullRemovingRowKey extends UTF8RowKey {
+    public static class NullRemovingRowKey extends UTF8RowKey {
 
         private static final char NULL_CHAR = '\u0000';
 

@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * The primary interface to the transaction module.
  */
-public interface Transactor<PutOp, GetOp, ScanOp, MutationOp> extends ClientTransactor<PutOp, GetOp, ScanOp, MutationOp> {
+public interface Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> extends ClientTransactor<PutOp, GetOp, ScanOp, MutationOp> {
     TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
     /**
      *
@@ -43,8 +43,10 @@ public interface Transactor<PutOp, GetOp, ScanOp, MutationOp> extends ClientTran
     void preProcessGet(GetOp get) throws IOException;
     void preProcessScan(ScanOp scan) throws IOException;
 
+    FilterState newFilterState(TransactionId transactionId) throws IOException;
     FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean siOnly) throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
+    ResultType filterResult(FilterState filterState, ResultType result) throws IOException;
 
     void rollForward(STable table, long transactionId, List rows) throws IOException;
     SICompactionState newCompactionState();

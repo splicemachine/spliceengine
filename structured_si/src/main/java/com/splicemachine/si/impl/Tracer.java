@@ -11,6 +11,8 @@ public class Tracer {
     private static transient Function<Long, Object> fTransaction = null;
     private static transient Function<Object[], Object> fStatus = null;
     public static transient Runnable fCompact = null;
+    private static transient Function<Long, Object> fCommitting = null;
+    private static transient Function<Long, Object> fWaiting = null;
 
     public static Integer rollForwardDelayOverride = null;
 
@@ -28,6 +30,14 @@ public class Tracer {
 
     public static void registerCompact(Runnable f) {
         Tracer.fCompact = f;
+    }
+
+    public static void registerCommitting(Function<Long, Object> f) {
+        Tracer.fCommitting = f;
+    }
+
+    public static void registerWaiting(Function<Long, Object> f) {
+        Tracer.fWaiting = f;
     }
 
     public static void trace(Object key) {
@@ -51,6 +61,18 @@ public class Tracer {
     public static void compact() {
         if (fCompact != null) {
             fCompact.run();
+        }
+    }
+
+    public static void traceCommitting(long transactionId) {
+        if (fCommitting != null) {
+            fCommitting.apply(transactionId);
+        }
+    }
+
+    public static void traceWaiting(long transactionId) {
+        if (fWaiting != null) {
+            fWaiting.apply(transactionId);
         }
     }
 
