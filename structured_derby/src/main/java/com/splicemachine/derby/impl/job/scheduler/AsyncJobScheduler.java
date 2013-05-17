@@ -129,29 +129,30 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
 
     private void submit(final Watcher watcher,
                         final RegionTask task,
-                              Pair<byte[],byte[]> range,
-                              final HTableInterface table) throws ExecutionException{
+                        Pair<byte[],byte[]> range,
+                        final HTableInterface table) throws ExecutionException{
         final byte[] start = range.getFirst();
         byte[] stop = range.getSecond();
         try {
             table.coprocessorExec(SpliceSchedulerProtocol.class, start
                     , stop, new Batch.Call<SpliceSchedulerProtocol, TaskFutureContext>() {
-                @Override
-                public TaskFutureContext call(SpliceSchedulerProtocol instance) throws IOException {
-                    return instance.submit(task);
-                }
-            },new Batch.Callback<TaskFutureContext>() {
+                        @Override
+                        public TaskFutureContext call(SpliceSchedulerProtocol instance) throws IOException {
+                            return instance.submit(task);
+                        }
+                    },new Batch.Callback<TaskFutureContext>() {
                         @Override
                         public void update(byte[] region, byte[] row, TaskFutureContext result) {
                             RegionTaskWatcher taskWatcher = new RegionTaskWatcher(watcher, row, task, result, table);
                             watcher.tasksToWatch.add(taskWatcher);
+                            watcher.taskChanged(taskWatcher);
                         }
                     });
 
             //attach a watcher
-            for(TaskFuture future:watcher.tasksToWatch){
-                future.getStatus();
-            }
+//            for(TaskFuture future:watcher.tasksToWatch){
+//                future.getStatus();
+//            }
         } catch (Throwable throwable) {
             throw new ExecutionException(throwable);
         }
