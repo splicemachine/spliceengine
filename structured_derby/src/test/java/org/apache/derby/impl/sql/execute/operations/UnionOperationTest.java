@@ -106,5 +106,34 @@ public class UnionOperationTest extends SpliceUnitTest {
 			LOG.info("id="+rs.getInt(1)+",person name="+rs.getString(2));
 		}	
 		Assert.assertEquals(8, i);
-	}		
+	}
+
+    @Test
+    public void testUnionWithWhereClause() throws Exception{
+        /*
+         * Regression test for Bug 373
+         */
+        ResultSet rs = methodWatcher.executeQuery("select * from "+spliceTableWatcher1.toString()+" where empId = 6 UNION select * from "+spliceTableWatcher2.toString()+" where empId=3");
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            LOG.info("id="+rs.getInt(1)+",person name="+rs.getString(2));
+        }
+        Assert.assertEquals(2, i);
+    }
+
+    @Test
+    public void testUnionValuesInSubSelect() throws Exception{
+        /*
+         * regression for Bug 292
+         */
+//        ResultSet rs = methodWatcher.executeQuery("select empId from "+spliceTableWatcher1.toString()+" where empId in (select empId from "+spliceTableWatcher2.toString()+" union values 1 union values 2)");
+        ResultSet rs = methodWatcher.executeQuery("select empId from "+spliceTableWatcher1.toString()+" where empId in (select empId from "+spliceTableWatcher2.toString()+" union all values 1)");
+        int i=0;
+        while(rs.next()){
+            i++;
+            System.out.printf("empId=%d%n",rs.getInt(1));
+        }
+        Assert.assertEquals(5,i);
+    }
 }
