@@ -37,13 +37,13 @@ public class UnionOperationTest extends SpliceUnitTest {
 			protected void starting(Description description) {
 				try {
 					Statement s = spliceClassWatcher.getStatement();
-					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(1, 1, 'Mulgrew, Kate')");
-					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(2, 1, 'Shatner, William')");
+					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(6, 1, 'Mulgrew, Kate')");
+					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(7, 1, 'Shatner, William')");
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(3, 1, 'Nimoy, Leonard')");
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(4, 1, 'Patrick')");
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(5, 1, null)");			
-					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(1, 1, 'Spiner, Brent')");
-					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(2, 1, 'Duncan, Rebort')");
+					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(6, 1, 'Spiner, Brent')");
+					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(7, 1, 'Duncan, Rebort')");
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(3, 1, 'Nimoy, Leonard')");
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(4, 1, 'Ryan, Jeri')");
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(5, 1, null)");

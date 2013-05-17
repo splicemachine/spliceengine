@@ -1,13 +1,23 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.storage.RowProviders;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.StatementContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -23,6 +33,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class AnyOperation extends SpliceBaseOperation {
 	private static Logger LOG = Logger.getLogger(AnyOperation.class);
+    private static final List<NodeType> nodeTypes = Collections.singletonList(NodeType.SCAN);
 
 	/* Used to cache row with nulls for case when subquery result set
 	 * is empty.
@@ -34,14 +45,20 @@ public class AnyOperation extends SpliceBaseOperation {
 
     // set in constructor and not altered during
     // life of object.
-    public final SpliceOperation source;
+    public SpliceOperation source;
 	private GeneratedMethod emptyRowFun;
+    private String emptyRowFunName;
+
 	public int subqueryNumber;
 	public int pointOfAttachment;
 
     //
     // class interface
     //
+
+
+    public AnyOperation() { }
+
     public AnyOperation(NoPutResultSet s, Activation a, GeneratedMethod emptyRowFun,
 						int resultSetNumber, int subqueryNumber,
 						int pointOfAttachment,
@@ -52,117 +69,105 @@ public class AnyOperation extends SpliceBaseOperation {
 		this.emptyRowFun = emptyRowFun;
 		this.subqueryNumber = subqueryNumber;
 		this.pointOfAttachment = pointOfAttachment;
-		recordConstructorTime(); 
+        this.emptyRowFunName = emptyRowFun.getMethodName();
+
+        init(SpliceOperationContext.newContext(a));
     }
-
-	//
-	// ResultSet interface (leftover from NoPutResultSet)
-	//
-
-	/**
-     * open a scan on the table. scan parameters are evaluated
-     * at each open, so there is probably some way of altering
-     * their values...
-	 *
-	 * @exception StandardException thrown if cursor finished.
-     */
-	public void	openCore() throws StandardException {
-        source.openCore();
-        super.openCore();
-		if (statementContext == null) {
-			statementContext = activation.getLanguageConnectionContext().getStatementContext();
-		}
-		statementContext.setSubqueryResultSet(subqueryNumber, this, activation.getNumSubqueries());
-	}
-
-	/**
-	 * reopen a scan on the table. scan parameters are evaluated
-	 * at each open, so there is probably some way of altering
-	 * their values...
-	 *
-	 * @exception StandardException thrown if cursor finished.
-	 */
-	public void	reopenCore() throws StandardException {
-        source.reopenCore();
-	}
-
-	public void	finish() throws StandardException {
-		source.finish();
-	}
-
-	/**
-     * Return the requested value computed from the next row.  
-	 *
-	 * @exception StandardException thrown on failure.
-	 */
-	public ExecRow	getNextRowCore() throws StandardException  {
-	    ExecRow result = null;
-	    ExecRow candidateRow = source.getNextRowCore();
-		if (candidateRow != null) {
-			result = candidateRow;
-		}
-		else if (rowWithNulls == null) {
-			rowWithNulls = (ExecRow) emptyRowFun.invoke(activation);
-			result = rowWithNulls;
-		}
-		else {
-			result = rowWithNulls;
-		}
-
-		setCurrentRow(result);
-	    return result;
-	}
-
-	/**
-	 * If the result set has been opened,
-	 * close the open scan.
- 	 *
-	 * @exception StandardException thrown on error
-	 */
-	public void	close() throws StandardException {
-		SpliceLogUtils.trace(LOG, "close in AnyOperation");
-		beginTime = getCurrentTimeMillis();
-		clearCurrentRow();
-		source.close();
-		super.close();
-		closeTime += getElapsedMillis(beginTime);
-	}
-
-	/**
-	 * @see NoPutResultSet#getPointOfAttachment
-	 */
-	public int getPointOfAttachment() {
-		return pointOfAttachment;
-	}
-
-	@Override
-	public List<NodeType> getNodeTypes() {
-		SpliceLogUtils.trace(LOG, "getNodeTypes");
-		return Collections.singletonList(NodeType.SCAN);
-	}
-	
-	@Override
-	public List<SpliceOperation> getSubOperations() {
-		SpliceLogUtils.trace(LOG, "getSubOperations");
-		List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
-		operations.add(source);
-		return operations;
-	}
-
 
     @Override
-    public boolean isReferencingTable(long tableNumber){
-        return source.isReferencingTable(tableNumber);
+    public List<NodeType> getNodeTypes() {
+        return nodeTypes;
     }
 
-	@Override
-	public long getTimeSpent(int type)
-	{
-		long totTime = constructorTime + openTime + nextTime + closeTime;
+    @Override
+    public List<SpliceOperation> getSubOperations() {
+        return Arrays.asList(source);
+    }
 
-		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-		else
-			return totTime;
-	}
+    @Override
+    public SpliceOperation getLeftOperation() {
+        return source;
+    }
+
+    @Override
+    public ExecRow getNextRowCore() throws StandardException {
+        ExecRow candidateRow = source.getNextRowCore();
+        ExecRow result;
+        if(candidateRow!=null)
+           result = candidateRow;
+        else if(rowWithNulls==null){
+            rowWithNulls = (ExecRow)emptyRowFun.invoke(activation);
+            result = rowWithNulls;
+        }else
+            result = rowWithNulls;
+
+        setCurrentRow(result);
+
+        return result;
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeUTF(emptyRowFunName);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        emptyRowFunName = in.readUTF();
+    }
+
+    @Override
+    public void openCore() throws StandardException {
+        super.openCore();
+        source.openCore();
+    }
+
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException {
+        super.init(context);
+        source.init(context);
+
+        if(emptyRowFun==null)
+            emptyRowFun = context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunName);
+    }
+
+    @Override
+    public NoPutResultSet executeScan() throws StandardException {
+        RowProvider provider = getReduceRowProvider(source,source.getExecRowDefinition());
+        return new SpliceNoPutResultSet(activation,this,provider);
+    }
+
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return source.getMapRowProvider(top,template);
+    }
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return new RowProviders.DelegatingRowProvider(source.getReduceRowProvider(top,template)) {
+            @Override
+            public ExecRow next() throws StandardException {
+                ExecRow candidateRow = provider.next();
+                ExecRow result;
+                if(candidateRow!=null)
+                    result = candidateRow;
+                else if(rowWithNulls==null){
+                    rowWithNulls = (ExecRow)emptyRowFun.invoke(activation);
+                    result = rowWithNulls;
+                }else
+                    result = rowWithNulls;
+
+                setCurrentRow(result);
+
+                return result;
+            }
+        };
+    }
+
+    @Override
+    public ExecRow getExecRowDefinition() throws StandardException {
+        return source.getExecRowDefinition();
+    }
 }

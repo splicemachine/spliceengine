@@ -24,10 +24,30 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 		super();
 		SpliceLogUtils.trace(LOG, "instantiating SpliceGenericResultSetFactory");
 	}
-	
-	
-	
-	@Override
+
+
+    @Override
+    public NoPutResultSet getAnyResultSet(NoPutResultSet source,
+                                          GeneratedMethod emptyRowFun,
+                                          int resultSetNumber,
+                                          int subqueryNumber,
+                                          int pointOfAttachment,
+                                          double optimizerEstimatedRowCount,
+                                          double optimizerEstimatedCost) throws StandardException {
+        try{
+            AnyOperation anyOp = new AnyOperation(source,
+                    source.getActivation(),emptyRowFun,
+                    resultSetNumber,subqueryNumber,
+                    pointOfAttachment,optimizerEstimatedRowCount,
+                    optimizerEstimatedCost);
+            OperationTree operationTree = new OperationTree();
+            return new OperationResultSet(source.getActivation(),operationTree,anyOp);
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    @Override
 	public NoPutResultSet getOnceResultSet(NoPutResultSet source,
 			GeneratedMethod emptyRowFun, int cardinalityCheck,
 			int resultSetNumber, int subqueryNumber, int pointOfAttachment,
@@ -38,7 +58,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             OnceOperation op = new OnceOperation(source, source.getActivation(), emptyRowFun, cardinalityCheck,
                     resultSetNumber, subqueryNumber, pointOfAttachment,
                     optimizerEstimatedRowCount, optimizerEstimatedCost);
-//            op.markAsTopResultSet();
+            op.markAsTopResultSet();
             OperationTree operationTree = new OperationTree();
             return new OperationResultSet(source.getActivation(),operationTree,op);
         }catch(Exception e){

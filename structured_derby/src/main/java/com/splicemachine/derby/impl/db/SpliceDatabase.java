@@ -23,6 +23,12 @@ public class SpliceDatabase extends BasicDatabase {
 		System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
         System.setProperty("derby.language.logStatementText", Boolean.toString(true));
         System.setProperty("derby.connection.requireAuthentication","false");
+        /*
+         * This value is set to ensure that result sets are not materialized into memory, because
+         * they may be materialized over the wire and it won't work right. DO NOT CHANGE THIS SETTING.
+         * See Bug #292 for more information.
+         */
+        System.setProperty("derby.language.maxMemoryPerTable",Integer.toString(-1));
 //	    SanityManager.DEBUG_SET("ByteCodeGenInstr");
 	    SanityManager.DEBUG_SET("DumpClassFile");
       SanityManager.DEBUG_SET("DumpOptimizedTree");
