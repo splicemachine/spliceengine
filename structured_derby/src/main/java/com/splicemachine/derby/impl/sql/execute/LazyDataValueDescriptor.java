@@ -9,6 +9,7 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.types.BooleanDataValue;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -63,10 +64,6 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
     protected void resetForSerialization(){
         dvdBytes = null;
-    }
-
-    protected void resetForDeserialization(){
-        getDvd().setToNull();
     }
 
     @Override
@@ -562,12 +559,19 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
         forceDeserialization();
 
-        Object other = o;
+        boolean result = false;
 
-        if(o instanceof LazyDataValueDescriptor){
-           other = unwrap((LazyDataValueDescriptor) o);
+        if(getDvd() == null && o instanceof LazyDataValueDescriptor){
+
+            result = Bytes.equals(dvdBytes, ((LazyDataValueDescriptor) o).dvdBytes);
+
+        }else if (getDvd() != null && o instanceof DataValueDescriptor ){
+
+            result = getDvd().equals(unwrap( (DataValueDescriptor) o));
+
         }
 
-        return getDvd().equals(other);
+        return result;
+
     }
 }
