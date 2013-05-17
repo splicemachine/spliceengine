@@ -563,7 +563,7 @@ public class SITransactorTest extends SIConstants {
 
     private void assertWriteConflict(RetriesExhaustedWithDetailsException e) {
         Assert.assertEquals(1, e.getNumExceptions());
-        Assert.assertTrue(e.getMessage().startsWith("Failed 1 action: WriteConflict: 1 time"));
+        Assert.assertTrue(e.getMessage().startsWith("Failed 1 action: com.splicemachine.si.impl.WriteConflict: write/write conflict"));
     }
 
     private void assertWriteFailed(RetriesExhaustedWithDetailsException e) {
