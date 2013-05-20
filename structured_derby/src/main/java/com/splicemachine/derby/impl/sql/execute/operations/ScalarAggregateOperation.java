@@ -16,6 +16,7 @@ import com.splicemachine.derby.utils.*;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
@@ -24,10 +25,7 @@ import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
@@ -110,7 +108,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             throw Exceptions.parseException(e);
         }
         SpliceUtils.setInstructions(reduceScan,activation,top);
-        return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
+        return new OnNullZeroRowProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
 	}
 
     @Override
@@ -134,7 +132,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG,"getNextRowCore");
+		SpliceLogUtils.trace(LOG, "getNextRowCore");
 		return doAggregation(isTemp,scanAccumulator);
 	}
 
@@ -178,7 +176,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 									ExecIndexRow aggResult, boolean doInitialize, boolean isScan) throws StandardException{
 		if(aggResult==null){
 			aggResult = (ExecIndexRow)execIndexRow.getClone();
-			SpliceLogUtils.trace(LOG, "aggResult = %s aggregate before",aggResult);
+			SpliceLogUtils.trace(LOG, "aggResult = %s aggregate before", aggResult);
 			if(doInitialize){
 				initializeScalarAggregation(aggResult);
 				SpliceLogUtils.trace(LOG, "aggResult = %s aggregate after",aggResult);
@@ -264,7 +262,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
                 try {
                     byte[] key = DerbyBytesUtil.generatePrefixedRowKey(sequence[0]);
-                    Put put = Puts.buildInsert(key,row.getRowArray(),SpliceUtils.NA_TRANSACTION_ID,serializer);
+                    Put put = Puts.buildInsert(key, row.getRowArray(), SpliceUtils.NA_TRANSACTION_ID, serializer);
                     return Collections.<Mutation>singletonList(put);
                 } catch (StandardException e) {
                     throw Exceptions.getIOException(e);
@@ -296,5 +294,29 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     @Override
     public String prettyPrint(int indentLevel) {
         return "Scalar"+super.prettyPrint(indentLevel);
+    }
+
+    private static class OnNullZeroRowProvider extends ClientScanProvider{
+        private boolean returnedEmpty = false;
+
+        public OnNullZeroRowProvider(
+                byte[] tableName,
+                Scan scan,
+                ExecRow rowTemplate, FormatableBitSet fbt) {
+            super(tableName, scan, rowTemplate, fbt);
+        }
+
+        @Override
+        public boolean hasNext() throws StandardException {
+            boolean hasNext = super.hasNext();
+            if(hasNext){
+                returnedEmpty=true;
+                return hasNext;
+            }else if(!returnedEmpty){
+                returnedEmpty = true;
+                populated = true;
+                return true;
+            }else return false;
+        }
     }
 }

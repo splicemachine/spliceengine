@@ -176,6 +176,20 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
         }finally{
             rs.close();
         }
+    }
+
+    @Test
+    public void testCountEmptyTableReturnsZero() throws Exception {
+        /* Regression test for Bug 410 */
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from sys.syschecks");
+
+        int count =0;
+        int correctVal = 0;
+        while(rs.next()){
+            count++;
+            Assert.assertEquals("Incorrect count returned!",correctVal,rs.getInt(1));
+        }
+        Assert.assertEquals("Incorrect num rows returned",1,count);
 
     }
 }
