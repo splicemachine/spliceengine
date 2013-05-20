@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Strings;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -320,5 +321,18 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     public void openCore() throws StandardException {
         super.openCore();
         if(source!=null)source.openCore();
+    }
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder()
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("heapConglom:").append(heapConglom)
+                .append(indent).append("isScan:").append(isScan)
+                .append(indent).append("pkColumns:").append(pkColumns)
+                .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
+                .toString();
     }
 }

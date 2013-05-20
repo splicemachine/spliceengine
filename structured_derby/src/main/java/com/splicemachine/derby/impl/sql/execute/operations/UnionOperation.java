@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -273,7 +274,15 @@ public class UnionOperation extends SpliceBaseOperation {
                 '}';
     }
 
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
-
-
+        return new StringBuilder("Union:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("firstResultSet:").append(firstResultSet)
+                .append(indent).append("secondResultSet:").append(secondResultSet)
+                .append(indent).append("readBoth:").append(readBoth)
+                .toString();
+    }
 }

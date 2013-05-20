@@ -1,8 +1,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.base.Function;
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.google.common.base.Strings;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -10,13 +9,10 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.storage.RowProviders;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
@@ -31,7 +27,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -302,4 +297,17 @@ public class SortOperation extends SpliceBaseOperation {
 	public long getRowsOutput() {
 		return getRegionStats() == null ? 0l : getRegionStats().getTotalSunkRecords();
 	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder("Sort:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("distinct:").append(distinct)
+                .append(indent).append("orderingItem:").append(orderingItem)
+                .append(indent).append("keyColumns:").append(Arrays.toString(keyColumns))
+                .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
+                .toString();
+    }
 }

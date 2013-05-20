@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimeUtils;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -139,8 +140,12 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 }
             }
             return true;
-		} catch (Exception e) {
-			throw SpliceStandardLogUtils.generateSpliceIOException(LOG, "next Failed", e);
+		} catch(StandardException se){
+           throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG,"Unable to get next row",se);
+        }catch(IOException e){
+            throw SpliceStandardLogUtils.generateSpliceIOException(LOG,"Unable to get next row",e);
+        }catch(Exception e){
+            throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG,"Unable to get next row",e);
         }
 	}
 

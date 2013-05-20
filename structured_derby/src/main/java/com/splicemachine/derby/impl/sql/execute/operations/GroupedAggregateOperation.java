@@ -459,4 +459,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		sortProperties.setProperty("numRowsOutput", ""+getRowsOutput());
 		return sortProperties;
 	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "Grouped"+super.prettyPrint(indentLevel);
+    }
 }

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.gotometrics.orderly.IntegerRowKey;
 import com.splicemachine.constants.SpliceConstants;
@@ -228,6 +229,18 @@ public class RowCountOperation extends SpliceBaseOperation{
     @Override
     public NoPutResultSet executeScan() throws StandardException {
         return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,getExecRowDefinition()));
+    }
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder("RowCount:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("offsetMethodName:").append(offsetMethodName)
+                .append(indent).append("fetchFirstMethodName:").append(fetchFirstMethodName)
+                .append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
+                .toString();
     }
 
     @Override

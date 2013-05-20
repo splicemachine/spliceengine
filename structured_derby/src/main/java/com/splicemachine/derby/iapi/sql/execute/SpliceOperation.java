@@ -176,4 +176,11 @@ public interface SpliceOperation extends NoPutResultSet {
      * like table scans, it's true if it is scanning that table.
      */
     boolean isReferencingTable(long tableNumber);
+
+    /**
+     * Prints out a string representation of this operation, formatted for easy human consumption.
+     *
+     * @return a pretty-printed string representation of this operation.
+     */
+    String prettyPrint(int indentLevel);
 }

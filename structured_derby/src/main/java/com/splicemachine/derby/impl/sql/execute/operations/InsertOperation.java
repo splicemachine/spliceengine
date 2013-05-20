@@ -91,4 +91,8 @@ public class InsertOperation extends DMLWriteOperation {
 		return "Insert{destTable="+heapConglom+",source=" + source + "}";
 	}
 
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "Insert"+super.prettyPrint(indentLevel);
+    }
 }

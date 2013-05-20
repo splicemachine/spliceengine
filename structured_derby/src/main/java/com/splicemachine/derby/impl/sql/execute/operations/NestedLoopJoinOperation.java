@@ -111,7 +111,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return leftResultSet.getReduceRowProvider(top,template);
+        return leftResultSet.getReduceRowProvider(top, template);
     }
 
     @Override
@@ -174,7 +174,12 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		closeTime += getElapsedMillis(beginTime);
 	}
 
-	protected class NestedLoopIterator implements Iterator<ExecRow> {
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "NestedLoopJoin:" + super.prettyPrint(indentLevel);
+    }
+
+    protected class NestedLoopIterator implements Iterator<ExecRow> {
 		protected ExecRow leftRow;
 		protected NoPutResultSet probeResultSet;
 		private boolean populated;
@@ -212,11 +217,15 @@ public class NestedLoopJoinOperation extends JoinOperation {
 					rightResultSet.setCurrentRow(rightRow); //set this here for serialization up the stack
 					rowsSeenRight++;
 					mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
-				} else {
+                    nonNullRight();
+                } else if((rightRow = getEmptyRightRow())!=null){
+                    rightResultSet.setCurrentRow(rightRow);
+                    mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
+                }else {
 					SpliceLogUtils.trace(LOG, "already has seen row and no right result");
 					populated = false;
 					return false;
-				}						
+				}
 				if (restriction != null) {
 					DataValueDescriptor restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
 					if ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean()) {
@@ -239,7 +248,15 @@ public class NestedLoopJoinOperation extends JoinOperation {
 			return true;
 		}
 
-		@Override
+        protected void nonNullRight() {
+            //no op for inner loops
+        }
+
+        protected ExecRow getEmptyRightRow() throws StandardException {
+            return null;  //for inner loops, return null here
+        }
+
+        @Override
 		public ExecRow next() {
 			SpliceLogUtils.trace(LOG, "next row=" + mergedRow);
 			populated=false;

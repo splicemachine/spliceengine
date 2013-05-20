@@ -307,8 +307,13 @@ public class MergeSortJoinOperation extends JoinOperation {
     public String toString(){
         return "Merge"+super.toString();
     }
-	
-	protected class MergeSortNextRowIterator implements Iterator<ExecRow> {
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "MergeSortJoin:"+super.prettyPrint(indentLevel);
+    }
+
+    protected class MergeSortNextRowIterator implements Iterator<ExecRow> {
 		protected JoinSideExecRow joinRow;
 		protected boolean outerJoin;
 		public MergeSortNextRowIterator(boolean outerJoin) {

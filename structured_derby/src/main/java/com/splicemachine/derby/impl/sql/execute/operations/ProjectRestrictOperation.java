@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.base.Strings;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -250,7 +251,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return source.getReduceRowProvider(top,template);
+        return source.getReduceRowProvider(top, template);
     }
 
     @Override
@@ -397,4 +398,17 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	    }
 		closeTime += getElapsedMillis(beginTime);
 	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder("ProjectRestrict:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("restrictionMethodName:").append(restrictionMethodName)
+                .append(indent).append("projectionMethodName:").append(projectionMethodName)
+                .append(indent).append("doesProjection:").append(doesProjection)
+                .append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
+                .toString();
+    }
 }

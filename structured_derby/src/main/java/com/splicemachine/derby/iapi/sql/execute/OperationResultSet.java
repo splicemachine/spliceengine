@@ -37,6 +37,7 @@ import java.sql.Timestamp;
  */
 public class OperationResultSet implements NoPutResultSet {
     private static final Logger LOG = Logger.getLogger(OperationResultSet.class);
+    private static Logger PLAN_LOG = Logger.getLogger("com.splicemachine.queryPlan");
     private final Activation activation;
     private final OperationTree operationTree;
     private final SpliceOperation topOperation;
@@ -72,6 +73,10 @@ public class OperationResultSet implements NoPutResultSet {
         delegate = operationTree.execute();
         //open the delegate
         delegate.openCore();
+
+        if(PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))){
+            PLAN_LOG.debug(((SpliceOperation)topOperation).prettyPrint(1));
+        }
     }
 
     @Override

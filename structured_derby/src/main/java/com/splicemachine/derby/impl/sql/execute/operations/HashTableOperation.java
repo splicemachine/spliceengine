@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Strings;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.error.StandardException;
@@ -14,6 +15,8 @@ import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -148,4 +151,16 @@ public class HashTableOperation extends SpliceBaseOperation implements CursorRes
 		else
 			return totTime;
 	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder("HashTable:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("keyColumns:").append(Arrays.toString(keyColumns))
+                .append(indent).append("projectMapping:").append(Arrays.toString(projectMapping))
+                .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
+                .toString();
+    }
 }

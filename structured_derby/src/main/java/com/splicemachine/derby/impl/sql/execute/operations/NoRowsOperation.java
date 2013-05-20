@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.google.common.base.Strings;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.StatementContext;
@@ -131,4 +132,14 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 			SpliceLogUtils.error(LOG, e);
 		}
 	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder()
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("isScan:").append(isScan)
+                .toString();
+    }
 }

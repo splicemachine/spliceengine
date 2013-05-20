@@ -6,6 +6,7 @@ import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.base.Strings;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -248,5 +249,15 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 		return constructorTime + openTime + nextTime + closeTime;
 	}
 
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
+        return new StringBuilder("RowOp:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("rowsReturned:").append(rowsReturned)
+                .append(indent).append("canCacheRow:").append(canCacheRow)
+                .append(indent).append("rowMethodName:").append(rowMethodName)
+                .toString();
+    }
 }

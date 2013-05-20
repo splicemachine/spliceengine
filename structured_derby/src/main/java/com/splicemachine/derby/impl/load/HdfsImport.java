@@ -431,4 +431,8 @@ public class HdfsImport extends ParallelVTI {
 	}
 
 
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "HdfsImport";
+    }
 }

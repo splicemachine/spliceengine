@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -137,6 +138,17 @@ public class AnyOperation extends SpliceBaseOperation {
     public NoPutResultSet executeScan() throws StandardException {
         RowProvider provider = getReduceRowProvider(source,source.getExecRowDefinition());
         return new SpliceNoPutResultSet(activation,this,provider);
+    }
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+        return new StringBuilder("Any:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("Source:").append(source.prettyPrint(indentLevel+1))
+                .append(indent).append("emptyRowFunName:").append(emptyRowFunName)
+                .append(indent).append("subqueryNumber:").append(subqueryNumber)
+                .toString();
     }
 
     @Override

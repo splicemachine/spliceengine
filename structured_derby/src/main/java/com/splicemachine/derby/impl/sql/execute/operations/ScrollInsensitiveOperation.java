@@ -72,7 +72,13 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 			LOG.trace("getLeftOperation");
 		return (SpliceOperation) source;
 	}
-	@Override
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "ScrollInsensitive"; //this class is never used
+    }
+
+    @Override
 	public List<NodeType> getNodeTypes() {
 		return nodeTypes;
 	}

@@ -78,13 +78,18 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 		super.init(context);
 		emptyRowFun = (emptyRowFunMethodName == null) ? null : context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunMethodName);
 	}
-	
-	protected ExecRow getEmptyRow () {
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "LeftOuter"+super.prettyPrint(indentLevel);
+    }
+
+    protected ExecRow getEmptyRow () {
 		if (emptyRow ==null)
 			try {
 				emptyRow =  (ExecRow) emptyRowFun.invoke(activation);
 			} catch (StandardException e) {
-                SpliceLogUtils.error(LOG,e);
+                SpliceLogUtils.error(LOG, e);
 			}
 		return emptyRow;
 	}	

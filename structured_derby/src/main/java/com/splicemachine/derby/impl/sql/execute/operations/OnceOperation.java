@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Strings;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -264,5 +265,19 @@ public class OnceOperation extends SpliceBaseOperation {
         public ExecRow next() throws StandardException {
             return rowToReturn;
         }
+    }
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder("Once:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("emptyRowFunName:").append(emptyRowFunMethodName)
+                .append(indent).append("cardinalityCheck:").append(cardinalityCheck)
+                .append(indent).append("subqueryNumber:").append(subqueryNumber)
+                .append(indent).append("pointOfAttachment:").append(pointOfAttachment)
+                .append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
+                .toString();
     }
 }

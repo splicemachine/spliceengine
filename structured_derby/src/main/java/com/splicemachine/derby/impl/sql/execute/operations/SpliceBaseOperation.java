@@ -406,6 +406,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         this.uniqueSequenceID = SpliceUtils.getUniqueKeyString();
         sequence[0].setValue(uniqueSequenceID);
         init(SpliceOperationContext.newContext(activation));
+
 	}
 	@Override
 	public void reopenCore() throws StandardException {

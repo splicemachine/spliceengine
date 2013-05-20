@@ -139,7 +139,7 @@ public class TableScanOperation extends ScanOperation {
 
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return getMapRowProvider(top,template);
+        return getMapRowProvider(top, template);
     }
 
     @Override
@@ -159,7 +159,12 @@ public class TableScanOperation extends ScanOperation {
 		return currentTemplate;
 	}
 
-	@Override
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "Table"+super.prettyPrint(indentLevel);
+    }
+
+    @Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"%s:getNextRowCore",tableName);
 		beginTime = getCurrentTimeMillis();

@@ -1,6 +1,8 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.base.Throwables;
+import com.splicemachine.derby.error.SpliceIOException;
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;

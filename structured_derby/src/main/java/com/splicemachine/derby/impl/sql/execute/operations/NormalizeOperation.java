@@ -7,6 +7,7 @@ import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
@@ -91,7 +92,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return ((SpliceOperation)source).getMapRowProvider(top,template);
+        return ((SpliceOperation)source).getMapRowProvider(top, template);
     }
 
     private int computeStartColumn(boolean forUpdate,
@@ -268,4 +269,17 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		else
 			return totTime;
 	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t", indentLevel);
+
+        return new StringBuilder("Normalize:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("numCols:").append(numCols)
+                .append(indent).append("startCol:").append(startCol)
+                .append(indent).append("erdNumber:").append(erdNumber)
+                .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
+                .toString();
+    }
 }

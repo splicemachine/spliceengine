@@ -292,4 +292,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		else
 			return totTime;
 	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "Scalar"+super.prettyPrint(indentLevel);
+    }
 }

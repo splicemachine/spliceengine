@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
+
+import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import org.apache.derby.iapi.error.SQLWarningFactory;
 import org.apache.derby.iapi.error.StandardException;
@@ -232,5 +234,15 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
     public void openCore() throws StandardException {
         super.openCore();
         if(source!=null)source.openCore();
+    }
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder("Aggregate:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
+                .toString();
     }
 }

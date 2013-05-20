@@ -73,4 +73,9 @@ public class DeleteOperation extends DMLWriteOperation{
 	public String toString() {
 		return "Delete{destTable="+heapConglom+",source=" + source + "}";
 	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "Delete"+super.prettyPrint(indentLevel);
+    }
 }

@@ -633,4 +633,9 @@ public class VTIOperation extends SpliceBaseOperation
 	{
 		return constructorTime + openTime + nextTime + closeTime;
 	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "VTIOperation";
+    }
 }
