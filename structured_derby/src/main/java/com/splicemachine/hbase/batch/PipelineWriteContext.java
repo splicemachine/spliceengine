@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -84,7 +85,7 @@ public class PipelineWriteContext implements WriteContext{
         }
 
         @Override
-        public boolean canRun(Mutation input) {
+        public boolean canRun(Pair<Mutation,Integer> input) {
             return PipelineWriteContext.this.canRun(input);
         }
     }
@@ -185,8 +186,8 @@ public class PipelineWriteContext implements WriteContext{
     }
 
     @Override
-    public boolean canRun(Mutation input) {
-        MutationResult result = resultsMap.get(input);
+    public boolean canRun(Pair<Mutation,Integer> input) {
+        MutationResult result = resultsMap.get(input.getFirst());
         return result == null || result.getCode() == MutationResult.Code.SUCCESS;
     }
 }

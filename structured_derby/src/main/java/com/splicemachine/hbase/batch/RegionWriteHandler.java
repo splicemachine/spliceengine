@@ -6,13 +6,10 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
 import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.tools.ResettableCountDownLatch;
-import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collection;
@@ -24,9 +21,7 @@ import java.util.List;
  */
 public class RegionWriteHandler implements WriteHandler {
     private final HRegion region;
-    private final List<Put> puts = Lists.newArrayList();
-    private final List<Delete> deletes = Lists.newArrayListWithExpectedSize(0);
-
+    private final List<Pair<Mutation,Integer>> mutations = Lists.newArrayList();
     private final ResettableCountDownLatch writeLatch;
 
     public RegionWriteHandler(HRegion region,ResettableCountDownLatch writeLatch) {
@@ -41,13 +36,16 @@ public class RegionWriteHandler implements WriteHandler {
          * another write-pipeline when the Region actually does it's writing
          */
         mutation.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
-        if(mutation instanceof Put)
-            puts.add((Put)mutation);
-        else
-            deletes.add((Delete)mutation);
+        if (HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(), mutation.getRow())) {
+        	mutations.add(new Pair<Mutation,Integer> (mutation,null));
+        } 
+        else {
+        	ctx.failed(mutation, "WrongRegion");
+        }
     }
 
-    @Override
+    @SuppressWarnings({ "unchecked", "unused" })
+	@Override
     public void finishWrites(final WriteContext ctx) throws IOException {
         /*
          * We have to block here in case someone did a table manipulation under us.
@@ -65,35 +63,30 @@ public class RegionWriteHandler implements WriteHandler {
         }
         //write all the puts first, since they are more likely
         boolean failed= false;
+        Pair<Mutation,Integer>[] toProcess = null;
         try{
-            Collection<Put> putsToWrite = Collections2.filter(puts,new Predicate<Put>() {
+            Collection<Pair<Mutation,Integer>> filteredMutations = Collections2.filter(mutations,new Predicate<Pair<Mutation,Integer>>() {
                 @Override
-                public boolean apply(@Nullable Put input) {
+                public boolean apply(@Nullable Pair<Mutation,Integer> input) {
                     return ctx.canRun(input);
                 }
             });
-            @SuppressWarnings("unchecked") Pair<Put,Integer>[] putsAndLocks = new Pair[putsToWrite.size()];
-
-            int pos=0;
-            for(Put put:putsToWrite){
-                putsAndLocks[pos] = Pair.newPair(put,null);
-                pos++;
-            }
-            OperationStatus[] status = region.put(putsAndLocks);
-
+            toProcess = filteredMutations.toArray(new Pair[filteredMutations.size()]);                       
+            OperationStatus[] status = region.batchMutate(toProcess);
+            
             for(int i=0;i<status.length;i++){
                 OperationStatus stat = status[i];
-                Put put = putsAndLocks[i].getFirst();
+                Mutation mutation = toProcess[i].getFirst();
                 switch (stat.getOperationStatusCode()) {
                     case NOT_RUN:
-                        ctx.notRun(put);
+                        ctx.notRun(mutation);
                         break;
                     case BAD_FAMILY:
                     case FAILURE:
-                        ctx.failed(put, stat.getExceptionMsg());
+                        ctx.failed(mutation, stat.getExceptionMsg());
                         failed=true;
                     default:
-                        ctx.success(put);
+                        ctx.success(mutation);
                         break;
                 }
             }
@@ -109,26 +102,8 @@ public class RegionWriteHandler implements WriteHandler {
              */
             failed=true;
             MutationResult result = new MutationResult(MutationResult.Code.FAILED,ioe.getClass().getSimpleName()+":"+ioe.getMessage());
-            for(Put put:puts){
-                ctx.result(put,result);
-            }
-        }
-        if(failed){
-            //no need to run deletes, the puts failed
-            for(Delete delete:deletes)
-                ctx.notRun(delete);
-        }else{
-            for(Delete delete:deletes){
-                if(failed)
-                    ctx.notRun(delete);
-                else if(ctx.canRun(delete)){
-                    try{
-                        region.delete(delete,null,true);
-                    }catch(IOException ioe){
-                        failed=true;
-                        ctx.failed(delete, ioe.getClass().getSimpleName()+":"+ioe.getMessage());
-                    }
-                }
+            for (Pair<Mutation,Integer> pair : mutations) {
+                ctx.result(pair.getFirst(),result);            	
             }
         }
     }

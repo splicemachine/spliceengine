@@ -11,6 +11,7 @@ import com.splicemachine.hbase.batch.WriteHandler;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -106,7 +107,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
                 return Lists.newArrayList(Collections2.filter(mutations, new Predicate<Mutation>() {
                     @Override
                     public boolean apply(@Nullable Mutation input) {
-                        return ctx.canRun(input);
+                        return ctx.canRun(new Pair<Mutation,Integer>(input,null));
                     }
                 }));
             }

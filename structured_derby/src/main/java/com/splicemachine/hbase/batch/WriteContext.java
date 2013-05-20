@@ -7,6 +7,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.util.Map;
@@ -36,5 +37,5 @@ public interface WriteContext {
 
     Map<Mutation,MutationResult> finish() throws IOException;
 
-    boolean canRun(Mutation input);
+    boolean canRun(Pair<Mutation,Integer> input);
 }
