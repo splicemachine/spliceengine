@@ -31,7 +31,7 @@ public class Exceptions {
         if(rootCause instanceof StandardException) return (StandardException)rootCause;
 
         if(rootCause instanceof ConstraintViolation.PrimaryKeyViolation){
-            return StandardException.newException(SQLState.LANG_ADD_PRIMARY_KEY_FAILED1);
+            return StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT);
         }else if (rootCause instanceof ConstraintViolation.UniqueConstraintViolation){
             return StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT);
         }else if(rootCause instanceof LangFormatException){
