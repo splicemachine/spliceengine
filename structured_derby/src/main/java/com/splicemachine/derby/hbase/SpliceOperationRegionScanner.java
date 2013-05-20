@@ -50,7 +50,6 @@ public class SpliceOperationRegionScanner implements RegionScanner {
         this.context = context;
         try {
             this.regionScanner = context.getScanner();
-
             activation = context.getActivation();//((GenericActivationHolder) statement.getActivation(lcc, false)).ac;
             topOperation.init(context);
         }catch (IOException e) {
