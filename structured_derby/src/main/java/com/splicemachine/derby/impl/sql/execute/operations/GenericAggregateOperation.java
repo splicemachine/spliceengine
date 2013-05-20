@@ -37,9 +37,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 	protected int aggregateItem;
 	protected SpliceGenericAggregator[] aggregates;	
 	protected GeneratedMethod rowAllocator;
-	protected AggregatorInfoList aggInfoList;
-	protected HTableInterface tempTable;
-	
+	protected AggregatorInfoList aggInfoList;	
 	protected ExecIndexRow sourceExecIndexRow;
 	protected ExecIndexRow sortTemplateRow;
 
@@ -212,11 +210,6 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 	public void cleanup() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("cleanup");
-		try {
-			tempTable.close();
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Error closing Temp Table",e);
-		}
 	}
 	public NoPutResultSet getSource() {
 		return this.source;
