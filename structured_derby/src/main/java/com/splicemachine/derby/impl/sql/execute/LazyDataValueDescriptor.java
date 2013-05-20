@@ -42,8 +42,12 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
         getDvd().setToNull();
     }
 
+    public boolean isSerialized(){
+        return dvdBytes != null;
+    }
+
     protected void forceDeserialization(){
-        if(getDvd() != null && dvdBytes != null){
+        if(getDvd() != null && isSerialized()){
             try{
                 DVDSerializer.deserialize(dvdBytes, getDvd());
             }catch(Exception e){
@@ -53,7 +57,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
     }
 
     protected void forceSerialization(){
-        if(dvdBytes == null){
+        if(!isSerialized()){
             try{
                 dvdBytes = DVDSerializer.serialize(getDvd());
             }catch(Exception e){
@@ -508,7 +512,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
         out.writeBoolean(dvdBytes != null);
 
-        if(dvdBytes != null){
+        if(isSerialized()){
             out.writeObject(new FormatableBitSet(dvdBytes));
         }
 
@@ -573,5 +577,9 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
         return result;
 
+    }
+
+    protected DVDSerializer getDVDSerializer(){
+        return DVDSerializer;
     }
 }

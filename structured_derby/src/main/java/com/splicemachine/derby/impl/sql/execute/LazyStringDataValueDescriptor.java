@@ -173,7 +173,7 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
             out.writeObject(getDvd());
         }
 
-        out.writeBoolean(dvdBytes != null);
+        out.writeBoolean(isSerialized());
 
         if(dvdBytes != null){
             out.writeObject(new FormatableBitSet(dvdBytes));
