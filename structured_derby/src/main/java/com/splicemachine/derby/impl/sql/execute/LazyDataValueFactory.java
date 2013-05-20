@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -8,11 +7,9 @@ import org.apache.derby.iapi.types.*;
 
 public class LazyDataValueFactory extends J2SEDataValueFactory{
 
-    private DVDSerializer stringSerializer = new StringDVDSerializer();
-
     @Override
     public StringDataValue getVarcharDataValue(String value) {
-        return new LazyStringDataValueDescriptor(new SQLVarchar(value), stringSerializer);
+        return new LazyStringDataValueDescriptor(new SQLVarchar(value), new StringDVDSerializer());
     }
 
     @Override
@@ -26,9 +23,9 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         }else{
             if(previous != null){
                 previous.setValue(value);
-                result = new LazyStringDataValueDescriptor(previous, stringSerializer);
+                result = new LazyStringDataValueDescriptor(previous, new StringDVDSerializer());
             }else{
-                result = new LazyStringDataValueDescriptor(new SQLVarchar(value), stringSerializer);
+                result = new LazyStringDataValueDescriptor(new SQLVarchar(value), new StringDVDSerializer());
             }
         }
 
@@ -45,7 +42,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         /* Wrappers */
             case StoredFormatIds.SQL_BIT_ID: return new SQLBit();
             case StoredFormatIds.SQL_BOOLEAN_ID: return new SQLBoolean();
-            case StoredFormatIds.SQL_CHAR_ID: return new LazyStringDataValueDescriptor(new SQLChar(), stringSerializer);
+            case StoredFormatIds.SQL_CHAR_ID: return new LazyStringDataValueDescriptor(new SQLChar(), new StringDVDSerializer());
             case StoredFormatIds.SQL_DATE_ID: return new SQLDate();
             case StoredFormatIds.SQL_DOUBLE_ID: return new SQLDouble();
             case StoredFormatIds.SQL_INTEGER_ID: return new SQLInteger();
@@ -56,13 +53,13 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
             case StoredFormatIds.SQL_TIME_ID: return new SQLTime();
             case StoredFormatIds.SQL_TIMESTAMP_ID: return new SQLTimestamp();
             case StoredFormatIds.SQL_TINYINT_ID: return new SQLTinyint();
-            case StoredFormatIds.SQL_VARCHAR_ID: return new LazyStringDataValueDescriptor(new SQLVarchar(), stringSerializer);
-            case StoredFormatIds.SQL_LONGVARCHAR_ID: return new LazyStringDataValueDescriptor(new SQLLongvarchar(), stringSerializer);
+            case StoredFormatIds.SQL_VARCHAR_ID: return new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+            case StoredFormatIds.SQL_LONGVARCHAR_ID: return new LazyStringDataValueDescriptor(new SQLLongvarchar(), new StringDVDSerializer());
             case StoredFormatIds.SQL_VARBIT_ID: return new SQLVarbit();
             case StoredFormatIds.SQL_LONGVARBIT_ID: return new SQLLongVarbit();
             case StoredFormatIds.SQL_USERTYPE_ID_V3: return new UserType();
             case StoredFormatIds.SQL_BLOB_ID: return new SQLBlob();
-            case StoredFormatIds.SQL_CLOB_ID: return new LazyStringDataValueDescriptor(new SQLClob(), stringSerializer);
+            case StoredFormatIds.SQL_CLOB_ID: return new LazyStringDataValueDescriptor(new SQLClob(), new StringDVDSerializer());
             case StoredFormatIds.XML_ID: return new XML();
             default:return null;
         }
