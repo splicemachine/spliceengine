@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -45,7 +46,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
             try{
                 DVDSerializer.deserialize(dvdBytes, getDvd());
             }catch(Exception e){
-                SpliceLogUtils.logAndThrowRuntime(LOG, "Error lazily deserializing bytes",e);
+                SpliceStandardLogUtils.logAndReturnStandardException(LOG, "Error lazily deserializing bytes",e);
             }
         }
     }
@@ -55,7 +56,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
             try{
                 dvdBytes = DVDSerializer.serialize(getDvd());
             }catch(Exception e){
-                SpliceLogUtils.logAndThrowRuntime(LOG, "Error serializing DataValueDescriptor to bytes", e);
+                SpliceStandardLogUtils.logAndReturnStandardException(LOG, "Error serializing DataValueDescriptor to bytes", e);
             }
         }
     }
