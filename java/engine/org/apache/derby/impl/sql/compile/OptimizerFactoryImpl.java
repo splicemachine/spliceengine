@@ -95,6 +95,8 @@ public class OptimizerFactoryImpl
 			int intValue = Integer.parseInt(maxMemValue);
 			if (intValue >= 0)
 				maxMemoryPerTable = intValue * 1024;
+			else
+				maxMemoryPerTable = 0;
 		} 
 		
 		String us =	PropertyUtil.getSystemProperty(Optimizer.USE_STATISTICS); 

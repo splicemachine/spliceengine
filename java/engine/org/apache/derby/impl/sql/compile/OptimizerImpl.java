@@ -2193,7 +2193,7 @@ public class OptimizerImpl implements Optimizer
 		// RESOLVE: The following call to memoryUsageOK does not behave
 		// correctly if outerCost.rowCount() is POSITIVE_INFINITY; see
 		// DERBY-1259.
-		if( maxMemoryPerTable != -1 && ! optimizable.memoryUsageOK( estimatedCost.rowCount() / outerCost.rowCount(), maxMemoryPerTable))
+		if( maxMemoryPerTable >0 && ! optimizable.memoryUsageOK( estimatedCost.rowCount() / outerCost.rowCount(), maxMemoryPerTable))
 		{
 			if (optimizerTrace)
 			{
