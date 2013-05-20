@@ -41,6 +41,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
     public void initForDeserialization(byte[] bytes){
         this.dvdBytes = bytes;
         getDvd().setToNull();
+        deserialized = false;
     }
 
     public boolean isSerialized(){
@@ -523,6 +524,8 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
         }
 
         out.writeUTF(DVDSerializer.getClass().getCanonicalName());
+
+        out.writeBoolean(deserialized);
     }
 
     @Override
@@ -542,6 +545,8 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
         }catch(Exception e){
             throw new RuntimeException("Error deserializing serialization class", e);
         }
+
+        deserialized = in.readBoolean();
     }
 
     @Override

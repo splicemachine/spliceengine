@@ -175,11 +175,13 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
         out.writeBoolean(isSerialized());
 
-        if(dvdBytes != null){
+        if(isSerialized()){
             out.writeObject(new FormatableBitSet(dvdBytes));
         }
 
         out.writeUTF(DVDSerializer.getClass().getCanonicalName());
+
+        out.writeBoolean(deserialized);
     }
 
     @Override
@@ -199,6 +201,8 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
         }catch(Exception e){
             throw new RuntimeException("Error deserializing serialization class", e);
         }
+
+        deserialized = in.readBoolean();
     }
 
 }
