@@ -8,7 +8,6 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -18,10 +17,11 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,12 +37,22 @@ public class InnerJoinTest extends SpliceUnitTest {
 	public static final String TABLE_NAME_1 = "A";
 	public static final String TABLE_NAME_2 = "CC";
 	public static final String TABLE_NAME_3 = "DD";
+	public static final String TABLE_NAME_4 = "D";
+	public static final String TABLE_NAME_5 = "E";
+	public static final String TABLE_NAME_6 = "F";
+	public static final String TABLE_NAME_7 = "G";
+
+	
 
     protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float)");
 	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(si varchar(40), sa varchar(40))");
 	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME,"(si varchar(40), sa varchar(40))");
+	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,CLASS_NAME,"(a varchar(20), b varchar(20), c varchar(10), d decimal, e varchar(15))");
+	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME,"(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
+	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME,"(a varchar(20), b varchar(20), c varchar(10), d decimal, e varchar(15))");
+	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,CLASS_NAME,"(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
 
 	@ClassRule
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -50,6 +60,10 @@ public class InnerJoinTest extends SpliceUnitTest {
 		.around(spliceTableWatcher1)
         .around(spliceTableWatcher2)
         .around(spliceTableWatcher3)
+        .around(spliceTableWatcher4)
+        .around(spliceTableWatcher5)
+        .around(spliceTableWatcher6)
+        .around(spliceTableWatcher7)
 		.around(new SpliceDataWatcher() {
             @Override
             protected void starting(Description description) {
@@ -71,11 +85,26 @@ public class InnerJoinTest extends SpliceUnitTest {
             }
 
         }).around(new SpliceDataWatcher() {
+            @Override
+            protected void starting(Description description) {
+                try {
+                	Statement statement = spliceClassWatcher.getStatement();
+                	statement.execute(String.format("insert into %s values  ('p1','mxss','design',10000,'deale')",TABLE_NAME_4));
+                	statement.execute(String.format("insert into %s values  ('e2','alice',12,'deale')",TABLE_NAME_5));
+                	statement.execute(String.format("insert into %s values  ('e3','alice',12,'deale')",TABLE_NAME_5));
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    spliceClassWatcher.closeAll();
+                }
+            }
+
+        }).around(new SpliceDataWatcher() {
 
                 @Override
                 protected void starting(Description description) {
                     try {
-                        insertData("CC", "DD", spliceClassWatcher);
+                        insertData(TABLE_NAME_2, TABLE_NAME_3, spliceClassWatcher);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -580,4 +609,23 @@ public class InnerJoinTest extends SpliceUnitTest {
 		Assert.assertEquals(9, j);
 	}
 
+	@Test  
+	@Ignore("Bug 449")
+	public void testScalarNoValues() throws Exception {		
+			ResultSet rs = methodWatcher.executeQuery(String.format("select a from %s where %s.e = (select %s.e from %s where a > 'e1' )"
+				, TABLE_NAME_6,TABLE_NAME_6, TABLE_NAME_7,TABLE_NAME_7));
+	}
+
+	
+	@Test  
+	public void testScalarSubqueryOnlyReturnOneRow21000() throws Exception {		
+		try {
+			ResultSet rs = methodWatcher.executeQuery(String.format("select a from %s where %s.e = (select %s.e from %s where a > 'e1' )"
+				, TABLE_NAME_4,TABLE_NAME_4, TABLE_NAME_5,TABLE_NAME_5));
+		} catch (SQLException e) {
+			Assert.assertTrue(e.getMessage().contains("subquery"));
+		}
+	}
+	
+	
 }
