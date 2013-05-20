@@ -105,7 +105,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	@Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
         try {
-            reduceScan = Scans.buildPrefixRangeScan(sequence[0], getTransactionID());
+            reduceScan = Scans.buildPrefixRangeScan(sequence[0], SpliceUtils.NA_TRANSACTION_ID);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -264,7 +264,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
                 try {
                     byte[] key = DerbyBytesUtil.generatePrefixedRowKey(sequence[0]);
-                    Put put = Puts.buildTempTableInsert(key,row.getRowArray(),null,serializer);
+                    Put put = Puts.buildInsert(key,row.getRowArray(),SpliceUtils.NA_TRANSACTION_ID,serializer);
                     return Collections.<Mutation>singletonList(put);
                 } catch (StandardException e) {
                     throw Exceptions.getIOException(e);

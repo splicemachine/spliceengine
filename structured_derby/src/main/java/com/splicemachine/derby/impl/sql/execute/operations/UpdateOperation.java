@@ -166,7 +166,7 @@ public class UpdateOperation extends DMLWriteOperation{
                         Put newPut = SpliceUtils.createPut(newRowKey, getTransactionID());
                         NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
                         for(byte[] qualifier:familyMap.keySet()){
-                            int position = Integer.parseInt(Bytes.toString(qualifier));
+                            int position = Bytes.toInt(qualifier);
                             if(finalHeapList.isSet(position + 1)){
                                 //put the new value into the position instead of the old one
                                 DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[position+1]];

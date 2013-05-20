@@ -27,13 +27,24 @@ public class OperationSink {
     public static interface Translator{
         @Nonnull List<Mutation> translate(@Nonnull ExecRow row) throws IOException;
     }
+
+    public static final byte[] TASK_ID_COL_BYTES;
+
+    static {
+        try {
+            TASK_ID_COL_BYTES = new StringRowKey().serialize(SpliceConstants.TASK_ID_COL);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private final TableWriter tableWriter;
     private final SpliceOperation operation;
     private final byte[] taskId;
     private final byte[] taskIdCol;
     private static final Logger LOG = Logger.getLogger(OperationSink.class);
 
-    public OperationSink(byte[] taskIdCol,byte[] taskId,SpliceOperation operation,TableWriter tableWriter) {
+    private OperationSink(byte[] taskIdCol,byte[] taskId,SpliceOperation operation,TableWriter tableWriter) {
         this.tableWriter = tableWriter;
         this.operation = operation;
         this.taskId = taskId;
@@ -42,17 +53,15 @@ public class OperationSink {
 
     public static OperationSink create(SpliceOperation operation, byte[] taskId) throws IOException {
         //TODO -sf- move this to a static initializer somewhere
-        byte[] taskIdCol = new StringRowKey().serialize(SpliceConstants.TASK_ID_COL);
 
-        return new OperationSink(taskIdCol,taskId,operation,SpliceDriver.driver().getTableWriter());
+        return new OperationSink(TASK_ID_COL_BYTES,taskId,operation,SpliceDriver.driver().getTableWriter());
     }
 
     public static OperationSink create(SpliceOperation operation,
                                        TableWriter writer,byte[] taskId) throws IOException {
         //TODO -sf- move this to a static initializer somewhere
-        byte[] taskIdCol = new StringRowKey().serialize(SpliceConstants.TASK_ID_COL);
 
-        return new OperationSink(taskIdCol,taskId,operation,writer);
+        return new OperationSink(TASK_ID_COL_BYTES,taskId,operation,writer);
     }
 
     public TaskStats sink(byte[] destinationTable) throws IOException {
@@ -90,7 +99,7 @@ public class OperationSink {
                     writeBuffer.add(mutation);
                 }
 
-                stats.writeAccumulator().tick(System.nanoTime()-start);
+                stats.writeAccumulator().tick(System.nanoTime() - start);
             }while(row!=null);
             writeBuffer.flushBuffer();
             writeBuffer.close();

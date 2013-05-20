@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.gotometrics.orderly.IntegerRowKey;
@@ -17,6 +18,7 @@ import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.BetterHTablePool;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -31,6 +33,7 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterBase;
@@ -40,6 +43,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.util.Writables;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nullable;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -392,6 +396,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 
         @Override
         public void open() {
+            table = SpliceAccessManager.getHTable(getTableName());
             try {
                 splitScansAroundRegionBarriers();
             } catch (ExecutionException e) {
@@ -399,7 +404,6 @@ public class RowCountOperation extends SpliceBaseOperation{
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            table = SpliceAccessManager.getHTable(getTableName());
         }
 
         @Override
@@ -418,32 +422,51 @@ public class RowCountOperation extends SpliceBaseOperation{
             }
         }
 
+        private static final Function<HRegionLocation,HRegionInfo> infoFunction = new Function<HRegionLocation, HRegionInfo>() {
+            @Override
+            public HRegionInfo apply(@Nullable HRegionLocation input) {
+                return input.getRegionInfo();
+            }
+        };
         private void splitScansAroundRegionBarriers() throws ExecutionException,IOException{
             //get the region set for this table
-            final Collection<HRegionInfo> regionInfos = new HashSet<HRegionInfo>();
             final Integer tableNameKey = Bytes.mapKey(tableName);
-            final MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
-                @Override
-                public boolean processRow(Result rowResult) throws IOException {
-                    byte[] bytes = rowResult.getValue(HConstants.CATALOG_FAMILY,HConstants.REGIONINFO_QUALIFIER);
-                    if(bytes==null){
-                        //TODO -sf- log a message here
-                        return true;
-                    }
-                    HRegionInfo info = Writables.getHRegionInfo(bytes);
-                    Integer tableKey = Bytes.mapKey(info.getTableName());
-                    if(tableNameKey.equals(tableKey)&& !(info.isOffline()||info.isSplit())){
-                        regionInfos.add(info);
-                    }
-                    return true;
-                }
-            };
-
-            try {
-                MetaScanner.metaScan(SpliceUtils.config,visitor);
-            } catch (IOException e) {
-                SpliceLogUtils.error(LOG, "Unable to update region cache", e);
+            List<HRegionInfo> regionInfos;
+            if(table instanceof HTable)
+                regionInfos = Lists.transform(((HTable)table).getRegionsInRange(fullScan.getStartRow(),fullScan.getStopRow()),infoFunction);
+            else if(table instanceof BetterHTablePool.ReturningHTable){
+                regionInfos = Lists.transform(((BetterHTablePool.ReturningHTable)table).getRegionsInRange(fullScan.getStartRow(),fullScan.getStopRow()),infoFunction);
+            }else{
+                throw new ExecutionException(new UnsupportedOperationException("Unknown Table type, unable to get Region information. Table type is "+table.getClass()));
             }
+
+//            final MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
+//                @Override
+//                public boolean processRow(Result rowResult) throws IOException {
+//                    byte[] bytes = rowResult.getValue(HConstants.CATALOG_FAMILY,HConstants.REGIONINFO_QUALIFIER);
+//                    if(bytes==null){
+//                        //TODO -sf- log a message here
+//                        return true;
+//                    }
+//                    HRegionInfo info = Writables.getHRegionInfo(bytes);
+//                    Integer tableKey = Bytes.mapKey(info.getTableName());
+//                    if(tableNameKey.equals(tableKey)&& !(info.isOffline()||info.isSplit())){
+//                        regionInfos.add(info);
+//                    }
+//                    return true;
+//                }
+//
+//                @Override
+//                public void close() throws IOException {
+//                    //no-op
+//                }
+//            };
+//
+//            try {
+//                MetaScanner.metaScan(SpliceUtils.config,visitor);
+//            } catch (IOException e) {
+//                SpliceLogUtils.error(LOG, "Unable to update region cache", e);
+//            }
 
             List<Pair<byte[],byte[]>> ranges = Lists.newArrayListWithCapacity(regionInfos.size());
             byte[] scanStart = fullScan.getStartRow();
