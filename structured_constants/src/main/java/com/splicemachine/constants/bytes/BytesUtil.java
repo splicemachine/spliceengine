@@ -237,7 +237,11 @@ public class BytesUtil {
     }
 
     public static byte[] concatenate(byte[][] bytes,int size){
-        byte[] concatedBytes = new byte[size];
+        byte[] concatedBytes;
+        if(bytes.length>1)
+            concatedBytes = new byte[size+1];
+        else
+            concatedBytes = new byte[size];
         int offset = 0;
         boolean isStart=true;
         for(byte[] nextBytes:bytes){
