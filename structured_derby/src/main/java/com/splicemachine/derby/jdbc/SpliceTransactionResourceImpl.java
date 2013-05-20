@@ -36,12 +36,12 @@ public final class SpliceTransactionResourceImpl {
 	
 	public SpliceTransactionResourceImpl(String url, Properties info) throws SQLException {
 		SpliceLogUtils.debug(LOG, "instance with url %s and properties %s",url,info);
-		csf = ContextService.getFactory();
-		dbname = InternalDriver.getDatabaseName(url, info);
-		this.url = url;
-		username = IdUtil.getUserNameFromURLProps(info);
-		drdaID = info.getProperty(Attribute.DRDAID_ATTR, null);
-		cm = csf.newContextManager();
+		csf = ContextService.getFactory(); // Singleton - Not Needed
+		dbname = InternalDriver.getDatabaseName(url, info); // Singleton - Not Needed
+		this.url = url; // Static
+		username = IdUtil.getUserNameFromURLProps(info); // Static
+		drdaID = info.getProperty(Attribute.DRDAID_ATTR, null); // Static
+		cm = csf.newContextManager(); // Needed
 		ContextService.getFactory().setCurrentContextManager(cm);
 		database = (SpliceDatabase) Monitor.findService(Property.DATABASE_MODULE, dbname);
         if(database==null){
