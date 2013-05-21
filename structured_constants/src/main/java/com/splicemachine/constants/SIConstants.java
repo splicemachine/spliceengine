@@ -7,6 +7,10 @@ import org.apache.hadoop.hbase.util.Bytes;
  */
 
 public class SIConstants extends SpliceConstants {
+    static {
+        setParameters();
+    }
+
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
     public static final byte[] SNAPSHOT_ISOLATION_FAILED_TIMESTAMP = new byte[] {-1};
 
@@ -31,6 +35,7 @@ public class SIConstants extends SpliceConstants {
     public static final byte[] TRANSACTION_READ_COMMITTED_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_READ_COMMITTED_COLUMN);
     public static final byte[] TRANSACTION_STATUS_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_STATUS_COLUMN);
     public static final byte[] TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_COMMIT_TIMESTAMP_COLUMN);
+    public static final byte[] TRANSACTION_KEEP_ALIVE_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_KEEP_ALIVE_COLUMN);
 
     public static final byte[] TRANSACTION_FAMILY_BYTES = SpliceConstants.DEFAULT_FAMILY.getBytes();
     public static final int SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN = 0;
@@ -38,9 +43,10 @@ public class SIConstants extends SpliceConstants {
     public static final String SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING = SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN + "";
     public static final String SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING = SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN + "";
     public static final byte[] SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN);    
-	static {
-		setParameters();
-	}
+
     public static final short SI_NEEDED_VALUE = (short) 0;
     public static final short ONLY_SI_FAMILY_NEEDED_VALUE = (short) 1;
+
+    public static final int TRANSACTION_KEEP_ALIVE_INTERVAL = 1 * 60 * 1000;
+    public static final int TRANSACTION_TIMEOUT = 10 * TRANSACTION_KEEP_ALIVE_INTERVAL;
 }

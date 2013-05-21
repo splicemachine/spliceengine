@@ -118,7 +118,9 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
 
     @Override
     public void keepAlive(TransactionId transactionId) throws IOException {
-        transactionStore.recordKeepAlive(transactionId);
+        if (!isIndependentReadOnly(transactionId)) {
+            transactionStore.recordKeepAlive(transactionId);
+        }
     }
 
     @Override

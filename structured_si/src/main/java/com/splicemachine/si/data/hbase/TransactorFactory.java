@@ -98,6 +98,6 @@ public class TransactorFactory extends SIConstants {
         return new HTransactor<Put, Get, Scan, Mutation, Result>
                 (new SITransactor<Object, SGet, SScan, Mutation, Result>
                         (timestampSource, dataLib, writer, rowStore, transactionStore,
-                                new SystemClock(), 10 * 60 * 1000));
+                                new SystemClock(), TRANSACTION_TIMEOUT));
     }
 }

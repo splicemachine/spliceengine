@@ -18,7 +18,8 @@ import com.splicemachine.utils.ZkUtils;
 
 public class SpliceDatabase extends BasicDatabase {
 	private static Logger LOG = Logger.getLogger(SpliceDatabase.class);
-	public void boot(boolean create, Properties startParams) throws StandardException {
+
+    public void boot(boolean create, Properties startParams) throws StandardException {
 		System.setProperty("derby.language.logQueryPlan", "true");
         System.setProperty("derby.connection.requireAuthentication","false");
 //	    SanityManager.DEBUG_SET("ByteCodeGenInstr");
@@ -36,7 +37,9 @@ public class SpliceDatabase extends BasicDatabase {
 			SpliceLogUtils.info(LOG,"Booting the Splice Machine");
 		}
 		super.boot(create, startParams);
-	}
+        TransactionKeepAlive.start();
+    }
+
 		@Override
 		protected void bootValidation(boolean create, Properties startParams) throws StandardException {
 			SpliceLogUtils.trace(LOG,"bootValidation create %s, startParams %s",create,startParams);

@@ -12,6 +12,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,7 +60,12 @@ public class SIBrowser extends SIConstants{
             if (writesValue != null) {
                 writes = Bytes.toBoolean(writesValue);
             }
-            x.put(beginTimestamp, new Object[]{parent, dependent, writes, status, commitTimestamp});
+            final KeyValue keepAlive = r.getColumnLatest(TRANSACTION_FAMILY_BYTES, TRANSACTION_KEEP_ALIVE_COLUMN_BYTES);
+            String keepAliveValue = null;
+            if (keepAlive != null) {
+                keepAliveValue = new Timestamp(keepAlive.getTimestamp()).toString();
+            }
+            x.put(beginTimestamp, new Object[]{parent, dependent, writes, status, commitTimestamp, keepAliveValue});
             if (idToFind != null && beginTimestamp == idToFind) {
                 toFind = r;
             }
@@ -76,16 +82,16 @@ public class SIBrowser extends SIConstants{
         } else {
             final ArrayList<Long> list = new ArrayList<Long>(x.keySet());
             Collections.sort(list);
-            System.out.println("transaction parent dependent writesAllowed status commitTimestamp");
+            System.out.println("transaction parent dependent writesAllowed status commitTimestamp keepAliveTimestamp");
             for (Long k : list) {
                 Object[] v = (Object[]) x.get(k);
-                System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3] + " " + v[4]);
+                System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3] + " " + v[4] + " " + v[5]);
             }
 
             //dumpTable("conglomerates", "16");
             //dumpTable("SYCOLUMNS_INDEX2", "161");
 
-            dumpTable("p", "SPLICE_CONGLOMERATE");
+            //dumpTable("p", "SPLICE_CONGLOMERATE");
             //dumpTable("p2", "1184");
         }
     }
