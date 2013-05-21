@@ -172,11 +172,15 @@ public class ConglomerateUtils extends SpliceConstants {
 		while(isSplitting){
 			isSplitting=false;
 			List<HRegionInfo> regions = admin.getTableRegions(name);
-			for(HRegionInfo region:regions){
-				if(region.isSplit()){
-					isSplitting=true;
-					break;
+			if (regions != null) {
+				for(HRegionInfo region:regions){
+					if(region.isSplit()){
+						isSplitting=true;
+						break;
+					}
 				}
+			} else {
+				isSplitting = true;
 			}
 			Thread.sleep(sleepSplitInterval);
 		}
