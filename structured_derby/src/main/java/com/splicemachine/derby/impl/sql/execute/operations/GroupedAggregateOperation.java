@@ -9,7 +9,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.utils.*;
+import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -161,7 +164,17 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return ((SpliceOperation)source).getMapRowProvider(top, template);
+        return getReduceRowProvider(top,template);
+    }
+
+    @Override
+    protected JobStats doShuffle() throws StandardException {
+        long start = System.currentTimeMillis();
+        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getExecRowDefinition());
+
+        nextTime+= System.currentTimeMillis()-start;
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
+        return rowProvider.shuffleRows(soi);
     }
 
     @Override

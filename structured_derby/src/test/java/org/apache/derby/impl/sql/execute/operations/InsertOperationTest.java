@@ -32,7 +32,7 @@ public class InsertOperationTest extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("J",InsertOperationTest.class.getSimpleName(),"(name varchar(40))");
 	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("L",InsertOperationTest.class.getSimpleName(),"(name varchar(40))");
 	protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher("Y",InsertOperationTest.class.getSimpleName(),"(name varchar(40))");
-	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher("Z",InsertOperationTest.class.getSimpleName(),"(name varchar(40))");
+	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher("Z",InsertOperationTest.class.getSimpleName(),"(name varchar(40),count int)");
 	
 	
 	@ClassRule 
@@ -152,7 +152,7 @@ public class InsertOperationTest extends SpliceUnitTest {
 	}
 	
 	@Test
-    @Ignore("Transiently fails during Maven build, but passes when run locally. Gotta figure that out first")
+//    @Ignore("Transiently fails during Maven build, but passes when run locally. Gotta figure that out first")
 	public void testInsertFromSubOperation() throws Exception{
 		Map<String,Integer> nameCountMap = Maps.newHashMap();
 		Statement s = methodWatcher.getStatement();
@@ -166,9 +166,9 @@ public class InsertOperationTest extends SpliceUnitTest {
 		s.execute("insert into" +this.getPaddedTableReference("Y")+ "values('jleach')");
 		nameCountMap.put("jleach",1);
 		methodWatcher.commit();
-		methodWatcher.splitTable("Y",this.getSchemaName());
+//		methodWatcher.splitTable("Y",this.getSchemaName());
 		s = methodWatcher.getStatement();
-		int returned = s.executeUpdate("insert into"+this.getPaddedTableReference("Z")+"(name,count) select name,count(name) from"+ this.getPaddedTableReference("Y")+"group by name");
+		int returned = s.executeUpdate("insert into "+spliceTableWatcher10+"(name,count) select name,count(name) from "+ spliceTableWatcher9+" group by name");
 		methodWatcher.commit();
 		ResultSet rs = methodWatcher.executeQuery("select * from"+this.getPaddedTableReference("Z"));
 		int groupCount=0;

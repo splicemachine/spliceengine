@@ -601,21 +601,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     protected JobStats doShuffle() throws StandardException {
         long start = System.currentTimeMillis();
-        SpliceLogUtils.trace(LOG, "shuffling %s", toString());
-        List<SpliceOperation> opStack = getOperationStack();
-        SpliceLogUtils.trace(LOG, "operationStack=%s",opStack);
-        final SpliceOperation regionOperation = opStack.get(0);
-        final SpliceOperation topOperation = opStack.get(opStack.size()-1);
-        SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-        final RowProvider rowProvider = topOperation.getMapRowProvider(topOperation, topOperation.getExecRowDefinition());
-//        if(regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation){
-//            rowProvider = regionOperation.getReduceRowProvider(topOperation,topOperation.getExecRowDefinition());
-//        }else {
-//            rowProvider = regionOperation.getMapRowProvider(topOperation,topOperation.getExecRowDefinition());
-//        }
+        final RowProvider rowProvider = getMapRowProvider(this, getExecRowDefinition());
 
         nextTime+= System.currentTimeMillis()-start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),topOperation);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
         return rowProvider.shuffleRows(soi);
     }
 
