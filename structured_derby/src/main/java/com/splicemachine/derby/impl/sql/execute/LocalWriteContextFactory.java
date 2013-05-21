@@ -201,39 +201,46 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         Transactor transactor = null;
         TransactionId txnId = null;
         boolean success = false;
-        try{
-            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            transactor = TransactorFactory.getDefaultTransactor();
-            txnId = transactor.beginTransaction(false,true,false);
-            transactionResource.marshallTransaction(txnId.getTransactionIdString());
+        SpliceTransactionResourceImpl transactionResource = null;
+        try {
+            try{
+                transactionResource = new SpliceTransactionResourceImpl();
+                transactor = TransactorFactory.getDefaultTransactor();
+                txnId = transactor.beginTransaction(false,true,false);
+                transactionResource.marshallTransaction(txnId.getTransactionIdString());
 
-            DataDictionary dataDictionary= transactionResource.getLcc().getDataDictionary();
-            ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(congomId);
+                DataDictionary dataDictionary= transactionResource.getLcc().getDataDictionary();
+                ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(congomId);
 
-            dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
-            TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
+                dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
+                TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
 
-            if(td!=null){
-                startDirect(dataDictionary,td);
+                if(td!=null){
+                    startDirect(dataDictionary,td);
+                }
+                transactor.commit(txnId);
+                state.set(State.RUNNING);
+            } catch (SQLException e) {
+                SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing" +
+                        "off so that other writes can try again",e);
+                state.set(State.READY_TO_START);
+                throw new IndexNotSetUpException(e);
+            } catch (StandardException e) {
+                SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ congomId+", aborting",e);
+                state.set(State.FAILED_SETUP);
+            }catch(IOException ioe){
+                SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ congomId+", aborting",ioe);
+                state.set(State.FAILED_SETUP);
+            }finally{
+                initializationLock.unlock();
+
+                if(!success&&(transactor!=null && txnId !=null))
+                    transactor.rollback(txnId);
             }
-            transactor.commit(txnId);
-            state.set(State.RUNNING);
-        } catch (SQLException e) {
-            SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing" +
-                    "off so that other writes can try again",e);
-            state.set(State.READY_TO_START);
-            throw new IndexNotSetUpException(e);
-        } catch (StandardException e) {
-            SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ congomId+", aborting",e);
-            state.set(State.FAILED_SETUP);
-        }catch(IOException ioe){
-            SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ congomId+", aborting",ioe);
-            state.set(State.FAILED_SETUP);
-        }finally{
-            initializationLock.unlock();
-
-            if(!success&&(transactor!=null && txnId !=null))
-                transactor.rollback(txnId);
+        } finally {
+            if (transactionResource != null) {
+                transactionResource.cleanup();
+            }
         }
     }
 

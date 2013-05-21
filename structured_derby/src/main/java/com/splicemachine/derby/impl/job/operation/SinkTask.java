@@ -68,8 +68,9 @@ public class SinkTask extends ZkTask {
     @Override
     public void execute() throws ExecutionException, InterruptedException {
         SpliceLogUtils.trace(LOG,"executing task %s",getTaskId());
+        SpliceTransactionResourceImpl impl = null;
         try {
-            SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
+            impl = new SpliceTransactionResourceImpl();
             ContextService.getFactory().setCurrentContextManager(impl.getContextManager());
             impl.marshallTransaction(status.getTransactionId());
 
@@ -99,6 +100,10 @@ public class SinkTask extends ZkTask {
             else if(e instanceof InterruptedException)
                 throw (InterruptedException)e;
             else throw new ExecutionException(e);
+        } finally {
+            if (impl != null) {
+                impl.cleanup();
+            }
         }
     }
 

@@ -322,42 +322,49 @@ public class IndexSet {
         boolean success = false;
         Transactor transactor = null;
         TransactionId txnID = null;
-        try{
-        	SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
-        	transactor = TransactorFactory.getDefaultTransactor(); // TODO Place Holder - Transaction Must Flow...
-        	txnID = transactor.beginTransaction(false, true, false);
-        	impl.marshallTransaction(txnID.getTransactionIdString());
-            DataDictionary dataDictionary = impl.getLcc().getDataDictionary();
-            ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(conglomId);
-            dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
-            TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
-	            /*
-	             * That's weird, there's no Table in the dictionary? Probably not good, but nothing we
-	             * can do about it, so just bail.
-	             */
-            if(td!=null) {
-                startDirect(dataDictionary, td);
+        SpliceTransactionResourceImpl impl = null;
+        try {
+            try{
+                impl = new SpliceTransactionResourceImpl();
+                transactor = TransactorFactory.getDefaultTransactor(); // TODO Place Holder - Transaction Must Flow...
+                txnID = transactor.beginTransaction(false, true, false);
+                impl.marshallTransaction(txnID.getTransactionIdString());
+                DataDictionary dataDictionary = impl.getLcc().getDataDictionary();
+                ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(conglomId);
+                dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
+                TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
+                    /*
+                     * That's weird, there's no Table in the dictionary? Probably not good, but nothing we
+                     * can do about it, so just bail.
+                     */
+                if(td!=null) {
+                    startDirect(dataDictionary, td);
+                }
+                transactor.commit(txnID);
+                success = true;
+            }catch(StandardException se){
+                SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ conglomId+", aborting",se);
+                state.set(State.FAILED_SETUP);
+                return;
+            } catch (IOException e) {
+                SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ conglomId+", aborting",e);
+                state.set(State.FAILED_SETUP);
+                return;
+            } catch (SQLException e) {
+                SpliceLogUtils.error(LOG,"Unable to acquire a Database Connection, " +
+                        "aborting write, but backing off so that other writes can try again",e);
+                state.set(State.READY_TO_START);
+                throw new IndexNotSetUpException(e);
+            } finally{
+                //now unlock so that other threads can get access
+                initializationLock.unlock();
+                if (transactor != null && txnID != null)
+                    transactor.rollback(txnID);
             }
-            transactor.commit(txnID);
-            success = true;
-        }catch(StandardException se){
-            SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ conglomId+", aborting",se);
-            state.set(State.FAILED_SETUP);
-            return;
-        } catch (IOException e) {
-            SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ conglomId+", aborting",e);
-            state.set(State.FAILED_SETUP);
-            return;
-        } catch (SQLException e) {
-            SpliceLogUtils.error(LOG,"Unable to acquire a Database Connection, " +
-                    "aborting write, but backing off so that other writes can try again",e);
-            state.set(State.READY_TO_START);
-            throw new IndexNotSetUpException(e);
-        } finally{
-            //now unlock so that other threads can get access
-            initializationLock.unlock();
-            if (transactor != null && txnID != null)
-            	transactor.rollback(txnID);
+        } finally {
+            if (impl != null) {
+                impl.cleanup();
+            }
         }
     }
 

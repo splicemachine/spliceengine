@@ -36,6 +36,7 @@ import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 public class SpliceOperationRegionScanner implements RegionScanner {
     private static Logger LOG = Logger.getLogger(SpliceOperationRegionScanner.class);
     protected GenericStorablePreparedStatement statement;
+    private SpliceTransactionResourceImpl impl;
     protected SpliceOperation topOperation;
     protected RegionScanner regionScanner;
     protected Iterator<ExecRow> currentRows;
@@ -71,13 +72,11 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		stats.start();
 		SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
 		this.regionScanner = regionScanner;
-
-
         try {
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
 	        statement = soi.getStatement();
 	        topOperation = soi.getTopOperation();
-	        SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
+	        impl = new SpliceTransactionResourceImpl();
 	        impl.marshallTransaction(soi.getTransactionId());
 	        activation = soi.getActivation(impl.getLcc());
 	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false,topOperation);
@@ -158,18 +157,24 @@ public class SpliceOperationRegionScanner implements RegionScanner {
         SpliceLogUtils.trace(LOG, "close");
         boolean success = false;
         try {
-            topOperation.close();
-            success = true;
-        } catch (StandardException e) {
-        	SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "close direct failed", e);
-        }finally{
-            if (regionScanner != null) {
-                regionScanner.close();
+            try {
+                topOperation.close();
+                success = true;
+            } catch (StandardException e) {
+                SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "close direct failed", e);
+            }finally{
+                if (regionScanner != null) {
+                    regionScanner.close();
+                }
+                finalStats = stats.finish();
+                ((SpliceBaseOperation)topOperation).nextTime +=finalStats.getTotalTime();
+                SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SpliceOperationRegionScanner at "+stats.getFinishTime());
+                context.close(success);
             }
-            finalStats = stats.finish();
-            ((SpliceBaseOperation)topOperation).nextTime +=finalStats.getTotalTime();
-            SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SpliceOperationRegionScanner at "+stats.getFinishTime());
-            context.close(success);
+        } finally {
+            if (impl != null) {
+                impl.cleanup();
+            }
         }
     }
 

@@ -69,39 +69,46 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
         final Boolean[] successHolder = new Boolean[] {false};
         final SpliceOperationContext[] contextHolder = new SpliceOperationContext[] {null};
         final HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
+        SpliceTransactionResourceImpl imp = null;
         try {
-            SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
-                    instructions.getStatement(),instructions.getTopOperation(), scan);
-            SpliceLogUtils.trace(LOG,"Creating RegionScanner");
-            SpliceTransactionResourceImpl imp = new SpliceTransactionResourceImpl();
-            imp.marshallTransaction(instructions.getTransactionId());
-            Activation activation = instructions.getActivation(imp.getLcc());
-            SpliceOperationContext context = new SpliceOperationContext(region,scan,activation, instructions.getStatement(),imp.getLcc(),true,instructions.getTopOperation());
-            SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
-            SpliceLogUtils.trace(LOG,"performing sink");
-            TaskStats out = spliceScanner.sink();
-            SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getWriteStats().getTotalRecords());
-            spliceScanner.close();
-            return out;
-        } catch (SQLException e) {
-            exception = new IOException(e);
-            throw exception;
-        } catch (StandardException e) {
-            throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "run error", e);
-        } catch (Exception e) {
-            throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "run error", e);
+            try {
+                SpliceLogUtils.trace(LOG, "Running Statement { %s } on operation { %s } with scan { %s }",
+                        instructions.getStatement(),instructions.getTopOperation(), scan);
+                SpliceLogUtils.trace(LOG,"Creating RegionScanner");
+                imp = new SpliceTransactionResourceImpl();
+                imp.marshallTransaction(instructions.getTransactionId());
+                Activation activation = instructions.getActivation(imp.getLcc());
+                SpliceOperationContext context = new SpliceOperationContext(region,scan,activation, instructions.getStatement(),imp.getLcc(),true,instructions.getTopOperation());
+                SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
+                SpliceLogUtils.trace(LOG,"performing sink");
+                TaskStats out = spliceScanner.sink();
+                SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getWriteStats().getTotalRecords());
+                spliceScanner.close();
+                return out;
+            } catch (SQLException e) {
+                exception = new IOException(e);
+                throw exception;
+            } catch (StandardException e) {
+                throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "run error", e);
+            } catch (Exception e) {
+                throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "run error", e);
+            } finally {
+                threadLocalEnvironment.set(null);
+                try{
+                    if (!successHolder[0] && (contextHolder[0] != null)) {
+                        contextHolder[0].close(false);
+                    }
+                }catch(Throwable e){
+                    if (exception == null) {
+                        throw new IOException(e);
+                    } else {
+                        throw exception;
+                    }
+                }
+            }
         } finally {
-            threadLocalEnvironment.set(null);
-            try{
-                if (!successHolder[0] && (contextHolder[0] != null)) {
-                    contextHolder[0].close(false);
-                }
-            }catch(Throwable e){
-                if (exception == null) {
-                    throw new IOException(e);
-                } else {
-                    throw exception;
-                }
+            if (imp != null) {
+                imp.cleanup();
             }
         }
     }

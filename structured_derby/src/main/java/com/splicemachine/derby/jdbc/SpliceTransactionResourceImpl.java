@@ -140,6 +140,26 @@ public final class SpliceTransactionResourceImpl {
 		return (lcc == null || lcc.getTransactionExecute().isIdle());
 	}
 
+    public void cleanup() {
+        cleanupOnError(StandardException.closeException(), false);
+    }
+
+    /**
+     * clean up error and print it to derby.log if diagActive is true
+     * @param e the error we want to clean up
+     * @param diagActive
+     *        true if extended diagnostics should be considered,
+     *        false not interested of extended diagnostic information
+     * @return true if the context manager is shutdown, false otherwise.
+     */
+    boolean cleanupOnError(Throwable e, boolean diagActive)
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(cm != null, "cannot cleanup on error with null context manager");
+
+        //DERBY-4856 thread dump
+        return cm.cleanupOnError(e, diagActive);
+    }
 
 }
 
