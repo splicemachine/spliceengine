@@ -66,13 +66,10 @@ public class OnceOperationTest extends SpliceUnitTest {
 		try {
 			ResultSet rs = methodWatcher.executeQuery(format("values (select k from %s where k = 3)",this.getTableReference(TABLE_NAME)));
 			rs.next();
-		} catch (Exception t) {
-			Throwable root = Throwables.getRootCause(t);
-			if(root instanceof StandardException){
-				StandardException se = (StandardException)root;
-				Assert.assertEquals("Incorrect error code returned!", 21000, se.getErrorCode());
-			}
-			throw t;
+		} catch (SQLException t) {
+            t.printStackTrace();
+            Assert.assertEquals("Incorrect SQLState returned","21000",t.getSQLState());
+            throw t;
 		}
 	}
 }
