@@ -610,7 +610,6 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}
 
 	@Test  
-	@Ignore("Bug 449")
 	public void testScalarNoValues() throws Exception {		
 			ResultSet rs = methodWatcher.executeQuery(String.format("select a from %s where %s.e = (select %s.e from %s where a > 'e1' )"
 				, TABLE_NAME_6,TABLE_NAME_6, TABLE_NAME_7,TABLE_NAME_7));
