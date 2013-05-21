@@ -616,15 +616,10 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}
 
 	
-	@Test  
+	@Test (expected=SQLException.class)  
 	public void testScalarSubqueryOnlyReturnOneRow21000() throws Exception {		
-		try {
 			ResultSet rs = methodWatcher.executeQuery(String.format("select a from %s where %s.e = (select %s.e from %s where a > 'e1' )"
 				, TABLE_NAME_4,TABLE_NAME_4, TABLE_NAME_5,TABLE_NAME_5));
-			Assert.assertTrue("No Exception thrown for mutliple rows returned in a scalar",false);
-		} catch (SQLException e) {
-			Assert.assertTrue(e.getMessage().contains("subquery"));
-		}
 	}
 	
 	
