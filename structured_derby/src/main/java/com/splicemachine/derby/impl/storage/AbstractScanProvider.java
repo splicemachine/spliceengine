@@ -21,8 +21,8 @@ import java.util.NoSuchElementException;
  * Created: 1/17/13:1:05 PM
  */
 public abstract class AbstractScanProvider extends SingleScanRowProvider {
-	protected static final Logger LOG = Logger.getLogger(ClientScanProvider.class);
-    protected boolean populated = false;
+	protected static final Logger LOG = Logger.getLogger(AbstractScanProvider.class);
+    private boolean populated = false;
 
     protected ExecRow currentRow;
     protected RowLocation currentRowLocation;
