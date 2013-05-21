@@ -2,6 +2,8 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Types;
+
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -25,14 +27,17 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
 		public static final String TABLE_NAME = "T";
 		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 		protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(username varchar(40),i int)");
+        protected static SpliceTableWatcher nullTableWatcher = new SpliceTableWatcher("NT",CLASS_NAME,"(a int,b int)");
 		protected static String INSERT = String.format("insert into %s.%s (i) values (?)", CLASS_NAME,TABLE_NAME);
 		public static int size = 10;
 		public static Stats stats = new Stats();
-		@ClassRule 
-		public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-			.around(spliceSchemaWatcher)
-			.around(spliceTableWatcher)
-			.around(new SpliceDataWatcher(){
+
+		@ClassRule
+        public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+                .around(spliceSchemaWatcher)
+                .around(spliceTableWatcher)
+                .around(nullTableWatcher)
+                .around(new SpliceDataWatcher(){
 				@Override
 				protected void starting(Description description) {
 					try {
@@ -43,6 +48,16 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
 							ps.executeUpdate();
 						}
 						spliceClassWatcher.splitTable(TABLE_NAME,CLASS_NAME,size/3);
+
+                        ps = spliceClassWatcher.prepareStatement("insert into "+nullTableWatcher.toString()+" values (?,?)");
+                        for(int i=0;i<size;i++){
+                            if(i%2==0){
+                                ps.setNull(1, Types.INTEGER);
+                            }else
+                                ps.setInt(1,i);
+                            ps.setInt(2,i*2);
+                            ps.executeUpdate();
+                        }
 					} catch (Exception e) {
 						throw new RuntimeException(e);
 					}
@@ -193,5 +208,13 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
         }
         Assert.assertEquals("Incorrect num rows returned",1,count);
 
+    }
+
+    @Test
+    public void testCountNullColumns() throws Exception {
+       /* regression test for Bug 416 */
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from "+nullTableWatcher.toString()+" where a is null");
+        Assert.assertTrue("No Rows returned!",rs.next());
+        Assert.assertEquals("Incorrect count returned!",size/2,rs.getInt(1));
     }
 }
