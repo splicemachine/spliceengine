@@ -9,7 +9,7 @@ import org.apache.derby.iapi.error.StandardException;
  * @see org.apache.derby.iapi.error.StandardException
  *
  */
-public class SpliceStandardException {
+public class SpliceStandardException extends Exception{
 	public SpliceStandardException() {
 		
 	}

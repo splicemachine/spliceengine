@@ -1,5 +1,8 @@
 package com.splicemachine.derby.error;
 
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 

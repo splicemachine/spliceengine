@@ -1,6 +1,7 @@
 
 package org.apache.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -90,7 +91,25 @@ public class MultiGroupGroupedAggregateOperationTest extends SpliceUnitTest {
 	private static final int size = 2;
 
 
-	@Test
+    @Test
+    public void testSelectStarGroupBy() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select * from "+spliceTableWatcher.toString()+" group by uname,fruit,bushels");
+        List<String> results = Lists.newArrayList();
+        while(rs.next()){
+            String uname = rs.getString(1);
+            String fruit = rs.getString(2);
+            int bushels = rs.getInt(3);
+
+            results.add(String.format("uname=%s,fruit=%s,bushels=%d",uname,fruit,bushels));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+        Assert.assertEquals("Incorrect number of rows returned",size,results.size());
+
+    }
+
+    @Test
 	public void testGroupedByFirstCountOperation() throws Exception{
 		ResultSet rs = methodWatcher.executeQuery(format("select uname, count(bushels) from %s group by uname", this.getTableReference(TABLE_NAME)));
 		int rowCount =0;

@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -43,7 +44,8 @@ public class ClientScanProvider extends AbstractScanProvider {
 		try {
 			return scanner.next();
 		} catch (IOException e) {
-			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "getResult Error", e);
+            SpliceLogUtils.logAndThrow(LOG,"Unable to getResult",Exceptions.parseException(e));
+            return null;//won't happen
 		}
 	}
 

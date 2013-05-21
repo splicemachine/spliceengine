@@ -140,12 +140,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 }
             }
             return true;
-		} catch(StandardException se){
-           throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG,"Unable to get next row",se);
-        }catch(IOException e){
-            throw SpliceStandardLogUtils.generateSpliceIOException(LOG,"Unable to get next row",e);
-        }catch(Exception e){
-            throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG,"Unable to get next row",e);
+		}catch(Exception e){
+            SpliceLogUtils.logAndThrow(LOG,"Unable to get next row",Exceptions.getIOException(e));
+            return false; //won't happen since logAndThrow will throw an exception
         }
 	}
 
