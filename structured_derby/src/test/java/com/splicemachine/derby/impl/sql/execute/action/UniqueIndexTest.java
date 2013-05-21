@@ -7,6 +7,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -65,8 +66,8 @@ public class UniqueIndexTest extends SpliceUnitTest {
 		.around(spliceTableWatcher4)
 		.around(spliceTableWatcher5)
 		.around(spliceTableWatcher6)
-		.around(spliceTableWatcher7);
-//        .around(uniqueTableWatcher);
+		.around(spliceTableWatcher7)
+        .around(uniqueTableWatcher);
 
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -306,8 +307,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
 
     }
 
-    @Test(timeout = 10000)
-    @Ignore("Ignored until Bug 332 is resolved")
+    @Test(timeout = 10000,expected=SQLException.class)
     public void testUniqueInTableCreationViolatesPrimaryKey() throws Exception{
         String name = "sfines";
         int value =2;
@@ -315,6 +315,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
         try{
             methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_8),name,value));
         }catch(SQLException se){
+            Assert.assertEquals("Incorrect SQL State returned", SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,se.getSQLState());
             throw se;
         }
         Assert.assertTrue("Did not report a duplicate key violation!",false);

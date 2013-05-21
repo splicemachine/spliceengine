@@ -103,7 +103,7 @@ public class OperationSink {
             }while(row!=null);
             writeBuffer.flushBuffer();
             writeBuffer.close();
-        } catch (Exception e) {
+        } catch (Exception e) { //TODO -sf- deal with Primary Key and Unique Constraints here
             SpliceLogUtils.logAndThrow(LOG, Exceptions.getIOException(e));
         }
         return stats.finish();

@@ -220,6 +220,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 }
                 transactor.commit(txnId);
                 state.set(State.RUNNING);
+                success=true;
             } catch (SQLException e) {
                 SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing" +
                         "off so that other writes can try again",e);
@@ -245,6 +246,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     private void startDirect(DataDictionary dataDictionary,TableDescriptor td) throws StandardException,IOException{
+        indexFactories.clear();
         boolean isSysConglomerate = td.getSchemaDescriptor().getSchemaName().equals("SYS");
         if(isSysConglomerate){
             SpliceLogUtils.trace(LOG,"Index management for SYS tables disabled, relying on external index management");
@@ -256,39 +258,73 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
         for(int i=0;i<constraintDescriptors.size();i++){
             ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
-            if(cDescriptor.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
-                constraintFactories.add(buildPrimaryKey(cDescriptor));
-            }else{
-                LOG.warn("Unknown Constraint on table "+ congomId+": type = "+ cDescriptor.getConstraintText());
+            if(td.getConglomerateDescriptor(cDescriptor.getConglomerateId()).getConglomerateNumber()!=congomId)
+                continue;
+
+            switch(cDescriptor.getConstraintType()){
+                case DataDictionary.PRIMARYKEY_CONSTRAINT:
+                    constraintFactories.add(buildPrimaryKey(cDescriptor));
+                    break;
+                case DataDictionary.UNIQUE_CONSTRAINT:
+                    buildUniqueConstraint();
+                    break;
+                default:
+                    LOG.warn("Unknown Constraint on table "+ congomId+": type = "+ cDescriptor.getConstraintType());
             }
         }
 
         //get Constraints list
         ConglomerateDescriptorList congloms = td.getConglomerateDescriptorList();
-        for(int i=0;i<congloms.size();i++){
-            ConglomerateDescriptor conglomDesc = (ConglomerateDescriptor)congloms.get(i);
-            if(conglomDesc.isIndex()){
-                if(conglomDesc.getConglomerateNumber()==congomId){
+        for (Object conglom : congloms) {
+            ConglomerateDescriptor conglomDesc = (ConglomerateDescriptor) conglom;
+            if (conglomDesc.isIndex()) {
+                if (conglomDesc.getConglomerateNumber() == congomId) {
                     //we are an index, so just map a constraint rather than an attached index
                     addIndexConstraint(conglomDesc);
                     indexFactories.clear();
                     break;
-                }else{
-                    indexFactories.add(buildIndex(conglomDesc));
+                } else {
+                    indexFactories.add(buildIndex(conglomDesc,constraintDescriptors));
                 }
             }
         }
     }
 
-    private void addIndexConstraint(ConglomerateDescriptor conglomDesc) {
-        IndexDescriptor indexDescriptor = conglomDesc.getIndexDescriptor().getIndexDescriptor();
-        if(indexDescriptor.isUnique())
-            constraintFactories.add(new ConstraintFactory(UniqueConstraint.create()));
+    private void buildUniqueConstraint() throws StandardException {
+        constraintFactories.add(new ConstraintFactory(UniqueConstraint.create()));
     }
 
-    private IndexFactory buildIndex(ConglomerateDescriptor conglomDesc) {
+    private void addIndexConstraint(ConglomerateDescriptor conglomDesc) {
+        IndexDescriptor indexDescriptor = conglomDesc.getIndexDescriptor().getIndexDescriptor();
+        if(indexDescriptor.isUnique()){
+            //make sure it's not already in the constraintFactories
+            for(ConstraintFactory constraintFactory:constraintFactories){
+               if(constraintFactory.localConstraint.getType()== Constraint.Type.UNIQUE){
+                   return; //we've found a local unique constraint, don't need to add it more than once
+               }
+            }
+            constraintFactories.add(new ConstraintFactory(UniqueConstraint.create()));
+        }
+    }
+
+    private IndexFactory buildIndex(ConglomerateDescriptor conglomDesc,ConstraintDescriptorList constraints) {
         IndexRowGenerator irg = conglomDesc.getIndexDescriptor();
         IndexDescriptor indexDescriptor = irg.getIndexDescriptor();
+        if(indexDescriptor.isUnique())
+            return new IndexFactory(conglomDesc.getConglomerateNumber(),indexDescriptor);
+
+        /*
+         * just because the conglom descriptor doesn't claim it's unique, doesn't mean that it isn't
+         * actually unique. You also need to check the ConstraintDescriptor (if there is one) to see
+         * if it has the proper type
+         */
+        for(int i=0;i<constraints.size();i++){
+            ConstraintDescriptor constraint = (ConstraintDescriptor)constraints.get(i);
+            if(constraint.getConglomerateId().equals(conglomDesc.getUUID())&&constraint.getConstraintType()==DataDictionary.UNIQUE_CONSTRAINT){
+               return new IndexFactory(conglomDesc.getConglomerateNumber(),indexDescriptor,true);
+            }
+        }
+
         return new IndexFactory(conglomDesc.getConglomerateNumber(),indexDescriptor);
     }
 
@@ -337,6 +373,10 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
         public IndexFactory(long conglomerateNumber, IndexDescriptor indexDescriptor) {
             this(conglomerateNumber,indexDescriptor.baseColumnPositions(),indexDescriptor.isUnique());
+        }
+
+        public IndexFactory(long conglomerateNumber, IndexDescriptor indexDescriptor,boolean isUnique) {
+            this(conglomerateNumber,indexDescriptor.baseColumnPositions(),isUnique);
         }
 
         /*
