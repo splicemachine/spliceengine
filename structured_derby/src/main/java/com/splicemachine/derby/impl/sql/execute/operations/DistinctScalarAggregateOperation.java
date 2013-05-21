@@ -1,158 +1,249 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Collections;
-import java.util.List;
-
-import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.Exceptions;
+import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
+import com.splicemachine.derby.utils.*;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
+import org.apache.derby.iapi.sql.execute.ExecPreparedStatement;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.utils.SpliceLogUtils;
-
 import javax.annotation.Nonnull;
-
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
- * 
- * There are two possible implementations:
- * 
- * option 1: current implementation: shuffle/sink does sort and filter by putting data into temp table;  
- * 			 scan/getNextRowCore does aggregates on the region and generates the final result in memory.
- * Option 2: use two sinks: first to sort/filter by putting data in temp table, second one to aggregate and save the 
- * 			 region aggregate result in temp table; scan/getNextRowCore does aggregates for all the regions (same as
- * 			 ScalarAggregateOperation).
- *
- * option 1 may incur more rpc calls, but the code is cleaner. 
- * option 2 (not implemented) requires two different sink functions in the same operation, which is currently not allowed by design
- * 
- *  @author jessiezhang
+ * @author Scott Fines
+ * Created on: 5/21/13
  */
-public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
-{
-	private static Logger LOG = Logger.getLogger(DistinctScalarAggregateOperation.class);
-	
-	private int orderingItem;
-	private ColumnOrdering[] order;
-	private int maxRowSize;
+public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
+    private static final long serialVersionUID=1l;
 
-	protected int[] keyColumns;
-	protected String keyColumnsString;
-	protected ExecRow currrentSortedRow;
+    private int orderItem;
+    private int maxRowSize;
+    private int[] keyColumns;
 
-	public DistinctScalarAggregateOperation() {
-		super();
-	}
-    /**
-	 * Constructor
-	 *
-	 * @param	s			input result set
-	 * @param	isInSortedOrder	true if the source results are in sorted order
-	 * @param	aggregateItem	indicates the number of the
-	 *		SavedObject off of the PreparedStatement that holds the
-	 *		AggregatorInfoList used by this routine. 
-	 * @param	a				activation
-	 * @param	ra				generated method to build an empty
-	 *	 	output row 
-	 * @param	resultSetNumber	The resultSetNumber for this result set
-	 *
-	 * @exception StandardException Thrown on error
-	 */
-	public DistinctScalarAggregateOperation(NoPutResultSet s,
-					boolean isInSortedOrder,
-					int	aggregateItem,
-					int	orderingItem,
-					Activation a,
-					GeneratedMethod ra,
-					int maxRowSize,
-					int resultSetNumber,
-					boolean singleInputRow,
-				    double optimizerEstimatedRowCount,
-				    double optimizerEstimatedCost) throws StandardException 
-	{
-		super(s, isInSortedOrder, aggregateItem, a, ra,
-			  resultSetNumber, 
-			  singleInputRow,
-			  optimizerEstimatedRowCount,
-			  optimizerEstimatedCost);
-		this.orderingItem = orderingItem;
-		this.maxRowSize = maxRowSize; 
-		recordConstructorTime();
-    }
-	
-	@Override
-	public void init(SpliceOperationContext context) throws StandardException{
-		SpliceLogUtils.trace(LOG,"init");
-		super.init(context);
-		order = (ColumnOrdering[])
-				((FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(orderingItem))).getArray(ColumnOrdering.class);
+    private RingBuffer<ExecIndexRow> currentAggregations = new RingBuffer<ExecIndexRow>(1000); //TODO -sf- make configurable
+    private List<ExecRow> finishedResults = Lists.newArrayList();
+    private boolean isTemp;
+    private boolean completedExecution =false;
+    private List<KeyValue> keyValues;
+    private static final Logger LOG = Logger.getLogger(DistinctScalarAggregateOperation.class);
+    private final RingBuffer.Merger<ExecIndexRow> merger = new RingBuffer.Merger<ExecIndexRow>() {
+        @Override
+        public void merge(ExecIndexRow one, ExecIndexRow two) {
+            if(!isTemp) return; // throw away the row if it's not on the temp space
+            /*
+             * We need to merge aggregates, but ONLY if they have different
+             * keyColumns values.
+             */
+            boolean match =true;
+            for(int keyColPos:keyColumns){
+                try{
+                    DataValueDescriptor dvdOne = one.getColumn(keyColPos);
+                    DataValueDescriptor dvdTwo = two.getColumn(keyColPos);
+                    if(dvdOne.compare(dvdTwo)!=0){
+                        match = false;
+                        break;
+                    }
+                } catch (StandardException e) {
+                    SpliceLogUtils.logAndThrowRuntime(LOG,e);
+                }
+            }
+            if(!match){
+                //merge the aggregate
+                try {
+                    mergeAggregates(one,two);
+                } catch (StandardException e) {
+                    SpliceLogUtils.logAndThrowRuntime(LOG,e);
+                }
+            }
+        }
 
-		keyColumns = new int[order.length];
-		for (int index = 0; index < order.length; index++) {
-			keyColumns[index] = order[index].getColumnId();
-		}
-	}
+        @Override
+        public boolean shouldMerge(ExecIndexRow one, ExecIndexRow two) {
+            //merge ALL rows when we're on the temp table
+            if(isTemp) return true;
+            for(int keyColPos:keyColumns){
+                try{
+                    DataValueDescriptor dvdOne = one.getColumn(keyColPos);
+                    DataValueDescriptor dvdTwo = two.getColumn(keyColPos);
+                    if(dvdOne.compare(dvdTwo)!=0) return false;
+                } catch (StandardException e) {
+                    SpliceLogUtils.logAndThrowRuntime(LOG,e);
+                }
+            }
+            return true;
+        }
+    };
 
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		SpliceLogUtils.trace(LOG,"writeExternal");
-		super.writeExternal(out);
-		out.writeInt(orderingItem);
-	}
-
-	@Override
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		SpliceLogUtils.trace(LOG,"readExternal");
-		super.readExternal(in);
-		orderingItem = in.readInt();
-	}
-	
-	@Override
-    protected ExecIndexRow aggregate(ExecIndexRow execIndexRow, 
-    		ExecIndexRow aggResult, boolean doInitialize,boolean isScan) throws StandardException{
-    	if(aggResult==null){
-    		aggResult = (ExecIndexRow)execIndexRow.getClone();
-    		SpliceLogUtils.trace(LOG, "aggResult = %s aggregate before",aggResult);
-    		if(doInitialize){
-    			initializeScalarAggregation(aggResult);
-    			SpliceLogUtils.trace(LOG, "aggResult = %s aggregate after",aggResult);
-    		}
-    	}else
-    		accumulateScalarAggregation(execIndexRow, aggResult, true,isScan);
-    	return aggResult;
+    private void mergeAggregates(ExecIndexRow one, ExecIndexRow two) throws StandardException {
+        for(SpliceGenericAggregator aggregator:aggregates){
+            aggregator.merge(two,one);
+        }
     }
 
+
+    public DistinctScalarAggregateOperation(){}
+
+    public DistinctScalarAggregateOperation(SpliceOperation source,
+                                            boolean isInSortedOrder,
+                                            int aggregateItem,
+                                            int orderItem,
+                                            GeneratedMethod rowAllocator,
+                                            int maxRowSize,
+                                            int resultSetNumber,
+                                            boolean singleInputRow,
+                                            double optimizerEstimatedRowCount,
+                                            double optimizerEstimatedCost) throws StandardException{
+        super(source,aggregateItem,source.getActivation(),rowAllocator,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+
+        this.orderItem = orderItem;
+        this.maxRowSize = maxRowSize;
+
+        init(SpliceOperationContext.newContext(source.getActivation()));
+    }
+
+    @Override
+    public ExecRow getExecRowDefinition() throws StandardException {
+        return sourceExecIndexRow.getClone();
+    }
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        try{
+            reduceScan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        SpliceUtils.setInstructions(reduceScan,activation,top);
+        return new ProvidesDefaultClientScanProvider(SpliceConstants.TEMP_TABLE_BYTES,reduceScan,template,null);
+    }
+
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top,template);
+    }
+
+    @Override
+    public ExecRow getNextRowCore() throws StandardException {
+        if(finishedResults.size()>0)
+            return makeCurrent(finishedResults.remove(0));
+        else if(completedExecution)
+            return null;
+
+        return aggregate(isTemp);
+    }
+
+    private ExecRow aggregate(boolean isTemp) throws StandardException{
+        ExecIndexRow row = isTemp? getNextRowFromTemp(): getNextRowFromSource(true);
+        if(row == null){
+            return finalizeResults();
+        }
+        do{
+            if(!isTemp)
+                initializeAggregation(row);
+            if(!currentAggregations.merge(row,merger)){
+                ExecIndexRow rowClone = (ExecIndexRow)row.getClone();
+
+                ExecIndexRow rowToEmit = currentAggregations.add(rowClone);
+                if(rowToEmit!=null&&rowToEmit!=rowClone)
+                    return makeCurrent(finishAggregation(rowToEmit));
+            }
+            row = isTemp?getNextRowFromTemp(): getNextRowFromSource(true);
+        }while(row!=null);
+
+        return finalizeResults();
+    }
+
+    private void initializeAggregation(ExecIndexRow row) throws StandardException {
+        for(SpliceGenericAggregator aggregator:aggregates){
+            aggregator.initialize(row);
+            aggregator.accumulate(row,row);
+        }
+    }
+
+    private ExecIndexRow getNextRowFromSource(boolean doClone) throws StandardException {
+        ExecRow sourceRow = source.getNextRowCore();
+        if(sourceRow==null) return null;
+        sourceExecIndexRow.execRowToExecIndexRow(doClone? sourceRow.getClone(): sourceRow);
+        return sourceExecIndexRow;
+    }
+
+    private ExecIndexRow getNextRowFromTemp() throws StandardException {
+        if(keyValues==null)
+            keyValues = new ArrayList<KeyValue>(sourceExecIndexRow.nColumns()+1);
+
+        keyValues.clear();
+        try{
+            regionScanner.next(keyValues);
+        } catch (IOException e) {
+            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION);
+        }
+        if(keyValues.isEmpty())
+            return null;
+        else{
+            ExecIndexRow row = (ExecIndexRow)sourceExecIndexRow.getClone();
+            SpliceUtils.populate(keyValues,row.getRowArray());
+            return row;
+        }
+
+    }
+
+    private ExecRow finalizeResults() throws StandardException {
+        completedExecution=true;
+        for(ExecIndexRow row:currentAggregations){
+            finishedResults.add(finishAggregation(row));
+        }
+        currentAggregations.clear();
+        if(finishedResults.size()>0)
+            return makeCurrent(finishedResults.remove(0));
+        else return null;
+    }
+
+    private ExecRow makeCurrent(ExecRow remove) {
+        setCurrentRow(remove);
+        return remove;
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        orderItem = in.readInt();
+    }
 
     @Override
     public OperationSink.Translator getTranslator() throws IOException {
-        final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
-        final byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
         final Serializer serializer = new Serializer();
-        return new OperationSink.Translator() {
+        final Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
+
+        return new OperationSink.Translator(){
+
             @Nonnull
             @Override
             public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
                 try {
-                    byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
-                    Put put = Puts.buildTempTableInsert(rowKey, row.getRowArray(), null, serializer);
+                    byte[] key = hasher.generateSortedHashKey(row.getRowArray());
+                    Put put = Puts.buildInsert(key,row.getRowArray(),SpliceUtils.NA_TRANSACTION_ID,serializer);
                     return Collections.<Mutation>singletonList(put);
                 } catch (StandardException e) {
                     throw Exceptions.getIOException(e);
@@ -161,32 +252,27 @@ public class DistinctScalarAggregateOperation extends ScalarAggregateOperation
         };
     }
 
-	@Override
-	public void close() throws StandardException
-    {
-		SpliceLogUtils.trace(LOG, "close in DistinctScalarAggregate");
-        super.close();
-        source.close();
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeInt(orderItem);
     }
-	
-//	@Override
-//	protected ExecRow doAggregation(boolean useScan) throws StandardException{
-//		ExecIndexRow execIndexRow = null;
-//		ExecIndexRow aggResult = null;
-//		while ((execIndexRow = getNextRowFromScan(false))!=null){
-//			SpliceLogUtils.trace(LOG,"userscan, aggResult =%s before",aggResult);
-//			aggResult = aggregate(execIndexRow,aggResult,true,true);
-//			SpliceLogUtils.trace(LOG,"userscan aggResult =%s after",aggResult);
-//		}
-//
-//		SpliceLogUtils.trace(LOG, "aggResult=%s",aggResult);
-//		if (aggResult==null)
-//			return null;
-//		if(countOfRows==0) {
-//			aggResult = finishAggregation(aggResult);
-//			setCurrentRow(aggResult);
-//			countOfRows++;
-//		}
-//		return aggResult;
-//	}
+
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException {
+        super.init(context);
+
+        ExecPreparedStatement gsps = activation.getPreparedStatement();
+        ColumnOrdering[] order =
+                (ColumnOrdering[])
+                        ((FormatableArrayHolder)gsps.getSavedObject(orderItem)).getArray(ColumnOrdering.class);
+        keyColumns = new int[order.length];
+        for(int index=0;index<order.length;index++){
+            keyColumns[index] = order[index].getColumnId()+1;
+        }
+
+        isTemp = !context.isSink() || context.getTopOperation()!=this;
+    }
+
+
 }

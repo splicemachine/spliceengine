@@ -681,11 +681,16 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 			double optimizerEstimatedCost) throws StandardException {
 		SpliceLogUtils.trace(LOG, "getDistinctScalarAggregateResultSet");
         try{
-		return new DistinctScalarAggregateOperation(
-				source, isInSortedOrder, aggregateItem, orderItem, source.getActivation(),
-				rowAllocator, maxRowSize, resultSetNumber, singleInputRow,
-				optimizerEstimatedRowCount,
-				optimizerEstimatedCost);
+            return new DistinctScalarAggregateOperation((SpliceOperation)source,
+                    isInSortedOrder,
+                    aggregateItem,
+                    orderItem,
+                    rowAllocator,
+                    maxRowSize,
+                    resultSetNumber,
+                    singleInputRow,
+                    optimizerEstimatedRowCount,
+                    optimizerEstimatedCost);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

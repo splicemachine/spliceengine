@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.TaskStats;
@@ -108,7 +109,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             throw Exceptions.parseException(e);
         }
         SpliceUtils.setInstructions(reduceScan,activation,top);
-        return new OnNullZeroRowProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
+        return new ProvidesDefaultClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
 	}
 
     @Override
@@ -296,27 +297,4 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         return "Scalar"+super.prettyPrint(indentLevel);
     }
 
-    private static class OnNullZeroRowProvider extends ClientScanProvider{
-        private boolean returnedEmpty = false;
-
-        public OnNullZeroRowProvider(
-                byte[] tableName,
-                Scan scan,
-                ExecRow rowTemplate, FormatableBitSet fbt) {
-            super(tableName, scan, rowTemplate, fbt);
-        }
-
-        @Override
-        public boolean hasNext() throws StandardException {
-            boolean hasNext = super.hasNext();
-            if(hasNext){
-                returnedEmpty=true;
-                return hasNext;
-            }else if(!returnedEmpty){
-                returnedEmpty = true;
-                populated = true;
-                return true;
-            }else return false;
-        }
-    }
 }
