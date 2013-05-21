@@ -197,6 +197,16 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
     }
 
     @Test(timeout=10000)
+    public void testCanDeleteEverything() throws Exception {
+        new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
+        methodWatcher.getStatement().execute(format("insert into %s.%s (name,val) values ('sfines',2)",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
+        methodWatcher.getStatement().execute(format("delete from %s",spliceTableWatcher5.toString()));
+
+        ResultSet resultSet = methodWatcher.executeQuery("select * from "+spliceTableWatcher5.toString());
+        Assert.assertTrue("Results returned!",!resultSet.next());
+    }
+
+    @Test(timeout=10000)
     public void testCanUpdateEntryIndexChanges() throws Exception{
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('sfines',2)",this.getTableReference(TABLE_NAME_6)));
     	new SpliceIndexWatcher(TABLE_NAME_6,spliceSchemaWatcher.schemaName,INDEX_61,spliceSchemaWatcher.schemaName,"(name)").starting(null);

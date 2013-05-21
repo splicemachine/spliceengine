@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.base.Strings;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -247,4 +248,15 @@ public class WindowOperation extends SpliceBaseOperation {
 		else
 			return totTime;
 	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder("Window:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("referenceColumns").append(referencedColumns)
+                .append(indent).append("ronumber:").append(rownumber)
+                .toString();
+    }
 }

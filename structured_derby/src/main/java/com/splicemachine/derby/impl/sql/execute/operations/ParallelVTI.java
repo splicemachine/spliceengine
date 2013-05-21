@@ -87,10 +87,13 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 		throw new UnsupportedOperationException();
 		
 	}
-	
 
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException {
+        throw new UnsupportedOperationException("getTranslator is not supported on node "+this.getClass());
+    }
 
-	@Override
+    @Override
 	public void readExternal(ObjectInput in) throws IOException,
 			ClassNotFoundException {
 		throw new UnsupportedOperationException();
@@ -367,10 +370,6 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 			ExecRow outputRowFormat) {
 		throw new UnsupportedOperationException();
 	}
-
-	@Override
-	public abstract TaskStats sink();
-
 
 	@Override
 	public void cleanup() {

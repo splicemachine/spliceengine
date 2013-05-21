@@ -37,13 +37,13 @@ public class UnionOperationTest extends SpliceUnitTest {
 			protected void starting(Description description) {
 				try {
 					Statement s = spliceClassWatcher.getStatement();
-					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(1, 1, 'Mulgrew, Kate')");
-					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(2, 1, 'Shatner, William')");
+					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(6, 1, 'Mulgrew, Kate')");
+					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(7, 1, 'Shatner, William')");
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(3, 1, 'Nimoy, Leonard')");
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(4, 1, 'Patrick')");
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(5, 1, null)");			
-					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(1, 1, 'Spiner, Brent')");
-					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(2, 1, 'Duncan, Rebort')");
+					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(6, 1, 'Spiner, Brent')");
+					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(7, 1, 'Duncan, Rebort')");
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(3, 1, 'Nimoy, Leonard')");
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(4, 1, 'Ryan, Jeri')");
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(5, 1, null)");
@@ -106,5 +106,34 @@ public class UnionOperationTest extends SpliceUnitTest {
 			LOG.info("id="+rs.getInt(1)+",person name="+rs.getString(2));
 		}	
 		Assert.assertEquals(8, i);
-	}		
+	}
+
+    @Test
+    public void testUnionWithWhereClause() throws Exception{
+        /*
+         * Regression test for Bug 373
+         */
+        ResultSet rs = methodWatcher.executeQuery("select * from "+spliceTableWatcher1.toString()+" where empId = 6 UNION select * from "+spliceTableWatcher2.toString()+" where empId=3");
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            LOG.info("id="+rs.getInt(1)+",person name="+rs.getString(2));
+        }
+        Assert.assertEquals(2, i);
+    }
+
+    @Test
+    public void testUnionValuesInSubSelect() throws Exception{
+        /*
+         * regression for Bug 292
+         */
+//        ResultSet rs = methodWatcher.executeQuery("select empId from "+spliceTableWatcher1.toString()+" where empId in (select empId from "+spliceTableWatcher2.toString()+" union values 1 union values 2)");
+        ResultSet rs = methodWatcher.executeQuery("select empId from "+spliceTableWatcher1.toString()+" where empId in (select empId from "+spliceTableWatcher2.toString()+" union all values 1)");
+        int i=0;
+        while(rs.next()){
+            i++;
+            System.out.printf("empId=%d%n",rs.getInt(1));
+        }
+        Assert.assertEquals(5,i);
+    }
 }

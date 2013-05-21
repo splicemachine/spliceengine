@@ -80,7 +80,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				setCurrentRow(mergedRow);
 				return mergedRow;
 			} else {
-				nestedLoopIterator = new NestedLoopIterator(leftRow,isHash);
+				nestedLoopIterator = new NestedLoopLeftOuterIterator(leftRow,isHash);
 				rowsSeenLeft++;
 				return getNextRowCore();
 			}
@@ -93,7 +93,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				setCurrentRow(mergedRow);
 				return mergedRow;
 			} else {
-				nestedLoopIterator = new NestedLoopIterator(leftRow,isHash);
+				nestedLoopIterator = new NestedLoopLeftOuterIterator(leftRow,isHash);
 				rowsSeenLeft++;
 				return getNextRowCore();
 			}
@@ -121,13 +121,45 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Error initiliazing node", e);
 		}
 	}
-	
-	@Override
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "LeftOuter"+super.prettyPrint(indentLevel);
+    }
+
+    @Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 		mergedRow = JoinUtils.getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition(),wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
 	}
+
+    private class NestedLoopLeftOuterIterator extends NestedLoopIterator{
+        private boolean seenRow = false;
+
+        NestedLoopLeftOuterIterator(ExecRow leftRow, boolean hash) throws StandardException {
+            super(leftRow, hash);
+        }
+
+        @Override
+        protected void nonNullRight() {
+            seenRow=true;
+        }
+
+        @Override
+        protected ExecRow getEmptyRightRow() throws StandardException {
+            if (seenRow) {
+                SpliceLogUtils.trace(LOG, "already has seen row and no right result");
+                probeResultSet.setCurrentRow(null);
+                emptyRightRowsReturned++;
+                close();
+                return null;
+            }
+            rightRow = (ExecRow) emptyRowFun.invoke(activation);
+            seenRow=true;
+            return rightRow;
+        }
+    }
 
 	protected class NestedLoopLeftIterator implements Iterator<ExecRow> {
 		protected ExecRow leftRow;

@@ -115,4 +115,9 @@ public class MiscOperation extends NoRowsOperation
     public String toString() {
         return "ConstantActionOperation";
     }
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "ConstantAction" + super.prettyPrint(indentLevel);
+    }
 }

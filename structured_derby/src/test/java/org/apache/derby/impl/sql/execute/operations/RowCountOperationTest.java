@@ -23,7 +23,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  *
  *
  */
-@Ignore("Bug 334")
+//@Ignore("Bug 334")
 public class RowCountOperationTest extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = RowCountOperationTest.class.getSimpleName().toUpperCase();
@@ -40,10 +40,12 @@ public class RowCountOperationTest extends SpliceUnitTest {
 			protected void starting(Description description) {
 				try {
 					PreparedStatement s = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?)",CLASS_NAME,TABLE_NAME));
-					for (int i = 1; i<11;i++) {
+                    int size = 10;
+					for (int i = 1; i<=size;i++) {
 						s.setInt(1, i);
 						s.executeUpdate();
 					}
+                    spliceClassWatcher.splitTable(TABLE_NAME,CLASS_NAME,size/3);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -63,6 +65,8 @@ public class RowCountOperationTest extends SpliceUnitTest {
 		int i=0;
 		while(rs.next()){
 			i++;
+            int val = rs.getInt(1);
+            System.out.printf("val=%d%n",val);
 			Assert.assertEquals(i,rs.getInt(1));
 		}
 		Assert.assertEquals(1, i);	
@@ -75,9 +79,11 @@ public class RowCountOperationTest extends SpliceUnitTest {
 		int i=5;
 		while(rs.next()){
 			i++;
-			Assert.assertEquals(i,rs.getInt(1));
+            int val = rs.getInt(1);
+            System.out.printf("val=%d%n",val);
+			Assert.assertEquals(i,val);
 		}
-		Assert.assertEquals(10, i);	
+		Assert.assertEquals(10, i);
 	}
 	
 	@Test

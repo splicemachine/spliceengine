@@ -92,17 +92,29 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		SpliceLogUtils.trace(LOG, "executeScan");
 		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
 		this.generateLeftOperationStack(operationStack);
-		SpliceOperation regionOperation = operationStack.get(0);
-		RowProvider provider;
-		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
-			provider = regionOperation.getReduceRowProvider(this,getExecRowDefinition());
-		} else {
-			provider = regionOperation.getMapRowProvider(this,getExecRowDefinition());
-		}
-		return new SpliceNoPutResultSet(activation,this, provider);
+//		SpliceOperation regionOperation = operationStack.get(0);
+//		RowProvider provider;
+//		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
+//			provider = regionOperation.getReduceRowProvider(this,getExecRowDefinition());
+//		} else {
+//			provider = regionOperation.getMapRowProvider(this,getExecRowDefinition());
+//		}
+		return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this,getExecRowDefinition()));
 	}
-	
-	@Override
+
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        //push the computation to the left side of the join
+        //TODO -sf- push this to the largest table in the join (or make the largest table always be the left)
+        return leftResultSet.getMapRowProvider(top, template);
+    }
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return leftResultSet.getReduceRowProvider(top, template);
+    }
+
+    @Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		JoinUtils.getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition(),false,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
@@ -162,7 +174,12 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		closeTime += getElapsedMillis(beginTime);
 	}
 
-	protected class NestedLoopIterator implements Iterator<ExecRow> {
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "NestedLoopJoin:" + super.prettyPrint(indentLevel);
+    }
+
+    protected class NestedLoopIterator implements Iterator<ExecRow> {
 		protected ExecRow leftRow;
 		protected NoPutResultSet probeResultSet;
 		private boolean populated;
@@ -200,11 +217,15 @@ public class NestedLoopJoinOperation extends JoinOperation {
 					rightResultSet.setCurrentRow(rightRow); //set this here for serialization up the stack
 					rowsSeenRight++;
 					mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
-				} else {
+                    nonNullRight();
+                } else if((rightRow = getEmptyRightRow())!=null){
+                    rightResultSet.setCurrentRow(rightRow);
+                    mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
+                }else {
 					SpliceLogUtils.trace(LOG, "already has seen row and no right result");
 					populated = false;
 					return false;
-				}						
+				}
 				if (restriction != null) {
 					DataValueDescriptor restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
 					if ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean()) {
@@ -227,7 +248,15 @@ public class NestedLoopJoinOperation extends JoinOperation {
 			return true;
 		}
 
-		@Override
+        protected void nonNullRight() {
+            //no op for inner loops
+        }
+
+        protected ExecRow getEmptyRightRow() throws StandardException {
+            return null;  //for inner loops, return null here
+        }
+
+        @Override
 		public ExecRow next() {
 			SpliceLogUtils.trace(LOG, "next row=" + mergedRow);
 			populated=false;

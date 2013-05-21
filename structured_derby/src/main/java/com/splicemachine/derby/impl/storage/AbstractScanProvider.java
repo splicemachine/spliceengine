@@ -22,7 +22,7 @@ import java.util.NoSuchElementException;
  */
 public abstract class AbstractScanProvider extends SingleScanRowProvider {
 	protected static final Logger LOG = Logger.getLogger(ClientScanProvider.class);
-    private boolean populated = false;
+    protected boolean populated = false;
 
     protected ExecRow currentRow;
     protected RowLocation currentRowLocation;
@@ -66,6 +66,14 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 	}
 
 	protected abstract Result getResult() throws StandardException;
+
+    public FormatableBitSet getFbt(){
+        return fbt;
+    }
+
+    public ExecRow getRowTemplate(){
+        return currentRow;
+    }
 
 	@Override
 	public ExecRow next() throws StandardException{

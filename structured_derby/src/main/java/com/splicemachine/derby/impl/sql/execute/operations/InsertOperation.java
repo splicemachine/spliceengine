@@ -15,10 +15,15 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.InsertConstantAction;
+import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 
@@ -57,64 +62,37 @@ public class InsertOperation extends DMLWriteOperation {
                 pkColumns = fromIntArray(pks);
         }
 	}
-	
-	@Override
-	public TaskStats sink() throws IOException {
-//		SpliceLogUtils.trace(LOG,"sink on transactinID="+transactionID);
-		/*
-		 * write out the data to the correct location.
-		 * 
-		 * If you compare this implementation to that of InsertResultSet, you'll notice
-		 * that there is a whole lot less going on. That's because Triggers, Primary Keys, Check
-		 * Constraints, and Secondary Indices are all handled through Coprocessors, and are thus transparent
-		 * to the writer. This dramatically simplifies this code, at the cost of adding conceptual complexity
-		 * in coprocessor logic
-		 */
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-        stats.start();
-        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for InsertOperation at "+stats.getStartTime());
-		ExecRow nextRow=null;
-		//Use HTable to do inserts instead of HeapConglomerateController - see Bug 188
-        Serializer serializer = new Serializer();
-		try {
-            CallBuffer<Mutation> writer = SpliceDriver.driver().getTableWriter()
-                    .writeBuffer(Long.toString(heapConglom).getBytes());
-            DataValueDescriptor[] template = ((SpliceOperation)source).getExecRowDefinition().getRowArray();
-            RowSerializer rowKeySerializer =
-                    new RowSerializer(template,pkColumns,pkColumns==null);
-            do{
-                long start =System.nanoTime();
 
-                nextRow = source.getNextRowCore();
-                if(nextRow==null)continue;
-                stats.readAccumulator().tick(System.nanoTime()-start);
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException {
+        final Serializer serializer = new Serializer();
+        try {
+            final RowSerializer rowKeySerializer = new RowSerializer(getExecRowDefinition().getRowArray(),pkColumns,pkColumns==null);
+            return new OperationSink.Translator() {
+                @Nonnull
+                @Override
+                public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+                    try {
+                        byte[ ]rowKey = rowKeySerializer.serialize(row.getRowArray());
+                        Put put =  Puts.buildInsert(rowKey, row.getRowArray(), getTransactionID(), serializer);
+                        return Collections.<Mutation>singletonList(put);
+                    } catch (StandardException e) {
+                        throw Exceptions.getIOException(e);
+                    }
+                }
+            };
+        } catch (StandardException e) {
+            throw Exceptions.getIOException(e);
+        }
+    }
 
-                start = System.nanoTime();
-//                SpliceLogUtils.trace(LOG,"InsertOperation sink, nextRow="+nextRow);
-
-                byte[] rowKey = rowKeySerializer.serialize(nextRow.getRowArray());
-                writer.add(Puts.buildInsert(rowKey, nextRow.getRowArray(), this.getTransactionID(), serializer)); // Buffered
-
-                stats.writeAccumulator().tick(System.nanoTime()-start);
-            }while(nextRow!=null);
-            writer.flushBuffer();
-            writer.close();
-		} catch (Exception e) {
-			//TODO -sf- abort transaction
-            if(Exceptions.shouldLogStackTrace(e))
-                SpliceLogUtils.logAndThrowRuntime(LOG,e);
-            else
-                throw Exceptions.getIOException(e);
-		}
-		TaskStats ss = stats.finish();
-		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for InsertOperation at "+stats.getFinishTime());
-        return ss;
-	}
-
-	
 	@Override
 	public String toString() {
 		return "Insert{destTable="+heapConglom+",source=" + source + "}";
 	}
 
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "Insert"+super.prettyPrint(indentLevel);
+    }
 }

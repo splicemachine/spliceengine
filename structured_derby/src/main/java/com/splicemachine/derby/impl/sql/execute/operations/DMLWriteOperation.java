@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Strings;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -29,6 +30,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
@@ -148,6 +150,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		isScan = hasScan;
 	}
 
+    public byte[] getDestinationTable(){
+        return Long.toString(heapConglom).getBytes();
+    }
+
 	@Override
 	public SpliceOperation getLeftOperation() {
 		return (SpliceOperation)source;
@@ -171,26 +177,19 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		return new SpliceNoPutResultSet(activation,this,modifiedProvider,false);
 	}
 
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top, template);
+    }
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return ((SpliceOperation)source).getReduceRowProvider(top, template);
+    }
 
     @Override
     public void executeShuffle() throws StandardException {
-        long start = System.currentTimeMillis();
-        SpliceLogUtils.trace(LOG,"shuffling %s",toString());
-        List<SpliceOperation> opStack = getOperationStack();
-        SpliceLogUtils.trace(LOG, "operationStack=%s",opStack);
-        final SpliceOperation regionOperation = opStack.get(0);
-        final SpliceOperation topOperation = opStack.get(opStack.size()-1);
-        SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-        final RowProvider rowProvider;
-        if(regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation){
-            rowProvider = regionOperation.getReduceRowProvider(topOperation,topOperation.getExecRowDefinition());
-        }else {
-            rowProvider = regionOperation.getMapRowProvider(topOperation,topOperation.getExecRowDefinition());
-        }
-
-        nextTime+= System.currentTimeMillis()-start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),topOperation);
-        JobStats jobStats = rowProvider.shuffleRows(soi);
+        JobStats jobStats = super.doShuffle();
         JobStatsUtils.logStats(jobStats, LOG);
         Map<String,TaskStats> taskStats = jobStats.getTaskStats();
         long rowsModified = 0;
@@ -216,7 +215,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
-		return null;
+        return source.getNextRowCore();
 	}
 
     protected FormatableBitSet fromIntArray(int[] values){
@@ -260,7 +259,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                     final Transactor<Put,Get,Scan,Mutation,Result> transactor = TransactorFactoryImpl.getTransactor();
                     final TransactionId childID = transactor.beginChildTransaction(transactor.transactionIdFromString(getTransactionID()), true, true, null, null);
                     setChildTransactionID(childID.getTransactionIdString());
-                    TaskStats stats = sink();
+                    OperationSink opSink = OperationSink.create(DMLWriteOperation.this,null);
+                    TaskStats stats= opSink.sink(getDestinationTable());
                     rowsModified = (int)stats.getReadStats().getTotalRecords();
                     transactor.commit(childID);
                 }catch(IOException ioe){
@@ -321,5 +321,18 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     public void openCore() throws StandardException {
         super.openCore();
         if(source!=null)source.openCore();
+    }
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder()
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("heapConglom:").append(heapConglom)
+                .append(indent).append("isScan:").append(isScan)
+                .append(indent).append("pkColumns:").append(pkColumns)
+                .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
+                .toString();
     }
 }

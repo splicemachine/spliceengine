@@ -1,13 +1,16 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationProtocol;
+import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.TaskStats;
@@ -38,17 +41,22 @@ public abstract class SingleScanRowProvider  implements RowProvider {
 
 
     private static final Logger LOG = Logger.getLogger(SingleScanRowProvider.class);
-
+    private boolean shuffled = false;
 
     @Override
     public JobStats shuffleRows(SpliceObserverInstructions instructions ) throws StandardException {
+        shuffled=true;
         Scan scan = toScan();
         if(scan==null){
             //operate locally
             SpliceOperation op = instructions.getTopOperation();
             op.init(SpliceOperationContext.newContext(op.getActivation()));
             try{
-                return new LocalTaskJobStats(op.sink());
+                OperationSink opSink = OperationSink.create(op,null);
+                if(op instanceof DMLWriteOperation)
+                    return new LocalTaskJobStats(opSink.sink(((DMLWriteOperation)op).getDestinationTable()));
+                else
+                    return new LocalTaskJobStats(opSink.sink(SpliceConstants.TEMP_TABLE_BYTES));
             } catch (IOException e) {
                 throw Exceptions.parseException(e);
             }
@@ -71,10 +79,11 @@ public abstract class SingleScanRowProvider  implements RowProvider {
      * @return a scan representation of the row provider, or {@code null} if the operation
      * is to be shuffled locally.
      */
-    protected abstract Scan toScan();
+    public abstract Scan toScan();
 
     @Override
     public void close() {
+        if(!shuffled) return; //no need to clean temp, it's just a scan
         Scan scan = toScan();
         try {
             SpliceDriver.driver().getTempCleaner().deleteRange(SpliceUtils.getUniqueKeyString(),scan.getStartRow(),scan.getStopRow());
@@ -89,7 +98,8 @@ public abstract class SingleScanRowProvider  implements RowProvider {
     private JobStats doShuffle(HTableInterface table,
                            SpliceObserverInstructions instructions, Scan scan) throws StandardException {
         //TODO -sf- attach statistics
-        SpliceUtils.setInstructions(scan,instructions);
+        if(scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS)==null)
+            SpliceUtils.setInstructions(scan,instructions);
 
         //get transactional stuff from scan
 

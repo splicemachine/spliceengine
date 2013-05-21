@@ -29,21 +29,16 @@ import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 public class HashScanOperation extends ScanOperation {
 	private static Logger LOG = Logger.getLogger(HashScanOperation.class);
@@ -178,120 +173,87 @@ public class HashScanOperation extends ScanOperation {
 		return new ArrayList<SpliceOperation>();
 	}
 
-	@Override
-	public void executeShuffle() {
-		SpliceLogUtils.trace(LOG, "executeShuffle");
-		List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
-		this.generateLeftOperationStack(operationStack);
-		final SpliceOperation regionOperation = operationStack.get(0);
-		HTableInterface htable = null;
-		try {
-			regionStats = new RegionStats(this.getClass().getName());
-            regionStats.start();
-            
-			htable = SpliceAccessManager.getHTable(Bytes.toBytes(tableName));
-			SpliceLogUtils.trace(LOG, "executing coprocessor on table=" + tableName + ", with scan=" + mapScan);
-			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,regionOperation);
-			htable.coprocessorExec(SpliceOperationProtocol.class,
-					mapScan.getStartRow(), mapScan.getStopRow(),
-					new Batch.Call<SpliceOperationProtocol, TaskStats>() {
-						@Override
-						public TaskStats call(SpliceOperationProtocol instance) throws IOException {
-							try {
-								return instance.run(mapScan,soi);
-							} catch (StandardException e) {
-								SpliceLogUtils.logAndThrowRuntime(LOG, "Error Executing Sink", e);
-					}
-					return null;
-				}
-			},new Batch.Callback<TaskStats>() {
-                        @Override
-                        public void update(byte[] region, byte[] row, TaskStats result) {
-                            regionStats.addRegionStats(region,result);
-                        }
-                    });
-            regionStats.finish();
-            regionStats.recordStats(LOG);
-			executed = true;
-            nextTime += regionStats.getTotalTimeTakenMs();
-		} catch (Exception e) {
-			LOG.error("Problem Running Coprocessor " + e.getMessage());
-			throw new RuntimeException(e);
-		} catch (Throwable e) {
-			LOG.error("Problem Running Coprocessor " + e.getMessage());
-			throw new RuntimeException(e);
-		} finally {
-			if (htable != null)
-				try {
-					htable.close();
-				} catch (IOException e) {
-					LOG.error("Problem Closing HBase Table");
-					throw new RuntimeException(e);
-				}
-		}
-	}
+//	@Override
+//	public void executeShuffle() {
+//        throw new UnsupportedOperationException("HashScans are unsupported!");
+//		SpliceLogUtils.trace(LOG, "executeShuffle");
+//		List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
+//		this.generateLeftOperationStack(operationStack);
+//		final SpliceOperation regionOperation = operationStack.get(0);
+//		HTableInterface htable = null;
+//		try {
+//			regionStats = new RegionStats(this.getClass().getName());
+//            regionStats.start();
+//
+//			htable = SpliceAccessManager.getHTable(Bytes.toBytes(tableName));
+//			SpliceLogUtils.trace(LOG, "executing coprocessor on table=" + tableName + ", with scan=" + mapScan);
+//			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,regionOperation);
+//			htable.coprocessorExec(SpliceOperationProtocol.class,
+//					mapScan.getStartRow(), mapScan.getStopRow(),
+//					new Batch.Call<SpliceOperationProtocol, TaskStats>() {
+//						@Override
+//						public TaskStats call(SpliceOperationProtocol instance) throws IOException {
+//							try {
+//								return instance.run(mapScan,soi);
+//							} catch (StandardException e) {
+//								SpliceLogUtils.logAndThrowRuntime(LOG, "Error Executing Sink", e);
+//					}
+//					return null;
+//				}
+//			},new Batch.Callback<TaskStats>() {
+//                        @Override
+//                        public void update(byte[] region, byte[] row, TaskStats result) {
+//                            regionStats.addRegionStats(region,result);
+//                        }
+//                    });
+//            regionStats.finish();
+//            regionStats.recordStats(LOG);
+//			executed = true;
+//            nextTime += regionStats.getTotalTimeTakenMs();
+//		} catch (Exception e) {
+//			LOG.error("Problem Running Coprocessor " + e.getMessage());
+//			throw new RuntimeException(e);
+//		} catch (Throwable e) {
+//			LOG.error("Problem Running Coprocessor " + e.getMessage());
+//			throw new RuntimeException(e);
+//		} finally {
+//			if (htable != null)
+//				try {
+//					htable.close();
+//				} catch (IOException e) {
+//					LOG.error("Problem Closing HBase Table");
+//					throw new RuntimeException(e);
+//				}
+//		}
+//	}
 
-	@Override		
-	public TaskStats sink() {
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-        stats.start();
-        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for HashScan at "+stats.getStartTime());
-		SpliceLogUtils.trace(LOG, "sink called on" + regionScanner.getRegionInfo().getTableNameAsString());
-		HTableInterface tempTable = null;
-		Put put = null;
-		try{
-			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
-			hasher = new Hasher(currentRow.getRowArray(),keyColumns,null,sequence[0]);
-			byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
-            Serializer serializer = new Serializer();
-            List<KeyValue> keyValues;
-            do{
-                long start = System.nanoTime();
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException {
+        hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
+        final Serializer serializer = new Serializer();
+        final byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
+        //TODO -sf- does this even work?
+        return new OperationSink.Translator() {
+            @Nonnull
+            @Override
+            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+                try{
+                    byte[] tempRow;
+                    if(eliminateDuplicates)
+                        tempRow = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
+                    else
+                        tempRow = hasher.generateSortedHashKey(row.getRowArray());
 
-                //get the next row
-                keyValues = new ArrayList<KeyValue>(currentRow.nColumns());
-                regionScanner.next(keyValues);
-                if(keyValues==null || keyValues.isEmpty()) continue;
-                stats.readAccumulator().tick(System.nanoTime()-start);
-
-                //sink the row by hashing
-                start = System.nanoTime();
-                SpliceLogUtils.trace(LOG, "Sinking Record ");
-                SpliceLogUtils.trace(LOG, "accessedColsToGrab=%s",accessedCols);
-                SpliceUtils.populate(keyValues, currentRow.getRowArray(),accessedCols,baseColumnMap,serializer);
-                byte[] tempRowKey ;
-                if (eliminateDuplicates) {
-                    tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),scannedTableName);
-                } else {
-                    tempRowKey = hasher.generateSortedHashKey(currentRow.getRowArray());
+                    Put put = Puts.buildTempTableInsert(tempRow,row.getRowArray(),null,serializer);
+                    return Collections.<Mutation>singletonList(put);
+                }catch(StandardException se){
+                    throw Exceptions.getIOException(se);
                 }
-                SpliceLogUtils.trace(LOG, "row to hash =%s, key=%s", currentRow, Arrays.toString(tempRowKey));
-                put = Puts.buildTempTableInsert(tempRowKey, currentRow.getRowArray(), null, serializer);
-                tempTable.put(put);	// TODO Buffer via list or configuration. JL
 
-                stats.writeAccumulator().tick(System.nanoTime()-start);
+            }
+        };
+    }
 
-            }while(!keyValues.isEmpty());
-
-			tempTable.flushCommits();
-		}catch (StandardException se){
-			SpliceLogUtils.logAndThrowRuntime(LOG,se);
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		}finally{
-			try {
-				if(tempTable!=null)
-					tempTable.close();
-			} catch (IOException e) {
-				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
-			}
-		}
-        //return stats.finish();
-		TaskStats ss = stats.finish();
-		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for HashScan at "+stats.getFinishTime());
-        return ss;
-	}
-	
 	@Override
 	public SpliceOperation getLeftOperation() {
 		return null;

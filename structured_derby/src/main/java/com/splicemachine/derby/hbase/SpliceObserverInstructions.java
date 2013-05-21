@@ -5,19 +5,16 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManagerContext;
-import com.splicemachine.derby.utils.SerializingExecRow;
-import com.splicemachine.derby.utils.SerializingIndexRow;
+import com.splicemachine.derby.utils.ByteDataInput;
+import com.splicemachine.derby.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ParameterValueSet;
 import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.conn.StatementContext;
-import org.apache.derby.iapi.sql.execute.ExecIndexRow;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
 import org.apache.derby.impl.sql.GenericActivationHolder;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
@@ -28,7 +25,10 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 /**
  * 
  * Class utilized to serialize the Splice Operation onto the scan for hbase.  It attaches the 
@@ -143,9 +143,16 @@ public class SpliceObserverInstructions implements Externalizable {
         }
     }
 
+    /*
+     * Serializer class for Activation objects, to ensure that they are properly sent over the wire
+     * while retaining their state completely.
+     *
+     * A lot of this crap is reflective Field setting, because there's currently no other way to make
+     * the activation properly serialize. Someday, it would be nice to move all of this into making
+     * Activation properly serializable.
+     */
     private static class ActivationContext implements Externalizable{
-        private static final long serialVersionUID = 1l;
-        private ExecRow[] currentRows;
+        private static final long serialVersionUID = 5l;
         private Map<String,Integer> setOps;
         private boolean statementAtomic;
         private boolean statementReadOnly;
@@ -153,7 +160,7 @@ public class SpliceObserverInstructions implements Externalizable {
         private boolean stmtRollBackParentContext;
         private long stmtTimeout;
         private ParameterValueSet pvs;
-
+        private byte[] activationData;
 
 
         @SuppressWarnings("unused")
@@ -161,10 +168,10 @@ public class SpliceObserverInstructions implements Externalizable {
         	
         }
 
-        public ActivationContext(ExecRow[] currentRows, ParameterValueSet pvs, Map<String, Integer> setOps,
+        public ActivationContext(ParameterValueSet pvs, Map<String, Integer> setOps,
                                  boolean statementAtomic, boolean statementReadOnly,
-                                 String stmtText, boolean stmtRollBackParentContext, long stmtTimeout) {
-            this.currentRows = currentRows;
+                                 String stmtText, boolean stmtRollBackParentContext, long stmtTimeout,
+                                 byte[] activationData) {
             this.pvs = pvs;
             this.setOps = setOps;
             this.statementAtomic = statementAtomic;
@@ -172,6 +179,7 @@ public class SpliceObserverInstructions implements Externalizable {
             this.stmtText = stmtText;
             this.stmtRollBackParentContext = stmtRollBackParentContext;
             this.stmtTimeout = stmtTimeout;
+            this.activationData = activationData;
         }
 
         public static ActivationContext create(Activation activation,SpliceOperation topOperation){
@@ -179,9 +187,9 @@ public class SpliceObserverInstructions implements Externalizable {
             Map<String,Integer> setOps = new HashMap<String,Integer>(operations.size());
             topOperation.generateLeftOperationStack(operations);
             for(Field field:activation.getClass().getDeclaredFields()){
-                if(ResultSet.class.isAssignableFrom(field.getType())){
-                    try {
-                        if(!field.isAccessible())field.setAccessible(true); //make it accessible to me
+                if(!field.isAccessible())field.setAccessible(true); //make it accessible to me
+                try{
+                    if(ResultSet.class.isAssignableFrom(field.getType())){
 
                         final Object fieldValue = field.get(activation);
                         SpliceOperation op;
@@ -196,41 +204,41 @@ public class SpliceObserverInstructions implements Externalizable {
                                 break;
                             }
                         }
-                    } catch (IllegalAccessException e) {
-                        SpliceLogUtils.logAndThrowRuntime(LOG,e);
                     }
+                } catch (IllegalAccessException e) {
+                    SpliceLogUtils.logAndThrowRuntime(LOG,e);
                 }
             }
 
-		/*
-		 * Serialize out any non-null result rows that are currently stored in the activation.
-		 *
-		 * This is necessary if you are pushing out a set of Operation to a Table inside of a Sink.
-		 */
-            int rowPos=1;
-            Map<Integer,ExecRow> rowMap = new HashMap<Integer,ExecRow>();
-            boolean shouldContinue=true;
-            while(shouldContinue){
-                try{
-                    ExecRow row = (ExecRow)activation.getCurrentRow(rowPos);
-                    if(row!=null){
-                        rowMap.put(rowPos,row);
-                    }
-                    rowPos++;
-                }catch(IndexOutOfBoundsException ie){
-                    //we've reached the end of the row group in activation, so stop
-                    shouldContinue=false;
-                }
-            }
-            ExecRow[] currentRows = new ExecRow[rowPos];
-            for(Integer rowPosition:rowMap.keySet()){
-                ExecRow row = new SerializingExecRow(rowMap.get(rowPosition));
-                if(row instanceof ExecIndexRow)
-                    currentRows[rowPosition] = new SerializingIndexRow(row);
-                else
-                    currentRows[rowPosition] =  row;
-            }
-            SpliceLogUtils.trace(LOG,"serializing current rows: %s", Arrays.toString(currentRows));
+//		/*
+//		 * Serialize out any non-null result rows that are currently stored in the activation.
+//		 *
+//		 * This is necessary if you are pushing out a set of Operation to a Table inside of a Sink.
+//		 */
+//            int rowPos=1;
+//            Map<Integer,ExecRow> rowMap = new HashMap<Integer,ExecRow>();
+//            boolean shouldContinue=true;
+//            while(shouldContinue){
+//                try{
+//                    ExecRow row = (ExecRow)activation.getCurrentRow(rowPos);
+//                    if(row!=null){
+//                        rowMap.put(rowPos,row);
+//                    }
+//                    rowPos++;
+//                }catch(IndexOutOfBoundsException ie){
+//                    //we've reached the end of the row group in activation, so stop
+//                    shouldContinue=false;
+//                }
+//            }
+//            ExecRow[] currentRows = new ExecRow[rowPos];
+//            for(Integer rowPosition:rowMap.keySet()){
+//                ExecRow row = new SerializingExecRow(rowMap.get(rowPosition));
+//                if(row instanceof ExecIndexRow)
+//                    currentRows[rowPosition] = new SerializingIndexRow(row);
+//                else
+//                    currentRows[rowPosition] =  row;
+//            }
+//            SpliceLogUtils.trace(LOG,"serializing current rows: %s", Arrays.toString(currentRows));
 
         /*
          * Serialize out all the pieces of the StatementContext so that it can be recreated on the
@@ -244,8 +252,15 @@ public class SpliceObserverInstructions implements Externalizable {
             long stmtTimeout = 0; //timeouts handled by RPC --probably wrong, but also okay for now
 
             ParameterValueSet pvs = activation.getParameterValueSet().getClone();
-            return new ActivationContext(currentRows,pvs,setOps,statementAtomic,statementReadOnly,
-                    stmtText,stmtRollBackParentContext,stmtTimeout);
+
+            ByteDataOutput bdo = new ByteDataOutput();
+            try {
+                ActivationSerializer.write(activation,bdo);
+                return new ActivationContext(pvs,setOps,statementAtomic,statementReadOnly,
+                        stmtText,stmtRollBackParentContext,stmtTimeout,bdo.toByteArray());
+            } catch (IOException e) {
+                throw new RuntimeException(e); //should never happen
+            }
         }
 
         @Override
@@ -259,10 +274,7 @@ public class SpliceObserverInstructions implements Externalizable {
             out.writeBoolean(pvs!=null);
             if(pvs!=null)
                 out.writeObject(pvs);
-            out.writeBoolean(currentRows!=null);
-            if(currentRows!=null){
-                ArrayUtil.writeArray(out,currentRows);
-            }
+            out.writeObject(activationData);
         }
 
         @SuppressWarnings("unchecked")
@@ -277,27 +289,13 @@ public class SpliceObserverInstructions implements Externalizable {
             if(in.readBoolean()){
                 this.pvs = (ParameterValueSet)in.readObject();
             }
-            if(in.readBoolean()){
-                this.currentRows = new ExecRow[in.readInt()];
-                ArrayUtil.readArrayItems(in,currentRows);
-            }
+            activationData = (byte[])in.readObject();
         }
 
         public Activation populateActivation(Activation activation,GenericStorablePreparedStatement statement,SpliceOperation topOperation) throws StandardException {
-		/*
-		 * Set any currently populated rows back on to the activation
-		 */
-            try{
-                if(currentRows!=null){
-                    for(int i=0;i<currentRows.length;i++){
-                        SerializingExecRow row = (SerializingExecRow)currentRows[i];
-                        if(row!=null){
-                            row.populateNulls(activation.getDataValueFactory());
-                            activation.setCurrentRow(row,i);
-                        }
-                    }
-                }
 
+            try{
+                ActivationSerializer.readInto(new ByteDataInput(activationData),activation);
 			/*
 			 * Set the populated operations with their comparable operation
 			 */
@@ -310,6 +308,7 @@ public class SpliceObserverInstructions implements Externalizable {
                     fieldToSet.set(activation, op);
                 }
 
+
                 if(pvs!=null)activation.setParameters(pvs,statement.getParameterTypes());
                 /*
                  * Push the StatementContext
@@ -321,8 +320,11 @@ public class SpliceObserverInstructions implements Externalizable {
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
             } catch (IllegalAccessException e) {
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
+            } catch (IOException e) {
+                SpliceLogUtils.logAndThrowRuntime(LOG,e);
             }
             return null;
         }
+
     }
 }

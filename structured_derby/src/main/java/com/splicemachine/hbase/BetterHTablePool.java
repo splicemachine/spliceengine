@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
@@ -109,22 +110,22 @@ public class BetterHTablePool {
 
     private class TablePool{
         private final String tableName;
-        private final BlockingQueue<HTableInterface> tables;
-        private final BlockingQueue<HTableInterface> tablesToClose;
+        private final BlockingQueue<HTable> tables;
+        private final BlockingQueue<HTable> tablesToClose;
         private final int maxSize;
         private final int coreSize;
         private final AtomicInteger outstandingCount = new AtomicInteger(0);
 
         private TablePool(String tableName,int maxSize, int coreSize) {
-            this.tables = new LinkedBlockingQueue<HTableInterface>();
-            this.tablesToClose = new LinkedBlockingQueue<HTableInterface>();
+            this.tables = new LinkedBlockingQueue<HTable>();
+            this.tablesToClose = new LinkedBlockingQueue<HTable>();
             this.maxSize = maxSize;
             this.coreSize = coreSize;
             this.tableName = tableName;
         }
 
-        private HTableInterface get() throws InterruptedException {
-            HTableInterface table = tables.poll();
+        private HTable get() throws InterruptedException {
+            HTable table = tables.poll();
             if(table!=null) return table;
 
             if(outstandingCount.getAndIncrement()>=maxSize){
@@ -138,12 +139,12 @@ public class BetterHTablePool {
                 //before we create it
                 table = tablesToClose.poll();
                 if(table==null)
-                    table = tableFactory.createHTableInterface(SpliceUtils.config, Bytes.toBytes(tableName));
+                    table = (HTable)tableFactory.createHTableInterface(SpliceUtils.config, Bytes.toBytes(tableName));
             }
             return table;
         }
 
-        private void release(HTableInterface table) throws IOException {
+        private void release(HTable table) throws IOException {
             if(outstandingCount.getAndDecrement()>=coreSize){
                 tablesToClose.offer(table);
             }else{
@@ -152,11 +153,11 @@ public class BetterHTablePool {
         }
     }
 
-    private static class ReturningHTable implements HTableInterface {
-        private final HTableInterface table;
+    public static class ReturningHTable implements HTableInterface {
+        private final HTable table;
         private final TablePool pool;
 
-        public ReturningHTable(HTableInterface table, TablePool pool) {
+        private ReturningHTable(HTable table, TablePool pool) {
             this.table = table;
             this.pool = pool;
         }
@@ -179,6 +180,10 @@ public class BetterHTablePool {
         @Override
         public ResultScanner getScanner(byte[] family, byte[] qualifier) throws IOException {
             return table.getScanner(family, qualifier);
+        }
+
+        public List<HRegionLocation> getRegionsInRange(byte[] startKey, byte[] endKey) throws IOException{
+           return table.getRegionsInRange(startKey,endKey);
         }
 
         @Override public byte[] getTableName() { return table.getTableName(); }

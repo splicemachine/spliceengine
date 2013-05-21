@@ -1,6 +1,8 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.base.Throwables;
+import com.splicemachine.derby.error.SpliceIOException;
+import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;
@@ -29,7 +31,7 @@ public class Exceptions {
         if(rootCause instanceof StandardException) return (StandardException)rootCause;
 
         if(rootCause instanceof ConstraintViolation.PrimaryKeyViolation){
-            return StandardException.newException(SQLState.LANG_ADD_PRIMARY_KEY_FAILED1);
+            return StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT);
         }else if (rootCause instanceof ConstraintViolation.UniqueConstraintViolation){
             return StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT);
         }else if(rootCause instanceof LangFormatException){

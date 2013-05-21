@@ -153,5 +153,10 @@ public class CallStatementOperation extends NoRowsOperation {
 			return "CallableRowProvider";
 		}
 	};
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "CallStatement"+super.prettyPrint(indentLevel);
+    }
 }
 

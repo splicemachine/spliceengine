@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationProtocol;
+import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
@@ -39,8 +40,10 @@ import java.util.concurrent.ExecutionException;
 public abstract class MultiScanRowProvider implements RowProvider {
     private static final Logger LOG = Logger.getLogger(MultiScanRowProvider.class);
 
+    private boolean shuffled = false;
     @Override
     public JobStats shuffleRows( SpliceObserverInstructions instructions) throws StandardException {
+        shuffled = true;
         List<Scan> scans = getScans();
         HTableInterface table = SpliceAccessManager.getHTable(getTableName());
         LinkedList<JobFuture> jobs = Lists.newLinkedList();
@@ -112,11 +115,12 @@ public abstract class MultiScanRowProvider implements RowProvider {
      * @return all scans which cover the row space
      * @throws StandardException if something goes wrong while getting scans.
      */
-    protected abstract List<Scan> getScans() throws StandardException;
+    public abstract List<Scan> getScans() throws StandardException;
 
 
     @Override
     public void close() {
+        if(!shuffled) //no-op if scans aren't performed
         try {
             List<Scan> scans = getScans();
             TempCleaner cleaner = SpliceDriver.driver().getTempCleaner();
@@ -133,7 +137,8 @@ public abstract class MultiScanRowProvider implements RowProvider {
     private JobFuture doShuffle(HTableInterface table,
                            SpliceObserverInstructions instructions,
                            Scan scan) throws StandardException {
-        SpliceUtils.setInstructions(scan, instructions);
+        if(scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS)==null)
+            SpliceUtils.setInstructions(scan, instructions);
         boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
         OperationJob job = new OperationJob(scan,instructions,table,readOnly);
         try {

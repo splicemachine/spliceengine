@@ -8,6 +8,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.si.data.hbase.HGet;
 import com.splicemachine.si.data.hbase.HScan;
@@ -371,6 +372,8 @@ public class SpliceUtils extends SpliceUtilities {
 			for (KeyValue keyValue: keyValues) {
 				if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
 					continue;
+                else if(Bytes.compareTo(keyValue.getQualifier(), OperationSink.TASK_ID_COL_BYTES)==0)
+                    continue; //skip the task column
 				position = Bytes.toInt(keyValue.getQualifier());
 				if (destRow.length -1 >= position) {
 					fill(keyValue.getValue(),destRow[Bytes.toInt(keyValue.getQualifier())]);

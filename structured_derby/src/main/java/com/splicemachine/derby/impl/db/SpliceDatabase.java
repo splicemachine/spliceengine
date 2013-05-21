@@ -10,6 +10,7 @@ import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.store.access.AccessFactory;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.db.BasicDatabase;
+import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -18,13 +19,19 @@ import com.splicemachine.utils.ZkUtils;
 
 public class SpliceDatabase extends BasicDatabase {
 	private static Logger LOG = Logger.getLogger(SpliceDatabase.class);
-
-    public void boot(boolean create, Properties startParams) throws StandardException {
-		System.setProperty("derby.language.logQueryPlan", "true");
+	public void boot(boolean create, Properties startParams) throws StandardException {
+		System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
+        System.setProperty("derby.language.logStatementText", Boolean.toString(true));
         System.setProperty("derby.connection.requireAuthentication","false");
+        /*
+         * This value is set to ensure that result sets are not materialized into memory, because
+         * they may be materialized over the wire and it won't work right. DO NOT CHANGE THIS SETTING.
+         * See Bug #292 for more information.
+         */
+        System.setProperty("derby.language.maxMemoryPerTable",Integer.toString(-1));
 //	    SanityManager.DEBUG_SET("ByteCodeGenInstr");
-//	    SanityManager.DEBUG_SET("DumpClassFile");
-//      SanityManager.DEBUG_SET("DumpParseTree");
+	    SanityManager.DEBUG_SET("DumpClassFile");
+      SanityManager.DEBUG_SET("DumpOptimizedTree");
 		try {
 			create = !ZkUtils.isSpliceLoaded();
 		} catch (Exception e) {
@@ -38,8 +45,7 @@ public class SpliceDatabase extends BasicDatabase {
 		}
 		super.boot(create, startParams);
         TransactionKeepAlive.start();
-    }
-
+	}
 		@Override
 		protected void bootValidation(boolean create, Properties startParams) throws StandardException {
 			SpliceLogUtils.trace(LOG,"bootValidation create %s, startParams %s",create,startParams);

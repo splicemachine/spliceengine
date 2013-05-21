@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.store.access.AutoCastedQualifier;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -387,7 +388,25 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
    			return printPosition(stopSearchOperator, stopKeyGetter, stopPosition);
    	}
 
-   	/**
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+        return new StringBuilder("Scan:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("accessedCols:").append(accessedCols)
+                .append(indent).append("resultRowAllocatorMethodName:").append(resultRowAllocatorMethodName)
+                .append(indent).append("startSearchOperator:").append(startSearchOperator)
+                .append(indent).append("stopSearchOperator:").append(stopSearchOperator)
+                .append(indent).append("startKeyGetterMethodName:").append(startKeyGetterMethodName)
+                .append(indent).append("stopKeyGetterMethodName:").append(stopKeyGetterMethodName)
+                .append(indent).append("sameStartStopPosition:").append(sameStartStopPosition)
+                .append(indent).append("conglomId:").append(conglomId)
+                .append(indent).append("isKeyed:").append(isKeyed)
+                .append(indent).append("tableName:").append(tableName)
+                .toString();
+    }
+
+    /**
    	 * Return a start or stop positioner as a String.
    	 *
    	 * If we already generated the information, then use

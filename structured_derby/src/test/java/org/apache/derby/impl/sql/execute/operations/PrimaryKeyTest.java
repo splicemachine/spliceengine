@@ -93,6 +93,20 @@ public class PrimaryKeyTest extends SpliceUnitTest {
     	}
     }
 
+    @Test(expected=SQLException.class,timeout= 10000)
+    public void testDuplicateInsertFromSameTable() throws Exception {
+        /* Regression test for Bug 419 */
+        PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ spliceTableWatcher.toString()+" select * from "+spliceTableWatcher.toString());
+
+        try{
+            ps.execute();
+        }catch(SQLException sql){
+            Assert.assertTrue("Incorrect error returned!",sql.getMessage().contains("23505"));
+            throw sql;
+        }
+
+    }
+
     @Test(timeout=10000)
     public void updateKeyColumn() throws Exception{
         PreparedStatement updateStatement = methodWatcher.prepareStatement(UPDATE_NAME_BY_NAME);
@@ -215,4 +229,5 @@ public class PrimaryKeyTest extends SpliceUnitTest {
         }
         Assert.assertTrue("No Pks returned!",results.size()>0);
     }
+
 }

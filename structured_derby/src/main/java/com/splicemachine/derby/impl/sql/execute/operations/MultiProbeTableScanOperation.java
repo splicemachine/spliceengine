@@ -626,7 +626,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         }
 
         @Override
-        protected List<Scan> getScans() throws StandardException{
+        public List<Scan> getScans() throws StandardException{
             //get the old state so that we can return to it when we're finished
             int oldProbePosition = currentProbePosition;
             Scan oldScan = currentScan;

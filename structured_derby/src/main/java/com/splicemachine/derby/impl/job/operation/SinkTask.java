@@ -1,10 +1,15 @@
 package com.splicemachine.derby.impl.job.operation;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.job.Status;
@@ -13,6 +18,7 @@ import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -24,7 +30,7 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/3/13
  */
 public class SinkTask extends ZkTask {
-    private static final long serialVersionUID = 1l;
+    private static final long serialVersionUID = 2l;
     private static final Logger LOG = Logger.getLogger(SinkTask.class);
     private HRegion region;
 
@@ -40,12 +46,11 @@ public class SinkTask extends ZkTask {
 
     public SinkTask(String jobId,
                     Scan scan,
-                    SpliceObserverInstructions instructions,
+                    String transactionId,
                     boolean readOnly,
                     int priority) {
-        super(jobId,priority,instructions.getTransactionId(),readOnly);
+        super(jobId,priority,transactionId,readOnly);
         this.scan = scan;
-        this.instructions = instructions;
     }
 
     @Override
@@ -67,16 +72,27 @@ public class SinkTask extends ZkTask {
             SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
             ContextService.getFactory().setCurrentContextManager(impl.getContextManager());
             impl.marshallTransaction(status.getTransactionId());
-            Activation activation = instructions.getActivation(impl.getLcc());
-            SpliceOperationContext opContext = new SpliceOperationContext(region,scan,activation,instructions.getStatement(),impl.getLcc());
-            SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),opContext);
 
-            SpliceLogUtils.trace(LOG, "sinking task %s", getTaskId());
-            TaskStats stats = spliceScanner.sink();
+            if(instructions==null)
+                instructions = SpliceUtils.getSpliceObserverInstructions(scan);
+            Activation activation = instructions.getActivation(impl.getLcc());
+            SpliceOperationContext opContext = new SpliceOperationContext(region,
+                    scan,activation,instructions.getStatement(),impl.getLcc(),true,instructions.getTopOperation());
+            //init the operation stack
+
+            SpliceOperation op = instructions.getTopOperation();
+            op.init(opContext);
+
+            OperationSink opSink = OperationSink.create(op, Bytes.toBytes(getTaskId()));
+
+            TaskStats stats;
+            if(op instanceof DMLWriteOperation)
+                stats = opSink.sink(((DMLWriteOperation)op).getDestinationTable());
+            else
+                stats = opSink.sink(SpliceConstants.TEMP_TABLE_BYTES);
             status.setStats(stats);
 
             SpliceLogUtils.trace(LOG,"task %s sunk successfully, closing",getTaskId());
-            spliceScanner.close();
         } catch (Exception e) {
             if(e instanceof ExecutionException)
                 throw (ExecutionException)e;
@@ -99,7 +115,6 @@ public class SinkTask extends ZkTask {
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         scan.write(out);
-        out.writeObject(instructions);
     }
 
     @Override
@@ -107,12 +122,12 @@ public class SinkTask extends ZkTask {
         super.readExternal(in);
         scan  = new Scan();
         scan.readFields(in);
-
-        instructions = (SpliceObserverInstructions)in.readObject();
     }
 
     @Override
     protected String getTaskType() {
+        if(instructions==null)
+            instructions = SpliceUtils.getSpliceObserverInstructions(scan);
         return instructions.getTopOperation().getClass().getSimpleName();
     }
 }

@@ -137,7 +137,12 @@ public class TableScanOperation extends ScanOperation {
 		return provider;
 	}
 
-	@Override
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return getMapRowProvider(top, template);
+    }
+
+    @Override
 	public List<NodeType> getNodeTypes() {
 //		SpliceLogUtils.trace(LOG,"getNodeTypes");
 		return nodeTypes;
@@ -154,7 +159,12 @@ public class TableScanOperation extends ScanOperation {
 		return currentTemplate;
 	}
 
-	@Override
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "Table"+super.prettyPrint(indentLevel);
+    }
+
+    @Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"%s:getNextRowCore",tableName);
 		beginTime = getCurrentTimeMillis();

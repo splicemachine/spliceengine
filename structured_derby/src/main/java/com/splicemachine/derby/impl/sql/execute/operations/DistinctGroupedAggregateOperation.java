@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.DerbyLogUtils;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -18,12 +19,15 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -73,55 +77,27 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 			  a, ra, maxRowSize, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup);
 		recordConstructorTime();
     }
-    
+
     @Override
-	public TaskStats sink() {
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-        stats.start();
-        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for DistinctGroupedAggregationOperation at "+stats.getStartTime());
-		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
-		ExecRow row = null;
-		HTableInterface tempTable = null;
-		Put put = null;
-        Serializer serializer = new Serializer();
-		try{
-			tempTable = SpliceAccessManager.getFlushableHTable(SpliceOperationCoprocessor.TEMP_TABLE);
-			Hasher hasher = new Hasher(((SpliceBaseOperation)source).getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
-			byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
-            do{
-                long processTime = System.nanoTime();
-                row = source.getNextRowCore();
-                if(row==null)continue;
-                stats.readAccumulator().tick(System.nanoTime()-processTime);
+    public OperationSink.Translator getTranslator() throws IOException {
+        final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
+        final Serializer serializer = new Serializer();
+        final byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
+        return new OperationSink.Translator() {
+            @Nonnull
+            @Override
+            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+                try {
+                    byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
+                    Put put = Puts.buildTempTableInsert(rowKey,row.getRowArray(),null,serializer);
+                    return Collections.<Mutation>singletonList(put);
+                } catch (StandardException e) {
+                    throw Exceptions.getIOException(e);
+                }
+            }
+        };
+    }
 
-                processTime = System.nanoTime();
-                SpliceLogUtils.trace(LOG, "row="+row);
-                byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
-                put = Puts.buildTempTableInsert(rowKey, row.getRowArray(), null, serializer);
-                tempTable.put(put);
-
-                stats.writeAccumulator().tick(System.nanoTime()-processTime);
-            }while(row!=null);
-			tempTable.flushCommits();
-			tempTable.close();
-		}catch (StandardException se){
-			SpliceLogUtils.logAndThrowRuntime(LOG,se);
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		}finally{
-			try {
-				if(tempTable!=null)
-					tempTable.close();
-			} catch (IOException e) {
-				SpliceLogUtils.error(LOG, "Unexpected error closing TempTable", e);
-			}
-		}
-        //return stats.finish();
-		TaskStats ss = stats.finish();
-		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for DistinctGroupedAggregationOperation at "+stats.getFinishTime());
-        return ss;
-	}
-    
     @Override
 	public ExecRow getExecRowDefinition() {
 		SpliceLogUtils.trace(LOG,"getExecRowDefinition");

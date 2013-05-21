@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -7,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.TaskStats;
@@ -15,6 +17,7 @@ import com.splicemachine.derby.utils.*;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
@@ -23,16 +26,16 @@ import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 /**
  * Operation for performing Scalar Aggregations (sum, avg, max/min, etc.). 
@@ -51,6 +54,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	protected boolean isOpen=false;
     protected Accumulator scanAccumulator = TimingStats.uniformAccumulator();
+    /*indicates whether or not this operation is looking at the TEMP space*/
+    private boolean isTemp;
 
     public ScalarAggregateOperation () {
 		super();
@@ -65,7 +70,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                                     boolean singleInputRow,
                                     double optimizerEstimatedRowCount,
                                     double optimizerEstimatedCost) throws StandardException  {
-        super(s,aggregateItem,a,ra,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+        super(s, aggregateItem, a, ra, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.isInSortedOrder = isInSortedOrder;
         this.singleInputRow = singleInputRow;
 
@@ -99,21 +104,28 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	@Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
         try {
-            reduceScan = Scans.buildPrefixRangeScan(sequence[0], getTransactionID());
+            reduceScan = Scans.buildPrefixRangeScan(sequence[0], SpliceUtils.NA_TRANSACTION_ID);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
         SpliceUtils.setInstructions(reduceScan,activation,top);
-        return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
+        return new ProvidesDefaultClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
 	}
 
-	@Override
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top,template);
+    }
+
+    @Override
 	public void init(SpliceOperationContext context) throws StandardException{
 		super.init(context);
 		ExecutionFactory factory = activation.getExecutionFactory();
 		try {
 			sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(activation));
 			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
+
+            isTemp = !context.isSink()||context.getTopOperation()!=this;
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
@@ -121,8 +133,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG,"getNextRowCore");
-		return doAggregation(true,scanAccumulator);
+		SpliceLogUtils.trace(LOG, "getNextRowCore");
+		return doAggregation(isTemp,scanAccumulator);
 	}
 
 	protected ExecRow doAggregation(boolean useScan,Accumulator stats) throws StandardException{
@@ -165,7 +177,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 									ExecIndexRow aggResult, boolean doInitialize, boolean isScan) throws StandardException{
 		if(aggResult==null){
 			aggResult = (ExecIndexRow)execIndexRow.getClone();
-			SpliceLogUtils.trace(LOG, "aggResult = %s aggregate before",aggResult);
+			SpliceLogUtils.trace(LOG, "aggResult = %s aggregate before", aggResult);
 			if(doInitialize){
 				initializeScalarAggregation(aggResult);
 				SpliceLogUtils.trace(LOG, "aggResult = %s aggregate after",aggResult);
@@ -240,42 +252,25 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 			}
 		}
 	}
-	
-	@Override
-	public TaskStats sink() throws IOException {
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-        stats.start();
-        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for ScalaAggregation at "+stats.getStartTime());
-		ExecRow row;
-		try{
-			Put put;
-            CallBuffer<Mutation> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(SpliceOperationCoprocessor.TEMP_TABLE);
-            Serializer serializer = new Serializer();
-            do{
-                row = doAggregation(false,stats.readAccumulator());
-                if(row==null)continue;
 
-                long pTs = System.nanoTime();
-                byte[] key = DerbyBytesUtil.generatePrefixedRowKey(sequence[0]);
-//                SpliceLogUtils.trace(LOG,"row=%s, key.length=%d, afterPrefix?%b,beforeEnd?%b",
-//                        row,key.length, Bytes.compareTo(key,reduceScan.getStartRow())>=0,
-//                        Bytes.compareTo(key,reduceScan.getStopRow())<0);
-                put = Puts.buildInsert(key,row.getRowArray(), getTransactionID(),serializer);
-                SpliceLogUtils.trace(LOG, "put=%s", put);
-                writeBuffer.add(put);
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException {
+        final Serializer serializer = new Serializer();
 
-                stats.writeAccumulator().tick(System.nanoTime() - pTs);
-            }while(row!=null);
-            writeBuffer.flushBuffer();
-            writeBuffer.close();
-		}catch (Exception e) {
-            throw Exceptions.getIOException(e);
-        }
-        //return stats.finish();
-		TaskStats ss = stats.finish();
-		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for ScalarAggregation at "+stats.getFinishTime());
-        return ss;
-	}
+        return new OperationSink.Translator() {
+            @Nonnull
+            @Override
+            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+                try {
+                    byte[] key = DerbyBytesUtil.generatePrefixedRowKey(sequence[0]);
+                    Put put = Puts.buildInsert(key, row.getRowArray(), SpliceUtils.NA_TRANSACTION_ID, serializer);
+                    return Collections.<Mutation>singletonList(put);
+                } catch (StandardException e) {
+                    throw Exceptions.getIOException(e);
+                }
+            }
+        };
+    }
 
 	@Override
 	public String toString() {
@@ -296,4 +291,10 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		else
 			return totTime;
 	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "Scalar"+super.prettyPrint(indentLevel);
+    }
+
 }

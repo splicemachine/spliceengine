@@ -113,8 +113,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 			j++;
 			Assert.assertNotNull(rs.getString(1));
 			if (!rs.getString(1).equals("9")) {
-				Assert.assertNotNull(rs.getString(2));
-				Assert.assertEquals(rs.getString(1),rs.getString(2));
+				Assert.assertNotNull("dd.si = null",rs.getString(2));
+				Assert.assertEquals("dd.si != cc.si",rs.getString(1),rs.getString(2));
 			} else {
 				Assert.assertNull(rs.getString(2));
 			}
@@ -519,12 +519,15 @@ public class InnerJoinTest extends SpliceUnitTest {
 		int j = 0;
 		while (rs.next()) {
 			j++;
-			Assert.assertNotNull(rs.getString(1));
+            String left = rs.getString(1);
+            String right = rs.getString(2);
+            System.out.printf("left=%s, right=%s%n",left,right);
+			Assert.assertNotNull("left side is null",left);
 			if (!rs.getString(1).equals("9")) {
-				Assert.assertNotNull(rs.getString(2));
-				Assert.assertEquals(rs.getString(1),rs.getString(2));
+				Assert.assertNotNull("right side is null",right);
+				Assert.assertEquals(left,right);
 			} else {
-				Assert.assertNull(rs.getString(2));
+				Assert.assertNull("right side is not null",rs.getString(2));
 			}
 		}	
 		Assert.assertEquals(10, j);

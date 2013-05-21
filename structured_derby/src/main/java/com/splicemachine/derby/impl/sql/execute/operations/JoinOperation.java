@@ -6,6 +6,7 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.base.Strings;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableHashtable;
@@ -245,4 +246,19 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
         return rootCols;
      }
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder()
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("leftNumCols:").append(leftNumCols).append(",")
+                .append(indent).append("leftResultSetNumber:").append(leftResultSetNumber)
+                .append(indent).append("leftResultSet:").append(leftResultSet.prettyPrint(indentLevel+1))
+                .append(indent).append("rightNumCols:").append(rightNumCols).append(",")
+                .append(indent).append("rightResultSet:").append(rightResultSet.prettyPrint(indentLevel+1))
+                .append(indent).append("restrictionMethodName:").append(restrictionMethodName)
+                .toString();
+    }
 }

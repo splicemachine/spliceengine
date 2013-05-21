@@ -1,7 +1,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.google.common.base.Strings;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -9,13 +9,10 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.storage.RowProviders;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
@@ -29,13 +26,11 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 public class SortOperation extends SpliceBaseOperation {
     private static final long serialVersionUID = 2l;
@@ -185,6 +180,7 @@ public class SortOperation extends SpliceBaseOperation {
 		return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
 	}
 
+
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeScan");
@@ -206,62 +202,35 @@ public class SortOperation extends SpliceBaseOperation {
 		nextTime += getCurrentTimeMillis() - beginTime;
 		return rs;
 	}
-	
-	@Override
-	public TaskStats sink() throws IOException {
-		/*
-		 * We want to make use of HBase as a sorting mechanism for us.
-		 * To that end, we really just want to read all the data
-		 * out of source and write it into the TEMP Table.
-		 */
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-        stats.start();
-        SpliceLogUtils.trace(LOG, ">>>>statistics starts for sink for SortOperation at "+stats.getStartTime());
-		SpliceLogUtils.trace(LOG, "sinking with sort based on column %d",orderingItem);
-		ExecRow row;
-        CallBuffer<Mutation> writeBuffer;
-		try{
-			Put put;
-            writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(SpliceOperationCoprocessor.TEMP_TABLE);
-			Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,descColumns,sequence[0]);
-			byte[] tempRowKey;
-            Serializer serializer  = new Serializer();
 
-            do{
-                long start = System.nanoTime();
-                row = getNextRowCore();
-                if(row==null)continue;
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException{
+        try{
+            final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,descColumns,sequence[0]);
+            final Serializer serializer = new Serializer();
 
-                stats.readAccumulator().tick(System.nanoTime()-start);
-
-                start = System.nanoTime();
-                SpliceLogUtils.trace(LOG, "row="+row);
-                if (this.distinct) {
-                    tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),null);
-                } else {
-                    tempRowKey = hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),SpliceUtils.getUniqueKey());
+            return new OperationSink.Translator() {
+                @Override
+                @Nonnull public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+                    try {
+                        byte[] tempRowKey = distinct?hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),null):
+                                hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(), SpliceUtils.getUniqueKey());
+                        Put put = Puts.buildTempTableInsert(tempRowKey,row.getRowArray(),null,serializer);
+                        return Collections.<Mutation>singletonList(put);
+                    } catch (StandardException e) {
+                        throw Exceptions.getIOException(e);
+                    }
                 }
-                put = Puts.buildTempTableInsert(tempRowKey, row.getRowArray(), null, serializer);
-                writeBuffer.add(put);
-
-                stats.writeAccumulator().tick(System.nanoTime()-start);
-            }while(row!=null);
-            writeBuffer.flushBuffer();
-            writeBuffer.close();
-		}catch (StandardException se){
-			SpliceLogUtils.logAndThrowRuntime(LOG,se);
-		} catch (Exception e) {
-            SpliceLogUtils.logAndThrow(LOG,Exceptions.getIOException(e));
-		}
-		
-		TaskStats ss = stats.finish();
-		SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SortOperation at "+stats.getFinishTime());
-        return ss;
-	}
+            };
+        }catch(StandardException se){
+            throw Exceptions.getIOException(se);
+        }
+    }
 
 	@Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template){
-        return RowProviders.sourceProvider(top,LOG);
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top,template);
+//        return RowProviders.sourceProvider(top,LOG);
     }
 	
 	@Override
@@ -328,4 +297,17 @@ public class SortOperation extends SpliceBaseOperation {
 	public long getRowsOutput() {
 		return getRegionStats() == null ? 0l : getRegionStats().getTotalSunkRecords();
 	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder("Sort:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("distinct:").append(distinct)
+                .append(indent).append("orderingItem:").append(orderingItem)
+                .append(indent).append("keyColumns:").append(Arrays.toString(keyColumns))
+                .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
+                .toString();
+    }
 }

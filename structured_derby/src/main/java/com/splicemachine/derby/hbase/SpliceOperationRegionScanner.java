@@ -1,11 +1,14 @@
 package com.splicemachine.derby.hbase;
 
+import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimeUtils;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -18,12 +21,14 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
@@ -41,6 +46,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     private TaskStats finalStats;
     private SpliceOperationContext context;
 
+    private final List<Pair<byte[],byte[]>> additionalColumns = Lists.newArrayListWithExpectedSize(0);
+    private boolean finished = false;
+
     public SpliceOperationRegionScanner(SpliceOperation topOperation,
                                         SpliceOperationContext context) throws StandardException {
     	stats.start();
@@ -48,6 +56,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
         this.topOperation = topOperation;
         this.statement = context.getPreparedStatement();
         this.context = context;
+        this.context.setSpliceRegionScanner(this);
         try {
             this.regionScanner = context.getScanner();
             activation = context.getActivation();//((GenericActivationHolder) statement.getActivation(lcc, false)).ac;
@@ -63,6 +72,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
 		this.regionScanner = regionScanner;
 
+
         try {
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
 	        statement = soi.getStatement();
@@ -70,7 +80,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	        SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
 	        impl.marshallTransaction(soi.getTransactionId());
 	        activation = soi.getActivation(impl.getLcc());
-	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc());
+	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false,topOperation);
+            context.setSpliceRegionScanner(this);
+
 	        topOperation.init(context);
 	        List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
 	        topOperation.generateLeftOperationStack(opStack);
@@ -85,24 +97,55 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     @Override
 	public boolean next(final List<KeyValue> results) throws IOException {
 		SpliceLogUtils.trace(LOG, "next ");
+        if(finished)return false;
 		try {
 			ExecRow nextRow;
 	        long start = System.nanoTime();
 	        if ( (nextRow = topOperation.getNextRowCore()) != null) {
 	            stats.readAccumulator().tick(System.nanoTime()-start);
 	            start = System.nanoTime();
-	            Put put = Puts.buildInsert(nextRow.getRowArray(), SpliceUtils.NA_TRANSACTION_ID,serializer); //todo -sf- add transaction id
+                //TODO -sf- can we do this better?
+	            Put put = Puts.buildInsert(nextRow.getRowArray(), SpliceUtils.NA_TRANSACTION_ID,serializer);
+
+                //add any additional columns which were specified during the run
+                Iterator<Pair<byte[],byte[]>> addColIter = additionalColumns.iterator();
+                while(addColIter.hasNext()){
+                    Pair<byte[],byte[]> additionalCol = addColIter.next();
+                    put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,additionalCol.getFirst(),additionalCol.getSecond());
+                    addColIter.remove();
+                }
+
 	            Map<byte[],List<KeyValue>> family = put.getFamilyMap();
 	            for(byte[] bytes: family.keySet()){
 	                results.addAll(family.get(bytes));
 	            }
+
 	            SpliceLogUtils.trace(LOG,"next returns results: "+ nextRow);
 	            stats.writeAccumulator().tick(System.nanoTime()-start);
-	            return true;
-	        }
-	        return false;
-		} catch (Exception e) {
-			throw SpliceStandardLogUtils.generateSpliceIOException(LOG, "next Failed", e);
+	        }else{
+                finished=true;
+                //check for additional columns
+                if(additionalColumns.size()>0){
+                    //add any additional columns which were specified during the run
+                    Iterator<Pair<byte[],byte[]>> addColIter = additionalColumns.iterator();
+                    while(addColIter.hasNext()){
+                        Pair<byte[],byte[]> additionalCol = addColIter.next();
+                        KeyValue kv = new KeyValue(HConstants.EMPTY_START_ROW,
+                                SpliceConstants.DEFAULT_FAMILY_BYTES,
+                                additionalCol.getFirst(), System.currentTimeMillis(), KeyValue.Type.Put,
+                                additionalCol.getSecond());
+                        results.add(kv);
+                        addColIter.remove();
+                    }
+                }
+            }
+            return true;
+		} catch(StandardException se){
+           throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG,"Unable to get next row",se);
+        }catch(IOException e){
+            throw SpliceStandardLogUtils.generateSpliceIOException(LOG,"Unable to get next row",e);
+        }catch(Exception e){
+            throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG,"Unable to get next row",e);
         }
 	}
 
@@ -147,7 +190,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 	public TaskStats sink() throws IOException{
 		SpliceLogUtils.trace(LOG,"sink");
-		return topOperation.sink();
+        throw new UnsupportedOperationException("Wrong code path!");
+//		return topOperation.sink();
 	}
 
     public void reportMetrics() {
@@ -181,4 +225,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	public boolean reseek(byte[] row) throws IOException {
 		throw new IOException("reseek not supported");
 	}
+
+    public void addAdditionalColumnToReturn(byte[] qualifier, byte[] value){
+        additionalColumns.add(Pair.newPair(qualifier,value));
+    }
 }

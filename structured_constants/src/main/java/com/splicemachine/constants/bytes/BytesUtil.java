@@ -5,11 +5,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.List;
+import java.util.*;
+
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 
 /**
  * 
@@ -236,7 +237,11 @@ public class BytesUtil {
     }
 
     public static byte[] concatenate(byte[][] bytes,int size){
-        byte[] concatedBytes = new byte[size];
+        byte[] concatedBytes;
+        if(bytes.length>1)
+            concatedBytes = new byte[size+1];
+        else
+            concatedBytes = new byte[size];
         int offset = 0;
         boolean isStart=true;
         for(byte[] nextBytes:bytes){
@@ -253,4 +258,50 @@ public class BytesUtil {
         return concatedBytes;
     }
 
+    public static Comparator<byte[]> emptyBeforeComparator = new Comparator<byte[]>() {
+        @Override
+        public int compare(byte[] o1, byte[] o2) {
+            if(Bytes.compareTo(o1,HConstants.EMPTY_START_ROW)==0){
+                if(Bytes.compareTo(o2,HConstants.EMPTY_START_ROW)==0)
+                    return 0;
+                else return -1;
+            }else if(Bytes.compareTo(o2,HConstants.EMPTY_START_ROW)==0)
+                return 1;
+            else return Bytes.compareTo(o1,o2);
+        }
+    };
+
+    public static Comparator<byte[]> emptyAfterComparator = new Comparator<byte[]>() {
+        @Override
+        public int compare(byte[] o1, byte[] o2) {
+            if(Bytes.compareTo(o1,HConstants.EMPTY_START_ROW)==0){
+                if(Bytes.compareTo(o2,HConstants.EMPTY_START_ROW)==0)
+                    return 0;
+                else return 1;
+            }else if(Bytes.compareTo(o2,HConstants.EMPTY_START_ROW)==0)
+                return -1;
+            else return Bytes.compareTo(o1,o2);
+        }
+    };
+
+    public static Pair<byte[],byte[]> intersect(byte[] a1,byte[] a2, byte[] r1,byte[] r2){
+        if(Bytes.compareTo(r2,HConstants.EMPTY_END_ROW)!=0 &&
+                Bytes.compareTo(a1,HConstants.EMPTY_START_ROW)!=0 &&
+                Bytes.compareTo(r2,a1)<0) return null;
+        else if(Bytes.compareTo(r1,HConstants.EMPTY_END_ROW)!=0 &&
+                Bytes.compareTo(a2,HConstants.EMPTY_START_ROW)!=0 &&
+                Bytes.compareTo(r1,a2)>=0) return null;
+
+        if(emptyBeforeComparator.compare(a1,r1)<=0){
+            if(emptyAfterComparator.compare(a2,r2)<=0)
+                return Pair.newPair(r1,a2);
+            else
+                return Pair.newPair(r1,r2);
+        }else{
+            if(emptyAfterComparator.compare(a2,r2)<=0)
+                return Pair.newPair(a1,a2);
+            else
+                return Pair.newPair(a1,r2);
+        }
+    }
 }

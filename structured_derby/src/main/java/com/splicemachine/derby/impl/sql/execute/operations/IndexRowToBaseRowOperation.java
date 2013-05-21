@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.base.Strings;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -231,7 +232,17 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		return new SpliceNoPutResultSet(activation,this, provider);
 	}
 
-	@Override
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return source.getMapRowProvider(top, template);
+    }
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return source.getReduceRowProvider(top, template);
+    }
+
+    @Override
 	public SpliceOperation getLeftOperation() {
 //		SpliceLogUtils.trace(LOG,"getLeftOperation ",source);
 		return this.source;
@@ -386,5 +397,22 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
     public void openCore() throws StandardException {
         super.openCore();
         if(source!=null)source.openCore();
+    }
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder("IndexRowToBaseRow:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("accessedCols:").append(accessedCols)
+                .append(indent).append("resultRowAllocatorMethodName:").append(resultRowAllocatorMethodName)
+                .append(indent).append("indexName:").append(indexName)
+                .append(indent).append("accessedHeapCols:").append(accessedHeapCols)
+                .append(indent).append("heapOnlyCols:").append(heapOnlyCols)
+                .append(indent).append("accessedAllCols:").append(accessedAllCols)
+                .append(indent).append("indexCols:").append(Arrays.toString(indexCols))
+                .append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
+                .toString();
     }
 }

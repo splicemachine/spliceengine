@@ -20,22 +20,31 @@ public class UpdateOperationTest extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(UpdateOperationTest.class.getSimpleName());
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("LOCATION",spliceSchemaWatcher.schemaName,"(num int, addr varchar(50), zip char(5))");
+    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("b",spliceSchemaWatcher.schemaName,"(num int, addr varchar(50), zip char(5))");
     protected static SpliceTableWatcher nullTableWatcher = new SpliceTableWatcher("NULL_TABLE",spliceSchemaWatcher.schemaName,"(addr varchar(50), zip char(5))");
 
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher)
+        .around(spliceTableWatcher2)
         .around(nullTableWatcher)
 		.around(new SpliceDataWatcher() {
             @Override
             protected void starting(Description description) {
                 try {
                     PreparedStatement insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher + " values(?,?,?)");
+                    PreparedStatement insertPs2 = spliceClassWatcher.prepareStatement("insert into "+ spliceTableWatcher2+" values(?,?,?)");
+
                     insertPs.setInt(1, 100);
                     insertPs.setString(2, "100");
                     insertPs.setString(3, "94114");
                     insertPs.executeUpdate();
+
+                    insertPs2.setInt(1, 250);
+                    insertPs2.setString(2, "100");
+                    insertPs2.setString(3, "94114");
+                    insertPs2.executeUpdate();
 
                     insertPs.setInt(1, 200);
                     insertPs.setString(2, "200");
@@ -118,5 +127,52 @@ public class UpdateOperationTest extends SpliceUnitTest {
             LOG.info(result);
         }
         Assert.assertTrue("No row returned!",results.size()>0);
+    }
+
+    @Test
+    public void testUpdateFromValues() throws Exception{
+        /*
+         * Regression test for Bug #286
+         */
+        int updated= methodWatcher.getStatement().executeUpdate("update " + spliceTableWatcher + " set addr=(values '5') where num=100");
+        Assert.assertEquals("Incorrect num rows updated!", 1, updated);
+        ResultSet rs = methodWatcher.executeQuery("select * from "+spliceTableWatcher+" where num = 100");
+        List<String> results = Lists.newArrayListWithCapacity(1);
+        while(rs.next()){
+            Integer num = rs.getInt(1);
+            String addr = rs.getString(2);
+            String zip = rs.getString(3);
+            Assert.assertNotNull("no zip returned!",zip);
+            Assert.assertEquals("Incorrect num returned!",100,num.intValue());
+            Assert.assertEquals("Address incorrect","5",addr);
+            results.add(String.format("num:%d,addr:%s,zip:%s",num,addr,zip));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+        Assert.assertEquals("Incorrect rows returned!", 1, results.size());
+    }
+
+    @Test
+    public void testUpdateFromSubquery() throws Exception {
+        /* regression test for Bug 289 */
+        int updated = methodWatcher.getStatement().executeUpdate("update "+ spliceTableWatcher2 +" set num=(select "+spliceTableWatcher+".num from "+spliceTableWatcher+" where "+spliceTableWatcher+".num = 100)");
+        Assert.assertEquals("Incorrect num rows updated!",1,updated);
+        ResultSet rs = methodWatcher.executeQuery("select * from "+ spliceTableWatcher2+" where num = 100");
+        List<String> results = Lists.newArrayListWithCapacity(1);
+        while(rs.next()){
+            Integer num = rs.getInt(1);
+            String addr = rs.getString(2);
+            String zip = rs.getString(3);
+            Assert.assertNotNull("no zip returned!",zip);
+            Assert.assertEquals("Incorrect num returned!",100,num.intValue());
+            Assert.assertEquals("Address incorrect","100",addr);
+            results.add(String.format("num:%d,addr:%s,zip:%s",num,addr,zip));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+        Assert.assertEquals("Incorrect rows returned!", 1, results.size());
+
     }
 }

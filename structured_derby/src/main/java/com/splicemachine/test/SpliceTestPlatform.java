@@ -107,7 +107,7 @@ public class SpliceTestPlatform extends TestConstants {
     public void coprocessorBaseline(Configuration configuration) {
         configuration.set("hbase.coprocessor.region.classes",
                 SpliceOperationRegionObserver.class.getCanonicalName() + "," +
-                        SpliceOperationCoprocessor.class.getCanonicalName() + "," +
+//                        SpliceOperationCoprocessor.class.getCanonicalName() + "," +
                         SpliceIndexObserver.class.getCanonicalName() + "," +
                         SpliceDerbyCoprocessor.class.getCanonicalName() + "," +
                         SpliceIndexManagementEndpoint.class.getCanonicalName() + "," +

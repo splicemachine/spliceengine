@@ -8,10 +8,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.base.Strings;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -49,7 +51,12 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	
 	public long restrictionTime;
 	public long projectionTime;
-	
+
+    private ExecRow candidateRow;
+    private ExecRow result;
+    private boolean restrict;
+    private DataValueDescriptor restrictBoolean;
+
 	static {
 		nodeTypes = Collections.singletonList(NodeType.MAP);
 	}
@@ -218,23 +225,34 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		LOG.trace("regionOperation="+regionOperation);
 		RowProvider provider;
         ExecRow fromResults = getExecRowDefinition();
-        if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
-			SpliceLogUtils.trace(LOG,"scanning Temp Table");
-			provider = regionOperation.getReduceRowProvider(this,fromResults);
-		} else {
-			SpliceLogUtils.trace(LOG,"scanning Map Table");
-			provider = regionOperation.getMapRowProvider(this,fromResults);
-		}
+//        ExecRow fromResults = null;
+//        try{
+//            fromResults = getFromResultDescription(activation.getResultDescription());
+//        }catch(StandardException se){
+//            SpliceLogUtils.logAndThrowRuntime(LOG,se);
+//        }
+//        if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
+//			SpliceLogUtils.trace(LOG,"scanning Temp Table");
+//			provider = regionOperation.getReduceRowProvider(this,fromResults);
+//		} else {
+//			SpliceLogUtils.trace(LOG,"scanning Map Table");
+//			provider = regionOperation.getMapRowProvider(this,fromResults);
+//		}
+        provider = getReduceRowProvider(this,fromResults);
         SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
 		nextTime += getCurrentTimeMillis() - beginTime;
 		return rs;
 	}
 
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return source.getMapRowProvider(top, template);
+    }
 
-	private ExecRow candidateRow;
-	private ExecRow result;
-	private boolean restrict;
-	private DataValueDescriptor restrictBoolean;
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return source.getReduceRowProvider(top, template);
+    }
 
     @Override
 	public ExecRow getNextRowCore() throws StandardException {
@@ -380,4 +398,17 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	    }
 		closeTime += getElapsedMillis(beginTime);
 	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+        return new StringBuilder("ProjectRestrict:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("restrictionMethodName:").append(restrictionMethodName)
+                .append(indent).append("projectionMethodName:").append(projectionMethodName)
+                .append(indent).append("doesProjection:").append(doesProjection)
+                .append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
+                .toString();
+    }
 }
