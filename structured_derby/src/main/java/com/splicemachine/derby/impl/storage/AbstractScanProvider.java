@@ -22,7 +22,7 @@ import java.util.NoSuchElementException;
  */
 public abstract class AbstractScanProvider extends SingleScanRowProvider {
 	protected static final Logger LOG = Logger.getLogger(AbstractScanProvider.class);
-    private boolean populated = false;
+    protected boolean populated = false;
 
     protected ExecRow currentRow;
     protected RowLocation currentRowLocation;
