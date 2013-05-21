@@ -20,8 +20,8 @@ import com.splicemachine.utils.ZkUtils;
 public class SpliceDatabase extends BasicDatabase {
 	private static Logger LOG = Logger.getLogger(SpliceDatabase.class);
 	public void boot(boolean create, Properties startParams) throws StandardException {
-		System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
-        System.setProperty("derby.language.logStatementText", Boolean.toString(true));
+		//System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
+        //System.setProperty("derby.language.logStatementText", Boolean.toString(true));
         System.setProperty("derby.connection.requireAuthentication","false");
         /*
          * This value is set to ensure that result sets are not materialized into memory, because
@@ -29,9 +29,9 @@ public class SpliceDatabase extends BasicDatabase {
          * See Bug #292 for more information.
          */
         System.setProperty("derby.language.maxMemoryPerTable",Integer.toString(-1));
-	    SanityManager.DEBUG_SET("ByteCodeGenInstr");
-	    SanityManager.DEBUG_SET("DumpClassFile");
-      SanityManager.DEBUG_SET("DumpOptimizedTree");
+	    //SanityManager.DEBUG_SET("ByteCodeGenInstr");
+	    //SanityManager.DEBUG_SET("DumpClassFile");
+        //SanityManager.DEBUG_SET("DumpOptimizedTree");
 		try {
 			create = !ZkUtils.isSpliceLoaded();
 		} catch (Exception e) {
