@@ -27,7 +27,7 @@ public class SubqueryTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
     protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SubqueryTest.class.getSimpleName());
-//    protected static SpliceTableWatcher t1Watcher = new SpliceTableWatcher("t1",schemaWatcher.schemaName,"(k int, l int)");
+    protected static SpliceTableWatcher t1Watcher = new SpliceTableWatcher("t1",schemaWatcher.schemaName,"(k int, l int)");
     protected static SpliceTableWatcher t2Watcher = new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(k int, l int)");
 
     private static final int size = 10;
@@ -35,6 +35,7 @@ public class SubqueryTest {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(schemaWatcher)
+            .around(t1Watcher)
             .around(t2Watcher)
             .around(new SpliceDataWatcher() {
                 @Override
@@ -45,6 +46,20 @@ public class SubqueryTest {
                             ps.setInt(1,i);
                             ps.setInt(2,i+1);
                             ps.execute();
+                        }
+
+                        ps = spliceClassWatcher.prepareStatement("insert into "+ t1Watcher.toString()+" values(?,?)");
+                        for(int i=0;i<size;i++){
+                            ps.setInt(1,i);
+                            ps.setInt(2,i+1);
+                            ps.execute();
+                            if(i%2==0){
+                                //put in a duplicate
+                                ps.setInt(1,i);
+                                ps.setInt(2,i+1);
+                                ps.execute();
+                            }
+
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -115,6 +130,15 @@ public class SubqueryTest {
                         Assert.fail("Value "+ ret+" was returned more than once!");
                 }
             }
+        }
+    }
+
+    @Test
+    public void testSubqueryInJoinClause() throws Exception {
+        /* Regression test for bug 273 */
+        ResultSet rs = methodWatcher.executeQuery("select * from "+t1Watcher.toString()+" a join "+ t2Watcher.toString()+" b on a.k = b.k and a.k in (select k from "+ t1Watcher.toString()+" where a.k ="+t1Watcher.toString()+".k)");
+        while(rs.next()){
+            System.out.printf("k=%d,l=%d",rs.getInt(1),rs.getInt(2));
         }
     }
 }
