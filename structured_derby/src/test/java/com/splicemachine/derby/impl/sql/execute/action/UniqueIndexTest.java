@@ -241,6 +241,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
         Assert.assertTrue("Rows are returned incorrectly",!rs.next());
     }
 
+    @Ignore
     @Test(timeout = 10000)
     public void testCanDeleteThenInsertEntryInTransaction() throws Exception {
         new SpliceIndexWatcher(TABLE_NAME_6, CLASS_NAME, INDEX_61, CLASS_NAME, "(name)", true).starting(null);
@@ -248,8 +249,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
         int value = 2;
         methodWatcher.getOrCreateConnection().setAutoCommit(false);
         methodWatcher.getStatement().execute(format("insert into %s (name, val) values ('%s', %s)", this.getTableReference(TABLE_NAME_6), name, value));
-        methodWatcher.getStatement().execute(format("delete from %s where name = '%s'", this.getTableReference(TABLE_NAME_6), name));
-        /*
+        methodWatcher.getStatement().execute(format("delete from %s", this.getTableReference(TABLE_NAME_6), name));
         methodWatcher.getStatement().execute(format("insert into %s (name, val) values ('%s', %s)", this.getTableReference(TABLE_NAME_6), name, value));
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME_6), name));
         List<String> results = Lists.newArrayListWithExpectedSize(1);
@@ -260,7 +260,6 @@ public class UniqueIndexTest extends SpliceUnitTest {
         }
         Assert.assertEquals("Incorrect number of rows returned!", 1, results.size());
         methodWatcher.getOrCreateConnection().commit();
-        */
     }
 
     @Test(timeout = 10000)

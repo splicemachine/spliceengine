@@ -69,28 +69,88 @@ public class PrimaryKeyTest extends SpliceUnitTest {
 	});
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-   
+
     @Test(expected=SQLException.class,timeout =10000)
     public void cannotInsertDuplicatePks() throws Exception{
-    	try {
-    		PreparedStatement ps = methodWatcher.prepareStatement(INSERT);
-    		ps.setString(1,"sfines");
-    		ps.setInt(2,1);
-    		ps.executeUpdate();
-    		Assert.assertTrue("Did not throw an exception on duplicate records on primary key",false);
-    	} catch (SQLException e) {
-    		 PreparedStatement validator = methodWatcher.prepareStatement(SELECT_BY_NAME);
-    		 validator.setString(1,"sfines");
-    	        ResultSet rs = validator.executeQuery();
-    	        int matchCount=0;
-    	        while(rs.next()){
-    	            if("sfines".equalsIgnoreCase(rs.getString(1))){
-    	                matchCount++;
-    	            }
-    	        }
-    	        Assert.assertEquals("Incorrect number of matching rows found!",1,matchCount);
-    	        throw e;
-    	}
+        try {
+            PreparedStatement ps = methodWatcher.prepareStatement(INSERT);
+            ps.setString(1,"sfines");
+            ps.setInt(2,1);
+            ps.executeUpdate();
+            Assert.fail("Did not throw an exception on duplicate records on primary key");
+        } catch (SQLException e) {
+            PreparedStatement validator = methodWatcher.prepareStatement(SELECT_BY_NAME);
+            validator.setString(1,"sfines");
+            ResultSet rs = validator.executeQuery();
+            int matchCount=0;
+            while(rs.next()){
+                if("sfines".equalsIgnoreCase(rs.getString(1))){
+                    matchCount++;
+                }
+            }
+            Assert.assertEquals("Incorrect number of matching rows found!",1,matchCount);
+            throw e;
+        }
+    }
+
+    @Test()
+    public void deleteAndInsertInSameTransaction() throws Exception{
+        methodWatcher.getOrCreateConnection().setAutoCommit(false);
+        final String name = "sfines";
+        final int value = 2;
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME), name));
+        List<String> results = Lists.newArrayListWithExpectedSize(1);
+        while (rs.next()) {
+            String retName = rs.getString(1);
+            int val = rs.getInt(2);
+            results.add(String.format("name:%s,value:%d", retName, val));
+        }
+        Assert.assertEquals("Incorrect number of rows returned!", 1, results.size());
+        methodWatcher.getStatement().execute(format("delete from %s", this.getTableReference(TABLE_NAME)));
+        methodWatcher.getStatement().execute(format("insert into %s (name, val) values ('%s', %s)", this.getTableReference(TABLE_NAME), name, value));
+        rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME), name));
+        results = Lists.newArrayListWithExpectedSize(1);
+        while (rs.next()) {
+            String retName = rs.getString(1);
+            int val = rs.getInt(2);
+            results.add(String.format("name:%s,value:%d", retName, val));
+        }
+        Assert.assertEquals("Incorrect number of rows returned!", 1, results.size());
+        methodWatcher.getOrCreateConnection().rollback();
+    }
+
+    @Test()
+    public void insertAndDeleteInSameTransaction() throws Exception{
+        methodWatcher.getOrCreateConnection().setAutoCommit(false);
+        final String name = "other";
+        final int value = 2;
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME), name));
+        List<String> results = Lists.newArrayListWithExpectedSize(1);
+        while (rs.next()) {
+            String retName = rs.getString(1);
+            int val = rs.getInt(2);
+            results.add(String.format("name:%s,value:%d", retName, val));
+        }
+        Assert.assertEquals("Incorrect number of rows returned!", 0, results.size());
+        methodWatcher.getStatement().execute(format("insert into %s (name, val) values ('%s', %s)", this.getTableReference(TABLE_NAME), name, value));
+        rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME), name));
+        results = Lists.newArrayListWithExpectedSize(1);
+        while (rs.next()) {
+            String retName = rs.getString(1);
+            int val = rs.getInt(2);
+            results.add(String.format("name:%s,value:%d", retName, val));
+        }
+        Assert.assertEquals("Incorrect number of rows returned!", 1, results.size());
+        methodWatcher.getStatement().execute(format("delete from %s where name = '%s'", this.getTableReference(TABLE_NAME), name));
+        rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME), name));
+        results = Lists.newArrayListWithExpectedSize(1);
+        while (rs.next()) {
+            String retName = rs.getString(1);
+            int val = rs.getInt(2);
+            results.add(String.format("name:%s,value:%d", retName, val));
+        }
+        Assert.assertEquals("Incorrect number of rows returned!", 0, results.size());
+        methodWatcher.getOrCreateConnection().rollback();
     }
 
     @Test(expected=SQLException.class,timeout= 10000)
