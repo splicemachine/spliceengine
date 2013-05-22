@@ -1,0 +1,37 @@
+<assembly>
+  <id>complete</id>
+  <formats>
+    <format>jar</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <dependencySets>
+    <dependencySet>
+      <unpack>true</unpack>
+      <includes>            
+      <include>org.apache.derby:derby</include>
+      <include>org.apache.derby:derbynet</include>
+      <include>org.apache.derby:derbyclient</include>
+      <include>org.apache.derby:derbytools</include>
+      <include>org.apache.derby:derbyrun</include>
+      <include>org.datanucleus:datanucleus-core</include>
+      <include>com.splicemachine:structured_si</include>
+      <include>com.splicemachine:structured_constants</include>
+      <include>com.splicemachine:structured_constants</include>
+      <include>net.sf.opencsv:opencsv</include>
+      <include>com.gotometrics.orderly:orderly</include>
+      <include>com.google.code.gson:gson</include>
+      <include>net.sf.ehcache:ehcache-core</include>     
+      </includes>
+    </dependencySet>
+  </dependencySets>
+    <fileSets>
+    <fileSet>
+      <directory>lib/native</directory>   
+      <includes>
+        <include>*/**</include>
+      </includes>
+      <outputDirectory>/lib/native</outputDirectory>
+    </fileSet>
+  </fileSets>
+</assembly>
+
