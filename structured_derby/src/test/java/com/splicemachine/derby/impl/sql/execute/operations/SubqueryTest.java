@@ -141,4 +141,17 @@ public class SubqueryTest {
             System.out.printf("k=%d,l=%d",rs.getInt(1),rs.getInt(2));
         }
     }
+
+    @Test
+    public void testInDoesNotReturnDuplicates() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery(String.format("select k from %s a where k in (select k from %s )",t2Watcher.toString(),t1Watcher.toString()));
+        Set<Integer> priorResults = Sets.newHashSet();
+        while(rs.next()){
+            Integer nextK = rs.getInt(1);
+            System.out.printf("nextK=%d%n",nextK);
+            Assert.assertTrue("duplicate result "+ nextK +" returned!",!priorResults.contains(nextK));
+            priorResults.add(nextK);
+        }
+        Assert.assertTrue("No Rows returned!",priorResults.size()>0);
+    }
 }

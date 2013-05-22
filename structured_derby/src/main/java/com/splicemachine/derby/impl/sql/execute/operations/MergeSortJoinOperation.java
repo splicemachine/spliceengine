@@ -260,6 +260,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                 @Override
                 public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
                     try {
+                        //TODO -sf- possible optimization here. Can we avoid writing duplicate rows at all when oneRowRightSide==true?
                         byte[] rowKey = transHasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors);
                         return Collections.<Mutation>singletonList(Puts.buildInsert(rowKey,
                                 row.getRowArray(), null,
@@ -333,7 +334,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 			while ( serverProvider.hasNext() && (joinRow = serverProvider.nextJoinRow()) != null) {
 				if (joinRow.getJoinSide().ordinal() == JoinSide.RIGHT.ordinal()) { // Right Side
 					rightHash = joinRow.getHash();
-					if (joinRow.sameHash(priorHash)) {
+					if (joinRow.sameHash(priorHash)&&!oneRowRightSide) {
 						SpliceLogUtils.trace(LOG, "adding additional right=%s", joinRow);
 						rights.add(joinRow.getRow().getClone());
 					} else {
