@@ -174,6 +174,27 @@
 				</dependencies>
 			</plugin>
 
+				<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<source>6</source>
+					<descriptors>
+						<descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
+					</descriptors>
+					<archive>
+					</archive>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
 		</plugins>
 	</build>
 
