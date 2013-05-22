@@ -128,7 +128,7 @@ public class SIObserver extends BaseRegionObserver {
         SIFilter siFilter = new SIFilter(transactor, transactionId, rollForwardQueue, siOnly);
         Filter newFilter;
         if (currentFilter != null) {
-            newFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL, currentFilter, siFilter); // Wrap Existing Filters
+            newFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL, siFilter, currentFilter); // Wrap Existing Filters
         } else {
             newFilter = siFilter;
         }
