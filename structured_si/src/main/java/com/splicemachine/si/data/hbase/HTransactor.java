@@ -25,6 +25,16 @@ public class HTransactor<PutOp extends Put, GetOp extends Get, ScanOp extends Sc
     }
 
     @Override
+    public TransactionId beginTransaction() throws IOException {
+        return delegate.beginTransaction();
+    }
+
+    @Override
+    public TransactionId beginTransaction(boolean allowWrites) throws IOException {
+        return delegate.beginTransaction(allowWrites);
+    }
+
+    @Override
     public TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException {
         return delegate.beginTransaction(allowWrites, readUncommitted, readCommitted);
     }

@@ -55,13 +55,13 @@ public class SIFilterTest extends SIConstants {
     public void testFiltering() throws Exception {
         final SDataLib dataLib = storeSetup.getDataLib();
         final Transactor transactor = transactorSetup.transactor;
-        final TransactionId t1 = transactor.beginTransaction(true, false, false);
+        final TransactionId t1 = transactor.beginTransaction();
         STable table = storeSetup.getReader().open(storeSetup.getPersonTableName());
         final FilterState filterState = transactor.newFilterState(transactorSetup.rollForwardQueue, t1, false);
         insertAge(t1, "bill", 20);
         transactor.commit(t1);
 
-        final TransactionId t2 = transactor.beginTransaction(true, false, false);
+        final TransactionId t2 = transactor.beginTransaction();
         insertAge(t2, "bill", 30);
 
         Object row = readEntireTuple("bill");

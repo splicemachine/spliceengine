@@ -34,7 +34,7 @@ public class TransactionManagerTest {
 
     @Test
     public void beginTransactionTest() throws Exception {
-        TransactionId transactionId = transactor.beginTransaction(true, false, false);
+        TransactionId transactionId = transactor.beginTransaction();
         Assert.assertNotNull(transactionId);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
@@ -43,7 +43,7 @@ public class TransactionManagerTest {
 
     @Test
     public void doCommitTest() throws Exception {
-        TransactionId transactionId = transactor.beginTransaction(true, false, false);
+        TransactionId transactionId = transactor.beginTransaction();
         transactor.commit(transactionId);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);
@@ -53,7 +53,7 @@ public class TransactionManagerTest {
 
     @Test
     public void rollbackTest() throws Exception {
-        TransactionId transactionId = transactor.beginTransaction(true, false, false);
+        TransactionId transactionId = transactor.beginTransaction();
         transactor.rollback(transactionId);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
         Assert.assertTrue(transaction.beginTimestamp >= 0);

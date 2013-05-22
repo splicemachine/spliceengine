@@ -61,6 +61,16 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     // Transaction control
 
     @Override
+    public TransactionId beginTransaction() throws IOException {
+        return beginTransaction(true);
+    }
+
+    @Override
+    public TransactionId beginTransaction(boolean allowWrites) throws IOException {
+        return beginTransaction(allowWrites, false, false);
+    }
+
+    @Override
     public TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted)
             throws IOException {
         final TransactionParams params = new TransactionParams(null, null, allowWrites, readUncommitted, readCommitted);

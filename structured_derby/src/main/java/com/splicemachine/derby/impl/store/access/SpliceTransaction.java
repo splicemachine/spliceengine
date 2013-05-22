@@ -331,7 +331,7 @@ public class SpliceTransaction implements Transaction {
             final TransactionId parentTransaction = transactor.transactionIdFromString(parentTransactionID);
             result = transactor.beginChildTransaction(parentTransaction, dependent, allowWrites, null, null);
         } else {
-            result = transactor.beginTransaction(true, false, false);
+            result = transactor.beginTransaction();
         }
         return result;
     }

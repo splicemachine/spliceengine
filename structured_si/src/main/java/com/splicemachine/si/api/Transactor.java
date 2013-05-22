@@ -17,6 +17,23 @@ import java.util.List;
  * The primary interface to the transaction module.
  */
 public interface Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> extends ClientTransactor<PutOp, GetOp, ScanOp, MutationOp> {
+    /**
+     * Start a writable transaction in "snapshot isolation" concurrency mode.
+     */
+    TransactionId beginTransaction() throws IOException;
+
+    /**
+     * Start a transaction in "snapshot isolation" concurrency mode.
+     */
+    TransactionId beginTransaction(boolean allowWrites) throws IOException;
+
+    /**
+     * Start a transaction with the specified isolation mode.
+     * @param allowWrites boolean indicator of whether the new transaction is allowed to write
+     * @param readUncommitted indicator of whether to read data from other, uncommitted transactions
+     * @param readCommitted indicator of whether to read data from committed transactions that occur after this new
+     *                      transaction is begun
+     */
     TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
     /**
      *
