@@ -10,6 +10,8 @@ import org.junit.runner.Description;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.List;
+import java.util.Map;
 
 public class GroupedAggregateOperationTest extends SpliceUnitTest {
     public static final String CLASS_NAME = GroupedAggregateOperationTest.class.getSimpleName().toUpperCase();
@@ -35,16 +37,27 @@ public class GroupedAggregateOperationTest extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore
-    // Bugzilla #376: subquery in HAVING
+    // Bugzilla #376: nested sub-query in HAVING
     public void testHavingWithSubQuery() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(format("SELECT T1.PNUM FROM %s.T1 T1 GROUP BY T1.PNUM " +
+        ResultSet rs = methodWatcher.executeQuery(format("SELECT T1.PNUM FROM %1$s.T1 T1 GROUP BY T1.PNUM " +
                 "HAVING T1.PNUM IN " +
                 // Progressively more simple sub-queries:
-                //(SELECT T2.PNUM FROM %s.T2 T2 GROUP BY T2.PNUM HAVING SUM(T2.BUDGET) > 25000)",
-                //(SELECT T2.PNUM FROM %s.T2 T2 WHERE T2.PNUM IN ('P1', 'P2', 'P3'))",
-                "(SELECT 'P1' FROM %s.T2)",
+                "(SELECT T2.PNUM FROM %1$s.T2 T2 GROUP BY T2.PNUM HAVING SUM(T2.BUDGET) > 25000)",
+                //"(SELECT T2.PNUM FROM %s.T2 T2 WHERE T2.PNUM IN ('P1', 'P2', 'P3'))",
+                //"(SELECT 'P1' FROM %s.T2)",
                 CLASS_NAME, CLASS_NAME));
         Assert.assertEquals(3, TestUtils.resultSetToMaps(rs).size());
+    }
+
+    @Test
+    // Bugzilla #377: nested sub-query in HAVING with ORDER BY
+    public void testHavingWithSubQueryAndOrderby() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("SELECT T1.PNUM FROM %1$s.T1 T1 GROUP BY T1.PNUM " +
+                "HAVING T1.PNUM IN  (SELECT T2.PNUM FROM %1$s.T2 T2 GROUP BY T2.PNUM HAVING SUM(T2.BUDGET) > 25000)" +
+                "ORDER BY T1.PNUM",
+                CLASS_NAME));
+        List<Map> maps = TestUtils.resultSetToMaps(rs);
+        Assert.assertEquals(3, maps.size());
+        Assert.assertEquals("P2", maps.get(0).get("PNUM"));
     }
 }

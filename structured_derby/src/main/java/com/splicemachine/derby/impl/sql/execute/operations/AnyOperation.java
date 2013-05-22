@@ -92,18 +92,11 @@ public class AnyOperation extends SpliceBaseOperation {
 
     @Override
     public ExecRow getNextRowCore() throws StandardException {
+        // We don't think this method will get called, as we don't believe AnyOperation will get pushed out to HBase.
+        // Leaving the implementation, which mimics our DelegatingRowProvider.next() below, in case we're wrong.
         ExecRow candidateRow = source.getNextRowCore();
-        ExecRow result;
-        if(candidateRow!=null)
-           result = candidateRow;
-        else if(rowWithNulls==null){
-            rowWithNulls = (ExecRow)emptyRowFun.invoke(activation);
-            result = rowWithNulls;
-        }else
-            result = rowWithNulls;
-
+        ExecRow result = candidateRow != null ? candidateRow : getRowWithNulls();
         setCurrentRow(result);
-
         return result;
     }
 
@@ -134,6 +127,13 @@ public class AnyOperation extends SpliceBaseOperation {
             emptyRowFun = context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunName);
     }
 
+    private ExecRow getRowWithNulls() throws StandardException {
+        if (rowWithNulls == null){
+            rowWithNulls = (ExecRow)emptyRowFun.invoke(activation);
+        }
+        return rowWithNulls;
+    }
+
     @Override
     public NoPutResultSet executeScan() throws StandardException {
         RowProvider provider = getReduceRowProvider(source,source.getExecRowDefinition());
@@ -160,19 +160,15 @@ public class AnyOperation extends SpliceBaseOperation {
     public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
         return new RowProviders.DelegatingRowProvider(source.getReduceRowProvider(top,template)) {
             @Override
+            public boolean hasNext() throws StandardException {
+                // AnyOperation should never return null; it signals end-of-stream with a special empty ExecRow (see next())
+                return true;
+            }
+
+            @Override
             public ExecRow next() throws StandardException {
-                ExecRow candidateRow = provider.next();
-                ExecRow result;
-                if(candidateRow!=null)
-                    result = candidateRow;
-                else if(rowWithNulls==null){
-                    rowWithNulls = (ExecRow)emptyRowFun.invoke(activation);
-                    result = rowWithNulls;
-                }else
-                    result = rowWithNulls;
-
+                ExecRow result = provider.hasNext() ? provider.next() : getRowWithNulls();
                 setCurrentRow(result);
-
                 return result;
             }
         };
