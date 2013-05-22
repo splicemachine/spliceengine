@@ -183,6 +183,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		protected ExecRow leftRow;
 		protected NoPutResultSet probeResultSet;
 		private boolean populated;
+        private boolean returnedRight=false;
 
 		NestedLoopIterator(ExecRow leftRow, boolean hash) throws StandardException {
 			SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow " + leftRow);
@@ -205,27 +206,43 @@ public class NestedLoopJoinOperation extends JoinOperation {
 			if(populated)return true;
 			rightResultSet.clearCurrentRow();
 			try {
-				ExecRow rightRow;
-				if ( (rightRow = probeResultSet.getNextRowCore()) != null) {
-					SpliceLogUtils.trace(LOG, "right has result " + rightRow);
+				ExecRow rightRow = probeResultSet.getNextRowCore();
+                /*
+                 * notExistsRightSide indicates that we need to reverse the logic of the join.
+                 */
+                if(notExistsRightSide){
+                    if(rightRow ==null){
+                        rightRow = getEmptyRightRow();
+                    }
+                    returnedRight = (rightRow!=null);
+                }
+                if(rightRow!=null){
+                    if(returnedRight){
+                        //skip this row, because it's already been found.
+                        returnedRight = false;
+                        populated=false;
+                        return false;
+                    }
+
+                    SpliceLogUtils.trace(LOG, "right has result " + rightRow);
 					/*
 					 * the right result set's row might be used in other branches up the stack which
 					 * occur under serialization, so the activation has to be sure and set the current row
 					 * on rightResultSet, or that row won't be serialized over, potentially breaking ProjectRestricts
 					 * up the stack.
 					 */
-					rightResultSet.setCurrentRow(rightRow); //set this here for serialization up the stack
-					rowsSeenRight++;
-					mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
+                    rightResultSet.setCurrentRow(rightRow); //set this here for serialization up the stack
+                    rowsSeenRight++;
                     nonNullRight();
-                } else if((rightRow = getEmptyRightRow())!=null){
-                    rightResultSet.setCurrentRow(rightRow);
+                    returnedRight=true;
+
                     mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
                 }else {
 					SpliceLogUtils.trace(LOG, "already has seen row and no right result");
 					populated = false;
 					return false;
 				}
+
 				if (restriction != null) {
 					DataValueDescriptor restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
 					if ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean()) {
