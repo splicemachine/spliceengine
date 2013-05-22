@@ -37,12 +37,13 @@ public class TransactionTest extends SpliceUnitTest {
 	public static final String TABLE_NAME_11 = "K";
 	public static final String TABLE_NAME_12 = "L";
 	public static final String TABLE_NAME_13 = "M";
-	public static final String TABLE_NAME_14 = "M";
-	public static final String TABLE_NAME_15 = "M";
-	public static final String TABLE_NAME_16 = "M";
-	public static final String TABLE_NAME_17 = "M";
-	public static final String TABLE_NAME_18 = "M";
-	
+	public static final String TABLE_NAME_14 = "N";
+	public static final String TABLE_NAME_15 = "O";
+	public static final String TABLE_NAME_16 = "P";
+	public static final String TABLE_NAME_17 = "Q";
+    public static final String TABLE_NAME_18 = "R";
+    public static final String TABLE_NAME_19 = "S";
+
 	
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -245,28 +246,54 @@ public class TransactionTest extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testRollbackCreateInsertDelete() throws Exception {
+        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_19);
+        Statement s = methodWatcher.getStatement();
+        s.execute(format("create table %s (num int, addr varchar(50))",this.getTableReference(TABLE_NAME_19)));
+        s.execute(format("insert into %s values(100, '100RB: 101 California St')",this.getTableReference(TABLE_NAME_19)));
 
-	@Test
-	public void testRollbackCreateInsert() throws Exception { 
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_10);
+        methodWatcher.setAutoCommit(false);
+        s.execute(format("delete from %s",this.getTableReference(TABLE_NAME_19)));
+        ResultSet rs = s.executeQuery(format("select num from %s",this.getTableReference(TABLE_NAME_19)));
+        int j = 0;
+        while (rs.next()) {
+            j++;
+            Assert.assertNotNull(rs.getInt(1));
+        }
+        Assert.assertEquals(0, j);
+        methodWatcher.rollback();
 
-			methodWatcher.setAutoCommit(false);
-			Statement s = methodWatcher.getStatement();
-			s.execute(format("create table %s (num int, addr varchar(50))",this.getTableReference(TABLE_NAME_10)));
-			s.execute(format("insert into %s values(100, '100RB: 101 Califronia St')",this.getTableReference(TABLE_NAME_10)));
-			s.execute(format("insert into %s values(200, '200RB: 908 Glade Ct.')",this.getTableReference(TABLE_NAME_10)));
-			s.execute(format("insert into %s values(300, '300RB: my addr')",this.getTableReference(TABLE_NAME_10)));;
-			s.execute(format("insert into %s values(400, '400RB: 182 Second St.')",this.getTableReference(TABLE_NAME_10)));
-			s.execute(format("insert into %s(num) values(500)",this.getTableReference(TABLE_NAME_10)));
-			s.execute(format("insert into %s values(600, 'new addr')",this.getTableReference(TABLE_NAME_10)));
-			s.execute(format("insert into %s(num) values(700)",this.getTableReference(TABLE_NAME_10)));
-			methodWatcher.rollback();
-			ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, CLASS_NAME, TABLE_NAME_10, null);
-			if (rs.next())
-				Assert.assertTrue("The rolled back table exists in the dictionary!",false);
-	}	
+        rs = s.executeQuery(format("select num from %s",this.getTableReference(TABLE_NAME_19)));
+        j = 0;
+        while (rs.next()) {
+            j++;
+            Assert.assertNotNull(rs.getInt(1));
+        }
+        Assert.assertEquals(1, j);
+    }
 
-	@Test
+    @Test
+    public void testRollbackCreateInsert() throws Exception {
+        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_10);
+
+        methodWatcher.setAutoCommit(false);
+        Statement s = methodWatcher.getStatement();
+        s.execute(format("create table %s (num int, addr varchar(50))",this.getTableReference(TABLE_NAME_10)));
+        s.execute(format("insert into %s values(100, '100RB: 101 Califronia St')",this.getTableReference(TABLE_NAME_10)));
+        s.execute(format("insert into %s values(200, '200RB: 908 Glade Ct.')",this.getTableReference(TABLE_NAME_10)));
+        s.execute(format("insert into %s values(300, '300RB: my addr')",this.getTableReference(TABLE_NAME_10)));;
+        s.execute(format("insert into %s values(400, '400RB: 182 Second St.')",this.getTableReference(TABLE_NAME_10)));
+        s.execute(format("insert into %s(num) values(500)",this.getTableReference(TABLE_NAME_10)));
+        s.execute(format("insert into %s values(600, 'new addr')",this.getTableReference(TABLE_NAME_10)));
+        s.execute(format("insert into %s(num) values(700)",this.getTableReference(TABLE_NAME_10)));
+        methodWatcher.rollback();
+        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, CLASS_NAME, TABLE_NAME_10, null);
+        if (rs.next())
+            Assert.assertTrue("The rolled back table exists in the dictionary!",false);
+    }
+
+    @Test
 	public void testTransactionalSelectString() throws Exception {	
 		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_11);
 		methodWatcher.setAutoCommit(false);
