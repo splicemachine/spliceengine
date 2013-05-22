@@ -2,6 +2,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -13,6 +14,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
@@ -229,11 +231,20 @@ public class SortOperation extends SpliceBaseOperation {
 
 	@Override
     public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return ((SpliceOperation)source).getMapRowProvider(top,template);
-//        return RowProviders.sourceProvider(top,LOG);
+        return getReduceRowProvider(top,template);
     }
-	
-	@Override
+
+    @Override
+    protected JobStats doShuffle() throws StandardException {
+        long start = System.currentTimeMillis();
+        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getExecRowDefinition());
+
+        nextTime+= System.currentTimeMillis()-start;
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
+        return rowProvider.shuffleRows(soi);
+    }
+
+    @Override
 	public String toString() {
 		return "SortOperation {resultSetNumber="+resultSetNumber+",source="+source+"}";
 	}

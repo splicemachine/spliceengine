@@ -46,7 +46,9 @@ public class SpliceConstants {
 	public static final int DEFAULT_MULTICAST_GROUP_PORT = 4446;
 	public static final int DEFAULT_RMI_PORT = 40001;
 	public static final int DEFAULT_RMI_REMOTE_OBJECT_PORT = 47000;
-	
+
+
+
 	/**
 	 * The Default Cache size for Scans.
 	 *
@@ -92,7 +94,8 @@ public class SpliceConstants {
     public static final String CONFIG_MULTICAST_GROUP_PORT = "splice.multicast_group_port";
     public static final String CONFIG_RMI_PORT = "splice.rmi_port";
     public static final String CONFIG_RMI_REMOTE_OBJECT_PORT = "splice.rmi_remote_object_port";
-       
+    private static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
+
     
 	// Zookeeper Actual Paths
 	public static String zkSpliceTaskPath;
@@ -184,7 +187,11 @@ public class SpliceConstants {
     // Default Configuration Options
 	public static final String SPLIT_WAIT_INTERVAL = "splice.splitWaitInterval";
 
-    
+    //debug options
+    public static boolean dumpClassFile;
+    public static final boolean DEFAULT_DUMP_CLASS_FILE=false;
+
+
     public static enum TableEnv {
     	TRANSACTION_TABLE,
     	ROOT_TABLE,
@@ -239,7 +246,8 @@ public class SpliceConstants {
         multicastGroupAddress = config.get(CONFIG_MULTICAST_GROUP_ADDRESS,DEFAULT_MULTICAST_GROUP_ADDRESS);
         multicastGroupPort = config.getInt(CONFIG_MULTICAST_GROUP_PORT, DEFAULT_MULTICAST_GROUP_PORT);
         rmiPort = config.getInt(CONFIG_RMI_PORT, DEFAULT_RMI_PORT);
-        rmiRemoteObjectPort = config.getInt(CONFIG_RMI_REMOTE_OBJECT_PORT, DEFAULT_RMI_REMOTE_OBJECT_PORT);   
+        rmiRemoteObjectPort = config.getInt(CONFIG_RMI_REMOTE_OBJECT_PORT, DEFAULT_RMI_REMOTE_OBJECT_PORT);
+        dumpClassFile = config.getBoolean(DEBUG_DUMP_CLASS_FILE,DEFAULT_DUMP_CLASS_FILE);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {

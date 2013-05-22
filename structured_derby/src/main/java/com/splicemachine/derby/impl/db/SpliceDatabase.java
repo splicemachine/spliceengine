@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.db;
 
 import java.util.Properties;
+
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -30,7 +32,8 @@ public class SpliceDatabase extends BasicDatabase {
          */
         System.setProperty("derby.language.maxMemoryPerTable",Integer.toString(-1));
 	    //SanityManager.DEBUG_SET("ByteCodeGenInstr");
-	    //SanityManager.DEBUG_SET("DumpClassFile");
+        if(SpliceConstants.dumpClassFile)
+    	    SanityManager.DEBUG_SET("DumpClassFile");
         //SanityManager.DEBUG_SET("DumpOptimizedTree");
 		try {
 			create = !ZkUtils.isSpliceLoaded();

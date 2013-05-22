@@ -2,6 +2,9 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Set;
+
+import com.google.common.collect.Sets;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -26,8 +29,10 @@ public class UnionOperationTest extends SpliceUnitTest {
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(UnionOperationTest.class.getSimpleName());	
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher("ST_MARS",UnionOperationTest.class.getSimpleName(),"(empId int, empNo int, name varchar(40))");
 	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("ST_EARTH",UnionOperationTest.class.getSimpleName(),"(empId int, empNo int, name varchar(40))");
-	
-	@ClassRule 
+	private static Set<Integer> t1EmpIds = Sets.newHashSet();
+    private static Set<Integer> t2EmpIds = Sets.newHashSet();
+
+    @ClassRule
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher1)
@@ -38,15 +43,25 @@ public class UnionOperationTest extends SpliceUnitTest {
 				try {
 					Statement s = spliceClassWatcher.getStatement();
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(6, 1, 'Mulgrew, Kate')");
+                    t1EmpIds.add(6);
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(7, 1, 'Shatner, William')");
+                    t1EmpIds.add(7);
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(3, 1, 'Nimoy, Leonard')");
+                    t1EmpIds.add(3);
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(4, 1, 'Patrick')");
-					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(5, 1, null)");			
+                    t1EmpIds.add(4);
+					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_mars values(5, 1, null)");
+                    t1EmpIds.add(5);
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(6, 1, 'Spiner, Brent')");
+                    t2EmpIds.add(6);
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(7, 1, 'Duncan, Rebort')");
+                    t2EmpIds.add(7);
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(3, 1, 'Nimoy, Leonard')");
+                    t2EmpIds.add(3);
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(4, 1, 'Ryan, Jeri')");
+                    t2EmpIds.add(4);
 					s.execute("insert into " + UnionOperationTest.class.getSimpleName() + ".st_earth values(5, 1, null)");
+                    t2EmpIds.add(5);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -99,14 +114,35 @@ public class UnionOperationTest extends SpliceUnitTest {
 	
 	@Test
 	public void testUnion() throws Exception {			
-		ResultSet rs = methodWatcher.executeQuery("select * from"+this.getPaddedTableReference("ST_MARS")+"UNION select * from"+this.getPaddedTableReference("ST_EARTH"));
+		ResultSet rs = methodWatcher.executeQuery("select empId from"+this.getPaddedTableReference("ST_MARS")+"UNION select empId from"+this.getPaddedTableReference("ST_EARTH"));
+        Set<Integer> priorResults = Sets.newHashSet();
 		int i = 0;
 		while (rs.next()) {
 			i++;
-			LOG.info("id="+rs.getInt(1)+",person name="+rs.getString(2));
+            int id = rs.getInt(1);
+            System.out.printf("id=%d%n",rs.getInt(1));
+//            String name = rs.getString(2);
+//			System.out.println("id="+rs.getInt(1)+",person name="+rs.getString(2));
+            Assert.assertTrue("duplicate empId found!",!priorResults.contains(id));
+            priorResults.add(id);
 		}	
-		Assert.assertEquals(8, i);
+		Assert.assertEquals(5, i);
 	}
+
+    @Test
+    public void testUnionWithSort() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select * from " + spliceTableWatcher1.toString() + " UNION select * from " + spliceTableWatcher2.toString() + " order by 1 desc");
+        Set<Integer> priorResults = Sets.newHashSet();
+        int i = 0 ;
+        while (rs.next()) {
+            i++;
+            int id = rs.getInt(1);
+            System.out.println("id="+rs.getInt(1)+",person name="+rs.getString(3));
+            Assert.assertTrue("Duplicate row found!",!priorResults.contains(id));
+            priorResults.add(id);
+        }
+        Assert.assertEquals(5, i);
+    }
 
     @Test
     public void testUnionWithWhereClause() throws Exception{
