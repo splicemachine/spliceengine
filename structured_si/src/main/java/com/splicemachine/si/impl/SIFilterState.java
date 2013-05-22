@@ -201,11 +201,14 @@ public class SIFilterState implements FilterState {
      */
     private boolean tombstoneAfterData() {
         for (long tombstone : rowState.tombstoneTimestamps) {
-            if (keyValue.timestamp < tombstone
-                    || (keyValue.timestamp == tombstone && dataStore.isSiNull(keyValue.value))) {
+            final Transaction tombstoneTransaction = rowState.transactionCache.get(tombstone);
+            if ((keyValue.timestamp < tombstone && tombstoneTransaction.isCommitted())
+                    || (keyValue.timestamp == tombstone && dataStore.isSiNull(keyValue.value)
+                    && (tombstoneTransaction.isCommitted()
+                    || (tombstoneTransaction.getRootBeginTimestamp() == myTransaction.getRootBeginTimestamp()
+                    && !tombstoneTransaction.isFailed())))) {
                 return true;
             }
-            ;
         }
         return false;
     }

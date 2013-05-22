@@ -538,6 +538,21 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+    public void writeDeleteRollbackRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction(true, false, false);
+        insertAge(t1, "joe90", 20);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction(true, false, false);
+        deleteRow(t2, "joe90");
+        transactor.rollback(t2);
+
+        TransactionId t3 = transactor.beginTransaction(true, false, false);
+        Assert.assertEquals("joe90 age=20 job=null", read(t3, "joe90"));
+        transactor.commit(t3);
+    }
+
+    @Test
     public void writeDeleteOverlap() throws IOException {
         TransactionId t1 = transactor.beginTransaction(true, false, false);
         insertAge(t1, "joe12", 20);
