@@ -217,7 +217,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
                     returnedRight = (rightRow!=null);
                 }
                 if(rightRow!=null){
-                    if(returnedRight){
+                    if(oneRowRightSide &&returnedRight){
                         //skip this row, because it's already been found.
                         returnedRight = false;
                         populated=false;

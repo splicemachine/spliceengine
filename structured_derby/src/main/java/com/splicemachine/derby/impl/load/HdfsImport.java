@@ -311,15 +311,28 @@ public class HdfsImport extends ParallelVTI {
     private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
                                                String insertColumnList, ImportContext.Builder builder) throws SQLException {
         DatabaseMetaData dmd = connection.getMetaData();
+        int numCols = getColumns(schemaName==null?"APP":schemaName.toUpperCase(),tableName,insertColumnList,dmd,builder);
+
+        FormatableBitSet pkCols = getPrimaryKeys(schemaName, tableName, dmd, numCols);
+        if(pkCols.getNumBitsSet()>0){
+            builder.primaryKeys(pkCols);
+        }
+    }
+
+    private static int getColumns(String schemaName,String tableName,
+                                   String insertColumnList,DatabaseMetaData dmd,ImportContext.Builder builder) throws SQLException{
         ResultSet rs = null;
-        int numCols = 0;
+        int numCols=0;
         try{
-            rs = dmd.getColumns(null,(schemaName==null?"APP":schemaName.toUpperCase()),tableName,null);
+            rs = dmd.getColumns(null,schemaName,tableName,null);
             if(insertColumnList!=null && !insertColumnList.equalsIgnoreCase("null")){
                 List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
                 while(rs.next()){
                     numCols++;
                     String colName = rs.getString(COLNAME_POSITION);
+                    int colPos = rs.getInt(COLNUM_POSITION);
+                    int colType = rs.getInt(COLTYPE_POSITION);
+                    LOG.info(String.format("colName=%s,colPos=%d,colType=%d",colName,colPos,colType));
                     Iterator<String> colIterator = insertCols.iterator();
                     while(colIterator.hasNext()){
                         String insertCol = colIterator.next();
@@ -330,7 +343,7 @@ public class HdfsImport extends ParallelVTI {
                         }
                     }
                 }
-                builder = builder.numColumns(numCols);
+                builder.numColumns(numCols);
             }else{
                 while(rs.next()){
                     numCols++;
@@ -338,11 +351,17 @@ public class HdfsImport extends ParallelVTI {
                 }
 
             }
+            return numCols;
         }finally{
             if(rs!=null)rs.close();
         }
 
+    }
+
+    private static FormatableBitSet getPrimaryKeys(String schemaName, String tableName,
+                                        DatabaseMetaData dmd, int numCols) throws SQLException {
         //get primary key information
+        ResultSet rs = null;
         try{
             rs = dmd.getPrimaryKeys(null,schemaName,tableName.toUpperCase());
             FormatableBitSet pkCols = new FormatableBitSet(numCols);
@@ -353,15 +372,13 @@ public class HdfsImport extends ParallelVTI {
                  */
                 pkCols.set(rs.getShort(5)-1);
             }
-            if(pkCols.getNumBitsSet()>0){
-                builder.primaryKeys(pkCols);
-            }
+            return pkCols;
         }finally{
             if(rs!=null)rs.close();
         }
-	}
+    }
 
-	private static int[] pushColumnInformation(Connection connection,
+    private static int[] pushColumnInformation(Connection connection,
 																						 String schemaName,String tableName) throws SQLException{
 
 		/*

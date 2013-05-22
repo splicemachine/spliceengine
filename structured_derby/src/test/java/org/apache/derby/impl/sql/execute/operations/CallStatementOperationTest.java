@@ -5,6 +5,9 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Set;
+
+import com.google.common.collect.Sets;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -35,11 +38,19 @@ public class CallStatementOperationTest extends SpliceUnitTest {
         int count =0;
         DatabaseMetaData dmd = methodWatcher.getOrCreateConnection().getMetaData();
         ResultSet rs = dmd.getColumns(null,"SYS","SYSSCHEMAS",null);
-            while(rs.next()){
-                count++;
-            }
-            Assert.assertTrue("No Rows returned!",count>0);
-            DbUtils.closeQuietly(rs);
+        Set<String> correctNames = Sets.newHashSet("SCHEMAID","SCHEMANAME","AUTHORIZATIONID");
+        while(rs.next()){
+            String sIdCol = rs.getString(4);
+            int colType = rs.getInt(5);
+            Assert.assertTrue("No colType returned!",!rs.wasNull());
+            int colNum = rs.getInt(17);
+            Assert.assertTrue("No colNum returned!",!rs.wasNull());
+
+            Assert.assertTrue("Incorrect column name returned!",correctNames.contains(sIdCol.toUpperCase()));
+            count++;
+        }
+        Assert.assertEquals("incorrect rows returned!",3,count);
+        DbUtils.closeQuietly(rs);
     }
 
     @Test

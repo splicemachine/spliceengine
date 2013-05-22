@@ -126,8 +126,10 @@ public class TaskStatus implements Externalizable{
             RetriesExhaustedWithDetailsException copy = new RetriesExhaustedWithDetailsException(rewde.getCauses(),
                     Collections.<Row>emptyList(),hostnameAndPorts);
             e = copy;
+            out.writeObject(e);
+        }else{
+            out.writeObject(error);
         }
-        out.writeObject(e);
     }
 
     @Override

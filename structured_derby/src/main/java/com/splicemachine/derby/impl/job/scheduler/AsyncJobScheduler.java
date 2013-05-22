@@ -88,7 +88,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
 
         Watcher watcher = new Watcher(job);
         for(final RegionTask task:tasks.keySet()){
-            submit(watcher,task, tasks.get(task), table);
+            submit(watcher,task, tasks.get(task), table,0);
         }
         return watcher;
     }
@@ -130,7 +130,8 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
     private void submit(final Watcher watcher,
                         final RegionTask task,
                         Pair<byte[],byte[]> range,
-                        final HTableInterface table) throws ExecutionException{
+                        final HTableInterface table,
+                        final int tryNum) throws ExecutionException{
         final byte[] start = range.getFirst();
         byte[] stop = range.getSecond();
         try {
@@ -143,16 +144,12 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                     },new Batch.Callback<TaskFutureContext>() {
                         @Override
                         public void update(byte[] region, byte[] row, TaskFutureContext result) {
-                            RegionTaskWatcher taskWatcher = new RegionTaskWatcher(watcher, row, task, result, table);
+                            RegionTaskWatcher taskWatcher = new RegionTaskWatcher(watcher, row, task, result, table,tryNum);
                             watcher.tasksToWatch.add(taskWatcher);
                             watcher.taskChanged(taskWatcher);
                         }
                     });
 
-            //attach a watcher
-//            for(TaskFuture future:watcher.tasksToWatch){
-//                future.getStatus();
-//            }
         } catch (Throwable throwable) {
             throw new ExecutionException(throwable);
         }
@@ -167,21 +164,24 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         private final byte[] startRow;
         private final RegionTask task;
         private final HTableInterface table;
-        private final AtomicInteger submissionAttemps = new AtomicInteger(0);
         private final Watcher watcher;
         private final TaskFutureContext taskFutureContext;
         private TaskStatus taskStatus = new TaskStatus(Status.PENDING,null);
         private volatile boolean refresh = true;
+        private final int tryNum;
 
-        private RegionTaskWatcher(Watcher watcher,byte[] startRow,
+        private RegionTaskWatcher(Watcher watcher,
+                                  byte[] startRow,
                                   RegionTask task,
                                   TaskFutureContext taskFutureContext,
-                                  HTableInterface table) {
+                                  HTableInterface table,
+                                  int tryNum) {
             this.watcher = watcher;
             this.startRow = startRow;
             this.task = task;
             this.table = table;
             this.taskFutureContext = taskFutureContext;
+            this.tryNum = tryNum;
         }
 
         @Override
@@ -316,9 +316,9 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         private void resubmit() throws ExecutionException{
             SpliceLogUtils.debug(LOG,"resubmitting task %s",task.getTaskId());
             //only submit so many time
-            if(submissionAttemps.incrementAndGet()>=maxResubmissionAttempts){
+            if(tryNum>=maxResubmissionAttempts){
                 ExecutionException ee = new ExecutionException(
-                        new RetriesExhaustedException("Unable to complete task "+ task.getTaskId()+", it was invalidated more than "+ maxResubmissionAttempts+" times"));
+                        new RetriesExhaustedException("Unable to complete task "+ taskFutureContext.getTaskNode()+", it was invalidated more than "+ maxResubmissionAttempts+" times"));
                 taskStatus.setError(ee.getCause());
                 taskStatus.setStatus(Status.FAILED);
                 throw ee;
@@ -351,7 +351,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                 endRow = HConstants.EMPTY_END_ROW;
 
             //resubmit the task
-            submit(watcher, task, Pair.newPair(startRow, endRow), table);
+            submit(watcher, task, Pair.newPair(startRow, endRow), table,tryNum+1);
         }
 
         @Override
@@ -536,9 +536,13 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                             changedFuture.resubmit();
                             break;
                         case FAILED:
-                            SpliceLogUtils.trace(LOG,"Task %s failed",changedFuture.getTaskId());
-                            failedTasks.add(changedFuture);
-                            changedFuture.complete(); //will throw an error directly
+                            try{
+                                SpliceLogUtils.trace(LOG,"Task %s failed",changedFuture.getTaskId());
+                                changedFuture.dealWithError();
+                            }catch(ExecutionException ee){
+                                failedTasks.add(changedFuture);
+                                throw ee;
+                            }
                             break;
                         case COMPLETED:
                             SpliceLogUtils.trace(LOG,"Task %s completed successfully",changedFuture.getTaskId());

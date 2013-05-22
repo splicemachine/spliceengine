@@ -137,7 +137,7 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
                 SpliceLogUtils.trace(WORKER_LOG,"task %s finished executing, marking completed",task.getTaskId());
                 task.markCompleted();
             }catch(ExecutionException ee){
-                Throwable t = Throwables.getRootCause(ee);
+                Throwable t = ee.getCause();
                 if(t instanceof NotServingRegionException){
                     /*
                      * We were accidentally assigned this task, but we aren't responsible for it, so we need
