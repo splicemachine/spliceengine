@@ -166,7 +166,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         private final HTableInterface table;
         private final Watcher watcher;
         private final TaskFutureContext taskFutureContext;
-        private TaskStatus taskStatus = new TaskStatus(Status.PENDING,null);
+        private volatile TaskStatus taskStatus = new TaskStatus(Status.PENDING,null);
         private volatile boolean refresh = true;
         private final int tryNum;
 
@@ -208,6 +208,16 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
              * there's no need to fetch it. Thus, the watcher switches a refresh flag.
              */
             if(refresh){
+                /*
+                 * There is an inherent race-condition in this flag. Basically, what can happen is that
+                 * the getData() call can return successfully (thus setting the watch), but before the
+                 * old TaskStatus data has finished deserializing, the Watch is fired with a data changed
+                 * situation. The Watch will set refresh = true, but if we set refresh = false at the end
+                 * of this loop, then we can possibly override the setting in refresh that was set by the Watch.
+                 * Thus, we reset the refresh flag here, and thus allow the watch to set the refresh flag without
+                 * fear of being overriden.
+                 */
+                refresh=false;
                 try{
                     byte[] data = zkManager.executeUnlessExpired(new SpliceZooKeeperManager.Command<byte[]>() {
                         @Override
@@ -254,7 +264,6 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                         ByteDataInput bdi = new ByteDataInput(data);
                         taskStatus = (TaskStatus)bdi.readObject();
                     }
-                    refresh=false;
                 } catch (InterruptedException e) {
                     throw new ExecutionException(e);
                 } catch (KeeperException e) {

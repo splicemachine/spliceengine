@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
@@ -25,8 +26,8 @@ public class SpliceWatcher extends TestWatcher {
 	private static final Logger LOG = Logger.getLogger(SpliceWatcher.class);
 	private List<Connection> connections = new ArrayList<Connection>();
 	private Connection currentConnection;
-	private List<Statement> statements = new ArrayList<Statement>();
-	private List<ResultSet> resultSets = new ArrayList<ResultSet>();
+	private List<Statement> statements = Collections.synchronizedList(new ArrayList<Statement>());
+	private List<ResultSet> resultSets = Collections.synchronizedList(new ArrayList<ResultSet>());
 	
 	public SpliceWatcher() {
 	
