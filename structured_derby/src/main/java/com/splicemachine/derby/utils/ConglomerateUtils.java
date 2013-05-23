@@ -92,7 +92,7 @@ public class ConglomerateUtils extends SpliceConstants {
 			put.add(DEFAULT_FAMILY_BYTES, VALUE_COLUMN, conglomData);
 			table.put(put);
 		} catch (Exception e) {
-            SpliceLogUtils.logAndThrow(LOG,"Error Creating Conglomerate",Exceptions.parseException(e));
+            SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));
 		}finally{
 			SpliceAccessManager.closeHTableQuietly(table);
 			Closeables.closeQuietly(admin);
@@ -160,26 +160,29 @@ public class ConglomerateUtils extends SpliceConstants {
 	 * @throws InterruptedException if the split operation is interrupted.
 	 */
 	public static void splitConglomerate(long conglomId, byte[] position) throws IOException, InterruptedException {
-		HBaseAdmin admin = SpliceUtils.getAdmin();
-		byte[] name = Bytes.toBytes(Long.toString(conglomId));
-		admin.split(name,position);
-
-		boolean isSplitting=true;
-		while(isSplitting){
-			isSplitting=false;
-			List<HRegionInfo> regions = admin.getTableRegions(name);
-			if (regions != null) {
-				for(HRegionInfo region:regions){
-					if(region.isSplit()){
-						isSplitting=true;
-						break;
-					}
-				}
-			} else {
-				isSplitting = true;
-			}
-			Thread.sleep(sleepSplitInterval);
-		}
+        splitConglomerate(Bytes.toBytes(Long.toString(conglomId)), position, sleepSplitInterval);
 	}
-	
+
+    public static void splitConglomerate(byte[] name, byte[] position, long sleepInterval) throws IOException, InterruptedException {
+        HBaseAdmin admin = SpliceUtils.getAdmin();
+        admin.split(name,position);
+
+        boolean isSplitting=true;
+        while(isSplitting){
+            isSplitting=false;
+            List<HRegionInfo> regions = admin.getTableRegions(name);
+            if (regions != null) {
+                for(HRegionInfo region:regions){
+                    if(region.isSplit()){
+                        isSplitting=true;
+                        break;
+                    }
+                }
+            } else {
+                isSplitting = true;
+            }
+            Thread.sleep(sleepInterval);
+        }
+    }
+
 }

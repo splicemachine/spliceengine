@@ -3,6 +3,7 @@ package com.splicemachine.hbase;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import org.junit.*;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -145,20 +146,6 @@ public class TableWriterTest extends SpliceConstants {
 
     private void splitTable() throws IOException, InterruptedException {
         LOG.info("Splitting table "+ tableName);
-        //split the table
-        admin.split(tableName.getBytes(),Bytes.toBytes(numWrites/2));
-
-        boolean isSplitting=true;
-        while(isSplitting){
-            isSplitting=false;
-            List<HRegionInfo> regions = admin.getTableRegions(tableName.getBytes());
-            for(HRegionInfo region:regions){
-                if(region.isSplit()||region.isOffline()){
-                    isSplitting=true;
-                    break;
-                }
-            }
-            Thread.sleep(50);
-        }
+        ConglomerateUtils.splitConglomerate(tableName.getBytes(), Bytes.toBytes(numWrites/2), 50);
     }
 }
