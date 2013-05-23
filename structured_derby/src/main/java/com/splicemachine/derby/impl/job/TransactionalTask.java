@@ -65,7 +65,7 @@ public abstract class TransactionalTask extends ZooKeeperTask{
             //create a new child transaction of the parent transaction
             final Transactor<Put, Get, Scan, Mutation, Result> transactor = TransactorFactoryImpl.getTransactor();
             TransactionId id = transactor.beginChildTransaction(
-                    transactor.transactionIdFromString(parentTransaction), !readOnly, !readOnly, null, null);
+                    transactor.transactionIdFromString(parentTransaction), !readOnly, !readOnly);
             transactionId = id.getTransactionIdString();
 
             /*

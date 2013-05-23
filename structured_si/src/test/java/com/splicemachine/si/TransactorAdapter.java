@@ -42,6 +42,11 @@ public class TransactorAdapter<PutOp, GetOp, ScanOp, MutationOp, ResultType>
     }
 
     @Override
+    public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException {
+        return delegate.beginChildTransaction(parent, dependent, allowWrites);
+    }
+
+    @Override
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites, Boolean readUncommitted, Boolean readCommitted) throws IOException {
         return delegate.beginChildTransaction(parent, dependent, allowWrites, readUncommitted, readCommitted);
     }

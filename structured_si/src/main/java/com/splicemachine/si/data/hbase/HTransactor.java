@@ -40,6 +40,11 @@ public class HTransactor<PutOp extends Put, GetOp extends Get, ScanOp extends Sc
     }
 
     @Override
+    public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException {
+        return delegate.beginChildTransaction(parent, dependent, allowWrites);
+    }
+
+    @Override
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites, Boolean readUncommitted, Boolean readCommitted) throws IOException {
         return delegate.beginChildTransaction(parent, dependent, allowWrites, readUncommitted, readCommitted);
     }

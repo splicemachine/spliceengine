@@ -329,7 +329,7 @@ public class SpliceTransaction implements Transaction {
         }
         if (nested) {
             final TransactionId parentTransaction = transactor.transactionIdFromString(parentTransactionID);
-            result = transactor.beginChildTransaction(parentTransaction, dependent, allowWrites, null, null);
+            result = transactor.beginChildTransaction(parentTransaction, dependent, allowWrites);
         } else {
             result = transactor.beginTransaction();
         }

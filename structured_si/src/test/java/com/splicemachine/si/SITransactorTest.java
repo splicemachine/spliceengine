@@ -915,7 +915,7 @@ public class SITransactorTest extends SIConstants {
     public void childDependentTransactionWriteRollbackRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe24", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
         insertAge(t2, "joe24", 21);
         Assert.assertEquals("joe24 age=21 job=null", read(t1, "joe24"));
         transactor.rollback(t2);
@@ -929,7 +929,7 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childDependentTransactionWriteCommitRollbackRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
         insertAge(t2, "joe51", 21);
         transactor.commit(t2);
         transactor.rollback(t2);
@@ -940,7 +940,7 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childIndependentTransactionWriteCommitRollbackRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
         insertAge(t2, "joe52", 21);
         transactor.commit(t2);
         transactor.rollback(t2);
@@ -952,7 +952,7 @@ public class SITransactorTest extends SIConstants {
     public void childDependentSeesParentWrites() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe40", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
         Assert.assertEquals("joe40 age=20 job=null", read(t2, "joe40"));
     }
 
@@ -960,7 +960,7 @@ public class SITransactorTest extends SIConstants {
     public void childIndependentSeesParentWrites() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe41", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
         Assert.assertEquals("joe41 age=20 job=null", read(t2, "joe41"));
     }
 
@@ -968,7 +968,7 @@ public class SITransactorTest extends SIConstants {
     public void childDependentTransactionWriteRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe25", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
         insertAge(t2, "joe25", 21);
         Assert.assertEquals("joe25 age=21 job=null", read(t1, "joe25"));
         transactor.commit(t2);
@@ -995,7 +995,7 @@ public class SITransactorTest extends SIConstants {
         insertAge(otherTransaction, "joe37", 30);
         transactor.commit(otherTransaction);
 
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
         Assert.assertEquals("joe37 age=20 job=null", read(t2, "joe37"));
         transactor.commit(t2);
         transactor.commit(t1);
@@ -1031,7 +1031,7 @@ public class SITransactorTest extends SIConstants {
         insertAge(otherTransaction, "joe39", 30);
         transactor.commit(otherTransaction);
 
-        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
         Assert.assertEquals("joe39 age=20 job=null", read(t2, "joe39"));
         transactor.commit(t2);
         transactor.commit(t1);
@@ -1041,8 +1041,8 @@ public class SITransactorTest extends SIConstants {
     public void multipleChildDependentTransactionWriteRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe26", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
-        TransactionId t3 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
+        TransactionId t3 = transactor.beginChildTransaction(t1, true, true);
         insertAge(t2, "joe26", 21);
         insertJob(t3, "joe26", "baker");
         Assert.assertEquals("joe26 age=21 job=baker", read(t1, "joe26"));
@@ -1067,9 +1067,9 @@ public class SITransactorTest extends SIConstants {
     public void multipleChildDependentTransactionsRollbackThenWrite() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe45", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
         insertAge(t2, "joe45", 21);
-        TransactionId t3 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t3 = transactor.beginChildTransaction(t1, true, true);
         insertJob(t3, "joe45", "baker");
         Assert.assertEquals("joe45 age=21 job=baker", read(t1, "joe45"));
         Assert.assertEquals("joe45 age=21 job=baker", read(t2, "joe45"));
@@ -1079,7 +1079,7 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("joe45 age=20 job=baker", read(t3, "joe45"));
         transactor.rollback(t3);
         Assert.assertEquals("joe45 age=20 job=null", read(t1, "joe45"));
-        TransactionId t4 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t4 = transactor.beginChildTransaction(t1, true, true);
         insertAge(t4, "joe45", 24);
         Assert.assertEquals("joe45 age=24 job=null", read(t1, "joe45"));
         Assert.assertEquals("joe45 age=24 job=null", read(t4, "joe45"));
@@ -1097,11 +1097,11 @@ public class SITransactorTest extends SIConstants {
     public void multipleChildCommitParentRollback() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe46", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
         insertJob(t2, "joe46", "baker");
         transactor.commit(t2);
         transactor.rollback(t1);
-        TransactionId t3 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t3 = transactor.beginChildTransaction(t1, true, true);
         Assert.assertEquals("joe46 age=null job=null", read(t3, "joe46"));
     }
 
@@ -1109,7 +1109,7 @@ public class SITransactorTest extends SIConstants {
     public void childDependentTransactionWriteRollbackParentRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe27", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
         insertAge(t2, "joe27", 21);
         transactor.commit(t2);
         transactor.rollback(t1);
@@ -1122,7 +1122,7 @@ public class SITransactorTest extends SIConstants {
     public void childIndependentTransactionWriteRollbackRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe28", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
         insertAge(t2, "joe28", 21);
         Assert.assertEquals("joe28 age=21 job=null", read(t1, "joe28"));
         transactor.rollback(t2);
@@ -1137,8 +1137,8 @@ public class SITransactorTest extends SIConstants {
     public void multipleChildIndependentTransactionWriteRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe31", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
-        TransactionId t3 = transactor.beginChildTransaction(t1, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
+        TransactionId t3 = transactor.beginChildTransaction(t1, false, true);
         insertAge(t2, "joe31", 21);
         insertJob(t3, "joe31", "baker");
         Assert.assertEquals("joe31 age=21 job=baker", read(t1, "joe31"));
@@ -1163,7 +1163,7 @@ public class SITransactorTest extends SIConstants {
     public void childIndependentTransactionWriteRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe29", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
         insertAge(t2, "joe29", 21);
         Assert.assertEquals("joe29 age=21 job=null", read(t1, "joe29"));
         transactor.commit(t2);
@@ -1182,7 +1182,7 @@ public class SITransactorTest extends SIConstants {
     public void childIndependentTransactionWriteRollbackParentRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe30", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
         insertAge(t2, "joe30", 21);
         transactor.commit(t2);
         transactor.rollback(t1);
@@ -1195,7 +1195,7 @@ public class SITransactorTest extends SIConstants {
     public void commitParentOfCommittedDependent() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe32", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
         insertAge(t2, "joe32", 21);
         transactor.commit(t2);
         final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2);
@@ -1210,7 +1210,7 @@ public class SITransactorTest extends SIConstants {
     public void commitParentOfCommittedIndependent() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe49", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
         insertAge(t2, "joe49", 21);
         transactor.commit(t2);
         final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2);
@@ -1226,7 +1226,7 @@ public class SITransactorTest extends SIConstants {
 
         TransactionId other = transactor.beginTransaction(true, false, true);
 
-        TransactionId child = transactor.beginChildTransaction(parent, false, true, null, null);
+        TransactionId child = transactor.beginChildTransaction(parent, false, true);
         insertAge(child, "joe33", 22);
         transactor.commit(child);
 
@@ -1244,7 +1244,7 @@ public class SITransactorTest extends SIConstants {
     public void dependentWriteFollowedByReadCommittedWriter() throws IOException {
         TransactionId parent = transactor.beginTransaction();
 
-        TransactionId child = transactor.beginChildTransaction(parent, false, true, null, null);
+        TransactionId child = transactor.beginChildTransaction(parent, false, true);
         insertAge(child, "joe34", 22);
         transactor.commit(child);
 
@@ -1257,7 +1257,7 @@ public class SITransactorTest extends SIConstants {
     public void independentWriteFollowedByReadCommittedWriter() throws IOException {
         TransactionId parent = transactor.beginTransaction();
 
-        TransactionId child = transactor.beginChildTransaction(parent, false, true, null, null);
+        TransactionId child = transactor.beginChildTransaction(parent, false, true);
         insertAge(child, "joe35", 22);
         transactor.commit(child);
 
@@ -1272,7 +1272,7 @@ public class SITransactorTest extends SIConstants {
 
         TransactionId other = transactor.beginTransaction(true, false, true);
 
-        TransactionId child = transactor.beginChildTransaction(parent, false, true, null, null);
+        TransactionId child = transactor.beginChildTransaction(parent, false, true);
         insertAge(child, "joe36", 22);
         transactor.commit(child);
 
@@ -1312,8 +1312,8 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childrenOfChildrenCommitCommitCommit() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
-        TransactionId t3 = transactor.beginChildTransaction(t2, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
+        TransactionId t3 = transactor.beginChildTransaction(t2, false, true);
         insertAge(t3, "joe53", 20);
         Assert.assertEquals("joe53 age=20 job=null", read(t3, "joe53"));
         transactor.commit(t3);
@@ -1333,8 +1333,8 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childrenOfChildrenCommitCommitCommitParentWriteFirst() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
-        TransactionId t3 = transactor.beginChildTransaction(t2, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
+        TransactionId t3 = transactor.beginChildTransaction(t2, false, true);
         insertAge(t1, "joe57", 18);
         insertAge(t1, "boe57", 19);
         insertAge(t2, "boe57", 21);
@@ -1356,8 +1356,8 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childrenOfChildrenCommitCommitRollback() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
-        TransactionId t3 = transactor.beginChildTransaction(t2, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
+        TransactionId t3 = transactor.beginChildTransaction(t2, false, true);
         insertAge(t3, "joe54", 20);
         Assert.assertEquals("joe54 age=20 job=null", read(t3, "joe54"));
         transactor.rollback(t3);
@@ -1376,8 +1376,8 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childrenOfChildrenCommitCommitRollbackParentWriteFirst() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
-        TransactionId t3 = transactor.beginChildTransaction(t2, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
+        TransactionId t3 = transactor.beginChildTransaction(t2, false, true);
         insertAge(t1, "joe58", 18);
         insertAge(t1, "boe58", 19);
         insertAge(t2, "boe58", 21);
@@ -1398,8 +1398,8 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childrenOfChildrenCommitRollbackCommit() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
-        TransactionId t3 = transactor.beginChildTransaction(t2, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
+        TransactionId t3 = transactor.beginChildTransaction(t2, false, true);
         insertAge(t3, "joe55", 20);
         Assert.assertEquals("joe55 age=20 job=null", read(t3, "joe55"));
         transactor.commit(t3);
@@ -1419,8 +1419,8 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childrenOfChildrenCommitRollbackCommitParentWriteFirst() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
-        TransactionId t3 = transactor.beginChildTransaction(t2, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
+        TransactionId t3 = transactor.beginChildTransaction(t2, false, true);
         insertAge(t1, "joe59", 18);
         insertAge(t1, "boe59", 19);
         insertAge(t2, "boe59", 21);
@@ -1441,8 +1441,8 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childrenOfChildrenRollbackCommitCommitParentWriteFirst() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
-        TransactionId t3 = transactor.beginChildTransaction(t2, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
+        TransactionId t3 = transactor.beginChildTransaction(t2, false, true);
         insertAge(t1, "joe60", 18);
         insertAge(t1, "boe60", 19);
         insertAge(t2, "boe60", 21);
@@ -1465,8 +1465,8 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childrenOfChildrenRollbackCommitCommit() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        TransactionId t2 = transactor.beginChildTransaction(t1, true, true, null, null);
-        TransactionId t3 = transactor.beginChildTransaction(t2, false, true, null, null);
+        TransactionId t2 = transactor.beginChildTransaction(t1, true, true);
+        TransactionId t3 = transactor.beginChildTransaction(t2, false, true);
         insertAge(t3, "joe56", 20);
         Assert.assertEquals("joe56 age=20 job=null", read(t3, "joe56"));
         transactor.commit(t3);
@@ -2211,7 +2211,7 @@ public class SITransactorTest extends SIConstants {
                     return null;
                 }
             });
-            final TransactionId t1a = transactor.beginChildTransaction(t1, true, true, null, null);
+            final TransactionId t1a = transactor.beginChildTransaction(t1, true, true);
             insertAge(t1a, "joe88", 20);
             Tracer.registerWaiting(new Function<Long, Object>() {
                 @Override

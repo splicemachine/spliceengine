@@ -37,16 +37,16 @@ public interface Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> extend
     TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
     /**
      *
+     *
      * @param parent transaction that contains this new transaction
      * @param dependent indicator of whether this transaction can only finally commit if the parent does
      * @param allowWrites indicates whether this transaction can perform writes
-     * @param readUncommitted
-     * @param readCommitted
      * @return
      * @throws IOException
      */
+    TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException;
     TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
-                                        Boolean readUncommitted, Boolean readCommitted) throws IOException;
+                                               Boolean readUncommitted, Boolean readCommitted) throws IOException;
     void keepAlive(TransactionId transactionId) throws IOException;
     void commit(TransactionId transactionId) throws IOException;
     void rollback(TransactionId transactionId) throws IOException;

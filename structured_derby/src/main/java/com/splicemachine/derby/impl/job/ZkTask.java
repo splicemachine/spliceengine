@@ -103,7 +103,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
                 Transactor transactor = TransactorFactory.getDefaultTransactor();
                 TransactionId parent = transactor.transactionIdFromString(parentTxnId);
                 try {
-                    TransactionId childTxnId  = transactor.beginChildTransaction(parent, !readOnly, !readOnly, null, null);
+                    TransactionId childTxnId  = transactor.beginChildTransaction(parent, !readOnly, !readOnly);
                     status.setTxnId(childTxnId.getTransactionIdString());
                 } catch (IOException e) {
                     throw new ExecutionException("Unable to acquire child transaction",e);

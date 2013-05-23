@@ -78,6 +78,11 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     @Override
+    public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException {
+        return beginChildTransaction(parent, dependent, allowWrites, null, null);
+    }
+
+    @Override
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
                                                Boolean readUncommitted, Boolean readCommitted) throws IOException {
         if (dependent || allowWrites) {
