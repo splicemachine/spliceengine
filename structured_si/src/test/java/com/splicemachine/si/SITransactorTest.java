@@ -10,6 +10,7 @@ import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableReader;
+import com.splicemachine.si.data.hbase.HScan;
 import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.impl.RollForwardAction;
@@ -25,6 +26,10 @@ import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.BinaryComparator;
+import org.apache.hadoop.hbase.filter.CompareFilter;
+import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
 import org.junit.After;
 import org.junit.Assert;
@@ -95,8 +100,8 @@ public class SITransactorTest extends SIConstants {
         return scanNoColumnsDirect(useSimple, transactorSetup, storeSetup, transactionId, name, deleted);
     }
 
-    private String scanAll(TransactionId transactionId, String startKey, String stopKey) throws IOException {
-        return scanAllDirect(useSimple, transactorSetup, storeSetup, transactionId, startKey, stopKey);
+    private String scanAll(TransactionId transactionId, String startKey, String stopKey, Integer filterValue) throws IOException {
+        return scanAllDirect(useSimple, transactorSetup, storeSetup, transactionId, startKey, stopKey, filterValue);
     }
 
     static void insertAgeDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
@@ -210,13 +215,23 @@ public class SITransactorTest extends SIConstants {
     }
 
     static String scanAllDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
-                                TransactionId transactionId, String startKey, String stopKey) throws IOException {
+                                TransactionId transactionId, String startKey, String stopKey, Integer filterValue) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{startKey});
         Object endKey = dataLib.newRowKey(new Object[]{stopKey});
         SScan get = dataLib.newScan(key, endKey, null, null, null);
+        if (!useSimple && filterValue != null) {
+            HScan hScan = (HScan) get;
+            final Scan scan = hScan.getScan();
+            SingleColumnValueFilter filter = new SingleColumnValueFilter((byte[]) transactorSetup.family,
+                    (byte[]) transactorSetup.ageQualifier,
+                    CompareFilter.CompareOp.EQUAL,
+                    new BinaryComparator((byte[]) dataLib.encode(filterValue)));
+            filter.setFilterIfMissing(true);
+            scan.setFilter(filter);
+        }
         transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), get);
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
@@ -423,7 +438,42 @@ public class SITransactorTest extends SIConstants {
                 "17boe age=40 job=null\n" +
                 "17joe age=20 job=null\n" +
                 "17tom age=50 job=null\n";
-        Assert.assertEquals(expected, scanAll(t2, "17a", "17z"));
+        Assert.assertEquals(expected, scanAll(t2, "17a", "17z", null));
+    }
+
+    @Test
+    public void writeScanWithFilter() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "91joe", 20);
+        insertAge(t1, "91bob", 30);
+        insertAge(t1, "91boe", 40);
+        insertAge(t1, "91tom", 50);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        String expected = "91boe age=40 job=null\n";
+        if (!useSimple) {
+            Assert.assertEquals(expected, scanAll(t2, "91a", "91z", 40));
+        }
+    }
+
+    @Test
+    public void writeScanWithFilterAndPendingWrites() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "92joe", 20);
+        insertAge(t1, "92bob", 30);
+        insertAge(t1, "92boe", 40);
+        insertAge(t1, "92tom", 50);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        insertAge(t2, "92boe", 41);
+
+        TransactionId t3 = transactor.beginTransaction();
+        String expected = "92boe age=40 job=null\n";
+        if (!useSimple) {
+            Assert.assertEquals(expected, scanAll(t3, "92a", "92z", 40));
+        }
     }
 
     @Test
@@ -714,7 +764,7 @@ public class SITransactorTest extends SIConstants {
                 "48joe age=20 job=null\n" +
                 "48toe age=30 job=null\n" +
                 "48xoe age=60 job=null\n";
-        Assert.assertEquals(expected, scanAll(t3, "48a", "48z"));
+        Assert.assertEquals(expected, scanAll(t3, "48a", "48z", null));
     }
 
     @Test
@@ -2076,7 +2126,7 @@ public class SITransactorTest extends SIConstants {
             final CountDownLatch latch2 = new CountDownLatch(1);
             final CountDownLatch latch3 = new CountDownLatch(1);
             final Boolean[] success = new Boolean[]{false};
-            final Boolean[] waits = new Boolean[] {false, false};
+            final Boolean[] waits = new Boolean[]{false, false};
             Tracer.registerCommitting(new Function<Long, Object>() {
                 @Override
                 public Object apply(@Nullable Long aLong) {
