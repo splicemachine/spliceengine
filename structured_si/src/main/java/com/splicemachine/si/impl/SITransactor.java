@@ -85,6 +85,10 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     @Override
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
                                                Boolean readUncommitted, Boolean readCommitted) throws IOException {
+        final ImmutableTransaction parentTransaction = transactionStore.getImmutableTransaction(parent);
+        if (parentTransaction.isNested()) {
+            throw new RuntimeException("Parent transaction must be a top-level transaction");
+        }
         if (dependent || allowWrites) {
             final TransactionParams params = new TransactionParams(parent, dependent, allowWrites, readUncommitted,
                     readCommitted);
