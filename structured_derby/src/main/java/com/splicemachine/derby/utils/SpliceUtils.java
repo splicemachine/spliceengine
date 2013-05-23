@@ -303,27 +303,29 @@ public class SpliceUtils extends SpliceUtilities {
         }
     }
 
-    
-    
+
+
     public static void populate(List<KeyValue> keyValues, DataValueDescriptor[] destRow,
-            FormatableBitSet scanList,int[] bitSetToDestRowMap,Serializer serializer) throws StandardException{
-    	if(scanList==null||scanList.getNumBitsSet()<=0) populate(keyValues,destRow,serializer);
-    	else {
-    		try{    			
-    			int placeHolder = 0;
-    			for (KeyValue keyValue : keyValues) {
-    				if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
-    					continue;
-    				placeHolder = Bytes.toInt(keyValue.getQualifier());
-    				if (scanList.isSet(placeHolder)) {
-    					fill(keyValue.getValue(),destRow[bitSetToDestRowMap[placeHolder]],serializer);
-    				}
-    			}
-    		}catch(IOException e){
-    			SpliceLogUtils.logAndThrowRuntime(LOG,"Error occurred during populate",e);
-    		}
-    	}
-}
+                                FormatableBitSet scanList,int[] bitSetToDestRowMap,Serializer serializer) throws StandardException{
+        if(scanList==null||scanList.getNumBitsSet()<=0) populate(keyValues,destRow,serializer);
+        else {
+            try{
+                int placeHolder = 0;
+                for (KeyValue keyValue : keyValues) {
+                    if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
+                        continue;
+                    else if(Bytes.compareTo(keyValue.getQualifier(), OperationSink.TASK_ID_COL_BYTES)==0)
+                        continue; //skip the task column
+                    placeHolder = Bytes.toInt(keyValue.getQualifier());
+                    if (scanList.isSet(placeHolder)) {
+                        fill(keyValue.getValue(),destRow[bitSetToDestRowMap[placeHolder]],serializer);
+                    }
+                }
+            }catch(IOException e){
+                SpliceLogUtils.logAndThrowRuntime(LOG,"Error occurred during populate",e);
+            }
+        }
+    }
 
     
     public static void populate(Result currentResult, DataValueDescriptor[] destRow,
