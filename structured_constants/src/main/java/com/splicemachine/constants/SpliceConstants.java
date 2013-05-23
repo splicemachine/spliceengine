@@ -47,6 +47,7 @@ public class SpliceConstants {
 	public static final int DEFAULT_RMI_PORT = 40001;
 	public static final int DEFAULT_RMI_REMOTE_OBJECT_PORT = 47000;
     public static final int DEFAULT_STARTUP_LOCK_PERIOD=200;
+    public static final int DEFAULT_RING_BUFFER_SIZE=1000;
 
 
 
@@ -99,6 +100,7 @@ public class SpliceConstants {
     private static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
 
     private static final String STARTUP_LOCK_WAIT_PERIOD = "splice.startup.lockWaitPeriod";
+    private static final String RING_BUFFER_SIZE = "splice.ring.bufferSize";
 
     
 	// Zookeeper Actual Paths
@@ -134,6 +136,7 @@ public class SpliceConstants {
     public static int rmiPort;
     public static int rmiRemoteObjectPort;
     public static int startupLockWaitPeriod;
+    public static int ringBufferSize;
     
     
     
@@ -254,6 +257,7 @@ public class SpliceConstants {
         rmiRemoteObjectPort = config.getInt(CONFIG_RMI_REMOTE_OBJECT_PORT, DEFAULT_RMI_REMOTE_OBJECT_PORT);
         dumpClassFile = config.getBoolean(DEBUG_DUMP_CLASS_FILE,DEFAULT_DUMP_CLASS_FILE);
         startupLockWaitPeriod = config.getInt(STARTUP_LOCK_WAIT_PERIOD,DEFAULT_STARTUP_LOCK_PERIOD);
+        ringBufferSize = config.getInt(RING_BUFFER_SIZE, DEFAULT_RING_BUFFER_SIZE);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {

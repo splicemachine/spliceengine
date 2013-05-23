@@ -1,7 +1,5 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.error.SpliceDoNotRetryIOException;
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.junit.Assert;

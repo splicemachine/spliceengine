@@ -1,20 +1,16 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.hbase.SpliceOperationProtocol;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.*;
+import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
@@ -30,7 +26,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -134,34 +129,25 @@ public class HashScanOperation extends ScanOperation {
 		out.writeBoolean(runTimeStatisticsOn);
 	}
 
-	@Override
-	public void init(SpliceOperationContext context) throws StandardException{
-		SpliceLogUtils.trace(LOG, "init called");
-		super.init(context);
-			GenericStorablePreparedStatement statement = context.getPreparedStatement();
-			GeneratedMethod generatedMethod = statement.getActivationClass().getMethod(resultRowAllocatorMethodName);
-			ExecRow candidate = (ExecRow) generatedMethod.invoke(activation);
-			FormatableArrayHolder fah = (FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(hashKeyItem));
-			FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
-			LanguageConnectionContext lcc = context.getLanguageConnectionContext();
-			currentRow = getCompactRow(lcc,candidate, accessedCols, false);
-			keyColumns = new int[fihArray.length];
-			for (int index = 0; index < fihArray.length; index++) {
-				keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(accessedCols, fihArray[index].getInt());
-			}
-			LOG.info("activation.getClass()="+activation.getClass()+",aactivation="+activation);
-			try {
-			if (scanQualifiersField != null)
-				scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
-			this.mapScan = Scans.setupScan(startPosition==null?null:startPosition.getRowArray(), startSearchOperator,
-					stopPosition==null?null:stopPosition.getRowArray(), stopSearchOperator,
-					scanQualifiers, null, accessedCols, getTransactionID());
-		} catch (Exception e) {
-			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "Error initializing HashScanOperation", e);
-		} 
-	}
-	
-	@Override
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException{
+        SpliceLogUtils.trace(LOG, "init called");
+        super.init(context);
+        GenericStorablePreparedStatement statement = context.getPreparedStatement();
+        GeneratedMethod generatedMethod = statement.getActivationClass().getMethod(resultRowAllocatorMethodName);
+        ExecRow candidate = (ExecRow) generatedMethod.invoke(activation);
+        FormatableArrayHolder fah = (FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(hashKeyItem));
+        FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
+        LanguageConnectionContext lcc = context.getLanguageConnectionContext();
+        currentRow = getCompactRow(lcc,candidate, accessedCols, false);
+        keyColumns = new int[fihArray.length];
+        for (int index = 0; index < fihArray.length; index++) {
+            keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(accessedCols, fihArray[index].getInt());
+        }
+        LOG.info("activation.getClass()="+activation.getClass()+",aactivation="+activation);
+    }
+
+    @Override
 	public List<NodeType> getNodeTypes() {
 		SpliceLogUtils.trace(LOG, "getNodeTypes");
 		return nodeTypes;
@@ -172,60 +158,6 @@ public class HashScanOperation extends ScanOperation {
 		SpliceLogUtils.trace(LOG, "getSubOperations");
 		return new ArrayList<SpliceOperation>();
 	}
-
-//	@Override
-//	public void executeShuffle() {
-//        throw new UnsupportedOperationException("HashScans are unsupported!");
-//		SpliceLogUtils.trace(LOG, "executeShuffle");
-//		List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
-//		this.generateLeftOperationStack(operationStack);
-//		final SpliceOperation regionOperation = operationStack.get(0);
-//		HTableInterface htable = null;
-//		try {
-//			regionStats = new RegionStats(this.getClass().getName());
-//            regionStats.start();
-//
-//			htable = SpliceAccessManager.getHTable(Bytes.toBytes(tableName));
-//			SpliceLogUtils.trace(LOG, "executing coprocessor on table=" + tableName + ", with scan=" + mapScan);
-//			final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,regionOperation);
-//			htable.coprocessorExec(SpliceOperationProtocol.class,
-//					mapScan.getStartRow(), mapScan.getStopRow(),
-//					new Batch.Call<SpliceOperationProtocol, TaskStats>() {
-//						@Override
-//						public TaskStats call(SpliceOperationProtocol instance) throws IOException {
-//							try {
-//								return instance.run(mapScan,soi);
-//							} catch (StandardException e) {
-//								SpliceLogUtils.logAndThrowRuntime(LOG, "Error Executing Sink", e);
-//					}
-//					return null;
-//				}
-//			},new Batch.Callback<TaskStats>() {
-//                        @Override
-//                        public void update(byte[] region, byte[] row, TaskStats result) {
-//                            regionStats.addRegionStats(region,result);
-//                        }
-//                    });
-//            regionStats.finish();
-//            regionStats.recordStats(LOG);
-//			executed = true;
-//            nextTime += regionStats.getTotalTimeTakenMs();
-//		} catch (Exception e) {
-//			LOG.error("Problem Running Coprocessor " + e.getMessage());
-//			throw new RuntimeException(e);
-//		} catch (Throwable e) {
-//			LOG.error("Problem Running Coprocessor " + e.getMessage());
-//			throw new RuntimeException(e);
-//		} finally {
-//			if (htable != null)
-//				try {
-//					htable.close();
-//				} catch (IOException e) {
-//					LOG.error("Problem Closing HBase Table");
-//					throw new RuntimeException(e);
-//				}
-//		}
-//	}
 
     @Override
     public OperationSink.Translator getTranslator() throws IOException {
@@ -260,12 +192,29 @@ public class HashScanOperation extends ScanOperation {
 	}
 
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow template){
-		SpliceUtils.setInstructions(mapScan,getActivation(),top);
-		return new ClientScanProvider(Bytes.toBytes(tableName),mapScan,template,null);
+	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
+        try{
+            Scan scan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
+            return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,scan,template,null);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
 	}
-	
-	@Override
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return getMapRowProvider(top,template);
+    }
+
+    @Override
+    protected JobStats doShuffle() throws StandardException {
+        Scan scan = buildScan();
+        RowProvider provider =  new ClientScanProvider(Bytes.toBytes(tableName),scan,getExecRowDefinition(),null);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
+        return provider.shuffleRows(soi);
+    }
+
+    @Override
 	public NoPutResultSet executeProbeScan() {
 		SpliceLogUtils.trace(LOG, "executeProbeScan");
 		try {
@@ -306,7 +255,7 @@ public class HashScanOperation extends ScanOperation {
 			while (!keyValues.isEmpty()) {
 				SpliceLogUtils.trace(LOG, "getNextRowCore retrieved hbase values " + keyValues);
 				  
-				  SpliceUtils.populate(keyValues, currentRow.getRowArray());
+				  SpliceUtils.populate(keyValues, currentRow.getRowArray(),accessedCols,baseColumnMap);
 				  SpliceLogUtils.trace(LOG, "getNextRowCore retrieved derby row " + currentRow);
 				  this.setCurrentRow(currentRow);
 				  currentRowLocation = new HBaseRowLocation(keyValues.get(0).getRow());
@@ -319,8 +268,14 @@ public class HashScanOperation extends ScanOperation {
 	    this.setCurrentRow(currentRow);
 		return currentRow;		  
 	}
-	
-	public int[] getKeyColumns() {
+
+    @Override
+    public NoPutResultSet executeScan() throws StandardException {
+        RowProvider provider = getReduceRowProvider(this,getExecRowDefinition());
+        return new SpliceNoPutResultSet(activation,this,provider);
+    }
+
+    public int[] getKeyColumns() {
 		return this.keyColumns;
 	}
 	

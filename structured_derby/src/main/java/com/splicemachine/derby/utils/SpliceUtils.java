@@ -3,13 +3,13 @@ package com.splicemachine.derby.utils;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HClientTransactor;
 import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -133,7 +133,8 @@ public class SpliceUtils extends SpliceUtilities {
 
 			return get;
 		} catch (Exception e) {
-			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "createGet Failed", e);
+            SpliceLogUtils.logAndThrow(LOG,"createGet Failed",Exceptions.parseException(e));
+            return null; //can't happen
 		}
 	}
 
@@ -301,27 +302,29 @@ public class SpliceUtils extends SpliceUtilities {
         }
     }
 
-    
-    
+
+
     public static void populate(List<KeyValue> keyValues, DataValueDescriptor[] destRow,
-            FormatableBitSet scanList,int[] bitSetToDestRowMap,Serializer serializer) throws StandardException{
-    	if(scanList==null||scanList.getNumBitsSet()<=0) populate(keyValues,destRow,serializer);
-    	else {
-    		try{    			
-    			int placeHolder = 0;
-    			for (KeyValue keyValue : keyValues) {
-    				if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
-    					continue;
-    				placeHolder = Bytes.toInt(keyValue.getQualifier());
-    				if (scanList.isSet(placeHolder)) {
-    					fill(keyValue.getValue(),destRow[bitSetToDestRowMap[placeHolder]],serializer);
-    				}
-    			}
-    		}catch(IOException e){
-    			SpliceLogUtils.logAndThrowRuntime(LOG,"Error occurred during populate",e);
-    		}
-    	}
-}
+                                FormatableBitSet scanList,int[] bitSetToDestRowMap,Serializer serializer) throws StandardException{
+        if(scanList==null||scanList.getNumBitsSet()<=0) populate(keyValues,destRow,serializer);
+        else {
+            try{
+                int placeHolder = 0;
+                for (KeyValue keyValue : keyValues) {
+                    if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
+                        continue;
+                    else if(Bytes.compareTo(keyValue.getQualifier(), OperationSink.TASK_ID_COL_BYTES)==0)
+                        continue; //skip the task column
+                    placeHolder = Bytes.toInt(keyValue.getQualifier());
+                    if (scanList.isSet(placeHolder)) {
+                        fill(keyValue.getValue(),destRow[bitSetToDestRowMap[placeHolder]],serializer);
+                    }
+                }
+            }catch(IOException e){
+                SpliceLogUtils.logAndThrowRuntime(LOG,"Error occurred during populate",e);
+            }
+        }
+    }
 
     
     public static void populate(Result currentResult, DataValueDescriptor[] destRow,
@@ -380,7 +383,7 @@ public class SpliceUtils extends SpliceUtilities {
 				}
 			}
 		}catch(IOException e){
-			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "populate error", e);
+            SpliceLogUtils.logAndThrow(LOG,"populate error", Exceptions.parseException(e));
 		}
 	}
     
@@ -400,7 +403,7 @@ public class SpliceUtils extends SpliceUtilities {
     				}
     			}
     		}catch(IOException e){
-    			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "populate error", e);
+                SpliceLogUtils.logAndThrow(LOG,"populate error",Exceptions.parseException(e));
     		}
     	}
 }
@@ -567,7 +570,8 @@ public class SpliceUtils extends SpliceUtilities {
         try {
         	return rzk.exists(zkSpliceDerbyPropertyPath + "/" + propertyName, false) != null;
         } catch (Exception e) {
-        	throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "propertyExists Exception", e);
+            SpliceLogUtils.logAndThrow(LOG,"propertyExistsException",Exceptions.parseException(e));
+            return false; //can't happen
         }
     }
 
@@ -577,7 +581,8 @@ public class SpliceUtils extends SpliceUtilities {
         try {
         	return rzk.getData(zkSpliceDerbyPropertyPath + "/" + propertyName, false, null);
         } catch (Exception e) {
-        	throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "propertyExists Exception", e);
+            SpliceLogUtils.logAndThrow(LOG,"propertyExists Exception",Exceptions.parseException(e));
+            return null; //can't happen
         }
     }
 
@@ -587,7 +592,7 @@ public class SpliceUtils extends SpliceUtilities {
             try {
                     rzk.create(zkSpliceDerbyPropertyPath + "/" + propertyName, Bytes.toBytes(propertyValue), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             } catch (Exception e) {
-            	throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "addProperty Exception", e);
+                SpliceLogUtils.logAndThrow(LOG,"addProperty Exception",Exceptions.parseException(e));
             }
     }
 }

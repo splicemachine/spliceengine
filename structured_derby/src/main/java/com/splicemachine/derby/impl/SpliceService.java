@@ -5,11 +5,12 @@ import java.io.IOException;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
+
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.EngineType;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.services.monitor.PersistentService;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.io.StorageFactory;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -18,7 +19,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
 
 public class SpliceService extends SpliceConstants implements PersistentService {
 	protected static final String TYPE = "splice";
@@ -49,7 +49,7 @@ public class SpliceService extends SpliceConstants implements PersistentService 
 				service.setProperty(child, value);
 			}
 		} catch (Exception e) {
-			SpliceStandardLogUtils.logAndReturnStandardException(LOG, "getServiceProperties Failed", e);
+            SpliceLogUtils.logAndThrow(LOG, "getServiceProperties Failed", Exceptions.parseException(e));
 		}
 		SpliceLogUtils.trace(LOG,"getServiceProperties serviceName: %s, defaultProperties %s",serviceName, defaultProperties);
 //		Properties service = new Properties(SpliceUtils.getAllProperties(defaultProperties));

@@ -6,13 +6,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.NavigableMap;
 
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.hbase.CallBuffer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;

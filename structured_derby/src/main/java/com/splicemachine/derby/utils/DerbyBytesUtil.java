@@ -12,8 +12,6 @@ import java.sql.Timestamp;
 
 import com.google.common.io.Closeables;
 import com.gotometrics.orderly.*;
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.StandardException;
@@ -41,8 +39,9 @@ public class DerbyBytesUtil {
 			return (T) ois.readObject();
 		} catch (Exception e) {
 			Closeables.closeQuietly(ois);
-			Closeables.closeQuietly(bis);	
-			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "fromBytes Exception", e);
+			Closeables.closeQuietly(bis);
+            SpliceLogUtils.logAndThrow(LOG,"fromBytes Exception",Exceptions.parseException(e));
+            return null; //can't happen
 		}
 	}
 	public static byte[] toBytes(Object object) throws StandardException {
@@ -55,8 +54,9 @@ public class DerbyBytesUtil {
 			return bis.toByteArray();
 		} catch (Exception e) {
 			Closeables.closeQuietly(ois);
-			Closeables.closeQuietly(bis);	
-			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "fromBytes Exception", e);
+			Closeables.closeQuietly(bis);
+            SpliceLogUtils.logAndThrow(LOG,"fromBytes Exception",Exceptions.parseException(e));
+            return null;
 		}
 	}
 
@@ -269,7 +269,8 @@ public class DerbyBytesUtil {
 			values[0] = uniqueString.getString();
 			return builder.toRowKey().serialize(values);
 		} catch (Exception e) {
-			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "generateBeginKeyForTemp Failed", e);
+            SpliceLogUtils.logAndThrow(LOG,"generateBeginKeyForTemp failed",Exceptions.parseException(e));
+            return null;
 		}
 	}
 
