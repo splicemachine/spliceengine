@@ -185,21 +185,7 @@ public class SortOperation extends SpliceBaseOperation {
 
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {
-		SpliceLogUtils.trace(LOG,"executeScan");
-		beginTime = getCurrentTimeMillis();
-		final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
-		this.generateLeftOperationStack(opStack);
-		SpliceLogUtils.trace(LOG,"operationStack=%s",opStack);
-		
-		// Get the topmost value, instead of the bottommost, in case it's you
-		SpliceOperation regionOperation = opStack.get(opStack.size()-1); 
-		SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-		RowProvider provider;
-		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)){
-			provider = regionOperation.getReduceRowProvider(this,getExecRowDefinition());
-		}else {
-			provider = regionOperation.getMapRowProvider(this,getExecRowDefinition());
-		}
+        RowProvider provider = getReduceRowProvider(this,getExecRowDefinition());
 		SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this,provider);
 		nextTime += getCurrentTimeMillis() - beginTime;
 		return rs;

@@ -216,29 +216,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {
-		SpliceLogUtils.trace(LOG, "executeScan");
-		beginTime = getCurrentTimeMillis();
-		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
-		this.generateLeftOperationStack(operationStack);
-		SpliceLogUtils.trace(LOG, "operationStack=%s",operationStack);
-		SpliceOperation regionOperation = operationStack.get(0);
-		LOG.trace("regionOperation="+regionOperation);
-		RowProvider provider;
         ExecRow fromResults = getExecRowDefinition();
-//        ExecRow fromResults = null;
-//        try{
-//            fromResults = getFromResultDescription(activation.getResultDescription());
-//        }catch(StandardException se){
-//            SpliceLogUtils.logAndThrowRuntime(LOG,se);
-//        }
-//        if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
-//			SpliceLogUtils.trace(LOG,"scanning Temp Table");
-//			provider = regionOperation.getReduceRowProvider(this,fromResults);
-//		} else {
-//			SpliceLogUtils.trace(LOG,"scanning Map Table");
-//			provider = regionOperation.getMapRowProvider(this,fromResults);
-//		}
-        provider = getReduceRowProvider(this,fromResults);
+        RowProvider provider = getReduceRowProvider(this,fromResults);
         SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
 		nextTime += getCurrentTimeMillis() - beginTime;
 		return rs;
