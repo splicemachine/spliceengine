@@ -135,7 +135,7 @@ public class Transaction extends ImmutableTransaction {
 
     /**
      * @return status of this transaction or the status of it's ancestor. Transactions inherit their parent's status
-     *         if they don't have one explictly set for themselves.
+     *         if they don't have one explicitly set for themselves.
      */
     public TransactionStatus getEffectiveStatus() {
         if (shouldUseParentStatus()) {
@@ -145,7 +145,7 @@ public class Transaction extends ImmutableTransaction {
     }
 
     private boolean shouldUseParentStatus() {
-        return status == null;
+        return isNested() && ((status == null) || (status.equals(ACTIVE)));
     }
 
     /**
