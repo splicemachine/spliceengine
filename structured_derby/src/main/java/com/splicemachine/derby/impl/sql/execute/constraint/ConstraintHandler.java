@@ -1,11 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
-import com.splicemachine.si.data.hbase.TransactorFactory;
-import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 
 import java.io.IOException;

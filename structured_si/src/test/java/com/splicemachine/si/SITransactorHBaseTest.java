@@ -1,9 +1,8 @@
 package com.splicemachine.si;
 
-import com.splicemachine.si.data.hbase.TransactorFactory;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
 import com.splicemachine.si.impl.RollForwardQueue;
-import com.splicemachine.si.impl.TransactorFactoryImpl;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -39,8 +38,7 @@ public class SITransactorHBaseTest extends SITransactorTest {
         classStoreSetup = new HStoreSetup();
         classTransactorSetup = new TransactorSetup(classStoreSetup, false);
         Transactor transactor = classTransactorSetup.transactor;
-        TransactorFactory.setDefaultTransactor(transactor);
-        TransactorFactoryImpl.setTransactor(transactor);
+        HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);
     }
 
     @AfterClass

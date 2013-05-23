@@ -3,7 +3,7 @@ package com.splicemachine.si.data.hbase;
 import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.data.api.STable;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.client.Get;
@@ -12,15 +12,15 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import java.io.IOException;
 import java.util.List;
 
-public class HTransactor<PutOp extends Put, GetOp extends Get, ScanOp extends Scan, MutationOp extends Mutation, ResultType extends Result>
-        implements Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> {
+public class HTransactorAdapter implements HTransactor {
     Transactor delegate;
 
-    public HTransactor(Transactor delegate) {
+    public HTransactorAdapter(Transactor delegate) {
         this.delegate = delegate;
     }
 
@@ -70,32 +70,32 @@ public class HTransactor<PutOp extends Put, GetOp extends Get, ScanOp extends Sc
     }
 
     @Override
-    public boolean processPut(STable table, RollForwardQueue rollForwardQueue, PutOp put) throws IOException {
-        return delegate.processPut(table, rollForwardQueue, put);
+    public boolean processPut(HRegion region, RollForwardQueue rollForwardQueue, Put put) throws IOException {
+        return delegate.processPut(new HbRegion(region), rollForwardQueue, put);
     }
 
     @Override
-    public boolean isFilterNeededGet(GetOp get) {
+    public boolean isFilterNeededGet(Get get) {
         return delegate.isFilterNeededGet(new HGet(get));
     }
 
     @Override
-    public boolean isFilterNeededScan(ScanOp scan) {
+    public boolean isFilterNeededScan(Scan scan) {
         return delegate.isFilterNeededScan(new HScan(scan));
     }
 
     @Override
-    public boolean isScanSIFamilyOnly(ScanOp read) {
+    public boolean isScanSIFamilyOnly(Scan read) {
         return delegate.isScanSIFamilyOnly(new HScan(read));
     }
 
     @Override
-    public void preProcessGet(GetOp get) throws IOException {
+    public void preProcessGet(Get get) throws IOException {
         delegate.preProcessGet(new HGet(get));
     }
 
     @Override
-    public void preProcessScan(ScanOp scan) throws IOException {
+    public void preProcessScan(Scan scan) throws IOException {
         delegate.preProcessScan(new HScan(scan));
     }
 
@@ -115,13 +115,13 @@ public class HTransactor<PutOp extends Put, GetOp extends Get, ScanOp extends Sc
     }
 
     @Override
-    public ResultType filterResult(FilterState filterState, ResultType result) throws IOException {
-        return (ResultType) delegate.filterResult(filterState, result);
+    public Result filterResult(FilterState filterState, Result result) throws IOException {
+        return (Result) delegate.filterResult(filterState, result);
     }
 
     @Override
-    public void rollForward(STable table, long transactionId, List rows) throws IOException {
-        delegate.rollForward(table, transactionId, rows);
+    public void rollForward(HRegion region, long transactionId, List rows) throws IOException {
+        delegate.rollForward(new HbRegion(region), transactionId, rows);
     }
 
     @Override
@@ -135,17 +135,17 @@ public class HTransactor<PutOp extends Put, GetOp extends Get, ScanOp extends Sc
     }
 
     @Override
-    public TransactionId transactionIdFromGet(GetOp get) {
+    public TransactionId transactionIdFromGet(Get get) {
         return delegate.transactionIdFromGet(new HGet(get));
     }
 
     @Override
-    public TransactionId transactionIdFromScan(ScanOp scan) {
+    public TransactionId transactionIdFromScan(Scan scan) {
         return delegate.transactionIdFromScan(new HScan(scan));
     }
 
     @Override
-    public TransactionId transactionIdFromPut(PutOp put) {
+    public TransactionId transactionIdFromPut(Put put) {
         return delegate.transactionIdFromPut(put);
     }
 
@@ -155,27 +155,27 @@ public class HTransactor<PutOp extends Put, GetOp extends Get, ScanOp extends Sc
     }
 
     @Override
-    public void initializeScan(String transactionId, ScanOp scan) {
+    public void initializeScan(String transactionId, Scan scan) {
         delegate.initializeScan(transactionId, new HScan(scan));
     }
 
     @Override
-    public void initializeScan(String transactionId, ScanOp scan, boolean siFamilyOnly) {
+    public void initializeScan(String transactionId, Scan scan, boolean siFamilyOnly) {
         delegate.initializeScan(transactionId, new HScan(scan), siFamilyOnly);
     }
 
     @Override
-    public void initializePut(String transactionId, PutOp put) {
+    public void initializePut(String transactionId, Put put) {
         delegate.initializePut(transactionId, put);
     }
 
     @Override
-    public PutOp createDeletePut(TransactionId transactionId, Object rowKey) {
-        return (PutOp) delegate.createDeletePut(transactionId, rowKey);
+    public Put createDeletePut(TransactionId transactionId, Object rowKey) {
+        return (Put) delegate.createDeletePut(transactionId, rowKey);
     }
 
     @Override
-    public boolean isDeletePut(MutationOp put) {
+    public boolean isDeletePut(Mutation put) {
         return delegate.isDeletePut(put);
     }
 }

@@ -6,8 +6,8 @@ import com.splicemachine.derby.impl.sql.execute.index.*;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.hbase.batch.*;
 import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.data.hbase.TransactorFactory;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
 import com.splicemachine.tools.ResettableCountDownLatch;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
@@ -21,7 +21,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -199,14 +198,14 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             throw new IndexNotSetUpException("Unable to initialize index management for table "+ congomId
                     +" within a sufficient time frame. Please wait a bit and try again");
         }
-        Transactor transactor = null;
+        HTransactor transactor = null;
         TransactionId txnId = null;
         boolean success = false;
         SpliceTransactionResourceImpl transactionResource = null;
         try {
             try{
                 transactionResource = new SpliceTransactionResourceImpl();
-                transactor = TransactorFactory.getDefaultTransactor();
+                transactor = HTransactorFactory.getTransactor();
                 txnId = transactor.beginTransaction(false,true,false);
                 transactionResource.marshallTransaction(txnId.getTransactionIdString());
 

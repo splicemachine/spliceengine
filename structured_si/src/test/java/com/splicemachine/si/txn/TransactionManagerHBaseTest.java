@@ -2,8 +2,7 @@ package com.splicemachine.si.txn;
 
 import com.splicemachine.si.HStoreSetup;
 import com.splicemachine.si.TransactorSetup;
-import com.splicemachine.si.data.hbase.TransactorFactory;
-import com.splicemachine.si.impl.TransactorFactoryImpl;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
@@ -12,8 +11,7 @@ public class TransactionManagerHBaseTest extends TransactionManagerTest {
     public static void setUp() {
         storeSetup = new HStoreSetup();
         transactorSetup = new TransactorSetup(storeSetup, false);
-        TransactorFactory.setDefaultTransactor(transactor);
-        TransactorFactoryImpl.setTransactor(transactor);
+        HTransactorFactory.setTransactor(transactorSetup.hTransactor);
         baseSetUp();
     }
 

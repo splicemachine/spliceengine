@@ -4,7 +4,8 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.data.hbase.HTransactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
+import com.splicemachine.si.data.hbase.HTransactorAdapter;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
@@ -18,11 +19,6 @@ import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.TransactionStore;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 
 import java.util.concurrent.TimeUnit;
 
@@ -36,6 +32,7 @@ public class TransactorSetup extends SIConstants {
 
     ClientTransactor clientTransactor;
     public Transactor transactor;
+    public HTransactor hTransactor;
     public final TransactionStore transactionStore;
     public RollForwardQueue rollForwardQueue;
 
@@ -61,7 +58,7 @@ public class TransactorSetup extends SIConstants {
                         -1, -2, userColumnsFamilyName),
                 transactionStore, storeSetup.getClock(), 1500);
         if (!simple) {
-            transactor = new TransactorAdapter(new HTransactor<Put, Get, Scan, Mutation, Result>(transactor));
+            hTransactor = new HTransactorAdapter(transactor);
         }
         clientTransactor = transactor;
     }

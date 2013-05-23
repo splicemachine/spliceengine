@@ -1,6 +1,6 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
 import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
@@ -17,7 +17,7 @@ public class SICompactionScanner implements InternalScanner {
     private final SICompactionState compactionState;
     private final InternalScanner delegate;
 
-    public SICompactionScanner(Transactor transactor, InternalScanner scanner) {
+    public SICompactionScanner(HTransactor transactor, InternalScanner scanner) {
         this.compactionState = transactor.newCompactionState();
         this.delegate = scanner;
     }

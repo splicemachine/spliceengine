@@ -6,16 +6,13 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.si.api.ClientTransactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HClientTransactor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -23,10 +20,8 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
-import com.splicemachine.si.data.hbase.HScan;
 
 /**
  * Utility methods and classes related to building HBase Scans
@@ -407,7 +402,7 @@ public class Scans extends SpliceUtils {
 			}
 			
 			if (scanColumnList.anySetBit() == -1) {
-                final ClientTransactor<Put,Get,Scan,Mutation> transactor = getTransactor();
+                final HClientTransactor transactor = getTransactor();
                 transactor.initializeScan(transactor.transactionIdFromScan(scan).getTransactionIdString(), scan, true);
 			} else {
 			

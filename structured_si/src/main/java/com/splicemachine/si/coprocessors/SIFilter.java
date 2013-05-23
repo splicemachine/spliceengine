@@ -2,7 +2,7 @@ package com.splicemachine.si.coprocessors;
 
 import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
@@ -18,7 +18,7 @@ import java.io.IOException;
  */
 public class SIFilter extends FilterBase {
     private static Logger LOG = Logger.getLogger(SIFilter.class);
-    private Transactor transactor = null;
+    private HTransactor transactor = null;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
     private boolean siOnly;
@@ -28,7 +28,7 @@ public class SIFilter extends FilterBase {
     public SIFilter() {
     }
 
-    public SIFilter(Transactor transactor, TransactionId transactionId, RollForwardQueue rollForwardQueue, boolean siOnly) throws IOException {
+    public SIFilter(HTransactor transactor, TransactionId transactionId, RollForwardQueue rollForwardQueue, boolean siOnly) throws IOException {
         this.transactor = transactor;
         this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;

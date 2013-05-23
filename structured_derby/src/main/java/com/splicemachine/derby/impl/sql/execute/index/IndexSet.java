@@ -2,21 +2,16 @@ package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.constraint.*;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.data.hbase.TransactorFactory;
-import com.splicemachine.si.impl.Transaction;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
@@ -320,13 +315,13 @@ public class IndexSet {
                     " Please wait a bit and try again");
         }
         boolean success = false;
-        Transactor transactor = null;
+        HTransactor transactor = null;
         TransactionId txnID = null;
         SpliceTransactionResourceImpl impl = null;
         try {
             try{
                 impl = new SpliceTransactionResourceImpl();
-                transactor = TransactorFactory.getDefaultTransactor(); // TODO Place Holder - Transaction Must Flow...
+                transactor = HTransactorFactory.getTransactor(); // TODO Place Holder - Transaction Must Flow...
                 txnID = transactor.beginTransaction(false, true, false);
                 impl.marshallTransaction(txnID.getTransactionIdString());
                 DataDictionary dataDictionary = impl.getLcc().getDataDictionary();

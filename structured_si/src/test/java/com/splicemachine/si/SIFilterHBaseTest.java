@@ -1,8 +1,7 @@
 package com.splicemachine.si;
 
-import com.splicemachine.si.data.hbase.TransactorFactory;
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.TransactorFactoryImpl;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -33,8 +32,7 @@ public class SIFilterHBaseTest extends SIFilterTest {
         classStoreSetup = new HStoreSetup();
         classTransactorSetup = new TransactorSetup(classStoreSetup, false);
         classTransactor = classTransactorSetup.transactor;
-        TransactorFactory.setDefaultTransactor(classTransactor);
-        TransactorFactoryImpl.setTransactor(classTransactor);
+        HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);
     }
 
     @AfterClass

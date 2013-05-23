@@ -11,8 +11,8 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.TransactorFactoryImpl;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;
@@ -33,10 +33,6 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -251,7 +247,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 			}
 			if(!getNodeTypes().contains(NodeType.REDUCE)){
                 try{
-                    final Transactor<Put,Get,Scan,Mutation,Result> transactor = TransactorFactoryImpl.getTransactor();
+                    final HTransactor transactor = HTransactorFactory.getTransactor();
                     final TransactionId childID = transactor.beginChildTransaction(transactor.transactionIdFromString(getTransactionID()), true, true);
                     setChildTransactionID(childID.getTransactionIdString());
                     OperationSink opSink = OperationSink.create(DMLWriteOperation.this,null);

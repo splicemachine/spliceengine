@@ -1,10 +1,8 @@
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.constants.SpliceConfiguration;
 import com.splicemachine.derby.error.SpliceStandardLogUtils;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.api.HbaseConfigurationSource;
-import com.splicemachine.si.api.TransactorFactory;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -20,7 +18,6 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.store.raw.log.LogInstant;
 import org.apache.derby.iapi.store.raw.xact.TransactionId;
 import org.apache.derby.iapi.types.J2SEDataValueFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
 import java.util.Properties;
@@ -38,9 +35,9 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 	protected J2SEDataValueFactory dataValueFactory;
 	protected ContextService contextFactory;
 	protected HBaseStore hbaseStore;
-    private TransactorFactory transactorFactory;
+    private HTransactorFactory transactorFactory;
 
-    public SpliceTransactionFactory(TransactorFactory transactorFactory) {
+    public SpliceTransactionFactory(HTransactorFactory transactorFactory) {
         this.transactorFactory = transactorFactory;
     }
 
@@ -58,13 +55,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 
 	public Transaction marshalTransaction(HBaseStore hbaseStore, ContextManager contextMgr, String transName, String transactionID) throws StandardException {
 		try {
-			HbaseConfigurationSource configSource = new HbaseConfigurationSource() {
-               @Override
-               public Configuration getConfiguration() {
-                   return SpliceConfiguration.create();
-               }
-           };
-           Transactor transactor = transactorFactory.newTransactor(configSource);
+            HTransactor transactor = transactorFactory.getTransactor();
            Transaction trans = new SpliceTransaction(new SpliceLockSpace(),dataValueFactory,transactor,transName, transactor.transactionIdFromString(transactionID));
            return trans;
 		} catch (Exception e) {
@@ -147,13 +138,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
                                                      ContextManager contextMgr, SpliceLockFactory lockFactory, J2SEDataValueFactory dataValueFactory,
                                                      boolean readOnly, String transName, boolean abortAll, String contextName, boolean nested, boolean dependent, String parentTransactionID) {
         try {
-            HbaseConfigurationSource configSource = new HbaseConfigurationSource() {
-                @Override
-                public Configuration getConfiguration() {
-                    return SpliceConfiguration.create();
-                }
-            };
-            Transactor transactor = transactorFactory.newTransactor(configSource);
+            HTransactor transactor = transactorFactory.getTransactor();
 			SpliceTransaction trans = new SpliceTransaction(new SpliceLockSpace(), dataValueFactory, transactor, transName); 
 			trans.setTransactionName(transName);
 			

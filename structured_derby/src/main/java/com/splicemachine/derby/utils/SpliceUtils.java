@@ -10,10 +10,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.si.data.hbase.HGet;
-import com.splicemachine.si.data.hbase.HScan;
-import com.splicemachine.si.data.hbase.TransactorFactory;
-import com.splicemachine.si.api.ClientTransactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HClientTransactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
@@ -199,7 +197,7 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Put createDeletePut(String transactionId, byte[] rowKey) {
-        final ClientTransactor clientTransactor = TransactorFactory.getDefaultClientTransactor();
+        final HClientTransactor clientTransactor = HTransactorFactory.getClientTransactor();
         return (Put) clientTransactor.createDeletePut(clientTransactor.transactionIdFromString(transactionId), rowKey);
     }
 
@@ -207,7 +205,7 @@ public class SpliceUtils extends SpliceUtilities {
         if(mutation instanceof Delete) {
             return true;
         } else {
-            return TransactorFactory.getDefaultClientTransactor().isDeletePut(mutation);
+            return HTransactorFactory.getClientTransactor().isDeletePut(mutation);
         }
     }
 
@@ -517,8 +515,8 @@ public class SpliceUtils extends SpliceUtilities {
 		return transID;
 	}
 
-    protected static ClientTransactor<Put, Get, Scan, Mutation> getTransactor() {
-        return TransactorFactory.getDefaultClientTransactor();
+    protected static HClientTransactor getTransactor() {
+        return HTransactorFactory.getClientTransactor();
     }
 
 	public static byte[] getUniqueKey(){

@@ -1,17 +1,12 @@
 package com.splicemachine.derby.impl.job;
 
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.derby.utils.ByteDataOutput;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.TransactorFactoryImpl;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.zookeeper.CreateMode;
@@ -63,7 +58,7 @@ public abstract class TransactionalTask extends ZooKeeperTask{
             }
 
             //create a new child transaction of the parent transaction
-            final Transactor<Put, Get, Scan, Mutation, Result> transactor = TransactorFactoryImpl.getTransactor();
+            final HTransactor transactor = HTransactorFactory.getTransactor();
             TransactionId id = transactor.beginChildTransaction(
                     transactor.transactionIdFromString(parentTransaction), !readOnly, !readOnly);
             transactionId = id.getTransactionIdString();
@@ -120,7 +115,7 @@ public abstract class TransactionalTask extends ZooKeeperTask{
     private void rollbackIfNecessary() throws IOException {
         if(transactionId==null) return; //nothing to roll back just yet
 
-        final Transactor<Put, Get, Scan, Mutation, Result> transactor = TransactorFactoryImpl.getTransactor();
+        final HTransactor transactor = HTransactorFactory.getTransactor();
         transactor.rollback(transactor.transactionIdFromString(transactionId));
 
     }

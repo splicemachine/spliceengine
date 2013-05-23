@@ -7,8 +7,8 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.ByteDataInput;
 import com.splicemachine.job.*;
 import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.data.hbase.TransactorFactory;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.ZkUtils;
@@ -330,9 +330,9 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
             //rollback child transaction
             if(taskStatus.getTransactionId()!=null){
                 try {
-                    Transactor transactor = TransactorFactory.getDefaultTransactor();
+                    HTransactor transactor = HTransactorFactory.getTransactor();
                     TransactionId txnId = transactor.transactionIdFromString(taskStatus.getTransactionId());
-                    TransactorFactory.getDefaultTransactor().rollback(txnId);
+                    HTransactorFactory.getTransactor().rollback(txnId);
                 } catch (IOException e) {
                     Exception error = new DoNotRetryIOException("Unable to roll back child transaction",e);
                     taskStatus.setError(error);

@@ -1,16 +1,22 @@
-package com.splicemachine.si.data.hbase;
+package com.splicemachine.si.api.com.splicemachine.si.api.hbase;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.TimestampSource;
-import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
+import com.splicemachine.si.data.hbase.HDataLib;
+import com.splicemachine.si.data.hbase.HDataLibAdapter;
+import com.splicemachine.si.data.hbase.HPoolTableSource;
+import com.splicemachine.si.data.hbase.HStore;
+import com.splicemachine.si.data.hbase.HTableReaderAdapter;
+import com.splicemachine.si.data.hbase.HTableSource;
+import com.splicemachine.si.data.hbase.HTableWriterAdapter;
+import com.splicemachine.si.data.hbase.HTransactorAdapter;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
@@ -19,53 +25,37 @@ import com.splicemachine.si.impl.SystemClock;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionSchema;
 import com.splicemachine.si.impl.TransactionStore;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.client.Get;
+import com.splicemachine.si.txn.ZooKeeperTimestampSource;
 import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 
 import java.util.concurrent.TimeUnit;
 
-public class TransactorFactory extends SIConstants {
-    private static Transactor<Put, Get, Scan, Mutation, Result> defaultTransactor;
-    private static volatile HTablePool hTablePool;
+public class HTransactorFactory extends SIConstants {
+    private static volatile HTransactor transactor;
 
-    public static void setDefaultTransactor(Transactor<Put, Get, Scan, Mutation, Result> transactorToUse) {
-        defaultTransactor = transactorToUse;
+    public static void setTransactor(HTransactor transactorToUse) {
+        transactor = transactorToUse;
     }
 
-    public static Transactor<Put, Get, Scan, Mutation, Result> getDefaultTransactor() {
-        return defaultTransactor;
+    public static HClientTransactor getClientTransactor() {
+        return getTransactor();
     }
 
-    public static ClientTransactor<Put, Get, Scan, Mutation> getDefaultClientTransactor() {
-        return defaultTransactor;
-    }
-
-    public static Transactor<Put, Get, Scan, Mutation, Result> getTransactor(Configuration configuration, TimestampSource timestampSource) {
-        if (hTablePool == null) {
-            synchronized (TransactorFactory.class) {
-                if (hTablePool == null) {
-                    hTablePool = new HTablePool(configuration, Integer.MAX_VALUE);
+    public static HTransactor getTransactor() {
+        if (transactor == null) {
+            synchronized (HTransactorFactory.class) {
+                if (transactor == null) {
+                    final HTablePool pool = new HTablePool(config, Integer.MAX_VALUE);
+                    transactor = createTransactor(new HPoolTableSource(pool), new ZooKeeperTimestampSource(zkSpliceTransactionPath));
                 }
             }
         }
-        return getTransactor(hTablePool, timestampSource);
+        return transactor;
     }
 
-    public static Transactor<Put, Get, Scan, Mutation, Result> getTransactor(HTablePool pool, TimestampSource timestampSource) {
-        return getTransactorDirect(new HPoolTableSource(pool), timestampSource);
-    }
-
-    public static Transactor<Put, Get, Scan, Mutation, Result> getTransactor(CoprocessorEnvironment environment, TimestampSource timestampSource) {
-        return getTransactorDirect(new HCoprocessorTableSource(environment), timestampSource);
-    }
-
-    public static Transactor<Put, Get, Scan, Mutation, Result> getTransactorDirect(HTableSource tableSource, TimestampSource timestampSource) {
+    private static HTransactor createTransactor(HTableSource tableSource, TimestampSource timestampSource) {
         HStore store = new HStore(tableSource);
         SDataLib dataLib = new HDataLibAdapter(new HDataLib());
         final STableReader reader = new HTableReaderAdapter(store);
@@ -95,9 +85,9 @@ public class TransactorFactory extends SIConstants {
                 SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING,
                 EMPTY_BYTE_ARRAY, SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
                 DEFAULT_FAMILY);
-        return new HTransactor<Put, Get, Scan, Mutation, Result>
-                (new SITransactor<Object, SGet, SScan, Mutation, Result>
+        return new HTransactorAdapter(new SITransactor<Object, SGet, SScan, Mutation, Result>
                         (timestampSource, dataLib, writer, rowStore, transactionStore,
                                 new SystemClock(), TRANSACTION_TIMEOUT));
     }
+
 }
