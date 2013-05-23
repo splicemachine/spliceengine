@@ -46,6 +46,7 @@ public class SpliceConstants {
 	public static final int DEFAULT_MULTICAST_GROUP_PORT = 4446;
 	public static final int DEFAULT_RMI_PORT = 40001;
 	public static final int DEFAULT_RMI_REMOTE_OBJECT_PORT = 47000;
+    public static final int DEFAULT_STARTUP_LOCK_PERIOD=200;
 
 
 
@@ -94,7 +95,10 @@ public class SpliceConstants {
     public static final String CONFIG_MULTICAST_GROUP_PORT = "splice.multicast_group_port";
     public static final String CONFIG_RMI_PORT = "splice.rmi_port";
     public static final String CONFIG_RMI_REMOTE_OBJECT_PORT = "splice.rmi_remote_object_port";
+
     private static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
+
+    private static final String STARTUP_LOCK_WAIT_PERIOD = "splice.startup.lockWaitPeriod";
 
     
 	// Zookeeper Actual Paths
@@ -129,6 +133,7 @@ public class SpliceConstants {
     public static int multicastGroupPort;
     public static int rmiPort;
     public static int rmiRemoteObjectPort;
+    public static int startupLockWaitPeriod;
     
     
     
@@ -248,6 +253,7 @@ public class SpliceConstants {
         rmiPort = config.getInt(CONFIG_RMI_PORT, DEFAULT_RMI_PORT);
         rmiRemoteObjectPort = config.getInt(CONFIG_RMI_REMOTE_OBJECT_PORT, DEFAULT_RMI_REMOTE_OBJECT_PORT);
         dumpClassFile = config.getBoolean(DEBUG_DUMP_CLASS_FILE,DEFAULT_DUMP_CLASS_FILE);
+        startupLockWaitPeriod = config.getInt(STARTUP_LOCK_WAIT_PERIOD,DEFAULT_STARTUP_LOCK_PERIOD);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {

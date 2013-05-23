@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.*;
 import com.splicemachine.derby.impl.sql.execute.index.*;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
@@ -36,7 +37,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class LocalWriteContextFactory implements WriteContextFactory<RegionCoprocessorEnvironment> {
     private static final Logger LOG = Logger.getLogger(LocalWriteContextFactory.class);
 
-    private static final long STARTUP_LOCK_BACKOFF_PERIOD = 200;
+    private static final long STARTUP_LOCK_BACKOFF_PERIOD = SpliceConstants.startupLockWaitPeriod;
 
     private final long congomId;
     private final Set<IndexFactory> indexFactories = new CopyOnWriteArraySet<IndexFactory>();
