@@ -1,33 +1,24 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import com.splicemachine.derby.error.SpliceDoNotRetryIOException;
-import com.splicemachine.derby.error.SpliceIOException;
 import com.splicemachine.derby.error.SpliceStandardException;
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
-import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
-import com.splicemachine.hbase.MutationResponse;
 import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.client.RetriesExhaustedException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 
 import java.io.IOException;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 /**

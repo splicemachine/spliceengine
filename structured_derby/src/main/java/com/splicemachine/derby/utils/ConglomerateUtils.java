@@ -3,7 +3,6 @@ package com.splicemachine.derby.utils;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
@@ -12,16 +11,13 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooDefs;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -56,7 +52,7 @@ public class ConglomerateUtils extends SpliceConstants {
 				return DerbyBytesUtil.fromBytes(data, instanceClass);
 			}
 		} catch (Exception e) {
-			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "readConglomerateException", e);
+            SpliceLogUtils.logAndThrow(LOG,"readConglomerateException",Exceptions.parseException(e));
 		} finally {
 			SpliceAccessManager.closeHTableQuietly(table);
 		}
@@ -96,7 +92,7 @@ public class ConglomerateUtils extends SpliceConstants {
 			put.add(DEFAULT_FAMILY_BYTES, VALUE_COLUMN, conglomData);
 			table.put(put);
 		} catch (Exception e) {
-			SpliceStandardLogUtils.logAndReturnStandardException(LOG, "Erorr Creating Conglomerate", e);
+            SpliceLogUtils.logAndThrow(LOG,"Error Creating Conglomerate",Exceptions.parseException(e));
 		}finally{
 			SpliceAccessManager.closeHTableQuietly(table);
 			Closeables.closeQuietly(admin);
@@ -121,7 +117,7 @@ public class ConglomerateUtils extends SpliceConstants {
 			table.put(put);
 		}
 		catch (Exception e) {
-			SpliceStandardLogUtils.logAndReturnStandardException(LOG, "update Conglomerate Failed", e);
+            SpliceLogUtils.logAndThrow(LOG, "update Conglomerate Failed", Exceptions.parseException(e));
 		}
 		finally{
 			SpliceAccessManager.closeHTableQuietly(table);

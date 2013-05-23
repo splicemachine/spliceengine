@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;

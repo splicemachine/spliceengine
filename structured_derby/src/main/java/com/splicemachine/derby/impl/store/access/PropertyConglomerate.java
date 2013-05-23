@@ -6,6 +6,9 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Properties;
+
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Attribute;
 import org.apache.derby.iapi.reference.Property;
@@ -34,8 +37,6 @@ import org.apache.derby.impl.store.access.PC_XenaVersion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.ZkUtils;
 
@@ -104,7 +105,7 @@ public class PropertyConglomerate {
 				serviceProperties.put(child, value);
 			}
 		} catch (Exception e) {
-			SpliceStandardLogUtils.logAndReturnStandardException(LOG, "getServiceProperties Failed", e);
+            SpliceLogUtils.logAndThrow(LOG, "getServiceProperties Failed", Exceptions.parseException(e));
 		}
 		this.serviceProperties = serviceProperties;
 		PC_XenaVersion softwareVersion = new PC_XenaVersion();

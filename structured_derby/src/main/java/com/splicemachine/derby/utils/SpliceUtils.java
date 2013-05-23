@@ -3,15 +3,12 @@ package com.splicemachine.derby.utils;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.si.data.hbase.HGet;
-import com.splicemachine.si.data.hbase.HScan;
 import com.splicemachine.si.data.hbase.TransactorFactory;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -135,7 +132,8 @@ public class SpliceUtils extends SpliceUtilities {
 
 			return get;
 		} catch (Exception e) {
-			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "createGet Failed", e);
+            SpliceLogUtils.logAndThrow(LOG,"createGet Failed",Exceptions.parseException(e));
+            return null; //can't happen
 		}
 	}
 
@@ -384,7 +382,7 @@ public class SpliceUtils extends SpliceUtilities {
 				}
 			}
 		}catch(IOException e){
-			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "populate error", e);
+            SpliceLogUtils.logAndThrow(LOG,"populate error", Exceptions.parseException(e));
 		}
 	}
     
@@ -404,7 +402,7 @@ public class SpliceUtils extends SpliceUtilities {
     				}
     			}
     		}catch(IOException e){
-    			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "populate error", e);
+                SpliceLogUtils.logAndThrow(LOG,"populate error",Exceptions.parseException(e));
     		}
     	}
 }
@@ -571,7 +569,8 @@ public class SpliceUtils extends SpliceUtilities {
         try {
         	return rzk.exists(zkSpliceDerbyPropertyPath + "/" + propertyName, false) != null;
         } catch (Exception e) {
-        	throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "propertyExists Exception", e);
+            SpliceLogUtils.logAndThrow(LOG,"propertyExistsException",Exceptions.parseException(e));
+            return false; //can't happen
         }
     }
 
@@ -581,7 +580,8 @@ public class SpliceUtils extends SpliceUtilities {
         try {
         	return rzk.getData(zkSpliceDerbyPropertyPath + "/" + propertyName, false, null);
         } catch (Exception e) {
-        	throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "propertyExists Exception", e);
+            SpliceLogUtils.logAndThrow(LOG,"propertyExists Exception",Exceptions.parseException(e));
+            return null; //can't happen
         }
     }
 
@@ -591,7 +591,7 @@ public class SpliceUtils extends SpliceUtilities {
             try {
                     rzk.create(zkSpliceDerbyPropertyPath + "/" + propertyName, Bytes.toBytes(propertyValue), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             } catch (Exception e) {
-            	throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "addProperty Exception", e);
+                SpliceLogUtils.logAndThrow(LOG,"addProperty Exception",Exceptions.parseException(e));
             }
     }
 }

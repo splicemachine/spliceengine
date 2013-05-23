@@ -2,6 +2,8 @@ package com.splicemachine.derby.hbase;
 
 import java.io.IOException;
 import java.sql.Connection;
+
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -11,7 +13,6 @@ import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
@@ -48,7 +49,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 		        SpliceLogUtils.debug(LOG, "Creating Splice");
 				createSplice();
 			} catch (Exception e) {
-				throw SpliceStandardLogUtils.generateSpliceIOException(LOG, "preCreateTable Error", e);
+				SpliceLogUtils.logAndThrow(LOG, "preCreateTable Error", Exceptions.getIOException(e));
 			} finally {
 				throw new DoNotRetryIOException("pre create succeeeded");
 			}

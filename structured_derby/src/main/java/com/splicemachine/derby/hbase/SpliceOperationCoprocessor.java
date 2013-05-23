@@ -1,15 +1,15 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
-import org.apache.derby.iapi.error.StandardException;
+
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.Activation;
@@ -88,10 +88,9 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
             } catch (SQLException e) {
                 exception = new IOException(e);
                 throw exception;
-            } catch (StandardException e) {
-                throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "run error", e);
             } catch (Exception e) {
-                throw SpliceStandardLogUtils.generateSpliceDoNotRetryIOException(LOG, "run error", e);
+                SpliceLogUtils.logAndThrow(LOG,"run error", Exceptions.getIOException(e));
+                return null;
             } finally {
                 threadLocalEnvironment.set(null);
                 try{

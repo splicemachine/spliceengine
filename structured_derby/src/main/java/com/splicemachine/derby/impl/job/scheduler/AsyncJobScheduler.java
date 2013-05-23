@@ -534,6 +534,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                             SpliceLogUtils.trace(LOG,"Task %s is invalid, resubmitting",changedFuture.getTaskId());
                             invalidCount.incrementAndGet();
                             changedFuture.resubmit();
+                            found=false;
                             break;
                         case FAILED:
                             try{
@@ -543,6 +544,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                                 failedTasks.add(changedFuture);
                                 throw ee;
                             }
+                            found=false;
                             break;
                         case COMPLETED:
                             SpliceLogUtils.trace(LOG,"Task %s completed successfully",changedFuture.getTaskId());

@@ -35,7 +35,6 @@ import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
 import org.apache.derby.impl.store.access.conglomerate.OpenConglomerateScratchSpace;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
@@ -104,7 +103,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
             collation_ids[old_collation_ids.length] =  collation_id;
             ConglomerateUtils.updateConglomerate(this, xact_manager.getActiveStateTxIdString());
 		} catch (StandardException e) {
-			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "exception in HBaseConglomerate#addColumn", e);
+            SpliceLogUtils.logAndThrow(LOG,"exception in HBaseConglomerate#addColumn",e);
 		} finally {
 			SpliceAccessManager.closeHTableQuietly(htable);
 		}

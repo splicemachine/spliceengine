@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.constants.SpliceConfiguration;
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.HbaseConfigurationSource;
 import com.splicemachine.si.api.TransactorFactory;
@@ -68,7 +68,8 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
            Transaction trans = new SpliceTransaction(new SpliceLockSpace(),dataValueFactory,transactor,transName, transactor.transactionIdFromString(transactionID));
            return trans;
 		} catch (Exception e) {
-			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "marshallTransactionFailure", e);
+            SpliceLogUtils.logAndThrow(LOG,"marshallTransaction failure", Exceptions.parseException(e));
+            return null; // can't happen
 		}
 	}
 

@@ -65,6 +65,19 @@ public class DistinctScalarAggregateOperationTest extends SpliceUnitTest {
 	}
 
     @Test
+    public void testDistinctScalarAggregateRepeatedly() throws Exception {
+        /*
+         * This is a test to attempt to reproduce Bug 480. Under normal circumstances, this test
+         * does nothing for us except take forever to run, so most of the time it should be ignored.
+         */
+        for(int i=0;i<100;i++){
+            if(i%10==0)
+                System.out.printf("Ran %d times without failure%n",i);
+            testDistinctScalarAggregate();
+        }
+    }
+
+    @Test
     public void testDistinctCount() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select count(distinct score) from" + this.getPaddedTableReference("ORDERSUMMARY"));
         if (rs.next()) {

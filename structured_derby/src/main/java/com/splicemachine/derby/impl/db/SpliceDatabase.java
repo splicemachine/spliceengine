@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.db;
 import java.util.Properties;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -14,7 +15,6 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.db.BasicDatabase;
 import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.error.SpliceStandardLogUtils;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
@@ -38,7 +38,7 @@ public class SpliceDatabase extends BasicDatabase {
 		try {
 			create = !ZkUtils.isSpliceLoaded();
 		} catch (Exception e) {
-			throw SpliceStandardLogUtils.logAndReturnStandardException(LOG, "isSpliceLoadedOnBoot failure", e);
+            SpliceLogUtils.logAndThrow(LOG,"isSpliceLoadedOnBoot failure", Exceptions.parseException(e));
 		}
 		
 		if (create)
