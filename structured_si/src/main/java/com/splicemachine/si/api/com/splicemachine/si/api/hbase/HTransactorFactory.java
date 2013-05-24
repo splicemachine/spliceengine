@@ -3,6 +3,7 @@ package com.splicemachine.si.api.com.splicemachine.si.api.hbase;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.si.api.HbaseConfigurationSource;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
@@ -26,36 +27,42 @@ import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionSchema;
 import com.splicemachine.si.impl.TransactionStore;
 import com.splicemachine.si.txn.ZooKeeperTimestampSource;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Result;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class HTransactorFactory extends SIConstants {
-    private static volatile HTransactor transactor;
+    private static HTransactor defaultTransactor;
+    private static volatile HTablePool hTablePool;
 
     public static void setTransactor(HTransactor transactorToUse) {
-        transactor = transactorToUse;
+        defaultTransactor = transactorToUse;
     }
 
     public static HClientTransactor getClientTransactor() {
-        return getTransactor();
+        return defaultTransactor;
     }
 
-    public static HTransactor getTransactor() {
-        if (transactor == null) {
+    public static HTransactor getTransactor(Configuration configuration, TimestampSource timestampSource) {
+        if (hTablePool == null) {
             synchronized (HTransactorFactory.class) {
-                if (transactor == null) {
-                    final HTablePool pool = new HTablePool(config, Integer.MAX_VALUE);
-                    transactor = createTransactor(new HPoolTableSource(pool), new ZooKeeperTimestampSource(zkSpliceTransactionPath));
+                if (hTablePool == null) {
+                    hTablePool = new HTablePool(configuration, Integer.MAX_VALUE);
                 }
             }
         }
-        return transactor;
+        return getTransactor(hTablePool, timestampSource);
     }
 
-    private static HTransactor createTransactor(HTableSource tableSource, TimestampSource timestampSource) {
+    public static HTransactor getTransactor(HTablePool pool, TimestampSource timestampSource) {
+        return getTransactorDirect(new HPoolTableSource(pool), timestampSource);
+    }
+
+    public static HTransactor getTransactorDirect(HTableSource tableSource, TimestampSource timestampSource) {
         HStore store = new HStore(tableSource);
         SDataLib dataLib = new HDataLibAdapter(new HDataLib());
         final STableReader reader = new HTableReaderAdapter(store);
@@ -87,8 +94,42 @@ public class HTransactorFactory extends SIConstants {
                 EMPTY_BYTE_ARRAY, SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
                 DEFAULT_FAMILY);
         return new HTransactorAdapter(new SITransactor<Object, SGet, SScan, Mutation, Result>
-                        (timestampSource, dataLib, writer, rowStore, transactionStore,
-                                new SystemClock(), TRANSACTION_TIMEOUT));
+                (timestampSource, dataLib, writer, rowStore, transactionStore,
+                        new SystemClock(), TRANSACTION_TIMEOUT));
+    }
+
+
+    private static volatile HTransactor transactor;
+    //deliberate boxing here to ensure the lock is not shared by anyone else
+    private static final Object lock = new Integer(1);
+
+    public HTransactor newTransactor(HbaseConfigurationSource configSource) throws IOException {
+        return getTransactor(configSource);
+    }
+
+    public static HTransactor getTransactor() {
+        return getTransactor(new HbaseConfigurationSource() {
+            @Override
+            public Configuration getConfiguration() {
+                return config;
+            }
+        });
+    }
+
+    public static HTransactor getTransactor(HbaseConfigurationSource configSource) {
+        if(transactor!=null) return transactor;
+        synchronized (lock) {
+            //double-checked locking--make sure someone else didn't already create it
+            if(transactor!=null)
+                return transactor;
+
+            final Configuration configuration = configSource.getConfiguration();
+//            TransactionTableCreator.createTransactionTableIfNeeded(configuration);
+            TimestampSource timestampSource = new ZooKeeperTimestampSource(zkSpliceTransactionPath);
+            transactor = HTransactorFactory.getTransactor(configuration, timestampSource);
+            HTransactorFactory.setTransactor(transactor);
+        }
+        return transactor;
     }
 
 }
