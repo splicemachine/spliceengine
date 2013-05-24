@@ -193,6 +193,9 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
             final Transaction childTransaction = transactionStore.getTransaction(childId);
             if (childTransaction.isEffectivelyActive()) {
                 childrenToCommit.add(childTransaction);
+                if (childTransaction.isActive() && !childTransaction.isLocallyCommitted()) {
+                    throw new RuntimeException("Child should be finished before parent commits! " + childId + " parent = " + transaction.beginTimestamp);
+                }
             }
         }
         return childrenToCommit;

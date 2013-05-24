@@ -378,6 +378,9 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
             return taskStatus.getStats();
         }
 
+        public String getTransactionId() {
+            return taskStatus.getTransactionId();
+        }
     }
 
     private static class JobStatsAccumulator implements JobStats{
@@ -556,6 +559,16 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                             found=false;
                             break;
                         case COMPLETED:
+                            try {
+                                if (changedFuture.getTransactionId() != null) {
+                                    HTransactor transactor = HTransactorFactory.getTransactor();
+                                    TransactionId txnId = transactor.transactionIdFromString(changedFuture.getTransactionId());
+                                    HTransactorFactory.getTransactor().commit(txnId);
+                                }
+                            } catch (IOException e) {
+                                failedTasks.add(changedFuture);
+                                throw new ExecutionException(e);
+                            }
                             SpliceLogUtils.trace(LOG,"Task %s completed successfully",changedFuture.getTaskId());
                             TaskStats stats = changedFuture.getTaskStats();
                             if(stats!=null)

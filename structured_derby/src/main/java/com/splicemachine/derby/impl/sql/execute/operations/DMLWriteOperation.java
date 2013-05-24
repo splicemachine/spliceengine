@@ -248,12 +248,21 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 			if(!getNodeTypes().contains(NodeType.REDUCE)){
                 try{
                     final HTransactor transactor = HTransactorFactory.getTransactor();
-                    final TransactionId childID = transactor.beginChildTransaction(transactor.transactionIdFromString(getTransactionID()), true, true);
-                    setChildTransactionID(childID.getTransactionIdString());
-                    OperationSink opSink = OperationSink.create(DMLWriteOperation.this,null);
-                    TaskStats stats= opSink.sink(getDestinationTable());
-                    rowsModified = (int)stats.getReadStats().getTotalRecords();
-                    transactor.commit(childID);
+                    TransactionId childID = null;
+                    boolean success = false;
+                    try {
+                        childID = transactor.beginChildTransaction(transactor.transactionIdFromString(getTransactionID()), true, true);
+                        setChildTransactionID(childID.getTransactionIdString());
+                        OperationSink opSink = OperationSink.create(DMLWriteOperation.this, null);
+                        TaskStats stats = opSink.sink(getDestinationTable());
+                        rowsModified = (int) stats.getReadStats().getTotalRecords();
+                        transactor.commit(childID);
+                        success = true;
+                    } finally {
+                        if (!success) {
+                            transactor.rollback(childID);
+                        }
+                    }
                 }catch(IOException ioe){
                     if(Exceptions.shouldLogStackTrace(ioe)){
                         SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
