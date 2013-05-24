@@ -27,6 +27,12 @@ public class SIConstants extends SpliceConstants {
     public static final int TRANSACTION_COMMIT_TIMESTAMP_COLUMN = 7;
     public static final int TRANSACTION_KEEP_ALIVE_COLUMN = 8;
 
+    public static final int TRANSACTION_LOCAL_START_TIMESTAMP_COLUMN = 9;
+    public static final int TRANSACTION_LOCAL_STATUS_COLUMN = 10;
+    public static final int TRANSACTION_LOCAL_COMMIT_TIMESTAMP_COLUMN = 11;
+    public static final int TRANSACTION_LOCAL_READ_UNCOMMITTED_COLUMN = 12;
+    public static final int TRANSACTION_LOCAL_READ_COMMITTED_COLUMN = 13;
+
     public static final byte[] TRANSACTION_START_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_START_TIMESTAMP_COLUMN);
     public static final byte[] TRANSACTION_PARENT_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_PARENT_COLUMN);
     public static final byte[] TRANSACTION_DEPENDENT_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_DEPENDENT_COLUMN);

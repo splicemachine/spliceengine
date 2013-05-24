@@ -70,8 +70,9 @@ public class HTransactorFactory extends SIConstants {
                 TRANSACTION_ALLOW_WRITES_COLUMN_BYTES,
                 TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES,
                 TRANSACTION_READ_COMMITTED_COLUMN_BYTES,
-                TRANSACTION_COMMIT_TIMESTAMP_COLUMN, TRANSACTION_STATUS_COLUMN,
-                TRANSACTION_KEEP_ALIVE_COLUMN);
+                TRANSACTION_KEEP_ALIVE_COLUMN, TRANSACTION_STATUS_COLUMN, TRANSACTION_COMMIT_TIMESTAMP_COLUMN,
+                TRANSACTION_LOCAL_STATUS_COLUMN, TRANSACTION_LOCAL_COMMIT_TIMESTAMP_COLUMN
+        );
         final Cache<Long, ImmutableTransaction> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         final Cache<Long, ActiveTransactionCacheEntry> activeCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         final Cache<Long, Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();

@@ -28,7 +28,6 @@ import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
 import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
 import static com.splicemachine.si.impl.TransactionStatus.COMMITTING;
 import static com.splicemachine.si.impl.TransactionStatus.ERROR;
-import static com.splicemachine.si.impl.TransactionStatus.LOCAL_COMMIT;
 import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
 
 /**
@@ -74,7 +73,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     public TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted)
             throws IOException {
         final TransactionParams params = new TransactionParams(null, null, allowWrites, readUncommitted, readCommitted);
-        return beginTransactionDirect(params, ACTIVE);
+        return beginTransactionDirect(params, ACTIVE, null);
     }
 
     @Override
@@ -99,7 +98,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      */
     private TransactionId createHeavyChildTransaction(TransactionParams params)
             throws IOException {
-        final TransactionId childTransactionId = beginTransactionDirect(params, ACTIVE);
+        final TransactionId childTransactionId = beginTransactionDirect(params, ACTIVE, ACTIVE);
         transactionStore.addChildToTransaction(params.parent, childTransactionId);
         return childTransactionId;
     }
@@ -107,10 +106,11 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     /**
      * Start a transaction. Either a root-level transaction or a nested child transaction.
      */
-    private TransactionId beginTransactionDirect(TransactionParams params, TransactionStatus status)
+    private TransactionId beginTransactionDirect(TransactionParams params, TransactionStatus status,
+                                                 TransactionStatus localStatus)
             throws IOException {
         final SITransactionId transactionId = assignTransactionId();
-        transactionStore.recordNewTransaction(transactionId, params, status);
+        transactionStore.recordNewTransaction(transactionId, params, status, localStatus);
         return transactionId;
     }
 
@@ -160,7 +160,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      */
     private void performLocalCommit(TransactionId transactionId) throws IOException {
         // perform "local" commit only within the parent transaction
-        if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, LOCAL_COMMIT)) {
+        if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, COMMITTED, true)) {
             throw new IOException("local commit failed");
         }
     }
@@ -171,14 +171,14 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     private void performCommit(Transaction transaction) throws IOException {
         final SITransactionId transactionId = transaction.getTransactionId();
         final List<Transaction> childrenToCommit = findChildrenToCommit(transaction);
-        if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, COMMITTING)) {
+        if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, COMMITTING, false)) {
             throw new IOException("committing failed");
         }
         Tracer.traceCommitting(transaction.getTransactionId().getId());
         // TODO: need to sort out how to take child transactions through COMMITTING state, alternatively don't commit
         // TODO: children directly, rather let them inherit their commit status from their parent
         final long endId = timestampSource.nextTimestamp();
-        if (!transactionStore.recordTransactionEnd(transactionId, endId, COMMITTING, COMMITTED)) {
+        if (!transactionStore.recordTransactionEnd(transactionId, endId, COMMITTING, COMMITTED, false)) {
             throw new DoNotRetryIOException("commit failed");
         }
         commitAll(childrenToCommit, endId);
@@ -194,7 +194,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
             if (childTransaction.isEffectivelyActive()) {
                 childrenToCommit.add(childTransaction);
                 if (childTransaction.isActive() && !childTransaction.isLocallyCommitted()) {
-                    throw new RuntimeException("Child should be finished before parent commits! " + childId + " parent = " + transaction.beginTimestamp);
+                    throw new RuntimeException("Child should be finished before parent commits! " + childId + " parent = " + transaction.getBeginTimestamp());
                 }
             }
         }
@@ -206,8 +206,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      */
     private void commitAll(List<Transaction> children, long timestamp) throws IOException {
         for (Transaction childTransaction : children) {
-            TransactionStatus expectedStatus = childTransaction.isLocallyCommitted() ? LOCAL_COMMIT : ACTIVE;
-            if (!transactionStore.recordTransactionEnd(childTransaction.getTransactionId(), timestamp, expectedStatus, COMMITTED)) {
+            if (!transactionStore.recordTransactionEnd(childTransaction.getTransactionId(), timestamp, null, COMMITTED, false)) {
                 throw new IOException("child commit failed");
             }
         }
@@ -225,7 +224,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
         // currently the application above us tries to rollback already committed transactions.
         // This is poor form, but if it happens just silently ignore it.
         if (transaction.isActive() && !transaction.isLocallyCommitted()) {
-            if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ROLLED_BACK)) {
+            if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ROLLED_BACK, false)) {
                 throw new IOException("rollback failed");
             }
         }
@@ -239,7 +238,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     private void failDirect(TransactionId transactionId) throws IOException {
-        transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ERROR);
+        transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ERROR, false);
     }
 
     private boolean isIndependentReadOnly(TransactionId transactionId) {
@@ -425,7 +424,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
             } else if (dataStore.isSiFail(commitTimestampValue)) {
             } else {
                 final long dataCommitTimestamp = (Long) dataLib.decode(commitTimestampValue, Long.class);
-                if (dataCommitTimestamp > updateTransaction.beginTimestamp) {
+                if (dataCommitTimestamp > updateTransaction.getBeginTimestamp()) {
                     failOnWriteConflict(updateTransaction);
                 }
             }
@@ -568,9 +567,9 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
             for (Object row : rows) {
                 try {
                     if (transaction.isCommitted()) {
-                        dataStore.setCommitTimestamp(table, row, transaction.beginTimestamp, transaction.commitTimestamp);
+                        dataStore.setCommitTimestamp(table, row, transaction.getBeginTimestamp(), transaction.getCommitTimestamp());
                     } else {
-                        dataStore.setCommitTimestampToFail(table, row, transaction.beginTimestamp);
+                        dataStore.setCommitTimestampToFail(table, row, transaction.getBeginTimestamp());
                     }
                     Tracer.trace(row);
                 } catch (NotServingRegionException e) {

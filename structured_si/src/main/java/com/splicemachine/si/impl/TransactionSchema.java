@@ -18,14 +18,17 @@ public class TransactionSchema {
     final Object readUncommittedQualifier;
     final Object readCommittedQualifier;
     final Object commitQualifier;
+    final Object localCommitQualifier;
     final Object statusQualifier;
+    final Object localStatusQualifier;
     final Object keepAliveQualifier;
 
     public TransactionSchema(String tableName, Object siFamily, Object siChildrenFamily, Object siNull,
                              Object startQualifier, Object parentQualifier,
                              Object dependentQualifier,
                              Object allowWritesQualifier, Object readUncommittedQualifier, Object readCommittedQualifier,
-                             Object commitQualifier, Object statusQualifier, Object keepAliveQualifier) {
+                             Object keepAliveQualifier, Object statusQualifier, Object commitQualifier,
+                             Object localStatusQualifier, Object localCommitQualifier) {
         this.tableName = tableName;
         this.siFamily = siFamily;
         this.siChildrenFamily = siChildrenFamily;
@@ -40,6 +43,8 @@ public class TransactionSchema {
         this.commitQualifier = commitQualifier;
         this.statusQualifier = statusQualifier;
         this.keepAliveQualifier = keepAliveQualifier;
+        this.localCommitQualifier = localCommitQualifier;
+        this.localStatusQualifier = localStatusQualifier;
     }
 
     public TransactionSchema encodedSchema(SDataLib SDataLib) {
@@ -53,8 +58,8 @@ public class TransactionSchema {
                 SDataLib.encode(allowWritesQualifier),
                 SDataLib.encode(readUncommittedQualifier),
                 SDataLib.encode(readCommittedQualifier),
-                SDataLib.encode(commitQualifier),
-                SDataLib.encode(statusQualifier),
-                SDataLib.encode(keepAliveQualifier));
+                SDataLib.encode(keepAliveQualifier), SDataLib.encode(statusQualifier), SDataLib.encode(commitQualifier),
+                SDataLib.encode(localStatusQualifier), SDataLib.encode(localCommitQualifier)
+        );
     }
 }

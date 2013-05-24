@@ -138,7 +138,7 @@ public class DataStore {
     }
 
     public void recordRollForward(RollForwardQueue rollForwardQueue, ImmutableTransaction transaction, Object row) {
-        recordRollForward(rollForwardQueue, transaction.beginTimestamp, row);
+        recordRollForward(rollForwardQueue, transaction.getBeginTimestamp(), row);
     }
 
     public void recordRollForward(RollForwardQueue rollForwardQueue, long beginTimestamp, Object row) {

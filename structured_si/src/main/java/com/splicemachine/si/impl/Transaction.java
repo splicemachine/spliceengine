@@ -7,7 +7,6 @@ import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
 import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
 import static com.splicemachine.si.impl.TransactionStatus.COMMITTING;
 import static com.splicemachine.si.impl.TransactionStatus.ERROR;
-import static com.splicemachine.si.impl.TransactionStatus.LOCAL_COMMIT;
 import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
 
 /**
@@ -20,43 +19,29 @@ public class Transaction extends ImmutableTransaction {
      */
     public final long keepAlive;
 
-    /**
-     * the time when the transaction committed or null if it has not committed
-     */
-    public final Long commitTimestamp;
+    private final TransactionRelativeState state;
+    private final TransactionRelativeState localState;
 
     /**
      * all of the direct child transactions of this transaction
      */
     private final Set<Long> children;
-    private final TransactionStatus status;
     /**
      * the parent transaction or null if this is a root level transaction
      */
     private final Transaction parent;
 
-    /**
-     * indicates that a dependent transaction has performed a local commit, but the parent may not have committed
-     */
-    private final boolean locallyCommitted;
-
     public Transaction(long beginTimestamp, long keepAlive, Transaction parent, Set<Long> children,
                        Boolean dependent, boolean allowWrites,
                        Boolean readUncommitted, Boolean readCommitted, TransactionStatus status,
-                       Long commitTimestamp) {
+                       Long commitTimestamp, TransactionStatus localStatus, Long localCommitTimestamp) {
         super(dependent, allowWrites, readCommitted, parent, readUncommitted, beginTimestamp);
         this.keepAlive = keepAlive;
-        this.commitTimestamp = commitTimestamp;
         this.parent = parent;
         this.children = children;
         // handle the LOCAL_COMMIT status as a separate boolean because it makes it easy to check if the child status is null
-        if (LOCAL_COMMIT.equals(status)) {
-            this.status = null;
-            this.locallyCommitted = true;
-        } else {
-            this.status = status;
-            this.locallyCommitted = false;
-        }
+        this.state = new TransactionRelativeState(commitTimestamp, status);
+        this.localState = new TransactionRelativeState(localCommitTimestamp, localStatus);
     }
 
     /**
@@ -74,7 +59,7 @@ public class Transaction extends ImmutableTransaction {
      * transaction was committed. This is separate from whether the parent transaction is committed.
      */
     public boolean isLocallyCommitted() {
-        return locallyCommitted;
+        return COMMITTED.equals(localState.status);
     }
 
     /**
@@ -87,7 +72,7 @@ public class Transaction extends ImmutableTransaction {
 
     private boolean isFinished() {
         if (isNested()) {
-            return status != null && inTerminalStatus();
+            return state.status != null && inTerminalStatus();
         } else {
             return inTerminalStatus();
         }
@@ -110,7 +95,7 @@ public class Transaction extends ImmutableTransaction {
      *         is locally committed, but its parent has not yet committed then this will return false.
      */
     public boolean isCommitted() {
-        return commitTimestamp != null;
+        return state.commitTimestamp != null;
     }
 
     /**
@@ -123,7 +108,7 @@ public class Transaction extends ImmutableTransaction {
 
     private boolean statusIsOneOf(TransactionStatus... statuses) {
         for (TransactionStatus s : statuses) {
-            if (s.equals(status)) {
+            if (s.equals(state.status)) {
                 return true;
             }
         }
@@ -141,11 +126,11 @@ public class Transaction extends ImmutableTransaction {
         if (shouldUseParentStatus()) {
             return parent.getEffectiveStatus();
         }
-        return status;
+        return state.status;
     }
 
     private boolean shouldUseParentStatus() {
-        return isNested() && ((status == null) || (status.equals(ACTIVE)));
+        return isNested() && ((state.status == null) || (state.status.equals(ACTIVE)));
     }
 
     /**
@@ -170,7 +155,7 @@ public class Transaction extends ImmutableTransaction {
      * @return true if this transaction is finally committed and has committed after the otherTransaction began
      */
     public boolean committedAfter(ImmutableTransaction otherTransaction) {
-        return isCommitted() && (commitTimestamp > otherTransaction.getRootBeginTimestamp());
+        return isCommitted() && (state.commitTimestamp > otherTransaction.getRootBeginTimestamp());
     }
 
     /**
@@ -182,4 +167,7 @@ public class Transaction extends ImmutableTransaction {
                 && isEffectivelyPartOfTransaction(otherTransaction);
     }
 
+    public Long getCommitTimestamp() {
+        return state.commitTimestamp;
+    }
 }

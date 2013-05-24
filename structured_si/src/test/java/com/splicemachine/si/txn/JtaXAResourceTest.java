@@ -45,7 +45,7 @@ public class JtaXAResourceTest {
         TransactionId transactionId = resource.getThreadLocalTransactionState();
         Assert.assertNotNull(transactionId);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertTrue(transaction.beginTimestamp >= 0);
+        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
         Assert.assertTrue(transaction.isEffectivelyActive());
     }
 
@@ -58,9 +58,9 @@ public class JtaXAResourceTest {
         Assert.assertNotNull(transactionId);
         resource.commit(xid, true);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertTrue(transaction.beginTimestamp >= 0);
+        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
         Assert.assertTrue(transaction.isCommitted());
-        Assert.assertTrue(transaction.beginTimestamp < transaction.commitTimestamp);
+        Assert.assertTrue(transaction.getBeginTimestamp() < transaction.getCommitTimestamp());
     }
 
     @Test
@@ -82,9 +82,9 @@ public class JtaXAResourceTest {
         resource.forget(xid);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
         Assert.assertNotNull(transaction);
-        Assert.assertTrue(transaction.beginTimestamp >= 0);
+        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
         Assert.assertTrue(!transaction.isActive() && !transaction.isCommitted());
-        Assert.assertNull(transaction.commitTimestamp);
+        Assert.assertNull(transaction.getCommitTimestamp());
     }
 
     @Test
@@ -118,7 +118,7 @@ public class JtaXAResourceTest {
         TransactionId transactionId = resource.getThreadLocalTransactionState();
         Assert.assertNotNull(transactionId);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertTrue(transaction.beginTimestamp >= 0);
+        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
         Assert.assertTrue(transaction.isEffectivelyActive());
     }
 
@@ -139,9 +139,9 @@ public class JtaXAResourceTest {
         resource.rollback(xid);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
         Assert.assertNotNull(transaction);
-        Assert.assertTrue(transaction.beginTimestamp >= 0);
+        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
         Assert.assertTrue(!transaction.isActive() && !transaction.isCommitted());
-        Assert.assertNull(transaction.commitTimestamp);
+        Assert.assertNull(transaction.getCommitTimestamp());
     }
 
     @Test

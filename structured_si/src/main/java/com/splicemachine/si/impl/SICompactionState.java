@@ -63,7 +63,7 @@ public class SICompactionState {
             final Transaction transaction = getFromCache(decodedKeyValue.timestamp);
             if (transaction.isCommitted() || transaction.isFailed()) {
                 final Object commitTimestampValue = transaction.isCommitted() ?
-                        dataLib.encode(transaction.commitTimestamp) :
+                        dataLib.encode(transaction.getCommitTimestamp()) :
                         dataStore.siFail;
                 result = dataLib.newKeyValue(decodedKeyValue.row, decodedKeyValue.family, decodedKeyValue.qualifier,
                         decodedKeyValue.timestamp, commitTimestampValue);

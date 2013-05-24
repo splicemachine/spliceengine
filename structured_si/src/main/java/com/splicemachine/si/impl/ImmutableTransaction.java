@@ -5,24 +5,24 @@ package com.splicemachine.si.impl;
  * represent these immutable parts separately because they can be cached more aggressively.
  */
 public class ImmutableTransaction {
-    public final long beginTimestamp;
+    private final ImmutableTransactionRelativeState state;
     private final SITransactionId transactionId;
     protected final Boolean dependent;
 
     private final ImmutableTransaction immutableParent;
     private final boolean allowWrites;
-    private final Boolean readUncommitted;
-    private final Boolean readCommitted;
 
     public ImmutableTransaction(Boolean dependent, boolean allowWrites, Boolean readCommitted,
                                 ImmutableTransaction immutableParent, Boolean readUncommitted, long beginTimestamp) {
+        this.state = new ImmutableTransactionRelativeState(beginTimestamp, readCommitted, readUncommitted);
         this.dependent = dependent;
         this.allowWrites = allowWrites;
-        this.readCommitted = readCommitted;
         this.immutableParent = immutableParent;
-        this.readUncommitted = readUncommitted;
-        this.beginTimestamp = beginTimestamp;
         this.transactionId = new SITransactionId(beginTimestamp);
+    }
+
+    public long getBeginTimestamp() {
+        return state.beginTimestamp;
     }
 
     public SITransactionId getTransactionId() {
@@ -45,22 +45,22 @@ public class ImmutableTransaction {
     }
 
     public boolean getEffectiveReadUncommitted() {
-        if (readUncommitted == null) {
+        if (state.readUncommitted == null) {
             return immutableParent.getEffectiveReadUncommitted();
         }
-        return readUncommitted;
+        return state.readUncommitted;
     }
 
     public boolean getEffectiveReadCommitted() {
-        if (readCommitted == null) {
+        if (state.readCommitted == null) {
             return immutableParent.getEffectiveReadCommitted();
         }
-        return readCommitted;
+        return state.readCommitted;
     }
 
     public long getRootBeginTimestamp() {
         if (immutableParent == null) {
-            return beginTimestamp;
+            return state.beginTimestamp;
         }
         return immutableParent.getRootBeginTimestamp();
     }

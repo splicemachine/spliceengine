@@ -1216,11 +1216,12 @@ public class SITransactorTest extends SIConstants {
         insertAge(t2, "joe32", 21);
         transactor.commit(t2);
         final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2);
-        Assert.assertNull("committing a dependent child does not set a commit timestamp", transactionStatusA.commitTimestamp);
+        Assert.assertNull("committing a dependent child does not set a commit timestamp", transactionStatusA.getCommitTimestamp());
         transactor.commit(t1);
+        dumpStore();
         final Transaction transactionStatusB = transactorSetup.transactionStore.getTransaction(t2);
         Assert.assertNotNull("committing parent of dependent transaction should set the commit time of the child",
-                transactionStatusB.commitTimestamp);
+                transactionStatusB.getCommitTimestamp());
     }
 
     @Test
@@ -1234,7 +1235,7 @@ public class SITransactorTest extends SIConstants {
         transactor.commit(t1);
         final Transaction transactionStatusB = transactorSetup.transactionStore.getTransaction(t2);
         Assert.assertEquals("committing parent of independent transaction should not change the commit time of the child",
-                transactionStatusA.commitTimestamp, transactionStatusB.commitTimestamp);
+                transactionStatusA.getCommitTimestamp(), transactionStatusB.getCommitTimestamp());
     }
 
     @Test
@@ -2303,7 +2304,7 @@ public class SITransactorTest extends SIConstants {
                 @Override
                 public Object apply(@Nullable Long aLong) {
                     try {
-                        Assert.assertTrue(transactorSetup.transactionStore.recordTransactionStatusChange(t1, TransactionStatus.COMMITTING, TransactionStatus.ERROR));
+                        Assert.assertTrue(transactorSetup.transactionStore.recordTransactionStatusChange(t1, TransactionStatus.COMMITTING, TransactionStatus.ERROR, false));
                     } catch (IOException e) {
                         exception[0] = e;
                         throw new RuntimeException(e);

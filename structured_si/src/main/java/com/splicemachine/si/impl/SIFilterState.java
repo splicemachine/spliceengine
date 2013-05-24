@@ -93,12 +93,13 @@ public class SIFilterState implements FilterState {
         if (dataStore.isSiNull(keyValue.value)) {
             transaction = handleUnknownTransactionStatus();
         } else if (dataStore.isSiFail(keyValue.value)) {
-            transaction = new Transaction(keyValue.timestamp, 0, null, null, null, false, null, null, TransactionStatus.ERROR, null);
+            transaction = new Transaction(keyValue.timestamp, 0, null, null, null, false, null, null, TransactionStatus.ERROR, null,
+                    TransactionStatus.ERROR, null);
         } else {
             // TODO: we should avoid loading the full transaction here once roll-forward is revisited
             transaction = getTransactionFromFilterCache();
         }
-        rowState.transactionCache.put(transaction.beginTimestamp, transaction);
+        rowState.transactionCache.put(transaction.getBeginTimestamp(), transaction);
         return SKIP;
     }
 
@@ -112,7 +113,7 @@ public class SIFilterState implements FilterState {
             } else {
                 transaction = transactionStore.getTransaction(keyValue.timestamp);
             }
-            transactionCache.put(transaction.beginTimestamp, transaction);
+            transactionCache.put(transaction.getBeginTimestamp(), transaction);
         }
         return transaction;
     }
@@ -237,7 +238,7 @@ public class SIFilterState implements FilterState {
     }
 
     private boolean isDataCommittedBeforeThisTransaction(Transaction dataTransaction) {
-        return dataTransaction.isCommitted() && (dataTransaction.commitTimestamp < myTransaction.getRootBeginTimestamp());
+        return dataTransaction.isCommitted() && (dataTransaction.getCommitTimestamp() < myTransaction.getRootBeginTimestamp());
     }
 
     private boolean isPartOfCurrentTransaction(Transaction dataTransaction) throws IOException {
