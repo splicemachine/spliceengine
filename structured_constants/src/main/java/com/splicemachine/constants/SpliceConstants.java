@@ -98,6 +98,8 @@ public class SpliceConstants {
     public static final String CONFIG_RMI_REMOTE_OBJECT_PORT = "splice.rmi_remote_object_port";
 
     private static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
+    private static final String DEBUG_FAIL_TASKS_RANDOMLY = "splice.debug.failTasksRandomly";
+    private static final String DEBUG_TASK_FAILURE_RATE = "splice.debug.taskFailureRate";
 
     private static final String STARTUP_LOCK_WAIT_PERIOD = "splice.startup.lockWaitPeriod";
     private static final String RING_BUFFER_SIZE = "splice.ring.bufferSize";
@@ -167,7 +169,7 @@ public class SpliceConstants {
 
     //TEMP Table task column--used for filtering out failed tasks from the temp
     //table
-    public static final String TASK_ID_COL = "tid";
+    public static final byte[] TASK_ID_COL = Bytes.toBytes(-1000);
 
 	// Splice Default Table Definitions
 	public static final int DEFAULT_VERSIONS = HColumnDescriptor.DEFAULT_VERSIONS;
@@ -198,6 +200,11 @@ public class SpliceConstants {
     //debug options
     public static boolean dumpClassFile;
     public static final boolean DEFAULT_DUMP_CLASS_FILE=false;
+    public static boolean debugFailTasksRandomly;
+    public static final boolean DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY=false;
+
+    public static double debugTaskFailureRate;
+    public static final double DEFAULT_DEBUG_TASK_FAILURE_RATE= 0.1; //fail 10% of tasks when enabled
 
 
     public static enum TableEnv {
@@ -258,6 +265,8 @@ public class SpliceConstants {
         dumpClassFile = config.getBoolean(DEBUG_DUMP_CLASS_FILE,DEFAULT_DUMP_CLASS_FILE);
         startupLockWaitPeriod = config.getInt(STARTUP_LOCK_WAIT_PERIOD,DEFAULT_STARTUP_LOCK_PERIOD);
         ringBufferSize = config.getInt(RING_BUFFER_SIZE, DEFAULT_RING_BUFFER_SIZE);
+        debugFailTasksRandomly = config.getBoolean(DEBUG_FAIL_TASKS_RANDOMLY,DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY);
+        debugTaskFailureRate = config.getFloat(DEBUG_TASK_FAILURE_RATE,(float)DEFAULT_DEBUG_TASK_FAILURE_RATE);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {

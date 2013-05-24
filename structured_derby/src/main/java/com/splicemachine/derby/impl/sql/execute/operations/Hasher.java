@@ -107,21 +107,36 @@ public class Hasher {
         }
     }
 
-	public byte[] generateSortedHashKey(DataValueDescriptor[] descriptors, DataValueDescriptor[] additionalDescriptors) throws StandardException, IOException {
+
+    public byte[] generateSortedHashKey(DataValueDescriptor[] descriptors, DataValueDescriptor[] additionalDescriptors) throws StandardException, IOException {
+        SpliceLogUtils.trace(LOG, "generateSortedHashKey");
+        int i = 0;
+        for (int k = 0;k<hashKeys.length;k++) {
+            values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[k]]);
+            i++;
+        }
+        for (int j = 0;j<additionalDescriptors.length;j++) {
+            values[i+1] = DerbyBytesUtil.getObject(additionalDescriptors[j]);
+            i++;
+        }
+        values[hashKeys.length+additionalDescriptors.length+1] = SpliceUtils.getUniqueKey();
+        return structRowKey.serialize(values);
+    }
+
+    public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors, DataValueDescriptor[] additionalDescriptors) throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "generateSortedHashKey");
 		int i = 0;
-		for (int k = 0;k<hashKeys.length;k++) {
-			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[k]]);
-			i++;
-		}
-		for (int j = 0;j<additionalDescriptors.length;j++) {
-			values[i+1] = DerbyBytesUtil.getObject(additionalDescriptors[j]);
-			i++;
-		}
-		values[hashKeys.length+additionalDescriptors.length+1] = SpliceUtils.getUniqueKey();
+        for (int hashKey : hashKeys) {
+            values[i + 1] = DerbyBytesUtil.getObject(descriptors[hashKey]);
+            i++;
+        }
+        for (DataValueDescriptor additionalDescriptor : additionalDescriptors) {
+            values[i + 1] = DerbyBytesUtil.getObject(additionalDescriptor);
+            i++;
+        }
 		return structRowKey.serialize(values);
-	}	
-	
+	}
+
 	public byte[] generateSortedHashKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
 		for (int i=0;i<hashKeys.length;i++) {
 			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
@@ -132,7 +147,7 @@ public class Hasher {
 
 	public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
 		for (int i=0;i<hashKeys.length;i++) {
-			values[i] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
+			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
 		}
 		return structRowKey.serialize(values);
 	}	

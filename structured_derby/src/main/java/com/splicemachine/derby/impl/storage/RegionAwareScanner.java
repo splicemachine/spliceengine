@@ -29,8 +29,6 @@ import java.util.List;
  */
 public class RegionAwareScanner implements Closeable {
     private static final Logger LOG = Logger.getLogger(RegionAwareScanner.class);
-    private final byte[] scanStart;
-    private final byte[] scanFinish;
     private final ScanBoundary boundary;
     private final HRegion region;
     private final HTableInterface table;
@@ -48,12 +46,36 @@ public class RegionAwareScanner implements Closeable {
     private byte[] regionFinish;
     private byte[] regionStart;
     private final String transactionId;
+    private final Scan scan;
 
-    private RegionAwareScanner(String transactionId, HTableInterface table, HRegion region, byte[] scanStart, byte[] scanFinish, ScanBoundary scanBoundary){
+    private RegionAwareScanner(String transactionId,
+                               HTableInterface table,
+                               HRegion region,
+                               Scan scan,
+                               ScanBoundary scanBoundary){
         this.table = table;
         this.region = region;
-        this.scanStart = scanStart;
-        this.scanFinish = scanFinish;
+        this.boundary = scanBoundary;
+        this.scan =scan;
+        if(region!=null){
+            this.regionFinish = region.getEndKey();
+            this.regionStart = region.getStartKey();
+        }else{
+            this.regionFinish = scan.getStartRow();
+            this.regionStart = scan.getStopRow();
+        }
+        this.transactionId = transactionId;
+    }
+
+    private RegionAwareScanner(String transactionId,
+                               HTableInterface table,
+                               HRegion region,
+                               byte[] scanStart,
+                               byte[] scanFinish,
+                               ScanBoundary scanBoundary){
+        this.table = table;
+        this.region = region;
+        this.scan = new Scan(scanStart,scanFinish);
         this.boundary = scanBoundary;
         if(region!=null){
 	        this.regionFinish = region.getEndKey();
@@ -113,6 +135,12 @@ public class RegionAwareScanner implements Closeable {
         return new RegionAwareScanner(transactionId,table,region,scanStart,scanFinish,boundary);
     }
 
+    public static RegionAwareScanner create(String txnId, HRegion region, Scan localScan,
+                                            byte[] tableName,ScanBoundary boundary){
+        HTableInterface table = SpliceAccessManager.getHTable(tableName);
+        return new RegionAwareScanner(txnId,table,region,localScan,boundary);
+    }
+
     public void open(){
         try{
             buildScans();
@@ -130,6 +158,8 @@ public class RegionAwareScanner implements Closeable {
     }
 
     private void buildScans() throws IOException {
+        byte[] scanStart = scan.getStartRow();
+        byte[] scanFinish = scan.getStopRow();
         if(Arrays.equals(scanStart,scanFinish)){
             //empty scan, so it's not going to do anything anyway
             localStart = scanStart;
@@ -142,14 +172,22 @@ public class RegionAwareScanner implements Closeable {
             //deal with the start of the region
         	handleStartOfRegion();
         }
-        localScanner = region.getScanner(boundary.buildScan(transactionId,localStart,localFinish));
-        if(remoteStart!=null)
-            lookBehindScanner = table.getScanner(boundary.buildScan(transactionId,remoteStart,regionFinish));
-        if(remoteFinish!=null)
-            lookAheadScanner = table.getScanner(boundary.buildScan(transactionId,regionFinish,remoteFinish));
+        Scan localScan = boundary.buildScan(transactionId,localStart,localFinish);
+        localScan.setFilter(scan.getFilter());
+        localScanner = region.getScanner(localScan);
+        if(remoteStart!=null){
+            Scan lookBehindScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
+            lookBehindScan.setFilter(scan.getFilter());
+            lookBehindScanner = table.getScanner(lookBehindScan);
+        }if(remoteFinish!=null){
+            Scan lookAheadScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
+            lookAheadScan.setFilter(scan.getFilter());
+            lookAheadScanner = table.getScanner(lookAheadScan);
+        }
     }
     
     private void handleEndOfRegion() throws IOException {
+        byte[] scanFinish = scan.getStopRow();
     	//deal with the end of the region
         if(Bytes.compareTo(regionFinish,scanFinish)>=0 || regionFinish.length<=0){
             //cool, no remote ends!
@@ -160,6 +198,8 @@ public class RegionAwareScanner implements Closeable {
             Scan aheadScan = boundary.buildScan(transactionId,regionFinish,scanFinish);
             aheadScan.setCaching(1);
             aheadScan.setBatch(1);
+            //carry over filters from localscan
+            aheadScan.setFilter(scan.getFilter());
             ResultScanner aheadScanner = null;
             try{
                 aheadScanner = table.getScanner(aheadScan);
@@ -196,6 +236,7 @@ public class RegionAwareScanner implements Closeable {
 
     }
     private void handleStartOfRegion() throws IOException {
+        byte[] scanStart = scan.getStartRow();
         //deal with the start of the region
         if(Bytes.compareTo(scanStart,regionStart)>=0||regionStart.length<=0){
             //cool, no remoteStarts!
@@ -206,6 +247,8 @@ public class RegionAwareScanner implements Closeable {
             Scan startScan = boundary.buildScan(transactionId,regionStart,regionFinish);
             startScan.setCaching(1);
             startScan.setBatch(1);
+            //carry over scan filters
+            startScan.setFilter(scan.getFilter());
             RegionScanner localScanner = null;
             try{
                 localScanner = region.getScanner(startScan);
@@ -245,7 +288,9 @@ public class RegionAwareScanner implements Closeable {
 
     public Scan toScan() {
         //this is naive--we should probably pay attention to look-behinds and look-aheads here
-        return boundary.buildScan(transactionId,scanStart,scanFinish);
+        Scan retScan = boundary.buildScan(transactionId,scan.getStartRow(),scan.getStopRow());
+        retScan.setFilter(scan.getFilter());
+        return retScan;
     }
 
 }

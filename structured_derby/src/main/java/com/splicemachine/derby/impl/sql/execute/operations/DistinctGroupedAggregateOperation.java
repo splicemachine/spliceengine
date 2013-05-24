@@ -86,7 +86,7 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
         return new OperationSink.Translator() {
             @Nonnull
             @Override
-            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+            public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
                 try {
                     byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
                     Put put = Puts.buildTempTableInsert(rowKey,row.getRowArray(),null,serializer);
@@ -94,6 +94,11 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
                 } catch (StandardException e) {
                     throw Exceptions.getIOException(e);
                 }
+            }
+
+            @Override
+            public boolean mergeKeys() {
+                return true; //eliminate duplicates when writing to TEMP
             }
         };
     }

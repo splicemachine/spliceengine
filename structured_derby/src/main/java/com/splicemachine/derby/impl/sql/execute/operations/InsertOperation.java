@@ -71,7 +71,8 @@ public class InsertOperation extends DMLWriteOperation {
             return new OperationSink.Translator() {
                 @Nonnull
                 @Override
-                public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+                public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
+                    //we ignore the postfix because we want to use our own from RowSerializer
                     try {
                         byte[ ]rowKey = rowKeySerializer.serialize(row.getRowArray());
                         Put put =  Puts.buildInsert(rowKey, row.getRowArray(), getTransactionID(), serializer);
@@ -79,6 +80,11 @@ public class InsertOperation extends DMLWriteOperation {
                     } catch (StandardException e) {
                         throw Exceptions.getIOException(e);
                     }
+                }
+
+                @Override
+                public boolean mergeKeys() {
+                    return true;
                 }
             };
         } catch (StandardException e) {

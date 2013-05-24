@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -28,8 +29,10 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nullable;
 import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
@@ -81,19 +84,18 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	RegionStats regionStats;
 	public NoPutResultSet[]	subqueryTrackingArray;
 
+    /*
+     * Used to indicate rows which should be excluded from TEMP because their backing operation task
+     * failed and was retried for some reasons. will be null for tasks which do not make use of the TEMP
+     * table.
+     */
+    protected List<byte[]> failedTasks;
+
 	/*
 	 * Defines a mapping between any FormattableBitSet's column entries
 	 * and a compactRow. This is only used in conjuction with getCompactRow.
 	 */
 	protected int[] baseColumnMap;
-
-    /*
-     * This is actually the parameter set for prepared statements.
-     * If this isn't populated correctly, then the serialization framework
-     * won't serialize parameters for PreparedStatements over correctly,
-     * which will result in failed operations.
-     */
-    private ParameterValueSet operationParams;
 
     public SpliceBaseOperation() {
 		super();
@@ -113,9 +115,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
 		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
 
-		operationParams = activation.getParameterValueSet().getClone();
-		
-		
 //		SpliceLogUtils.trace(LOG,"begine compile time="+activation.getPreparedStatement().getBeginCompileTimestamp()
 //				+",end compile time="+activation.getPreparedStatement().getEndCompileTimestamp());
 		
@@ -490,16 +489,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			int numCols = accessedCols.getNumBitsSet();
 			baseColumnMap = new int[numCandidateCols];
 
-			if (compactRow == null) {
-				ExecutionFactory ex = lcc.getLanguageConnectionFactory().getExecutionFactory();
-				if (isKeyed) {
-					compactRow = ex.getIndexableRow(numCols);
-				}
-				else {
-					compactRow = ex.getValueRow(numCols);
-				}
-			}
-			int position = 0;
+            ExecutionFactory ex = lcc.getLanguageConnectionFactory().getExecutionFactory();
+            if (isKeyed) {
+                compactRow = ex.getIndexableRow(numCols);
+            }
+            else {
+                compactRow = ex.getValueRow(numCols);
+            }
+            int position = 0;
 			for (int i = accessedCols.anySetBit();i != -1; i = accessedCols.anySetBit(i)) {
 				// Stop looking if there are columns beyond the columns
 				// in the candidate row. This can happen due to the
@@ -592,11 +589,22 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         throw new RuntimeException("Finish Not Implemented for this node " + this.getClass());
     }
 
+    private static final Function<String,byte[]> taskToBytes = new Function<String, byte[]>() {
+        @Override
+        public byte[] apply(@Nullable String input) {
+            return Bytes.toBytes(input);
+        }
+    };
+
     @Override
-    public void executeShuffle() throws StandardException {
+    public final void executeShuffle() throws StandardException {
+        /*
+         * Marked final so that subclasses don't accidentally screw up their error-handling of the
+         * TEMP table by forgetting to deal with failedTasks/statistics/whatever else needs to be handled.
+         */
         JobStats stats = doShuffle();
         JobStatsUtils.logStats(stats,LOG);
-
+        failedTasks = Lists.transform(stats.getFailedTasks(),taskToBytes);
 	}
 
     protected JobStats doShuffle() throws StandardException {

@@ -10,6 +10,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 import java.io.IOException;
 
@@ -43,6 +44,15 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
 		this.table = table;
 		this.scanner = RegionAwareScanner.create(transactionId, region,boundary,table,start,finish);
 	}
+
+    public SimpleRegionAwareRowProvider(String txnId,HRegion region,Scan scan,byte[] tableName,byte[] columnFamily,
+                                        final Hasher hasher,
+                                        final ExecRow rowTemplate,FormatableBitSet fbt){
+        super(rowTemplate,fbt);
+        this.table = tableName;
+        this.scanner = RegionAwareScanner.create(txnId,region,scan,tableName,
+                new SingleTypeHashAwareScanBoundary(columnFamily,rowTemplate,hasher));
+    }
 
     @Override
     protected Result getResult() throws StandardException {

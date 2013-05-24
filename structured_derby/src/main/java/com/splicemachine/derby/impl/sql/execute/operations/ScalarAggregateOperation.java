@@ -1,11 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.primitives.Bytes;
+import com.gotometrics.orderly.StructBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
@@ -27,6 +30,8 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
@@ -105,6 +110,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
         try {
             reduceScan = Scans.buildPrefixRangeScan(sequence[0], SpliceUtils.NA_TRANSACTION_ID);
+            //make sure that we filter out failed tasks
+            SuccessFilter filter = new SuccessFilter(failedTasks,false);
+            reduceScan.setFilter(filter);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -257,17 +265,26 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     public OperationSink.Translator getTranslator() throws IOException {
         final Serializer serializer = new Serializer();
 
+        final byte[][] keySet=  new byte[2][];
+        try {
+            keySet[0] = serializer.serialize(sequence[0]);
+        } catch (StandardException e) {
+            throw Exceptions.getIOException(e);
+        }
+
         return new OperationSink.Translator() {
             @Nonnull
             @Override
-            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
-                try {
-                    byte[] key = DerbyBytesUtil.generatePrefixedRowKey(sequence[0]);
-                    Put put = Puts.buildInsert(key, row.getRowArray(), SpliceUtils.NA_TRANSACTION_ID, serializer);
-                    return Collections.<Mutation>singletonList(put);
-                } catch (StandardException e) {
-                    throw Exceptions.getIOException(e);
-                }
+            public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
+                keySet[1] = postfix;
+                byte[] key = Bytes.concat(keySet);
+                Put put = Puts.buildInsert(key, row.getRowArray(), SpliceUtils.NA_TRANSACTION_ID, serializer);
+                return Collections.<Mutation>singletonList(put);
+            }
+
+            @Override
+            public boolean mergeKeys() {
+                return false;
             }
         };
     }

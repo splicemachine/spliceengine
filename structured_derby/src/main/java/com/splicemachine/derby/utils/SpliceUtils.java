@@ -313,7 +313,7 @@ public class SpliceUtils extends SpliceUtilities {
                 for (KeyValue keyValue : keyValues) {
                     if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
                         continue;
-                    else if(Bytes.compareTo(keyValue.getQualifier(), OperationSink.TASK_ID_COL_BYTES)==0)
+                    else if(Bytes.compareTo(keyValue.getQualifier(), SpliceConstants.TASK_ID_COL)==0)
                         continue; //skip the task column
                     placeHolder = Bytes.toInt(keyValue.getQualifier());
                     if (scanList.isSet(placeHolder)) {
@@ -373,7 +373,7 @@ public class SpliceUtils extends SpliceUtilities {
 			for (KeyValue keyValue: keyValues) {
 				if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
 					continue;
-                else if(Bytes.compareTo(keyValue.getQualifier(), OperationSink.TASK_ID_COL_BYTES)==0)
+                else if(Bytes.compareTo(keyValue.getQualifier(), SpliceUtils.TASK_ID_COL)==0)
                     continue; //skip the task column
 				position = Bytes.toInt(keyValue.getQualifier());
 				if (destRow.length -1 >= position) {
@@ -395,7 +395,7 @@ public class SpliceUtils extends SpliceUtilities {
     			for (KeyValue keyValue : keyValues) {
     				if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
     					continue;
-                    else if(Bytes.compareTo(keyValue.getQualifier(), OperationSink.TASK_ID_COL_BYTES)==0)
+                    else if(Bytes.compareTo(keyValue.getQualifier(), SpliceUtils.TASK_ID_COL)==0)
                         continue; //skip the task column
     				placeHolder = Bytes.toInt(keyValue.getQualifier());
     				if (scanList.isSet(placeHolder)) {

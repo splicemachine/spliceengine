@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -179,9 +180,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public void executeShuffle() throws StandardException {
+    protected JobStats doShuffle() throws StandardException {
         JobStats jobStats = super.doShuffle();
-        JobStatsUtils.logStats(jobStats, LOG);
+
         Map<String,TaskStats> taskStats = jobStats.getTaskStats();
         long rowsModified = 0;
         for(String taskId:taskStats.keySet()){
@@ -189,6 +190,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
             rowsModified+=stats.getWriteStats().getTotalRecords();
         }
         modifiedProvider.rowsModified+=rowsModified;
+        return jobStats;
     }
 
     @Override

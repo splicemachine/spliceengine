@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.*;
@@ -386,6 +387,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
     private static class JobStatsAccumulator implements JobStats{
         private Map<String,TaskStats> taskStatsMap = Maps.newConcurrentMap();
         private Watcher watcher;
+        private List<String> failedTasks = Collections.synchronizedList(Lists.<String>newArrayListWithExpectedSize(0));
 
         private final AtomicInteger tasks = new AtomicInteger(0);
         private final AtomicInteger submittedTasks = new AtomicInteger();
@@ -418,7 +420,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
 
         @Override
         public int getNumFailedTasks() {
-            return watcher.failedTasks.size();
+            return failedTasks.size();
         }
 
         @Override
@@ -439,6 +441,11 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         @Override
         public String getJobName() {
             return watcher.job.getJobId();
+        }
+
+        @Override
+        public List<String> getFailedTasks() {
+            return failedTasks;
         }
     }
 
@@ -551,6 +558,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                         case FAILED:
                             try{
                                 SpliceLogUtils.trace(LOG,"Task %s failed",changedFuture.getTaskId());
+                                stats.failedTasks.add(changedFuture.getTaskId());
                                 changedFuture.dealWithError();
                             }catch(ExecutionException ee){
                                 failedTasks.add(changedFuture);

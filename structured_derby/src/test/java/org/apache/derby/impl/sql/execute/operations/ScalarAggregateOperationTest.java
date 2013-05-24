@@ -5,10 +5,7 @@ import java.sql.ResultSet;
 import java.sql.Types;
 
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -81,7 +78,15 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
 		Assert.assertEquals("incorrect number of rows returned!",1,count);
 	}
 
-	@Test
+    @Test
+    @Ignore("SF takes a long time, and doesn't actually test anything, but is helpful when trying to reproduce failure conditions")
+    public void testRepeatedCount() throws Exception {
+        for(int i=0;i<100;i++){
+            testCountOperation();
+        }
+    }
+
+    @Test
 	public void testSumOperation() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(format("select sum(i) from %s", this.getTableReference(TABLE_NAME)));
 		int i=0;

@@ -10,7 +10,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 
+import com.google.common.primitives.Bytes;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
@@ -136,30 +138,36 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
             byte[] finish = BytesUtil.copyAndIncrement(start);
 			if(regionScanner==null){
-				reduceScan = Scans.newScan(start,finish, getTransactionID());
                 isTemp = true;
 			}else{
 				Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
-				rowProvider = new SimpleRegionAwareRowProvider(
-                        getTransactionID(),
+                rowProvider = new SimpleRegionAwareRowProvider(SpliceUtils.NA_TRANSACTION_ID,
                         context.getRegion(),
-						regionScanner.getRegionInfo().getTableName(),
-						SpliceConstants.DEFAULT_FAMILY_BYTES,
-						start,finish,hasher,
-						sourceExecIndexRow,null);
+                        context.getScan(),
+                        SpliceConstants.TEMP_TABLE_BYTES,
+                        SpliceConstants.DEFAULT_FAMILY_BYTES,
+                        hasher,
+                        sourceExecIndexRow,null);
 				rowProvider.open();
                 isTemp = !context.isSink() || context.getTopOperation()!=this;
 			}
 	}
 
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template){
-        RowProvider provider = rowProvider;
-        if(provider==null){
-            SpliceUtils.setInstructions(reduceScan,activation,top);
-            provider = new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
-        }
-        return provider;
+	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
+//        RowProvider provider = rowProvider;
+//        if(provider==null){
+            try {
+                reduceScan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
+            SuccessFilter filter = new SuccessFilter(failedTasks,false);
+            reduceScan.setFilter(filter);
+            SpliceUtils.setInstructions(reduceScan, activation, top);
+            return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
+//        }
+//        return provider;
 	}
 
     @Override
@@ -181,16 +189,25 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     public OperationSink.Translator getTranslator() throws IOException {
         final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
         final Serializer serializer = new Serializer();
+        final byte[][] keySet = new byte[2][];
         return new OperationSink.Translator() {
             @Nonnull
             @Override
-            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+            public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
                 try {
-                    Put put = Puts.buildTempTableInsert(hasher.generateSortedHashKey(row.getRowArray()),row.getRowArray(),null,serializer);
+                    keySet[0] = hasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray());
+                    keySet[1] = postfix;
+                    byte[] rowKey = Bytes.concat(keySet);
+                    Put put = Puts.buildTempTableInsert(rowKey,row.getRowArray(),null,serializer);
                     return Collections.<Mutation>singletonList(put);
                 } catch (StandardException e) {
                     throw Exceptions.getIOException(e);
                 }
+            }
+
+            @Override
+            public boolean mergeKeys() {
+                return false; //need to make sure we're unique within regions
             }
         };
     }

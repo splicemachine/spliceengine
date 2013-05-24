@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
+import com.google.common.primitives.Bytes;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -8,6 +10,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider;
@@ -154,6 +157,9 @@ public class MergeSortJoinOperation extends JoinOperation {
     @Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template){
         if(clientProvider==null){
+            if(failedTasks.size()>0){
+                reduceScan.setFilter(new SuccessFilter(failedTasks,false));
+            }
             SpliceUtils.setInstructions(reduceScan,activation,top);
             clientProvider = new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
         }
@@ -183,17 +189,18 @@ public class MergeSortJoinOperation extends JoinOperation {
         if(regionScanner==null){
             reduceScan = Scans.newScan(start,finish, getTransactionID());
         }else{
-            serverProvider = new MergeSortRegionAwareRowProvider(getTransactionID(), context.getRegion(),SpliceOperationCoprocessor.TEMP_TABLE,SpliceConstants.DEFAULT_FAMILY_BYTES,
-                    start,finish,leftHasher,leftRow,rightHasher,rightRow,null,rowType);
+            serverProvider = new MergeSortRegionAwareRowProvider(getTransactionID(), context.getRegion(),
+                    SpliceConstants.TEMP_TABLE_BYTES,SpliceConstants.DEFAULT_FAMILY_BYTES,
+                    context.getScan(),leftHasher,leftRow,rightHasher,rightRow,null,rowType);
             serverProvider.open();
         }
         isTemp =!context.isSink() ||context.getTopOperation()!=this;
 	}
 
-	@Override
-	public void executeShuffle() throws StandardException {
-		SpliceLogUtils.trace(LOG, "executeShuffle");
-		long start = System.currentTimeMillis();
+    @Override
+    protected JobStats doShuffle() throws StandardException {
+        SpliceLogUtils.trace(LOG, "executeShuffle");
+        long start = System.currentTimeMillis();
         JoinSide oldSide = joinSide;
 
         ExecRow template = getExecRowDefinition();
@@ -208,20 +215,11 @@ public class MergeSortJoinOperation extends JoinOperation {
         joinSide = oldSide;
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
         JobStats stats = combined.shuffleRows(soi);
-        JobStatsUtils.logStats(stats, LOG);
         nextTime+=System.currentTimeMillis()-start;
-//		OperationBranch operationBranch = new OperationBranch(getActivation(),getOperationStack(),leftResultSet.getExecRowDefinition());
-//		SpliceLogUtils.trace(LOG, "merge sort shuffling left");
-//		operationBranch.execCoprocessor(this.getClass().getName());
-//		joinSide = JoinSide.RIGHT;
-//		SpliceLogUtils.trace(LOG, "merge sort shuffling right");
-//		operationBranch = new OperationBranch(getActivation(),getRightOperationStack(),rightResultSet.getExecRowDefinition());
-//		operationBranch.execCoprocessor(this.getClass().getName());
-//		nextTime += System.currentTimeMillis() - start;
-//		SpliceLogUtils.trace(LOG, "shuffle finished");
-	}
-	
-	@Override
+        return stats;
+    }
+
+    @Override
 	public NoPutResultSet executeScan() throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeScan");
 		final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
@@ -255,19 +253,27 @@ public class MergeSortJoinOperation extends JoinOperation {
                     break;
             }
             final Hasher transHasher = hasher;
+            final byte[][] keySet = new byte[2][];
             return new OperationSink.Translator() {
                 @Nonnull
                 @Override
-                public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+                public List<Mutation> translate(@Nonnull ExecRow row, byte[] postfix) throws IOException {
                     try {
+                        keySet[0] = transHasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray(),additionalDescriptors);
+                        keySet[1] = postfix;
                         //TODO -sf- possible optimization here. Can we avoid writing duplicate rows at all when oneRowRightSide==true?
-                        byte[] rowKey = transHasher.generateSortedHashKey(row.getRowArray(),additionalDescriptors);
+                        byte[] rowKey = Bytes.concat(keySet);
                         return Collections.<Mutation>singletonList(Puts.buildInsert(rowKey,
                                 row.getRowArray(), null,
                                 SpliceUtils.NA_TRANSACTION_ID, serializer, additionalDescriptors));
                     } catch (StandardException e) {
                         throw Exceptions.getIOException(e);
                     }
+                }
+
+                @Override
+                public boolean mergeKeys() {
+                    return false;
                 }
             };
         } catch (StandardException e) {

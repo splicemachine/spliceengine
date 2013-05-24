@@ -55,9 +55,15 @@ public class DeleteOperation extends DMLWriteOperation{
     @Override
     public OperationSink.Translator getTranslator() throws IOException {
         return new OperationSink.Translator() {
+
+            @Override
+            public boolean mergeKeys() {
+                return true; //ignored anyway, so may as
+            }
+
             @Nonnull
             @Override
-            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+            public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
                 RowLocation locToDelete;
                 try {
                     locToDelete = (RowLocation)row.getColumn(row.nColumns()).getObject();

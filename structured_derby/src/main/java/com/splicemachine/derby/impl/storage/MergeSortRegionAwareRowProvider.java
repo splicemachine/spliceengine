@@ -52,15 +52,15 @@ public class MergeSortRegionAwareRowProvider extends SingleScanRowProvider {
 
     public MergeSortRegionAwareRowProvider(String transactionId, HRegion region, byte[] table,
                                            byte[] columnFamily,
-                                           byte[] start, byte[] finish,
+                                           Scan scan,
                                            final Hasher leftHasher,
                                            ExecRow leftRow,
                                            final Hasher rightHasher,
                                            ExecRow rightRow,
                                            FormatableBitSet fbt, SQLInteger rowType) {
-    	SpliceLogUtils.trace(LOG, "instantiated for region %s of table %s",region.getRegionInfo().toString(), Bytes.toString(table));
-        this.scanner = RegionAwareScanner.create(transactionId, region,
-        		new MultipleTypeHashAwareScanBoundary(rowType,columnFamily,leftRow, leftHasher,rightRow,rightHasher),table,start,finish);   
+        SpliceLogUtils.trace(LOG, "instantiated for region %s of table %s",region.getRegionInfo().toString(), Bytes.toString(table));
+        this.scanner = RegionAwareScanner.create(transactionId, region,scan,table,
+                new MultipleTypeHashAwareScanBoundary(rowType,columnFamily,leftRow, leftHasher,rightRow,rightHasher));
         this.leftRow = leftRow;
         this.rightRow = rightRow;
         this.fbt = fbt;
@@ -70,7 +70,6 @@ public class MergeSortRegionAwareRowProvider extends SingleScanRowProvider {
         this.rowType = rowType;
         this.serializer = new Serializer();
     }
-
     public MergeSortRegionAwareRowProvider(String transactionId, HRegion region,byte[] table,
                                            byte[] columnFamily,
                                            byte[] start, byte[] finish,

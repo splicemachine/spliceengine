@@ -1,10 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Bytes;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
 import com.splicemachine.derby.utils.*;
@@ -132,6 +134,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
         try{
             reduceScan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
+            //make sure that we filter out failed tasks
+            SuccessFilter filter = new SuccessFilter(failedTasks,false);
+            reduceScan.setFilter(filter);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -236,18 +241,27 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         final Serializer serializer = new Serializer();
         final Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
 
+        final byte[][] keySet = new byte[2][];
         return new OperationSink.Translator(){
 
             @Nonnull
             @Override
-            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+            public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
                 try {
-                    byte[] key = hasher.generateSortedHashKey(row.getRowArray());
+                    keySet[0] = hasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray());
+                    keySet[1] = postfix;
+
+                    byte[] key = Bytes.concat(keySet);
                     Put put = Puts.buildInsert(key,row.getRowArray(),SpliceUtils.NA_TRANSACTION_ID,serializer);
                     return Collections.<Mutation>singletonList(put);
                 } catch (StandardException e) {
                     throw Exceptions.getIOException(e);
                 }
+            }
+
+            @Override
+            public boolean mergeKeys() {
+                return false; //eliminate duplicates in TEMP
             }
         };
     }

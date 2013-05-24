@@ -247,7 +247,7 @@ public class DistinctScanOperation extends ScanOperation{
         return new OperationSink.Translator() {
             @Nonnull
             @Override
-            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+            public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
                 try {
                     byte[] tempRow = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),null);
                     Put put = Puts.buildInsert(tempRow,row.getRowArray(),SpliceUtils.NA_TRANSACTION_ID,serializer);
@@ -255,6 +255,11 @@ public class DistinctScanOperation extends ScanOperation{
                 } catch (StandardException e) {
                     throw Exceptions.getIOException(e);
                 }
+            }
+
+            @Override
+            public boolean mergeKeys() {
+                return true;
             }
         };
     }

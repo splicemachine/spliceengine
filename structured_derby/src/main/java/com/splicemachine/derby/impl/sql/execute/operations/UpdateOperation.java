@@ -122,9 +122,15 @@ public class UpdateOperation extends DMLWriteOperation{
         final HTableInterface[] htables = new HTableInterface[1];
 
         return new OperationSink.Translator() {
+
+            @Override
+            public boolean mergeKeys() {
+                return false;
+            }
+
             @Nonnull
             @Override
-            public List<Mutation> translate(@Nonnull ExecRow nextRow) throws IOException {
+            public List<Mutation> translate(@Nonnull ExecRow nextRow,byte[] postfix) throws IOException {
                 try{
                     RowLocation location= (RowLocation)nextRow.getColumn(nextRow.nColumns()).getObject(); //the location to update is always at the end
 	                /*

@@ -2,12 +2,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+import com.google.common.primitives.Bytes;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.utils.Exceptions;
@@ -175,6 +177,10 @@ public class SortOperation extends SpliceBaseOperation {
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
         try {
             reduceScan = Scans.buildPrefixRangeScan(sequence[0], getTransactionID());
+            if(failedTasks.size()>0 && !distinct){
+                //we don't need the filter when distinct is true, because we'll overwrite duplicates anyway
+                reduceScan.setFilter(new SuccessFilter(failedTasks,distinct));
+            }
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -197,17 +203,32 @@ public class SortOperation extends SpliceBaseOperation {
             final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,descColumns,sequence[0]);
             final Serializer serializer = new Serializer();
 
+            final byte[][] keySet = new byte[2][];
             return new OperationSink.Translator() {
                 @Override
-                @Nonnull public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+                @Nonnull public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
                     try {
-                        byte[] tempRowKey = distinct?hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),null):
-                                hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(), SpliceUtils.getUniqueKey());
+
+                        keySet[0] = hasher.generateSortedHashKeyWithoutUniqueKey(currentRow.getRowArray());
+                        byte[] tempRowKey;
+                        if(!distinct){
+                            keySet[1] = postfix;
+
+                            tempRowKey = Bytes.concat(keySet);
+                        }else
+                            tempRowKey = keySet[0];
+//                        byte[] tempRowKey = distinct?hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),null):
+//                                hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(), SpliceUtils.getUniqueKey());
                         Put put = Puts.buildTempTableInsert(tempRowKey,row.getRowArray(),null,serializer);
                         return Collections.<Mutation>singletonList(put);
                     } catch (StandardException e) {
                         throw Exceptions.getIOException(e);
                     }
+                }
+
+                @Override
+                public boolean mergeKeys() {
+                    return distinct;
                 }
             };
         }catch(StandardException se){

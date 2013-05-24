@@ -2,6 +2,7 @@ package com.splicemachine.job;
 
 import com.splicemachine.derby.stats.TaskStats;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -27,4 +28,6 @@ public interface JobStats {
     Map<String,TaskStats> getTaskStats();
 
     String getJobName();
+
+    List<String> getFailedTasks();
 }

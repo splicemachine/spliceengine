@@ -24,6 +24,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -146,6 +147,11 @@ public abstract class SingleScanRowProvider  implements RowProvider {
         @Override public int getNumCancelledTasks() { return 0; }
         @Override public long getTotalTime() { return stats.getTotalTime(); }
         @Override public String getJobName() { return "localJob"; }
+
+        @Override
+        public List<String> getFailedTasks() {
+            return Collections.emptyList();
+        }
 
         @Override
         public Map<String, TaskStats> getTaskStats() {

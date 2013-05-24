@@ -1,8 +1,10 @@
 package com.splicemachine.derby.impl.storage;
 
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -295,6 +297,13 @@ public class RowProviders {
         @Override
         public String getJobName() {
             return "combinedJob["+firstJobStats.getJobName()+","+secondJobStats.getJobName()+"]";
+        }
+
+        @Override
+        public List<String> getFailedTasks() {
+            List<String> failedTasks = Lists.newArrayList(firstJobStats.getFailedTasks());
+            failedTasks.addAll(secondJobStats.getFailedTasks());
+            return failedTasks;
         }
     }
 

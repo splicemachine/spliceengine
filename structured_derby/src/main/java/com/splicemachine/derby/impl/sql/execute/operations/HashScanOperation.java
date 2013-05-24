@@ -168,7 +168,7 @@ public class HashScanOperation extends ScanOperation {
         return new OperationSink.Translator() {
             @Nonnull
             @Override
-            public List<Mutation> translate(@Nonnull ExecRow row) throws IOException {
+            public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
                 try{
                     byte[] tempRow;
                     if(eliminateDuplicates)
@@ -181,7 +181,11 @@ public class HashScanOperation extends ScanOperation {
                 }catch(StandardException se){
                     throw Exceptions.getIOException(se);
                 }
+            }
 
+            @Override
+            public boolean mergeKeys() {
+                return false;
             }
         };
     }

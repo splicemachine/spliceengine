@@ -229,5 +229,14 @@ public abstract class MultiScanRowProvider implements RowProvider {
         public String getJobName() {
             return "multiScanJob"; //TODO -sf- use a better name here
         }
+
+        @Override
+        public List<String> getFailedTasks() {
+            List<String> failedTasks = Lists.newArrayList();
+            for(JobStats stat:stats){
+                failedTasks.addAll(stat.getFailedTasks());
+            }
+            return failedTasks;
+        }
     }
 }
