@@ -2264,6 +2264,7 @@ public class SITransactorTest extends SIConstants {
                 }
             }).start();
 
+            transactor.commit(t1a);
             transactor.commit(t1);
             Assert.assertTrue(latch3.await(2, TimeUnit.SECONDS));
             Assert.assertTrue(waits[0]);
