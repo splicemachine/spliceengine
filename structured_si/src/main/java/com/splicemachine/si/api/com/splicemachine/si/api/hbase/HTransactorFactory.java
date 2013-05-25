@@ -41,6 +41,7 @@ public class HTransactorFactory extends SIConstants {
 
     public static void setTransactor(HTransactor transactorToUse) {
         defaultTransactor = transactorToUse;
+        transactor = transactorToUse;
     }
 
     public static HClientTransactor getClientTransactor() {
