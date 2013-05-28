@@ -41,12 +41,12 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 	
 	@Override
 	public void preCreateTable(ObserverContext<MasterCoprocessorEnvironment> ctx, HTableDescriptor desc, HRegionInfo[] regions) throws IOException {
-        SpliceLogUtils.debug(LOG, "preCreateTable %s",Bytes.toString(desc.getName()));
+        SpliceLogUtils.info(LOG, "preCreateTable %s",Bytes.toString(desc.getName()));
 		if (!Bytes.equals(desc.getName(),INIT_TABLE))
 			super.preCreateTable(ctx, desc, regions);			
 		else {
 			try {
-		        SpliceLogUtils.debug(LOG, "Creating Splice");
+		        SpliceLogUtils.info(LOG, "Creating Splice");
 				createSplice();
 			} catch (Exception e) {
 				SpliceLogUtils.logAndThrow(LOG, "preCreateTable Error", Exceptions.getIOException(e));
@@ -60,10 +60,10 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 		Connection connection = null;
 		try {
 			if (ZkUtils.isSpliceLoaded()) {
-				SpliceLogUtils.debug(LOG, "Splice Already Loaded");
+				SpliceLogUtils.info(LOG, "Splice Already Loaded");
 				return;
 			} else {
-				SpliceLogUtils.debug(LOG, "Booting Splice");
+				SpliceLogUtils.info(LOG, "Booting Splice");
 				ZkUtils.refreshZookeeper();
 				SpliceUtilities.refreshHbase();
 				SpliceUtilities.createSpliceHBaseTables();
