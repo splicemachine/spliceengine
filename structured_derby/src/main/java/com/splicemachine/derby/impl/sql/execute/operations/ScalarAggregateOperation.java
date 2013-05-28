@@ -230,10 +230,11 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 	
 	@Override
-	public ExecRow getExecRowDefinition(){
+	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
 		ExecRow row = sourceExecIndexRow.getClone();
-		return row;
+        SpliceUtils.populateDefaultValues(row.getRowArray(),0);
+        return row;
 	}
 
 	protected void initializeScalarAggregation(ExecRow aggResult) throws StandardException{
