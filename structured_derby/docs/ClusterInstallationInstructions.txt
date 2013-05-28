@@ -1,0 +1,25 @@
+Instructions for Cluster Installation:
+
+1.  Install Cloudera Manager and select custom service option.
+2.  Install Zookeeper, HDFS, and HBase only.
+3.  Stop all services.
+4.  Copy structured_derby/structured_derby-1.0.1-SNAPSHOT-complete.jar to your /usr/lib/hbase/lib directories on all your nodes.
+5.  Change HBase Configuration for Service Wide 
+	hbase.rpc.timeout=2 minutes
+6.  Change HBase Configuration for Service Wide -> Advanced
+	safety-valve
+		<property>
+			<name>hbase.coprocessor.region.classes</name>
+			<value>com.splicemachine.derby.hbase.SpliceOperationRegionObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceDerbyCoprocessor,com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler,com.splicemachine.si.coprocessors.SIObserver</value>
+			<description>These are the coprocessors used to run the Splice Machine.</description>
+		</property>  
+		<property>
+			<name>hbase.coprocessor.master.classes</name>
+			<value>com.splicemachine.derby.hbase.SpliceMasterObserver</value>    
+			<description>Master coprocessors for the Splice Machine.</description>
+		</property>
+		<property>
+			<name>splice.compression</name>
+			<value>snappy</value>
+		</property>
+	
