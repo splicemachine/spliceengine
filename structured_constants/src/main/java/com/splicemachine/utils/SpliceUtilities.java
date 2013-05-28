@@ -7,6 +7,8 @@ import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.io.hfile.Compression.Algorithm;
+import org.apache.hadoop.hbase.regionserver.StoreFile.BloomType;
 import org.apache.log4j.Logger;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
@@ -56,35 +58,46 @@ public class SpliceUtilities extends SIConstants {
 	
 	public static HTableDescriptor generateTransactionTable(String tableName) {
             HTableDescriptor desc = new HTableDescriptor(SpliceConstants.TRANSACTION_TABLE_BYTES);
-            desc.addFamily(new HColumnDescriptor(DEFAULT_FAMILY.getBytes(),
-                    5,
-                    compression,
-                    DEFAULT_IN_MEMORY,
-                    DEFAULT_BLOCKCACHE,
-                    Integer.MAX_VALUE,
-                    DEFAULT_BLOOMFILTER));
-            desc.addFamily(new HColumnDescriptor(DEFAULT_FAMILY));
-            desc.addFamily(new HColumnDescriptor(SNAPSHOT_ISOLATION_CHILDREN_FAMILY));
+            HColumnDescriptor columnDescriptor = new HColumnDescriptor(DEFAULT_FAMILY.getBytes());
+            columnDescriptor.setMaxVersions(5);
+            columnDescriptor.setCompressionType(Algorithm.valueOf(compression));
+            columnDescriptor.setInMemory(DEFAULT_IN_MEMORY);
+            columnDescriptor.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
+            columnDescriptor.setBloomFilterType(BloomType.valueOf(DEFAULT_BLOOMFILTER));
+            columnDescriptor.setTimeToLive(DEFAULT_TTL);
+            desc.addFamily(columnDescriptor);
+
+            HColumnDescriptor snapshot = new HColumnDescriptor(SNAPSHOT_ISOLATION_CHILDREN_FAMILY);
+            snapshot.setMaxVersions(Integer.MAX_VALUE);
+            snapshot.setCompressionType(Algorithm.valueOf(compression));
+            snapshot.setInMemory(DEFAULT_IN_MEMORY);
+            snapshot.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
+            snapshot.setBloomFilterType(BloomType.valueOf(DEFAULT_BLOOMFILTER));
+            snapshot.setTimeToLive(DEFAULT_TTL);
+            desc.addFamily(snapshot);
+
             return desc;
 	}
 	
 	public static HColumnDescriptor createDataFamily() {
-		HColumnDescriptor desc = new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes(),
-				DEFAULT_VERSIONS,
-				compression,
-				DEFAULT_IN_MEMORY,
-				DEFAULT_BLOCKCACHE,
-				DEFAULT_TTL,
-				DEFAULT_BLOOMFILTER);
-        desc.setMaxVersions(Integer.MAX_VALUE);
-        desc.setTimeToLive(Integer.MAX_VALUE);
-        return desc;
+        HColumnDescriptor snapshot = new HColumnDescriptor(SNAPSHOT_ISOLATION_CHILDREN_FAMILY);
+        snapshot.setMaxVersions(Integer.MAX_VALUE);
+        snapshot.setCompressionType(Algorithm.valueOf(compression));
+        snapshot.setInMemory(DEFAULT_IN_MEMORY);
+        snapshot.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
+        snapshot.setBloomFilterType(BloomType.valueOf(DEFAULT_BLOOMFILTER));
+        snapshot.setTimeToLive(DEFAULT_TTL);
+        return snapshot;
 	}
 	
     public static HColumnDescriptor createTransactionFamily() {
         final HColumnDescriptor siFamily = new HColumnDescriptor(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES);
         siFamily.setMaxVersions(Integer.MAX_VALUE);
-        siFamily.setTimeToLive(Integer.MAX_VALUE);
+        siFamily.setCompressionType(Algorithm.valueOf(compression));
+        siFamily.setInMemory(DEFAULT_IN_MEMORY);
+        siFamily.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
+        siFamily.setBloomFilterType(BloomType.valueOf(DEFAULT_BLOOMFILTER));
+        siFamily.setTimeToLive(DEFAULT_TTL);
         return siFamily;
     }
 
