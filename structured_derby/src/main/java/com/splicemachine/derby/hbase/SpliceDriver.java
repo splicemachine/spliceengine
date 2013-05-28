@@ -17,6 +17,7 @@ import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
+import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
 import com.splicemachine.tools.ThreadSafeResourcePool;
@@ -84,7 +85,8 @@ public class SpliceDriver extends SIConstants {
     private TaskMonitor taskMonitor;
     private TempCleaner tempCleaner;
 
-    private ResourcePool<Sequence,Sequence.Key> sequences = new ThreadSafeResourcePool<Sequence,Sequence.Key>(new ResourcePool.Generator<Sequence,Sequence.Key>() {
+    private ResourcePool<Sequence,Sequence.Key> sequences = CachedResourcePool.
+            Builder.<Sequence,Sequence.Key>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<Sequence,Sequence.Key>() {
         @Override
         public Sequence makeNew(Sequence.Key refKey) throws StandardException {
             return new Sequence(refKey.getTable(),
@@ -93,10 +95,10 @@ public class SpliceDriver extends SIConstants {
         }
 
         @Override
-        public void close(Sequence entity) {
-            //no-op
+        public void close(Sequence entity) throws Exception{
+            entity.close();
         }
-    });
+    }).build();
 
     private SpliceDriver(){
         ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("splice-lifecycle-manager").build();

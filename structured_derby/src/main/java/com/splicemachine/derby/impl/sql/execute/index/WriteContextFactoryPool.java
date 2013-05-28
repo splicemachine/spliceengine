@@ -62,7 +62,7 @@ public class WriteContextFactoryPool {
         return pool.get(ContextKey.create(mainTableConglomId));
     }
 
-    public static void releaseContextFactory(LocalWriteContextFactory writeContextFactory){
+    public static void releaseContextFactory(LocalWriteContextFactory writeContextFactory) throws Exception {
         pool.release(ContextKey.create(writeContextFactory.getMainTableConglomerateId()));
     }
 }

@@ -144,6 +144,10 @@ public class Sequence {
         return 0l; //can never happen
     }
 
+    public void close() throws IOException {
+       sysColumns.close();
+    }
+
     /**
      * Used as a unique identifier of Sequence elements (for use in Resource Pools).
      */

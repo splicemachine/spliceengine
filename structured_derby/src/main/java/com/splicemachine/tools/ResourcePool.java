@@ -19,11 +19,11 @@ public interface ResourcePool<E,K extends ResourcePool.Key>{
 
         T makeNew(K refKey) throws Exception;
 
-        void close(T entity);
+        void close(T entity) throws Exception;
     }
 
     public E get(K key) throws Exception;
 
-    public void release(K key);
+    public void release(K key) throws Exception;
 
 }

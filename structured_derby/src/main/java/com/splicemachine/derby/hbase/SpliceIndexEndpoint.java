@@ -85,7 +85,11 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 
     @Override
     public void stop(CoprocessorEnvironment env) {
-        WriteContextFactoryPool.releaseContextFactory((LocalWriteContextFactory) writeContextFactory);
+        try {
+            WriteContextFactoryPool.releaseContextFactory((LocalWriteContextFactory) writeContextFactory);
+        } catch (Exception e) {
+            LOG.error("Unable to close context factory, beware memory leaks!",e);
+        }
     }
 
     @Override

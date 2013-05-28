@@ -49,7 +49,7 @@ public class ThreadSafeResourcePool<E,K extends ResourcePool.Key> implements Res
     }
 
     @Override
-    public void release(K key) {
+    public void release(K key) throws Exception {
         Counter<E> cachedEntry = pool.get(key);
         if(cachedEntry==null) return; //nothing to do
 
