@@ -35,6 +35,7 @@ import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.services.uuid.UUIDFactory;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.depend.Provider;
+import org.apache.derby.iapi.sql.execute.HasIncrement;
 import org.apache.derby.iapi.sql.Row;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.ConnectionContext;
@@ -664,7 +665,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	       throws StandardException
 	{
 		DataValueDescriptor l =
-			((InsertResultSet)resultSet).getSetAutoincrementValue(columnPosition, increment);
+			((HasIncrement)resultSet).increment(columnPosition, increment);
 		return l;
 
 	}
