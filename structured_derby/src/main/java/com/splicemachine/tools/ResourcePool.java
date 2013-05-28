@@ -6,7 +6,7 @@ package com.splicemachine.tools;
  * @author Scott Fines
  * Created on: 3/11/13
  */
-public interface ResourcePool<E>{
+public interface ResourcePool<E,K extends ResourcePool.Key>{
 
     /**
      * Unique reference Key for the pool
@@ -15,15 +15,15 @@ public interface ResourcePool<E>{
 
     }
 
-    public interface Generator<T>{
+    public interface Generator<T,K extends Key>{
 
-        T makeNew(Key refKey);
+        T makeNew(K refKey) throws Exception;
 
         void close(T entity);
     }
 
-    public E get(Key key);
+    public E get(K key) throws Exception;
 
-    public void release(Key key);
+    public void release(K key);
 
 }

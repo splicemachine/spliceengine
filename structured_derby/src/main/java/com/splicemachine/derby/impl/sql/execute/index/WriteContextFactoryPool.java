@@ -39,15 +39,15 @@ public class WriteContextFactoryPool {
             return (int) (mainTableConglomId ^ (mainTableConglomId >>> 32));
         }
 
-        public static ResourcePool.Key create(long mainTableConglomId) {
+        public static ContextKey create(long mainTableConglomId) {
             return new ContextKey(mainTableConglomId);
         }
     }
 
-    private static ResourcePool.Generator<LocalWriteContextFactory> generator = new ResourcePool.Generator<LocalWriteContextFactory>() {
+    private static ResourcePool.Generator<LocalWriteContextFactory,ContextKey> generator = new ResourcePool.Generator<LocalWriteContextFactory,ContextKey>() {
         @Override
-        public LocalWriteContextFactory makeNew(ResourcePool.Key refKey) {
-            return new LocalWriteContextFactory(((ContextKey)refKey).mainTableConglomId);
+        public LocalWriteContextFactory makeNew(ContextKey refKey) {
+            return new LocalWriteContextFactory(refKey.mainTableConglomId);
         }
 
         @Override
@@ -56,9 +56,9 @@ public class WriteContextFactoryPool {
         }
     };
 
-    private static ResourcePool<LocalWriteContextFactory> pool = new ThreadSafeResourcePool<LocalWriteContextFactory>(generator);
+    private static ResourcePool<LocalWriteContextFactory,ContextKey> pool = new ThreadSafeResourcePool<LocalWriteContextFactory,ContextKey>(generator);
 
-    public static LocalWriteContextFactory getContextFactory(long mainTableConglomId){
+    public static LocalWriteContextFactory getContextFactory(long mainTableConglomId) throws Exception {
         return pool.get(ContextKey.create(mainTableConglomId));
     }
 

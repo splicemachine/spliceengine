@@ -104,6 +104,8 @@ public class SpliceConstants {
     private static final String STARTUP_LOCK_WAIT_PERIOD = "splice.startup.lockWaitPeriod";
     private static final String RING_BUFFER_SIZE = "splice.ring.bufferSize";
 
+    private static final String SEQUENCE_BLOCK_SIZE = "splice.sequence.allocationBlockSize";
+    private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
     
 	// Zookeeper Actual Paths
 	public static String zkSpliceTaskPath;
@@ -139,8 +141,10 @@ public class SpliceConstants {
     public static int rmiRemoteObjectPort;
     public static int startupLockWaitPeriod;
     public static int ringBufferSize;
-    
-    
+
+    /*Used to determine how many sequence numbers to reserve in a given block*/
+    public static long sequenceBlockSize;
+
     
     /*
      * Setting the cache update interval <0 indicates that caching is to be turned off.
@@ -154,6 +158,7 @@ public class SpliceConstants {
     public static final String TEMP_TABLE = "SPLICE_TEMP";
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
     public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
+    public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
     public static final String PROPERTIES_TABLE_NAME = "SPLICE_PROPS";
     public static final String PROPERTIES_CACHE = "properties";
     
@@ -161,6 +166,7 @@ public class SpliceConstants {
     public static byte[] TEMP_TABLE_BYTES = Bytes.toBytes(TEMP_TABLE);
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
     public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
+    public static final byte[] SEQUENCE_TABLE_NAME_BYTES = Bytes.toBytes(SEQUENCE_TABLE_NAME);
     public static final byte[]PROPERTIES_TABLE_NAME_BYTES = Bytes.toBytes(PROPERTIES_TABLE_NAME);
     
 	// Splice Family Information
@@ -205,6 +211,7 @@ public class SpliceConstants {
 
     public static double debugTaskFailureRate;
     public static final double DEFAULT_DEBUG_TASK_FAILURE_RATE= 0.1; //fail 10% of tasks when enabled
+
 
 
     public static enum TableEnv {
@@ -267,6 +274,8 @@ public class SpliceConstants {
         ringBufferSize = config.getInt(RING_BUFFER_SIZE, DEFAULT_RING_BUFFER_SIZE);
         debugFailTasksRandomly = config.getBoolean(DEBUG_FAIL_TASKS_RANDOMLY,DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY);
         debugTaskFailureRate = config.getFloat(DEBUG_TASK_FAILURE_RATE,(float)DEFAULT_DEBUG_TASK_FAILURE_RATE);
+
+        sequenceBlockSize = config.getInt(SEQUENCE_BLOCK_SIZE,DEFAULT_SEQUENCE_BLOCK_SIZE);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {

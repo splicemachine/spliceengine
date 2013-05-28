@@ -12,6 +12,7 @@ import com.splicemachine.tools.ResettableCountDownLatch;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -201,6 +202,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         HTransactor transactor = null;
         TransactionId txnId = null;
         boolean success = false;
+        ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
         SpliceTransactionResourceImpl transactionResource = null;
         try {
             try{
@@ -242,6 +244,8 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             if (transactionResource != null) {
                 transactionResource.cleanup();
             }
+            if(currentCm!=null)
+                ContextService.getFactory().setCurrentContextManager(currentCm);
         }
     }
 

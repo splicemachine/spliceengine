@@ -59,7 +59,11 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             return;
         }
 
-        writeContextFactory = WriteContextFactoryPool.getContextFactory(conglomId);
+        try {
+            writeContextFactory = WriteContextFactoryPool.getContextFactory(conglomId);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         SpliceDriver.Service service = new SpliceDriver.Service(){
 
             @Override

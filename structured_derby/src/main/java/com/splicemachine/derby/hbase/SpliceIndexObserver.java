@@ -46,7 +46,11 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             return;
         }
 
-        writeContextFactory = WriteContextFactoryPool.getContextFactory(conglomId);
+        try {
+            writeContextFactory = WriteContextFactoryPool.getContextFactory(conglomId);
+        } catch (Exception e1) {
+            throw new RuntimeException(e1);
+        }
         SpliceDriver.Service service = new SpliceDriver.Service() {
             @Override
             public boolean start() {

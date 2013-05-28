@@ -126,7 +126,7 @@ public final class SpliceTransactionResourceImpl {
 		csf.setCurrentContextManager(cm);
 	}
 
-	final void restoreContextStack() {
+	public final void restoreContextStack() {
 		if ((csf == null) || (cm == null))
 			return;
 		csf.resetCurrentContextManager(cm);

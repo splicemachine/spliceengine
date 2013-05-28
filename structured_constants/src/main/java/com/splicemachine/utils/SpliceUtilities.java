@@ -142,6 +142,16 @@ public class SpliceUtilities extends SIConstants {
                 SpliceLogUtils.info(LOG, SpliceConstants.CONGLOMERATE_TABLE_NAME_BYTES+" created");
             }
 
+            /*
+             * We have to have a special table to hold our Sequence values, because we shouldn't
+             * manage sequential generators transactionally.
+             */
+            if(!admin.tableExists(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES)){
+                HTableDescriptor td = generateNonSITable(SEQUENCE_TABLE_NAME);
+                admin.createTable(td);
+                SpliceLogUtils.info(LOG,SpliceConstants.SEQUENCE_TABLE_NAME_BYTES+" created");
+            }
+
             
             return true;
         }catch(Exception e){
