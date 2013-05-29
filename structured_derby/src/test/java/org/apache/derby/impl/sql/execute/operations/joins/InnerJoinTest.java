@@ -320,7 +320,6 @@ public class InnerJoinTest extends SpliceUnitTest {
 
     }
 
-    @Ignore("Throws ArrayIndexOutOfBoundsException - logged as 333")
     @Test
     public void testFiveTableJoin() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name, t5.cat_name, t4.sbc_desc " +
