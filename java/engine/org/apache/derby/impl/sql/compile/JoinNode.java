@@ -1650,13 +1650,33 @@ public class JoinNode extends TableOperatorNode {
 	{
 		int numArgs = getNumJoinArguments();
 
-		leftResultSet.generate(acb, mb); // arg 1
-		mb.push(leftResultSet.resultColumns.size()); // arg 2
-		rightResultSet.generate(acb, mb); // arg 3
+        leftResultSet.generate(acb, mb); // arg 1
+        mb.push(leftResultSet.resultColumns.size()); // arg 2
+
+        if (isNestedLoopOverMergeSortJoin()) {
+
+            NonLocalColumnReferenceVisitor visitor = new NonLocalColumnReferenceVisitor();
+            rightResultSet.accept(visitor);
+
+            ResultColumnList leftProjectedCols = leftResultSet.getResultColumns();
+
+            for (Iterator it = visitor.getNonLocalColumnRefs().iterator(); it.hasNext(); ) {
+                ColumnReference colRef = (ColumnReference) it.next();
+                ResultColumn rightRC = colRef.getSource();
+
+                ResultColumn leftRC = leftProjectedCols.getResultColumn(rightRC.getName());
+                rightRC.setResultSetNumber(leftRC.getResultSetNumber());
+                rightRC.setVirtualColumnId(leftRC.getVirtualColumnId());
+
+            }
+        }
+
+
+
+        rightResultSet.generate(acb, mb); // arg 3
 		mb.push(rightResultSet.resultColumns.size()); // arg 4
 
         if(rightResultSet instanceof Optimizable){
-            Optimizable rightOptimizable = (Optimizable)rightResultSet;
 
             /*
              * In the event of a MergeSortJoin Strategy, we have to sort of hack the
@@ -1669,14 +1689,14 @@ public class JoinNode extends TableOperatorNode {
              * predicates which are part of the query.
              *
              */
-            if(rightOptimizable.getTrulyTheBestAccessPath().getJoinStrategy() instanceof MergeSortJoinStrategy){
+            if(isMergeSortJoin(rightResultSet)){
                 FromBaseTable table = null;
-                if(rightOptimizable instanceof ProjectRestrictNode){
+                if(rightResultSet instanceof ProjectRestrictNode){
                     //if the table is a ProjectRestrict, then you have to go past,
                     // because ProjectRestricts don't necessarily have the Predicates we need
-                    table = (FromBaseTable) ((ProjectRestrictNode)rightOptimizable).getChildResult();
+                    table = (FromBaseTable) ((ProjectRestrictNode)rightResultSet).getChildResult();
                 }else{
-                    table = (FromBaseTable)rightOptimizable;
+                    table = (FromBaseTable)rightResultSet;
                 }
                 PredicateList nonStoreRestrictionList = table.nonStoreRestrictionList;
                 FormatableBitSet leftHashBits = new FormatableBitSet(nonStoreRestrictionList.size());
@@ -1807,6 +1827,34 @@ public class JoinNode extends TableOperatorNode {
 		return numArgs;
 
 	}
+
+    private boolean isNestedLoopOverMergeSortJoin(){
+
+        boolean result = false;
+
+        if(leftResultSet instanceof JoinNode){
+
+            JoinNode leftChildJoinNode = (JoinNode) leftResultSet;
+
+            result = isMergeSortJoin(leftChildJoinNode.rightResultSet) && !isMergeSortJoin(rightResultSet);
+        }
+
+        return result;
+    }
+
+    private boolean isMergeSortJoin(ResultSetNode node){
+
+        boolean result = false;
+
+        if(node instanceof Optimizable){
+
+            Optimizable nodeOpt = (Optimizable) node;
+
+            result = nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy() instanceof MergeSortJoinStrategy;
+        }
+
+        return result;
+    }
 
     /**
      * Build an integer array of column indexes to hash
