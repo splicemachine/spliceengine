@@ -49,7 +49,7 @@ public class ProjectRestrictOperationTest extends SpliceUnitTest  {
                     ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?,?)",spliceTableWatcher2.toString()));
                     for(int i=0;i<10;i++){
                         ps.setInt(1,i);
-                        ps.setInt(2,i*2);
+                        ps.setInt(2,i*2+1);
                         ps.setDouble(3,i*3);
                         ps.executeUpdate();
                     }
@@ -251,5 +251,37 @@ public class ProjectRestrictOperationTest extends SpliceUnitTest  {
     public void testConstantBooleanFalseFilter() throws Exception{
         ResultSet rs = methodWatcher.executeQuery("select * from " + this.getPaddedTableReference("A") +"where false");
         Assert.assertFalse("1 or more results were found when none were expected",rs.next());
+    }
+
+    @Test
+    public void testArithmeticOperators() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select sc,sd,se, sd-sc,sd+sc,sd*sc,se/sd from "+ spliceTableWatcher2 +" where true");
+        List<String> results = Lists.newArrayList();
+        while(rs.next()){
+            int sc = rs.getInt(1);
+            int sd = rs.getInt(2);
+            float se = rs.getFloat(3);
+            int diff = rs.getInt(4);
+            int sum = rs.getInt(5);
+            int mult = rs.getInt(6);
+            float div = rs.getFloat(7);
+
+            int correctDiff = sd-sc;
+            int correctSum = sd+sc;
+            int correctMult = sd*sc;
+            float correctDiv = se==0.0f? 0: se/sd;
+
+            Assert.assertEquals("Incorrect diff!",correctDiff,diff);
+            Assert.assertEquals("Incorrect sum!",correctSum,sum);
+            Assert.assertEquals("Incorrect mult!",correctMult,mult);
+            Assert.assertEquals("Incorrect Div!",correctDiv,div,Math.pow(10,-6));
+
+            results.add(String.format("sc=%d,sd=%d,se=%f,diff=%d,sum=%d,mult=%d,div=%f%n",sc,sd,se,diff,sum,mult,div));
+        }
+
+        for(String result:results){
+            LOG.info(result);
+        }
+        Assert.assertEquals("incorrect rows returned",10,results.size());
     }
 }
