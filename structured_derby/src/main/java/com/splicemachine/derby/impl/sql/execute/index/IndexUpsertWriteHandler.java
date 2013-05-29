@@ -54,7 +54,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             byte[] putPos = mainColPos[indexPos];
             byte[] data = put.get(DEFAULT_FAMILY_BYTES,putPos).get(0).getValue();
             rowKeyBuilder[indexPos] = data;
-            size+=data.length+1;
+            size+=data.length;
         }
 
         byte[] indexRowKey = getIndexRowKey(rowKeyBuilder,size);
@@ -124,7 +124,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             for(int indexPos=0;indexPos<mainColPos.length;indexPos++){
                 byte[] data = r.getValue(DEFAULT_FAMILY_BYTES,mainColPos[indexPos]);
                 rowToDelete[indexPos] = data;
-                size+=data.length+1;
+                size+=data.length;
             }
 
             byte[] indexRowKey = BytesUtil.concatenate(rowToDelete, size);
