@@ -183,7 +183,17 @@ public class OnceOperation extends SpliceBaseOperation {
 		return source.getExecRowDefinition();
 	}
 
-	@Override
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return source.getRootAccessedCols(tableNumber);
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return source.isReferencingTable(tableNumber);
+    }
+
+    @Override
 	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow rowTemplate) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getMapRowProvider");
         return source.getMapRowProvider(top,rowTemplate);

@@ -627,8 +627,18 @@ public class VTIOperation extends SpliceBaseOperation
 	public List<SpliceOperation> getSubOperations() {
 		throw new RuntimeException("Not Implemented Yet");
 	}
-    
-	@Override
+
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return null;
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return false;
+    }
+
+    @Override
 	public long getTimeSpent(int type)
 	{
 		return constructorTime + openTime + nextTime + closeTime;

@@ -337,4 +337,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                 .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
                 .toString();
     }
+
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return ((SpliceOperation)source).getRootAccessedCols(tableNumber);
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return ((SpliceOperation)source).isReferencingTable(tableNumber);
+    }
 }

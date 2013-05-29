@@ -285,4 +285,20 @@ public class UnionOperation extends SpliceBaseOperation {
                 .append(indent).append("readBoth:").append(readBoth)
                 .toString();
     }
+
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        if(firstResultSet.isReferencingTable(tableNumber))
+            return firstResultSet.getRootAccessedCols(tableNumber);
+        else if(secondResultSet.isReferencingTable(tableNumber))
+            return secondResultSet.getRootAccessedCols(tableNumber);
+
+        return null;
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return firstResultSet.isReferencingTable(tableNumber) || secondResultSet.isReferencingTable(tableNumber);
+
+    }
 }

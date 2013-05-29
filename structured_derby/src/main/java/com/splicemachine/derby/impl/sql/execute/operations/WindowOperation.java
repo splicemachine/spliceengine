@@ -234,6 +234,13 @@ public class WindowOperation extends SpliceBaseOperation {
 	}
 
     @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        if(source.isReferencingTable(tableNumber))
+            return source.getRootAccessedCols(tableNumber);
+        return null;
+    }
+
+    @Override
     public boolean isReferencingTable(long tableNumber){
         return source.isReferencingTable(tableNumber);
     }

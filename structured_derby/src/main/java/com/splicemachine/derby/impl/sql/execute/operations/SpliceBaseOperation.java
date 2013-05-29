@@ -680,15 +680,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		throw new UnsupportedOperationException("class "+this.getClass()+" does not implement getLeftOperation!");
 	}
 	
-	@Override
-    public int[] getRootAccessedCols(long tableNumber) {
-		throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement getRootAccessedCols");
-	}
-
-    @Override
-    public boolean isReferencingTable(long tableNumber) {
-        throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement isReferencingTable");
-    }
+//	@Override
+//    public int[] getRootAccessedCols(long tableNumber) {
+//		throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement getRootAccessedCols");
+//	}
+//
+//    @Override
+//    public boolean isReferencingTable(long tableNumber) {
+//        throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement isReferencingTable");
+//    }
 	
 	public double getOptimizerEstimatedRowCount() {
 		return this.optimizerEstimatedRowCount;
