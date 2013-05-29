@@ -8,25 +8,33 @@ import com.splicemachine.derby.cache.SpliceCache;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.scheduler.AsyncJobScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
+import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
+import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
+import com.splicemachine.tools.ResourcePool;
+import com.splicemachine.tools.ThreadSafeResourcePool;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
-
 import net.sf.ehcache.Cache;
-
 import org.apache.derby.drda.NetworkServerControl;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import javax.management.*;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -76,6 +84,21 @@ public class SpliceDriver extends SIConstants {
     private JobScheduler jobScheduler;
     private TaskMonitor taskMonitor;
     private TempCleaner tempCleaner;
+
+    private ResourcePool<Sequence,Sequence.Key> sequences = CachedResourcePool.
+            Builder.<Sequence,Sequence.Key>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<Sequence,Sequence.Key>() {
+        @Override
+        public Sequence makeNew(Sequence.Key refKey) throws StandardException {
+            return new Sequence(refKey.getTable(),
+                    SpliceConstants.sequenceBlockSize,refKey.getSysColumnsRow(),
+                    refKey.getStartingValue(),refKey.getIncrementSize());
+        }
+
+        @Override
+        public void close(Sequence entity) throws Exception{
+            entity.close();
+        }
+    }).build();
 
     private SpliceDriver(){
         ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("splice-lifecycle-manager").build();
@@ -181,6 +204,7 @@ public class SpliceDriver extends SIConstants {
                         abortStartup();
                         return null;
                     }
+
                     SpliceLogUtils.debug(LOG, "Starting Server");
                     setRunning = startServer();
                     SpliceLogUtils.debug(LOG, "Done Starting Server");
@@ -203,24 +227,25 @@ public class SpliceDriver extends SIConstants {
         	admin = SpliceAccessManager.getAdmin(config);
         	HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.INIT_TABLE);
         	admin.createTable(desc);
+
         	return false;
-        } 
-        catch (PleaseHoldException pe) {
+        }  catch (PleaseHoldException pe) {
         	Thread.currentThread().sleep(1000);
         	return bootDatabase();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
 			EmbedConnectionMaker maker = new EmbedConnectionMaker();
-			connection = maker.createNew();        	
+			connection = maker.createNew();
 			return true;
-        }
-        finally{
+        } finally{
         	if (connection != null)
         		connection.close();
         	Closeables.close(admin,true);
         }
     }
 
+    public ResourcePool<Sequence,Sequence.Key> getSequencePool(){
+        return sequences;
+    }
 
     public void shutdown(){
         executor.submit(new Callable<Void>() {

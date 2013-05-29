@@ -127,7 +127,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 
     @Override
     public ExecRow getExecRowDefinition() throws StandardException {
-        return sourceExecIndexRow.getClone();
+        ExecRow clone = sourceExecIndexRow.getClone();
+        SpliceUtils.populateDefaultValues(clone.getRowArray(),0);
+        return clone;
     }
 
     @Override

@@ -214,21 +214,17 @@ public class PrimaryKeyTest extends SpliceUnitTest {
 
     @Test(timeout=10000)
     public void scanningPrimaryKeyTableWithBaseRowLookup() throws Exception{
-        PreparedStatement test = methodWatcher.prepareStatement(SELECT_BY_NAME);
+        PreparedStatement test = methodWatcher.prepareStatement("select * from "+ spliceTableWatcher+" where name = ?");
         test.setString(1,"sfines");
         ResultSet rs = test.executeQuery();
-        if (!rs.next())
-        	Assert.assertTrue("Cannot lookup sfines by primary key",false);
+        Assert.assertTrue("Cannot lookup sfines by primary key", rs.next());
     }
 
     @Test(timeout=10000)
-    @Ignore("Bug 336")
+//    @Ignore("Bug 336")
     public void scanningPrimaryKeyTableByPkOnly() throws Exception{
-        PreparedStatement test = methodWatcher.prepareStatement(SELECT_NAME_BY_NAME);
-        test.setString(1,"sfines");
-        ResultSet rs = test.executeQuery();
-        if(!rs.next());
-    		Assert.assertTrue("Cannot lookup sfines by primary key",false);        
+        ResultSet rs = methodWatcher.executeQuery("select name from "+ spliceTableWatcher+" where name = 'sfines'");
+        Assert.assertTrue("Cannot lookup sfines by primary key ",rs.next());
     }
 
     @Test(timeout=10000)

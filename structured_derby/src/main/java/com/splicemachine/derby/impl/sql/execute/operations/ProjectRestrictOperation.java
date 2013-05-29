@@ -308,7 +308,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 //		SpliceLogUtils.trace(LOG, "getExecRowDefinition with source %s",source);
 		ExecRow def = source.getExecRowDefinition();
         try {
-            SpliceUtils.populateDefaultValues(def.getRowArray());
+            SpliceUtils.populateDefaultValues(def.getRowArray(),1);
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
         }

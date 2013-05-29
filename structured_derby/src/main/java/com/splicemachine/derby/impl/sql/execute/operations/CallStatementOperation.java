@@ -56,8 +56,18 @@ public class CallStatementOperation extends NoRowsOperation {
 		SpliceLogUtils.trace(LOG,"executeScan");
 		return new SpliceNoPutResultSet(activation,this,callableRowProvider,false);
 	}
-	
-	private final RowProvider callableRowProvider = new SingleScanRowProvider(){
+
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return null;
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return false;
+    }
+
+    private final RowProvider callableRowProvider = new SingleScanRowProvider(){
 		@Override public boolean hasNext() { return false; }
 
 		@Override public ExecRow next() { return null; }

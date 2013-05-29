@@ -126,7 +126,17 @@ public class HashTableOperation extends SpliceBaseOperation implements CursorRes
 		throw new RuntimeException("Not Implemented Yet");
 	}
 
-	@Override
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return ((SpliceOperation)source).getRootAccessedCols(tableNumber);
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return ((SpliceOperation)source).isReferencingTable(tableNumber);
+    }
+
+    @Override
 	public ExecRow getNextRowCore() throws StandardException {
 		throw new RuntimeException("Not Implemented Yet");
 	}

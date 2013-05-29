@@ -10,10 +10,10 @@ import org.junit.Test;
 public class ThreadSafeResourcePoolTest {
     @Test
     public void testGet() throws Exception {
-        ThreadSafeResourcePool<String> test = new ThreadSafeResourcePool<String>(new ResourcePool.Generator<String>() {
+        ThreadSafeResourcePool<String,TestKey> test = new ThreadSafeResourcePool<String,TestKey>(new ResourcePool.Generator<String,TestKey>() {
             @Override
-            public String makeNew(ResourcePool.Key refKey) {
-                return "test "+ ((TestKey)refKey).getCount();
+            public String makeNew(TestKey refKey) {
+                return "test "+ refKey.getCount();
             }
 
             @Override

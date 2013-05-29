@@ -363,8 +363,18 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	public ExecRow getExecRowDefinition() {
 		return compactRow.getClone();
 	}
-	
-	public String getIndexName() {
+
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return source.getRootAccessedCols(tableNumber);
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return source.isReferencingTable(tableNumber);
+    }
+
+    public String getIndexName() {
 		return this.indexName;
 	}
 	

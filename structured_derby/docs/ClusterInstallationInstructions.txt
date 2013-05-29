@@ -23,3 +23,16 @@ Instructions for Cluster Installation:
 			<value>snappy</value>
 		</property>
 	
+		
+To restart servers (On Ubuntu3):
+	zookeeper-client
+		rmr /startupPath
+		rmr /spliceJobs 
+		rmr /derbyPropertyPath
+		rmr /spliceTasks      
+		rmr /hbase      
+		rmr /conglomerates
+		rmr /transactions 
+	sudo -su hdfs hadoop fs -rmr /hbase
+	select hbase -> Actions -> Create Root Directory
+	Actions - Start (Master and Region Servers)

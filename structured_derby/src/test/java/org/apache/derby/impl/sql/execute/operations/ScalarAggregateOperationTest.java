@@ -69,7 +69,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
 
 	@Test
 	public void testCountOperation() throws Exception{
-		ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s", this.getTableReference(TABLE_NAME)));
+		ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s", spliceTableWatcher));
 		int count =0;
 		while(rs.next()){
 			Assert.assertEquals("incorrect count returned!",stats.getCount(),rs.getInt(1));
@@ -88,7 +88,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
 
     @Test
 	public void testSumOperation() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery(format("select sum(i) from %s", this.getTableReference(TABLE_NAME)));
+		ResultSet rs = methodWatcher.executeQuery(format("select sum(i) from %s", spliceTableWatcher));
 		int i=0;
 		while(rs.next()){
 			Assert.assertEquals("Incorrect sum returned!",stats.getSum(),rs.getInt(1));
@@ -99,7 +99,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
 	
 	@Test
 	public void testMinOperation() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery(format("select min(i) from %s", this.getTableReference(TABLE_NAME)));
+		ResultSet rs = methodWatcher.executeQuery(format("select min(i) from %s", spliceTableWatcher));
 		int i=0;
 		while(rs.next()){
 			Assert.assertEquals("Incorrect min returned!",stats.getMin(),rs.getInt(1));
@@ -110,7 +110,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
 	
 	@Test
 	public void testMaxOperation() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery(format("select max(i) from %s", this.getTableReference(TABLE_NAME)));
+		ResultSet rs = methodWatcher.executeQuery(format("select max(i) from %s", spliceTableWatcher));
 		int i=0;
 		while(rs.next()){
 			Assert.assertEquals(stats.getMax(),rs.getInt(1));
@@ -121,7 +121,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
 
     @Test
     public void testQualifiedMaxOperation() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(format("select max(i) from %s where i < %d", this.getTableReference(TABLE_NAME),size));
+        ResultSet rs = methodWatcher.executeQuery(format("select max(i) from %s where i < %d", spliceTableWatcher,size));
         int i=0;
         while(rs.next()){
             Assert.assertEquals(stats.getMax(),rs.getInt(1));
@@ -132,7 +132,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
 	
 	@Test
 	public void textAvgOperation() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery(format("select avg(i) from %s", this.getTableReference(TABLE_NAME)));
+		ResultSet rs = methodWatcher.executeQuery(format("select avg(i) from %s", spliceTableWatcher));
 		int i=0;
 		while(rs.next()){
 			Assert.assertEquals(stats.getAvg(),rs.getInt(1));
@@ -143,7 +143,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
 	
 	@Test
 	public void testAllOperations() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery(format("select sum(i), avg(i), max(i), min(i) from %s", this.getTableReference(TABLE_NAME)));
+		ResultSet rs = methodWatcher.executeQuery(format("select sum(i), avg(i), max(i), min(i) from %s", spliceTableWatcher));
 		int i=0;
 		while(rs.next()){
 			int sum = rs.getInt(1);
@@ -163,7 +163,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
     @Test
     public void testRepeatedCountsPreparedStatement() throws Exception{
         //use a PreparedStatement twice, and make sure that the counts come back correct.
-        PreparedStatement ps = methodWatcher.prepareStatement(format("select count(i) from %s where i <= ? and i > ?", this.getTableReference(TABLE_NAME)));
+        PreparedStatement ps = methodWatcher.prepareStatement(format("select count(i) from %s where i <= ? and i > ?", spliceTableWatcher));
         ps.setInt(1,2);
         ps.setInt(2,0);
         ResultSet rs = ps.executeQuery();
@@ -221,5 +221,23 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery("select count(*) from "+nullTableWatcher.toString()+" where a is null");
         Assert.assertTrue("No Rows returned!",rs.next());
         Assert.assertEquals("Incorrect count returned!",size/2,rs.getInt(1));
+    }
+
+    @Test
+    public void testAllOpsOnNullColumns() throws Exception {
+       /* Regression test for Bug 497 */
+        ResultSet rs = methodWatcher.executeQuery("select count(a),min(a),max(a) from "+nullTableWatcher);
+        int i=0;
+        while(rs.next()){
+            i++;
+            int count = rs.getInt(1);
+            Assert.assertEquals("Incorrect count returned!",size/2,count);
+            int min = rs.getInt(2);
+            Assert.assertEquals("Incorrect min returned!",1,min);
+            int max = rs.getInt(3);
+            Assert.assertEquals("Incorrect max returned!",9,max);
+        }
+        Assert.assertEquals("No rows returned!",1,i);
+
     }
 }

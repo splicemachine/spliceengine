@@ -290,6 +290,16 @@ public class RowCountOperation extends SpliceBaseOperation{
     }
 
     @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return source.getRootAccessedCols(tableNumber);
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return source.isReferencingTable(tableNumber);
+    }
+
+    @Override
     public SpliceOperation getLeftOperation() {
         return source;
     }

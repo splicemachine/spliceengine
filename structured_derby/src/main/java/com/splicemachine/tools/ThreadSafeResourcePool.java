@@ -15,16 +15,23 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Scott Fines
  * Created on: 3/11/13
  */
-public class ThreadSafeResourcePool<E> implements ResourcePool<E> {
-    private final Generator<E> generator;
+public class ThreadSafeResourcePool<E,K extends ResourcePool.Key> implements ResourcePool<E,K> {
+    private final Generator<E,K> generator;
     private final ConcurrentMap<Key,Counter<E>> pool = new ConcurrentHashMap<Key, Counter<E>>();
 
-    public ThreadSafeResourcePool(Generator<E> generator) {
+    private final boolean removeWhenUnused;
+
+    public ThreadSafeResourcePool(Generator<E,K> generator) {
+        this(generator,true);
+    }
+
+    public ThreadSafeResourcePool(Generator<E,K> generator, boolean removeWhenUnused) {
         this.generator = generator;
+        this.removeWhenUnused = removeWhenUnused;
     }
 
     @Override
-    public E get(Key key) {
+    public E get(K key) throws Exception{
         Counter<E> cachedEntry = pool.get(key);
         if(cachedEntry==null||cachedEntry.refCount.getAndIncrement()<=0){
             E next = generator.makeNew(key);
@@ -42,12 +49,12 @@ public class ThreadSafeResourcePool<E> implements ResourcePool<E> {
     }
 
     @Override
-    public void release(Key key) {
+    public void release(K key) throws Exception {
         Counter<E> cachedEntry = pool.get(key);
         if(cachedEntry==null) return; //nothing to do
 
         int refCount = cachedEntry.refCount.decrementAndGet();
-        if(refCount<=0){
+        if(refCount<=0 && removeWhenUnused){
             //need to close it
             pool.remove(key);
             generator.close(cachedEntry.ref);

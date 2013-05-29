@@ -74,6 +74,16 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 	}
 
     @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return ((SpliceOperation)source).getRootAccessedCols(tableNumber);
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return ((SpliceOperation)source).isReferencingTable(tableNumber);
+    }
+
+    @Override
     public String prettyPrint(int indentLevel) {
         return "ScrollInsensitive"; //this class is never used
     }

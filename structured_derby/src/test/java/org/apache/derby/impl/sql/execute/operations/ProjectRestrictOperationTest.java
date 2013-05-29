@@ -27,22 +27,32 @@ public class ProjectRestrictOperationTest extends SpliceUnitTest  {
 	public static final String TABLE_NAME = "A";
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(si varchar(40),sa varchar(40),sc int)");
-	
+    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("B",CLASS_NAME,"(sc int,sd int,se decimal(7,2))");
+
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher)
+        .around(spliceTableWatcher2)
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
 				try {
-				PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?,?,?)",CLASS_NAME,TABLE_NAME));
-				for(int i=0;i<10;i++){
-					ps.setString(1,Integer.toString(i));
-					ps.setString(2,Integer.toString(i) + " Times ten");
-					ps.setInt(3,i);
-					ps.executeUpdate();
-				}
+                    PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?,?,?)",CLASS_NAME,TABLE_NAME));
+                    for(int i=0;i<10;i++){
+                        ps.setString(1,Integer.toString(i));
+                        ps.setString(2,Integer.toString(i) + " Times ten");
+                        ps.setInt(3,i);
+                        ps.executeUpdate();
+                    }
+
+                    ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?,?)",spliceTableWatcher2.toString()));
+                    for(int i=0;i<10;i++){
+                        ps.setInt(1,i);
+                        ps.setInt(2,i*2+1);
+                        ps.setDouble(3,i*3);
+                        ps.executeUpdate();
+                    }
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -55,8 +65,29 @@ public class ProjectRestrictOperationTest extends SpliceUnitTest  {
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-		
-	@Test
+    @Test
+    public void testCanDivideSafely() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select sc,sd,se,(sc*sd)/se from "+ spliceTableWatcher2.toString() +" where se !=0");
+        List<String> results = Lists.newArrayList();
+        while(rs.next()){
+            int sc = rs.getInt(1);
+            int sd = rs.getInt(2);
+            double se = rs.getDouble(3);
+            double div = rs.getDouble(4);
+
+            double correctDiv = (sc*sd)/se;
+            Assert.assertEquals("Incorrect division!",div,correctDiv,Math.pow(10,-6));
+
+            results.add(String.format("sc=%d,sd=%d,se=%f,div=%f",sc,sd,se,div));
+        }
+        for(String result:results){
+            LOG.debug(result);
+        }
+        Assert.assertEquals("Incorrect row count returned",9,results.size());
+
+    }
+
+    @Test
 	public void testResrictWrapperOnTableScanPreparedStatement() throws Exception {
 		PreparedStatement s = methodWatcher.prepareStatement(format("select * from %s where si like ?",this.getTableReference(TABLE_NAME)));
 		s.setString(1,"%5%");
@@ -220,5 +251,37 @@ public class ProjectRestrictOperationTest extends SpliceUnitTest  {
     public void testConstantBooleanFalseFilter() throws Exception{
         ResultSet rs = methodWatcher.executeQuery("select * from " + this.getPaddedTableReference("A") +"where false");
         Assert.assertFalse("1 or more results were found when none were expected",rs.next());
+    }
+
+    @Test
+    public void testArithmeticOperators() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select sc,sd,se, sd-sc,sd+sc,sd*sc,se/sd from "+ spliceTableWatcher2 +" where true");
+        List<String> results = Lists.newArrayList();
+        while(rs.next()){
+            int sc = rs.getInt(1);
+            int sd = rs.getInt(2);
+            float se = rs.getFloat(3);
+            int diff = rs.getInt(4);
+            int sum = rs.getInt(5);
+            int mult = rs.getInt(6);
+            float div = rs.getFloat(7);
+
+            int correctDiff = sd-sc;
+            int correctSum = sd+sc;
+            int correctMult = sd*sc;
+            float correctDiv = se==0.0f? 0: se/sd;
+
+            Assert.assertEquals("Incorrect diff!",correctDiff,diff);
+            Assert.assertEquals("Incorrect sum!",correctSum,sum);
+            Assert.assertEquals("Incorrect mult!",correctMult,mult);
+            Assert.assertEquals("Incorrect Div!",correctDiv,div,Math.pow(10,-6));
+
+            results.add(String.format("sc=%d,sd=%d,se=%f,diff=%d,sum=%d,mult=%d,div=%f%n",sc,sd,se,diff,sum,mult,div));
+        }
+
+        for(String result:results){
+            LOG.info(result);
+        }
+        Assert.assertEquals("incorrect rows returned",10,results.size());
     }
 }

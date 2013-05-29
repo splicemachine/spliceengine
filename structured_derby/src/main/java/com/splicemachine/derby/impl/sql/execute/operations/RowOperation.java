@@ -260,4 +260,14 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
                 .append(indent).append("rowMethodName:").append(rowMethodName)
                 .toString();
     }
+
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return null;
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return false;
+    }
 }

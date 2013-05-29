@@ -172,8 +172,18 @@ public class SortOperation extends SpliceBaseOperation {
 		source.setCurrentRow(def);
 		return def;
 	}
-	
-	@Override
+
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return ((SpliceOperation)source).getRootAccessedCols(tableNumber);
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return ((SpliceOperation)source).isReferencingTable(tableNumber);
+    }
+
+    @Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
         try {
             reduceScan = Scans.buildPrefixRangeScan(sequence[0], getTransactionID());

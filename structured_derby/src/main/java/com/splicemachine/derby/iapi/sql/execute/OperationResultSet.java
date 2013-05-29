@@ -4,14 +4,12 @@ import com.google.common.base.Preconditions;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.ResultSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.sql.execute.RowChanger;
-import org.apache.derby.iapi.sql.execute.TargetResultSet;
+import org.apache.derby.iapi.sql.execute.*;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.log4j.Logger;
@@ -35,7 +33,7 @@ import java.sql.Timestamp;
  * @author Scott Fines
  * Created on: 3/28/13
  */
-public class OperationResultSet implements NoPutResultSet {
+public class OperationResultSet implements NoPutResultSet,HasIncrement {
     private static final Logger LOG = Logger.getLogger(OperationResultSet.class);
     private static Logger PLAN_LOG = Logger.getLogger("com.splicemachine.queryPlan");
     private final Activation activation;
@@ -369,6 +367,14 @@ public class OperationResultSet implements NoPutResultSet {
         delegate.closeRowSource();
     }
 
+    @Override
+    public DataValueDescriptor increment(int columnPosition, long increment) throws StandardException {
+        if(!(topOperation instanceof HasIncrement))
+            throw StandardException.newException(SQLState.STORE_FEATURE_NOT_IMPLEMENTED);
+
+        return ((HasIncrement)topOperation).increment(columnPosition,increment);
+    }
+
 /*********************************************************************************************************************/
     /*private helper methods*/
 
@@ -376,4 +382,5 @@ public class OperationResultSet implements NoPutResultSet {
         Preconditions.checkNotNull(delegate,
                 "No Delegate Result Set provided, please ensure open() or openCore() was called");
     }
+
 }

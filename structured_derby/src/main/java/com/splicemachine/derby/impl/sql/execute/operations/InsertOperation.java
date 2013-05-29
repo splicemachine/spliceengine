@@ -1,21 +1,26 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.HasIncrement;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.execute.InsertConstantAction;
-import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.log4j.Logger;
@@ -36,11 +41,14 @@ import java.util.List;
  *  4. Primary Keys (do with Coprocessors)
  *  5. Secondary Indices (do with Coprocessors)
  */
-public class InsertOperation extends DMLWriteOperation {
+public class InsertOperation extends DMLWriteOperation implements HasIncrement {
     private static final long serialVersionUID = 1l;
 	private static final Logger LOG = Logger.getLogger(InsertOperation.class);
-	
-	public InsertOperation(){
+
+    private ExecRow rowTemplate;
+    private HTableInterface sysColumnTable;
+
+    public InsertOperation(){
 		super();
 	}
 	
@@ -100,5 +108,45 @@ public class InsertOperation extends DMLWriteOperation {
     @Override
     public String prettyPrint(int indentLevel) {
         return "Insert"+super.prettyPrint(indentLevel);
+    }
+
+    @Override
+    public DataValueDescriptor increment(int columnPosition, long increment) throws StandardException {
+        int index = columnPosition-1;
+
+        HBaseRowLocation rl = (HBaseRowLocation)((InsertConstantAction) constants).getAutoincRowLocation()[index];
+
+        byte[] rlBytes = rl.getBytes();
+
+        if(sysColumnTable==null){
+            sysColumnTable = SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
+        }
+
+        Sequence sequence;
+        try {
+            sequence = SpliceDriver.driver().getSequencePool().get(new Sequence.Key(sysColumnTable,rlBytes,
+                    getTransactionID(),heapConglom,columnPosition));
+        } catch (Exception e) {
+            throw Exceptions.parseException(e);
+        }
+
+        long nextValue = sequence.getNext();
+
+        if(rowTemplate==null)
+            rowTemplate = getExecRowDefinition();
+        DataValueDescriptor dvd = rowTemplate.cloneColumn(columnPosition);
+        dvd.setValue(nextValue);
+        return dvd;
+    }
+
+    @Override
+    public void close() throws StandardException {
+        if(sysColumnTable!=null){
+            try{
+                sysColumnTable.close();
+            } catch (IOException e) {
+                SpliceLogUtils.error(LOG,"Unable to close htable, beware of potential memory problems!",e);
+            }
+        }
     }
 }

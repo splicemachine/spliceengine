@@ -46,7 +46,11 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             return;
         }
 
-        writeContextFactory = WriteContextFactoryPool.getContextFactory(conglomId);
+        try {
+            writeContextFactory = WriteContextFactoryPool.getContextFactory(conglomId);
+        } catch (Exception e1) {
+            throw new RuntimeException(e1);
+        }
         SpliceDriver.Service service = new SpliceDriver.Service() {
             @Override
             public boolean start() {
@@ -73,7 +77,11 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
     @Override
     public void postClose(ObserverContext<RegionCoprocessorEnvironment> e, boolean abortRequested) {
-        WriteContextFactoryPool.releaseContextFactory((LocalWriteContextFactory) writeContextFactory);
+        try {
+            WriteContextFactoryPool.releaseContextFactory((LocalWriteContextFactory) writeContextFactory);
+        } catch (Exception e1) {
+            SpliceLogUtils.error(LOG,"Unable to close Context factory--beware of memory leaks!");
+        }
     }
 
     @Override

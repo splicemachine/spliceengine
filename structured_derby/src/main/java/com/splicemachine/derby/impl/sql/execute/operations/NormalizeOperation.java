@@ -125,8 +125,18 @@ public class NormalizeOperation extends SpliceBaseOperation {
             return null;
         }
     }
-	
-	@Override
+
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return ((SpliceOperation)source).getRootAccessedCols(tableNumber);
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return ((SpliceOperation)source).isReferencingTable(tableNumber);
+    }
+
+    @Override
 	public ExecRow getNextRowCore() throws StandardException {
 		ExecRow sourceRow = null;
 		ExecRow result = null;

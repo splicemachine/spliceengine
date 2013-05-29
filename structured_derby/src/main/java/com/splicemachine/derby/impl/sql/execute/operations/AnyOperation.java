@@ -178,4 +178,14 @@ public class AnyOperation extends SpliceBaseOperation {
     public ExecRow getExecRowDefinition() throws StandardException {
         return source.getExecRowDefinition();
     }
+
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return source.getRootAccessedCols(tableNumber);
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return source.isReferencingTable(tableNumber);
+    }
 }

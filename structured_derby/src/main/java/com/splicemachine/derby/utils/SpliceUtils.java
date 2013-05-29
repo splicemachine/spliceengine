@@ -69,19 +69,44 @@ public class SpliceUtils extends SpliceUtilities {
             if(dvd.isNull()){
                 switch(dvd.getTypeFormatId()){
                     case StoredFormatIds.SQL_DOUBLE_ID:
-                        dvd.setValue(0.0d);
+                        dvd.setValue(1d); //set to one to prevent /-by-zero errors
                         break;
                     case StoredFormatIds.SQL_SMALLINT_ID:
                     case StoredFormatIds.SQL_INTEGER_ID:
-                        dvd.setValue(0);
+                        dvd.setValue(1);
                         break;
                     case StoredFormatIds.SQL_BOOLEAN_ID:
                         dvd.setValue(false);
                         break;
                     case StoredFormatIds.SQL_LONGINT_ID:
-                        dvd.setValue(0l);
+                        dvd.setValue(1l);
                     case StoredFormatIds.SQL_REAL_ID:
-                        dvd.setValue(0f);
+                        dvd.setValue(1f);
+                    default:
+                        //no op, this doesn't have a useful default value
+                }
+            }
+        }
+    }
+
+    public static void populateDefaultValues(DataValueDescriptor[] dvds,int defaultValue) throws StandardException{
+        for(DataValueDescriptor dvd:dvds){
+            if(dvd.isNull()){
+                switch(dvd.getTypeFormatId()){
+                    case StoredFormatIds.SQL_DOUBLE_ID:
+                        dvd.setValue((double)defaultValue); //set to one to prevent /-by-zero errors
+                        break;
+                    case StoredFormatIds.SQL_SMALLINT_ID:
+                    case StoredFormatIds.SQL_INTEGER_ID:
+                        dvd.setValue(defaultValue);
+                        break;
+                    case StoredFormatIds.SQL_BOOLEAN_ID:
+                        dvd.setValue(false);
+                        break;
+                    case StoredFormatIds.SQL_LONGINT_ID:
+                        dvd.setValue(defaultValue);
+                    case StoredFormatIds.SQL_REAL_ID:
+                        dvd.setValue(defaultValue);
                     default:
                         //no op, this doesn't have a useful default value
                 }

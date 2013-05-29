@@ -120,4 +120,14 @@ public class MiscOperation extends NoRowsOperation
     public String prettyPrint(int indentLevel) {
         return "ConstantAction" + super.prettyPrint(indentLevel);
     }
+
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return null;
+    }
+
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return false;
+    }
 }
