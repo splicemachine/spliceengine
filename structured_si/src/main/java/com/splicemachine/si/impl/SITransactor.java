@@ -90,7 +90,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     @Override
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites, Boolean readUncommitted,
                                                Boolean readCommitted) throws IOException {
-        if (dependent || allowWrites || readCommitted != null || readUncommitted != null) {
+        if (allowWrites || readCommitted != null || readUncommitted != null) {
             final TransactionParams params = new TransactionParams(parent, dependent, allowWrites, readUncommitted, readCommitted);
             final SITransactionId transactionId = assignTransactionId();
             final long beginTimestamp = getBeginTimestamp(transactionId, params.parent);
