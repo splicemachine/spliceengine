@@ -7,10 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -103,6 +100,15 @@ public class SingleGroupGroupedAggregateOperationTest extends SpliceUnitTest {
 			}
 			Assert.assertEquals("Not all groups found!", unameStats.size(),row);
 	}
+
+    @Test
+//    @Ignore
+    public void testRepeatedGroupedCount() throws Exception {
+        /* Regression test for Bug 306 */
+        for(int i=0;i<100;i++){
+            testGroupedCountOperation();
+        }
+    }
 
     @Test
 	public void testGroupedMinOperation() throws Exception{
