@@ -724,7 +724,6 @@ public class SITransactorTest extends SIConstants {
 
         TransactionId t3 = transactor.beginTransaction();
         insertJob(t3, "joe15", "smith");
-        dumpStore();
         Assert.assertEquals("joe15 age=null job=smith", read(t3, "joe15"));
         transactor.commit(t3);
 
@@ -1131,7 +1130,6 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("committing a dependent child sets a local commit timestamp", 2L, (long) transactionStatusA.getCommitTimestamp());
         Assert.assertNull(transactionStatusA.getGlobalCommitTimestamp());
         transactor.commit(t1);
-        dumpStore();
         final Transaction transactionStatusB = transactorSetup.transactionStore.getTransaction(t2);
         Assert.assertEquals("committing parent of dependent transaction should not change the commit time of the child", 2L, (long) transactionStatusB.getCommitTimestamp());
         Assert.assertNotNull(transactionStatusB.getGlobalCommitTimestamp());
@@ -2298,6 +2296,14 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+    public void childIndependentReadOnlySeesParentWrites() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe96", 20);
+        final TransactionId t2 = transactor.beginChildTransaction(t1, false, false);
+        Assert.assertEquals("joe96 age=20 job=null", read(t2, "joe96"));
+    }
+
+    @Test
     public void childIndependentTransactionWithOtherCommitBetweenParentAndChild() throws IOException {
         TransactionId t0 = transactor.beginTransaction();
         insertAge(t0, "joe38", 20);
@@ -2316,6 +2322,24 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+    public void childIndependentReadOnlyTransactionWithOtherCommitBetweenParentAndChild() throws IOException {
+        TransactionId t0 = transactor.beginTransaction();
+        insertAge(t0, "joe97", 20);
+        transactor.commit(t0);
+
+        TransactionId t1 = transactor.beginTransaction();
+
+        TransactionId otherTransaction = transactor.beginTransaction();
+        insertAge(otherTransaction, "joe97", 30);
+        transactor.commit(otherTransaction);
+
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, false, null, true);
+        Assert.assertEquals("joe97 age=30 job=null", read(t2, "joe97"));
+        transactor.commit(t2);
+        transactor.commit(t1);
+    }
+
+    @Test
     public void childIndependentTransactionWithReadCommittedOffWithOtherCommitBetweenParentAndChild() throws IOException {
         TransactionId t0 = transactor.beginTransaction();
         insertAge(t0, "joe39", 20);
@@ -2329,6 +2353,24 @@ public class SITransactorTest extends SIConstants {
 
         TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
         Assert.assertEquals("joe39 age=20 job=null", read(t2, "joe39"));
+        transactor.commit(t2);
+        transactor.commit(t1);
+    }
+
+    @Test
+    public void childIndependentReadOnlyTransactionWithReadCommittedOffWithOtherCommitBetweenParentAndChild() throws IOException {
+        TransactionId t0 = transactor.beginTransaction();
+        insertAge(t0, "joe98", 20);
+        transactor.commit(t0);
+
+        TransactionId t1 = transactor.beginTransaction();
+
+        TransactionId otherTransaction = transactor.beginTransaction();
+        insertAge(otherTransaction, "joe98", 30);
+        transactor.commit(otherTransaction);
+
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, false);
+        Assert.assertEquals("joe98 age=20 job=null", read(t2, "joe98"));
         transactor.commit(t2);
         transactor.commit(t1);
     }
@@ -2411,7 +2453,6 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("moe29 age=21 job=null", read(t1, "moe29"));
 
         TransactionId t3 = transactor.beginTransaction(false);
-        dumpStore();
         Assert.assertEquals("moe29 age=21 job=null", read(t3, "moe29"));
 
         Assert.assertEquals("moe29 age=21 job=null", read(t1, "moe29"));
