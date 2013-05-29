@@ -35,6 +35,7 @@ public interface Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> extend
      *                      transaction is begun
      */
     TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
+    TransactionId beginChildTransaction(TransactionId parent, boolean allowWrites) throws IOException;
     /**
      *
      *

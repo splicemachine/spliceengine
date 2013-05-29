@@ -40,6 +40,11 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
+    public TransactionId beginChildTransaction(TransactionId parent, boolean allowWrites) throws IOException {
+        return delegate.beginChildTransaction(parent, allowWrites);
+    }
+
+    @Override
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException {
         return delegate.beginChildTransaction(parent, dependent, allowWrites);
     }

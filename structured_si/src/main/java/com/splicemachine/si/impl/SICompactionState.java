@@ -61,9 +61,13 @@ public class SICompactionState {
         Object result = decodedKeyValue.keyValue;
         if (dataStore.isSiNull(decodedKeyValue.value)) {
             final Transaction transaction = getFromCache(decodedKeyValue.timestamp);
-            if (transaction.isCommitted() || transaction.isFailed()) {
-                final Object commitTimestampValue = transaction.isCommitted() ?
-                        dataLib.encode(transaction.getCommitTimestamp()) :
+            final TransactionStatus effectiveStatus = transaction.getEffectiveStatus(Transaction.getRootTransaction());
+            if (effectiveStatus.equals(TransactionStatus.COMMITTED)
+                    || effectiveStatus.equals(TransactionStatus.ROLLED_BACK)
+                    || effectiveStatus.equals(TransactionStatus.ERROR)) {
+                final Long globalCommitTimestamp = transaction.getGlobalCommitTimestamp();
+                final Object commitTimestampValue = effectiveStatus.equals(TransactionStatus.COMMITTED) ?
+                        dataLib.encode(globalCommitTimestamp) :
                         dataStore.siFail;
                 result = dataLib.newKeyValue(decodedKeyValue.row, decodedKeyValue.family, decodedKeyValue.qualifier,
                         decodedKeyValue.timestamp, commitTimestampValue);
