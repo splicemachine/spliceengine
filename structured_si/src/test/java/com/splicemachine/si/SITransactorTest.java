@@ -34,6 +34,7 @@ import org.apache.hadoop.hbase.regionserver.HRegionServer;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -1409,6 +1410,7 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("boe56 age=null job=null", read(t4, "boe56"));
     }
 
+    @Ignore
     @Test
     public void readWriteMechanics() throws Exception {
         final SDataLib dataLib = storeSetup.getDataLib();
