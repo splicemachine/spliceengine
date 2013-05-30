@@ -88,13 +88,12 @@ public class SIFilterState implements FilterState {
      * relevant transaction data to be loaded up into the local cache.
      */
     private Filter.ReturnCode processCommitTimestamp() throws IOException {
-        Transaction transaction = null;
+        Transaction transaction;
 
         if (dataStore.isSiNull(keyValue.value)) {
             transaction = handleUnknownTransactionStatus();
         } else if (dataStore.isSiFail(keyValue.value)) {
-            transaction = new Transaction(transactionStore, keyValue.timestamp, keyValue.timestamp, 0, Transaction.getRootTransaction(),
-                    true, null, false, false, null, TransactionStatus.ERROR, null, null, null);
+            transaction = Transaction.makeFailedTransaction(transactionStore, keyValue.timestamp);
         } else {
             // TODO: we should avoid loading the full transaction here once roll-forward is revisited
             transaction = getTransactionFromFilterCache();

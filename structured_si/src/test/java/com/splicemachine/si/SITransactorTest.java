@@ -1128,12 +1128,12 @@ public class SITransactorTest extends SIConstants {
         insertAge(t2, "moe32", 21);
         transactor.commit(t2);
         final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2);
-        Assert.assertEquals("committing a dependent child sets a local commit timestamp", 2L, (long) transactionStatusA.getCommitTimestamp());
-        Assert.assertNull(transactionStatusA.getGlobalCommitTimestamp());
+        Assert.assertEquals("committing a dependent child sets a local commit timestamp", 2L, (long) transactionStatusA.getCommitTimestampDirect());
+        Assert.assertNull(transactionStatusA.getCommitTimestamp());
         transactor.commit(t1);
         final Transaction transactionStatusB = transactorSetup.transactionStore.getTransaction(t2);
-        Assert.assertEquals("committing parent of dependent transaction should not change the commit time of the child", 2L, (long) transactionStatusB.getCommitTimestamp());
-        Assert.assertNotNull(transactionStatusB.getGlobalCommitTimestamp());
+        Assert.assertEquals("committing parent of dependent transaction should not change the commit time of the child", 2L, (long) transactionStatusB.getCommitTimestampDirect());
+        Assert.assertNotNull(transactionStatusB.getCommitTimestamp());
     }
 
     @Test
@@ -2505,9 +2505,9 @@ public class SITransactorTest extends SIConstants {
         transactor.commit(t1);
         final Transaction transactionStatusB = transactorSetup.transactionStore.getTransaction(t2);
         Assert.assertEquals("committing parent of independent transaction should not change the commit time of the child",
-                transactionStatusA.getCommitTimestamp(), transactionStatusB.getCommitTimestamp());
+                transactionStatusA.getCommitTimestampDirect(), transactionStatusB.getCommitTimestampDirect());
         Assert.assertEquals("committing parent of independent transaction should not change the global commit time of the child",
-                transactionStatusA.getGlobalCommitTimestamp(), transactionStatusB.getGlobalCommitTimestamp());
+                transactionStatusA.getCommitTimestamp(), transactionStatusB.getCommitTimestamp());
     }
 
     @Test

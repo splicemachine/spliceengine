@@ -15,6 +15,7 @@ import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
  * represent these immutable parts separately because they can be cached more aggressively.
  */
 public class ImmutableTransaction {
+    final TransactionBehavior behavior;
     private final TransactionStore transactionStore;
 
     private final SITransactionId transactionId;
@@ -26,9 +27,11 @@ public class ImmutableTransaction {
     final Boolean readUncommitted;
     final Boolean readCommitted;
 
-    public ImmutableTransaction(TransactionStore transactionStore, SITransactionId transactionId, boolean allowWrites,
-                                Boolean readCommitted, ImmutableTransaction immutableParent, boolean dependent,
-                                Boolean readUncommitted, long beginTimestamp) {
+    public ImmutableTransaction(TransactionBehavior behavior, TransactionStore transactionStore,
+                                SITransactionId transactionId, boolean allowWrites, Boolean readCommitted,
+                                ImmutableTransaction immutableParent, boolean dependent, Boolean readUncommitted,
+                                long beginTimestamp) {
+        this.behavior = behavior;
         this.transactionStore = transactionStore;
         this.transactionId = transactionId;
         this.immutableParent = immutableParent;
@@ -39,14 +42,15 @@ public class ImmutableTransaction {
         this.readCommitted = readCommitted;
     }
 
-    public ImmutableTransaction(TransactionStore transactionStore, long id, boolean allowWrites, Boolean readCommitted,
-                                ImmutableTransaction immutableParent, boolean dependent, Boolean readUncommitted,
+    public ImmutableTransaction(TransactionBehavior behavior, TransactionStore transactionStore, long id,
+                                boolean allowWrites, Boolean readCommitted, ImmutableTransaction immutableParent,
+                                boolean dependent, Boolean readUncommitted,
                                 long beginTimestamp) {
-        this(transactionStore, new SITransactionId(id), allowWrites, readCommitted, immutableParent, dependent,
-                readUncommitted, beginTimestamp);
+        this(behavior, transactionStore, new SITransactionId(id), allowWrites, readCommitted, immutableParent,
+                dependent, readUncommitted, beginTimestamp);
     }
 
-    public long getBeginTimestamp() {
+    public long getBeginTimestampDirect() {
         return beginTimestamp;
     }
 
@@ -89,14 +93,6 @@ public class ImmutableTransaction {
         return et2.immutableParent.sameTransaction(t1);
     }
 
-    public boolean isAncestor(long transactionId2) throws IOException {
-        final ImmutableTransaction t1 = this;
-        final ImmutableTransaction t2 = transactionStore.getImmutableTransaction(transactionId2);
-        final ImmutableTransaction[] intersections = intersect(false, t1.getChain(), t2.getChain());
-        final ImmutableTransaction et1 = intersections[1];
-        return et1.immutableParent.sameTransaction(t2);
-    }
-
     public Object[] isVisible(Transaction t2) throws IOException {
         final ImmutableTransaction t1 = this;
         final ImmutableTransaction[] intersections = intersect(true, t1.getChain(), t2.getChain());
@@ -111,7 +107,7 @@ public class ImmutableTransaction {
             visible = true;
         } else {
             if (!readCommitted1 && !readUncommitted1 && effectiveStatus.equals(COMMITTED)) {
-                visible = (met2.getCommitTimestamp(met2.getParent()) < et1.getBeginTimestamp())
+                visible = (met2.getCommitTimestamp(met2.getParent()) < et1.getBeginTimestampDirect())
                         || et2.immutableParent.sameTransaction(et1);
             }
             if (readCommitted1 && effectiveStatus.equals(COMMITTED)) {
@@ -124,7 +120,7 @@ public class ImmutableTransaction {
         return new Object[]{visible, effectiveStatus};
     }
 
-    public boolean isConflict(Transaction t2) throws IOException {
+    public boolean isConflict(ImmutableTransaction t2) throws IOException {
         final ImmutableTransaction t1 = this;
         final ImmutableTransaction[] intersections = intersect(true, t1.getChain(), t2.getChain());
         final ImmutableTransaction shared = intersections[0];
@@ -132,7 +128,7 @@ public class ImmutableTransaction {
         final ImmutableTransaction et2 = intersections[2];
         final Transaction met2 = transactionStore.getTransaction(et2.getTransactionId().getId());
         if (met2.getStatus().equals(COMMITTED)) {
-            return (met2.getCommitTimestamp(shared) > et1.getBeginTimestamp()) &&
+            return (met2.getCommitTimestamp(shared) > et1.getBeginTimestampDirect()) &&
                     !et2.immutableParent.sameTransaction(et1);
         } else if (met2.getStatus().equals(ACTIVE)) {
             if (et1.sameTransaction(et2)) {
@@ -155,14 +151,14 @@ public class ImmutableTransaction {
         return Collections.unmodifiableList(result);
     }
 
-    public ImmutableTransaction[] intersect(boolean collapseIndependent, List<ImmutableTransaction> chain1, List<ImmutableTransaction> chain2) {
+    public ImmutableTransaction[] intersect(boolean collapse, List<ImmutableTransaction> chain1, List<ImmutableTransaction> chain2) {
         for (int i2 = 0; i2 < chain2.size(); i2++) {
             for (int i1 = 0; i1 < chain1.size(); i1++) {
                 if (chain1.get(i1).sameTransaction(chain2.get(i2))) {
                     final ImmutableTransaction t2 = chain2.get(0);
                     final ImmutableTransaction et1 = chain1.get(i1 == 0 ? 0 : i1 - 1);
                     ImmutableTransaction et2 = chain2.get(i2 == 0 ? 0 : i2 - 1);
-                    if (collapseIndependent && t2.isIndependent() && chain2.get(i2).isRootTransaction()) {
+                    if (collapse && t2.behavior.collapsible()) {
                         et2 = t2;
                     }
                     return new ImmutableTransaction[]{chain1.get(i1), et1, et2};
@@ -172,20 +168,16 @@ public class ImmutableTransaction {
         return null;
     }
 
-    public long getGlobalBeginTimestamp() {
-        if (immutableParent.isRootTransaction()) {
+    public long getBeginTimestamp() {
+        return getBeginTimestamp(Transaction.getRootTransaction());
+    }
+
+    public long getBeginTimestamp(ImmutableTransaction scope) {
+        if (immutableParent.sameTransaction(scope)) {
             return beginTimestamp;
         } else {
-            return immutableParent.getGlobalBeginTimestamp();
+            return immutableParent.getBeginTimestamp();
         }
-    }
-
-    public boolean isIndependent() {
-        return !dependent;
-    }
-
-    public boolean isRootTransaction() {
-        return sameTransaction(Transaction.getRootTransaction());
     }
 
     public boolean sameTransaction(ImmutableTransaction other) {
@@ -203,8 +195,8 @@ public class ImmutableTransaction {
         if (transactionId.getId() != newTransactionId.getId()) {
             throw new RuntimeException("Cannot clone transaction with different id");
         }
-        return new ImmutableTransaction(transactionStore, (SITransactionId) newTransactionId, allowWrites, readCommitted,
-                immutableParent, dependent, readUncommitted, beginTimestamp);
+        return new ImmutableTransaction(behavior, transactionStore, (SITransactionId) newTransactionId,
+                allowWrites, readCommitted, immutableParent, dependent, readUncommitted, beginTimestamp);
     }
 
 }

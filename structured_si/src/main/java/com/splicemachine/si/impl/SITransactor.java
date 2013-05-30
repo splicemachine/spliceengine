@@ -129,7 +129,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     private Long getGlobalCommitTimestamp(Transaction transaction) throws IOException {
-        if (transaction.isIndependent()) {
+        if (transaction.needsGlobalCommitTimestamp()) {
             return timestampSource.nextTimestamp();
         } else {
             return null;
@@ -388,7 +388,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
             } else if (dataStore.isSiFail(commitTimestampValue)) {
             } else {
                 final long dataCommitTimestamp = (Long) dataLib.decode(commitTimestampValue, Long.class);
-                if (dataCommitTimestamp > updateTransaction.getGlobalBeginTimestamp()) {
+                if (dataCommitTimestamp > updateTransaction.getBeginTimestamp()) {
                     failOnWriteConflict(updateTransaction);
                 }
             }
@@ -530,7 +530,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
             for (Object row : rows) {
                 try {
                     if (transaction.isCommitted()) {
-                        dataStore.setCommitTimestamp(table, row, transaction.getTransactionId().getId(), transaction.getGlobalCommitTimestamp());
+                        dataStore.setCommitTimestamp(table, row, transaction.getTransactionId().getId(), transaction.getCommitTimestamp());
                     } else {
                         dataStore.setCommitTimestampToFail(table, row, transaction.getTransactionId().getId());
                     }

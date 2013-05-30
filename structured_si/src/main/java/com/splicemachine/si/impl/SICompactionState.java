@@ -65,7 +65,7 @@ public class SICompactionState {
             if (effectiveStatus.equals(TransactionStatus.COMMITTED)
                     || effectiveStatus.equals(TransactionStatus.ROLLED_BACK)
                     || effectiveStatus.equals(TransactionStatus.ERROR)) {
-                final Long globalCommitTimestamp = transaction.getGlobalCommitTimestamp();
+                final Long globalCommitTimestamp = transaction.getCommitTimestamp();
                 final Object commitTimestampValue = effectiveStatus.equals(TransactionStatus.COMMITTED) ?
                         dataLib.encode(globalCommitTimestamp) :
                         dataStore.siFail;

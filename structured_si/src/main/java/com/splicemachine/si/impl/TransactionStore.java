@@ -216,8 +216,11 @@ public class TransactionStore {
                     children.add(Long.valueOf((String) dataLib.decode(child, String.class)));
                 }
 
-                final Transaction result = new Transaction(this, transactionId.getId(), beginTimestamp, keepAlive, parent,
-                        getBooleanFieldFromResult(resultTuple, encodedSchema.dependentQualifier),
+                final Boolean dependent = getBooleanFieldFromResult(resultTuple, encodedSchema.dependentQualifier);
+                final Transaction result = new Transaction(
+                        dependent ? DefaultTransactionBehavior.instance : IndependentTransactionBehavior.instance,
+                        this, transactionId.getId(), beginTimestamp, keepAlive, parent,
+                        dependent,
                         children,
                         getBooleanFieldFromResult(resultTuple, encodedSchema.allowWritesQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.readUncommittedQualifier),

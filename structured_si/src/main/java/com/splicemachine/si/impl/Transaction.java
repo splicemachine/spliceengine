@@ -1,8 +1,6 @@
 package com.splicemachine.si.impl;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
@@ -41,11 +39,12 @@ public class Transaction extends ImmutableTransaction {
 
     public final Long counter;
 
-    public Transaction(TransactionStore transactionStore, long id, long beginTimestamp, long keepAlive, Transaction parent,
+    public Transaction(TransactionBehavior transactionBehavior, TransactionStore transactionStore, long id, long beginTimestamp, long keepAlive, Transaction parent,
                        boolean dependent, Set<Long> children,
                        boolean allowWrites, Boolean readUncommitted, Boolean readCommitted, TransactionStatus status,
                        Long commitTimestamp, Long globalCommitTimestamp, Long counter) {
-        super(transactionStore, id, allowWrites, readCommitted, parent, dependent, readUncommitted, beginTimestamp);
+        super(transactionBehavior, transactionStore, id, allowWrites, readCommitted, parent, dependent, readUncommitted,
+                beginTimestamp);
         this.keepAlive = keepAlive;
         this.parent = parent;
         this.children = children;
@@ -53,6 +52,12 @@ public class Transaction extends ImmutableTransaction {
         this.globalCommitTimestamp = globalCommitTimestamp;
         this.status = status;
         this.counter = counter;
+    }
+
+    public static Transaction makeFailedTransaction(TransactionStore transactionStore, long timestamp) {
+        return new Transaction(DefaultTransactionBehavior.instance, transactionStore, timestamp,
+                timestamp, 0, Transaction.getRootTransaction(), true, null, false, false, null,
+                TransactionStatus.ERROR, null, null, null);
     }
 
     /**
@@ -129,22 +134,17 @@ public class Transaction extends ImmutableTransaction {
         return getEffectiveStatus(Transaction.getRootTransaction());
     }
 
-    public TransactionStatus getEffectiveStatus(ImmutableTransaction effectiveTransaction) {
-        if (shouldUseParentStatus()
-                && !sameTransaction(effectiveTransaction)
-                && !statusIsOneOf(ERROR, ROLLED_BACK)) {
-            return parent.getEffectiveStatus(effectiveTransaction);
+    public TransactionStatus getEffectiveStatus(ImmutableTransaction scope) {
+        if (((status.equals(ACTIVE) || status.equals(COMMITTED))
+                && !parent.sameTransaction(getRootTransaction()))
+                && !sameTransaction(scope)) {
+            return parent.getEffectiveStatus(scope);
         }
         return status;
     }
 
     public TransactionStatus getStatus() {
         return status;
-    }
-
-    private boolean shouldUseParentStatus() {
-        return ((status.equals(ACTIVE) || status.equals(COMMITTED))
-                && !parent.isRootTransaction());
     }
 
     /**
@@ -157,34 +157,24 @@ public class Transaction extends ImmutableTransaction {
     ////
 
     public static Transaction getRootTransaction() {
-        return new Transaction(null, -1, 0, 0, null, true, null, false, false, false, TransactionStatus.ACTIVE, null,
-                null, null);
+        return new Transaction(RootTransactionBehavior.instance, null, -1, 0, 0, null, true, null, false, false, false,
+                TransactionStatus.ACTIVE, null, null, null);
     }
 
     public Transaction getParent() {
         return parent;
     }
 
-    public Long getCommitTimestamp() {
+    public Long getCommitTimestampDirect() {
         return commitTimestamp;
     }
 
-    public Long getGlobalCommitTimestamp() {
-        if (parent.isRootTransaction()) {
-            return commitTimestamp;
-        } else if (isIndependent()) {
-            return globalCommitTimestamp;
-        } else {
-            return parent.getGlobalCommitTimestamp();
-        }
+    public Long getCommitTimestamp() {
+        return getCommitTimestamp(getRootTransaction());
     }
 
-    public long getCommitTimestamp(ImmutableTransaction scope) {
-        if (isIndependent() && scope.isRootTransaction()) {
-            return globalCommitTimestamp;
-        } else {
-            return commitTimestamp;
-        }
+    public Long getCommitTimestamp(ImmutableTransaction scope) {
+        return behavior.getGlobalCommitTimestamp(scope, globalCommitTimestamp, commitTimestamp, parent);
     }
 
     @Override
@@ -192,4 +182,7 @@ public class Transaction extends ImmutableTransaction {
         return "Transaction: " + getTransactionId() + " status: " + status;
     }
 
+    public boolean needsGlobalCommitTimestamp() {
+        return behavior.needsGlobalCommitTimestamp();
+    }
 }
