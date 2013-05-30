@@ -1,16 +1,20 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.gotometrics.orderly.*;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
+import java.util.Random;
 
 /**
  * Handles Serialization/Deserialization of a Row at a time
+ *
  * @author Scott Fines
  * Created on: 3/1/13
  */
@@ -20,6 +24,7 @@ public class RowSerializer {
     private StructRowKey rowKey;
     private int[] colsToRowArrayMap;
     private final boolean appendPostfix;
+    private Random salter;
 
     public RowSerializer(DataValueDescriptor[] rowTemplate,
                          FormatableBitSet cols,boolean appendPostfix) throws StandardException {
@@ -72,8 +77,20 @@ public class RowSerializer {
             if(appendPostfix)
                 values[pos] = SpliceUtils.getUniqueKey();
         }else{
-            //we have no key columns, so just generate a unique key to begin with
-            values[0] = SpliceUtils.getUniqueKey();
+            /*
+             * There are no columns to use to construct the key out of, which is handy, we
+             * can just generate a unique key and move on.
+             *
+             * However, for good HBase dispersion, we can't just use a UUID, as they are generally
+             * ordered within the same JVM (Ordered keys means sending writes to the same region, which
+             * prevents good concurrent writes), so we throw on a 4-byte salt to the beginning.
+             */
+            if(salter==null)
+                salter = new Random(System.currentTimeMillis());
+            byte[][] uniqueKeyPieces = new byte[][]{Bytes.toBytes(salter.nextInt()),SpliceUtils.getUniqueKey()};
+            byte[] key = BytesUtil.concatenate(uniqueKeyPieces,4+uniqueKeyPieces[1].length);
+
+            values[0] = key;
         }
 
         return rowKey.serialize(values);

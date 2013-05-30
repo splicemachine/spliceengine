@@ -17,6 +17,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -54,10 +55,10 @@ public class SinkTask extends ZkTask {
     }
 
     @Override
-    public void prepareTask(HRegion region,SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+    public void prepareTask(RegionCoprocessorEnvironment rce,SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         //make sure that our task id is properly set
-        this.region = region;
-        super.prepareTask(region, zooKeeper);
+        this.region = rce.getRegion();
+        super.prepareTask(rce, zooKeeper);
     }
 
     @Override

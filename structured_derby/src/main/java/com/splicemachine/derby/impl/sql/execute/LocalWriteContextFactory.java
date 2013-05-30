@@ -39,6 +39,9 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
     private static final long STARTUP_LOCK_BACKOFF_PERIOD = SpliceConstants.startupLockWaitPeriod;
 
+    //TODO -sf- hook this into JMX
+    private static final int writeBatchSize = 200;
+
     private final long congomId;
     private final Set<IndexFactory> indexFactories = new CopyOnWriteArraySet<IndexFactory>();
     private final List<ConstraintFactory> constraintFactories = new CopyOnWriteArrayList<ConstraintFactory>();
@@ -65,7 +68,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     public WriteContext create(RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
         PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(rce);
         //add a region handler
-        pwc.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch));
+        pwc.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch, writeBatchSize));
         return pwc;
     }
 

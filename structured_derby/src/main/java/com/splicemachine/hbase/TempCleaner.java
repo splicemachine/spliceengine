@@ -18,6 +18,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Pair;
@@ -167,14 +168,14 @@ public class TempCleaner {
         }
 
         @Override
-        public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-            this.region = region;
+        public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+            this.region = rce.getRegion();
             try {
                 this.scanner = region.getScanner(scan);
             } catch (IOException e) {
                 throw new ExecutionException(e);
             }
-            super.prepareTask(region, zooKeeper);
+            super.prepareTask(rce, zooKeeper);
         }
 
         @Override

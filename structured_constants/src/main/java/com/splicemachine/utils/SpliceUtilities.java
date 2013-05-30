@@ -96,9 +96,9 @@ public class SpliceUtilities extends SIConstants {
         final HColumnDescriptor siFamily = new HColumnDescriptor(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES);
         siFamily.setMaxVersions(Integer.MAX_VALUE);
         siFamily.setCompressionType(Compression.Algorithm.valueOf(compression.toUpperCase()));
-        siFamily.setInMemory(DEFAULT_IN_MEMORY);
+        siFamily.setInMemory(true);
         siFamily.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
-        siFamily.setBloomFilterType(StoreFile.BloomType.valueOf(DEFAULT_BLOOMFILTER.toUpperCase()));
+        siFamily.setBloomFilterType(BloomType.ROW); //SI Column Family should use BloomFilters
         siFamily.setTimeToLive(DEFAULT_TTL);
         return siFamily;
     }

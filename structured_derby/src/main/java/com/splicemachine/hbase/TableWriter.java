@@ -144,7 +144,8 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
                 .setNameFormat("tablewriter-writerpool-%d")
                 .setDaemon(true)
                 .setPriority(Thread.NORM_PRIORITY).build();
-        ThreadPoolExecutor writerPool = new ThreadPoolExecutor(1,maxThreads,threadKeepAlive,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),writerFactory);
+        ThreadPoolExecutor writerPool = new ThreadPoolExecutor(maxThreads,maxThreads,threadKeepAlive,TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(),writerFactory);
+        writerPool.allowCoreThreadTimeOut(true);
         ScheduledExecutorService cacheUpdater = null;
         if(enableRegionCache){
             ThreadFactory cacheFactory = new ThreadFactoryBuilder()

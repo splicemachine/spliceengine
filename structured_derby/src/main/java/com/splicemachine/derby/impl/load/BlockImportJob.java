@@ -1,15 +1,13 @@
 package com.splicemachine.derby.impl.load;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.*;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.impl.SITransactionId;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -20,9 +18,12 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -60,64 +61,68 @@ public class BlockImportJob extends FileImportJob{
         if(regions.size()<=0)
             return super.getTasks();
 
-        Multimap<HRegionLocation,BlockLocation> regionBlockMap = ArrayListMultimap.create();
-        Map<HRegionLocation,Integer> serverLoadMap = Maps.newHashMapWithExpectedSize(regions.size());
-        List<BlockLocation> unassignedBlocks = Lists.newArrayListWithExpectedSize(locations.length);
-        for(BlockLocation location: locations){
-            if(location==null) continue;
-
-            serverLoadMap.clear();
-
-            for(HRegionLocation region:regions){
-                String host = region.getHostname();
-                for(String blockHost:location.getHosts()){
-                    if(blockHost.equals(host)){
-                        if(serverLoadMap.get(region)==null)
-                            serverLoadMap.put(region,1);
-                        else
-                            serverLoadMap.put(region,serverLoadMap.get(region)+1);
+        //assign one task per BlockLocation
+        Iterator<HRegionLocation> regionCycle = Iterators.cycle(regions);
+        Map<BlockImportTask,Pair<byte[],byte[]>> taskMap = Maps.newHashMapWithExpectedSize(locations.length);
+        String parentTxnString = getParentTransaction().getTransactionIdString();
+        String jobId = getJobId();
+        for(BlockLocation location:locations){
+            /*
+             * We preferentially assign tasks to regions where the region is located on the
+             * same server as the location. This gives us the maximum possible guarantee, which
+             * is that (assuming HDFS is smart enough) reads will be data-local. We can't guarantee
+             * (although we can hope) that our writes will be local as well, and for very small tables (
+             * 1 or 2 regions), we can probably get it, but we do the best we can
+             *
+             * To make sure we spread the locations out among the different regions, we go round-robin through
+             * the region locations list
+             */
+            String[] blockHosts = location.getHosts();
+            int length = regions.size();
+            int visited = 0;
+            boolean found = false;
+            while(!found && visited<length){
+                HRegionLocation next = regionCycle.next();
+                String regionHost = next.getHostname();
+                for(String blockHost:blockHosts){
+                    if(regionHost.equalsIgnoreCase(blockHost)){
+                        BlockImportTask task = new BlockImportTask(
+                                jobId,
+                                context,
+                                location,
+                                SpliceConstants.DEFAULT_IMPORT_TASK_PRIORITY,
+                                parentTxnString,
+                                false);
+                        Pair<byte[],byte[]> regionBounds = Pair.newPair(next.getRegionInfo().getStartKey(),
+                                next.getRegionInfo().getEndKey());
+                        taskMap.put(task,regionBounds);
+                        found=true;
+                        break;
                     }
                 }
+                visited++;
             }
-            HRegionLocation minLoadedRegion = null;
-            int minLoad = Integer.MAX_VALUE;
-            for(HRegionLocation server:serverLoadMap.keySet()){
-                if(minLoad > serverLoadMap.get(server)){
-                    minLoadedRegion = server;
-                    minLoad = serverLoadMap.get(server);
-                }
+            if(!found){
+                /*
+                 * There are no regions which are data-local to this block. In really
+                 * large tables, we could probably wait around and re-check after the
+                 * first round is through, but for simplicity's sake, we'll just assign
+                 * it to the next available region. Here we'll have remote reads,
+                 * but the hope is that we'll get at least some local writes and the
+                 * whole thing won't suck horrendously.
+                 */
+                BlockImportTask task = new BlockImportTask(
+                        jobId,
+                        context,
+                        location,
+                        SpliceConstants.DEFAULT_IMPORT_TASK_PRIORITY,
+                        parentTxnString,
+                        false);
+                HRegionLocation next = regionCycle.next();
+                Pair<byte[],byte[]> regionBounds = Pair.newPair(next.getRegionInfo().getStartKey(),
+                        next.getRegionInfo().getEndKey());
+                taskMap.put(task,regionBounds);
             }
-            if(minLoadedRegion!=null)
-                regionBlockMap.put(minLoadedRegion,location);
-            else
-                unassignedBlocks.add(location);
-        }
-
-        //doll out the unassigned blocks to regions evenly
-        Iterator<HRegionLocation> serverIter = regionBlockMap.keySet().iterator();
-        for(BlockLocation unassignedBlock:unassignedBlocks){
-            if(!serverIter.hasNext()){
-                serverIter = regionBlockMap.keySet().iterator();
-            }
-            regionBlockMap.put(serverIter.next(),unassignedBlock);
-        }
-
-        Map<BlockImportTask,Pair<byte[],byte[]>> taskMap = Maps.newHashMap();
-        TransactionId parentTxnId = new SITransactionId(context.getTransactionId());
-        for(HRegionLocation location:regionBlockMap.keySet()){
-            Collection<BlockLocation> blocks = Lists.newArrayList(regionBlockMap.get(location));
-            BlockImportTask task = new BlockImportTask(getJobId(),context,blocks,
-                    SpliceConstants.importTaskPriority,parentTxnId.getTransactionIdString());
-            HRegionInfo info = location.getRegionInfo();
-            byte[] start = info.getStartKey();
-            byte[] end = info.getEndKey();
-            if(end.length>0){
-                byte[] endRow = new byte[end.length];
-                System.arraycopy(end,0,endRow,0,endRow.length);
-                BytesUtil.decrementAtIndex(endRow,endRow.length-1);
-                end = endRow;
-            }
-            taskMap.put(task,Pair.newPair(start,end));
         }
         return taskMap;
     }
@@ -131,11 +136,20 @@ public class BlockImportJob extends FileImportJob{
 
         List<HRegionLocation> regions = Lists.newArrayListWithCapacity(tableRegions.size());
         for (HRegionInfo tableRegion : tableRegions) {
-            HRegionLocation loc = admin.getConnection().locateRegion(tableRegion.getRegionName());
+            HRegionLocation loc = admin.getConnection().locateRegion(tableRegion.getTableName(),tableRegion.getStartKey());
             if(loc!=null)
                 regions.add(loc);
 
         }
         return regions;
+    }
+
+    public static void main(String... args) throws Exception{
+        InetAddress localhost = InetAddress.getByName("localhost");
+        System.out.println(localhost.getHostAddress());
+        InetAddress localIp = InetAddress.getByAddress(new byte[]{10,0,0,16});
+        System.out.printf("localIp=%s, localIp.getHostAddress()=%s%n",localIp,localIp.getHostAddress());
+
+
     }
 }

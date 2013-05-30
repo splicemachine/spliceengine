@@ -23,10 +23,12 @@ public class RegionWriteHandler implements WriteHandler {
     private final HRegion region;
     private final List<Pair<Mutation,Integer>> mutations = Lists.newArrayList();
     private final ResettableCountDownLatch writeLatch;
+    private final int writeBatchSize;
 
-    public RegionWriteHandler(HRegion region,ResettableCountDownLatch writeLatch) {
+    public RegionWriteHandler(HRegion region, ResettableCountDownLatch writeLatch, int writeBatchSize) {
         this.region = region;
         this.writeLatch = writeLatch;
+        this.writeBatchSize = writeBatchSize;
     }
 
     @Override
@@ -64,6 +66,7 @@ public class RegionWriteHandler implements WriteHandler {
         //write all the puts first, since they are more likely
         boolean failed= false;
         Pair<Mutation,Integer>[] toProcess = null;
+        List<Pair<Mutation,Integer>> toProcessList = Lists.newArrayListWithCapacity(writeBatchSize);
         try{
             Collection<Pair<Mutation,Integer>> filteredMutations = Collections2.filter(mutations,new Predicate<Pair<Mutation,Integer>>() {
                 @Override
@@ -71,24 +74,20 @@ public class RegionWriteHandler implements WriteHandler {
                     return ctx.canRun(input);
                 }
             });
-            toProcess = filteredMutations.toArray(new Pair[filteredMutations.size()]);                       
-            OperationStatus[] status = region.batchMutate(toProcess);
-            
-            for(int i=0;i<status.length;i++){
-                OperationStatus stat = status[i];
-                Mutation mutation = toProcess[i].getFirst();
-                switch (stat.getOperationStatusCode()) {
-                    case NOT_RUN:
-                        ctx.notRun(mutation);
-                        break;
-                    case BAD_FAMILY:
-                    case FAILURE:
-                        ctx.failed(mutation, stat.getExceptionMsg());
-                        failed=true;
-                    default:
-                        ctx.success(mutation);
-                        break;
+
+            for(Pair<Mutation,Integer> mutation:filteredMutations){
+                toProcessList.add(mutation);
+                if(toProcessList.size()==writeBatchSize){
+                    if(toProcess==null)
+                        toProcess = new Pair[writeBatchSize];
+                    toProcess = toProcessList.toArray(toProcess);
+                    doWrite(ctx,toProcess);
+                    toProcessList.clear();
                 }
+            }
+            if(toProcessList.size()>0){
+                toProcess = toProcessList.toArray(new Pair[toProcessList.size()]);
+                doWrite(ctx,toProcess);
             }
         }catch(IOException ioe){
             /*
@@ -104,6 +103,27 @@ public class RegionWriteHandler implements WriteHandler {
             MutationResult result = new MutationResult(MutationResult.Code.FAILED,ioe.getClass().getSimpleName()+":"+ioe.getMessage());
             for (Pair<Mutation,Integer> pair : mutations) {
                 ctx.result(pair.getFirst(),result);            	
+            }
+        }
+    }
+
+    private void doWrite(WriteContext ctx, Pair<Mutation, Integer>[] toProcess) throws IOException {
+        boolean failed;OperationStatus[] status = region.batchMutate(toProcess);
+
+        for(int i=0;i<status.length;i++){
+            OperationStatus stat = status[i];
+            Mutation mutation = toProcess[i].getFirst();
+            switch (stat.getOperationStatusCode()) {
+                case NOT_RUN:
+                    ctx.notRun(mutation);
+                    break;
+                case BAD_FAMILY:
+                case FAILURE:
+                    ctx.failed(mutation, stat.getExceptionMsg());
+                    failed=true;
+                default:
+                    ctx.success(mutation);
+                    break;
             }
         }
     }
