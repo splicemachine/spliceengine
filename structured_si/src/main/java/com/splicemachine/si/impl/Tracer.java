@@ -7,8 +7,8 @@ import com.google.common.base.Function;
  * to "trace" the internals of the SI execution.
  */
 public class Tracer {
-    private static transient Function<Object, Object> fRowRollForward = null;
-    private static transient Function<Long, Object> fTransactionRollForward = null;
+    private static transient Function<Object, Object> f = null;
+    private static transient Function<Long, Object> fTransaction = null;
     private static transient Function<Object[], Object> fStatus = null;
     public static transient Runnable fCompact = null;
     private static transient Function<Long, Object> fCommitting = null;
@@ -16,12 +16,12 @@ public class Tracer {
 
     public static Integer rollForwardDelayOverride = null;
 
-    public static void registerRowRollForward(Function<Object, Object> f) {
-        Tracer.fRowRollForward = f;
+    public static void register(Function<Object, Object> f) {
+        Tracer.f = f;
     }
 
-    public static void registerTransactionRollForward(Function<Long, Object> f) {
-        Tracer.fTransactionRollForward = f;
+    public static void registerTransaction(Function<Long, Object> f) {
+        Tracer.fTransaction = f;
     }
 
     public static void registerStatus(Function<Object[], Object> f) {
@@ -40,15 +40,15 @@ public class Tracer {
         Tracer.fWaiting = f;
     }
 
-    public static void traceRowRollForward(Object key) {
-        if (fRowRollForward != null) {
-            fRowRollForward.apply(key);
+    public static void trace(Object key) {
+        if (f != null) {
+            f.apply(key);
         }
     }
 
-    public static void traceTransactionRollForward(long transactionId) {
-        if (fTransactionRollForward != null) {
-            fTransactionRollForward.apply(transactionId);
+    public static void traceTransaction(long transactionId) {
+        if (fTransaction != null) {
+            fTransaction.apply(transactionId);
         }
     }
 

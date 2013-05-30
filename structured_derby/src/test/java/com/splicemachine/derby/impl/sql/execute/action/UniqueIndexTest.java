@@ -265,14 +265,9 @@ public class UniqueIndexTest extends SpliceUnitTest {
     @Test(timeout = 10000)
     public void testCanInsertThenDeleteEntryInTransaction() throws Exception {
         new SpliceIndexWatcher(TABLE_NAME_6, CLASS_NAME, INDEX_61, CLASS_NAME, "(name)", true).starting(null);
-        insertThenDelete();
-        methodWatcher.getOrCreateConnection().commit();
-    }
-
-    private void insertThenDelete() throws Exception {
-        methodWatcher.getOrCreateConnection().setAutoCommit(false);
         String name = "sfines";
         int value = 2;
+        methodWatcher.getOrCreateConnection().setAutoCommit(false);
         methodWatcher.getStatement().execute(format("insert into %s (name, val) values ('%s', %s)", this.getTableReference(TABLE_NAME_6), name, value));
         methodWatcher.getStatement().execute(format("delete from %s where name = '%s'", this.getTableReference(TABLE_NAME_6), name));
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME_6), name));
@@ -283,13 +278,6 @@ public class UniqueIndexTest extends SpliceUnitTest {
             results.add(String.format("name:%s,value:%d", retName, val));
         }
         Assert.assertEquals("Incorrect number of rows returned!", 0, results.size());
-    }
-
-    @Test(timeout = 10000)
-    public void testCanInsertThenDeleteThenInsertAgainInTransaction() throws Exception{
-        new SpliceIndexWatcher(TABLE_NAME_6, CLASS_NAME, INDEX_61, CLASS_NAME, "(name)", true).starting(null);
-        insertThenDelete();
-        insertThenDelete();
         methodWatcher.getOrCreateConnection().commit();
     }
 
@@ -298,15 +286,15 @@ public class UniqueIndexTest extends SpliceUnitTest {
        	new SpliceIndexWatcher(TABLE_NAME_7,CLASS_NAME,INDEX_71,CLASS_NAME,"(name)",true).starting(null);
         String name = "sfines";
         int value = 2;
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",spliceTableWatcher7,name,value));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_7),name,value));
  
         String newName = "jzhang";
-        methodWatcher.getStatement().execute(format("update %s set name = '%s' where name = '%s'", spliceTableWatcher7,newName,name));
+        methodWatcher.getStatement().execute(format("update %s set name = '%s' where name = '%s'", this.getTableReference(TABLE_NAME_7),newName,name));
 
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",spliceTableWatcher7,name));
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",this.getTableReference(TABLE_NAME_7),name));
         Assert.assertTrue("Rows are returned incorrectly",!rs.next());
 
-        rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",spliceTableWatcher7,newName));
+        rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",this.getTableReference(TABLE_NAME_7),newName));
         List<String> results = Lists.newArrayListWithExpectedSize(1);
         while(rs.next()){
             String retName = rs.getString(1);

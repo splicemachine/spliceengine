@@ -50,6 +50,11 @@ public class SIBrowser extends SIConstants{
             if (parentValue != null) {
                 parent = Bytes.toLong(parentValue);
             }
+            final byte[] dependentValue = r.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_DEPENDENT_COLUMN_BYTES);
+            Boolean dependent = null;
+            if (dependentValue != null) {
+                dependent = Bytes.toBoolean(dependentValue);
+            }
             final byte[] writesValue = r.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_ALLOW_WRITES_COLUMN_BYTES);
             Boolean writes = null;
             if (writesValue != null) {
@@ -60,7 +65,7 @@ public class SIBrowser extends SIConstants{
             if (keepAlive != null) {
                 keepAliveValue = new Timestamp(keepAlive.getTimestamp()).toString();
             }
-            x.put(beginTimestamp, new Object[]{parent, writes, status, commitTimestamp, keepAliveValue});
+            x.put(beginTimestamp, new Object[]{parent, dependent, writes, status, commitTimestamp, keepAliveValue});
             if (idToFind != null && beginTimestamp == idToFind) {
                 toFind = r;
             }
@@ -77,10 +82,10 @@ public class SIBrowser extends SIConstants{
         } else {
             final ArrayList<Long> list = new ArrayList<Long>(x.keySet());
             Collections.sort(list);
-            System.out.println("transaction parent writesAllowed status commitTimestamp keepAliveTimestamp");
+            System.out.println("transaction parent dependent writesAllowed status commitTimestamp keepAliveTimestamp");
             for (Long k : list) {
                 Object[] v = (Object[]) x.get(k);
-                System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3] + " " + v[4]);
+                System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3] + " " + v[4] + " " + v[5]);
             }
 
             //dumpTable("conglomerates", "16");

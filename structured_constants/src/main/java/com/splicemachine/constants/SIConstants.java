@@ -17,7 +17,6 @@ public class SIConstants extends SpliceConstants {
     public static final String SNAPSHOT_ISOLATION_FAMILY = "S";
     public static final byte[] SNAPSHOT_ISOLATION_FAMILY_BYTES = SNAPSHOT_ISOLATION_FAMILY.getBytes();
     public static final String SNAPSHOT_ISOLATION_CHILDREN_FAMILY = "C";
-    public static final int TRANSACTION_ID_COLUMN = 14;
     public static final int TRANSACTION_START_TIMESTAMP_COLUMN = 0;
     public static final int TRANSACTION_PARENT_COLUMN = 1;
     public static final int TRANSACTION_DEPENDENT_COLUMN = 2;
@@ -26,9 +25,13 @@ public class SIConstants extends SpliceConstants {
     public static final int TRANSACTION_READ_COMMITTED_COLUMN = 5;
     public static final int TRANSACTION_STATUS_COLUMN = 6;
     public static final int TRANSACTION_COMMIT_TIMESTAMP_COLUMN = 7;
-    public static final int TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN = 16;
     public static final int TRANSACTION_KEEP_ALIVE_COLUMN = 8;
-    public static final int TRANSACTION_COUNTER_COLUMN = 15;
+
+    public static final int TRANSACTION_LOCAL_START_TIMESTAMP_COLUMN = 9;
+    public static final int TRANSACTION_LOCAL_STATUS_COLUMN = 10;
+    public static final int TRANSACTION_LOCAL_COMMIT_TIMESTAMP_COLUMN = 11;
+    public static final int TRANSACTION_LOCAL_READ_UNCOMMITTED_COLUMN = 12;
+    public static final int TRANSACTION_LOCAL_READ_COMMITTED_COLUMN = 13;
 
     public static final byte[] TRANSACTION_START_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_START_TIMESTAMP_COLUMN);
     public static final byte[] TRANSACTION_PARENT_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_PARENT_COLUMN);
@@ -38,9 +41,7 @@ public class SIConstants extends SpliceConstants {
     public static final byte[] TRANSACTION_READ_COMMITTED_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_READ_COMMITTED_COLUMN);
     public static final byte[] TRANSACTION_STATUS_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_STATUS_COLUMN);
     public static final byte[] TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_COMMIT_TIMESTAMP_COLUMN);
-    public static final byte[] TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN);
     public static final byte[] TRANSACTION_KEEP_ALIVE_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_KEEP_ALIVE_COLUMN);
-    public static final byte[] TRANSACTION_COUNTER_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_COUNTER_COLUMN);
 
     public static final byte[] TRANSACTION_FAMILY_BYTES = SpliceConstants.DEFAULT_FAMILY.getBytes();
     public static final int SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN = 0;

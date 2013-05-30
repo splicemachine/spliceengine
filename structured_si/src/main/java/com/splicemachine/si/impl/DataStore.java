@@ -138,27 +138,27 @@ public class DataStore {
     }
 
     public void recordRollForward(RollForwardQueue rollForwardQueue, ImmutableTransaction transaction, Object row) {
-        recordRollForward(rollForwardQueue, transaction.getTransactionId().getId(), row);
+        recordRollForward(rollForwardQueue, transaction.getBeginTimestamp(), row);
     }
 
-    public void recordRollForward(RollForwardQueue rollForwardQueue, long transactionId, Object row) {
+    public void recordRollForward(RollForwardQueue rollForwardQueue, long beginTimestamp, Object row) {
         if (rollForwardQueue != null) {
-            rollForwardQueue.recordRow(transactionId, row);
+            rollForwardQueue.recordRow(beginTimestamp, row);
         }
     }
 
-    public void setCommitTimestamp(STable table, Object rowKey, long beginTimestamp, long transactionId) throws IOException {
-        setCommitTimestampDirect(table, rowKey, beginTimestamp, dataLib.encode(transactionId));
+    public void setCommitTimestamp(STable table, Object rowKey, long beginTimestamp, long commitTimestamp) throws IOException {
+        setCommitTimestampDirect(table, rowKey, beginTimestamp, dataLib.encode(commitTimestamp));
     }
 
-    public void setCommitTimestampToFail(STable table, Object rowKey, long transactionId) throws IOException {
-        setCommitTimestampDirect(table, rowKey, transactionId, siFail);
+    public void setCommitTimestampToFail(STable table, Object rowKey, long beginTimestamp) throws IOException {
+        setCommitTimestampDirect(table, rowKey, beginTimestamp, siFail);
     }
 
-    private void setCommitTimestampDirect(STable table, Object rowKey, long transactionId, Object timestampValue) throws IOException {
+    private void setCommitTimestampDirect(STable table, Object rowKey, long beginTimestamp, Object timestampValue) throws IOException {
         Object put = dataLib.newPut(rowKey);
         suppressIndexing(put);
-        dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, transactionId, timestampValue);
+        dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, beginTimestamp, timestampValue);
         writer.write(table, put, false);
     }
 

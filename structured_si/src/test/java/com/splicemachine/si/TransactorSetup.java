@@ -24,8 +24,8 @@ import java.util.concurrent.TimeUnit;
 
 public class TransactorSetup extends SIConstants {
     final TransactionSchema transactionSchema = new TransactionSchema(SpliceConstants.TRANSACTION_TABLE, "siFamily",
-            "siChildrenFamily", -1, "id", "begin", "parent", "dependent", "allowWrites", "readUncommited", "readCommitted",
-            "keepAlive", "status", "commit", "globalCommit", "counter");
+            "siChildrenFamily", -1, "begin", "parent", "dependent", "allowWrites", "readUncommited", "readCommitted",
+            "keepAlive", "status", "commit", "localStatus", "localCommit");
     Object family;
     Object ageQualifier;
     Object jobQualifier;

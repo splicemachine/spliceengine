@@ -93,26 +93,27 @@ public class SIFilterState implements FilterState {
         if (dataStore.isSiNull(keyValue.value)) {
             transaction = handleUnknownTransactionStatus();
         } else if (dataStore.isSiFail(keyValue.value)) {
-            transaction = new Transaction(transactionStore, keyValue.timestamp, keyValue.timestamp, 0, Transaction.getRootTransaction(),
-                    true, null, false, false, null, TransactionStatus.ERROR, null, null, null);
+            transaction = new Transaction(keyValue.timestamp, 0, null, null, null, false, null, null, TransactionStatus.ERROR, null,
+                    TransactionStatus.ERROR, null);
         } else {
             // TODO: we should avoid loading the full transaction here once roll-forward is revisited
             transaction = getTransactionFromFilterCache();
         }
-        rowState.transactionCache.put(transaction.getTransactionId().getId(), transaction);
+        rowState.transactionCache.put(transaction.getBeginTimestamp(), transaction);
         return SKIP;
     }
 
     private Transaction getTransactionFromFilterCache() throws IOException {
         Transaction transaction = transactionCache.getIfPresent(keyValue.timestamp);
         if (transaction == null) {
+            final ImmutableTransaction immutableTransaction = transactionStore.getImmutableTransaction(keyValue.timestamp);
             if (!myTransaction.getEffectiveReadCommitted() && !myTransaction.getEffectiveReadUncommitted()
-                    && !myTransaction.isDescendant(keyValue.timestamp)) {
+                    && (immutableTransaction.getRootBeginTimestamp() != myTransaction.getRootBeginTimestamp())) {
                 transaction = transactionStore.getTransactionAsOf(keyValue.timestamp, myTransaction.getTransactionId());
             } else {
                 transaction = transactionStore.getTransaction(keyValue.timestamp);
             }
-            transactionCache.put(transaction.getTransactionId().getId(), transaction);
+            transactionCache.put(transaction.getBeginTimestamp(), transaction);
         }
         return transaction;
     }
@@ -126,10 +127,7 @@ public class SIFilterState implements FilterState {
         final Transaction cachedTransaction = rowState.transactionCache.get(keyValue.timestamp);
         if (cachedTransaction == null) {
             final Transaction dataTransaction = getTransactionFromFilterCache();
-            final Object[] visibleResult = myTransaction.isVisible(dataTransaction);
-            final TransactionStatus dataStatus = (TransactionStatus) visibleResult[1];
-            if (dataStatus.equals(TransactionStatus.COMMITTED) || dataStatus.equals(TransactionStatus.ROLLED_BACK)
-                    || dataStatus.equals(TransactionStatus.ERROR)) {
+            if (dataTransaction.isCommitted() || dataTransaction.isFailed()) {
                 rollForward(dataTransaction);
             }
             return dataTransaction;
@@ -143,11 +141,7 @@ public class SIFilterState implements FilterState {
      * transaction up in the transaction table again the next time this row is read.
      */
     private void rollForward(Transaction transaction) throws IOException {
-        final TransactionStatus effectiveStatus = transaction.getEffectiveStatus(Transaction.getRootTransaction());
-        if (rollForwardQueue != null &&
-                (effectiveStatus.equals(TransactionStatus.COMMITTED)
-                        || effectiveStatus.equals(TransactionStatus.ERROR)
-                        || effectiveStatus.equals(TransactionStatus.ROLLED_BACK))) {
+        if (rollForwardQueue != null && !transaction.isNestedDependent()) {
             // TODO: revisit this in light of nested independent transactions
             dataStore.recordRollForward(rollForwardQueue, transaction, keyValue.row);
         }
@@ -206,13 +200,14 @@ public class SIFilterState implements FilterState {
     /**
      * Is there a row level tombstone that supercedes the current cell?
      */
-    private boolean tombstoneAfterData() throws IOException {
+    private boolean tombstoneAfterData() {
         for (long tombstone : rowState.tombstoneTimestamps) {
             final Transaction tombstoneTransaction = rowState.transactionCache.get(tombstone);
-            final Object[] visibleResult = myTransaction.isVisible(tombstoneTransaction);
-            final boolean visible = (Boolean) visibleResult[0];
-            if (visible && (keyValue.timestamp < tombstone
-                    || (keyValue.timestamp == tombstone && dataStore.isSiNull(keyValue.value)))) {
+            if ((keyValue.timestamp < tombstone && tombstoneTransaction.isCommitted())
+                    || (keyValue.timestamp == tombstone && dataStore.isSiNull(keyValue.value)
+                    && (tombstoneTransaction.isCommitted()
+                    || (tombstoneTransaction.getRootBeginTimestamp() == myTransaction.getRootBeginTimestamp()
+                    && !tombstoneTransaction.isFailed())))) {
                 return true;
             }
         }
@@ -224,12 +219,11 @@ public class SIFilterState implements FilterState {
      * under SI. It handles the various cases of when data should be visible.
      */
     private boolean isVisibleToCurrentTransaction() throws IOException {
-        if (keyValue.timestamp == myTransaction.getTransactionId().getId()) {
-            return true;
-        } else {
-            final Transaction transaction = loadTransaction();
-            return (Boolean) myTransaction.isVisible(transaction)[0];
-        }
+        final Transaction transaction = loadTransaction();
+        return (isDataCommittedBeforeThisTransaction(transaction)
+                || isPartOfCurrentTransaction(transaction)
+                || readCommitted(transaction)
+                || readUncommitted(transaction));
     }
 
     /**
@@ -241,6 +235,22 @@ public class SIFilterState implements FilterState {
             throw new RuntimeException("All transactions should already be loaded from the si family for the data row, transaction Id: " + keyValue.timestamp);
         }
         return transaction;
+    }
+
+    private boolean isDataCommittedBeforeThisTransaction(Transaction dataTransaction) {
+        return dataTransaction.isCommitted() && (dataTransaction.getCommitTimestamp() < myTransaction.getRootBeginTimestamp());
+    }
+
+    private boolean isPartOfCurrentTransaction(Transaction dataTransaction) throws IOException {
+        return dataTransaction.isVisiblePartOfTransaction(myTransaction);
+    }
+
+    private boolean readCommitted(Transaction dataTransaction) {
+        return myTransaction.getEffectiveReadCommitted() && dataTransaction.isCommitted();
+    }
+
+    private boolean readUncommitted(Transaction dataTransaction) {
+        return myTransaction.getEffectiveReadUncommitted() && dataTransaction.isActive();
     }
 
     /**
