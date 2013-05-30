@@ -45,4 +45,9 @@ public class SITransactionId implements TransactionId {
     public boolean isRootTransaction() {
         return getId() == Transaction.getRootTransaction().getTransactionId().getId();
     }
+
+    @Override
+    public String toString() {
+        return getTransactionIdString();
+    }
 }

@@ -224,7 +224,7 @@ public class SIFilterState implements FilterState {
      * under SI. It handles the various cases of when data should be visible.
      */
     private boolean isVisibleToCurrentTransaction() throws IOException {
-        if (keyValue.timestamp == myTransaction.getTransactionId().getId()) {
+        if (keyValue.timestamp == myTransaction.getTransactionId().getId() && !myTransaction.getTransactionId().independentReadOnly) {
             return true;
         } else {
             final Transaction transaction = loadTransaction();

@@ -106,6 +106,15 @@ public class TransactionStore {
     }
 
     public ImmutableTransaction getImmutableTransaction(TransactionId transactionId) throws IOException {
+        final ImmutableTransaction result = getImmutableTransactionFromCache(transactionId);
+        if (result.getTransactionId().getTransactionIdString().equals(transactionId.getTransactionIdString())) {
+            return result;
+        } else {
+            return result.cloneWithId(transactionId);
+        }
+    }
+
+    private ImmutableTransaction getImmutableTransactionFromCache(TransactionId transactionId) throws IOException {
         final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId.getId());
         if (cachedTransaction != null) {
             return cachedTransaction;

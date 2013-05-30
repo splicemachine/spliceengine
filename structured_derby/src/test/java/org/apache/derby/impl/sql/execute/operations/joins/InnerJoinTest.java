@@ -22,10 +22,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 public class InnerJoinTest extends SpliceUnitTest {
@@ -620,6 +617,20 @@ public class InnerJoinTest extends SpliceUnitTest {
 			ResultSet rs = methodWatcher.executeQuery(String.format("select a from %s where %s.e = (select %s.e from %s where a > 'e1' )"
 				, TABLE_NAME_4,TABLE_NAME_4, TABLE_NAME_5,TABLE_NAME_5));
 	}
-	
-	
+
+    @Test
+    public void testInWithCorrelatedSubQueryOrSemijoin() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select empnum from staff where empnum in " +
+                                                    "(select works.empnum from works where staff.empnum = works.empnum)");
+        List results = TestUtils.resultSetToMaps(rs);
+        Assert.assertEquals(4, results.size());
+    }
+
+    @Test
+	public void testNotInWithCorrelatedSubQueryOrAntijoin() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select empnum from staff where empnum not in " +
+                                                    "(select works.empnum from works where staff.empnum = works.empnum)");
+        List results = TestUtils.resultSetToMaps(rs);
+        Assert.assertEquals(1, results.size());
+    }
 }

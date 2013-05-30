@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
@@ -18,7 +17,6 @@ import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.job.JobStats;
-import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -317,14 +315,16 @@ public class MergeSortJoinOperation extends JoinOperation {
     }
 
     protected class MergeSortNextRowIterator implements Iterator<ExecRow> {
-		protected JoinSideExecRow joinRow;
 		protected boolean outerJoin;
 		public MergeSortNextRowIterator(boolean outerJoin) {
 			this.outerJoin = outerJoin;
 		}
 
+
 		@Override
 		public boolean hasNext() {
+            JoinSideExecRow joinRow;
+            // If have remaining right rows to join with current left row
 			if (rightIterator!= null && rightIterator.hasNext()) {
 				currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
 				setCurrentRow(currentRow);
@@ -337,77 +337,81 @@ public class MergeSortJoinOperation extends JoinOperation {
 				SpliceLogUtils.trace(LOG, "serverProvider exhausted");
 				return false;
 			}
-			while ( serverProvider.hasNext() && (joinRow = serverProvider.nextJoinRow()) != null) {
-				if (joinRow.getJoinSide().ordinal() == JoinSide.RIGHT.ordinal()) { // Right Side
-					rightHash = joinRow.getHash();
-					if (joinRow.sameHash(priorHash)&&!oneRowRightSide) {
-						SpliceLogUtils.trace(LOG, "adding additional right=%s", joinRow);
-						rights.add(joinRow.getRow().getClone());
-					} else {
-						resetRightSide();
-						rowsSeenRight++;
-						SpliceLogUtils.trace(LOG, "adding initial right=%s", joinRow);
-						rights.add(joinRow.getRow().getClone());
-						priorHash = joinRow.getHash();
-					}
+            // Process sorted rows from TEMP table, which are sorted by hash with rights coming before lefts
+			while ( serverProvider.hasNext() && (joinRow = serverProvider.nextJoinRow()) != null ) {
+                if (isRowRightSide(joinRow)){
+                    handleRightRow(joinRow);
+                    priorHash = rightHash = joinRow.getHash();
 					continue;
-				} 
-				else { // Left Side
+				} else { // Left Side
 					leftRow = joinRow.getRow();
 					rowsSeenLeft++;
-					if (joinRow.sameHash(priorHash)) {
-						if (joinRow.sameHash(rightHash)) {
-							SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s", joinRow);
-							rightIterator = rights.iterator();
-							currentRow = JoinUtils.getMergedRow(leftRow, rightIterator.next(), wasRightOuterJoin, rightNumCols,leftNumCols, mergedRow);
-							setCurrentRow(currentRow);
-							rowsReturned++;
-							currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());					
-							SpliceLogUtils.trace(LOG, "current row returned %s", currentRow);
-							return true;
-						} else {
-							if (outerJoin) {
-								SpliceLogUtils.trace(LOG, "simple left emit=%s", joinRow);
-								resetRightSide();
-								priorHash = joinRow.getHash();
-								currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
-								setCurrentRow(currentRow);
-								rowsReturned++;
-								emptyRightRowsReturned++;
-								return true;					
-							} else {
-								SpliceLogUtils.trace(LOG, "right hash miss left=%s", joinRow);
-								resetRightSide();	
-								priorHash = joinRow.getHash();
-								continue;				
-								
-							}
-						}
-					} 
-					else {
-						if (outerJoin) {
-							SpliceLogUtils.trace(LOG, "simple left with no right=%s", joinRow);
-							resetRightSide();
-							priorHash = joinRow.getHash();
-							currentRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
-							setCurrentRow(currentRow);
-							emptyRightRowsReturned++;
-							rowsReturned++;
-							return true;	
-						} else {
-							resetRightSide();
-							priorHash = joinRow.getHash();
-							SpliceLogUtils.trace(LOG, "current row returned %s", currentRow);
-							continue;
-						}
-					}			
+                    if (!joinRow.sameHash(priorHash)) {
+                        priorHash = joinRow.getHash();
+                    }
+
+                    rightRow = getRightRowForLeft(joinRow);
+                    if (rightRow != null){
+                        currentRow = JoinUtils.getMergedRow(leftRow, rightRow, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
+                        setCurrentRow(currentRow);
+                        rowsReturned++;
+                        currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
+                        SpliceLogUtils.trace(LOG, "current row returned %s", currentRow);
+                        return true;
+                    } else {
+                       continue;
+                    }
 				}
 			}
 			SpliceLogUtils.trace(LOG, "serverProvider returned null rows");
 			return false;
 		}
 
-		@Override
+        public boolean isRowRightSide(JoinSideExecRow joinRow){
+            return joinRow.getJoinSide().ordinal() == JoinSide.RIGHT.ordinal();
+        }
+
+        public void handleRightRow(JoinSideExecRow joinRow){
+			if (joinRow.sameHash(priorHash)) {
+                if (oneRowRightSide){
+                    SpliceLogUtils.trace(LOG, "skipping additional right=%s", joinRow);
+                } else {
+                    SpliceLogUtils.trace(LOG, "adding additional right=%s", joinRow);
+                    rights.add(joinRow.getRow().getClone());
+                }
+			} else {
+				resetRightSide();
+                // is this correct: only inc on the first?
+				rowsSeenRight++;
+				SpliceLogUtils.trace(LOG, "adding initial right=%s", joinRow);
+				rights.add(joinRow.getRow().getClone());
+			}
+        }
+
+        private ExecRow getRightRowForLeft(JoinSideExecRow leftJoinRow) {
+            boolean matchingRights = leftJoinRow.sameHash(rightHash);
+            if (matchingRights){
+                if (notExistsRightSide) {
+                    SpliceLogUtils.trace(LOG, "right antijoin miss for left=%s", leftJoinRow);
+                    return null;
+                }
+                SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s", leftJoinRow);
+                rightIterator = rights.iterator();
+                return rightIterator.next();
+            } else {
+                resetRightSide();
+                if (notExistsRightSide || outerJoin) {
+                    SpliceLogUtils.trace(LOG, "simple left emit=%s, outerJoin=%s, notExistsRightSide=%s",
+                                            leftJoinRow, outerJoin, notExistsRightSide);
+                    emptyRightRowsReturned++;
+                    return outerJoin ? getEmptyRow() : rightTemplate;
+                }
+                SpliceLogUtils.trace(LOG, "right hash miss for left=%s", leftJoinRow);
+                return null;
+            }
+        }
+
+        @Override
 		public ExecRow next() {
 			return currentRow;
 		}
