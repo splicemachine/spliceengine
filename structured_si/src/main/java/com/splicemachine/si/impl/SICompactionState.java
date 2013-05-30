@@ -61,7 +61,7 @@ public class SICompactionState {
         Object result = decodedKeyValue.keyValue;
         if (dataStore.isSiNull(decodedKeyValue.value)) {
             final Transaction transaction = getFromCache(decodedKeyValue.timestamp);
-            final TransactionStatus effectiveStatus = transaction.getEffectiveStatus(Transaction.getRootTransaction());
+            final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
             if (effectiveStatus.equals(TransactionStatus.COMMITTED)
                     || effectiveStatus.equals(TransactionStatus.ROLLED_BACK)
                     || effectiveStatus.equals(TransactionStatus.ERROR)) {

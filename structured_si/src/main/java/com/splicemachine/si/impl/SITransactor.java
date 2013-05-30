@@ -113,7 +113,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      * @return the new transaction ID.
      */
     private long getBeginTimestamp(SITransactionId transactionId, TransactionId parentId) throws IOException {
-        if (parentId.getId() == Transaction.getRootTransaction().getTransactionId().getId()) {
+        if (((SITransactionId) parentId).isRootTransaction()) {
             return transactionId.getId();
         } else {
             return transactionStore.getTimestamp(parentId);
@@ -121,7 +121,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     private long getCommitTimestamp(TransactionId parentId) throws IOException {
-        if (parentId.getId() == Transaction.getRootTransaction().getTransactionId().getId()) {
+        if (((SITransactionId) parentId).isRootTransaction()) {
             return timestampSource.nextTimestamp();
         } else {
             return transactionStore.getTimestamp(parentId);
@@ -414,7 +414,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      */
     private void checkTransactionConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction)
             throws IOException {
-        if (updateTransaction.getTransactionId().getId() != dataTransaction.getTransactionId().getId()) {
+        if (!updateTransaction.sameTransaction(dataTransaction)) {
             Transaction t1 = transactionStore.getTransaction(updateTransaction.getTransactionId().getId());
             if (t1.isConflict(dataTransaction)) {
                 failOnWriteConflict(updateTransaction);

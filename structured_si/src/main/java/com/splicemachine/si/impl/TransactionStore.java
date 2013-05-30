@@ -57,7 +57,7 @@ public class TransactionStore {
     }
 
     public void addChildToTransaction(TransactionId transactionId, TransactionId childTransactionId) throws IOException {
-        if (transactionId.getId() != Transaction.getRootTransaction().getTransactionId().getId()) {
+        if (!((SITransactionId) transactionId).isRootTransaction()) {
             Object put = makeBasePut(transactionId);
             dataLib.addKeyValueToPut(put, encodedSchema.siChildrenFamily, dataLib.encode(childTransactionId.getTransactionIdString()), null,
                     dataLib.encode(true));
@@ -177,7 +177,7 @@ public class TransactionStore {
     }
 
     private Transaction loadTransactionDirect(TransactionId transactionId) throws IOException {
-        if (transactionId.getId() == Transaction.getRootTransaction().getTransactionId().getId()) {
+        if (((SITransactionId) transactionId).isRootTransaction()) {
             return Transaction.getRootTransaction();
         }
         Object tupleKey = dataLib.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});

@@ -126,15 +126,12 @@ public class Transaction extends ImmutableTransaction {
      *         if they don't have one explicitly set for themselves.
      */
     public TransactionStatus getEffectiveStatus() {
-        if (shouldUseParentStatus()) {
-            return parent.getEffectiveStatus();
-        }
-        return status;
+        return getEffectiveStatus(Transaction.getRootTransaction());
     }
 
     public TransactionStatus getEffectiveStatus(ImmutableTransaction effectiveTransaction) {
         if (shouldUseParentStatus()
-                && this.getTransactionId().getId() != effectiveTransaction.getTransactionId().getId()
+                && !sameTransaction(effectiveTransaction)
                 && !statusIsOneOf(ERROR, ROLLED_BACK)) {
             return parent.getEffectiveStatus(effectiveTransaction);
         }
@@ -147,7 +144,7 @@ public class Transaction extends ImmutableTransaction {
 
     private boolean shouldUseParentStatus() {
         return ((status.equals(ACTIVE) || status.equals(COMMITTED))
-                && parent.getTransactionId().getId() != Transaction.getRootTransaction().getTransactionId().getId());
+                && !parent.isRootTransaction());
     }
 
     /**
@@ -173,7 +170,7 @@ public class Transaction extends ImmutableTransaction {
     }
 
     public Long getGlobalCommitTimestamp() {
-        if (parent.getTransactionId().getId() == getRootTransaction().getTransactionId().getId()) {
+        if (parent.isRootTransaction()) {
             return commitTimestamp;
         } else if (isIndependent()) {
             return globalCommitTimestamp;
@@ -183,7 +180,7 @@ public class Transaction extends ImmutableTransaction {
     }
 
     public long getCommitTimestamp(ImmutableTransaction scope) {
-        if (isIndependent() && scope.getTransactionId().getId() == Transaction.getRootTransaction().getTransactionId().getId()) {
+        if (isIndependent() && scope.isRootTransaction()) {
             return globalCommitTimestamp;
         } else {
             return commitTimestamp;

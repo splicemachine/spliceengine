@@ -41,4 +41,8 @@ public class SITransactionId implements TransactionId {
         final String suffix = independentReadOnly ? IRO : "";
         return baseId + suffix;
     }
+
+    public boolean isRootTransaction() {
+        return getId() == Transaction.getRootTransaction().getTransactionId().getId();
+    }
 }

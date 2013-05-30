@@ -143,7 +143,7 @@ public class SIFilterState implements FilterState {
      * transaction up in the transaction table again the next time this row is read.
      */
     private void rollForward(Transaction transaction) throws IOException {
-        final TransactionStatus effectiveStatus = transaction.getEffectiveStatus(Transaction.getRootTransaction());
+        final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
         if (rollForwardQueue != null &&
                 (effectiveStatus.equals(TransactionStatus.COMMITTED)
                         || effectiveStatus.equals(TransactionStatus.ERROR)

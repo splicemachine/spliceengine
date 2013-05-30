@@ -77,7 +77,7 @@ public class ImmutableTransaction {
         final ImmutableTransaction t2 = transactionStore.getImmutableTransaction(transactionId2);
         final ImmutableTransaction[] intersections = intersect(false, t1.getChain(), t2.getChain());
         final ImmutableTransaction et2 = intersections[2];
-        return et2.immutableParent.getTransactionId().getId() == t1.getTransactionId().getId();
+        return et2.immutableParent.sameTransaction(t1);
     }
 
     public boolean isAncestor(long transactionId2) throws IOException {
@@ -85,7 +85,7 @@ public class ImmutableTransaction {
         final ImmutableTransaction t2 = transactionStore.getImmutableTransaction(transactionId2);
         final ImmutableTransaction[] intersections = intersect(false, t1.getChain(), t2.getChain());
         final ImmutableTransaction et1 = intersections[1];
-        return et1.immutableParent.getTransactionId().getId() == t2.getTransactionId().getId();
+        return et1.immutableParent.sameTransaction(t2);
     }
 
     public Object[] isVisible(Transaction t2) throws IOException {
@@ -98,7 +98,7 @@ public class ImmutableTransaction {
         final boolean readUncommitted1 = getEffectiveReadUncommitted();
         boolean visible = false;
         final TransactionStatus effectiveStatus = t2.getEffectiveStatus(et2);
-        if (et1.getTransactionId().getId() == et2.getTransactionId().getId()) {
+        if (et1.sameTransaction(et2)) {
             visible = true;
         } else {
             if (isIndependent() && isAncestor(t2.getTransactionId().getId())) {
@@ -106,7 +106,7 @@ public class ImmutableTransaction {
             } else {
                 if (!readCommitted1 && !readUncommitted1 && effectiveStatus.equals(COMMITTED)) {
                     visible = (met2.getCommitTimestamp(met2.getParent()) < et1.getBeginTimestamp())
-                            || (et2.immutableParent.getTransactionId().getId() == et1.getTransactionId().getId());
+                            || et2.immutableParent.sameTransaction(et1);
                 }
                 if (readCommitted1 && effectiveStatus.equals(COMMITTED)) {
                     visible = true;
@@ -128,9 +128,9 @@ public class ImmutableTransaction {
         final Transaction met2 = transactionStore.getTransaction(et2.getTransactionId().getId());
         if (met2.getStatus().equals(COMMITTED)) {
             return (met2.getCommitTimestamp(shared) > et1.getBeginTimestamp()) &&
-                    (et2.immutableParent.getTransactionId().getId() != et1.getTransactionId().getId());
+                    !et2.immutableParent.sameTransaction(et1);
         } else if (met2.getStatus().equals(ACTIVE)) {
-            if (et1.getTransactionId().getId() == et2.getTransactionId().getId()) {
+            if (et1.sameTransaction(et2)) {
                 return false;
             } else {
                 return true;
@@ -153,11 +153,11 @@ public class ImmutableTransaction {
     public ImmutableTransaction[] intersect(boolean collapseIndependent, List<ImmutableTransaction> chain1, List<ImmutableTransaction> chain2) {
         for (int i2 = 0; i2 < chain2.size(); i2++) {
             for (int i1 = 0; i1 < chain1.size(); i1++) {
-                if (chain1.get(i1).getTransactionId().getId() == chain2.get(i2).getTransactionId().getId()) {
+                if (chain1.get(i1).sameTransaction(chain2.get(i2))) {
                     final ImmutableTransaction t2 = chain2.get(0);
                     final ImmutableTransaction et1 = chain1.get(i1 == 0 ? 0 : i1 - 1);
                     ImmutableTransaction et2 = chain2.get(i2 == 0 ? 0 : i2 - 1);
-                    if (collapseIndependent && t2.isIndependent() && chain2.get(i2).getTransactionId().getId() == Transaction.getRootTransaction().getTransactionId().getId()) {
+                    if (collapseIndependent && t2.isIndependent() && chain2.get(i2).isRootTransaction()) {
                         et2 = t2;
                     }
                     return new ImmutableTransaction[]{chain1.get(i1), et1, et2};
@@ -168,7 +168,7 @@ public class ImmutableTransaction {
     }
 
     public long getGlobalBeginTimestamp() {
-        if (immutableParent.getTransactionId().getId() == Transaction.getRootTransaction().getTransactionId().getId()) {
+        if (immutableParent.isRootTransaction()) {
             return beginTimestamp;
         } else {
             return immutableParent.getGlobalBeginTimestamp();
@@ -177,5 +177,13 @@ public class ImmutableTransaction {
 
     public boolean isIndependent() {
         return !dependent;
+    }
+
+    public boolean isRootTransaction() {
+        return sameTransaction(Transaction.getRootTransaction());
+    }
+
+    public boolean sameTransaction(ImmutableTransaction other) {
+        return getTransactionId().getId() == other.getTransactionId().getId();
     }
 }
