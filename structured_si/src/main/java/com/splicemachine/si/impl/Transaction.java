@@ -186,4 +186,10 @@ public class Transaction extends ImmutableTransaction {
             return commitTimestamp;
         }
     }
+
+    @Override
+    public String toString() {
+        return "Transaction: " + getTransactionId() + " status: " + status;
+    }
+
 }

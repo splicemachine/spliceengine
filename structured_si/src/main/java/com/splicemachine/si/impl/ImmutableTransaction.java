@@ -1,5 +1,7 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.TransactionId;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,17 +26,24 @@ public class ImmutableTransaction {
     final Boolean readUncommitted;
     final Boolean readCommitted;
 
+    public ImmutableTransaction(TransactionStore transactionStore, SITransactionId transactionId, boolean allowWrites,
+                                Boolean readCommitted, ImmutableTransaction immutableParent, boolean dependent,
+                                Boolean readUncommitted, long beginTimestamp) {
+        this.transactionStore = transactionStore;
+        this.transactionId = transactionId;
+        this.immutableParent = immutableParent;
+        this.dependent = dependent;
+        this.allowWrites = allowWrites;
+        this.beginTimestamp = beginTimestamp;
+        this.readUncommitted = readUncommitted;
+        this.readCommitted = readCommitted;
+    }
+
     public ImmutableTransaction(TransactionStore transactionStore, long id, boolean allowWrites, Boolean readCommitted,
                                 ImmutableTransaction immutableParent, boolean dependent, Boolean readUncommitted,
                                 long beginTimestamp) {
-        this.transactionStore = transactionStore;
-        this.transactionId = new SITransactionId(id);
-        this.beginTimestamp = beginTimestamp;
-        this.readCommitted = readCommitted;
-        this.readUncommitted = readUncommitted;
-        this.allowWrites = allowWrites;
-        this.immutableParent = immutableParent;
-        this.dependent = dependent;
+        this(transactionStore, new SITransactionId(id), allowWrites, readCommitted, immutableParent, dependent,
+                readUncommitted, beginTimestamp);
     }
 
     public long getBeginTimestamp() {
@@ -101,19 +110,15 @@ public class ImmutableTransaction {
         if (et1.sameTransaction(et2)) {
             visible = true;
         } else {
-            if (isIndependent() && isAncestor(t2.getTransactionId().getId())) {
+            if (!readCommitted1 && !readUncommitted1 && effectiveStatus.equals(COMMITTED)) {
+                visible = (met2.getCommitTimestamp(met2.getParent()) < et1.getBeginTimestamp())
+                        || et2.immutableParent.sameTransaction(et1);
+            }
+            if (readCommitted1 && effectiveStatus.equals(COMMITTED)) {
                 visible = true;
-            } else {
-                if (!readCommitted1 && !readUncommitted1 && effectiveStatus.equals(COMMITTED)) {
-                    visible = (met2.getCommitTimestamp(met2.getParent()) < et1.getBeginTimestamp())
-                            || et2.immutableParent.sameTransaction(et1);
-                }
-                if (readCommitted1 && effectiveStatus.equals(COMMITTED)) {
-                    visible = true;
-                }
-                if (readUncommitted1 && effectiveStatus.equals(ACTIVE)) {
-                    visible = true;
-                }
+            }
+            if (readUncommitted1 && effectiveStatus.equals(ACTIVE)) {
+                visible = true;
             }
         }
         return new Object[]{visible, effectiveStatus};
@@ -184,6 +189,22 @@ public class ImmutableTransaction {
     }
 
     public boolean sameTransaction(ImmutableTransaction other) {
-        return getTransactionId().getId() == other.getTransactionId().getId();
+        return (getTransactionId().getId() == other.getTransactionId().getId()
+                && !getTransactionId().independentReadOnly
+                && !other.getTransactionId().independentReadOnly);
     }
+
+    @Override
+    public String toString() {
+        return "ImmutableTransaction: " + transactionId;
+    }
+
+    public ImmutableTransaction cloneWithId(TransactionId newTransactionId) {
+        if (transactionId.getId() != newTransactionId.getId()) {
+            throw new RuntimeException("Cannot clone transaction with different id");
+        }
+        return new ImmutableTransaction(transactionStore, (SITransactionId) newTransactionId, allowWrites, readCommitted,
+                immutableParent, dependent, readUncommitted, beginTimestamp);
+    }
+
 }

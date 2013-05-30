@@ -2290,19 +2290,35 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
-    public void childIndependentSeesParentWrites() throws IOException {
+    public void childIndependentDoesNotSeeParentWrites() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe41", 20);
         TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
-        Assert.assertEquals("joe41 age=20 job=null", read(t2, "joe41"));
+        Assert.assertEquals("joe41 age=null job=null", read(t2, "joe41"));
     }
 
     @Test
-    public void childIndependentReadOnlySeesParentWrites() throws IOException {
+    public void childIndependentReadOnlyDoesNotSeeParentWrites() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe96", 20);
         final TransactionId t2 = transactor.beginChildTransaction(t1, false, false);
-        Assert.assertEquals("joe96 age=20 job=null", read(t2, "joe96"));
+        Assert.assertEquals("joe96 age=null job=null", read(t2, "joe96"));
+    }
+
+    @Test
+    public void childIndependentReadUncommittedDoesSeeParentWrites() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe99", 20);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, true, true);
+        Assert.assertEquals("joe99 age=20 job=null", read(t2, "joe99"));
+    }
+
+    @Test
+    public void childIndependentReadOnlyUncommittedDoesSeeParentWrites() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe100", 20);
+        final TransactionId t2 = transactor.beginChildTransaction(t1, false, false, true, true);
+        Assert.assertEquals("joe100 age=20 job=null", read(t2, "joe100"));
     }
 
     @Test
