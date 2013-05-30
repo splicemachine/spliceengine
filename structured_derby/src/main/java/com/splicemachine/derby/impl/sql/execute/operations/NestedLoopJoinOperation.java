@@ -135,6 +135,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				setCurrentRow(mergedRow);
 				return mergedRow;
 			} else {
+                leftResultSet.setCurrentRow(leftRow);
 				rowsSeenLeft++;
 				nestedLoopIterator = new NestedLoopIterator(leftRow,isHash);
 				return getNextRowCore();

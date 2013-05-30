@@ -20,6 +20,7 @@ public interface HTransactor extends HClientTransactor {
     TransactionId beginTransaction(boolean allowWrites) throws IOException;
 
     TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
+    TransactionId beginChildTransaction(TransactionId parent, boolean allowWrites) throws IOException;
     TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException;
     TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
                                         Boolean readUncommitted, Boolean readCommitted) throws IOException;

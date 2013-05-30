@@ -208,7 +208,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             try{
                 transactionResource = new SpliceTransactionResourceImpl();
                 transactor = HTransactorFactory.getTransactor();
-                txnId = transactor.beginTransaction(false,true,false);
+                txnId = transactor.beginTransaction(false,true,true);
                 transactionResource.marshallTransaction(txnId.getTransactionIdString());
 
                 DataDictionary dataDictionary= transactionResource.getLcc().getDataDictionary();

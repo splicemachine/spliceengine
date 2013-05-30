@@ -239,7 +239,7 @@ public class BytesUtil {
     public static byte[] concatenate(byte[][] bytes,int size){
         byte[] concatedBytes;
         if(bytes.length>1)
-            concatedBytes = new byte[size+1];
+            concatedBytes = new byte[size+bytes.length-1];
         else
             concatedBytes = new byte[size];
         int offset = 0;
@@ -303,5 +303,14 @@ public class BytesUtil {
             else
                 return Pair.newPair(a1,r2);
         }
+    }
+
+    public static void main(String... args) throws Exception{
+        byte[][] vals = new byte[3][];
+        vals[0] = new byte[]{0,1};
+        vals[1] = new byte[]{2,3};
+        vals[2] = new byte[]{4,5};
+
+        System.out.println(Arrays.toString(concatenate(vals,6)));
     }
 }

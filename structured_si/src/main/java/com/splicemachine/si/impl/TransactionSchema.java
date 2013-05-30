@@ -11,6 +11,7 @@ public class TransactionSchema {
     final Object siChildrenFamily;
     final Object siNull;
 
+    final Object idQualifier;
     final Object startQualifier;
     final Object parentQualifier;
     final Object dependentQualifier;
@@ -18,22 +19,22 @@ public class TransactionSchema {
     final Object readUncommittedQualifier;
     final Object readCommittedQualifier;
     final Object commitQualifier;
-    final Object localCommitQualifier;
+    final Object globalCommitQualifier;
     final Object statusQualifier;
-    final Object localStatusQualifier;
     final Object keepAliveQualifier;
+    final Object counterQualifier;
 
     public TransactionSchema(String tableName, Object siFamily, Object siChildrenFamily, Object siNull,
-                             Object startQualifier, Object parentQualifier,
-                             Object dependentQualifier,
+                             Object idQualifier, Object startQualifier, Object parentQualifier, Object dependentQualifier,
                              Object allowWritesQualifier, Object readUncommittedQualifier, Object readCommittedQualifier,
                              Object keepAliveQualifier, Object statusQualifier, Object commitQualifier,
-                             Object localStatusQualifier, Object localCommitQualifier) {
+                             Object globalCommitQualifier, Object counterQualifier) {
         this.tableName = tableName;
         this.siFamily = siFamily;
         this.siChildrenFamily = siChildrenFamily;
         this.siNull = siNull;
 
+        this.idQualifier = idQualifier;
         this.startQualifier = startQualifier;
         this.parentQualifier = parentQualifier;
         this.dependentQualifier = dependentQualifier;
@@ -41,10 +42,10 @@ public class TransactionSchema {
         this.readUncommittedQualifier = readUncommittedQualifier;
         this.readCommittedQualifier = readCommittedQualifier;
         this.commitQualifier = commitQualifier;
+        this.globalCommitQualifier = globalCommitQualifier;
         this.statusQualifier = statusQualifier;
         this.keepAliveQualifier = keepAliveQualifier;
-        this.localCommitQualifier = localCommitQualifier;
-        this.localStatusQualifier = localStatusQualifier;
+        this.counterQualifier = counterQualifier;
     }
 
     public TransactionSchema encodedSchema(SDataLib SDataLib) {
@@ -52,14 +53,18 @@ public class TransactionSchema {
                 SDataLib.encode(siFamily),
                 SDataLib.encode(siChildrenFamily),
                 SDataLib.encode(siNull),
+                SDataLib.encode(idQualifier),
                 SDataLib.encode(startQualifier),
                 SDataLib.encode(parentQualifier),
                 SDataLib.encode(dependentQualifier),
                 SDataLib.encode(allowWritesQualifier),
                 SDataLib.encode(readUncommittedQualifier),
                 SDataLib.encode(readCommittedQualifier),
-                SDataLib.encode(keepAliveQualifier), SDataLib.encode(statusQualifier), SDataLib.encode(commitQualifier),
-                SDataLib.encode(localStatusQualifier), SDataLib.encode(localCommitQualifier)
+                SDataLib.encode(keepAliveQualifier),
+                SDataLib.encode(statusQualifier),
+                SDataLib.encode(commitQualifier),
+                SDataLib.encode(globalCommitQualifier),
+                SDataLib.encode(counterQualifier)
         );
     }
 }
