@@ -615,49 +615,6 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 			if (shareExisting) // Sharing leaves...
 				return;
 
-			
-		/* Add our Stuff and Close the Scan?
-	     * 
-		 * 	  
-	     *
-         * Now we have to build the index.
-         *
-         * We do this in mass parallel by calling SpliceIndexProtocol.buildIndex()
-         */
-        SpliceLogUtils.debug(LOG,"Building the initial index");
-        final long tableConglomId = td.getHeapConglomerateId();
-        final boolean isUnique = unique;
-        final String transactionId = getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute());
-        HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
-        JobFuture future = null;
-        try{
-            future = SpliceDriver.driver().getJobScheduler().submit(new CreateIndexJob(table,transactionId,indexConglomId,tableConglomId,baseColumnPositions,isUnique));
-            future.completeAll();
-        } catch (ExecutionException e) {
-            throw Exceptions.parseException(e.getCause());
-        } catch (InterruptedException e) {
-            throw Exceptions.parseException(e);
-        }finally{
-            if(future!=null){
-                try {
-                    future.cleanup();
-                } catch (ExecutionException e) {
-                    throw Exceptions.parseException(e.getCause());
-                }
-            }
-            try {
-                table.close();
-            } catch (IOException e) {
-                SpliceLogUtils.warn(LOG,"Unable to close HTable",e);
-            }
-        }
-
-			  
-			 
-			 */
-			
-			
-			
 			/* For non-unique indexes, we order by all columns + the RID.
 			 * For unique indexes, we just order by the columns.
 			 * We create a unique index observer for unique indexes
@@ -667,42 +624,24 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 			 * sort.
 			 */
 			int             numColumnOrderings;
-			SortObserver    sortObserver   = null;
             Properties      sortProperties = null;
 			if (unique || uniqueWithDuplicateNulls) {
 				// if the index is a constraint, use constraintname in 
                 // possible error message
 				String indexOrConstraintName = indexName;
-				if  (conglomerateUUID != null)
-				{
-					ConglomerateDescriptor cd = 
-                        dd.getConglomerateDescriptor(conglomerateUUID);
-					if ((isConstraint) && 
-                        (cd != null && cd.getUUID() != null && td != null))
-					{
-						ConstraintDescriptor conDesc = 
-                            dd.getConstraintDescriptor(td, cd.getUUID());
+				if  (conglomerateUUID != null) {
+					ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateUUID);
+					if ((isConstraint) &&  (cd != null && cd.getUUID() != null && td != null)) {
+						ConstraintDescriptor conDesc = dd.getConstraintDescriptor(td, cd.getUUID());
 						indexOrConstraintName = conDesc.getConstraintName();
 					}
 				}
 
-				if (unique) 
-				{
+				if (unique) {
                     numColumnOrderings = baseColumnPositions.length;
-
-					sortObserver = 
-                        new UniqueIndexSortObserver(
-                                true, 
-                                isConstraint, 
-                                indexOrConstraintName,
-                                indexTemplateRow,
-                                true,
-                                td.getName());
 				}
-				else 
-                {
+				else {
                     // unique with duplicate nulls allowed.
-
 					numColumnOrderings = baseColumnPositions.length + 1;
 
                     // tell transaction controller to use the unique with 
@@ -712,63 +651,47 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
                         AccessFactoryGlobals.IMPL_TYPE, 
                         AccessFactoryGlobals.SORT_UNIQUEWITHDUPLICATENULLS_EXTERNAL);
 					//use sort operator which treats nulls unequal
-					sortObserver = 
-                        new UniqueWithDuplicateNullsIndexSortObserver(
-                                true, 
-                                isConstraint, 
-                                indexOrConstraintName,
-                                indexTemplateRow,
-                                true,
-                                td.getName());
 				}
 			}
-			else
-			{
+			else {
 				numColumnOrderings = baseColumnPositions.length + 1;
-				sortObserver = new BasicSortObserver(true, false, 
-													 indexTemplateRow,
-													 true);
 			}
 
 			ColumnOrdering[]	order = new ColumnOrdering[numColumnOrderings];
-			for (int i=0; i < numColumnOrderings; i++) 
-			{
-				order[i] = 
-                    new IndexColumnOrder(
-                        i, 
-                        unique || i < numColumnOrderings - 1 ? 
-                            isAscending[i] : true);
+			for (int i=0; i < numColumnOrderings; i++) {
+				order[i] = new IndexColumnOrder(i, unique || i < numColumnOrderings - 1 ? isAscending[i] : true);
 			}
 
-			// create the sorter
-			sortId = tc.createSort((Properties)sortProperties, 
-					indexTemplateRow.getRowArrayClone(),
-					order,
-					sortObserver,
-					false,			// not in order
-					scan.getEstimatedRowCount(),
-					approximateRowSize	// est row size, -1 means no idea	
-					);
-
-			needToDropSort = true;
-
-			// Populate sorter and get the output of the sorter into a row
-			// source.  The sorter has the indexed columns only and the columns
-			// are in the correct order. 
-			rowSource = loadSorter(baseRows, indexRows, tc,
-								   scan, sortId, rl);
-
-			conglomId = 
-                tc.createAndLoadConglomerate(
-					indexType,
-					indexTemplateRow.getRowArray(),	// index row template
-					order, //colums sort order
-                    indexRowGenerator.getColumnCollationIds(
-                        td.getColumnDescriptorList()),
-					indexProperties,
-					TransactionController.IS_DEFAULT, // not temporary
-					rowSource,
-					(long[]) null);
+			conglomId = tc.createConglomerate(indexType, indexTemplateRow.getRowArray(), order, indexRowGenerator.getColumnCollationIds(
+                        td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT);
+			
+			
+	        SpliceLogUtils.debug(LOG,"Building the initial index");
+	        final long tableConglomId = td.getHeapConglomerateId();
+	        final String transactionId = getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute());
+	        HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
+	        JobFuture future = null;
+	        try{
+	            future = SpliceDriver.driver().getJobScheduler().submit(new CreateIndexJob(table,transactionId,conglomId,tableConglomId,baseColumnPositions,unique));
+	            future.completeAll();
+	        } catch (ExecutionException e) {
+	            throw Exceptions.parseException(e.getCause());
+	        } catch (InterruptedException e) {
+	            throw Exceptions.parseException(e);
+	        }finally{
+	            if(future!=null){
+	                try {
+	                    future.cleanup();
+	                } catch (ExecutionException e) {
+	                    throw Exceptions.parseException(e.getCause());
+	                }
+	            }
+	            try {
+	                table.close();
+	            } catch (IOException e) {
+	                SpliceLogUtils.warn(LOG,"Unable to close HTable",e);
+	            }
+	        }
 			
 		}
 		finally
@@ -778,16 +701,6 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 			if (scan != null)
 				scan.close();
 
-			/* close the sorter row source before throwing exception */
-			if (rowSource != null)
-				rowSource.closeRowSource();
-
-			/*
-			** drop the sort so that intermediate external sort run can be
-			** removed from disk
-			*/
-			if (needToDropSort)
-			 	tc.dropSort(sortId);
 		}
 
 		ConglomerateController indexController =
@@ -796,8 +709,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
                 TransactionController.ISOLATION_SERIALIZABLE);
 
 		// Check to make sure that the conglomerate can be used as an index
-		if ( ! indexController.isKeyed())
-		{
+		if ( ! indexController.isKeyed()) {
 			indexController.close();
 			throw StandardException.newException(SQLState.LANG_NON_KEYED_INDEX, indexName,
 														   indexType);
@@ -808,8 +720,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 		// Create a conglomerate descriptor with the conglomId filled
 		// in and add it--if we don't have one already.
 		//
-		if (!alreadyHaveConglomDescriptor)
-		{
+		if (!alreadyHaveConglomDescriptor) {
 			ConglomerateDescriptor cgd =
 				ddg.newConglomerateDescriptor(
 					conglomId, indexName, true,
