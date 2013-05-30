@@ -187,7 +187,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
         Transaction transaction = transactionStore.getTransaction(transactionId);
         // currently the application above us tries to rollback already committed transactions.
         // This is poor form, but if it happens just silently ignore it.
-        if (transaction.isActive()) {
+        if (transaction.getStatus().equals(ACTIVE)) {
             if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ROLLED_BACK)) {
                 throw new IOException("rollback failed");
             }

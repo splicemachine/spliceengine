@@ -24,8 +24,8 @@ public class ImmutableTransaction {
     private final boolean allowWrites;
 
     private final long beginTimestamp;
-    final Boolean readUncommitted;
-    final Boolean readCommitted;
+    private final Boolean readUncommitted;
+    private final Boolean readCommitted;
 
     public ImmutableTransaction(TransactionBehavior behavior, TransactionStore transactionStore,
                                 SITransactionId transactionId, boolean allowWrites, Boolean readCommitted,
@@ -56,13 +56,6 @@ public class ImmutableTransaction {
 
     public SITransactionId getTransactionId() {
         return transactionId;
-    }
-
-    /**
-     * Returns true if this is _not_ a root transaction.
-     */
-    boolean isNested() {
-        return immutableParent != null;
     }
 
     public boolean isReadOnly() {

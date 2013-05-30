@@ -33,34 +33,19 @@ public class SIBrowser extends SIConstants{
         Result toFind = null;
         while (results.hasNext()) {
             Result r = results.next();
-            final byte[] value = r.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_START_TIMESTAMP_COLUMN_BYTES);
-            final long beginTimestamp = Bytes.toLong(value);
-            final byte[] statusValue = r.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_STATUS_COLUMN_BYTES);
-            TransactionStatus status = null;
-            if (statusValue != null) {
-                status = TransactionStatus.values()[Bytes.toInt(statusValue)];
-            }
-            final byte[] endValue = r.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
-            Long commitTimestamp = null;
-            if (endValue != null) {
-                commitTimestamp = Bytes.toLong(endValue);
-            }
-            final byte[] parentValue = r.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_PARENT_COLUMN_BYTES);
-            Long parent = null;
-            if (parentValue != null) {
-                parent = Bytes.toLong(parentValue);
-            }
-            final byte[] writesValue = r.getValue(TRANSACTION_FAMILY_BYTES, TRANSACTION_ALLOW_WRITES_COLUMN_BYTES);
-            Boolean writes = null;
-            if (writesValue != null) {
-                writes = Bytes.toBoolean(writesValue);
-            }
-            final KeyValue keepAlive = r.getColumnLatest(TRANSACTION_FAMILY_BYTES, TRANSACTION_KEEP_ALIVE_COLUMN_BYTES);
-            String keepAliveValue = null;
-            if (keepAlive != null) {
-                keepAliveValue = new Timestamp(keepAlive.getTimestamp()).toString();
-            }
-            x.put(beginTimestamp, new Object[]{parent, writes, status, commitTimestamp, keepAliveValue});
+            final long id = getLong(r, TRANSACTION_ID_COLUMN_BYTES);
+            Long globalCommit = getLong(r, TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN_BYTES);
+            final long beginTimestamp = getLong(r, TRANSACTION_START_TIMESTAMP_COLUMN_BYTES);
+            TransactionStatus status = getStatus(r, TRANSACTION_STATUS_COLUMN_BYTES);
+            Long commitTimestamp = getLong(r, TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
+            Long parent = getLong(r, TRANSACTION_PARENT_COLUMN_BYTES);
+            Boolean writes = getBoolean(r, TRANSACTION_ALLOW_WRITES_COLUMN_BYTES);
+            Boolean dependent = getBoolean(r, TRANSACTION_DEPENDENT_COLUMN_BYTES);
+            Boolean readUncommitted = getBoolean(r, TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES);
+            Boolean readCommitted = getBoolean(r, TRANSACTION_READ_COMMITTED_COLUMN_BYTES);
+            String keepAliveValue = getTimestampString(r, TRANSACTION_KEEP_ALIVE_COLUMN_BYTES);
+
+            x.put(id, new Object[]{beginTimestamp, parent, writes, status, commitTimestamp, globalCommit, keepAliveValue, dependent, readUncommitted, readCommitted});
             if (idToFind != null && beginTimestamp == idToFind) {
                 toFind = r;
             }
@@ -77,10 +62,10 @@ public class SIBrowser extends SIConstants{
         } else {
             final ArrayList<Long> list = new ArrayList<Long>(x.keySet());
             Collections.sort(list);
-            System.out.println("transaction parent writesAllowed status commitTimestamp keepAliveTimestamp");
+            System.out.println("transaction beginTimestamp parent writesAllowed status commitTimestamp globalCommitTimestamp keepAliveTimestamp dependent readUncommitted readCommitted");
             for (Long k : list) {
                 Object[] v = (Object[]) x.get(k);
-                System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3] + " " + v[4]);
+                System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3] + " " + v[4] + " " + v[5] + " " + v[6] + " " + v[7] + " " + v[8] + " " + v[9]);
             }
 
             //dumpTable("conglomerates", "16");
@@ -89,6 +74,42 @@ public class SIBrowser extends SIConstants{
             //dumpTable("p", "SPLICE_CONGLOMERATE");
             //dumpTable("p2", "1184");
         }
+    }
+
+    private static TransactionStatus getStatus(Result r, byte[] qualifier) {
+        final byte[] statusValue = r.getValue(TRANSACTION_FAMILY_BYTES, qualifier);
+        TransactionStatus status = null;
+        if (statusValue != null) {
+            status = TransactionStatus.values()[Bytes.toInt(statusValue)];
+        }
+        return status;
+    }
+
+    private static Long getLong(Result r, byte[] qualifier) {
+        final byte[] parentValue = r.getValue(TRANSACTION_FAMILY_BYTES, qualifier);
+        Long parent = null;
+        if (parentValue != null) {
+            parent = Bytes.toLong(parentValue);
+        }
+        return parent;
+    }
+
+    private static String getTimestampString(Result r, byte[] qualifier) {
+        final KeyValue keepAlive = r.getColumnLatest(TRANSACTION_FAMILY_BYTES, qualifier);
+        String keepAliveValue = null;
+        if (keepAlive != null) {
+            keepAliveValue = new Timestamp(keepAlive.getTimestamp()).toString();
+        }
+        return keepAliveValue;
+    }
+
+    private static Boolean getBoolean(Result r, byte[] qualifier) {
+        final byte[] writesValue = r.getValue(TRANSACTION_FAMILY_BYTES, qualifier);
+        Boolean writes = null;
+        if (writesValue != null) {
+            writes = Bytes.toBoolean(writesValue);
+        }
+        return writes;
     }
 
     private static void dumpTable(String tableName, String tableId) throws IOException {

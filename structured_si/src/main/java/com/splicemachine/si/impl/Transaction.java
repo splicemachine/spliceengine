@@ -60,35 +60,8 @@ public class Transaction extends ImmutableTransaction {
                 TransactionStatus.ERROR, null, null, null);
     }
 
-    /**
-     * Retrieve a set of all of the direct child transactions under this transaction.
-     */
-    public Set<Long> getChildren() {
-        return Collections.unmodifiableSet(children);
-    }
-
     // immediate functions - These functions are based solely on the transaction's immediate state (i.e. not on the
     // state of their parent)
-
-    /**
-     * Returns true if this transaction is still running as determined by the fact that it has not entered a
-     * terminal state.
-     */
-    public boolean isActive() {
-        return !isFinished();
-    }
-
-    private boolean isFinished() {
-        if (isNested()) {
-            return status != null && inTerminalStatus();
-        } else {
-            return inTerminalStatus();
-        }
-    }
-
-    private boolean inTerminalStatus() {
-        return statusIsOneOf(ERROR, ROLLED_BACK, COMMITTED);
-    }
 
     /**
      * @return indicator of whether the transaction is currently in the COMMITTING status. This means it is in the

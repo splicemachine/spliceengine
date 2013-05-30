@@ -6,6 +6,7 @@ import com.splicemachine.si.TransactorSetup;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.Transaction;
+import com.splicemachine.si.impl.TransactionStatus;
 import org.junit.Assert;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.AfterClass;
@@ -83,7 +84,7 @@ public class JtaXAResourceTest {
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
         Assert.assertNotNull(transaction);
         Assert.assertTrue(transaction.getBeginTimestampDirect() >= 0);
-        Assert.assertTrue(!transaction.isActive() && !transaction.isCommitted());
+        Assert.assertTrue(transaction.getStatus().equals(TransactionStatus.ROLLED_BACK));
         Assert.assertNull(transaction.getCommitTimestamp());
     }
 
@@ -140,7 +141,7 @@ public class JtaXAResourceTest {
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
         Assert.assertNotNull(transaction);
         Assert.assertTrue(transaction.getBeginTimestampDirect() >= 0);
-        Assert.assertTrue(!transaction.isActive() && !transaction.isCommitted());
+        Assert.assertTrue(transaction.getStatus().equals(TransactionStatus.ROLLED_BACK));
         Assert.assertNull(transaction.getCommitTimestamp());
     }
 

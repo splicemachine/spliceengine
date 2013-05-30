@@ -202,6 +202,9 @@ public class TransactionStore {
 
                 TransactionStatus status = getTransactionStatusField(resultTuple, encodedSchema.statusQualifier);
                 Long parentId = getLongField(resultTuple, encodedSchema.parentQualifier);
+                if (parentId == null) {
+                    parentId = Transaction.getRootTransaction().getTransactionId().getId();
+                }
                 Transaction parent = null;
                 if (parentId != null) {
                     parent = getTransaction(parentId);
@@ -282,7 +285,7 @@ public class TransactionStore {
         addFieldToPut(put, encodedSchema.startQualifier, beginTimestamp);
         addFieldToPut(put, encodedSchema.counterQualifier, counter);
         addFieldToPut(put, encodedSchema.keepAliveQualifier, encodedSchema.siNull);
-        if (params.parent != null) {
+        if (params.parent != null && !((SITransactionId) params.parent).isRootTransaction()) {
             addFieldToPut(put, encodedSchema.parentQualifier, params.parent.getId());
         }
         addFieldToPut(put, encodedSchema.allowWritesQualifier, params.allowWrites);
