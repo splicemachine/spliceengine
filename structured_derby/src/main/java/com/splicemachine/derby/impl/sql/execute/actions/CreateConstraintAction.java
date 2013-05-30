@@ -11,12 +11,14 @@ import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.impl.sql.execute.ConstraintInfo;
 import org.apache.derby.impl.sql.execute.CreateConstraintConstantAction;
+import org.apache.log4j.Logger;
 
 /**
  * @author Scott Fines
  *         Created on: 4/29/13
  */
-public class CreateConstraintAction extends CreateConstraintConstantAction{
+public class CreateConstraintAction extends CreateConstraintConstantAction {
+	private static final Logger LOG = Logger.getLogger(CreateConstraintAction.class);
     /**
      * Make one of these puppies.
      *
@@ -42,9 +44,9 @@ public class CreateConstraintAction extends CreateConstraintConstantAction{
 
     @Override
     protected UUID manageIndexAction(TableDescriptor td, UUIDFactory uuidFactory, Activation activation) throws StandardException {
-        if(indexAction instanceof CreateIndexOperation){
+        if(indexAction instanceof CreateIndexConstantOperationScott){
             String backingIndexName;
-            CreateIndexOperation cio = (CreateIndexOperation)indexAction;
+            CreateIndexConstantOperationScott cio = (CreateIndexConstantOperationScott)indexAction;
             if(cio.getIndexName()==null){
                 backingIndexName = uuidFactory.createUUID().toString();
                 cio.setIndexName(backingIndexName);
