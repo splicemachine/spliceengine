@@ -6,16 +6,15 @@ import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import com.splicemachine.homeless.TestUtils;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -24,11 +23,27 @@ import java.util.Set;
  *         Created on: 5/17/13
  */
 public class SubqueryTest {
+    private static List<String> t3RowVals = Arrays.asList("('E1','P1',40)",
+            "('E1','P2',20)",
+            "('E1','P3',80)",
+            "('E1','P4',20)",
+            "('E1','P5',12)",
+            "('E1','P6',12)",
+            "('E2','P1',40)",
+            "('E2','P2',80)",
+            "('E3','P2',20)",
+            "('E4','P2',20)",
+            "('E4','P4',40)",
+            "('E4','P5',80)",
+            "('E8','P8',NULL)");
+
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
     protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SubqueryTest.class.getSimpleName());
     protected static SpliceTableWatcher t1Watcher = new SpliceTableWatcher("t1",schemaWatcher.schemaName,"(k int, l int)");
     protected static SpliceTableWatcher t2Watcher = new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(k int, l int)");
+    protected static SpliceTableWatcher t3Watcher = new SpliceTableWatcher("WORKS",schemaWatcher.schemaName,
+            "(EMPNUM VARCHAR(3) NOT NULL, PNUM VARCHAR(3) NOT NULL,HOURS DECIMAL(5))");
 
     private static final int size = 10;
 
@@ -37,6 +52,7 @@ public class SubqueryTest {
             .around(schemaWatcher)
             .around(t1Watcher)
             .around(t2Watcher)
+            .around(t3Watcher)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -61,6 +77,12 @@ public class SubqueryTest {
                             }
 
                         }
+
+                        //  load t3
+                        for (String rowVal : t3RowVals) {
+                            spliceClassWatcher.getStatement().executeUpdate("insert into "+t3Watcher.toString()+" values " + rowVal);
+                        }
+
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }finally{
@@ -149,9 +171,20 @@ public class SubqueryTest {
         while(rs.next()){
             Integer nextK = rs.getInt(1);
             System.out.printf("nextK=%d%n",nextK);
+
             Assert.assertTrue("duplicate result "+ nextK +" returned!",!priorResults.contains(nextK));
             priorResults.add(nextK);
         }
         Assert.assertTrue("No Rows returned!",priorResults.size()>0);
+    }
+
+    @Test
+    @Ignore("Bugzilla #510 Incorrect results for queries involving not null filters")
+    public void testNullSubqueryCompare() throws Exception {
+        TestUtils.tableLookupByNumber(spliceClassWatcher);
+        ResultSet rs = methodWatcher.executeQuery(
+                String.format("SELECT EMPNUM, PNUM FROM %1$s WHERE HOURS > (SELECT W2.HOURS FROM %1$s W2 WHERE W2.EMPNUM = 'E8')",
+                        t3Watcher.toString()));
+        Assert.assertEquals(0, TestUtils.resultSetToMaps(rs).size());
     }
 }
