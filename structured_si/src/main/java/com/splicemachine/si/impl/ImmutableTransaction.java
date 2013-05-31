@@ -119,7 +119,7 @@ public class ImmutableTransaction {
         return new Object[]{visible, effectiveStatus2};
     }
 
-    public boolean isConflict(ImmutableTransaction t2) throws IOException {
+    public ConflictType isConflict(ImmutableTransaction t2) throws IOException {
         final ImmutableTransaction t1 = this;
         final ImmutableTransaction[] intersections = intersect(true, t1.getChain(), t2.getChain());
         final ImmutableTransaction shared = intersections[0];
@@ -127,16 +127,22 @@ public class ImmutableTransaction {
         final ImmutableTransaction et2 = intersections[2];
         final Transaction met2 = transactionStore.getTransaction(et2.getTransactionId().getId());
         if (met2.getStatus().equals(COMMITTED)) {
+            if (et1.isDescendant(et2)) {
+                return ConflictType.CHILD;
+            }
             return (met2.getCommitTimestamp(shared) > et1.getBeginTimestampDirect()) &&
-                    !et1.isDescendant(et2);
+                    !et1.isDescendant(et2) ? ConflictType.SIBLING : ConflictType.NONE;
         } else if (met2.getStatus().equals(ACTIVE)) {
-            if (et1.sameTransaction(et2) || et1.immutableParent.sameTransaction(et2)) {
-                return false;
+            if (et1.sameTransaction(et2)
+                    || et1.immutableParent.sameTransaction(et2)) {
+                return ConflictType.NONE;
+            } else if (et1.isDescendant(et2)) {
+                return ConflictType.CHILD;
             } else {
-                return true;
+                return ConflictType.SIBLING;
             }
         } else {
-            return false;
+            return ConflictType.NONE;
         }
     }
 

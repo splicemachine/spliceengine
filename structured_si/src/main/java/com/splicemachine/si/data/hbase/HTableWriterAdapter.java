@@ -3,6 +3,7 @@ package com.splicemachine.si.data.hbase;
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableWriter;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
@@ -46,6 +47,11 @@ public class HTableWriterAdapter implements STableWriter {
     @Override
     public void write(STable table, List puts) throws IOException {
         writer.write(((HbTable) table).table, puts);
+    }
+
+    @Override
+    public void delete(STable table, Object delete, SRowLock rowLock) throws IOException {
+        writer.delete(((HbRegion) table).region, (Delete) delete, ((HRowLock) rowLock).regionRowLock);
     }
 
     @Override

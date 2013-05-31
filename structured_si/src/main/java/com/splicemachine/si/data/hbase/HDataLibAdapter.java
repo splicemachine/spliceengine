@@ -6,6 +6,7 @@ import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.SScan;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
@@ -118,7 +119,7 @@ public class HDataLibAdapter implements SDataLib {
     @Override
     public void addAttribute(Object operation, String attributeName, Object value) {
         OperationWithAttributes hOperation;
-        if (operation instanceof Put) {
+        if (operation instanceof OperationWithAttributes) {
             hOperation = (OperationWithAttributes) operation;
         } else {
             hOperation = ((IOperation) operation).getOperation();
@@ -204,5 +205,15 @@ public class HDataLibAdapter implements SDataLib {
 
     public static byte[] convertToBytes(Object value) {
         return HDataLib.convertToBytes(value);
+    }
+
+    @Override
+    public Object newDelete(Object rowKey) {
+        return dataLib.newDelete((byte[]) rowKey);
+    }
+
+    @Override
+    public void addKeyValueToDelete(Object delete, Object family, Object qualifier, long timestamp) {
+        dataLib.addKeyValueToDelete((Delete) delete, (byte[]) family, (byte[]) qualifier, timestamp);
     }
 }

@@ -1,6 +1,7 @@
 package com.splicemachine.si.data.hbase;
 
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
@@ -54,4 +55,7 @@ public interface IHDataLib {
     void addFamilyToReadIfNeeded(Scan scan, byte[] family);
     void addFamilyToRead(Get get, byte[] family);
     void addFamilyToRead(Scan scan, byte[] family);
+
+    Delete newDelete(byte[] rowKey);
+    void addKeyValueToDelete(Delete delete, byte[] family, byte[] qualifier, long timestamp);
 }

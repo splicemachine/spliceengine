@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.hbase;
 
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
@@ -75,6 +76,11 @@ public class HStore implements IHTableReader, IHTableWriter {
     @Override
     public void write(HTableInterface table, List puts) throws IOException {
         table.put(puts);
+    }
+
+    @Override
+    public void delete(HRegion region, Delete delete, Integer lock) throws IOException {
+        region.delete(delete, lock, true);
     }
 
     @Override

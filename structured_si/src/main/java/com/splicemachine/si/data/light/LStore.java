@@ -8,8 +8,6 @@ import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.SICompactionState;
-import com.splicemachine.si.impl.TransactionStatus;
-import org.apache.hadoop.hbase.KeyValue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -288,6 +286,39 @@ public class LStore implements STableReader, STableWriter {
         return newTuples;
     }
 
+    @Override
+    public void delete(STable table, Object delete, SRowLock lock) throws IOException {
+        final LTuple lDelete = (LTuple) delete;
+        final String relationIdentifier = ((LTable) table).relationIdentifier;
+        final List<LTuple> tuples = relations.get(relationIdentifier);
+        final List<LTuple> newTuples = new ArrayList<LTuple>();
+        for (LTuple tuple : tuples) {
+            LTuple newTuple = tuple;
+            if (tuple.key.equals(lDelete.key)) {
+                final List<LKeyValue> values = tuple.values;
+                final List<LKeyValue> newValues = new ArrayList<LKeyValue>();
+                if (!lDelete.values.isEmpty()) {
+                    for (LKeyValue value : values) {
+                        boolean keep = true;
+                        for (LKeyValue deleteValue : (lDelete).values) {
+                            if (value.family.equals(deleteValue.family)
+                                    && value.qualifier.equals(deleteValue.qualifier)
+                                    && value.timestamp.equals(deleteValue.timestamp)) {
+                                keep = false;
+                            }
+                        }
+                        if (keep) {
+                            newValues.add(value);
+                        }
+                    }
+                }
+                newTuple = new LTuple(tuple.key, newValues);
+            }
+            newTuples.add(newTuple);
+        }
+        relations.put(relationIdentifier, newTuples);
+    }
+
     /**
      * Only carry over KeyValues that are not being replaced by incoming KeyValues.
      */
@@ -310,7 +341,7 @@ public class LStore implements STableReader, STableWriter {
     public void compact(SICompactionState compactionState, String tableName) throws IOException {
         final List<LTuple> rows = relations.get(tableName);
         final List<LTuple> newRows = new ArrayList<LTuple>(rows.size());
-        for( LTuple row : rows ) {
+        for (LTuple row : rows) {
             final ArrayList mutatedValues = new ArrayList();
             compactionState.mutate(row.values, mutatedValues);
             LTuple newRow = new LTuple(row.key, mutatedValues, row.attributes);

@@ -2,6 +2,7 @@ package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
@@ -290,5 +291,15 @@ public class HDataLib implements IHDataLib {
             return (byte[]) value;
         }
         throw new RuntimeException("Unsupported class " + value.getClass().getName() + " for " + value);
+    }
+
+    @Override
+    public Delete newDelete(byte[] rowKey) {
+        return new Delete(rowKey);
+    }
+
+    @Override
+    public void addKeyValueToDelete(Delete delete, byte[] family, byte[] qualifier, long timestamp) {
+        delete.deleteColumn(family, qualifier, timestamp);
     }
 }

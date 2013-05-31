@@ -1280,6 +1280,27 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+    public void parentWritesDoNotConflictWithPriorChildWrites() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        TransactionId t2 = transactor.beginChildTransaction(t1, true);
+        insertAge(t2, "joe101", 20);
+        transactor.commit(t2);
+        insertAge(t1, "joe101", 21);
+        Assert.assertEquals("joe101 age=21 job=null", read(t1, "joe101"));
+    }
+
+    @Test
+    public void parentWritesDoNotConflictWithPriorActiveChildWrites() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        TransactionId t2 = transactor.beginChildTransaction(t1, true);
+        insertAge(t2, "joe102", 20);
+        insertAge(t1, "joe102", 21);
+        Assert.assertEquals("joe102 age=21 job=null", read(t1, "joe102"));
+        transactor.commit(t2);
+        Assert.assertEquals("joe102 age=21 job=null", read(t1, "joe102"));
+    }
+
+    @Test
     public void childrenOfChildrenCommitCommitRollbackParentWriteFirst() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         TransactionId t2 = transactor.beginChildTransaction(t1, true, true);

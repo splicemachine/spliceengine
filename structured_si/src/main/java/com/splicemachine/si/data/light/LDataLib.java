@@ -55,7 +55,11 @@ public class LDataLib implements SDataLib {
 
     @Override
     public void addKeyValueToPut(Object put, Object family, Object qualifier, Long timestamp, Object value) {
-        LTuple lTuple = (LTuple) put;
+        addKeyValueToTuple(put, family, qualifier, timestamp, value);
+    }
+
+    private void addKeyValueToTuple(Object tuple, Object family, Object qualifier, Long timestamp, Object value) {
+        LTuple lTuple = (LTuple) tuple;
         final LKeyValue newCell = new LKeyValue(lTuple.key, (String) family, (String) qualifier, timestamp, value);
         lTuple.values.add(newCell);
     }
@@ -246,4 +250,13 @@ public class LDataLib implements SDataLib {
         return ((LKeyValue) keyValue).timestamp;
     }
 
+    @Override
+    public Object newDelete(Object rowKey) {
+        return newPut(rowKey, null);
+    }
+
+    @Override
+    public void addKeyValueToDelete(Object delete, Object family, Object qualifier, long timestamp) {
+        addKeyValueToTuple(delete, family, qualifier, timestamp, null);
+    }
 }

@@ -345,10 +345,13 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
         Set<Long> dataTransactionsToRollForward;
         // This is the critical section that runs while the row is locked.
         try {
-            dataTransactionsToRollForward = ensureNoWriteConflict(transaction, table, rowKey);
+            final Object[] conflictResults = ensureNoWriteConflict(transaction, table, rowKey);
+            dataTransactionsToRollForward = (Set<Long>) conflictResults[0];
+            Set<Long> conflictingChildren = (Set<Long>) conflictResults[1];
             final Object newPut = createUltimatePut(transaction, lock, put, table);
             dataStore.suppressIndexing(newPut);
             dataWriter.write(table, newPut, lock);
+            resolveChildConflicts(table, newPut, lock, conflictingChildren);
         } finally {
             dataWriter.unLockRow(table, lock);
         }
@@ -358,32 +361,51 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
         }
     }
 
+    private void resolveChildConflicts(STable table, Object put, SRowLock lock, Set<Long> conflictingChildren) throws IOException {
+        if (!conflictingChildren.isEmpty()) {
+            Object delete = dataLib.newDelete(dataLib.getPutKey(put));
+            for (Long childId : conflictingChildren) {
+                for (Object keyValue : dataLib.listPut(put)) {
+                    dataLib.addKeyValueToDelete(delete, dataLib.getKeyValueFamily(keyValue),
+                            dataLib.getKeyValueQualifier(keyValue),
+                            childId);
+                }
+            }
+            dataStore.suppressIndexing(delete);
+            dataWriter.delete(table, delete, lock);
+        }
+    }
+
     /**
      * While we hold the lock on the row, check to make sure that no transactions have updated the row since the
      * updating transaction started.
      */
-    private Set<Long> ensureNoWriteConflict(ImmutableTransaction updateTransaction, STable table, Object rowKey)
+    private Object[] ensureNoWriteConflict(ImmutableTransaction updateTransaction, STable table, Object rowKey)
             throws IOException {
         final List dataCommitKeyValues = dataStore.getCommitTimestamp(table, rowKey);
         if (dataCommitKeyValues != null) {
             return checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValues);
         }
-        return Collections.EMPTY_SET;
+        return new Object[]{Collections.EMPTY_SET, Collections.EMPTY_SET};
     }
 
     /**
      * Look at all of the values in the "commitTimestamp" column to see if there are write collisions.
      */
-    private Set<Long> checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, List dataCommitKeyValues)
+    private Object[] checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, List dataCommitKeyValues)
             throws IOException {
         Set<Long> toRollForward = new HashSet<Long>();
+        Set<Long> childConflicts = new HashSet<Long>();
         for (Object dataCommitKeyValue : dataCommitKeyValues) {
             final long dataTransactionId = dataLib.getKeyValueTimestamp(dataCommitKeyValue);
             final Object commitTimestampValue = dataLib.getKeyValueValue(dataCommitKeyValue);
             if (dataStore.isSiNull(commitTimestampValue)) {
                 Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
                 dataTransaction = checkTransactionTimeout(dataTransaction);
-                checkTransactionConflict(updateTransaction, dataTransaction);
+                final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction);
+                if (conflictType.equals(ConflictType.CHILD)) {
+                    childConflicts.add(dataTransactionId);
+                }
                 toRollForward.add(dataTransactionId);
             } else if (dataStore.isSiFail(commitTimestampValue)) {
             } else {
@@ -393,7 +415,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
                 }
             }
         }
-        return toRollForward;
+        return new Object[]{toRollForward, childConflicts};
     }
 
     /**
@@ -412,14 +434,21 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     /**
      * Determine if the dataTransaction conflicts with the updateTransaction.
      */
-    private void checkTransactionConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction)
+    private ConflictType checkTransactionConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction)
             throws IOException {
         if (!updateTransaction.sameTransaction(dataTransaction)) {
             Transaction t1 = transactionStore.getTransaction(updateTransaction.getTransactionId().getId());
-            if (t1.isConflict(dataTransaction)) {
-                failOnWriteConflict(updateTransaction);
+            final ConflictType conflict = t1.isConflict(dataTransaction);
+            switch (conflict) {
+                case NONE:
+                    break;
+                case SIBLING:
+                    failOnWriteConflict(updateTransaction);
+                    break;
             }
+            return conflict;
         }
+        return ConflictType.NONE;
     }
 
     /**

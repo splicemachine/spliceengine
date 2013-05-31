@@ -31,6 +31,8 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.List;
 
+import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
+
 /**
  * An HBase coprocessor that applies SI logic to HBase read/write operations.
  */
@@ -147,10 +149,11 @@ public class SIObserver extends BaseRegionObserver {
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e, Delete delete, WALEdit edit,
                           boolean writeToWAL) throws IOException {
         if (tableEnvMatch) {
-            throw new RuntimeException("Direct deletes are not supported under snapshot isolation. Instead a Put is expected that will set a record level tombstone.");
-        } else {
-            super.preDelete(e, delete, edit, writeToWAL);
+            if (delete.getAttribute(SUPPRESS_INDEXING_ATTRIBUTE_NAME) == null) {
+                throw new RuntimeException("Direct deletes are not supported under snapshot isolation. Instead a Put is expected that will set a record level tombstone.");
+            }
         }
+        super.preDelete(e, delete, edit, writeToWAL);
     }
 
     @Override

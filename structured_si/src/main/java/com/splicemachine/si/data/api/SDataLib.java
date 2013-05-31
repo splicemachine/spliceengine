@@ -40,4 +40,7 @@ public interface SDataLib {
     void setReadMaxVersions(SRead get, int max);
     void addFamilyToRead(SRead read, Object siFamily);
     void addFamilyToReadIfNeeded(SRead get, Object family);
+
+    Object newDelete(Object rowKey);
+    void addKeyValueToDelete(Object delete, Object family, Object qualifier, long timestamp);
 }
