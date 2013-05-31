@@ -1,0 +1,10 @@
+create table <SCHEMA>.s (i int, s smallint, c char(30), vc char(30), b bigint);
+create table <SCHEMA>.t (i int, s smallint, c char(30), vc char(30), b bigint);
+insert into <SCHEMA>.s values (null, null, null, null, null);
+insert into <SCHEMA>.s values (0, 0, '0', '0', 0);
+insert into <SCHEMA>.s values (1, 1, '1', '1', 1);
+insert into <SCHEMA>.t values (null, null, null, null, null);
+insert into <SCHEMA>.t values (0, 0, '0', '0', 0);
+insert into <SCHEMA>.t values (1, 1, '1', '1', 1);
+insert into <SCHEMA>.t values (1, 1, '1', '1', 1);
+insert into <SCHEMA>.t values (2, 2, '2', '2', 1);
