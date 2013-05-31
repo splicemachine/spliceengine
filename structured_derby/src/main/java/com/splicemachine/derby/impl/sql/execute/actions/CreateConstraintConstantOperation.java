@@ -80,6 +80,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 				       ConstraintInfo	otherConstraint,
 					   ProviderInfo[] providerInfo) {
 		super(constraintName, constraintType, tableName, tableId, schemaName, indexAction);
+		SpliceLogUtils.trace(LOG, "CreateConstraintConstantOperation for %s", constraintName);
         this.forCreateTable = forCreateTable;
 		this.columnNames = columnNames;
 		this.constraintText = constraintText;
@@ -87,9 +88,6 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 		this.otherConstraintInfo = otherConstraint;
 		this.providerInfo = providerInfo;
 	}
-
-	// INTERFACE METHODS
-
 
 	/**
 	 *	This is the guts of the Execution-time logic for CREATE CONSTRAINT.
@@ -301,7 +299,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
     protected UUID manageIndexAction(TableDescriptor td,
                                      UUIDFactory uuidFactory,
                                      Activation activation) throws StandardException{
-
+		SpliceLogUtils.trace(LOG, "manageIndexAction with table %s",td);
         /* Create the index, if there's one for this constraint */
         ConglomerateDescriptor[] conglomDescs;
         String backingIndexName;
@@ -329,11 +327,8 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 				/* Check for conglomerate being an index first, since
 				 * name is null for heap.
 				 */
-                if (conglomDesc.isIndex() &&
-                        backingIndexName.equals(conglomDesc.getConglomerateName()))
-                {
+                if (conglomDesc.isIndex() && backingIndexName.equals(conglomDesc.getConglomerateName()))
                     break;
-                }
             }
 
             if (SanityManager.DEBUG) {
@@ -369,37 +364,27 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 	 */
 	public int[] genColumnPositions(TableDescriptor td, boolean columnsMustBeOrderable) throws StandardException {
 		int[] baseColumnPositions;
-
 		// Translate the base column names to column positions
 		baseColumnPositions = new int[columnNames.length];
-		for (int i = 0; i < columnNames.length; i++)
-		{
+		for (int i = 0; i < columnNames.length; i++) {
 			ColumnDescriptor columnDescriptor;
 
 			// Look up the column in the data dictionary
 			columnDescriptor = td.getColumnDescriptor(columnNames[i]);
-			if (columnDescriptor == null)
-			{
+			if (columnDescriptor == null) {
 				throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE, 
-															columnNames[i],
-															tableName);
+						columnNames[i],tableName);
 			}
 
 			// Don't allow a column to be created on a non-orderable type
 			// (for primaryKey and unique constraints)
-			if ( columnsMustBeOrderable &&
-				 ( ! columnDescriptor.getType().getTypeId().orderable(
-															cf))
-			   )
-			{
+			if ( columnsMustBeOrderable && ( ! columnDescriptor.getType().getTypeId().orderable(cf)))
 				throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION, 
 					columnDescriptor.getType().getTypeId().getSQLTypeName());
-			}
 
 			// Remember the position in the base table of each column
 			baseColumnPositions[i] = columnDescriptor.getPosition();
 		}
-
 		return baseColumnPositions;
 	}
 

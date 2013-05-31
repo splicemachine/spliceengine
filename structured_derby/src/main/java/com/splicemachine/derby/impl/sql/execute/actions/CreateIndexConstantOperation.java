@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
@@ -42,15 +43,12 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
-import org.apache.derby.impl.sql.execute.BasicSortObserver;
 import org.apache.derby.impl.sql.execute.CardinalityCounter;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.derby.impl.sql.execute.IndexConstantAction;
 import org.apache.derby.impl.sql.execute.RowUtil;
-import org.apache.derby.impl.sql.execute.UniqueWithDuplicateNullsIndexSortObserver;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.index.CreateIndexJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -145,6 +143,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
             UUID			conglomerateUUID,
             Properties		properties) {
 		super(tableId, indexName, tableName, schemaName);
+		SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for table %s.%s with index named %s for columns %s",schemaName,tableName,indexName,Arrays.toString(columnNames));
         this.forCreateTable             = forCreateTable;
 		this.unique                     = unique;
 		this.uniqueWithDuplicateNulls   = uniqueWithDuplicateNulls;
@@ -176,9 +175,9 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 	 * so that's what we're here for.  See ConglomerateDescriptor.drop()
 	 * for details on when that is necessary.
 	 */
-	CreateIndexConstantOperation(ConglomerateDescriptor srcCD,
-		TableDescriptor td, Properties properties) {
+	CreateIndexConstantOperation(ConglomerateDescriptor srcCD, TableDescriptor td, Properties properties) {
 		super(td.getUUID(),srcCD.getConglomerateName(), td.getName(), td.getSchemaName());
+		SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for conglomerate {%s} and table {%s} with properties {%s}", srcCD,td,properties);
 		this.forCreateTable = false;
 
 		/* We get here when a conglomerate has been dropped and we
@@ -224,9 +223,6 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 		return "CREATE INDEX " + indexName;
 	}
 
-	// INTERFACE METHODS
-
-
 	/**
 	 *	This is the guts of the Execution-time logic for 
      *  creating an index.
@@ -245,6 +241,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 	 * @exception StandardException		Thrown on failure
 	 */
 	public void	executeConstantAction( Activation activation ) throws StandardException {
+		SpliceLogUtils.trace(LOG, "executeConstantActivation with activation %s",activation);
 		TableDescriptor 			td;
 		UUID 						toid;
 		ColumnDescriptor			columnDescriptor;
@@ -782,13 +779,12 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
      *      SYS.SYSSTATISTICS, {@code false} otherwise.
      * @throws StandardException if accessing the data dictionary fails
      */
-    private boolean addStatistics(DataDictionary dd,IndexRowGenerator irg,long numRows)
-            throws StandardException {
+    private boolean addStatistics(DataDictionary dd,IndexRowGenerator irg,long numRows) throws StandardException {
+    	SpliceLogUtils.trace(LOG, "addStatistics for index %s",irg.getIndexDescriptor());
         boolean add = (numRows > 0);
         if (dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_9, null) &&
                 // This horrible piece of code will hopefully go away soon!
-               ((IndexStatisticsDaemonImpl)dd.getIndexStatsRefresher(false)).
-                    skipDisposableStats) {
+               ((IndexStatisticsDaemonImpl)dd.getIndexStatsRefresher(false)).skipDisposableStats) {
             if (add && irg.isUnique() && irg.numberOfOrderedColumns() == 1) {
                 // Do not add statistics for single-column unique indexes.
                 add = false;

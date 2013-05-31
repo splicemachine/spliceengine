@@ -13,12 +13,14 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.depend.Provider;
 import org.apache.derby.iapi.sql.depend.ProviderInfo;
-import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.catalog.UUID;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  *	This class  describes actions that are ALWAYS performed for a
@@ -41,6 +43,7 @@ import org.apache.derby.catalog.UUID;
  */
 
 public class CreateViewConstantOperation extends DDLConstantOperation {
+	private static final Logger LOG = Logger.getLogger(CreateViewConstantOperation.class);
 	private final String tableName;
 	private final String schemaName;
 	private final String viewText;
@@ -64,6 +67,7 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 	 */
 	public CreateViewConstantOperation(String schemaName, String tableName, int tableType, String viewText, 
 			int checkOption, ColumnInfo[] columnInfo, ProviderInfo[] providerInfo, UUID compSchemaId) {
+		SpliceLogUtils.trace(LOG, "CreateViewConstantOperation for %s.%s with view creation text {%s}",schemaName, tableName, viewText);
 		this.schemaName = schemaName;
 		this.tableName = tableName;
 		this.tableType = tableType;
@@ -88,6 +92,7 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 	 * @exception StandardException		Thrown on failure
 	 */
 	public void	executeConstantAction( Activation activation ) throws StandardException {
+		SpliceLogUtils.trace(LOG, "executeConstantAction for activation {%s}",activation);
 		TableDescriptor 			td;
 		UUID 						toid;
 		ColumnDescriptor			columnDescriptor;
@@ -114,10 +119,7 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 		 * (Pass in row locking, even though meaningless for views.)
 		 */
 		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-		td = ddg.newTableDescriptor(tableName,
-									sd,
-									tableType,
-									TableDescriptor.ROW_LOCK_GRANULARITY);
+		td = ddg.newTableDescriptor(tableName,sd,tableType,TableDescriptor.ROW_LOCK_GRANULARITY);
 
 		dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
 		toid = td.getUUID();
@@ -125,8 +127,7 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 		// for each column, stuff system.column
 		ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnInfo.length];
 		int index = 1;
-		for (int ix = 0; ix < columnInfo.length; ix++)
-		{
+		for (int ix = 0; ix < columnInfo.length; ix++) {
 			columnDescriptor = new ColumnDescriptor(
 				                   columnInfo[ix].name,
 								   index++,
@@ -141,8 +142,7 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 			cdlArray[ix] = columnDescriptor;
 		}
 
-		dd.addDescriptorArray(cdlArray, td,
-							  DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+		dd.addDescriptorArray(cdlArray, td,DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
 
 		// add columns to the column descriptor list.
 		ColumnDescriptorList cdl = td.getColumnDescriptorList();

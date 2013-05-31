@@ -86,16 +86,12 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 		}
 	}
 
-	// OBJECT METHODS
-
 	public	String	toString() {
 		if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
 			return constructToString("DECLARE GLOBAL TEMPORARY TABLE ", tableName);
 		else
 			return constructToString("CREATE TABLE ", tableName);
 	}
-
-	// INTERFACE METHODS
 
 
 	/**

@@ -19,9 +19,6 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
 	private static final Logger LOG = Logger.getLogger(CreateSchemaConstantOperation.class);
 	private final String					aid;	// authorization id
 	private final String					schemaName;
-
-	// CONSTRUCTORS
-
 	/**
 	 * Make the ConstantAction for a CREATE SCHEMA statement.
 	 * When executed, will set the default schema to the

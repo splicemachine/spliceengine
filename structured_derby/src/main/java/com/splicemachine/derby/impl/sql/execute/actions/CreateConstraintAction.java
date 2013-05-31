@@ -13,6 +13,8 @@ import org.apache.derby.impl.sql.execute.ConstraintInfo;
 import org.apache.derby.impl.sql.execute.CreateConstraintConstantAction;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.utils.SpliceLogUtils;
+
 /**
  * @author Scott Fines
  *         Created on: 4/29/13
@@ -40,10 +42,12 @@ public class CreateConstraintAction extends CreateConstraintConstantAction {
      */
     public CreateConstraintAction(String constraintName, int constraintType, boolean forCreateTable, String tableName, UUID tableId, String schemaName, String[] columnNames, ConstantAction indexAction, String constraintText, boolean enabled, ConstraintInfo otherConstraint, ProviderInfo[] providerInfo) {
         super(constraintName, constraintType, forCreateTable, tableName, tableId, schemaName, columnNames, indexAction, constraintText, enabled, otherConstraint, providerInfo);
+    	SpliceLogUtils.trace(LOG, "CreateConstraintAction with name %s for table %s",constraintName,tableName);
     }
 
     @Override
     protected UUID manageIndexAction(TableDescriptor td, UUIDFactory uuidFactory, Activation activation) throws StandardException {
+    	SpliceLogUtils.trace(LOG, "manageIndexAction for table %s with activation %s",td,activation);
         if(indexAction instanceof CreateIndexConstantOperation){
             String backingIndexName;
             CreateIndexConstantOperation cio = (CreateIndexConstantOperation)indexAction;

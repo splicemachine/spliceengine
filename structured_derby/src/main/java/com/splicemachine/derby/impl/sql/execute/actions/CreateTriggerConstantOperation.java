@@ -15,6 +15,10 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.catalog.UUID;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
+
 import java.sql.Timestamp;
 
 /**
@@ -23,7 +27,7 @@ import java.sql.Timestamp;
  *
  */
 public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperation {
-
+	private static final Logger LOG = Logger.getLogger(CreateTriggerConstantOperation.class);
 	private String triggerName;
 	private String triggerSchemaName;
 	private TableDescriptor triggerTable;		// null after readExternal
@@ -102,6 +106,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
 	)
 	{
 		super(triggerTable.getUUID());
+		SpliceLogUtils.trace(LOG, "CreateTriggerConstantOperation called for trigger %s",triggerName);
 		this.triggerName = triggerName;
 		this.triggerSchemaName = triggerSchemaName;
 		this.triggerTable = triggerTable;
@@ -138,9 +143,8 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction(Activation activation)
-						throws StandardException
-	{
+	public void	executeConstantAction(Activation activation) throws StandardException {
+		SpliceLogUtils.trace(LOG, "executeConstantAction for activation %s",activation);
 		SPSDescriptor				whenspsd = null;
 		SPSDescriptor				actionspsd;
 
@@ -212,8 +216,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
 		 * when compile was done, and the table might well have been dropped.
 		 */
 		triggerTable = dd.getTableDescriptor(triggerTableId);
-		if (triggerTable == null)
-		{
+		if (triggerTable == null) {
 			throw StandardException.newException(
 								SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION,
 								tabName);
@@ -226,8 +229,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
 		 * the lock is aquired
 		 */
 		triggerTable = dd.getTableDescriptor(triggerTableId);
-		if (triggerTable == null)
-		{
+		if (triggerTable == null) {
 			throw StandardException.newException(
 								SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION,
 								tabName);
@@ -318,8 +320,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
 	/*
 	** Create an sps that is used by the trigger.
 	*/
-	private SPSDescriptor createSPS
-	(
+	private SPSDescriptor createSPS (
 		LanguageConnectionContext	lcc,
 		DataDescriptorGenerator 	ddg,
 		DataDictionary				dd,
@@ -330,13 +331,12 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
 		UUID						compSchemaId,
 		String						text,
 		boolean						isWhen,
-		TableDescriptor				triggerTable
-	) throws StandardException	
-	{
+		TableDescriptor				triggerTable) throws StandardException	{
+
+		SpliceLogUtils.trace(LOG, "createSPS with text {%s} on table {%s}",text,triggerTable);
+		
 		if (text == null)
-		{
 			return null; 
-		}
 
 		/*
 		** Note: the format of this string is very important.
@@ -366,15 +366,12 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
 		** after create it, so for now we are finished.
 		*/
 		spsd.prepareAndRelease(lcc, triggerTable);
-
-
 		dd.addSPSDescriptor(spsd, tc);
 
 		return spsd;
 	}
 
-	public String toString()
-	{
+	public String toString() {
 		return constructToString("CREATE TRIGGER ", triggerName);		
 	}
 }
