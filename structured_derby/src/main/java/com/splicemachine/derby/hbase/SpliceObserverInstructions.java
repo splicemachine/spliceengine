@@ -92,12 +92,12 @@ public class SpliceObserverInstructions implements Externalizable {
 		return statement;
 	}
 
-    public Activation getActivation(LanguageConnectionContext lcc){
+    public Activation getActivation(LanguageConnectionContext lcc) throws StandardException {
         try{
             Activation activation = ((GenericActivationHolder)statement.getActivation(lcc,false)).ac;
             return activationContext.populateActivation(activation,statement,topOperation);
         } catch (StandardException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            SpliceLogUtils.logAndThrow(LOG,e);
             return null; //never happen
         }
     }
