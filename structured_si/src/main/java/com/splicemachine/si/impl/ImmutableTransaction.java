@@ -79,8 +79,11 @@ public class ImmutableTransaction {
     ////
 
     public boolean isDescendant(long transactionId2) throws IOException {
+        return isDescendant(transactionStore.getImmutableTransaction(transactionId2));
+    }
+
+    public boolean isDescendant(ImmutableTransaction t2) throws IOException {
         final ImmutableTransaction t1 = this;
-        final ImmutableTransaction t2 = transactionStore.getImmutableTransaction(transactionId2);
         final ImmutableTransaction[] intersections = intersect(false, t1.getChain(), t2.getChain());
         final ImmutableTransaction et2 = intersections[2];
         return et2.immutableParent.sameTransaction(t1);
@@ -95,22 +98,25 @@ public class ImmutableTransaction {
         final boolean readCommitted1 = getEffectiveReadCommitted();
         final boolean readUncommitted1 = getEffectiveReadUncommitted();
         boolean visible = false;
-        final TransactionStatus effectiveStatus = t2.getEffectiveStatus(et2);
+        final TransactionStatus effectiveStatus2 = t2.getEffectiveStatus(et2);
         if (et1.sameTransaction(et2)) {
             visible = true;
         } else {
-            if (!readCommitted1 && !readUncommitted1 && effectiveStatus.equals(COMMITTED)) {
+            if (!readCommitted1 && !readUncommitted1 && effectiveStatus2.equals(COMMITTED)) {
                 visible = (met2.getCommitTimestamp(met2.getParent()) < et1.getBeginTimestampDirect())
-                        || et2.immutableParent.sameTransaction(et1);
+                        || et1.isDescendant(et2);
             }
-            if (readCommitted1 && effectiveStatus.equals(COMMITTED)) {
+            if (effectiveStatus2.equals(ACTIVE) && et1.immutableParent.sameTransaction(et2)) {
                 visible = true;
             }
-            if (readUncommitted1 && effectiveStatus.equals(ACTIVE)) {
+            if (readCommitted1 && effectiveStatus2.equals(COMMITTED)) {
+                visible = true;
+            }
+            if (readUncommitted1 && effectiveStatus2.equals(ACTIVE)) {
                 visible = true;
             }
         }
-        return new Object[]{visible, effectiveStatus};
+        return new Object[]{visible, effectiveStatus2};
     }
 
     public boolean isConflict(ImmutableTransaction t2) throws IOException {
@@ -122,9 +128,9 @@ public class ImmutableTransaction {
         final Transaction met2 = transactionStore.getTransaction(et2.getTransactionId().getId());
         if (met2.getStatus().equals(COMMITTED)) {
             return (met2.getCommitTimestamp(shared) > et1.getBeginTimestampDirect()) &&
-                    !et2.immutableParent.sameTransaction(et1);
+                    !et1.isDescendant(et2);
         } else if (met2.getStatus().equals(ACTIVE)) {
-            if (et1.sameTransaction(et2)) {
+            if (et1.sameTransaction(et2) || et1.immutableParent.sameTransaction(et2)) {
                 return false;
             } else {
                 return true;
