@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute;
 import com.splicemachine.derby.impl.sql.execute.actions.AlterTableConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.CreateAliasConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.CreateConstraintConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.CreateIndexConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.CreateRoleConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.CreateSchemaConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.CreateSequenceConstantOperation;
@@ -13,7 +14,6 @@ import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropAliasConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropConstraintConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropIndexConstantAction;
-import com.splicemachine.derby.impl.sql.execute.actions.DropIndexOperationScott;
 import com.splicemachine.derby.impl.sql.execute.actions.DropRoleConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropSchemaConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropSequenceConstantOperation;
@@ -61,7 +61,6 @@ import org.apache.derby.impl.sql.execute.PrivilegeInfo;
 import org.apache.derby.impl.sql.execute.TriggerInfo;
 import org.apache.derby.impl.sql.execute.UpdatableVTIConstantAction;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.impl.sql.execute.actions.CreateIndexConstantOperationScott;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -117,8 +116,12 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                        boolean[] isAscending, boolean isConstraint,
                                                        UUID conglomerateUUID, Properties properties) {
     	SpliceLogUtils.trace(LOG, "getCreateIndexConstantAction for index {%s.%s} on {%s.%s} with columnNames %s",schemaName, indexName, schemaName, tableName, Arrays.toString(columnNames));
-        return new CreateIndexConstantOperationScott(schemaName,indexName,tableName,columnNames,isAscending,tableId,conglomerateUUID,unique,indexType,properties);
-    }
+		return	new CreateIndexConstantOperation
+				( forCreateTable, unique, uniqueWithDuplicateNulls, indexType, 
+					schemaName, indexName, tableName, tableId,
+				  columnNames, isAscending, isConstraint,
+				  conglomerateUUID, properties );   
+	}
 
     @Override
     public ConstantAction getDropIndexConstantAction(String fullIndexName,
