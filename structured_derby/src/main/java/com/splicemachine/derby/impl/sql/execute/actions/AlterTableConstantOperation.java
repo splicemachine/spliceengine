@@ -625,9 +625,11 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
      *
      **/
 	private void purgeRows(TransactionController tc) throws StandardException {
-       	SpliceLogUtils.trace(LOG, "purgeRows");
-        switch (td.getTableType()) {
-        /* Skip views and vti tables */
+       	SpliceLogUtils.trace(LOG, "purgeRows not implemented yet");
+       	throw StandardException.unexpectedUserException(new Exception("purgeRows not implemented yet"));
+/*
+       	switch (td.getTableType()) {
+        // Skip views and vti tables 
         case TableDescriptor.VIEW_TYPE:
         case TableDescriptor.VTI_TYPE:
         	break;
@@ -635,16 +637,17 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
         // DERBY-719,DERBY-720
 
         default: {
-            /*	// XXX TODO JLEACH Purge Rows must call index op
+            	// XXX TODO JLEACH Purge Rows must call parallel task
             ConglomerateDescriptor[] conglom_descriptors = td.getConglomerateDescriptors();
             for (int cd_idx = 0; cd_idx < conglom_descriptors.length; cd_idx++) {
                 ConglomerateDescriptor cd = conglom_descriptors[cd_idx];
                 tc.purgeConglomerate(cd.getConglomerateNumber());
             }
-          		*/
+          		
           }
         }
         return;
+        */
     }
 
 	/**
