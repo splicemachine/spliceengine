@@ -250,11 +250,9 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 						//if the object on which permission is required is owned by the
 						//same user as the current user, then no need to keep that
 						//object's privilege dependency in the dependency system
-                    if (! permDesc.checkOwner(currentUser))
-					{
+                    if (! permDesc.checkOwner(currentUser)) {
 						dm.addDependency(dependent, permDesc, lcc.getContextManager());
-						if (permDesc instanceof ColPermsDescriptor)
-						{
+						if (permDesc instanceof ColPermsDescriptor) {
 							// The if statement above means we found a
 							// REFERENCES privilege at column level for the
 							// given authorizer. If this privilege doesn't
@@ -442,14 +440,11 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 		// If the Database Owner is creating this view/trigger, then no need to
 		// collect any privilege dependencies because the Database Owner can
 		// access any objects without any restrictions.
-        if (! currentUser.equals(dbo))
-		{
+        if (! currentUser.equals(dbo)) {
 			PermissionsDescriptor permDesc;
 			List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
-			if (requiredPermissionsList != null && ! requiredPermissionsList.isEmpty())
-			{
-				for(Iterator iter = requiredPermissionsList.iterator();iter.hasNext();)
-				{
+			if (requiredPermissionsList != null && ! requiredPermissionsList.isEmpty()) {
+				for(Iterator iter = requiredPermissionsList.iterator();iter.hasNext();) {
 					StatementPermission statPerm = (StatementPermission) iter.next();
 					//The schema ownership permission just needs to be checked 
 					//at object creation time, to see if the object creator has 

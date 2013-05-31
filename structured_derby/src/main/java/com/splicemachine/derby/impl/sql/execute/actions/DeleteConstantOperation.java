@@ -2,18 +2,17 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.services.io.FormatIdUtil;
 import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.impl.sql.execute.FKInfo;
 import org.apache.derby.impl.sql.execute.TriggerInfo;
-
+import org.apache.log4j.Logger;
+import com.splicemachine.utils.SpliceLogUtils;
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
@@ -24,30 +23,20 @@ import java.util.Properties;
  *	DeleteResultSets.
  *
  */
-
-public class DeleteConstantOperation extends WriteCursorConstantOperation
-{
-	/********************************************************
-	**
-	**	This class implements Formatable. But it is NOT used
- 	**	across either major or minor releases.  It is only
-	** 	written persistently in stored prepared statements, 
-	**	not in the replication stage.  SO, IT IS OK TO CHANGE
-	**	ITS read/writeExternal.
-	**
-	********************************************************/
-	
+public class DeleteConstantOperation extends WriteCursorConstantOperation {
+	private static final Logger LOG = Logger.getLogger(DeleteConstantOperation.class);	
 	int numColumns;
 	ConstantAction[] dependentCActions; //constant action for the dependent table
 	ResultDescription resultDescription; //required for dependent tables.
-
-	// CONSTRUCTORS
 
 	/**
 	 * Public niladic constructor. Needed for Formatable interface to work.
 	 *
 	 */
-    public	DeleteConstantOperation() { super(); }
+    public	DeleteConstantOperation() { 
+    	super(); 
+    	SpliceLogUtils.trace(LOG, "DeleteConstantOperation");
+    }
 
 	/**
 	 *	Make the ConstantAction for an DELETE statement.
@@ -88,8 +77,7 @@ public class DeleteConstantOperation extends WriteCursorConstantOperation
 								int					numColumns,
 								boolean				singleRowSource,
 								ResultDescription   resultDescription,
-								ConstantAction[] dependentCActions)
-	{
+								ConstantAction[] dependentCActions) {
 		super( conglomId, 
 			   heapSCOCI,
                 pkColumns,
@@ -108,40 +96,32 @@ public class DeleteConstantOperation extends WriteCursorConstantOperation
 			   singleRowSource
 			   );
 
+    	SpliceLogUtils.trace(LOG, "DeleteConstantOperation instance");
+		
 		this.numColumns = numColumns;
 		this.resultDescription = resultDescription;
 		this.dependentCActions =  dependentCActions;
 	}
-
-	// INTERFACE METHODS
-
-	// Formatable methods
 
 	/**
 	  @see java.io.Externalizable#readExternal
 	  @exception IOException thrown on error
 	  @exception ClassNotFoundException	thrown on error
 	  */
-	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
+	public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
 		super.readExternal(in);
 		numColumns = in.readInt();
-
 		//information required for cascade delete
 		dependentCActions = new ConstantAction[ArrayUtil.readArrayLength(in)];
 		ArrayUtil.readArrayItems(in, dependentCActions);
 		resultDescription = (ResultDescription) in.readObject();
-
 	}
 
 	/**
 
 	  @exception IOException thrown on error
 	  */
-	public void writeExternal( ObjectOutput out )
-		 throws IOException
-	{
+	public void writeExternal( ObjectOutput out ) throws IOException {
 		super.writeExternal(out);
 		out.writeInt(numColumns);
 
@@ -156,7 +136,8 @@ public class DeleteConstantOperation extends WriteCursorConstantOperation
 	 *
 	 *	@return	the formatID of this class
 	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.DELETE_CONSTANT_ACTION_V01_ID; }
+	public	int	getTypeFormatId()	{ 
+		return StoredFormatIds.DELETE_CONSTANT_ACTION_V01_ID; 
+	}
 
-	// KeyToBaseRowConstantAction METHODS
 }

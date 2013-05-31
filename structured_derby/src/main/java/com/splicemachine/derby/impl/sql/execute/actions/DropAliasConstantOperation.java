@@ -8,6 +8,9 @@ import org.apache.derby.iapi.sql.dictionary.AliasDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  *	This class performs actions that are ALWAYS performed for a
@@ -17,6 +20,7 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
  */
 
 public class DropAliasConstantOperation extends DDLConstantOperation {
+	private static final Logger LOG = Logger.getLogger(DropAliasConstantOperation.class);
 	private SchemaDescriptor sd;
 	private final String aliasName;
 	private final char nameSpace;
@@ -29,6 +33,7 @@ public class DropAliasConstantOperation extends DDLConstantOperation {
 	 *
 	 */
 	public DropAliasConstantOperation(SchemaDescriptor sd, String aliasName, char nameSpace) {
+		SpliceLogUtils.trace(LOG, "DropAliasConstantOperation for %s.%s", sd.getSchemaName(),aliasName);
 		this.sd = sd;
 		this.aliasName = aliasName;
 		this.nameSpace = nameSpace;
@@ -47,6 +52,7 @@ public class DropAliasConstantOperation extends DDLConstantOperation {
 	 * @exception StandardException		Thrown on failure
 	 */
 	public void	executeConstantAction( Activation activation ) throws StandardException {
+		SpliceLogUtils.trace(LOG, "executeConstantAction for activation {%s}", activation);
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
 		/*

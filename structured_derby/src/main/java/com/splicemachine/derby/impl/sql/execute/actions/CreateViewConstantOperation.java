@@ -156,8 +156,7 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 										lcc.getDefaultSchema().getUUID() :
 										compSchemaId);
 
-		for (int ix = 0; ix < providerInfo.length; ix++)
-		{
+		for (int ix = 0; ix < providerInfo.length; ix++) {
 			/* We should always be able to find the Provider */
 				Provider provider = (Provider) providerInfo[ix].
 										getDependableFinder().
