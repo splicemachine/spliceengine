@@ -38,6 +38,7 @@ public class SIBrowser extends SIConstants{
             final long beginTimestamp = getLong(r, TRANSACTION_START_TIMESTAMP_COLUMN_BYTES);
             TransactionStatus status = getStatus(r, TRANSACTION_STATUS_COLUMN_BYTES);
             Long commitTimestamp = getLong(r, TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
+            Long counter = getLong(r, TRANSACTION_COUNTER_COLUMN_BYTES);
             Long parent = getLong(r, TRANSACTION_PARENT_COLUMN_BYTES);
             Boolean writes = getBoolean(r, TRANSACTION_ALLOW_WRITES_COLUMN_BYTES);
             Boolean dependent = getBoolean(r, TRANSACTION_DEPENDENT_COLUMN_BYTES);
@@ -45,7 +46,7 @@ public class SIBrowser extends SIConstants{
             Boolean readCommitted = getBoolean(r, TRANSACTION_READ_COMMITTED_COLUMN_BYTES);
             String keepAliveValue = getTimestampString(r, TRANSACTION_KEEP_ALIVE_COLUMN_BYTES);
 
-            x.put(id, new Object[]{beginTimestamp, parent, writes, status, commitTimestamp, globalCommit, keepAliveValue, dependent, readUncommitted, readCommitted});
+            x.put(id, new Object[]{beginTimestamp, parent, writes, status, commitTimestamp, globalCommit, keepAliveValue, dependent, readUncommitted, readCommitted, counter});
             if (idToFind != null && beginTimestamp == idToFind) {
                 toFind = r;
             }
@@ -62,10 +63,10 @@ public class SIBrowser extends SIConstants{
         } else {
             final ArrayList<Long> list = new ArrayList<Long>(x.keySet());
             Collections.sort(list);
-            System.out.println("transaction beginTimestamp parent writesAllowed status commitTimestamp globalCommitTimestamp keepAliveTimestamp dependent readUncommitted readCommitted");
+            System.out.println("transaction beginTimestamp parent writesAllowed status commitTimestamp globalCommitTimestamp keepAliveTimestamp dependent readUncommitted readCommitted counter");
             for (Long k : list) {
                 Object[] v = (Object[]) x.get(k);
-                System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3] + " " + v[4] + " " + v[5] + " " + v[6] + " " + v[7] + " " + v[8] + " " + v[9]);
+                System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3] + " " + v[4] + " " + v[5] + " " + v[6] + " " + v[7] + " " + v[8] + " " + v[9] + " " + v[10]);
             }
 
             //dumpTable("conglomerates", "16");
