@@ -13,8 +13,13 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.jdbc.authentication.BasicAuthenticationServiceImpl;
 import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class CreateRoleConstantOperation extends DDLConstantOperation {
+    private static final Logger LOG = Logger.getLogger(CreateRoleConstantOperation.class);
+
     private String roleName;
     /**
      *  Make the ConstantAction for a CREATE ROLE statement.
@@ -23,6 +28,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
      *  @param roleName     The name of the role being created
      */
     public CreateRoleConstantOperation(String roleName) {
+    	SpliceLogUtils.trace(LOG, "CreateRoleConstantOperation with role name {%s}",roleName);
         this.roleName = roleName;
     }
 
@@ -34,6 +40,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
      * @exception StandardException     Thrown on failure
      */
     public void executeConstantAction(Activation activation) throws StandardException {
+    	SpliceLogUtils.trace(LOG, "executeConstantAction with activation {%s}",activation);
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();

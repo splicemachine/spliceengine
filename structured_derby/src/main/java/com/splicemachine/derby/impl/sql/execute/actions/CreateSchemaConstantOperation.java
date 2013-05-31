@@ -32,6 +32,7 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
 	 *  @param aid			Authorizaton id
 	 */
 	public CreateSchemaConstantOperation(String schemaName,String aid) {
+		SpliceLogUtils.trace(LOG, "CreateSchemaConstantOperation {%s}",schemaName);
 		this.schemaName = schemaName;
 		this.aid = aid;
 	}
@@ -40,9 +41,6 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
 		return "CREATE SCHEMA " + schemaName;
 	}
 
-	// INTERFACE METHODS
-
-
 	/**
 	 *	This is the guts of the Execution-time logic for CREATE SCHEMA.
 	 *
@@ -50,6 +48,7 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
+	@Override
 	public void	executeConstantAction( Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction");
 		executeConstantActionMinion(activation, 

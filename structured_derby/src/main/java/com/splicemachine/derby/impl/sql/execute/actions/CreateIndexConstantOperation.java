@@ -128,8 +128,9 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
      * @param conglomerateUUID	            ID of conglomerate
      * @param properties	                The optional properties list 
      *                                      associated with the index.
-     */
-	CreateIndexConstantOperation(
+     */	
+	
+	public CreateIndexConstantOperation(
             boolean         forCreateTable,
             boolean			unique,
             boolean			uniqueWithDuplicateNulls,
@@ -217,6 +218,8 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 		}
 	}
         
+
+
 	public	String	toString() {
 		return "CREATE INDEX " + indexName;
 	}

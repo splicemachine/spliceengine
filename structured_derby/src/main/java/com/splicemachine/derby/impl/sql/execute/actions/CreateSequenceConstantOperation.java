@@ -10,6 +10,9 @@ import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * This class performs actions that are ALWAYS performed for a
@@ -17,6 +20,7 @@ import org.apache.derby.shared.common.reference.SQLState;
  * These SQL objects are stored in the SYS.SYSSEQUENCES table.
  */
 public class CreateSequenceConstantOperation extends DDLConstantOperation {
+	private static final Logger LOG = Logger.getLogger(CreateSequenceConstantOperation.class);
     private String _sequenceName;
     private String _schemaName;
     private DataTypeDescriptor _dataType;
@@ -41,6 +45,9 @@ public class CreateSequenceConstantOperation extends DDLConstantOperation {
     public CreateSequenceConstantOperation (String schemaName, String sequenceName, 
     		DataTypeDescriptor dataType, long initialValue, long stepValue,
             long maxValue, long minValue, boolean cycle) {
+    	SpliceLogUtils.trace(LOG, "CreateSequenceConstantOperation %s.%s for data type {%s} with initialValue" +
+    			"%d, step value %d, maxValue %d, minValue %d and cycle %s",schemaName, sequenceName,
+    			dataType, initialValue, stepValue, maxValue, minValue, cycle);
         this._schemaName = schemaName;
         this._sequenceName = sequenceName;
         this._dataType = dataType;
@@ -51,8 +58,6 @@ public class CreateSequenceConstantOperation extends DDLConstantOperation {
         this._cycle = cycle;
     }
 
-    // INTERFACE METHODS
-
     /**
      * This is the guts of the Execution-time logic for CREATE SEQUENCE.
      *
@@ -60,8 +65,9 @@ public class CreateSequenceConstantOperation extends DDLConstantOperation {
      *          Thrown on failure
      * @see org.apache.derby.iapi.sql.execute.ConstantAction#executeConstantAction
      */
-    public void executeConstantAction(Activation activation)
-            throws StandardException {
+    @Override
+    public void executeConstantAction(Activation activation) throws StandardException {
+    	SpliceLogUtils.trace(LOG, "executeConstantAction");
         SchemaDescriptor schemaDescriptor;
         LanguageConnectionContext lcc =
                 activation.getLanguageConnectionContext();
@@ -103,11 +109,7 @@ public class CreateSequenceConstantOperation extends DDLConstantOperation {
                 tc);
     }
 
-    // OBJECT SHADOWS
-
     public String toString() {
-        // Do not put this under SanityManager.DEBUG - it is needed for
-        // error reporting.
         return "CREATE SEQUENCE " + _sequenceName;
     }
 }

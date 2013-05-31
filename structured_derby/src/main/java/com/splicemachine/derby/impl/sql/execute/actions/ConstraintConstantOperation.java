@@ -50,6 +50,7 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 	ConstraintConstantOperation(String constraintName,int constraintType,
 		               String tableName,UUID tableId,String schemaName, ConstantAction indexAction) {
 		super(tableId);
+		SpliceLogUtils.trace(LOG, "ConstraintConstantOperation instance %s on table %s.%s",constraintName, schemaName, tableName);
 		this.constraintName = constraintName;
 		this.constraintType = constraintType;
 		this.tableName = tableName;
@@ -136,6 +137,7 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 		TableDescriptor					td,
 		LanguageConnectionContext		lcc,
 		boolean							isCheckConstraint ) throws StandardException {
+			SpliceLogUtils.error(LOG, "validateConstraint %s using qualifier {%s}",constraintName, constraintText);
 		StringBuffer checkStmt = new StringBuffer();
 		/* should not use select sum(not(<check-predicate>) ? 1: 0) because
 		 * that would generate much more complicated code and may exceed Java

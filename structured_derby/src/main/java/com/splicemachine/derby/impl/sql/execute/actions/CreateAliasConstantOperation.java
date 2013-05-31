@@ -15,6 +15,9 @@ import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  *	This class performs actions that are ALWAYS performed for a
@@ -24,6 +27,7 @@ import org.apache.derby.iapi.store.access.TransactionController;
  *
  */
 public class CreateAliasConstantOperation extends DDLConstantOperation {
+	private static final Logger LOG = Logger.getLogger(CreateAliasConstantOperation.class);
 	private final String aliasName;
 	private final String schemaName;
 	private final String javaClassName;
@@ -41,6 +45,7 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 	 */
 	public CreateAliasConstantOperation(String aliasName, String schemaName, String javaClassName,
 			AliasInfo aliasInfo,char aliasType) {
+		SpliceLogUtils.trace(LOG, "CreateAliasConstantOperation with alias {%s} on schema %s with aliasInfo %s",aliasName, schemaName, aliasInfo);
 		this.aliasName = aliasName;
 		this.schemaName = schemaName;
 		this.javaClassName = javaClassName;
@@ -66,8 +71,6 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 				break;
 		}
 	}
-
-	// OBJECT SHADOWS
 
 	public	String	toString() {
 		String type = null;
@@ -125,7 +128,9 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
+	@Override
 	public void	executeConstantAction( Activation activation ) throws StandardException {
+		SpliceLogUtils.trace(LOG, "executeConstantAction with activation %s",activation);
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
 		TransactionController tc = lcc.getTransactionExecute();

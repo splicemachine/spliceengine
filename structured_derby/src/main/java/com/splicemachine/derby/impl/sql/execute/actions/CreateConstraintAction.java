@@ -44,9 +44,9 @@ public class CreateConstraintAction extends CreateConstraintConstantAction {
 
     @Override
     protected UUID manageIndexAction(TableDescriptor td, UUIDFactory uuidFactory, Activation activation) throws StandardException {
-        if(indexAction instanceof CreateIndexConstantOperationScott){
+        if(indexAction instanceof CreateIndexConstantOperation){
             String backingIndexName;
-            CreateIndexConstantOperationScott cio = (CreateIndexConstantOperationScott)indexAction;
+            CreateIndexConstantOperation cio = (CreateIndexConstantOperation)indexAction;
             if(cio.getIndexName()==null){
                 backingIndexName = uuidFactory.createUUID().toString();
                 cio.setIndexName(backingIndexName);
