@@ -1,11 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Mutations;
-import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -13,10 +11,8 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.sql.execute.DeleteConstantAction;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.log4j.Logger;
-
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Collections;
@@ -49,7 +45,7 @@ public class DeleteOperation extends DMLWriteOperation{
 	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG,"DeleteOperation init with regionScanner %s",regionScanner);
 		super.init(context);
-		heapConglom = ((DeleteConstantAction)constants).getConglomerateId();
+		heapConglom = ((DeleteConstantOperation)constants).getConglomerateId();
 	}
 
     @Override
