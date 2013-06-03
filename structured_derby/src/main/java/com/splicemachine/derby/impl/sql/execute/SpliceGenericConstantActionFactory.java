@@ -1,7 +1,39 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.derby.impl.sql.execute.actions.CreateTableAction;
-import com.splicemachine.derby.impl.sql.execute.actions.DropIndexOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.AlterTableConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.CreateAliasConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.CreateConstraintConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.CreateIndexConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.CreateRoleConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.CreateSchemaConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.CreateSequenceConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.SpliceCreateTableOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.CreateTriggerConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.CreateViewConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.DropAliasConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.DropConstraintConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.DropIndexConstantAction;
+import com.splicemachine.derby.impl.sql.execute.actions.DropRoleConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.DropSchemaConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.DropSequenceConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.DropStatisticsConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.DropTableConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.DropTriggerConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.DropViewConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.GrantRevokeConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.GrantRoleConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.LockTableConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.RenameConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.RevokeRoleConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.SavepointConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.SetConstraintsConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.SetRoleConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.SetSchemaConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.SetTransactionIsolationConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.UpdatableVTIConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.UUID;
@@ -20,12 +52,16 @@ import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.compile.TableName;
-import org.apache.derby.impl.sql.execute.*;
+import org.apache.derby.impl.sql.execute.ColumnInfo;
+import org.apache.derby.impl.sql.execute.ConstraintInfo;
+import org.apache.derby.impl.sql.execute.CreateConstraintConstantAction;
+import org.apache.derby.impl.sql.execute.FKInfo;
+import org.apache.derby.impl.sql.execute.GenericConstantActionFactory;
+import org.apache.derby.impl.sql.execute.PrivilegeInfo;
+import org.apache.derby.impl.sql.execute.TriggerInfo;
+import org.apache.derby.impl.sql.execute.UpdatableVTIConstantAction;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.derby.impl.sql.execute.actions.CreateIndexOperation;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
@@ -38,7 +74,7 @@ import java.util.Properties;
 public class SpliceGenericConstantActionFactory extends GenericConstantActionFactory {
 	private static Logger LOG = Logger.getLogger(SpliceGenericConstantActionFactory.class);
     @Override
-    public CreateConstraintConstantAction getCreateConstraintConstantAction(String constraintName,
+    public ConstantAction getCreateConstraintConstantAction(String constraintName,
                                                                             int constraintType,
                                                                             boolean forCreateTable,
                                                                             String tableName,
@@ -51,16 +87,11 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                                             ConstraintInfo otherConstraint,
                                                                             ProviderInfo[] providerInfo) {
     	SpliceLogUtils.trace(LOG, "getConstraintConstantAction with name {%s} for table {%s}",constraintName,tableName);
-        if(constraintType== DataDictionary.PRIMARYKEY_CONSTRAINT){
-            return super.getCreateConstraintConstantAction(constraintName, constraintType,
-                    forCreateTable, tableName, tableId,
-                    schemaName, columnNames, null,
-                    constraintText, enabled, otherConstraint, providerInfo);
-        }else
-            return super.getCreateConstraintConstantAction(constraintName, constraintType,
-                    forCreateTable, tableName, tableId,
-                    schemaName, columnNames, indexAction,
-                    constraintText, enabled, otherConstraint, providerInfo);
+    		return new CreateConstraintConstantOperation
+    				( constraintName, constraintType, forCreateTable, tableName, 
+    				  tableId, schemaName, columnNames, constraintType== DataDictionary.PRIMARYKEY_CONSTRAINT?null:indexAction, constraintText, 
+    				  enabled, otherConstraint, providerInfo );
+            
     }
 
     @Override
@@ -70,7 +101,7 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                        Properties properties, char lockGranularity,
                                                        boolean onCommitDeleteRows, boolean onRollbackDeleteRows) {
     	SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",schemaName, tableName, Arrays.toString(columnInfo),Arrays.toString(constraintActions));
-        return new CreateTableAction(schemaName,tableName,tableType,columnInfo,
+        return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfo,
                 constraintActions,properties,lockGranularity,
                 onCommitDeleteRows,onRollbackDeleteRows);
     }
@@ -85,8 +116,12 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                        boolean[] isAscending, boolean isConstraint,
                                                        UUID conglomerateUUID, Properties properties) {
     	SpliceLogUtils.trace(LOG, "getCreateIndexConstantAction for index {%s.%s} on {%s.%s} with columnNames %s",schemaName, indexName, schemaName, tableName, Arrays.toString(columnNames));
-        return new CreateIndexOperation(schemaName,indexName,tableName,columnNames,isAscending,tableId,conglomerateUUID,unique,indexType,properties);
-    }
+		return	new CreateIndexConstantOperation
+				( forCreateTable, unique, uniqueWithDuplicateNulls, indexType, 
+					schemaName, indexName, tableName, tableId,
+				  columnNames, isAscending, isConstraint,
+				  conglomerateUUID, properties );   
+	}
 
     @Override
     public ConstantAction getDropIndexConstantAction(String fullIndexName,
@@ -96,58 +131,62 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                      UUID tableId,
                                                      long tableConglomerateId) {
     	SpliceLogUtils.trace(LOG, "getDropIndexConstantAction for index {%s} on {%s.%s}",fullIndexName, schemaName, tableName);
-        return new DropIndexOperation(fullIndexName,indexName,
+        return new DropIndexConstantAction(fullIndexName,indexName,
                 tableName,schemaName,tableId,tableConglomerateId);
     }
 
 	@Override
 	public ConstantAction getSetConstraintsConstantAction(ConstraintDescriptorList cdl, boolean enable,boolean unconditionallyEnforce, Object[] ddlList) {
     	SpliceLogUtils.trace(LOG, "getSetConstraintsConstantAction for {%s} on ddlList {%s}",cdl,Arrays.toString(ddlList));
-		return super.getSetConstraintsConstantAction(cdl, enable,unconditionallyEnforce, ddlList);
+		return new SetConstraintsConstantOperation(cdl, enable, unconditionallyEnforce);
 	}
-
+	
+	
 	@Override
 	public ConstantAction getAlterTableConstantAction(SchemaDescriptor sd,
 			String tableName, UUID tableId, long tableConglomerateId,
 			int tableType, ColumnInfo[] columnInfo,
-			ConstraintConstantAction[] constraintActions, char lockGranularity,
+			ConstantAction[] constraintActions, char lockGranularity,
 			boolean compressTable, int behavior, boolean sequential,
 			boolean truncateTable, boolean purge, boolean defragment,
 			boolean truncateEndOfTable, boolean updateStatistics,
 			boolean updateStatisticsAll, boolean dropStatistics,
 			boolean dropStatisticsAll, String indexNameForStatistics) {
     	SpliceLogUtils.trace(LOG, "getAlterTableConstantAction for {%s.%s} with columnInfo {%s}",(sd==null?"none":sd.getSchemaName()),tableName, Arrays.toString(columnInfo));
-		return super.getAlterTableConstantAction(sd, tableName, tableId,
-				tableConglomerateId, tableType, columnInfo, constraintActions,
-				lockGranularity, compressTable, behavior, sequential, truncateTable,
-				purge, defragment, truncateEndOfTable, updateStatistics,
-				updateStatisticsAll, dropStatistics, dropStatisticsAll,
-				indexNameForStatistics);
+    	return new	AlterTableConstantOperation( sd, tableName, tableId, tableConglomerateId, 
+				  tableType, columnInfo, constraintActions, 
+				  lockGranularity, compressTable,
+				  behavior, sequential, truncateTable,
+				  purge, defragment, truncateEndOfTable,
+				  updateStatistics, 
+				  updateStatisticsAll,
+				  dropStatistics, 
+				  dropStatisticsAll,
+				  indexNameForStatistics);
 	}
 
 	@Override
 	public ConstantAction getCreateAliasConstantAction(String aliasName,String schemaName, String javaClassName, AliasInfo aliasInfo, char aliasType) {
     	SpliceLogUtils.trace(LOG, "getCreateAliasConstantAction for alias {%s} in schema {%s} with javaClassName %s and aliasInfo {%s}",aliasName, schemaName, javaClassName, aliasInfo);
-		return super.getCreateAliasConstantAction(aliasName, schemaName, javaClassName,
-				aliasInfo, aliasType);
+		return new CreateAliasConstantOperation(aliasName, schemaName, javaClassName, aliasInfo, aliasType );
 	}
 
 	@Override
 	public ConstantAction getCreateSchemaConstantAction(String schemaName,String aid) {
     	SpliceLogUtils.trace(LOG, "getCreateSchemaConstantAction for schema {%s} with aid {%s}",schemaName, aid);
-		return super.getCreateSchemaConstantAction(schemaName, aid);
+		return new CreateSchemaConstantOperation(schemaName, aid);
 	}
 
 	@Override
 	public ConstantAction getCreateRoleConstantAction(String roleName) {
     	SpliceLogUtils.trace(LOG, "getCreateRoleConstantAction for role {%s}",roleName);
-		return super.getCreateRoleConstantAction(roleName);
+    	return new CreateRoleConstantOperation(roleName);
 	}
 
 	@Override
 	public ConstantAction getSetRoleConstantAction(String roleName, int type) {
     	SpliceLogUtils.trace(LOG, "getSetRoleConstantAction for role {%s} with type {%d}",roleName, type);
-		return super.getSetRoleConstantAction(roleName, type);
+		return new SetRoleConstantOperation(roleName, type);
 	}
 
 	@Override
@@ -155,21 +194,29 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
 			boolean cycle) {
     	SpliceLogUtils.trace(LOG, "getCreateSequenceConstantAction for sequenceName {%s} with dataType {%s} with initialValue {%s}, stepValue {%s}, maxValue {%s}, minValue {%s}",
     			sequenceName, dataType, initialValue, stepValue, maxValue, minValue);
-		return super.getCreateSequenceConstantAction(sequenceName, dataType,
-				initialValue, stepValue, maxValue, minValue, cycle);
+        return new CreateSequenceConstantOperation(sequenceName.getSchemaName(),
+                sequenceName.getTableName(),
+                dataType,
+                initialValue,
+                stepValue,
+                maxValue,
+                minValue,
+                cycle);
 	}
 
 	@Override
 	public ConstantAction getSavepointConstantAction(String savepointName,int statementType) {
     	SpliceLogUtils.trace(LOG, "--ignored -- getSavepointConstantAction for savepoint {%s} with type {%d}",savepointName, statementType);
-		return super.getSavepointConstantAction(savepointName, statementType);
+		return new SavepointConstantOperation( savepointName, statementType);
 	}
 
 	@Override
 	public ConstantAction getCreateViewConstantAction(String schemaName,String tableName, int tableType, String viewText, int checkOption,
 			ColumnInfo[] columnInfo, ProviderInfo[] providerInfo,UUID compSchemaId) {
     	SpliceLogUtils.trace(LOG, "getCreateViewConstantAction for {%s.%s} with view text {%s}",schemaName, tableName, viewText);
-		return super.getCreateViewConstantAction(schemaName, tableName, tableType,viewText, checkOption, columnInfo, providerInfo, compSchemaId);
+		return new CreateViewConstantOperation( schemaName, tableName, tableType, 
+				 viewText, checkOption, columnInfo,
+				 providerInfo, compSchemaId );
 	}
 
 	@Override
@@ -187,13 +234,27 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
 			boolean singleRowSource, ConstantAction[] dependentConstantActions)
 			throws StandardException {
     	SpliceLogUtils.trace(LOG, "getDeleteConstantAction for {%s.%s}",schemaName, tableName);
-		return super.getDeleteConstantAction(conglomId, tableType, heapSCOCI,
-				pkColumns, irgs, indexCIDS, indexSCOCIs, emptyHeapRow, deferred,
-				tableIsPublished, tableID, lockMode, deleteToken, keySignature,
-				keyPositions, keyConglomId, schemaName, tableName, resultDescription,
-				fkInfo, triggerInfo, baseRowReadList, baseRowReadMap,
-				streamStorableHeapColIds, numColumns, dependencyId, singleRowSource,
-				dependentConstantActions);
+		return new DeleteConstantOperation(
+				conglomId,
+				heapSCOCI,
+                pkColumns,
+				irgs,
+				indexCIDS,
+				indexSCOCIs,
+				emptyHeapRow,
+				deferred,
+				tableID,
+				lockMode,
+				fkInfo,
+				triggerInfo,
+				baseRowReadList,
+				baseRowReadMap,
+				streamStorableHeapColIds,
+				numColumns,
+				singleRowSource,
+				resultDescription,
+				dependentConstantActions
+				);
 	}
 
 	@Override
@@ -202,34 +263,33 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
 			String tableName, UUID tableId, String tableSchemaName,
 			ConstantAction indexAction, int behavior, int verifyType) {
     	SpliceLogUtils.trace(LOG, "getDropConstraintConstantAction for {%s.%s} on {%s.%s}",constraintSchemaName, constraintName, tableSchemaName, tableName);
-		return super.getDropConstraintConstantAction(constraintName,
-				constraintSchemaName, tableName, tableId, tableSchemaName, indexAction,
-				behavior, verifyType);
+		return	new DropConstraintConstantOperation( constraintName, constraintSchemaName, tableName, 
+				  tableId, tableSchemaName, indexAction, behavior, verifyType);
 	}
 
 	@Override
 	public ConstantAction getDropAliasConstantAction(SchemaDescriptor sd,
 			String aliasName, char aliasType) {
     	SpliceLogUtils.trace(LOG, "getDropAliasConstantAction for {%s.%s}",(sd==null?"none":sd.getSchemaName()), aliasName);
-		return super.getDropAliasConstantAction(sd, aliasName, aliasType);
+		return	new DropAliasConstantOperation(sd, aliasName, aliasType );
 	}
 
 	@Override
 	public ConstantAction getDropRoleConstantAction(String roleName) {
 	   	SpliceLogUtils.trace(LOG, "getDropRoleConstantAction for {%s}",roleName);
-		return super.getDropRoleConstantAction(roleName);
+		return new DropRoleConstantOperation(roleName);
 	}
 
 	@Override
 	public ConstantAction getDropSequenceConstantAction(SchemaDescriptor sd,String seqName) {
 	   	SpliceLogUtils.trace(LOG, "getDropSequenceConstantAction for {%s.%s}",(sd==null?"none":sd.getSchemaName()), seqName);
-		return super.getDropSequenceConstantAction(sd, seqName);
+		return new DropSequenceConstantOperation(sd, seqName);
 	}
 
 	@Override
 	public ConstantAction getDropSchemaConstantAction(String schemaName) {
 	   	SpliceLogUtils.trace(LOG, "getDropSchemaConstantAction for {%s}",schemaName);
-		return super.getDropSchemaConstantAction(schemaName);
+		return	new DropSchemaConstantOperation( schemaName );
 	}
 
 	@Override
@@ -237,14 +297,13 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
 			String tableName, SchemaDescriptor sd, long conglomerateNumber,
 			UUID tableId, int behavior) {
 	   	SpliceLogUtils.trace(LOG, "getDropTableConstantAction for {%s.%s}",(sd==null?"none":sd.getSchemaName()), tableName);
-		return super.getDropTableConstantAction(fullTableName, tableName, sd,
-				conglomerateNumber, tableId, behavior);
+		return	new DropTableConstantOperation( fullTableName, tableName, sd, conglomerateNumber, tableId, behavior );
 	}
 
 	@Override
 	public ConstantAction getDropViewConstantAction(String fullTableName, String tableName, SchemaDescriptor sd) {
 	   	SpliceLogUtils.trace(LOG, "getDropViewConstantAction for {%s.%s}",(sd==null?"none":sd.getSchemaName()), tableName);
-		return super.getDropViewConstantAction(fullTableName, tableName, sd);
+		return new DropViewConstantOperation( fullTableName, tableName, sd );
 	}
 
 	@Override
@@ -253,8 +312,8 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
 			SchemaDescriptor sd, UUID tableId, boolean usedAlterTable,
 			int renamingWhat) {
 	   	SpliceLogUtils.trace(LOG, "getRenameConstantAction for {%s.%s} with old {%s} and new {%s}",(sd==null?"none":sd.getSchemaName()), tableName, oldObjectName, newObjectName);
-		return super.getRenameConstantAction(fullTableName, tableName, oldObjectName,
-				newObjectName, sd, tableId, usedAlterTable, renamingWhat);
+		return	new RenameConstantOperation( fullTableName, tableName, oldObjectName, newObjectName,
+		sd, tableId, usedAlterTable, renamingWhat );
 	}
 
 	@Override
@@ -271,48 +330,59 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
 			Object[] ddlList, boolean singleRowSource,
 			RowLocation[] autoincRowLocation) throws StandardException {
 	   	SpliceLogUtils.trace(LOG, "getInsertConstantAction for {%s}",tableDescriptor);
-		return super.getInsertConstantAction(tableDescriptor, conglomId, heapSCOCI,
-				pkColumns, irgs, indexCIDS, indexSCOCIs, indexNames, deferred,
-				tableIsPublished, tableID, lockMode, insertToken, rowSignature,
-				targetProperties, fkInfo, triggerInfo, streamStorableHeapColIds,
-				indexedCols, dependencyId, stageControl, ddlList, singleRowSource,
-				autoincRowLocation);
+		return new InsertConstantOperation(tableDescriptor,
+				conglomId,
+				heapSCOCI,
+                pkColumns,
+				irgs,
+				indexCIDS,
+				indexSCOCIs,
+				indexNames,
+				deferred,
+				targetProperties,
+				tableID,
+				lockMode,
+				fkInfo,
+				triggerInfo,
+				streamStorableHeapColIds,
+				indexedCols,
+				singleRowSource,
+				autoincRowLocation
+				);
 	}
 
 	@Override
 	public ConstantAction getUpdatableVTIConstantAction(int statementType,boolean deferred) throws StandardException {
 	   	SpliceLogUtils.trace(LOG, "getUpdatableVTIConstantAction for {%d}",statementType);
-		return super.getUpdatableVTIConstantAction(statementType, deferred);
+		return new UpdatableVTIConstantAction( statementType, deferred, null);
 	}
 
 	@Override
 	public ConstantAction getUpdatableVTIConstantAction(int statementType,boolean deferred, int[] changedColumnIds) throws StandardException {
 	   	SpliceLogUtils.trace(LOG, "getUpdatableVTIConstantAction for {%d}",statementType);
-		return super.getUpdatableVTIConstantAction(statementType, deferred,
-				changedColumnIds);
+		return new UpdatableVTIConstantOperation( statementType, deferred, changedColumnIds);
 	}
 
 	@Override
 	public ConstantAction getLockTableConstantAction(String fullTableName,long conglomerateNumber, boolean exclusiveMode) {
 	   	SpliceLogUtils.trace(LOG, "getLockTableConstantAction for {%s}",fullTableName);
-		return super.getLockTableConstantAction(fullTableName, conglomerateNumber,
-				exclusiveMode);
+		return new LockTableConstantOperation(fullTableName, conglomerateNumber, exclusiveMode );
 	}
 
 	@Override
 	public ConstantAction getSetSchemaConstantAction(String schemaName, int type) {
 	   	SpliceLogUtils.trace(LOG, "getSetSchemaConstantAction for {%s}",schemaName);
-		return super.getSetSchemaConstantAction(schemaName, type);
+		return new SetSchemaConstantOperation( schemaName , type );
 	}
 
 	@Override
 	public ConstantAction getSetTransactionIsolationConstantAction(int isolationLevel) {
 	   	SpliceLogUtils.trace(LOG, "getSetTransactionIsolationConstantAction at {%d}",isolationLevel);
-		return super.getSetTransactionIsolationConstantAction(isolationLevel);
+		return new SetTransactionIsolationConstantOperation(isolationLevel);
 	}
 
 	@Override
-	public UpdateConstantAction getUpdateConstantAction(long conglomId,
+	public ConstantAction getUpdateConstantAction(long conglomId,
 			int tableType, StaticCompiledOpenConglomInfo heapSCOCI,
 			int[] pkColumns, IndexRowGenerator[] irgs, long[] indexCIDS,
 			StaticCompiledOpenConglomInfo[] indexSCOCIs, String[] indexNames,
@@ -324,12 +394,28 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
 			int numColumns, boolean positionedUpdate, boolean singleRowSource)
 			throws StandardException {
 	   	SpliceLogUtils.trace(LOG, "getUpdateConstantAction with triggerinfo {%s}",triggerInfo);
-		return super.getUpdateConstantAction(conglomId, tableType, heapSCOCI,
-				pkColumns, irgs, indexCIDS, indexSCOCIs, indexNames, emptyHeapRow,
-				deferred, targetUUID, lockMode, tableIsPublished, changedColumnIds,
-				keyPositions, updateToken, fkInfo, triggerInfo, baseRowReadList,
-				baseRowReadMap, streamStorableHeapColIds, numColumns, positionedUpdate,
-				singleRowSource);
+		return new UpdateConstantOperation(
+				conglomId,
+				heapSCOCI,
+                pkColumns,
+				irgs,
+				indexCIDS,
+				indexSCOCIs,
+				indexNames,
+				emptyHeapRow,
+				deferred,
+				targetUUID,
+				lockMode,
+				changedColumnIds,
+				fkInfo,
+				triggerInfo,
+				baseRowReadList,
+				baseRowReadMap,
+				streamStorableHeapColIds,
+				numColumns,
+				positionedUpdate,
+				singleRowSource
+				);
 	}
 
 	@Override
@@ -343,7 +429,7 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
 			boolean referencingOld, boolean referencingNew,
 			String oldReferencingName, String newReferencingName) {
 	   	SpliceLogUtils.trace(LOG, "getCreateTriggerConstantAction for trigger {%s.%s}",triggerSchemaName, triggerName);
-		return super.getCreateTriggerConstantAction(triggerSchemaName, triggerName,
+		return new CreateTriggerConstantOperation(triggerSchemaName, triggerName, 
 				eventMask, isBefore, isRow, isEnabled, triggerTable, whenSPSId,
 				whenText, actionSPSId, actionText, spsCompSchemaId, creationTimestamp,
 				referencedCols, referencedColsInTriggerAction, originalActionText,
@@ -353,41 +439,38 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
 	@Override
 	public ConstantAction getDropTriggerConstantAction(SchemaDescriptor sd, String triggerName, UUID tableId) {
 	   	SpliceLogUtils.trace(LOG, "getDropTriggerConstantAction for trigger {%s.%s}",(sd==null?"none":sd.getSchemaName()), triggerName);
-		return super.getDropTriggerConstantAction(sd, triggerName, tableId);
+		return new DropTriggerConstantOperation(sd, triggerName, tableId);
 	}
 
 	@Override
 	public ConstantAction getDropStatisticsConstantAction(SchemaDescriptor sd,
 			String fullTableName, String objectName, boolean forTable) {
 	   	SpliceLogUtils.trace(LOG, "getDropStatisticsConstantAction for trigger {%s.%s}",(sd==null?"none":sd.getSchemaName()), fullTableName);
-		return super.getDropStatisticsConstantAction(sd, fullTableName, objectName,
-				forTable);
+		return new DropStatisticsConstantOperation(sd, fullTableName, objectName, forTable);
 	}
 
 	@Override
 	public ConstantAction getGrantConstantAction(PrivilegeInfo privileges, List grantees) {
 	   	SpliceLogUtils.trace(LOG, "getGrantConstantAction for privileges {%s}",privileges);
-		return super.getGrantConstantAction(privileges, grantees);
+		return new GrantRevokeConstantOperation( true, privileges, grantees);
 	}
 
 	@Override
-	public ConstantAction getGrantRoleConstantAction(List roleNames,
-			List grantees) {
+	public ConstantAction getGrantRoleConstantAction(List roleNames, List grantees) {
 	   	SpliceLogUtils.trace(LOG, "getGrantRoleConstantAction for roles {%s} and grantees {%s}",roleNames, grantees);
-		return super.getGrantRoleConstantAction(roleNames, grantees);
+		return new GrantRoleConstantOperation(roleNames, grantees);
 	}
 
 	@Override
 	public ConstantAction getRevokeConstantAction(PrivilegeInfo privileges, List grantees) {
 	   	SpliceLogUtils.trace(LOG, "getRevokeConstantAction for privileges {%s} and grantees {%s}",privileges, grantees);
-		return super.getRevokeConstantAction(privileges, grantees);
+	   	return new GrantRevokeConstantOperation( false, privileges, grantees);
 	}
 
 	@Override
 	public ConstantAction getRevokeRoleConstantAction(List roleNames, List grantees) {
 	   	SpliceLogUtils.trace(LOG, "getRevokeRoleConstantAction for roles {%s} and grantees {%s}",roleNames, grantees);
-		return super.getRevokeRoleConstantAction(roleNames, grantees);
+	   	return new RevokeRoleConstantOperation(roleNames,grantees);
 	}
-    
     
 }
