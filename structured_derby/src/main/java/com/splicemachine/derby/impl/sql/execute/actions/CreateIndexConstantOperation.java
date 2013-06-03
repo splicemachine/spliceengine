@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-
 import org.apache.derby.catalog.UUID;
-import org.apache.derby.catalog.types.StatisticsImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -24,7 +22,6 @@ import org.apache.derby.iapi.sql.dictionary.DataDescriptorGenerator;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.StatisticsDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
@@ -34,8 +31,6 @@ import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.store.access.ConglomerateController;
 import org.apache.derby.iapi.store.access.GroupFetchScanController;
 import org.apache.derby.iapi.store.access.RowLocationRetRowSource;
-import org.apache.derby.iapi.store.access.SortController;
-import org.apache.derby.iapi.store.access.SortObserver;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -43,7 +38,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
-import org.apache.derby.impl.sql.execute.CardinalityCounter;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.derby.impl.sql.execute.IndexConstantAction;
 import org.apache.derby.impl.sql.execute.RowUtil;
@@ -270,12 +264,13 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 		if (td.getTableType() == TableDescriptor.SYSTEM_TABLE_TYPE) {
 			throw StandardException.newException(SQLState.LANG_CREATE_SYSTEM_INDEX_ATTEMPTED, indexName, tableName);
 		}
-
+	
 		// invalidate any prepared statements that
 		// depended on this table (including this one)
 		if (! forCreateTable)
 			dm.invalidateFor(td, DependencyManager.CREATE_INDEX, lcc);
 
+		SpliceLogUtils.trace(LOG, "Translation Base Column Names");
 		// Translate the base column names to column positions
 		baseColumnPositions = new int[columnNames.length];
 		for (int i = 0; i < columnNames.length; i++) {
@@ -469,6 +464,8 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 			indexProperties = new Properties();
 		}
 
+		SpliceLogUtils.trace(LOG, "Here XXX");
+		
 		// Tell it the conglomerate id of the base table
 		indexProperties.put("baseConglomerateId",Long.toString(td.getHeapConglomerateId()));
         
@@ -664,55 +661,21 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 
 			conglomId = tc.createConglomerate(indexType, indexTemplateRow.getRowArray(), order, indexRowGenerator.getColumnCollationIds(
                         td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT);
-			
-			
-	        SpliceLogUtils.debug(LOG,"Building the initial index");
-	        final long tableConglomId = td.getHeapConglomerateId();
-	        final String transactionId = getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute());
-	        HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
-	        JobFuture future = null;
-	        try{
-	            future = SpliceDriver.driver().getJobScheduler().submit(new CreateIndexJob(table,transactionId,conglomId,tableConglomId,baseColumnPositions,unique));
-	            future.completeAll();
-	        } catch (ExecutionException e) {
-	            throw Exceptions.parseException(e.getCause());
-	        } catch (InterruptedException e) {
-	            throw Exceptions.parseException(e);
-	        }finally{
-	            if(future!=null){
-	                try {
-	                    future.cleanup();
-	                } catch (ExecutionException e) {
-	                    throw Exceptions.parseException(e.getCause());
-	                }
-	            }
-	            try {
-	                table.close();
-	            } catch (IOException e) {
-	                SpliceLogUtils.warn(LOG,"Unable to close HTable",e);
-	            }
-	        }
-			
-		}
-		finally
-		{
+						
 
+		}
+		finally {
 			/* close the table scan */
 			if (scan != null)
 				scan.close();
-
 		}
 
-		ConglomerateController indexController =
-			tc.openConglomerate(
-                conglomId, false, 0, TransactionController.MODE_TABLE,
-                TransactionController.ISOLATION_SERIALIZABLE);
+		ConglomerateController indexController = tc.openConglomerate(conglomId, false, 0, TransactionController.MODE_TABLE,TransactionController.ISOLATION_SERIALIZABLE);
 
 		// Check to make sure that the conglomerate can be used as an index
 		if ( ! indexController.isKeyed()) {
 			indexController.close();
-			throw StandardException.newException(SQLState.LANG_NON_KEYED_INDEX, indexName,
-														   indexType);
+			throw StandardException.newException(SQLState.LANG_NON_KEYED_INDEX, indexName,indexType);
 		}
 		indexController.close();
 
@@ -720,15 +683,13 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 		// Create a conglomerate descriptor with the conglomId filled
 		// in and add it--if we don't have one already.
 		//
-		if (!alreadyHaveConglomDescriptor) {
-			ConglomerateDescriptor cgd =
-				ddg.newConglomerateDescriptor(
-					conglomId, indexName, true,
-					indexRowGenerator, isConstraint,
-					conglomerateUUID, td.getUUID(), sd.getUUID() );
+        SpliceLogUtils.trace(LOG,"Huh?");
 
-			dd.addDescriptor(cgd, sd,
-				DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
+		if (!alreadyHaveConglomDescriptor) {
+	        SpliceLogUtils.trace(LOG,"! Conglom Descriptor");
+			
+			ConglomerateDescriptor cgd = ddg.newConglomerateDescriptor(conglomId, indexName, true, indexRowGenerator, isConstraint, conglomerateUUID, td.getUUID(), sd.getUUID() );
+			dd.addDescriptor(cgd, sd,DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
 
 			// add newly added conglomerate to the list of conglomerate
 			// descriptors in the td.
@@ -743,25 +704,50 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 			conglomerateUUID = cgd.getUUID();
 		}
 
+		
+        final long tableConglomId = td.getHeapConglomerateId();
+        final String transactionId = getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute());
+        HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
+        JobFuture future = null;
+        try{
+            future = SpliceDriver.driver().getJobScheduler().submit(new CreateIndexJob(table,transactionId,conglomId,tableConglomId,baseColumnPositions,unique));
+            future.completeAll();
+        } catch (ExecutionException e) {
+        	e.printStackTrace();
+            throw Exceptions.parseException(e.getCause());
+        } catch (InterruptedException e) {
+        	e.printStackTrace();
+            throw Exceptions.parseException(e);
+        }finally {
+            if (future!=null) {
+                try {
+                    future.cleanup();
+                } catch (ExecutionException e) {
+    	        	e.printStackTrace();
+                    throw Exceptions.parseException(e.getCause());
+                }
+            }
+            try {
+                table.close();
+            } catch (IOException e) {
+                SpliceLogUtils.warn(LOG,"Unable to close HTable",e);
+            }
+        }
+        
+		/*
 		CardinalityCounter cCount = (CardinalityCounter)rowSource;
 
         long numRows = cCount.getRowCount();
-        if (addStatistics(dd, indexRowGenerator, numRows))
-		{
+        if (addStatistics(dd, indexRowGenerator, numRows)) {
+            SpliceLogUtils.trace(LOG,"In if?");
 			long[] c = cCount.getCardinality();
-			for (int i = 0; i < c.length; i++)
-			{
+			for (int i = 0; i < c.length; i++) {
 				StatisticsDescriptor statDesc = 
-					new StatisticsDescriptor(dd,
-						dd.getUUIDFactory().createUUID(),
-						conglomerateUUID, td.getUUID(), "I",
-						new StatisticsImpl(numRows, c[i]), i + 1);
-
-				dd.addDescriptor(statDesc, null, 
-								 DataDictionary.SYSSTATISTICS_CATALOG_NUM,
-								 true, tc);
+					new StatisticsDescriptor(dd, dd.getUUIDFactory().createUUID(), conglomerateUUID, td.getUUID(), "I",new StatisticsImpl(numRows, c[i]), i + 1);
+				dd.addDescriptor(statDesc, null, DataDictionary.SYSSTATISTICS_CATALOG_NUM, true, tc);
 			}
 		}
+		*/        
 	}
 
     /**

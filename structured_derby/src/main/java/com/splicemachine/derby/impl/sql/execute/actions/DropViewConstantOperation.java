@@ -10,6 +10,9 @@ import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.dictionary.ViewDescriptor;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  *	This class  describes actions that are ALWAYS performed for a
@@ -18,6 +21,7 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
  */
 
 public class DropViewConstantOperation extends DDLConstantOperation {
+	private static final Logger LOG = Logger.getLogger(DropViewConstantOperation.class);
 	private String fullTableName;
 	private String tableName;
 	private SchemaDescriptor sd;
@@ -32,6 +36,7 @@ public class DropViewConstantOperation extends DDLConstantOperation {
 	 *
 	 */
 	public DropViewConstantOperation(String fullTableName,String tableName, SchemaDescriptor sd) {
+		SpliceLogUtils.trace(LOG, "DropViewConstantOperation fullTableName %s, tableName %s, schemaName %s",fullTableName, tableName, sd.getSchemaName());
 		this.fullTableName = fullTableName;
 		this.tableName = tableName;
 		this.sd = sd;
@@ -51,6 +56,7 @@ public class DropViewConstantOperation extends DDLConstantOperation {
 	 * @exception StandardException		Thrown on failure
 	 */
 	public void	executeConstantAction( Activation activation ) throws StandardException {
+		SpliceLogUtils.trace(LOG, "executeConstantAction for activation %s",activation);
 		TableDescriptor td;
 		ViewDescriptor vd;
 

@@ -43,37 +43,7 @@ public class LockTableConstantOperation implements ConstantAction {
 	 * @exception StandardException		Thrown on failure
 	 */
 	public void	executeConstantAction( Activation activation ) throws StandardException {
-		ConglomerateController	cc;
-		TransactionController	tc;
-
-		/* Get a ConglomerateController for the base conglomerate */
-		tc = activation.getTransactionController();
-
-		try
-		{
-			cc = tc.openConglomerate(
-	                conglomerateNumber,
-                    false,
-					(exclusiveMode) ?
-						(TransactionController.OPENMODE_FORUPDATE | 
-							TransactionController.OPENMODE_FOR_LOCK_ONLY) :
-						TransactionController.OPENMODE_FOR_LOCK_ONLY,
-			        TransactionController.MODE_TABLE,
-                    TransactionController.ISOLATION_SERIALIZABLE);
-			cc.close();
-		}
-		catch (StandardException se)
-		{
-			String msgId = se.getMessageId();
-            if (se.isLockTimeoutOrDeadlock())
-            {
-				String mode = (exclusiveMode) ? "EXCLUSIVE" : "SHARE";
-				se = StandardException.newException(
-                        SQLState.LANG_CANT_LOCK_TABLE, se, fullTableName, mode);
-			}
-
-			throw se;
-		}
+		throw StandardException.newException(SQLState.LANG_CANT_LOCK_TABLE, fullTableName, (exclusiveMode) ? "EXCLUSIVE" : "SHARE");
 	}
 }
 

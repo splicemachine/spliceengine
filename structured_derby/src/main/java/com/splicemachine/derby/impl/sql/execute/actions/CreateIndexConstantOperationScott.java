@@ -12,7 +12,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
@@ -22,7 +21,6 @@ import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
@@ -40,7 +38,6 @@ import java.util.concurrent.ExecutionException;
 public class CreateIndexConstantOperationScott extends IndexConstantOperation implements ConstantAction {
     private static final long serialVersionUID = 1l;
     private static final Logger LOG = Logger.getLogger(CreateIndexConstantOperationScott.class);
-
 
     private String[] columnNames;
     private boolean[] ascending;
@@ -194,7 +191,7 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
             throw Exceptions.parseException(e.getCause());
         } catch (InterruptedException e) {
             throw Exceptions.parseException(e);
-        }finally{
+        } finally {
             if(future!=null){
                 try {
                     future.cleanup();
@@ -215,18 +212,14 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
         return SpliceUtils.getTransID(td);
     }
 
-    private TableDescriptor getActiveTableDescriptor(Activation activation,
-                                                     DataDictionary dd,
-                                                     LanguageConnectionContext lcc)
-            throws StandardException {
+    private TableDescriptor getActiveTableDescriptor(Activation activation, DataDictionary dd, LanguageConnectionContext lcc) throws StandardException {
         TableDescriptor td = activation.getDDLTableDescriptor();
         TransactionController tc = lcc.getTransactionExecute();
         if(td ==null){
-            if(tableId!=null){
+            if(tableId!=null) 
                 td = dd.getTableDescriptor(tableId);
-            }else
-                td = dd.getTableDescriptor(tableName,
-                        dd.getSchemaDescriptor(schemaName,tc,true),tc);
+             else
+                td = dd.getTableDescriptor(tableName, dd.getSchemaDescriptor(schemaName,tc,true),tc);
         }
         return td;
     }
@@ -234,15 +227,13 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
     private int[] getIndexToBaseTableMap(TableDescriptor td) throws StandardException {
         int[] indexPosMap = new int[columnNames.length];
         int pos=0;
-        for(String columnName:columnNames){
+        for(String columnName:columnNames) {
             ColumnDescriptor columnDescriptor = td.getColumnDescriptor(columnName);
             if(columnDescriptor==null)
                 throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE,columnName,tableName);
-
             indexPosMap[pos] = columnDescriptor.getPosition();
             pos++;
         }
-
         return indexPosMap;
     }
 
