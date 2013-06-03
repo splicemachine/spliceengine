@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
@@ -77,7 +78,7 @@ public class SITransactorTest extends SIConstants {
     public void tearDown() throws Exception {
     }
 
-    private void insertAge(TransactionId transactionId, String name, int age) throws IOException {
+    private void insertAge(TransactionId transactionId, String name, Integer age) throws IOException {
         insertAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, age);
     }
 
@@ -101,12 +102,14 @@ public class SITransactorTest extends SIConstants {
         return scanNoColumnsDirect(useSimple, transactorSetup, storeSetup, transactionId, name, deleted);
     }
 
-    private String scanAll(TransactionId transactionId, String startKey, String stopKey, Integer filterValue) throws IOException {
-        return scanAllDirect(useSimple, transactorSetup, storeSetup, transactionId, startKey, stopKey, filterValue);
+    private String scanAll(TransactionId transactionId, String startKey, String stopKey, Integer filterValue,
+                           boolean includeSIColumn) throws IOException {
+        return scanAllDirect(useSimple, transactorSetup, storeSetup, transactionId, startKey, stopKey, filterValue,
+                includeSIColumn);
     }
 
     static void insertAgeDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
-                                TransactionId transactionId, String name, int age) throws IOException {
+                                TransactionId transactionId, String name, Integer age) throws IOException {
         insertField(useSimple, transactorSetup, storeSetup, transactionId, name, transactorSetup.ageQualifier, age);
     }
 
@@ -123,7 +126,9 @@ public class SITransactorTest extends SIConstants {
 
         Object key = dataLib.newRowKey(new Object[]{name});
         Object put = dataLib.newPut(key);
-        dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
+        if (fieldValue != null) {
+            dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
+        }
         transactorSetup.clientTransactor.initializePut(transactionId.getTransactionIdString(), put);
 
         processPutDirect(useSimple, transactorSetup, storeSetup, reader, put);
@@ -161,11 +166,11 @@ public class SITransactorTest extends SIConstants {
 
         Object key = dataLib.newRowKey(new Object[]{name});
         SGet get = dataLib.newGet(key, null, null, null);
-        transactorSetup.clientTransactor.initializeGet(transactionId.getTransactionIdString(), get);
+        transactorSetup.clientTransactor.initializeGet(transactionId.getTransactionIdString(), get, true);
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Object rawTuple = reader.get(testSTable, get);
-            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, true, false);
+            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, true, true);
         } finally {
             reader.close(testSTable);
         }
@@ -178,14 +183,14 @@ public class SITransactorTest extends SIConstants {
 
         Object key = dataLib.newRowKey(new Object[]{name});
         SScan get = dataLib.newScan(key, key, null, null, null);
-        transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), get);
+        transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), get, true);
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Iterator results = reader.scan(testSTable, get);
             Assert.assertTrue(results.hasNext());
             Object rawTuple = results.next();
             Assert.assertTrue(!results.hasNext());
-            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, false, false);
+            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, false, true);
         } finally {
             reader.close(testSTable);
         }
@@ -216,7 +221,8 @@ public class SITransactorTest extends SIConstants {
     }
 
     static String scanAllDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
-                                TransactionId transactionId, String startKey, String stopKey, Integer filterValue) throws IOException {
+                                TransactionId transactionId, String startKey, String stopKey, Integer filterValue,
+                                boolean includeSIColumn) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
@@ -233,7 +239,7 @@ public class SITransactorTest extends SIConstants {
             filter.setFilterIfMissing(true);
             scan.setFilter(filter);
         }
-        transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), get);
+        transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), get, includeSIColumn);
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Iterator results = reader.scan(testSTable, get);
@@ -241,7 +247,8 @@ public class SITransactorTest extends SIConstants {
             while (results.hasNext()) {
                 final Object value = results.next();
                 final String name = (String) dataLib.decode(dataLib.getResultKey(value), String.class);
-                final String s = readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, value, false, false);
+                final String s = readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, value, false,
+                        includeSIColumn);
                 result.append(s);
                 if (s.length() > 0) {
                     result.append("\n");
@@ -267,13 +274,17 @@ public class SITransactorTest extends SIConstants {
                     throw new RuntimeException(e);
                 }
                 result = transactorSetup.transactor.filterResult(filterState, rawTuple);
+            } else {
+                if (((Result) result).size() == 0) {
+                    return name + " absent";
+                }
             }
             if (result != null) {
                 return resultToStringDirect(transactorSetup, name, dataLib, result);
             }
         }
         if (singleRowRead) {
-            return name + " age=" + null + " job=" + null;
+            return name + " absent";
         } else {
             return "";
         }
@@ -304,7 +315,7 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void writeRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe9 age=null job=null", read(t1, "joe9"));
+        Assert.assertEquals("joe9 absent", read(t1, "joe9"));
         insertAge(t1, "joe9", 20);
         Assert.assertEquals("joe9 age=20 job=null", read(t1, "joe9"));
         transactor.commit(t1);
@@ -316,15 +327,15 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void writeReadOverlap() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe8 age=null job=null", read(t1, "joe8"));
+        Assert.assertEquals("joe8 absent", read(t1, "joe8"));
         insertAge(t1, "joe8", 20);
         Assert.assertEquals("joe8 age=20 job=null", read(t1, "joe8"));
 
         TransactionId t2 = transactor.beginTransaction();
         Assert.assertEquals("joe8 age=20 job=null", read(t1, "joe8"));
-        Assert.assertEquals("joe8 age=null job=null", read(t2, "joe8"));
+        Assert.assertEquals("joe8 absent", read(t2, "joe8"));
         transactor.commit(t1);
-        Assert.assertEquals("joe8 age=null job=null", read(t2, "joe8"));
+        Assert.assertEquals("joe8 absent", read(t2, "joe8"));
     }
 
     @Test
@@ -344,13 +355,13 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void writeWriteOverlap() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe2 age=null job=null", read(t1, "joe2"));
+        Assert.assertEquals("joe2 absent", read(t1, "joe2"));
         insertAge(t1, "joe2", 20);
         Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
 
         TransactionId t2 = transactor.beginTransaction();
         Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
-        Assert.assertEquals("joe2 age=null job=null", read(t2, "joe2"));
+        Assert.assertEquals("joe2 absent", read(t2, "joe2"));
         try {
             insertAge(t2, "joe2", 30);
             Assert.fail();
@@ -388,7 +399,7 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void writeScan() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe4 age=null job=null", read(t1, "joe4"));
+        Assert.assertEquals("joe4 absent", read(t1, "joe4"));
         insertAge(t1, "joe4", 20);
         Assert.assertEquals("joe4 age=20 job=null", read(t1, "joe4"));
         transactor.commit(t1);
@@ -440,7 +451,7 @@ public class SITransactorTest extends SIConstants {
                 "17boe age=40 job=null\n" +
                 "17joe age=20 job=null\n" +
                 "17tom age=50 job=null\n";
-        Assert.assertEquals(expected, scanAll(t2, "17a", "17z", null));
+        Assert.assertEquals(expected, scanAll(t2, "17a", "17z", null, false));
     }
 
     @Test
@@ -455,7 +466,7 @@ public class SITransactorTest extends SIConstants {
         TransactionId t2 = transactor.beginTransaction();
         String expected = "91boe age=40 job=null\n";
         if (!useSimple) {
-            Assert.assertEquals(expected, scanAll(t2, "91a", "91z", 40));
+            Assert.assertEquals(expected, scanAll(t2, "91a", "91z", 40, false));
         }
     }
 
@@ -474,7 +485,7 @@ public class SITransactorTest extends SIConstants {
         TransactionId t3 = transactor.beginTransaction();
         String expected = "92boe age=40 job=null\n";
         if (!useSimple) {
-            Assert.assertEquals(expected, scanAll(t3, "92a", "92z", 40));
+            Assert.assertEquals(expected, scanAll(t3, "92a", "92z", 40, false));
         }
     }
 
@@ -498,7 +509,7 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void multipleWritesSameTransaction() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe16 age=null job=null", read(t1, "joe16"));
+        Assert.assertEquals("joe16 absent", read(t1, "joe16"));
         insertAge(t1, "joe16", 20);
         Assert.assertEquals("joe16 age=20 job=null", read(t1, "joe16"));
 
@@ -570,7 +581,7 @@ public class SITransactorTest extends SIConstants {
         TransactionId t2 = transactor.beginTransaction();
         Assert.assertEquals("joe10 age=20 job=null", read(t2, "joe10"));
         deleteRow(t2, "joe10");
-        Assert.assertEquals("joe10 age=null job=null", read(t2, "joe10"));
+        Assert.assertEquals("joe10 absent", read(t2, "joe10"));
         transactor.commit(t2);
     }
 
@@ -585,7 +596,7 @@ public class SITransactorTest extends SIConstants {
         transactor.commit(t2);
 
         TransactionId t3 = transactor.beginTransaction();
-        Assert.assertEquals("joe11 age=null job=null", read(t3, "joe11"));
+        Assert.assertEquals("joe11 absent", read(t3, "joe11"));
         transactor.commit(t3);
     }
 
@@ -617,7 +628,7 @@ public class SITransactorTest extends SIConstants {
 
         TransactionId t4 = transactor.beginTransaction();
         deleteRow(t4, "joe93");
-        Assert.assertEquals("joe93 age=null job=null", read(t4, "joe93"));
+        Assert.assertEquals("joe93 absent", read(t4, "joe93"));
         transactor.commit(t4);
     }
 
@@ -672,7 +683,7 @@ public class SITransactorTest extends SIConstants {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
         }
-        Assert.assertEquals("joe13 age=null job=null", read(t1, "joe13"));
+        Assert.assertEquals("joe13 absent", read(t1, "joe13"));
         transactor.commit(t1);
         try {
             transactor.commit(t2);
@@ -682,7 +693,7 @@ public class SITransactorTest extends SIConstants {
         }
 
         TransactionId t3 = transactor.beginTransaction();
-        Assert.assertEquals("joe13 age=null job=null", read(t3, "joe13"));
+        Assert.assertEquals("joe13 absent", read(t3, "joe13"));
         transactor.commit(t3);
     }
 
@@ -760,7 +771,7 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("joe47 age=20 job=null", read(t3, "joe47"));
         Assert.assertEquals("toe47 age=30 job=null", read(t3, "toe47"));
         Assert.assertEquals("boe47 age=40 job=null", read(t3, "boe47"));
-        Assert.assertEquals("moe47 age=null job=null", read(t3, "moe47"));
+        Assert.assertEquals("moe47 absent", read(t3, "moe47"));
         Assert.assertEquals("zoe47 age=60 job=null", read(t3, "zoe47"));
     }
 
@@ -783,7 +794,74 @@ public class SITransactorTest extends SIConstants {
                 "48joe age=20 job=null\n" +
                 "48toe age=30 job=null\n" +
                 "48xoe age=60 job=null\n";
-        Assert.assertEquals(expected, scanAll(t3, "48a", "48z", null));
+        Assert.assertEquals(expected, scanAll(t3, "48a", "48z", null, false));
+    }
+
+    @Test
+    public void writeManyDeleteOneScanWithIncludeSIColumn() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "110joe", 20);
+        insertAge(t1, "110toe", 30);
+        insertAge(t1, "110boe", 40);
+        insertAge(t1, "110moe", 50);
+        insertAge(t1, "110xoe", 60);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        deleteRow(t2, "110moe");
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction();
+        String expected = "110boe age=40 job=null\n" +
+                "110joe age=20 job=null\n" +
+                "110toe age=30 job=null\n" +
+                "110xoe age=60 job=null\n";
+        Assert.assertEquals(expected, scanAll(t3, "110a", "110z", null, true));
+    }
+
+    @Test
+    public void writeManyWithOneAllNullsDeleteOneScan() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "112joe", 20);
+        insertAge(t1, "112toe", 30);
+        insertAge(t1, "112boe", null);
+        dumpStore();
+        insertAge(t1, "112moe", 50);
+        insertAge(t1, "112xoe", 60);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        deleteRow(t2, "112moe");
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction();
+        String expected = "112joe age=20 job=null\n" +
+                "112toe age=30 job=null\n" +
+                "112xoe age=60 job=null\n";
+        Assert.assertEquals(expected, scanAll(t3, "112a", "112z", null, false));
+    }
+
+    @Test
+    public void writeManyWithOneAllNullsDeleteOneScanWithIncludeSIColumn() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "111joe", 20);
+        insertAge(t1, "111toe", 30);
+        insertAge(t1, "111boe", null);
+        dumpStore();
+        insertAge(t1, "111moe", 50);
+        insertAge(t1, "111xoe", 60);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        deleteRow(t2, "111moe");
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction();
+        String expected = "111boe age=null job=null\n" +
+                "111joe age=20 job=null\n" +
+                "111toe age=30 job=null\n" +
+                "111xoe age=60 job=null\n";
+        Assert.assertEquals(expected, scanAll(t3, "111a", "111z", null, true));
     }
 
     @Test
@@ -795,11 +873,11 @@ public class SITransactorTest extends SIConstants {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe81", 20);
         deleteRow(t1, "joe81");
-        Assert.assertEquals("joe81 age=null job=null", read(t1, "joe81"));
+        Assert.assertEquals("joe81 absent", read(t1, "joe81"));
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe81 age=null job=null", read(t2, "joe81"));
+        Assert.assertEquals("joe81 absent", read(t2, "joe81"));
         transactor.commit(t2);
     }
 
@@ -873,7 +951,7 @@ public class SITransactorTest extends SIConstants {
 
         TransactionId t2 = transactor.beginTransaction(false, false, true);
 
-        Assert.assertEquals("joe20 age=null job=null", read(t2, "joe20"));
+        Assert.assertEquals("joe20 absent", read(t2, "joe20"));
         transactor.commit(t1);
         Assert.assertEquals("joe20 age=20 job=null", read(t2, "joe20"));
     }
@@ -940,15 +1018,15 @@ public class SITransactorTest extends SIConstants {
         TransactionId t2 = transactor.beginChildTransaction(t1, true);
         insertAge(t2, "moe24", 21);
         Assert.assertEquals("joe24 age=20 job=null", read(t1, "joe24"));
-        Assert.assertEquals("moe24 age=null job=null", read(t1, "moe24"));
+        Assert.assertEquals("moe24 absent", read(t1, "moe24"));
         transactor.rollback(t2);
         Assert.assertEquals("joe24 age=20 job=null", read(t1, "joe24"));
-        Assert.assertEquals("moe24 age=null job=null", read(t1, "moe24"));
+        Assert.assertEquals("moe24 absent", read(t1, "moe24"));
         transactor.commit(t1);
 
         TransactionId t3 = transactor.beginTransaction(false);
         Assert.assertEquals("joe24 age=20 job=null", read(t3, "joe24"));
-        Assert.assertEquals("moe24 age=null job=null", read(t3, "moe24"));
+        Assert.assertEquals("moe24 absent", read(t3, "moe24"));
     }
 
     @Test
@@ -977,12 +1055,12 @@ public class SITransactorTest extends SIConstants {
         TransactionId t2 = transactor.beginChildTransaction(t1, true);
         insertAge(t2, "moe25", 21);
         Assert.assertEquals("joe25 age=20 job=null", read(t1, "joe25"));
-        Assert.assertEquals("moe25 age=null job=null", read(t1, "moe25"));
+        Assert.assertEquals("moe25 absent", read(t1, "moe25"));
         transactor.commit(t2);
 
         TransactionId t3 = transactor.beginTransaction(false);
-        Assert.assertEquals("joe25 age=null job=null", read(t3, "joe25"));
-        Assert.assertEquals("moe25 age=null job=null", read(t3, "moe25"));
+        Assert.assertEquals("joe25 absent", read(t3, "joe25"));
+        Assert.assertEquals("moe25 absent", read(t3, "moe25"));
 
         Assert.assertEquals("joe25 age=20 job=null", read(t1, "joe25"));
         Assert.assertEquals("moe25 age=21 job=null", read(t1, "moe25"));
@@ -1020,24 +1098,24 @@ public class SITransactorTest extends SIConstants {
         insertAge(t2, "moe26", 21);
         insertJob(t3, "boe26", "baker");
         Assert.assertEquals("joe26 age=20 job=null", read(t1, "joe26"));
-        Assert.assertEquals("moe26 age=null job=null", read(t1, "moe26"));
-        Assert.assertEquals("boe26 age=null job=null", read(t1, "boe26"));
+        Assert.assertEquals("moe26 absent", read(t1, "moe26"));
+        Assert.assertEquals("boe26 absent", read(t1, "boe26"));
         transactor.commit(t2);
 
         TransactionId t4 = transactor.beginTransaction(false);
-        Assert.assertEquals("joe26 age=null job=null", read(t4, "joe26"));
-        Assert.assertEquals("moe26 age=null job=null", read(t4, "moe26"));
-        Assert.assertEquals("boe26 age=null job=null", read(t4, "boe26"));
+        Assert.assertEquals("joe26 absent", read(t4, "joe26"));
+        Assert.assertEquals("moe26 absent", read(t4, "moe26"));
+        Assert.assertEquals("boe26 absent", read(t4, "boe26"));
 
         Assert.assertEquals("joe26 age=20 job=null", read(t1, "joe26"));
         Assert.assertEquals("moe26 age=21 job=null", read(t1, "moe26"));
-        Assert.assertEquals("boe26 age=null job=null", read(t1, "boe26"));
+        Assert.assertEquals("boe26 absent", read(t1, "boe26"));
         transactor.commit(t3);
 
         TransactionId t5 = transactor.beginTransaction(false);
-        Assert.assertEquals("joe26 age=null job=null", read(t5, "joe26"));
-        Assert.assertEquals("moe26 age=null job=null", read(t5, "moe26"));
-        Assert.assertEquals("boe26 age=null job=null", read(t5, "boe26"));
+        Assert.assertEquals("joe26 absent", read(t5, "joe26"));
+        Assert.assertEquals("moe26 absent", read(t5, "moe26"));
+        Assert.assertEquals("boe26 absent", read(t5, "boe26"));
 
         Assert.assertEquals("joe26 age=20 job=null", read(t1, "joe26"));
         Assert.assertEquals("moe26 age=21 job=null", read(t1, "moe26"));
@@ -1078,8 +1156,8 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("joe45 age=24 job=null", read(t4, "joe45"));
 
         TransactionId t5 = transactor.beginTransaction(false, false, true);
-        Assert.assertEquals("joe45 age=null job=null", read(t5, "joe45"));
-        Assert.assertEquals("boe45 age=null job=null", read(t5, "boe45"));
+        Assert.assertEquals("joe45 absent", read(t5, "joe45"));
+        Assert.assertEquals("boe45 absent", read(t5, "boe45"));
         transactor.commit(t1);
         Assert.assertEquals("joe45 age=24 job=null", read(t5, "joe45"));
         Assert.assertEquals("boe45 age=19 job=null", read(t5, "boe45"));
@@ -1095,7 +1173,7 @@ public class SITransactorTest extends SIConstants {
         transactor.rollback(t1);
         // @TODO: it should not be possible to start a child on a rolled back transaction
         TransactionId t3 = transactor.beginChildTransaction(t1, true);
-        Assert.assertEquals("joe46 age=null job=null", read(t3, "joe46"));
+        Assert.assertEquals("joe46 absent", read(t3, "joe46"));
         Assert.assertEquals("moe46 age=null job=baker", read(t3, "moe46"));
     }
 
@@ -1109,8 +1187,8 @@ public class SITransactorTest extends SIConstants {
         transactor.rollback(t1);
 
         TransactionId t4 = transactor.beginTransaction(false);
-        Assert.assertEquals("joe27 age=null job=null", read(t4, "joe27"));
-        Assert.assertEquals("moe27 age=null job=null", read(t4, "moe27"));
+        Assert.assertEquals("joe27 absent", read(t4, "joe27"));
+        Assert.assertEquals("moe27 absent", read(t4, "moe27"));
     }
 
     @Test
@@ -1201,7 +1279,7 @@ public class SITransactorTest extends SIConstants {
         transactor.rollback(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe44 age=null job=null", read(t2, "joe44"));
+        Assert.assertEquals("joe44 absent", read(t2, "joe44"));
     }
 
     @Test
@@ -1256,15 +1334,15 @@ public class SITransactorTest extends SIConstants {
         insertAge(t3, "joe54", 20);
         Assert.assertEquals("joe54 age=20 job=null", read(t3, "joe54"));
         transactor.rollback(t3);
-        Assert.assertEquals("joe54 age=null job=null", read(t2, "joe54"));
+        Assert.assertEquals("joe54 absent", read(t2, "joe54"));
         insertAge(t2, "boe54", 21);
         Assert.assertEquals("boe54 age=21 job=null", read(t2, "boe54"));
         transactor.commit(t2);
-        Assert.assertEquals("joe54 age=null job=null", read(t1, "joe54"));
+        Assert.assertEquals("joe54 absent", read(t1, "joe54"));
         Assert.assertEquals("boe54 age=21 job=null", read(t1, "boe54"));
         transactor.commit(t1);
         TransactionId t4 = transactor.beginTransaction(false);
-        Assert.assertEquals("joe54 age=null job=null", read(t4, "joe54"));
+        Assert.assertEquals("joe54 absent", read(t4, "joe54"));
         Assert.assertEquals("boe54 age=21 job=null", read(t4, "boe54"));
     }
 
@@ -1307,7 +1385,7 @@ public class SITransactorTest extends SIConstants {
         deleteRow(t2, "joe109");
         transactor.commit(t2);
         deleteRow(t1, "joe109");
-        Assert.assertEquals("joe109 age=null job=null", read(t1, "joe109"));
+        Assert.assertEquals("joe109 absent", read(t1, "joe109"));
         insertAge(t1, "joe109", 21);
         Assert.assertEquals("joe109 age=21 job=null", read(t1, "joe109"));
     }
@@ -1411,12 +1489,12 @@ public class SITransactorTest extends SIConstants {
         insertAge(t2, "boe55", 21);
         Assert.assertEquals("boe55 age=21 job=null", read(t2, "boe55"));
         transactor.rollback(t2);
-        Assert.assertEquals("joe55 age=null job=null", read(t1, "joe55"));
-        Assert.assertEquals("boe55 age=null job=null", read(t1, "boe55"));
+        Assert.assertEquals("joe55 absent", read(t1, "joe55"));
+        Assert.assertEquals("boe55 absent", read(t1, "boe55"));
         transactor.commit(t1);
         TransactionId t4 = transactor.beginTransaction(false);
-        Assert.assertEquals("joe55 age=null job=null", read(t4, "joe55"));
-        Assert.assertEquals("boe55 age=null job=null", read(t4, "boe55"));
+        Assert.assertEquals("joe55 absent", read(t4, "joe55"));
+        Assert.assertEquals("boe55 absent", read(t4, "boe55"));
     }
 
     @Test
@@ -1463,8 +1541,8 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("doe60 age=22 job=null", read(t1, "doe60"));
         transactor.rollback(t1);
         TransactionId t4 = transactor.beginTransaction(false);
-        Assert.assertEquals("joe60 age=null job=null", read(t4, "joe60"));
-        Assert.assertEquals("boe60 age=null job=null", read(t4, "boe60"));
+        Assert.assertEquals("joe60 absent", read(t4, "joe60"));
+        Assert.assertEquals("boe60 absent", read(t4, "boe60"));
     }
 
     @Test
@@ -1484,8 +1562,8 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("boe56 age=21 job=null", read(t1, "boe56"));
         transactor.rollback(t1);
         TransactionId t4 = transactor.beginTransaction(false);
-        Assert.assertEquals("joe56 age=null job=null", read(t4, "joe56"));
-        Assert.assertEquals("boe56 age=null job=null", read(t4, "boe56"));
+        Assert.assertEquals("joe56 absent", read(t4, "joe56"));
+        Assert.assertEquals("boe56 absent", read(t4, "boe56"));
     }
 
     @Ignore
@@ -1657,7 +1735,7 @@ public class SITransactorTest extends SIConstants {
             if (commitRollBackOrFail.equals("commit")) {
                 Assert.assertEquals(testRow + " age=20 job=null", read(t2, testRow));
             } else {
-                Assert.assertEquals(testRow + " age=null job=null", read(t2, testRow));
+                Assert.assertEquals(testRow + " absent", read(t2, testRow));
             }
             if (conflictingWrite) {
                 try {
@@ -1762,7 +1840,7 @@ public class SITransactorTest extends SIConstants {
             if (commit) {
                 Assert.assertEquals(testRow + " age=20 job=null", read(t2, testRow));
             } else {
-                Assert.assertEquals(testRow + " age=null job=null", read(t2, testRow));
+                Assert.assertEquals(testRow + " absent", read(t2, testRow));
             }
             Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
 
@@ -2376,11 +2454,11 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
-    public void childIndependentReadOnlyDoesNotSeeParentWrites() throws IOException {
+    public void childIndependentReadOnlySeesParentWrites() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe96", 20);
         final TransactionId t2 = transactor.beginChildTransaction(t1, false, false);
-        Assert.assertEquals("joe96 age=null job=null", read(t2, "joe96"));
+        Assert.assertEquals("joe96 age=20 job=null", read(t2, "joe96"));
     }
 
     @Test
@@ -2478,15 +2556,15 @@ public class SITransactorTest extends SIConstants {
         TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
         insertAge(t2, "moe28", 21);
         Assert.assertEquals("joe28 age=20 job=null", read(t1, "joe28"));
-        Assert.assertEquals("moe28 age=null job=null", read(t1, "moe28"));
+        Assert.assertEquals("moe28 absent", read(t1, "moe28"));
         transactor.rollback(t2);
         Assert.assertEquals("joe28 age=20 job=null", read(t1, "joe28"));
-        Assert.assertEquals("moe28 age=null job=null", read(t1, "moe28"));
+        Assert.assertEquals("moe28 absent", read(t1, "moe28"));
         transactor.commit(t1);
 
         TransactionId t3 = transactor.beginTransaction(false);
         Assert.assertEquals("joe28 age=20 job=null", read(t3, "joe28"));
-        Assert.assertEquals("moe28 age=null job=null", read(t3, "moe28"));
+        Assert.assertEquals("moe28 absent", read(t3, "moe28"));
     }
 
     @Test
@@ -2498,8 +2576,8 @@ public class SITransactorTest extends SIConstants {
         insertAge(t2, "moe31", 21);
         insertJob(t3, "boe31", "baker");
         Assert.assertEquals("joe31 age=20 job=null", read(t1, "joe31"));
-        Assert.assertEquals("moe31 age=null job=null", read(t1, "moe31"));
-        Assert.assertEquals("boe31 age=null job=null", read(t1, "boe31"));
+        Assert.assertEquals("moe31 absent", read(t1, "moe31"));
+        Assert.assertEquals("boe31 absent", read(t1, "boe31"));
         transactor.commit(t2);
 
         TransactionId t4 = transactor.beginTransaction(false);
@@ -2508,7 +2586,7 @@ public class SITransactorTest extends SIConstants {
         transactor.commit(t3);
 
         TransactionId t5 = transactor.beginTransaction(false);
-        Assert.assertEquals("joe31 age=null job=null", read(t5, "joe31"));
+        Assert.assertEquals("joe31 absent", read(t5, "joe31"));
         Assert.assertEquals("moe31 age=21 job=null", read(t5, "moe31"));
         Assert.assertEquals("boe31 age=null job=baker", read(t5, "boe31"));
 
@@ -2544,7 +2622,7 @@ public class SITransactorTest extends SIConstants {
         insertAge(t1, "joe29", 20);
         TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
         insertAge(t2, "moe29", 21);
-        Assert.assertEquals("moe29 age=null job=null", read(t1, "moe29"));
+        Assert.assertEquals("moe29 absent", read(t1, "moe29"));
         transactor.commit(t2);
         Assert.assertEquals("moe29 age=21 job=null", read(t1, "moe29"));
 
@@ -2568,7 +2646,7 @@ public class SITransactorTest extends SIConstants {
         transactor.rollback(t1);
 
         TransactionId t4 = transactor.beginTransaction(false);
-        Assert.assertEquals("joe30 age=null job=null", read(t4, "joe30"));
+        Assert.assertEquals("joe30 absent", read(t4, "joe30"));
         Assert.assertEquals("moe30 age=21 job=null", read(t4, "moe30"));
     }
 
@@ -2619,6 +2697,104 @@ public class SITransactorTest extends SIConstants {
         TransactionId other = transactor.beginTransaction(true, false, true);
         insertAge(other, "joe35", 21);
         transactor.commit(other);
+    }
+
+    @Test
+    public void writeAllNullsRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe113 absent", read(t1, "joe113"));
+        insertAge(t1, "joe113", null);
+        Assert.assertEquals("joe113 age=null job=null", read(t1, "joe113"));
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe113 age=null job=null", read(t2, "joe113"));
+    }
+    @Test
+    public void writeAllNullsReadOverlap() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe114 absent", read(t1, "joe114"));
+        insertAge(t1, "joe114", null);
+        Assert.assertEquals("joe114 age=null job=null", read(t1, "joe114"));
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe114 age=null job=null", read(t1, "joe114"));
+        Assert.assertEquals("joe114 absent", read(t2, "joe114"));
+        transactor.commit(t1);
+        Assert.assertEquals("joe114 absent", read(t2, "joe114"));
+    }
+
+    
+    @Test
+    public void writeAllNullsWrite() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe115", null);
+        Assert.assertEquals("joe115 age=null job=null", read(t1, "joe115"));
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe115 age=null job=null", read(t2, "joe115"));
+        insertAge(t2, "joe115", 30);
+        Assert.assertEquals("joe115 age=30 job=null", read(t2, "joe115"));
+        transactor.commit(t2);
+    }
+
+    @Test
+    public void writeAllNullsWriteOverlap() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe116 absent", read(t1, "joe116"));
+        insertAge(t1, "joe116", null);
+        Assert.assertEquals("joe116 age=null job=null", read(t1, "joe116"));
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe116 age=null job=null", read(t1, "joe116"));
+        Assert.assertEquals("joe116 absent", read(t2, "joe116"));
+        try {
+            insertAge(t2, "joe116", 30);
+            Assert.fail();
+        } catch (WriteConflict e) {
+        } catch (RetriesExhaustedWithDetailsException e) {
+            assertWriteConflict(e);
+        }
+        Assert.assertEquals("joe116 age=null job=null", read(t1, "joe116"));
+        transactor.commit(t1);
+        try {
+            transactor.commit(t2);
+            Assert.fail();
+        } catch (DoNotRetryIOException dnrio) {
+            Assert.assertTrue(dnrio.getMessage().startsWith("transaction is not ACTIVE"));
+        }
+    }
+
+    @Test
+    public void readAllNullsAfterCommit() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe117", null);
+        transactor.commit(t1);
+        Assert.assertEquals("joe117 age=null job=null", read(t1, "joe117"));
+    }
+
+    @Test
+    public void rollbackAllNullAfterCommit() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe118", null);
+        transactor.commit(t1);
+        transactor.rollback(t1);
+        Assert.assertEquals("joe118 age=null job=null", read(t1, "joe118"));
+    }
+
+    @Test
+    public void writeAllNullScan() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe119 absent", read(t1, "joe119"));
+        insertAge(t1, "joe119", null);
+        Assert.assertEquals("joe119 age=null job=null", read(t1, "joe119"));
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe119 age=null job=null", scan(t2, "joe119"));
+
+        Assert.assertEquals("joe119 age=null job=null", read(t2, "joe119"));
     }
 
 }

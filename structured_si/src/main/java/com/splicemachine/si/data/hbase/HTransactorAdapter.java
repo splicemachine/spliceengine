@@ -90,6 +90,11 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
+    public boolean isGetIncludeSIColumn(Get get) {
+        return delegate.isGetIncludeSIColumn(new HGet(get));
+    }
+
+    @Override
     public boolean isScanIncludeSIColumn(Scan read) {
         return delegate.isScanIncludeSIColumn(new HScan(read));
     }
@@ -157,6 +162,11 @@ public class HTransactorAdapter implements HTransactor {
     @Override
     public void initializeGet(String transactionId, Get get) throws IOException {
         delegate.initializeGet(transactionId, new HGet(get));
+    }
+
+    @Override
+    public void initializeGet(String transactionId, Get get, boolean includeSIColumn) throws IOException {
+        delegate.initializeGet(transactionId, get, includeSIColumn);
     }
 
     @Override

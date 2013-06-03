@@ -196,12 +196,12 @@ public class ImmutableTransaction {
         return "ImmutableTransaction: " + transactionId;
     }
 
-    public ImmutableTransaction cloneWithId(TransactionId newTransactionId) {
+    public ImmutableTransaction cloneWithId(TransactionId newTransactionId, ImmutableTransaction parent) {
         if (transactionId.getId() != newTransactionId.getId()) {
             throw new RuntimeException("Cannot clone transaction with different id");
         }
         return new ImmutableTransaction(behavior, transactionStore, (SITransactionId) newTransactionId,
-                allowWrites, readCommitted, immutableParent, dependent, readUncommitted, beginTimestamp);
+                allowWrites, readCommitted, parent, dependent, readUncommitted, beginTimestamp);
     }
 
 }

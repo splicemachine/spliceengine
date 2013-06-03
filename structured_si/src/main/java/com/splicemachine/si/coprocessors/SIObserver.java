@@ -111,7 +111,8 @@ public class SIObserver extends BaseRegionObserver {
 
     private void addSIFilterToGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get) throws IOException {
         HTransactor transactor = HTransactorFactory.getTransactor();
-        Filter newFilter = makeSIFilter(e, transactor.transactionIdFromGet(get), get.getFilter(), false);
+        Filter newFilter = makeSIFilter(e, transactor.transactionIdFromGet(get), get.getFilter(),
+                transactor.isGetIncludeSIColumn(get));
         get.setFilter(newFilter);
     }
 

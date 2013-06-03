@@ -32,6 +32,7 @@ public interface HTransactor extends HClientTransactor {
     boolean processPut(HRegion region, RollForwardQueue rollForwardQueue, Put put) throws IOException;
     boolean isFilterNeededGet(Get get);
     boolean isFilterNeededScan(Scan scan);
+    boolean isGetIncludeSIColumn(Get get);
     boolean isScanIncludeSIColumn(Scan scan);
 
     void preProcessGet(Get get) throws IOException;

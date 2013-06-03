@@ -20,8 +20,6 @@ import java.io.IOException;
  * Created: 1/24/13 2:00 PM
  */
 public class Puts {
-
-    private static final byte[] NULL_COLUMN_MARKER = Bytes.toBytes(-Integer.MAX_VALUE);
     public static final byte[] FOR_UPDATE = "U".getBytes();
     public static final String PUT_TYPE = "t";
 
@@ -162,7 +160,7 @@ public class Puts {
         SpliceUtils.handleNullsInUpdate(put, row, validColumns);
 
         if(put.size()==0) {
-            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, NULL_COLUMN_MARKER, new byte[]{});
+            // Ignore this case. It will be handled by SI since SI will always add the SI column to the put.
         }
 
         return put;
