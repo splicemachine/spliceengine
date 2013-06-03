@@ -21,18 +21,18 @@ public class SIFilter extends FilterBase {
     private HTransactor transactor = null;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
-    private boolean siOnly;
+    private boolean includeSIColumn;
 
     private FilterState filterState = null;
 
     public SIFilter() {
     }
 
-    public SIFilter(HTransactor transactor, TransactionId transactionId, RollForwardQueue rollForwardQueue, boolean siOnly) throws IOException {
+    public SIFilter(HTransactor transactor, TransactionId transactionId, RollForwardQueue rollForwardQueue, boolean includeSIColumn) throws IOException {
         this.transactor = transactor;
         this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
-        this.siOnly = siOnly;
+        this.includeSIColumn = includeSIColumn;
     }
 
     @Override
@@ -48,7 +48,8 @@ public class SIFilter extends FilterBase {
 
     private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
-            filterState = transactor.newFilterState(rollForwardQueue, transactor.transactionIdFromString(transactionIdString), siOnly);
+            filterState = transactor.newFilterState(rollForwardQueue, transactor.transactionIdFromString(transactionIdString),
+                    includeSIColumn);
         }
     }
 

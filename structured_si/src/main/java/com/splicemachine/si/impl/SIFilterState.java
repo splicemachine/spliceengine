@@ -31,18 +31,18 @@ public class SIFilterState implements FilterState {
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
-    private final boolean siOnly;
+    private final boolean includeSIColumn;
 
     private final FilterRowState rowState;
     private DecodedKeyValue keyValue;
 
     public SIFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
-                         RollForwardQueue rollForwardQueue, boolean siOnly, ImmutableTransaction myTransaction) {
+                         RollForwardQueue rollForwardQueue, boolean includeSIColumn, ImmutableTransaction myTransaction) {
         this.dataLib = dataLib;
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
         this.rollForwardQueue = rollForwardQueue;
-        this.siOnly = siOnly;
+        this.includeSIColumn = includeSIColumn;
         this.myTransaction = myTransaction;
 
         transactionCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(10, TimeUnit.MINUTES).build();
@@ -68,7 +68,7 @@ public class SIFilterState implements FilterState {
     private Filter.ReturnCode filterByColumnType() throws IOException {
         final KeyValueType type = dataStore.getKeyValueType(keyValue.family, keyValue.qualifier);
         if (type.equals(KeyValueType.COMMIT_TIMESTAMP)) {
-            if (siOnly) {
+            if (includeSIColumn) {
                 processCommitTimestamp();
                 return processUserData();
             } else {
@@ -90,9 +90,9 @@ public class SIFilterState implements FilterState {
     private Filter.ReturnCode processCommitTimestamp() throws IOException {
         Transaction transaction;
 
-        if (dataStore.isSiNull(keyValue.value)) {
+        if (dataStore.isSINull(keyValue.value)) {
             transaction = handleUnknownTransactionStatus();
-        } else if (dataStore.isSiFail(keyValue.value)) {
+        } else if (dataStore.isSIFail(keyValue.value)) {
             transaction = Transaction.makeFailedTransaction(transactionStore, keyValue.timestamp);
         } else {
             // TODO: we should avoid loading the full transaction here once roll-forward is revisited
@@ -211,7 +211,7 @@ public class SIFilterState implements FilterState {
             final Object[] visibleResult = myTransaction.isVisible(tombstoneTransaction);
             final boolean visible = (Boolean) visibleResult[0];
             if (visible && (keyValue.timestamp < tombstone
-                    || (keyValue.timestamp == tombstone && dataStore.isSiNull(keyValue.value)))) {
+                    || (keyValue.timestamp == tombstone && dataStore.isSINull(keyValue.value)))) {
                 return true;
             }
         }

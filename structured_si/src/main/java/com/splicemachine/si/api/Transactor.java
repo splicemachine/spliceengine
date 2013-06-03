@@ -56,13 +56,14 @@ public interface Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> extend
     boolean processPut(STable table, RollForwardQueue rollForwardQueue, PutOp put) throws IOException;
     boolean isFilterNeededGet(GetOp get);
     boolean isFilterNeededScan(ScanOp scan);
-    boolean isScanSIFamilyOnly(ScanOp scan);
+    boolean isScanIncludeSIColumn(ScanOp scan);
 
     void preProcessGet(GetOp get) throws IOException;
     void preProcessScan(ScanOp scan) throws IOException;
 
     FilterState newFilterState(TransactionId transactionId) throws IOException;
-    FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean siOnly) throws IOException;
+    FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn)
+            throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
     ResultType filterResult(FilterState filterState, ResultType result) throws IOException;
 

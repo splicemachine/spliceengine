@@ -90,8 +90,8 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
-    public boolean isScanSIFamilyOnly(Scan read) {
-        return delegate.isScanSIFamilyOnly(new HScan(read));
+    public boolean isScanIncludeSIColumn(Scan read) {
+        return delegate.isScanIncludeSIColumn(new HScan(read));
     }
 
     @Override
@@ -110,8 +110,8 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
-    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean siOnly) throws IOException {
-        return delegate.newFilterState(rollForwardQueue, transactionId, siOnly);
+    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn) throws IOException {
+        return delegate.newFilterState(rollForwardQueue, transactionId, includeSIColumn);
     }
 
     @Override
@@ -165,8 +165,8 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
-    public void initializeScan(String transactionId, Scan scan, boolean siFamilyOnly) {
-        delegate.initializeScan(transactionId, new HScan(scan), siFamilyOnly);
+    public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn) {
+        delegate.initializeScan(transactionId, new HScan(scan), includeSIColumn);
     }
 
     @Override
