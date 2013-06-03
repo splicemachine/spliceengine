@@ -114,7 +114,7 @@ public class CreateIndexTask extends ZkTask {
             //add index to table watcher
             WriteContextFactory contextFactory = WriteContextFactoryPool.getContextFactory(baseConglomId);
             contextFactory.addIndex(indexConglomId, indexColsToBaseColMap, isUnique);
-            
+
             //backfill the index with previously committed data
             RegionScanner sourceScanner = region.getScanner(regionScan);
 

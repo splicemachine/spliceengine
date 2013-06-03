@@ -41,6 +41,7 @@ public class CreateIndexJob implements CoprocessorJob{
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
         CreateIndexTask task = new CreateIndexTask(transactionId,indexConglomId,
                 baseConglomId,indexColsToBaseColMap,isUnique,getJobId());
+
         return Collections.singletonMap(task,Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
     }
 

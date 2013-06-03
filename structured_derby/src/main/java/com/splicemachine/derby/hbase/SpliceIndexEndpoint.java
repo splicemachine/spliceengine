@@ -94,7 +94,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 
     @Override
     public MutationResponse batchMutate(MutationRequest mutationsToApply) throws IOException {
-        SpliceLogUtils.trace(LOG,"batchMutate %s",mutationsToApply);
+//        SpliceLogUtils.trace(LOG,"received request %s",mutationsToApply);
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         WriteContext context;
         try {

@@ -12,7 +12,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
@@ -22,8 +21,8 @@ import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
+import org.apache.derby.impl.sql.execute.IndexConstantAction;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 
@@ -37,9 +36,9 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 3/7/13
  */
-public class CreateIndexConstantOperationScott extends IndexConstantOperation implements ConstantAction {
+public class CreateIndexOperation extends IndexConstantAction implements ConstantAction {
     private static final long serialVersionUID = 1l;
-    private static final Logger LOG = Logger.getLogger(CreateIndexConstantOperationScott.class);
+    private static final Logger LOG = Logger.getLogger(CreateIndexOperation.class);
 
 
     private String[] columnNames;
@@ -50,7 +49,7 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
     private String indexType;
     private Properties properties;
 
-    public CreateIndexConstantOperationScott(String schemaName,
+    public CreateIndexOperation(String schemaName,
                                 String indexName, String tableName,
                                 String[] columnNames,boolean[] isAscending,
                                 UUID tableId, UUID conglomerateUUID,
@@ -66,7 +65,7 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
         this.properties = properties;
     }
 
-    public CreateIndexConstantOperationScott(ConglomerateDescriptor indexConglomDescriptor,
+    public CreateIndexOperation(ConglomerateDescriptor indexConglomDescriptor,
                                 TableDescriptor mainTableDescriptor,
                                 Properties properties) throws StandardException {
     	super(mainTableDescriptor.getUUID(), indexConglomDescriptor.getConglomerateName(), mainTableDescriptor.getName(), mainTableDescriptor.getSchemaName());
@@ -246,13 +245,11 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
         return indexPosMap;
     }
 
+    public String getIndexName() {
+        return indexName;
+    }
 
-	/**
-	 * Get the UUID for the conglomerate descriptor that was created
-	 * (or re-used) by this constant action.
-	 */
-	public UUID getCreatedUUID() {
-		return conglomerateUUID;
-	}
-
+    public void setIndexName(String indexName) {
+        this.indexName = indexName;
+    }
 }

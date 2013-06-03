@@ -1,12 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import org.apache.derby.catalog.IndexDescriptor;
+import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.IndexDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.impl.sql.execute.CreateConstraintConstantAction;
@@ -22,7 +22,7 @@ import java.util.Properties;
  * @author Scott Fines
  * Created on: 3/5/13
  */
-public class SpliceCreateTableOperation extends CreateTableConstantOperation {
+public class CreateTableAction extends CreateTableConstantAction {
     private final int tableType;
     private final String tableName;
     private final String schemaName;
@@ -40,7 +40,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
      * @param onCommitDeleteRows   If true, on commit delete rows else on commit preserve rows of temporary table.
      * @param onRollbackDeleteRows If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
      */
-    public SpliceCreateTableOperation(String schemaName, String tableName, int tableType, ColumnInfo[] columnInfo, ConstantAction[] constraintActions, Properties properties, char lockGranularity, boolean onCommitDeleteRows, boolean onRollbackDeleteRows) {
+    public CreateTableAction(String schemaName, String tableName, int tableType, ColumnInfo[] columnInfo, CreateConstraintConstantAction[] constraintActions, Properties properties, char lockGranularity, boolean onCommitDeleteRows, boolean onRollbackDeleteRows) {
         super(schemaName, tableName, tableType, columnInfo, constraintActions, properties, lockGranularity, onCommitDeleteRows, onRollbackDeleteRows);
         this.tableType = tableType;
         this.tableName = tableName;
@@ -108,7 +108,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
         if(constraintActions ==null)
             return super.getTableConglomerateDescriptor(td,conglomId,sd,ddg);
 
-        for(CreateConstraintConstantOperation constantAction:constraintActions){
+        for(CreateConstraintConstantAction constantAction:constraintActions){
             if(constantAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT){
                 int [] pkColumns = constantAction.genColumnPositions(td,true);
                 boolean[] ascending = new boolean[pkColumns.length];

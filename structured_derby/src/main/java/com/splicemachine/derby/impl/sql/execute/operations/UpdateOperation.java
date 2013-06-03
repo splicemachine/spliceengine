@@ -17,17 +17,14 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
+import org.apache.derby.impl.sql.execute.UpdateConstantAction;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -57,8 +54,9 @@ public class UpdateOperation extends DMLWriteOperation{
 	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
 		super.init(context);
-        UpdateConstantOperation constantAction = (UpdateConstantOperation)constants;
+        UpdateConstantAction constantAction = (UpdateConstantAction)constants;
 		heapConglom = constantAction.getConglomerateId();
+
         int[] pkCols = constantAction.getPkColumns();
         if(pkCols!=null)
             pkColumns = fromIntArray(pkCols);
@@ -69,7 +67,7 @@ public class UpdateOperation extends DMLWriteOperation{
     public OperationSink.Translator getTranslator() throws IOException {
         final Serializer serializer = new Serializer();
         boolean modifiedPrimaryKeys = false;
-        FormatableBitSet heapList = ((UpdateConstantOperation)constants).getBaseRowReadList();
+        FormatableBitSet heapList = ((UpdateConstantAction)constants).getBaseRowReadList();
         if(pkColumns!=null){
             for(int pkCol = pkColumns.anySetBit();pkCol!=-1;pkCol= pkColumns.anySetBit(pkCol)){
                 if(heapList.isSet(pkCol+1)){
@@ -106,7 +104,7 @@ public class UpdateOperation extends DMLWriteOperation{
 		 * and so forth
 		 */
         if(heapList==null){
-            int[] changedCols = ((UpdateConstantOperation)constants).getChangedColumnIds();
+            int[] changedCols = ((UpdateConstantAction)constants).getChangedColumnIds();
             heapList = new FormatableBitSet(changedCols.length);
             for(int colPosition:changedCols){
                 heapList.grow(colPosition+1);

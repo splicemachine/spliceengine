@@ -105,7 +105,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     @Override
-    public void dropIndex(long indexConglomId) { // XXX - TODO JLEACH - Cannot do this...
+    public void dropIndex(long indexConglomId) {
         //ensure that all writes that need to be paused are paused
         synchronized (tableWriteLatch){
             tableWriteLatch.reset();

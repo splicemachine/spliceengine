@@ -150,8 +150,9 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
         try {
             resultRowAllocator = statement.getActivationClass()
                     .getMethod(resultRowAllocatorMethodName);
-            this.conglomerate = (SpliceConglomerate)((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(conglomId);
-            
+            this.conglomerate = (SpliceConglomerate)
+                    ((SpliceTransactionManager) activation.getTransactionController())
+                            .findConglomerate(conglomId);
             this.isKeyed = conglomerate.getTypeFormatId() == IndexConglomerate.FORMAT_NUMBER;
             if (startKeyGetterMethodName != null) {
                 startKeyGetter = statement.getActivationClass().getMethod(startKeyGetterMethodName);
