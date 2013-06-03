@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
@@ -105,6 +106,19 @@ public class DataStore {
                     timestamp,
                     dataLib.getKeyValueValue(keyValue));
         }
+    }
+
+    public Object copyPutToDelete(Object put, Set<Long> transactionIdsToDelete) {
+        Object delete = dataLib.newDelete(dataLib.getPutKey(put));
+        for (Long transactionId : transactionIdsToDelete) {
+            for (Object keyValue : dataLib.listPut(put)) {
+                dataLib.addKeyValueToDelete(delete, dataLib.getKeyValueFamily(keyValue),
+                        dataLib.getKeyValueQualifier(keyValue), transactionId);
+            }
+            dataLib.addKeyValueToDelete(delete, siFamily, tombstoneQualifier, transactionId);
+            dataLib.addKeyValueToDelete(delete, siFamily, commitTimestampQualifier, transactionId);
+        }
+        return delete;
     }
 
     List getCommitTimestamp(STable table, Object rowKey) throws IOException {

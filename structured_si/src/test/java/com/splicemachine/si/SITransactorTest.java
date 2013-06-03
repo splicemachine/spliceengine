@@ -1290,6 +1290,28 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+    public void parentWritesDoNotConflictWithPriorChildDelete() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        TransactionId t2 = transactor.beginChildTransaction(t1, true);
+        deleteRow(t2, "joe105");
+        transactor.commit(t2);
+        insertAge(t1, "joe105", 21);
+        Assert.assertEquals("joe105 age=21 job=null", read(t1, "joe105"));
+    }
+
+    @Test
+    public void parentDeleteDoesNotConflictWithPriorChildDelete() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        TransactionId t2 = transactor.beginChildTransaction(t1, true);
+        deleteRow(t2, "joe109");
+        transactor.commit(t2);
+        deleteRow(t1, "joe109");
+        Assert.assertEquals("joe109 age=null job=null", read(t1, "joe109"));
+        insertAge(t1, "joe109", 21);
+        Assert.assertEquals("joe109 age=21 job=null", read(t1, "joe109"));
+    }
+
+    @Test
     public void parentWritesDoNotConflictWithPriorActiveChildWrites() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         TransactionId t2 = transactor.beginChildTransaction(t1, true);
@@ -1298,6 +1320,59 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("joe102 age=21 job=null", read(t1, "joe102"));
         transactor.commit(t2);
         Assert.assertEquals("joe102 age=21 job=null", read(t1, "joe102"));
+    }
+
+    @Test
+    public void parentWritesDoNotConflictWithPriorActiveChildDelete() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        TransactionId t2 = transactor.beginChildTransaction(t1, true);
+        deleteRow(t2, "joe106");
+        insertAge(t1, "joe106", 21);
+        Assert.assertEquals("joe106 age=21 job=null", read(t1, "joe106"));
+        transactor.commit(t2);
+        Assert.assertEquals("joe106 age=21 job=null", read(t1, "joe106"));
+    }
+
+    @Test
+    public void parentWritesDoNotConflictWithPriorIndependentChildWrites() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
+        insertAge(t2, "joe103", 20);
+        transactor.commit(t2);
+        insertAge(t1, "joe103", 21);
+        Assert.assertEquals("joe103 age=21 job=null", read(t1, "joe103"));
+    }
+
+    @Test
+    public void parentWritesDoNotConflictWithPriorIndependentChildDelete() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
+        deleteRow(t2, "joe107");
+        transactor.commit(t2);
+        insertAge(t1, "joe107", 21);
+        Assert.assertEquals("joe107 age=21 job=null", read(t1, "joe107"));
+    }
+
+    @Test
+    public void parentWritesDoNotConflictWithPriorActiveIndependentChildWrites() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
+        insertAge(t2, "joe104", 20);
+        insertAge(t1, "joe104", 21);
+        Assert.assertEquals("joe104 age=21 job=null", read(t1, "joe104"));
+        transactor.commit(t2);
+        Assert.assertEquals("joe104 age=21 job=null", read(t1, "joe104"));
+    }
+
+    @Test
+    public void parentWritesDoNotConflictWithPriorActiveIndependentChildDelete() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true);
+        deleteRow(t2, "joe108");
+        insertAge(t1, "joe108", 21);
+        Assert.assertEquals("joe108 age=21 job=null", read(t1, "joe108"));
+        transactor.commit(t2);
+        Assert.assertEquals("joe108 age=21 job=null", read(t1, "joe108"));
     }
 
     @Test

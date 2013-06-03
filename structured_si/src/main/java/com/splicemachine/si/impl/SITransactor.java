@@ -363,14 +363,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
 
     private void resolveChildConflicts(STable table, Object put, SRowLock lock, Set<Long> conflictingChildren) throws IOException {
         if (!conflictingChildren.isEmpty()) {
-            Object delete = dataLib.newDelete(dataLib.getPutKey(put));
-            for (Long childId : conflictingChildren) {
-                for (Object keyValue : dataLib.listPut(put)) {
-                    dataLib.addKeyValueToDelete(delete, dataLib.getKeyValueFamily(keyValue),
-                            dataLib.getKeyValueQualifier(keyValue),
-                            childId);
-                }
-            }
+            Object delete = dataStore.copyPutToDelete(put, conflictingChildren);
             dataStore.suppressIndexing(delete);
             dataWriter.delete(table, delete, lock);
         }
