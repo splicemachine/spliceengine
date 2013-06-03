@@ -401,8 +401,10 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
             throws IOException {
         Set<Long> toRollForward = new HashSet<Long>();
         Set<Long> childConflicts = new HashSet<Long>();
+        long myTxnId = updateTransaction.getTransactionId().getId();
         for (Object dataCommitKeyValue : dataCommitKeyValues) {
             final long dataTransactionId = dataLib.getKeyValueTimestamp(dataCommitKeyValue);
+            if(dataTransactionId==myTxnId) continue; //we can't conflict with ourselves
             final Object commitTimestampValue = dataLib.getKeyValueValue(dataCommitKeyValue);
             if (dataStore.isSINull(commitTimestampValue)) {
                 Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
