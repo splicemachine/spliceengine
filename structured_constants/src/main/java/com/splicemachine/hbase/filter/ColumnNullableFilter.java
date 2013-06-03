@@ -109,14 +109,14 @@ public class ColumnNullableFilter extends FilterBase {
 
 	public ReturnCode filterKeyValue(KeyValue keyValue) {
         if (this.foundColumn)
-			return ReturnCode.NEXT_ROW;
+			return ReturnCode.INCLUDE;
 
-        if (!keyValue.matchingColumn(this.columnFamily, this.columnQualifier)) {
+        if (! keyValue.matchingColumn(this.columnFamily, this.columnQualifier)) {
             this.foundColumn = false;
-            return ReturnCode.INCLUDE;
+        } else {
+            this.foundColumn = keyValue.getValue().length > 0;
         }
 
-        this.foundColumn = keyValue.getValue().length > 0;
         return ReturnCode.INCLUDE;
     }
 

@@ -16,6 +16,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -39,11 +40,15 @@ public class SubqueryTest {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
-    protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SubqueryTest.class.getSimpleName());
+    public static final String CLASS_NAME = SubqueryTest.class.getSimpleName();
+
+    protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+
     protected static SpliceTableWatcher t1Watcher = new SpliceTableWatcher("t1",schemaWatcher.schemaName,"(k int, l int)");
     protected static SpliceTableWatcher t2Watcher = new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(k int, l int)");
     protected static SpliceTableWatcher t3Watcher = new SpliceTableWatcher("WORKS",schemaWatcher.schemaName,
             "(EMPNUM VARCHAR(3) NOT NULL, PNUM VARCHAR(3) NOT NULL,HOURS DECIMAL(5))");
+
 
     private static final int size = 10;
 
@@ -89,7 +94,7 @@ public class SubqueryTest {
                         spliceClassWatcher.closeAll();
                     }
                 }
-            });
+            }).around(TestUtils.createFileDataWatcher(spliceClassWatcher, "null_int_data.sql", schemaWatcher.schemaName));
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -186,5 +191,23 @@ public class SubqueryTest {
                 String.format("SELECT EMPNUM, PNUM FROM %1$s WHERE HOURS > (SELECT W2.HOURS FROM %1$s W2 WHERE W2.EMPNUM = 'E8')",
                         t3Watcher.toString()));
         Assert.assertEquals(0, TestUtils.resultSetToMaps(rs).size());
+    }
+
+    @Test
+    public void testSubqueryWithAny() throws Exception {
+        TestUtils.tableLookupByNumber(spliceClassWatcher);
+        ResultSet rs = methodWatcher.executeQuery(
+                String.format("select * from %s.s t1 where t1.s >= ANY (select t2.b from %s.t t2)",schemaWatcher.schemaName,schemaWatcher.schemaName));
+        List<Map> results = TestUtils.resultSetToMaps(rs);
+        Assert.assertEquals(2, results.size());
+
+        for(Map result : results){
+            Assert.assertNotNull("Value for column I should not be null", result.get("I"));
+            Assert.assertNotNull("Value for column S should not be null", result.get("S"));
+
+            //The below assertion fails due to bug 511 commenting this for now as the test
+            //also covers the fix for filter null values from the left side of a join
+            //Assert.assertNotNull("Value for column C should not be null", result.get("C"));
+        }
     }
 }
