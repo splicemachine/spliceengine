@@ -1,10 +1,6 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.Clock;
-import com.splicemachine.si.api.FilterState;
-import com.splicemachine.si.api.TimestampSource;
-import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SRead;
@@ -23,6 +19,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
 import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
@@ -35,7 +32,8 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
 public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, MutationOp, ResultType>
-        implements Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> {
+        implements Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType>,
+        TransactorStatus {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
 
     private final TimestampSource timestampSource;
@@ -46,6 +44,13 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     private final Clock clock;
     private final int transactionTimeoutMS;
     private Transaction transaction;
+
+    private final AtomicLong createdChildTxns = new AtomicLong(0l);
+
+    private final AtomicLong createdTxns = new AtomicLong(0l);
+    private final AtomicLong committedTxns = new AtomicLong(0l);
+    private final AtomicLong rolledBackTxns = new AtomicLong(0l);
+    private final AtomicLong failedTxns = new AtomicLong(0l);
 
     public SITransactor(TimestampSource timestampSource, SDataLib dataLib, STableWriter dataWriter, DataStore dataStore,
                         TransactionStore transactionStore, Clock clock, int transactionTimeoutMS) {
@@ -97,6 +102,10 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
             transactionStore.recordNewTransaction(transactionId, params, ACTIVE, beginTimestamp, 0L);
             final TransactionId childTransactionId = transactionId;
             transactionStore.addChildToTransaction(params.parent, childTransactionId);
+            if(((SITransactionId)parent).isRootTransaction())
+                createdTxns.incrementAndGet();
+            else
+                createdChildTxns.incrementAndGet();
             return childTransactionId;
         } else {
             return createLightweightChildTransaction(parent);
@@ -157,6 +166,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
             final Transaction transaction = transactionStore.getTransaction(transactionId);
             ensureTransactionActive(transaction);
             performCommit(transaction);
+            committedTxns.incrementAndGet();
         }
     }
 
@@ -179,6 +189,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     @Override
     public void rollback(TransactionId transactionId) throws IOException {
         if (!isIndependentReadOnly(transactionId)) {
+            rolledBackTxns.incrementAndGet();
             rollbackDirect(transactionId);
         }
     }
@@ -197,6 +208,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     @Override
     public void fail(TransactionId transactionId) throws IOException {
         if (!isIndependentReadOnly(transactionId)) {
+            failedTxns.incrementAndGet();
             failDirect(transactionId);
         }
     }
@@ -592,6 +604,35 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     @Override
     public SICompactionState newCompactionState() {
         return new SICompactionState(dataLib, dataStore, transactionStore);
+    }
+
+    @Override
+    public long getTotalChildTransactions() {
+        return createdChildTxns.get();
+    }
+
+    @Override
+    public long getTotalTransactions() {
+        return createdTxns.get();
+    }
+
+    @Override
+    public long getTotalCommittedTransactions() {
+        return committedTxns.get();
+    }
+
+    @Override
+    public long getTotalRolledBackTransactions() {
+        return rolledBackTxns.get();
+    }
+
+    @Override
+    public long getTotalFailedTransactions() {
+        return failedTxns.get();
+    }
+
+    public TransactionStore getTransactionStore(){
+        return transactionStore;
     }
 
     // Helpers

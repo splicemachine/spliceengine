@@ -17,6 +17,11 @@ import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
+import com.splicemachine.si.api.TransactionStoreStatus;
+import com.splicemachine.si.api.TransactorStatus;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
+import com.splicemachine.si.data.hbase.HTransactorAdapter;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
@@ -186,12 +191,13 @@ public class SpliceDriver extends SIConstants {
                     //all we have to do is create it, it will register itself for us
                     SpliceMetrics metrics = new SpliceMetrics();
 
-                    //register JMX items
-                    registerJMX();
                     boolean setRunning = true;
                     SpliceLogUtils.debug(LOG, "Booting Database");
                     setRunning = bootDatabase();
                     SpliceLogUtils.debug(LOG, "Finished Booting Database");
+
+                    //register JMX items --have to wait for the db to boot first
+                    registerJMX();
 
                     if(!setRunning){
                         abortStartup();
@@ -282,6 +288,10 @@ public class SpliceDriver extends SIConstants {
             ObjectName writerName = new ObjectName("com.splicemachine.writer:type=WriterStatus");
             mbs.registerMBean(writerPool,writerName);
 
+            //register TableWriter's writer pool
+            ObjectName writerPoolName = new ObjectName("com.splicemachine.writer:type=ThreadPoolStatus");
+            mbs.registerMBean(writerPool.getThreadPool(),writerPoolName);
+
             //register TaskScheduler
             ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=TaskSchedulerManagement");
             mbs.registerMBean(threadTaskScheduler,taskSchedulerName);
@@ -293,6 +303,18 @@ public class SpliceDriver extends SIConstants {
             //register JobScheduler
             ObjectName jobSchedulerName = new ObjectName("com.splicemachine.job:type=JobSchedulerManagement");
             mbs.registerMBean(jobScheduler,jobSchedulerName);
+
+            //register transaction stuff
+            HTransactor transactor = HTransactorFactory.getTransactor();
+            if(transactor instanceof TransactorStatus){
+                ObjectName transactorName = new ObjectName("com.splicemachine.txn:type=TransactorStatus");
+                mbs.registerMBean(transactor,transactorName);
+            }
+
+            TransactionStoreStatus transactionStoreStatus = transactor.getTransactionStoreStatus();
+            ObjectName txnStoreStatus = new ObjectName("com.splicemachine.txn:type=TransactionStoreStatus");
+            mbs.registerMBean(transactionStoreStatus,txnStoreStatus);
+
 
         } catch (MalformedObjectNameException e) {
             //we want to log the message, but this shouldn't affect startup
