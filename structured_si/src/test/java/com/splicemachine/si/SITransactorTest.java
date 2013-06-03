@@ -255,13 +255,14 @@ public class SITransactorTest extends SIConstants {
 
     private static String readRawTuple(boolean useSimple, TransactorSetup transactorSetup, TransactionId transactionId,
                                        String name, SDataLib dataLib, Object rawTuple, boolean singleRowRead,
-                                       boolean siOnly) throws IOException {
+                                       boolean includeSIColumn) throws IOException {
         if (rawTuple != null) {
             Object result = rawTuple;
             if (useSimple) {
                 final FilterState filterState;
                 try {
-                    filterState = transactorSetup.transactor.newFilterState(transactorSetup.rollForwardQueue, transactionId, siOnly);
+                    filterState = transactorSetup.transactor.newFilterState(transactorSetup.rollForwardQueue,
+                            transactionId, includeSIColumn);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

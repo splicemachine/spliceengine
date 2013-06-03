@@ -32,13 +32,14 @@ public interface HTransactor extends HClientTransactor {
     boolean processPut(HRegion region, RollForwardQueue rollForwardQueue, Put put) throws IOException;
     boolean isFilterNeededGet(Get get);
     boolean isFilterNeededScan(Scan scan);
-    boolean isScanSIFamilyOnly(Scan scan);
+    boolean isScanIncludeSIColumn(Scan scan);
 
     void preProcessGet(Get get) throws IOException;
     void preProcessScan(Scan scan) throws IOException;
 
     FilterState newFilterState(TransactionId transactionId) throws IOException;
-    FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean siOnly) throws IOException;
+    FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn)
+            throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
     Result filterResult(FilterState filterState, Result result) throws IOException;
 

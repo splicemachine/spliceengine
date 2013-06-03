@@ -28,7 +28,7 @@ public class DataStore {
 
     private final String siNeededAttribute;
     private final Object siNeededValue;
-    private final Object onlySIFamilyNeededValue;
+    private final Object includeSIColumnValue;
     private final String transactionIdAttribute;
     private final String deletePutAttribute;
 
@@ -41,7 +41,7 @@ public class DataStore {
     private final Object userColumnFamily;
 
     public DataStore(SDataLib dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
-                     Object siNeededValue, Object onlySIFamilyNeededValue,
+                     Object siNeededValue, Object includeSIColumnValue,
                      String transactionIdAttribute, String deletePutAttribute,
                      String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier, Object siMetaNull,
                      Object siFail, Object userColumnFamily) {
@@ -50,7 +50,7 @@ public class DataStore {
         this.writer = writer;
         this.siNeededAttribute = siNeededAttribute;
         this.siNeededValue = dataLib.encode(siNeededValue);
-        this.onlySIFamilyNeededValue = dataLib.encode(onlySIFamilyNeededValue);
+        this.includeSIColumnValue = dataLib.encode(includeSIColumnValue);
         this.transactionIdAttribute = transactionIdAttribute;
         this.deletePutAttribute = deletePutAttribute;
         this.siFamily = dataLib.encode(siMetaFamily);
@@ -61,16 +61,16 @@ public class DataStore {
         this.userColumnFamily = dataLib.encode(userColumnFamily);
     }
 
-    void setSiNeededAttribute(Object put, boolean siFamilyOnly) {
-        dataLib.addAttribute(put, siNeededAttribute, dataLib.encode(siFamilyOnly ? onlySIFamilyNeededValue : siNeededValue));
+    void setSINeededAttribute(Object put, boolean includeSIColumn) {
+        dataLib.addAttribute(put, siNeededAttribute, dataLib.encode(includeSIColumn ? includeSIColumnValue : siNeededValue));
     }
 
-    Object getSiNeededAttribute(Object put) {
+    Object getSINeededAttribute(Object put) {
         return dataLib.getAttribute(put, siNeededAttribute);
     }
 
-    boolean isSIFamilyOnly(Object put) {
-        return dataLib.valuesEqual(dataLib.getAttribute(put, siNeededAttribute), onlySIFamilyNeededValue);
+    boolean isIncludeSIColumn(Object put) {
+        return dataLib.valuesEqual(dataLib.getAttribute(put, siNeededAttribute), includeSIColumnValue);
     }
 
     void setDeletePutAttribute(Object put) {
@@ -143,11 +143,11 @@ public class DataStore {
         }
     }
 
-    public boolean isSiNull(Object value) {
+    public boolean isSINull(Object value) {
         return dataLib.valuesEqual(value, siNull);
     }
 
-    public boolean isSiFail(Object value) {
+    public boolean isSIFail(Object value) {
         return dataLib.valuesEqual(value, siFail);
     }
 
@@ -208,11 +208,11 @@ public class DataStore {
         return null;
     }
 
-    public void addSiFamilyToRead(SRead read) {
+    public void addSIFamilyToRead(SRead read) {
         dataLib.addFamilyToRead(read, siFamily);
     }
 
-    public void addSiFamilyToReadIfNeeded(SRead read) {
+    public void addSIFamilyToReadIfNeeded(SRead read) {
         dataLib.addFamilyToReadIfNeeded(read, siFamily);
     }
 }

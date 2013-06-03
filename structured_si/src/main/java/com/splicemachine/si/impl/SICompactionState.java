@@ -59,7 +59,7 @@ public class SICompactionState {
      */
     private Object mutateCommitTimestamp(DecodedKeyValue decodedKeyValue) throws IOException {
         Object result = decodedKeyValue.keyValue;
-        if (dataStore.isSiNull(decodedKeyValue.value)) {
+        if (dataStore.isSINull(decodedKeyValue.value)) {
             final Transaction transaction = getFromCache(decodedKeyValue.timestamp);
             final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
             if (effectiveStatus.equals(TransactionStatus.COMMITTED)

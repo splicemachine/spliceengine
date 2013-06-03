@@ -244,8 +244,8 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     @Override
-    public void initializeScan(String transactionId, SScan scan, boolean siFamilyOnly) {
-        initializeOperation(transactionId, scan, siFamilyOnly);
+    public void initializeScan(String transactionId, SScan scan, boolean includeSIColumn) {
+        initializeOperation(transactionId, scan, includeSIColumn);
     }
 
     @Override
@@ -257,8 +257,8 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
         initializeOperation(transactionId, operation, false);
     }
 
-    private void initializeOperation(String transactionId, Object operation, boolean siFamilyOnly) {
-        flagForSiTreatment((SITransactionId) transactionIdFromString(transactionId), siFamilyOnly, operation);
+    private void initializeOperation(String transactionId, Object operation, boolean includeSIColumn) {
+        flagForSITreatment((SITransactionId) transactionIdFromString(transactionId), includeSIColumn, operation);
     }
 
     @Override
@@ -271,7 +271,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      */
     private PutOp createDeletePutDirect(SITransactionId transactionId, Object rowKey) {
         final PutOp deletePut = (PutOp) dataLib.newPut(rowKey);
-        flagForSiTreatment(transactionId, false, deletePut);
+        flagForSITreatment(transactionId, false, deletePut);
         dataStore.setTombstoneOnPut(deletePut, transactionId);
         dataStore.setDeletePutAttribute(deletePut);
         return deletePut;
@@ -287,8 +287,8 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      * Set an attribute on the operation that identifies it as needing "snapshot isolation" treatment. This is so that
      * later when the operation comes through for processing we will know how to handle it.
      */
-    private void flagForSiTreatment(SITransactionId transactionId, boolean siFamilyOnly, Object operation) {
-        dataStore.setSiNeededAttribute(operation, siFamilyOnly);
+    private void flagForSITreatment(SITransactionId transactionId, boolean includeSIColumn, Object operation) {
+        dataStore.setSINeededAttribute(operation, includeSIColumn);
         dataStore.setTransactionId(transactionId, operation);
     }
 
@@ -308,10 +308,10 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     private void preProcessRead(SRead read) throws IOException {
         dataLib.setReadTimeRange(read, 0, Long.MAX_VALUE);
         dataLib.setReadMaxVersions(read);
-        if (dataStore.isSIFamilyOnly(read)) {
-            dataStore.addSiFamilyToRead(read);
+        if (dataStore.isIncludeSIColumn(read)) {
+            dataStore.addSIFamilyToRead(read);
         } else {
-            dataStore.addSiFamilyToReadIfNeeded(read);
+            dataStore.addSIFamilyToReadIfNeeded(read);
         }
     }
 
@@ -319,7 +319,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
 
     @Override
     public boolean processPut(STable table, RollForwardQueue rollForwardQueue, Object put) throws IOException {
-        if (isFlaggedForSiTreatment(put)) {
+        if (isFlaggedForSITreatment(put)) {
             processPutDirect(table, rollForwardQueue, (PutOp) put);
             return true;
         } else {
@@ -392,7 +392,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
         for (Object dataCommitKeyValue : dataCommitKeyValues) {
             final long dataTransactionId = dataLib.getKeyValueTimestamp(dataCommitKeyValue);
             final Object commitTimestampValue = dataLib.getKeyValueValue(dataCommitKeyValue);
-            if (dataStore.isSiNull(commitTimestampValue)) {
+            if (dataStore.isSINull(commitTimestampValue)) {
                 Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
                 dataTransaction = checkTransactionTimeout(dataTransaction);
                 final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction);
@@ -400,7 +400,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
                     childConflicts.add(dataTransactionId);
                 }
                 toRollForward.add(dataTransactionId);
-            } else if (dataStore.isSiFail(commitTimestampValue)) {
+            } else if (dataStore.isSIFail(commitTimestampValue)) {
             } else {
                 final long dataCommitTimestamp = (Long) dataLib.decode(commitTimestampValue, Long.class);
                 if (dataCommitTimestamp > updateTransaction.getBeginTimestamp()) {
@@ -473,17 +473,17 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
 
     @Override
     public boolean isFilterNeededGet(GetOp operation) {
-        return isFlaggedForSiTreatment(operation);
+        return isFlaggedForSITreatment(operation);
     }
 
     @Override
     public boolean isFilterNeededScan(ScanOp operation) {
-        return isFlaggedForSiTreatment(operation);
+        return isFlaggedForSITreatment(operation);
     }
 
     @Override
-    public boolean isScanSIFamilyOnly(ScanOp read) {
-        return dataStore.isSIFamilyOnly(read);
+    public boolean isScanIncludeSIColumn(ScanOp read) {
+        return dataStore.isIncludeSIColumn(read);
     }
 
     @Override
@@ -492,8 +492,9 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     @Override
-    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean siOnly) throws IOException {
-        return new SIFilterState(dataLib, dataStore, transactionStore, rollForwardQueue, siOnly,
+    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn)
+            throws IOException {
+        return new SIFilterState(dataLib, dataStore, transactionStore, rollForwardQueue, includeSIColumn,
                 transactionStore.getImmutableTransaction(transactionId));
     }
 
@@ -575,8 +576,8 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     /**
      * Is this operation supposed to be handled by "snapshot isolation".
      */
-    private boolean isFlaggedForSiTreatment(Object put) {
-        return dataStore.getSiNeededAttribute(put) != null;
+    private boolean isFlaggedForSITreatment(Object put) {
+        return dataStore.getSINeededAttribute(put) != null;
     }
 
     /**

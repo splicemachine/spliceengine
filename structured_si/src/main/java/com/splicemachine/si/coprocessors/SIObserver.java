@@ -77,7 +77,7 @@ public class SIObserver extends BaseRegionObserver {
             HTransactor transactor = HTransactorFactory.getTransactor();
             transactor.preProcessGet(get);
             assert (get.getMaxVersions() == Integer.MAX_VALUE);
-            addSiFilterToGet(e, get);
+            addSIFilterToGet(e, get);
         }
         super.preGet(e, get, results);
     }
@@ -94,7 +94,7 @@ public class SIObserver extends BaseRegionObserver {
             HTransactor transactor = HTransactorFactory.getTransactor();
             transactor.preProcessScan(scan);
             assert (scan.getMaxVersions() == Integer.MAX_VALUE);
-            addSiFilterToScan(e, scan);
+            addSIFilterToScan(e, scan);
         }
         return super.preScannerOpen(e, scan, s);
     }
@@ -109,21 +109,23 @@ public class SIObserver extends BaseRegionObserver {
         return transactor.isFilterNeededScan(scan);
     }
 
-    private void addSiFilterToGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get) throws IOException {
+    private void addSIFilterToGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get) throws IOException {
         HTransactor transactor = HTransactorFactory.getTransactor();
-        Filter newFilter = makeSiFilter(e, transactor.transactionIdFromGet(get), get.getFilter(), false);
+        Filter newFilter = makeSIFilter(e, transactor.transactionIdFromGet(get), get.getFilter(), false);
         get.setFilter(newFilter);
     }
 
-    private void addSiFilterToScan(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan) throws IOException {
+    private void addSIFilterToScan(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan) throws IOException {
         HTransactor transactor = HTransactorFactory.getTransactor();
-        Filter newFilter = makeSiFilter(e, transactor.transactionIdFromScan(scan), scan.getFilter(), transactor.isScanSIFamilyOnly(scan));
+        Filter newFilter = makeSIFilter(e, transactor.transactionIdFromScan(scan), scan.getFilter(),
+                transactor.isScanIncludeSIColumn(scan));
         scan.setFilter(newFilter);
     }
 
-    private Filter makeSiFilter(ObserverContext<RegionCoprocessorEnvironment> e, TransactionId transactionId, Filter currentFilter, boolean siOnly) throws IOException {
+    private Filter makeSIFilter(ObserverContext<RegionCoprocessorEnvironment> e, TransactionId transactionId,
+                                Filter currentFilter, boolean includeSIColumn) throws IOException {
         HTransactor transactor = HTransactorFactory.getTransactor();
-        SIFilter siFilter = new SIFilter(transactor, transactionId, rollForwardQueue, siOnly);
+        SIFilter siFilter = new SIFilter(transactor, transactionId, rollForwardQueue, includeSIColumn);
         Filter newFilter;
         if (currentFilter != null) {
             newFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL, siFilter, currentFilter); // Wrap Existing Filters
