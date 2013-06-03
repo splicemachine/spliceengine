@@ -67,19 +67,53 @@ public class SIFilterState implements FilterState {
      */
     private Filter.ReturnCode filterByColumnType() throws IOException {
         final KeyValueType type = dataStore.getKeyValueType(keyValue.family, keyValue.qualifier);
-        if (type.equals(KeyValueType.COMMIT_TIMESTAMP)) {
-            if (includeSIColumn) {
+        if (type.equals(KeyValueType.TOMBSTONE)) {
+            return processTombstone();
+        } else if (type.equals(KeyValueType.COMMIT_TIMESTAMP)) {
+            if (includeSIColumn && !rowState.isSiColumnIncluded()) {
                 processCommitTimestamp();
-                return processUserData();
+                return processCommitTimestampAsUserData();
             } else {
                 return processCommitTimestamp();
             }
-        } else if (type.equals(KeyValueType.TOMBSTONE)) {
-            return processTombstone();
         } else if (type.equals(KeyValueType.USER_DATA)) {
             return processUserData();
         } else {
             return processUnknownFamilyData();
+        }
+    }
+
+    private Filter.ReturnCode processCommitTimestampAsUserData() throws IOException {
+        boolean later = false;
+        for (Long tombstoneTimestamp : rowState.tombstoneTimestamps) {
+            if (tombstoneTimestamp < keyValue.timestamp) {
+                later = true;
+                break;
+            }
+        }
+        if (later) {
+            rowState.rememberCommitTimestamp(keyValue);
+            return SKIP;
+        } else {
+            boolean include = false;
+            for(DecodedKeyValue kv : rowState.getCommitTimestamps()) {
+                keyValue = kv;
+                if(processUserData().equals(INCLUDE)) {
+                    include = true;
+                    break;
+                }
+            }
+            if (include) {
+                rowState.setSiColumnIncluded();
+                return INCLUDE;
+            } else {
+                final Filter.ReturnCode returnCode = processUserData();
+                if (returnCode.equals(SKIP)) {
+                } else {
+                    rowState.setSiColumnIncluded();
+                }
+                return returnCode;
+            }
         }
     }
 
@@ -89,7 +123,6 @@ public class SIFilterState implements FilterState {
      */
     private Filter.ReturnCode processCommitTimestamp() throws IOException {
         Transaction transaction;
-
         if (dataStore.isSINull(keyValue.value)) {
             transaction = handleUnknownTransactionStatus();
         } else if (dataStore.isSIFail(keyValue.value)) {

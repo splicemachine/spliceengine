@@ -95,6 +95,7 @@ public class HTransactorFactory extends SIConstants {
                 "si-transaction-id", "si-delete-put", SNAPSHOT_ISOLATION_FAMILY,
                 SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING,
                 SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING,
+                SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN_STRING,
                 EMPTY_BYTE_ARRAY, SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
                 DEFAULT_FAMILY);
         return new HTransactorAdapter(new SITransactor<Object, SGet, SScan, Mutation, Result>

@@ -33,6 +33,10 @@ public class FilterRowState {
      */
     Map<Long, Transaction> transactionCache;
 
+    List<DecodedKeyValue> commitTimestamps = new ArrayList<DecodedKeyValue>();
+
+    boolean siColumnIncluded = false;
+
     public FilterRowState(SDataLib dataLib) {
         this.dataLib = dataLib;
     }
@@ -47,6 +51,8 @@ public class FilterRowState {
             lastValidQualifier = null;
             tombstoneTimestamps = new ArrayList<Long>();
             transactionCache = new HashMap<Long, Transaction>();
+            commitTimestamps = new ArrayList<DecodedKeyValue>();
+            siColumnIncluded = false;
         }
     }
 
@@ -56,4 +62,21 @@ public class FilterRowState {
     public void setTombstoneTimestamp(long tombstoneTimestamp) {
         this.tombstoneTimestamps.add(tombstoneTimestamp);
     }
+
+    public void rememberCommitTimestamp(DecodedKeyValue keyValue) {
+        commitTimestamps.add(keyValue);
+    }
+
+    public List<DecodedKeyValue> getCommitTimestamps() {
+        return commitTimestamps;
+    }
+
+    public boolean isSiColumnIncluded() {
+        return siColumnIncluded;
+    }
+
+    public void setSiColumnIncluded() {
+        this.siColumnIncluded = true;
+    }
+
 }

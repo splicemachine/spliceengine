@@ -110,7 +110,7 @@ public class TransactionStore {
         if (result.getTransactionId().getTransactionIdString().equals(transactionId.getTransactionIdString())) {
             return result;
         } else {
-            return result.cloneWithId(transactionId);
+            return result.cloneWithId(transactionId, result);
         }
     }
 

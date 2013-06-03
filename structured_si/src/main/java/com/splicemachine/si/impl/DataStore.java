@@ -35,6 +35,7 @@ public class DataStore {
     private final Object siFamily;
     private final Object commitTimestampQualifier;
     private final Object tombstoneQualifier;
+    private final Object placeHolderQualifier;
     private final Object siNull;
     final Object siFail;
 
@@ -43,8 +44,8 @@ public class DataStore {
     public DataStore(SDataLib dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
                      Object siNeededValue, Object includeSIColumnValue,
                      String transactionIdAttribute, String deletePutAttribute,
-                     String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier, Object siMetaNull,
-                     Object siFail, Object userColumnFamily) {
+                     String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier,
+                     Object placeHolderQualifier, Object siMetaNull, Object siFail, Object userColumnFamily) {
         this.dataLib = dataLib;
         this.reader = reader;
         this.writer = writer;
@@ -56,29 +57,30 @@ public class DataStore {
         this.siFamily = dataLib.encode(siMetaFamily);
         this.commitTimestampQualifier = dataLib.encode(siCommitQualifier);
         this.tombstoneQualifier = dataLib.encode(siTombstoneQualifier);
+        this.placeHolderQualifier = dataLib.encode(placeHolderQualifier);
         this.siNull = dataLib.encode(siMetaNull);
         this.siFail = dataLib.encode(siFail);
         this.userColumnFamily = dataLib.encode(userColumnFamily);
     }
 
-    void setSINeededAttribute(Object put, boolean includeSIColumn) {
-        dataLib.addAttribute(put, siNeededAttribute, dataLib.encode(includeSIColumn ? includeSIColumnValue : siNeededValue));
+    void setSINeededAttribute(Object operation, boolean includeSIColumn) {
+        dataLib.addAttribute(operation, siNeededAttribute, dataLib.encode(includeSIColumn ? includeSIColumnValue : siNeededValue));
     }
 
-    Object getSINeededAttribute(Object put) {
-        return dataLib.getAttribute(put, siNeededAttribute);
+    Object getSINeededAttribute(Object operation) {
+        return dataLib.getAttribute(operation, siNeededAttribute);
     }
 
-    boolean isIncludeSIColumn(Object put) {
-        return dataLib.valuesEqual(dataLib.getAttribute(put, siNeededAttribute), includeSIColumnValue);
+    boolean isIncludeSIColumn(Object operation) {
+        return dataLib.valuesEqual(dataLib.getAttribute(operation, siNeededAttribute), includeSIColumnValue);
     }
 
-    void setDeletePutAttribute(Object put) {
-        dataLib.addAttribute(put, deletePutAttribute, dataLib.encode(true));
+    void setDeletePutAttribute(Object operation) {
+        dataLib.addAttribute(operation, deletePutAttribute, dataLib.encode(true));
     }
 
-    Boolean getDeletePutAttribute(Object put) {
-        Object neededValue = dataLib.getAttribute(put, deletePutAttribute);
+    Boolean getDeletePutAttribute(Object operation) {
+        Object neededValue = dataLib.getAttribute(operation, deletePutAttribute);
         return (Boolean) dataLib.decode(neededValue, Boolean.class);
     }
 
@@ -99,12 +101,15 @@ public class DataStore {
         return null;
     }
 
-    void copyPutKeyValues(Object put, Object newPut, long timestamp) {
+    void copyPutKeyValues(Object put, boolean skipPlaceHolder, Object newPut, long timestamp) {
         for (Object keyValue : dataLib.listPut(put)) {
-            dataLib.addKeyValueToPut(newPut, dataLib.getKeyValueFamily(keyValue),
-                    dataLib.getKeyValueQualifier(keyValue),
-                    timestamp,
-                    dataLib.getKeyValueValue(keyValue));
+            final Object qualifier = dataLib.getKeyValueQualifier(keyValue);
+            if (!skipPlaceHolder || !dataLib.valuesEqual(placeHolderQualifier, qualifier)) {
+                dataLib.addKeyValueToPut(newPut, dataLib.getKeyValueFamily(keyValue),
+                        qualifier,
+                        timestamp,
+                        dataLib.getKeyValueValue(keyValue));
+            }
         }
     }
 
@@ -214,5 +219,12 @@ public class DataStore {
 
     public void addSIFamilyToReadIfNeeded(SRead read) {
         dataLib.addFamilyToReadIfNeeded(read, siFamily);
+    }
+
+    public void addPlaceHolderColumnToEmptyPut(Object put) {
+        final List keyValues = dataLib.listPut(put);
+        if (keyValues.isEmpty()) {
+            dataLib.addKeyValueToPut(put, siFamily, placeHolderQualifier, 0L, siNull);
+        }
     }
 }

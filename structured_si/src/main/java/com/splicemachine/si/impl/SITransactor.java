@@ -239,6 +239,11 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     @Override
+    public void initializeGet(String transactionId, GetOp get, boolean includeSIColumn) throws IOException {
+        initializeOperation(transactionId, get, includeSIColumn);
+    }
+
+    @Override
     public void initializeScan(String transactionId, SScan scan) {
         initializeOperation(transactionId, scan);
     }
@@ -251,6 +256,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     @Override
     public void initializePut(String transactionId, Object put) {
         initializeOperation(transactionId, put);
+        dataStore.addPlaceHolderColumnToEmptyPut(put);
     }
 
     private void initializeOperation(String transactionId, Object operation) {
@@ -461,7 +467,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
         final Object newPut = dataLib.newPut(rowKey, lock);
         final SITransactionId transactionId = transaction.getTransactionId();
         final long timestamp = transactionId.getId();
-        dataStore.copyPutKeyValues(put, newPut, timestamp);
+        dataStore.copyPutKeyValues(put, true, newPut, timestamp);
         dataStore.addTransactionIdToPut(newPut, transactionId);
         if (isDeletePut((MutationOp) put)) {
             dataStore.setTombstonesOnColumns(table, timestamp, newPut);
@@ -479,6 +485,11 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     @Override
     public boolean isFilterNeededScan(ScanOp operation) {
         return isFlaggedForSITreatment(operation);
+    }
+
+    @Override
+    public boolean isGetIncludeSIColumn(GetOp get) {
+        return dataStore.isIncludeSIColumn(get);
     }
 
     @Override
@@ -526,8 +537,6 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
                             break;
                         case INCLUDE:
                             filteredCells.add(keyValue);
-                            qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
-                            familyToSkip = dataLib.getKeyValueFamily(keyValue);
                             break;
                         case NEXT_COL:
                             qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
@@ -576,8 +585,8 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     /**
      * Is this operation supposed to be handled by "snapshot isolation".
      */
-    private boolean isFlaggedForSITreatment(Object put) {
-        return dataStore.getSINeededAttribute(put) != null;
+    private boolean isFlaggedForSITreatment(Object operation) {
+        return dataStore.getSINeededAttribute(operation) != null;
     }
 
     /**

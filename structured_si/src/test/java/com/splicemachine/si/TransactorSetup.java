@@ -55,6 +55,7 @@ public class TransactorSetup extends SIConstants {
                 new DataStore(dataLib, reader, writer, "si-needed", SI_NEEDED_VALUE, ONLY_SI_FAMILY_NEEDED_VALUE,
                         "si-transaction-id", "si-delete-put", SNAPSHOT_ISOLATION_FAMILY,
                         SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING, SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING,
+                        SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN_STRING,
                         -1, -2, userColumnsFamilyName),
                 transactionStore, storeSetup.getClock(), 1500);
         if (!simple) {
