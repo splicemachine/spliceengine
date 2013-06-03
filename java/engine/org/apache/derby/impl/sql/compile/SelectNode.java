@@ -2089,7 +2089,10 @@ public class SelectNode extends ResultSetNode
 			 * ResultColumn.expressions.
 			 */
 			leftResultSet = (ResultSetNode) fromList.elementAt(0);
-			leftRCList = leftResultSet.getResultColumns();
+
+            FromBaseTable leftBaseTable = getBaseTableNode(leftResultSet);
+
+            leftRCList = leftResultSet.getResultColumns();
 			leftResultSet.setResultColumns(leftRCList.copyListAndObjects());
 			leftRCList.genVirtualColumnNodes(leftResultSet, leftResultSet.resultColumns);
 
@@ -2099,10 +2102,27 @@ public class SelectNode extends ResultSetNode
 			 * (Right gets appended to left, so only right's ids need updating.)
 			 */
 			rightResultSet = (ResultSetNode) fromList.elementAt(1);
+
+            FromBaseTable rightBaseTable = getBaseTableNode(rightResultSet);
+
 			rightRCList = rightResultSet.getResultColumns();
 			rightResultSet.setResultColumns(rightRCList.copyListAndObjects());
 			rightRCList.genVirtualColumnNodes(rightResultSet, rightResultSet.resultColumns);
 			rightRCList.adjustVirtualColumnIds(leftRCList.size());
+
+            if(leftBaseTable != null && rightBaseTable != null){
+                int size = rightBaseTable.restrictionList.size();
+
+                for(int i=0; i < size; i++){
+
+                    ColumnReference colRef = getJoinColumn((Predicate) rightBaseTable.restrictionList.getOptPredicate(i));
+
+                    if(colRef.getTableNumber() == leftBaseTable.getTableNumber()){
+                        leftBaseTable.storeRestrictionList.addPredicate(createNotNullPredicate(colRef));
+                    }
+
+                }
+            }
 
 			/* Concatenate the 2 ResultColumnLists */
 			leftRCList.nondestructiveAppend(rightRCList);
@@ -2130,7 +2150,60 @@ public class SelectNode extends ResultSetNode
 		}
 
 		return genProjectRestrict(origFromListSize);
+
 	}
+
+    private ColumnReference getJoinColumn(Predicate predicate){
+        BinaryRelationalOperatorNode opNode = (BinaryRelationalOperatorNode) predicate.getAndNode().getLeftOperand();
+        return (ColumnReference) opNode.getLeftOperand();
+    }
+
+    private ValueNode createNotNullOperator(ColumnReference colRef) throws StandardException {
+        return (ValueNode) getNodeFactory().getNode( C_NodeTypes.IS_NOT_NULL_NODE,
+                colRef,
+                getContextManager());
+    }
+
+    private ValueNode createConstantTrueNode() throws StandardException {
+        return (BooleanConstantNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                Boolean.TRUE,
+                getContextManager());
+    }
+
+    private AndNode createNotNullRelation(ValueNode notNullNode) throws StandardException {
+        return (AndNode) getNodeFactory().getNode( C_NodeTypes.AND_NODE,
+                notNullNode,
+                createConstantTrueNode(),
+                getContextManager());
+    }
+
+    private Predicate createNotNullPredicate(ColumnReference colRef) throws StandardException {
+
+        ValueNode notNullOp = createNotNullOperator(colRef);
+
+        AndNode notNullRelation = createNotNullRelation(notNullOp);
+
+        Predicate pred = new Predicate();
+        pred.init(notNullRelation, colRef.getTablesReferenced());
+
+        pred.markQualifier();
+
+        return pred;
+    }
+
+    private FromBaseTable getBaseTableNode(ResultSetNode rsn){
+
+        FromBaseTable table = null;
+
+        if(rsn instanceof FromBaseTable){
+            table = (FromBaseTable) rsn;
+        }else if(rsn instanceof ProjectRestrictNode){
+            ProjectRestrictNode prn = (ProjectRestrictNode) rsn;
+            table = getBaseTableNode(prn.getChildResult());
+        }
+
+        return table;
+    }
 
 	/**
 	 * Get the final CostEstimate for this SelectNode.
