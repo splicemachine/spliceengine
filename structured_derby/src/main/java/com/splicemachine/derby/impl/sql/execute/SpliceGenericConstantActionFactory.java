@@ -95,9 +95,15 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
     }
 
     @Override
+    public ConstantAction[] createConstraintConstantActionArray(int size) {
+    	SpliceLogUtils.trace(LOG, "createConstraintConstantActionArray with size {%d}",size);
+    	return new CreateConstraintConstantOperation[size];
+    }
+    		    
+    @Override
     public ConstantAction getCreateTableConstantAction(String schemaName, String tableName,
                                                        int tableType, ColumnInfo[] columnInfo,
-                                                       CreateConstraintConstantAction[] constraintActions,
+                                                       ConstantAction[] constraintActions,
                                                        Properties properties, char lockGranularity,
                                                        boolean onCommitDeleteRows, boolean onRollbackDeleteRows) {
     	SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",schemaName, tableName, Arrays.toString(columnInfo),Arrays.toString(constraintActions));
