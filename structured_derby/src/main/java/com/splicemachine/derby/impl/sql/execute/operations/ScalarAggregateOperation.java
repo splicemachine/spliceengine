@@ -239,11 +239,11 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	protected void initializeScalarAggregation(ExecRow aggResult) throws StandardException{
 		for(SpliceGenericAggregator aggregator: aggregates){
-			SpliceLogUtils.trace(LOG, "BEFORE INITIALIZATION: aggResult = %s",aggResult);
+			//SpliceLogUtils.trace(LOG, "BEFORE INITIALIZATION: aggResult = %s",aggResult);
 			aggregator.initialize(aggResult);
 			//SpliceLogUtils.trace(LOG, "BEFORE FIRST ACCUMULATE: aggResult = %s",aggResult);
 			aggregator.accumulate(aggResult,aggResult);
-			SpliceLogUtils.trace(LOG, "AFTER FIRST ACCUMULATE: aggResult = %s",aggResult);
+			//SpliceLogUtils.trace(LOG, "AFTER FIRST ACCUMULATE: aggResult = %s",aggResult);
 		}
 	}
 	
