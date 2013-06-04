@@ -492,20 +492,13 @@ public class CreateTableNode extends DDLStatementNode
 	    int numConstraints = coldefs.genColumnInfos(colInfos);
 
 		/* If we've seen a constraint, then build a constraint list */
-		CreateConstraintConstantAction[] conActions = null;
+		ConstantAction[] conActions = null;
 
-		SchemaDescriptor sd = getSchemaDescriptor(
-			tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE,
-			true);
-
+		SchemaDescriptor sd = getSchemaDescriptor(tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE,true);
 		
-		if (numConstraints > 0)
-		{
-			conActions =
-                new CreateConstraintConstantAction[numConstraints];
-
-			coldefs.genConstraintActions(true,
-                conActions, getRelativeName(), sd, getDataDictionary());
+		if (numConstraints > 0) {
+			conActions = getGenericConstantActionFactory().createConstraintConstantActionArray(numConstraints);
+			coldefs.genConstraintActions(true,conActions, getRelativeName(), sd, getDataDictionary());
 		}
 
         // if the any of columns are "long" and user has not specified a
@@ -513,7 +506,7 @@ public class CreateTableNode extends DDLStatementNode
         // Also in case where the approximate sum of the column sizes is
         // greater than the bump threshold , bump the pagesize to 32k
 
-        boolean table_has_long_column = false;
+        boolean table_has_long_column = false; 
         int approxLength = 0;
 
         for (int i = 0; i < colInfos.length; i++)
