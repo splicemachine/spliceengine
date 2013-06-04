@@ -21,15 +21,11 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.services.context.ContextManager;
-
 import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
 import org.apache.derby.iapi.sql.compile.Optimizer;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
-import org.apache.derby.iapi.sql.compile.OptimizableList;
-import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.sql.compile.RequiredRowOrdering;
 import org.apache.derby.iapi.sql.compile.RowOrdering;
@@ -37,27 +33,15 @@ import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 
 import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ResultSet;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.ClassName;
 
 import org.apache.derby.iapi.store.access.TransactionController;
 
-import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
-import org.apache.derby.impl.sql.compile.ActivationClassBuilder;
-
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
-
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
@@ -65,9 +49,11 @@ import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Vector;
 
 /**
  * A ProjectRestrictNode represents a result set for any of the basic DML
@@ -535,34 +521,90 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
 				"optimizablePredicate either has a subquery or a method call");
 		}
 
-		/* Add the matching predicate to the restrictionList */
-		if (restrictionList == null)
-		{
-			restrictionList = (PredicateList) getNodeFactory().getNode(
-													C_NodeTypes.PREDICATE_LIST,
-													getContextManager());
-		}
-		restrictionList.addPredicate((Predicate) optimizablePredicate);
+        boolean shouldPushPredicate = true;
 
-		/* Remap all of the ColumnReferences to point to the
-		 * source of the values.
-		 */
-		Predicate pred = (Predicate)optimizablePredicate;
+        if(optimizablePredicate instanceof Predicate){
 
-		/* If the predicate is scoped then the call to "remapScopedPred()"
-		 * will do the necessary remapping for us and will return true;
-		 * otherwise, we'll just do the normal remapping here.
-		 */
-		if (!pred.remapScopedPred())
-		{
-			RemapCRsVisitor rcrv = new RemapCRsVisitor(true);
-			pred.getAndNode().accept(rcrv);
-		}
+            Predicate pred = (Predicate) optimizablePredicate;
 
-		return true;
+            if(!pred.isJoinPredicate()){
+
+                Set childTableUUIDs = getAllChildReferencedTables();
+                Vector predColumnRefs = getColumnReferences(pred);
+
+                shouldPushPredicate = areAllReferencedTablesFromChild(childTableUUIDs, predColumnRefs);
+            }
+        }
+
+        if(shouldPushPredicate){
+
+            /* Add the matching predicate to the restrictionList */
+            if (restrictionList == null)
+            {
+                restrictionList = (PredicateList) getNodeFactory().getNode(
+                        C_NodeTypes.PREDICATE_LIST,
+                        getContextManager());
+            }
+
+            restrictionList.addPredicate((Predicate) optimizablePredicate);
+
+            /* Remap all of the ColumnReferences to point to the
+             * source of the values.
+             */
+            Predicate pred = (Predicate)optimizablePredicate;
+
+            /* If the predicate is scoped then the call to "remapScopedPred()"
+             * will do the necessary remapping for us and will return true;
+             * otherwise, we'll just do the normal remapping here.
+             */
+            if (!pred.remapScopedPred())
+            {
+                RemapCRsVisitor rcrv = new RemapCRsVisitor(true);
+                pred.getAndNode().accept(rcrv);
+            }
+        }
+
+		return shouldPushPredicate;
 	}
 
-	/**
+    private boolean areAllReferencedTablesFromChild(Set childTableUUIDs, Vector columnRefs){
+
+        boolean allTablesFound = true;
+
+        for(Iterator it = columnRefs.iterator(); allTablesFound && it.hasNext();){
+            ColumnReference col = (ColumnReference) it.next();
+            ResultColumn rCol = col.getSource();
+            if(rCol != null && rCol.getTableColumnDescriptor() != null &&
+                    !childTableUUIDs.contains(rCol.getTableColumnDescriptor().getReferencingUUID())){
+                allTablesFound = false;
+            }
+        }
+
+        return allTablesFound;
+    }
+
+    private Vector getColumnReferences(Predicate pred) throws StandardException {
+        CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
+        pred.accept(cnv);
+        return cnv.getList();
+    }
+
+    private Set getAllChildReferencedTables() {
+        Set tableSet = new HashSet();
+        ResultColumnList projColumns = getChildResult().getResultColumns();
+
+        for(int i=0; i < projColumns.size(); i++){
+            ResultColumn rc = (ResultColumn) projColumns.elementAt(i);
+
+            if(rc.getTableColumnDescriptor() != null){
+                tableSet.add(rc.getTableColumnDescriptor().getReferencingUUID());
+            }
+        }
+        return tableSet;
+    }
+
+
+    /**
 	 * @see Optimizable#pullOptPredicates
 	 *
 	 * @exception StandardException		Thrown on error
