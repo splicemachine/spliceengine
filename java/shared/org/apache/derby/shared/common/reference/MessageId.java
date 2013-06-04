@@ -238,4 +238,9 @@ public interface MessageId {
     String REPLICATION_ONELINE_MSG_HEADER                = "R013";
     String REPLICATION_FAILOVER_SUCCESSFUL               = "R020";
 
+    /*
+     * Splice Engine
+     */
+    String SPLICE_GENERIC_EXCEPTION                      = "SE001";
+
 }

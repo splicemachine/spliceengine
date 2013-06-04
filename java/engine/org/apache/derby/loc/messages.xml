@@ -8305,4 +8305,20 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 
     </section>
 
+    <section>
+       <desc>SE: Splice Engine messages.</desc>
+
+       <family>
+          <title>Generic Splice Engine message.</title>
+
+          <msg>
+             <name>SE001</name>
+             <text>Splice Engine exception: {0}</text>
+             <arg>exceptionText</arg>
+          </msg>
+
+       </family>
+    </section>
+
+
 </messages>
