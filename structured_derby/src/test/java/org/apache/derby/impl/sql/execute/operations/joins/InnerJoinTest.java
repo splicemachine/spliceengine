@@ -330,6 +330,7 @@ public class InnerJoinTest extends SpliceUnitTest {
 
     }
 
+
     @Ignore("Currently failing, written up as bug 338")
     @Test
     public void testSelfJoin() throws Exception {
@@ -361,6 +362,17 @@ public class InnerJoinTest extends SpliceUnitTest {
         Assert.assertEquals("E2",results.get(6).get("EMPNUM"));
         Assert.assertEquals(new BigDecimal("40"),results.get(6).get("HOURS"));
         Assert.assertEquals("A",results.get(6).get("COL2"));
+    }
+
+    @Test
+    public void testAggregateSubtractionWithJoin() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("SELECT MIN(PNAME) FROM PROJ, WORKS, STAFF WHERE PROJ.PNUM = WORKS.PNUM\n" +
+                "AND WORKS.EMPNUM = STAFF.EMPNUM AND BUDGET - (GRADE * 600) IN (-4400, -1000, 4000)");
+
+        List<Map> results = TestUtils.resultSetToMaps(rs);
+
+        Assert.assertEquals(1, results.size());
+        Assert.assertEquals("MXSS", results.get(0).get("1"));
     }
 
 	@Test
