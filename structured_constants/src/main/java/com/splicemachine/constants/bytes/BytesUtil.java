@@ -293,9 +293,7 @@ public class BytesUtil {
                 Bytes.compareTo(r1,a2)>=0) return null;
 
         if(emptyBeforeComparator.compare(a1,r1)<=0){
-            if(emptyBeforeComparator.compare(a2,r1)<=0)
-                return null;
-            else if(emptyAfterComparator.compare(a2,r2)<=0)
+            if(emptyAfterComparator.compare(a2,r2)<=0)
                 return Pair.newPair(r1,a2);
             else
                 return Pair.newPair(r1,r2);

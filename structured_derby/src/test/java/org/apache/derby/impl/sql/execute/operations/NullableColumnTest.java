@@ -1,6 +1,8 @@
 package org.apache.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -17,7 +19,10 @@ import org.junit.runner.Description;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -119,12 +124,14 @@ public class NullableColumnTest extends SpliceUnitTest {
     @Test
     public void testWildcardWhereNull() throws Exception{
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name is null", this.getTableReference(TABLE_NAME_2)));
+        Set<Integer> correctResults = Sets.newHashSet(0,3,6,9);
         int rowsReturned =0;
         while(rs.next()){
             String name = rs.getString(1);
             int value = rs.getInt(2);
             Assert.assertNull(name);
-            Assert.assertEquals(rowsReturned * 3, value);
+            Assert.assertTrue("value not in correct results: "+ value,correctResults.contains(value));
+            System.out.printf("name=%s,value=%d%n",name,value);
             rowsReturned++;
         }
         Assert.assertEquals("Incorrect rows returned!", 4, rowsReturned);
