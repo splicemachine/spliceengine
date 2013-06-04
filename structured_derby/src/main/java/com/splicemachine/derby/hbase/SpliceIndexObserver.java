@@ -77,6 +77,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
     @Override
     public void postClose(ObserverContext<RegionCoprocessorEnvironment> e, boolean abortRequested) {
+    	SpliceLogUtils.trace(LOG, "postClose");
         try {
             WriteContextFactoryPool.releaseContextFactory((LocalWriteContextFactory) writeContextFactory);
         } catch (Exception e1) {
@@ -86,22 +87,23 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
     @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
-        mutate(e.getEnvironment(), put);
-
+    	SpliceLogUtils.trace(LOG, "prePut %s",put);
+    	mutate(e.getEnvironment(), put);
         super.prePut(e, put, edit, writeToWAL);
     }
 
     @Override
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,
                           Delete delete, WALEdit edit, boolean writeToWAL) throws IOException {
-        //TODO -sf- is this correct?
+    	SpliceLogUtils.trace(LOG, "preDelete %s",delete);
         mutate(e.getEnvironment(), delete);
         super.preDelete(e, delete, edit, writeToWAL);
     }
 
     @Override
     public boolean preCheckAndPut(ObserverContext<RegionCoprocessorEnvironment> e, byte[] row, byte[] family, byte[] qualifier, CompareFilter.CompareOp compareOp, WritableByteArrayComparable comparator, Put put, boolean result) throws IOException {
-        return super.preCheckAndPut(e, row, family, qualifier, compareOp, comparator, put, result);    //To change body of overridden methods use File | Settings | File Templates.
+    	SpliceLogUtils.trace(LOG, "preCheckAndPut %s",put);
+    	return super.preCheckAndPut(e, row, family, qualifier, compareOp, comparator, put, result);    //To change body of overridden methods use File | Settings | File Templates.
     }
 
     /*******************************************************************************************************************/
@@ -109,6 +111,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
 
     private void mutate(RegionCoprocessorEnvironment rce, Mutation mutation) throws IOException {
+    	SpliceLogUtils.trace(LOG, "mutate %s",mutation);
         //we've already done our write path, so just pass it through
         if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null) return;
         WriteContext context;

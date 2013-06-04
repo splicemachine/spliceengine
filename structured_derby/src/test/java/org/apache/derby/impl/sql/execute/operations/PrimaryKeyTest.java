@@ -5,9 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import org.junit.Assert;
-import org.apache.log4j.Logger;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -25,7 +23,6 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  *         Created on: 3/1/13
  */
 public class PrimaryKeyTest extends SpliceUnitTest {
-    private static final Logger LOG = Logger.getLogger(PrimaryKeyTest.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = PrimaryKeyTest.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME = "A";

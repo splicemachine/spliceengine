@@ -4,6 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.sql.execute.actionsagain.InsertConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
@@ -11,15 +12,10 @@ import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.HasIncrement;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.sql.execute.InsertConstantAction;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -62,10 +58,10 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException{
 		super.init(context);
-		heapConglom = ((InsertConstantAction)constants).getConglomerateId();
+		heapConglom = ((InsertConstantOperation)constants).getConglomerateId();
 
-        if(constants instanceof InsertConstantAction){
-            int[] pks = ((InsertConstantAction)constants).getPkColumns();
+        if(constants instanceof InsertConstantOperation){
+            int[] pks = ((InsertConstantOperation)constants).getPkColumns();
             if(pks!=null)
                 pkColumns = fromIntArray(pks);
         }
@@ -114,7 +110,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
     public DataValueDescriptor increment(int columnPosition, long increment) throws StandardException {
         int index = columnPosition-1;
 
-        HBaseRowLocation rl = (HBaseRowLocation)((InsertConstantAction) constants).getAutoincRowLocation()[index];
+        HBaseRowLocation rl = (HBaseRowLocation)((InsertConstantOperation) constants).getAutoincRowLocation()[index];
 
         byte[] rlBytes = rl.getBytes();
 

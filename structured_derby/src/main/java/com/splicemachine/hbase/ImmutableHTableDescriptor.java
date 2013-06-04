@@ -57,6 +57,7 @@ class ImmutableHTableDescriptor extends HTableDescriptor{
     }
 
     @Override
+    @Deprecated
     public void setOwnerString(String ownerString) {
         throw new UnsupportedOperationException("Read only HTableDescriptor");
     }

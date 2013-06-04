@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.actions;
+package com.splicemachine.derby.impl.sql.execute.actionsagain;
 
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -28,7 +28,7 @@ import java.util.Properties;
  * @author Scott Fines
  * Created on: 3/7/13
  */
-public class DropIndexOperation implements ConstantAction {
+public class DropIndexOperationScott implements ConstantAction {
 
     private final String fullIndexName;
     private final String indexName;
@@ -37,7 +37,7 @@ public class DropIndexOperation implements ConstantAction {
     private final UUID tableId;
     private final long tableConglomerateId;
 
-    public DropIndexOperation(String fullIndexName, String indexName,
+    public DropIndexOperationScott(String fullIndexName, String indexName,
                               String tableName, String schemaName,
                               UUID tableId, long tableConglomerateId) {
         this.fullIndexName = fullIndexName;
@@ -117,7 +117,7 @@ public class DropIndexOperation implements ConstantAction {
     private ConstantAction getConglomReplacementAction(ConglomerateDescriptor newBackingConglomCD,
                                              TableDescriptor td, Properties ixProps)
             throws StandardException {
-        return new CreateIndexOperation(newBackingConglomCD,td,ixProps);
+        return new CreateIndexConstantOperationScott(newBackingConglomCD,td,ixProps);
     }
 
     private void loadIndexProperties(LanguageConnectionContext lcc,

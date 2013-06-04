@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.actions;
+package com.splicemachine.derby.impl.sql.execute.actionsagain;
 
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -11,12 +11,16 @@ import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.impl.sql.execute.ConstraintInfo;
 import org.apache.derby.impl.sql.execute.CreateConstraintConstantAction;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * @author Scott Fines
  *         Created on: 4/29/13
  */
-public class CreateConstraintAction extends CreateConstraintConstantAction{
+public class CreateConstraintAction extends CreateConstraintConstantAction {
+	private static final Logger LOG = Logger.getLogger(CreateConstraintAction.class);
     /**
      * Make one of these puppies.
      *
@@ -38,17 +42,19 @@ public class CreateConstraintAction extends CreateConstraintConstantAction{
      */
     public CreateConstraintAction(String constraintName, int constraintType, boolean forCreateTable, String tableName, UUID tableId, String schemaName, String[] columnNames, ConstantAction indexAction, String constraintText, boolean enabled, ConstraintInfo otherConstraint, ProviderInfo[] providerInfo) {
         super(constraintName, constraintType, forCreateTable, tableName, tableId, schemaName, columnNames, indexAction, constraintText, enabled, otherConstraint, providerInfo);
+    	SpliceLogUtils.trace(LOG, "CreateConstraintAction with name %s for table %s",constraintName,tableName);
     }
 
     @Override
     protected UUID manageIndexAction(TableDescriptor td, UUIDFactory uuidFactory, Activation activation) throws StandardException {
-        if(indexAction instanceof CreateIndexOperation){
+    	SpliceLogUtils.trace(LOG, "manageIndexAction for table %s with activation %s",td,activation);
+        if(indexAction instanceof CreateIndexConstantOperation){
             String backingIndexName;
-            CreateIndexOperation cio = (CreateIndexOperation)indexAction;
+            CreateIndexConstantOperation cio = (CreateIndexConstantOperation)indexAction;
             if(cio.getIndexName()==null){
                 backingIndexName = uuidFactory.createUUID().toString();
                 cio.setIndexName(backingIndexName);
-            }else{
+            } else {
                 backingIndexName = cio.getIndexName();
             }
 
@@ -64,19 +70,17 @@ public class CreateConstraintAction extends CreateConstraintConstantAction{
                 }
             }
 
-            if (SanityManager.DEBUG)
-            {
-                SanityManager.ASSERT(indexConglom != null,
-                        "indexConglom is expected to be non-null after search for backing index");
-                SanityManager.ASSERT(indexConglom.isIndex(),
-                        "indexConglom is expected to be indexable after search for backing index");
-                SanityManager.ASSERT(indexConglom.getConglomerateName().equals(backingIndexName),
-                        "indexConglom name expected to be the same as backing index name after search for backing index");
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(indexConglom != null,"indexConglom is expected to be non-null after search for backing index");
+                SanityManager.ASSERT(indexConglom.isIndex(),"indexConglom is expected to be indexable after search for backing index");
+                SanityManager.ASSERT(indexConglom.getConglomerateName().equals(backingIndexName),"indexConglom name expected to be the same as backing index name after search for backing index");
             }
 
             return indexConglom.getUUID();
-        }else{
+        } else {
             return super.manageIndexAction(td, uuidFactory, activation);
         }
     }
 }
+
+

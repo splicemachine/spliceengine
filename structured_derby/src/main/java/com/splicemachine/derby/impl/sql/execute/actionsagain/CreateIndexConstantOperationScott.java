@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.actions;
+package com.splicemachine.derby.impl.sql.execute.actionsagain;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.index.CreateIndexJob;
@@ -22,7 +22,6 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
-import org.apache.derby.impl.sql.execute.IndexConstantAction;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 
@@ -36,10 +35,9 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 3/7/13
  */
-public class CreateIndexOperation extends IndexConstantAction implements ConstantAction {
+public class CreateIndexConstantOperationScott extends IndexConstantOperation implements ConstantAction {
     private static final long serialVersionUID = 1l;
-    private static final Logger LOG = Logger.getLogger(CreateIndexOperation.class);
-
+    private static final Logger LOG = Logger.getLogger(CreateIndexConstantOperationScott.class);
 
     private String[] columnNames;
     private boolean[] ascending;
@@ -49,7 +47,7 @@ public class CreateIndexOperation extends IndexConstantAction implements Constan
     private String indexType;
     private Properties properties;
 
-    public CreateIndexOperation(String schemaName,
+    public CreateIndexConstantOperationScott(String schemaName,
                                 String indexName, String tableName,
                                 String[] columnNames,boolean[] isAscending,
                                 UUID tableId, UUID conglomerateUUID,
@@ -65,7 +63,7 @@ public class CreateIndexOperation extends IndexConstantAction implements Constan
         this.properties = properties;
     }
 
-    public CreateIndexOperation(ConglomerateDescriptor indexConglomDescriptor,
+    public CreateIndexConstantOperationScott(ConglomerateDescriptor indexConglomDescriptor,
                                 TableDescriptor mainTableDescriptor,
                                 Properties properties) throws StandardException {
     	super(mainTableDescriptor.getUUID(), indexConglomDescriptor.getConglomerateName(), mainTableDescriptor.getName(), mainTableDescriptor.getSchemaName());
@@ -193,7 +191,7 @@ public class CreateIndexOperation extends IndexConstantAction implements Constan
             throw Exceptions.parseException(e.getCause());
         } catch (InterruptedException e) {
             throw Exceptions.parseException(e);
-        }finally{
+        } finally {
             if(future!=null){
                 try {
                     future.cleanup();
@@ -214,18 +212,14 @@ public class CreateIndexOperation extends IndexConstantAction implements Constan
         return SpliceUtils.getTransID(td);
     }
 
-    private TableDescriptor getActiveTableDescriptor(Activation activation,
-                                                     DataDictionary dd,
-                                                     LanguageConnectionContext lcc)
-            throws StandardException {
+    private TableDescriptor getActiveTableDescriptor(Activation activation, DataDictionary dd, LanguageConnectionContext lcc) throws StandardException {
         TableDescriptor td = activation.getDDLTableDescriptor();
         TransactionController tc = lcc.getTransactionExecute();
         if(td ==null){
-            if(tableId!=null){
+            if(tableId!=null) 
                 td = dd.getTableDescriptor(tableId);
-            }else
-                td = dd.getTableDescriptor(tableName,
-                        dd.getSchemaDescriptor(schemaName,tc,true),tc);
+             else
+                td = dd.getTableDescriptor(tableName, dd.getSchemaDescriptor(schemaName,tc,true),tc);
         }
         return td;
     }
@@ -233,23 +227,23 @@ public class CreateIndexOperation extends IndexConstantAction implements Constan
     private int[] getIndexToBaseTableMap(TableDescriptor td) throws StandardException {
         int[] indexPosMap = new int[columnNames.length];
         int pos=0;
-        for(String columnName:columnNames){
+        for(String columnName:columnNames) {
             ColumnDescriptor columnDescriptor = td.getColumnDescriptor(columnName);
             if(columnDescriptor==null)
                 throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE,columnName,tableName);
-
             indexPosMap[pos] = columnDescriptor.getPosition();
             pos++;
         }
-
         return indexPosMap;
     }
 
-    public String getIndexName() {
-        return indexName;
-    }
 
-    public void setIndexName(String indexName) {
-        this.indexName = indexName;
-    }
+	/**
+	 * Get the UUID for the conglomerate descriptor that was created
+	 * (or re-used) by this constant action.
+	 */
+	public UUID getCreatedUUID() {
+		return conglomerateUUID;
+	}
+
 }

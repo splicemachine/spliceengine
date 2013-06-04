@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.action;
+package com.splicemachine.derby.impl.sql.execute.actions;
 
 import java.sql.Connection;
 import java.sql.ResultSet;

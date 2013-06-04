@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.action;
+package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
