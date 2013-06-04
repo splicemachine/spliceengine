@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.actionsagain.DeleteConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.utils.SpliceLogUtils;
