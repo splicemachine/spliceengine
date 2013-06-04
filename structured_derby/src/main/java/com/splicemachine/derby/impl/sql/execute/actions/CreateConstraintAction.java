@@ -54,7 +54,7 @@ public class CreateConstraintAction extends CreateConstraintConstantAction {
             if(cio.getIndexName()==null){
                 backingIndexName = uuidFactory.createUUID().toString();
                 cio.setIndexName(backingIndexName);
-            }else{
+            } else {
                 backingIndexName = cio.getIndexName();
             }
 
@@ -70,19 +70,17 @@ public class CreateConstraintAction extends CreateConstraintConstantAction {
                 }
             }
 
-            if (SanityManager.DEBUG)
-            {
-                SanityManager.ASSERT(indexConglom != null,
-                        "indexConglom is expected to be non-null after search for backing index");
-                SanityManager.ASSERT(indexConglom.isIndex(),
-                        "indexConglom is expected to be indexable after search for backing index");
-                SanityManager.ASSERT(indexConglom.getConglomerateName().equals(backingIndexName),
-                        "indexConglom name expected to be the same as backing index name after search for backing index");
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(indexConglom != null,"indexConglom is expected to be non-null after search for backing index");
+                SanityManager.ASSERT(indexConglom.isIndex(),"indexConglom is expected to be indexable after search for backing index");
+                SanityManager.ASSERT(indexConglom.getConglomerateName().equals(backingIndexName),"indexConglom name expected to be the same as backing index name after search for backing index");
             }
 
             return indexConglom.getUUID();
-        }else{
+        } else {
             return super.manageIndexAction(td, uuidFactory, activation);
         }
     }
 }
+
+
