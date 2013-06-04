@@ -84,7 +84,7 @@ public class CreateTableConstantAction extends DDLConstantAction
 								String			tableName,
 								int				tableType,
 								ColumnInfo[]	columnInfo,
-								CreateConstraintConstantAction[] constraintActions,
+								ConstantAction[] constraintActions,
 								Properties		properties,
 								char			lockGranularity,
 								boolean			onCommitDeleteRows,
@@ -94,7 +94,7 @@ public class CreateTableConstantAction extends DDLConstantAction
 		this.tableName = tableName;
 		this.tableType = tableType;
 		this.columnInfo = columnInfo;
-		this.constraintActions = constraintActions;
+		this.constraintActions = (CreateConstraintConstantAction[]) constraintActions;
 		this.properties = properties;
 		this.lockGranularity = lockGranularity;
 		this.onCommitDeleteRows = onCommitDeleteRows;

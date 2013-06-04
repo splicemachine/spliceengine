@@ -22,42 +22,26 @@
 package org.apache.derby.impl.sql.execute;
 
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.services.context.ContextService;
-
 import org.apache.derby.iapi.sql.conn.Authorizer;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-
 import org.apache.derby.iapi.sql.ResultDescription;
-
 import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.GenericDescriptorList;
 import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-
 import org.apache.derby.iapi.sql.execute.ExecRow;
-
 import org.apache.derby.iapi.sql.depend.ProviderInfo;
-
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-
-import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
-
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.AliasInfo;
-
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.impl.sql.compile.TableName;
-
 import java.util.List;
 import java.util.Properties;
-
 import java.sql.Timestamp;
 
 /**
@@ -155,8 +139,7 @@ public class GenericConstantActionFactory
 		long						tableConglomerateId,
 		int							tableType,
 		ColumnInfo[]				columnInfo,
-		ConstraintConstantAction[] 	constraintActions,
-
+		ConstantAction[] 	constraintActions,
 		char						lockGranularity,
 		boolean						compressTable,
 		int							behavior,
@@ -201,7 +184,7 @@ public class GenericConstantActionFactory
 	 *	@param otherConstraint	The referenced constraint, if a foreign key constraint
 	 *  @param providerInfo Information on all the Providers
 	 */
-	public	CreateConstraintConstantAction	getCreateConstraintConstantAction
+	public	ConstantAction	getCreateConstraintConstantAction
 	(
 		String				constraintName,
 		int					constraintType,
@@ -382,7 +365,7 @@ public class GenericConstantActionFactory
 		String			tableName,
 		int				tableType,
 		ColumnInfo[]	columnInfo,
-		CreateConstraintConstantAction[] constraintActions,
+		ConstantAction[] constraintActions,
 		Properties		properties,
 		char			lockGranularity,
 		boolean			onCommitDeleteRows,
@@ -889,7 +872,7 @@ public class GenericConstantActionFactory
 	 *
 	 *  @exception StandardException Thrown on failure
 	 */
-	public	UpdateConstantAction	getUpdateConstantAction(
+	public	ConstantAction	getUpdateConstantAction(
 								long				conglomId,
 								int					tableType,
 								StaticCompiledOpenConglomInfo heapSCOCI,
@@ -1094,4 +1077,9 @@ public class GenericConstantActionFactory
 	{
 		return new RevokeRoleConstantAction(roleNames, grantees);
 	}
+	
+    public ConstantAction[] createConstraintConstantActionArray(int size) {
+    	return new CreateConstraintConstantAction[size];
+    }
+    
 }

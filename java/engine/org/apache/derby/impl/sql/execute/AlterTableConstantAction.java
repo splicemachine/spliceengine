@@ -224,7 +224,7 @@ class AlterTableConstantAction extends DDLSingleTableConstantAction
     long			            tableConglomerateId,
     int				            tableType,
     ColumnInfo[]	            columnInfo,
-    ConstraintConstantAction[]  constraintActions,
+    ConstantAction[]  constraintActions,
     char			            lockGranularity,
     boolean			            compressTable,
     int				            behavior,
@@ -245,7 +245,7 @@ class AlterTableConstantAction extends DDLSingleTableConstantAction
 		this.tableConglomerateId    = tableConglomerateId;
 		this.tableType              = tableType;
 		this.columnInfo             = columnInfo;
-		this.constraintActions      = constraintActions;
+		this.constraintActions      = (ConstraintConstantAction[]) constraintActions;
 		this.lockGranularity        = lockGranularity;
 		this.compressTable          = compressTable;
 		this.behavior               = behavior;
