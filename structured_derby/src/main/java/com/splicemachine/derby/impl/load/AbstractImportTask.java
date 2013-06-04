@@ -18,6 +18,7 @@ import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -61,9 +62,9 @@ public abstract class AbstractImportTask extends ZkTask {
     }
 
     @Override
-    public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-        fileSystem = region.getFilesystem();
-        super.prepareTask(region, zooKeeper);
+    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+        fileSystem = rce.getRegion().getFilesystem();
+        super.prepareTask(rce, zooKeeper);
     }
 
     @Override
@@ -78,8 +79,7 @@ public abstract class AbstractImportTask extends ZkTask {
             Serializer serializer = new Serializer();
             FormatableBitSet pkCols = importContext.getPrimaryKeys();
 
-            CallBuffer<Mutation> writeBuffer =
-                    SpliceDriver.driver().getTableWriter().writeBuffer(importContext.getTableName().getBytes());
+            CallBuffer<Mutation> writeBuffer = getCallBuffer();
 
             RowSerializer rowSerializer = new RowSerializer(row.getRowArray(),pkCols,pkCols==null);
 
@@ -98,6 +98,10 @@ public abstract class AbstractImportTask extends ZkTask {
         }
     }
 
+    protected CallBuffer<Mutation> getCallBuffer() throws Exception {
+        return SpliceDriver.driver().getTableWriter().writeBuffer(importContext.getTableName().getBytes());
+    }
+
     protected abstract long importData(ExecRow row,
                                        Serializer serializer,
                                        RowSerializer rowSerializer,
@@ -106,6 +110,13 @@ public abstract class AbstractImportTask extends ZkTask {
     protected void doImportRow(String transactionId,String[] line,FormatableBitSet activeCols, ExecRow row,
                              CallBuffer<Mutation> writeBuffer,
                              RowSerializer rowSerializer,Serializer serializer) throws Exception {
+        populateRow(line, activeCols, row);
+
+        Put put = Puts.buildInsertWithSerializer(rowSerializer.serialize(row.getRowArray()),row.getRowArray(),null,transactionId,serializer);
+        writeBuffer.add(put);
+    }
+
+    private void populateRow(String[] line, FormatableBitSet activeCols, ExecRow row) throws StandardException {
         if(activeCols!=null){
             for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
                 row.getColumn(activePos+1).setValue(line[pos]);
@@ -119,8 +130,6 @@ public abstract class AbstractImportTask extends ZkTask {
                 row.getColumn(line.length).setValue(line[line.length-1]);
             }
         }
-        Put put = Puts.buildInsertWithSerializer(rowSerializer.serialize(row.getRowArray()),row.getRowArray(),null,transactionId,serializer);
-        writeBuffer.add(put);
     }
 
     protected void reportIntermediate(long numRecordsImported){

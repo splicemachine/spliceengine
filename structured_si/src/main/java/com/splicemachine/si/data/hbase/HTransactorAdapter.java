@@ -1,11 +1,10 @@
 package com.splicemachine.si.data.hbase;
 
-import com.splicemachine.si.api.FilterState;
-import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
+import com.splicemachine.si.impl.SITransactor;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -17,7 +16,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import java.io.IOException;
 import java.util.List;
 
-public class HTransactorAdapter implements HTransactor {
+public class HTransactorAdapter implements HTransactor,TransactorStatus {
     Transactor delegate;
 
     public HTransactorAdapter(Transactor delegate) {
@@ -100,6 +99,11 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
+    public boolean isScanIncludeUncommittedAsOfStart(Scan scan) {
+        return delegate.isScanIncludeUncommittedAsOfStart(new HScan(scan));
+    }
+
+    @Override
     public void preProcessGet(Get get) throws IOException {
         delegate.preProcessGet(new HGet(get));
     }
@@ -115,8 +119,9 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
-    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn) throws IOException {
-        return delegate.newFilterState(rollForwardQueue, transactionId, includeSIColumn);
+    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
+                                      boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
+        return delegate.newFilterState(rollForwardQueue, transactionId, includeSIColumn, includeUncommittedAsOfStart);
     }
 
     @Override
@@ -175,8 +180,8 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
-    public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn) {
-        delegate.initializeScan(transactionId, new HScan(scan), includeSIColumn);
+    public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart) {
+        delegate.initializeScan(transactionId, new HScan(scan), includeSIColumn, includeUncommittedAsOfStart);
     }
 
     @Override
@@ -192,5 +197,35 @@ public class HTransactorAdapter implements HTransactor {
     @Override
     public boolean isDeletePut(Mutation put) {
         return delegate.isDeletePut(put);
+    }
+
+    @Override
+    public long getTotalChildTransactions() {
+        return ((TransactorStatus)delegate).getTotalChildTransactions();
+    }
+
+    @Override
+    public long getTotalTransactions() {
+        return ((TransactorStatus)delegate).getTotalTransactions();
+    }
+
+    @Override
+    public long getTotalCommittedTransactions() {
+        return ((TransactorStatus)delegate).getTotalCommittedTransactions();
+    }
+
+    @Override
+    public long getTotalRolledBackTransactions() {
+        return ((TransactorStatus)delegate).getTotalRolledBackTransactions();
+    }
+
+    @Override
+    public long getTotalFailedTransactions() {
+        return ((TransactorStatus)delegate).getTotalFailedTransactions();
+    }
+
+    @Override
+    public TransactionStoreStatus getTransactionStoreStatus() {
+        return ((SITransactor)delegate).getTransactionStore();
     }
 }

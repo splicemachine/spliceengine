@@ -119,6 +119,22 @@ public class ImmutableTransaction {
         return new Object[]{visible, effectiveStatus2};
     }
 
+    public boolean isUncommittedAsOfStart(Transaction t2) throws IOException {
+        final ImmutableTransaction t1 = this;
+        final ImmutableTransaction[] intersections = intersect(true, t1.getChain(), t2.getChain());
+        final ImmutableTransaction et2 = intersections[2];
+        final Transaction met2 = transactionStore.getTransaction(et2.getTransactionId().getId());
+        final TransactionStatus effectiveStatus2 = t2.getEffectiveStatus(et2);
+        if (met2.getBeginTimestamp() < t1.getBeginTimestamp()) {
+            if (effectiveStatus2.equals(COMMITTED)) {
+                return met2.getCommitTimestamp(met2.getParent()) > t1.getBeginTimestamp();
+            } else if (effectiveStatus2.equals(ACTIVE)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public ConflictType isConflict(ImmutableTransaction t2) throws IOException {
         final ImmutableTransaction t1 = this;
         final ImmutableTransaction[] intersections = intersect(true, t1.getChain(), t2.getChain());

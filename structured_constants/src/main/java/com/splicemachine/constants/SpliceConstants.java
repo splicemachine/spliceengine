@@ -256,8 +256,30 @@ public class SpliceConstants {
         maxBufferEntries = config.getInt(CONFIG_BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
         maxPendingBuffers = config.getInt(CONFIG_WRITE_BUFFER_MAX_FLUSHES,DEFAULT_MAX_PENDING_BUFFERS);
         maxThreads = config.getInt(CONFIG_HBASE_HTABLE_THREADS_MAX,DEFAULT_HBASE_HTABLE_THREADS_MAX);
-        if(maxThreads==0)
-        	maxThreads = 1;
+        int ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
+        if(ipcThreads < maxThreads){
+            /*
+             * Some of our writes will also write out to indices and/or read data from HBase, which
+             * may be located on the same region. Thus, if we allow unbounded writer threads, we face
+             * a nasty situation where we are writing to a bunch of regions which are all located on the same
+             * node, and they attempt to write out to indices which are ALSO on the same node. Since we are
+             * using up all the IPC threads to do the initial writes, the writes out to the index tables are blocked.
+             * But since the writes to the main table cannot complete before the index writes complete, the
+             * main table writes cannot proceed, resulting in a deadlock (in pathological circumstances).
+             *
+             * This deadlock can be manually recovered from by moving regions around, but it's bad form to
+             * deadlock periodically just because HBase isn't arranged nicely. Thus, we bound down the number
+             * of write threads to be strictly less than the number of ipcThreads, so as to always leave some
+             * IPC threads available (preventing deadlock).
+             *
+             * I more or less arbitrarily decided to make it 5 fewer, but that seems like a good balance
+             * between having a lot of write threads and still allowing writes through.
+             */
+            maxThreads = ipcThreads-5;
+        }
+        if(maxThreads<=0)
+            maxThreads = 1;
+
         threadKeepAlive = config.getLong(CONFIG_HBASE_HTABLE_THREADS_KEEPALIVETIME, DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME);
         numRetries = config.getInt(CONFIG_HBASE_CLIENT_RETRIES_NUMBER,DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
         cacheUpdatePeriod = config.getLong(CONFIG_CACHE_UPDATE_PERIOD,DEFAULT_CACHE_UPDATE_PERIOD);

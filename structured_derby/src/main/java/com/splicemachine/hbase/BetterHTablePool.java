@@ -278,5 +278,9 @@ public class BetterHTablePool {
 		public void setWriteBufferSize(long writeBufferSize) throws IOException {
 			table.setWriteBufferSize(writeBufferSize);			
 		}
+
+        public HTable getDelegate() {
+            return table;
+        }
     }
 }

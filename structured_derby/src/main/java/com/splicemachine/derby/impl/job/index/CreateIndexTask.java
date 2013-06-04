@@ -20,6 +20,7 @@ import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
@@ -64,9 +65,9 @@ public class CreateIndexTask extends ZkTask {
     }
 
     @Override
-    public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-        this.region = region;
-        super.prepareTask(region, zooKeeper);
+    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+        this.region = rce.getRegion();
+        super.prepareTask(rce, zooKeeper);
     }
 
     @Override

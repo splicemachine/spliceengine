@@ -114,7 +114,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
     @SuppressWarnings("unchecked")
     private static final Class<? extends CoprocessorProtocol>[] protoClassArray = new Class[]{batchProtocolClass};
 
-    private final ThreadPoolExecutor writerPool;
+    private final MonitoredThreadPool writerPool;
     private final HConnection connection;
 
     private final LoadingCache<Integer,Set<HRegionInfo>> regionCache;
@@ -140,11 +140,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
 
         HConnection connection= HConnectionManager.getConnection(configuration);
 
-        ThreadFactory writerFactory = new ThreadFactoryBuilder()
-                .setNameFormat("tablewriter-writerpool-%d")
-                .setDaemon(true)
-                .setPriority(Thread.NORM_PRIORITY).build();
-        ThreadPoolExecutor writerPool = new ThreadPoolExecutor(1,maxThreads,threadKeepAlive,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),writerFactory);
+        MonitoredThreadPool writerPool = MonitoredThreadPool.create();
         ScheduledExecutorService cacheUpdater = null;
         if(enableRegionCache){
             ThreadFactory cacheFactory = new ThreadFactoryBuilder()
@@ -165,7 +161,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
                 writeBufferSize,maxBufferEntries,maxPendingBuffers,cacheUpdatePeriod,numRetries,compressWrites,pause,configuration);
     }
 
-    private TableWriter( ThreadPoolExecutor writerPool,
+    private TableWriter( MonitoredThreadPool writerPool,
                          ScheduledExecutorService cacheUpdater,
                         HConnection connection,
                         LoadingCache<Integer, Set<HRegionInfo>> regionCache,
@@ -409,6 +405,10 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         };
     }
 
+    public MonitoredThreadPool getThreadPool(){
+        return writerPool;
+    }
+
     /*
      * A Default implementation of a FlushWatcher. This attempts to mimic
      * the failure semantics of the HBase client, and will retry anything not explicitly
@@ -620,6 +620,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         Multimap<byte[],Mutation> bucketsMutations = ArrayListMultimap.create();
         List<Mutation> regionLessMutations = Lists.newArrayListWithExpectedSize(0);
         for(Mutation mutation:mutations){
+            if(mutation==null)continue; //skip null mutations
             byte[] row = mutation.getRow();
             boolean found = false;
             for(HRegionInfo region:regionInfos){

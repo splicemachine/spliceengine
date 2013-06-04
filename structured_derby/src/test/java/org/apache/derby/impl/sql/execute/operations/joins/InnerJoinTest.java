@@ -231,18 +231,26 @@ public class InnerJoinTest extends SpliceUnitTest {
 
         Assert.assertEquals(2, results.size());
 
-        Map first = results.get(0);
-        Map second = results.get(1);
 
-        Assert.assertEquals("10058_325_1", first.get("ORL_ORDER_ID"));
-        Assert.assertEquals("Deutsch", first.get("CST_LAST_NAME"));
-        Assert.assertEquals("Leslie", first.get("CST_FIRST_NAME"));
-        Assert.assertEquals("Waiting to Exhale: The Soundtrack", first.get("ITM_NAME"));
+        int foundRows=0;
+        for(int i=0;i<results.size();i++){
+            Map value = results.get(i);
+            if("10058_325_1".equals(value.get("ORL_ORDER_ID"))){
+                foundRows++;
+                Assert.assertEquals("Deutsch", value.get("CST_LAST_NAME"));
+                Assert.assertEquals("Leslie", value.get("CST_FIRST_NAME"));
+                Assert.assertEquals("Waiting to Exhale: The Soundtrack", value.get("ITM_NAME"));
+            }else if("10058_7_1".equals(value.get("ORL_ORDER_ID"))){
+                foundRows++;
+                Assert.assertEquals("Deutsch", value.get("CST_LAST_NAME"));
+                Assert.assertEquals("Leslie", value.get("CST_FIRST_NAME"));
+                Assert.assertEquals("50 Favorite Rooms", value.get("ITM_NAME"));
+            }else{
+                Assert.fail("Unexpected row returned:"+value.get("ORL_ORDER_ID"));
+            }
+        }
+        Assert.assertEquals("Incorrect number of rows returned",2,foundRows);
 
-        Assert.assertEquals("10058_7_1", second.get("ORL_ORDER_ID"));
-        Assert.assertEquals("Deutsch", second.get("CST_LAST_NAME"));
-        Assert.assertEquals("Leslie", second.get("CST_FIRST_NAME"));
-        Assert.assertEquals("50 Favorite Rooms", second.get("ITM_NAME"));
     }
 
     @Test
@@ -350,13 +358,33 @@ public class InnerJoinTest extends SpliceUnitTest {
                 "WHERE STAFF.EMPNUM = WORKS.EMPNUM AND UPUNIQ.COL2 = 'A'");
 
         List<Map> results = TestUtils.resultSetToMaps(rs);
+        Collections.sort(results,new Comparator<Map>() {
+            @Override
+            public int compare(Map o1, Map o2) {
+                if(o1==null){
+                    if(o2==null) return 0;
+                    return -1;
+                }else if(o2==null)
+                    return 1;
+
+                String first = (String)o1.get("EMPNUM");
+                String second = (String)o2.get("EMPNUM");
+                int compare = first.compareTo(second);
+                if(compare==0){
+                    BigDecimal fHours = (BigDecimal)o1.get("HOURS");
+                    BigDecimal sHours = (BigDecimal)o2.get("HOURS");
+                    compare = fHours.compareTo(sHours);
+                }
+                return compare;
+            }
+        });
 
         Assert.assertEquals(12, results.size());
 
         Map<String,String> first = results.get(0);
 
         Assert.assertEquals("E1",results.get(0).get("EMPNUM"));
-        Assert.assertEquals(new BigDecimal("40"), results.get(0).get("HOURS"));
+        Assert.assertEquals(new BigDecimal("12"), results.get(0).get("HOURS"));
         Assert.assertEquals("A",results.get(0).get("COL2"));
 
         Assert.assertEquals("E2",results.get(6).get("EMPNUM"));

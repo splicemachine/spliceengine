@@ -93,7 +93,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
             });
 
             //prepare the task for this specific region
-            task.prepareTask(rce.getRegion(),ZkUtils.getZkManager());
+            task.prepareTask(rce,ZkUtils.getZkManager());
             TaskFuture future = taskScheduler.submit(task);
             return new TaskFutureContext(future.getTaskId(),future.getEstimatedCost());
         } catch (ExecutionException e) {
@@ -120,7 +120,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     }
 
     private class LoadingTask implements RegionTask{
-        private HRegion regionToLoad;
+        private RegionCoprocessorEnvironment regionToLoad;
         private volatile TaskStatus status = new TaskStatus(Status.PENDING,null);
         private SpliceZooKeeperManager zooKeeper;
         private String taskID;
@@ -150,7 +150,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         @Override
         public void execute() throws ExecutionException, InterruptedException {
             //get List of Tasks that are waiting on this region's queue
-            final String regionQueue = getRegionQueue(regionToLoad.getRegionInfo());
+            final String regionQueue = getRegionQueue(regionToLoad.getRegion().getRegionInfo());
             try {
                 zooKeeper.execute(new SpliceZooKeeperManager.Command<Void>() {
                     @Override
@@ -234,7 +234,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         @Override
         public String getTaskId() {
             if(taskID ==null){
-                taskID = getRegionQueue(regionToLoad.getRegionInfo())+"/loadingTask";
+                taskID = getRegionQueue(regionToLoad.getRegion().getRegionInfo())+"/loadingTask";
             }
             return taskID;
         }
@@ -265,8 +265,8 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         }
 
         @Override
-        public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-            this.regionToLoad =region;
+        public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+            this.regionToLoad = rce;
             this.zooKeeper = zooKeeper;
         }
 

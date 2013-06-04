@@ -331,7 +331,8 @@ public class RowCountOperation extends SpliceBaseOperation{
         @Override
         public boolean filterRowKey(byte[] buffer, int offset, int length) {
             boolean skip= numSkipped < this.offset;
-            numSkipped++;
+            if(skip)
+                numSkipped++;
             return skip;
         }
     }
@@ -443,9 +444,9 @@ public class RowCountOperation extends SpliceBaseOperation{
             final Integer tableNameKey = Bytes.mapKey(tableName);
             List<HRegionInfo> regionInfos;
             if(table instanceof HTable)
-                regionInfos = Lists.transform(((HTable)table).getRegionsInRange(fullScan.getStartRow(),fullScan.getStopRow()),infoFunction);
+                regionInfos = Lists.newArrayList(((HTable)table).getRegionLocations().keySet());
             else if(table instanceof BetterHTablePool.ReturningHTable){
-                regionInfos = Lists.transform(((BetterHTablePool.ReturningHTable)table).getRegionsInRange(fullScan.getStartRow(),fullScan.getStopRow()),infoFunction);
+                regionInfos = Lists.newArrayList(((BetterHTablePool.ReturningHTable)table).getDelegate().getRegionLocations().keySet());
             }else{
                 throw new ExecutionException(new UnsupportedOperationException("Unknown Table type, unable to get Region information. Table type is "+table.getClass()));
             }

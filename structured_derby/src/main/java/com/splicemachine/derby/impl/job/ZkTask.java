@@ -12,6 +12,7 @@ import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
 import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
@@ -93,7 +94,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     }
 
     @Override
-    public void prepareTask(HRegion region, SpliceZooKeeperManager zooKeeper)
+    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper)
                                                                 throws ExecutionException {
         taskId = jobId+"_"+ getTaskType()+"-"+SpliceUtils.getUniqueKeyString();
         this.zkManager = zooKeeper;

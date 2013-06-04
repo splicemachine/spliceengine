@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.derby.impl.load.HdfsImport;
+import com.splicemachine.derby.impl.storage.TableSplit;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.store.access.TransactionController;
@@ -46,9 +47,30 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .charType("characterDelimiter",1)
                             .varchar("timestampFormat",32672).build();
                     procedures.set(i,newImport);
+
+				    /*
+				     * Add a system procedure to enable splitting tables once data is loaded.
+				     *
+				     * We do this here because this way we know we're in the SYSCS procedure set
+				     */
+                    Procedure splitProc = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE")
+                            .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .varchar("splitPoints",32672).build();
+                    procedures.add(splitProc);
+
+                    Procedure splitProc2 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_EVENLY")
+                            .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .integer("numSplits").build();
+                    procedures.add(splitProc2);
                 }
             }
         }
+
+
         return sysProcedures;
     }
 }
