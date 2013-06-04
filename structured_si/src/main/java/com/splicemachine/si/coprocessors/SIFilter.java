@@ -22,17 +22,20 @@ public class SIFilter extends FilterBase {
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
     private boolean includeSIColumn;
+    private boolean includeUncommittedAsOfStart;
 
     private FilterState filterState = null;
 
     public SIFilter() {
     }
 
-    public SIFilter(HTransactor transactor, TransactionId transactionId, RollForwardQueue rollForwardQueue, boolean includeSIColumn) throws IOException {
+    public SIFilter(HTransactor transactor, TransactionId transactionId, RollForwardQueue rollForwardQueue,
+                    boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
         this.transactor = transactor;
         this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
         this.includeSIColumn = includeSIColumn;
+        this.includeUncommittedAsOfStart = includeUncommittedAsOfStart;
     }
 
     @Override
@@ -49,7 +52,7 @@ public class SIFilter extends FilterBase {
     private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
             filterState = transactor.newFilterState(rollForwardQueue, transactor.transactionIdFromString(transactionIdString),
-                    includeSIColumn);
+                    includeSIColumn, includeUncommittedAsOfStart);
         }
     }
 

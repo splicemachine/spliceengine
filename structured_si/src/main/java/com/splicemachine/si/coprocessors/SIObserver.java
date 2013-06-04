@@ -112,21 +112,21 @@ public class SIObserver extends BaseRegionObserver {
     private void addSIFilterToGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get) throws IOException {
         HTransactor transactor = HTransactorFactory.getTransactor();
         Filter newFilter = makeSIFilter(e, transactor.transactionIdFromGet(get), get.getFilter(),
-                transactor.isGetIncludeSIColumn(get));
+                transactor.isGetIncludeSIColumn(get), false);
         get.setFilter(newFilter);
     }
 
     private void addSIFilterToScan(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan) throws IOException {
         HTransactor transactor = HTransactorFactory.getTransactor();
         Filter newFilter = makeSIFilter(e, transactor.transactionIdFromScan(scan), scan.getFilter(),
-                transactor.isScanIncludeSIColumn(scan));
+                transactor.isScanIncludeSIColumn(scan), transactor.isScanIncludeUncommittedAsOfStart(scan));
         scan.setFilter(newFilter);
     }
 
     private Filter makeSIFilter(ObserverContext<RegionCoprocessorEnvironment> e, TransactionId transactionId,
-                                Filter currentFilter, boolean includeSIColumn) throws IOException {
+                                Filter currentFilter, boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
         HTransactor transactor = HTransactorFactory.getTransactor();
-        SIFilter siFilter = new SIFilter(transactor, transactionId, rollForwardQueue, includeSIColumn);
+        SIFilter siFilter = new SIFilter(transactor, transactionId, rollForwardQueue, includeSIColumn, includeUncommittedAsOfStart);
         Filter newFilter;
         if (currentFilter != null) {
             newFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL, siFilter, currentFilter); // Wrap Existing Filters

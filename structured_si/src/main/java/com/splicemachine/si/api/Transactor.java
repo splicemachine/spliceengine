@@ -1,14 +1,9 @@
 package com.splicemachine.si.api;
 
-import com.splicemachine.si.data.api.SGet;
-import com.splicemachine.si.data.api.SRead;
-import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
-import com.splicemachine.si.data.hbase.HScan;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
 
 import java.io.IOException;
 import java.util.List;
@@ -58,12 +53,14 @@ public interface Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> extend
     boolean isFilterNeededScan(ScanOp scan);
     boolean isGetIncludeSIColumn(GetOp get);
     boolean isScanIncludeSIColumn(ScanOp scan);
+    boolean isScanIncludeUncommittedAsOfStart(ScanOp scan);
 
     void preProcessGet(GetOp get) throws IOException;
     void preProcessScan(ScanOp scan) throws IOException;
 
     FilterState newFilterState(TransactionId transactionId) throws IOException;
-    FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn)
+    FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn,
+                               boolean includeUncommittedAsOfStart)
             throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
     ResultType filterResult(FilterState filterState, ResultType result) throws IOException;

@@ -100,6 +100,11 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
+    public boolean isScanIncludeUncommittedAsOfStart(Scan scan) {
+        return delegate.isScanIncludeUncommittedAsOfStart(new HScan(scan));
+    }
+
+    @Override
     public void preProcessGet(Get get) throws IOException {
         delegate.preProcessGet(new HGet(get));
     }
@@ -115,8 +120,9 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
-    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn) throws IOException {
-        return delegate.newFilterState(rollForwardQueue, transactionId, includeSIColumn);
+    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
+                                      boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
+        return delegate.newFilterState(rollForwardQueue, transactionId, includeSIColumn, includeUncommittedAsOfStart);
     }
 
     @Override
@@ -175,8 +181,8 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
-    public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn) {
-        delegate.initializeScan(transactionId, new HScan(scan), includeSIColumn);
+    public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart) {
+        delegate.initializeScan(transactionId, new HScan(scan), includeSIColumn, includeUncommittedAsOfStart);
     }
 
     @Override

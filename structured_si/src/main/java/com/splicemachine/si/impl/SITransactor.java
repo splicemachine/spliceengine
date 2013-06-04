@@ -240,7 +240,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
 
     @Override
     public void initializeGet(String transactionId, GetOp get, boolean includeSIColumn) throws IOException {
-        initializeOperation(transactionId, get, includeSIColumn);
+        initializeOperation(transactionId, get, includeSIColumn, false);
     }
 
     @Override
@@ -249,8 +249,8 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     @Override
-    public void initializeScan(String transactionId, SScan scan, boolean includeSIColumn) {
-        initializeOperation(transactionId, scan, includeSIColumn);
+    public void initializeScan(String transactionId, SScan scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart) {
+        initializeOperation(transactionId, scan, includeSIColumn, includeUncommittedAsOfStart);
     }
 
     @Override
@@ -260,11 +260,13 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     private void initializeOperation(String transactionId, Object operation) {
-        initializeOperation(transactionId, operation, false);
+        initializeOperation(transactionId, operation, false, false);
     }
 
-    private void initializeOperation(String transactionId, Object operation, boolean includeSIColumn) {
-        flagForSITreatment((SITransactionId) transactionIdFromString(transactionId), includeSIColumn, operation);
+    private void initializeOperation(String transactionId, Object operation, boolean includeSIColumn,
+                                     boolean includeUncommittedAsOfStart) {
+        flagForSITreatment((SITransactionId) transactionIdFromString(transactionId), includeSIColumn,
+                includeUncommittedAsOfStart, operation);
     }
 
     @Override
@@ -277,7 +279,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      */
     private PutOp createDeletePutDirect(SITransactionId transactionId, Object rowKey) {
         final PutOp deletePut = (PutOp) dataLib.newPut(rowKey);
-        flagForSITreatment(transactionId, false, deletePut);
+        flagForSITreatment(transactionId, false, false, deletePut);
         dataStore.setTombstoneOnPut(deletePut, transactionId);
         dataStore.setDeletePutAttribute(deletePut);
         return deletePut;
@@ -293,8 +295,12 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      * Set an attribute on the operation that identifies it as needing "snapshot isolation" treatment. This is so that
      * later when the operation comes through for processing we will know how to handle it.
      */
-    private void flagForSITreatment(SITransactionId transactionId, boolean includeSIColumn, Object operation) {
+    private void flagForSITreatment(SITransactionId transactionId, boolean includeSIColumn,
+                                    boolean includeUncommittedAsOfStart, Object operation) {
         dataStore.setSINeededAttribute(operation, includeSIColumn);
+        if (includeUncommittedAsOfStart) {
+            dataStore.setIncludeUncommittedAsOfStart(operation);
+        }
         dataStore.setTransactionId(transactionId, operation);
     }
 
@@ -498,15 +504,21 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     @Override
-    public FilterState newFilterState(TransactionId transactionId) throws IOException {
-        return newFilterState(null, transactionId, false);
+    public boolean isScanIncludeUncommittedAsOfStart(ScanOp scan) {
+        return dataStore.isScanIncludeUncommittedAsOfStart(scan);
     }
 
     @Override
-    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn)
+    public FilterState newFilterState(TransactionId transactionId) throws IOException {
+        return newFilterState(null, transactionId, false, false);
+    }
+
+    @Override
+    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
+                                      boolean includeSIColumn, boolean includeUncommittedAsOfStart)
             throws IOException {
         return new SIFilterState(dataLib, dataStore, transactionStore, rollForwardQueue, includeSIColumn,
-                transactionStore.getImmutableTransaction(transactionId));
+                includeUncommittedAsOfStart, transactionStore.getImmutableTransaction(transactionId));
     }
 
     @Override

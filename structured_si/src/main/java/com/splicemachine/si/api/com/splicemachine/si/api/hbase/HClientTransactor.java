@@ -17,7 +17,7 @@ public interface HClientTransactor {
     void initializeGet(String transactionId, Get get) throws IOException;
     void initializeGet(String transactionId, Get get, boolean includeSIColumn) throws IOException;
     void initializeScan(String transactionId, Scan scan);
-    void initializeScan(String transactionId, Scan scan, boolean includeSIColumn);
+    void initializeScan(String transactionId, Scan scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart);
     void initializePut(String transactionId, Put put);
 
     Put createDeletePut(TransactionId transactionId, Object rowKey);

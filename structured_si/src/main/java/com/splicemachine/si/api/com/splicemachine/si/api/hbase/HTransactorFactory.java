@@ -92,6 +92,7 @@ public class HTransactorFactory extends SIConstants {
 
         final DataStore rowStore = new DataStore(dataLib, reader, writer, "si-needed", SI_NEEDED_VALUE,
                 ONLY_SI_FAMILY_NEEDED_VALUE,
+                "si-uncommitted", EMPTY_BYTE_ARRAY,
                 "si-transaction-id", "si-delete-put", SNAPSHOT_ISOLATION_FAMILY,
                 SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING,
                 SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING,
@@ -102,7 +103,6 @@ public class HTransactorFactory extends SIConstants {
                 (timestampSource, dataLib, writer, rowStore, transactionStore,
                         new SystemClock(), TRANSACTION_TIMEOUT));
     }
-
 
     private static volatile HTransactor transactor;
     //deliberate boxing here to ensure the lock is not shared by anyone else

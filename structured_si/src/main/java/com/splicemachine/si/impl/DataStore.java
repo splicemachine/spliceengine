@@ -29,6 +29,8 @@ public class DataStore {
     private final String siNeededAttribute;
     private final Object siNeededValue;
     private final Object includeSIColumnValue;
+    private final String includeUncommittedAsOfStartAttribute;
+    private final Object includeUncommittedAsOfStartValue;
     private final String transactionIdAttribute;
     private final String deletePutAttribute;
 
@@ -42,8 +44,8 @@ public class DataStore {
     private final Object userColumnFamily;
 
     public DataStore(SDataLib dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
-                     Object siNeededValue, Object includeSIColumnValue,
-                     String transactionIdAttribute, String deletePutAttribute,
+                     Object siNeededValue, Object includeSIColumnValue, String includeUncommittedAsOfStartAttribute,
+                     Object includeUncommittedAsOfStartValue, String transactionIdAttribute, String deletePutAttribute,
                      String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier,
                      Object placeHolderQualifier, Object siMetaNull, Object siFail, Object userColumnFamily) {
         this.dataLib = dataLib;
@@ -52,6 +54,8 @@ public class DataStore {
         this.siNeededAttribute = siNeededAttribute;
         this.siNeededValue = dataLib.encode(siNeededValue);
         this.includeSIColumnValue = dataLib.encode(includeSIColumnValue);
+        this.includeUncommittedAsOfStartAttribute = includeUncommittedAsOfStartAttribute;
+        this.includeUncommittedAsOfStartValue = dataLib.encode(includeUncommittedAsOfStartValue);
         this.transactionIdAttribute = transactionIdAttribute;
         this.deletePutAttribute = deletePutAttribute;
         this.siFamily = dataLib.encode(siMetaFamily);
@@ -73,6 +77,14 @@ public class DataStore {
 
     boolean isIncludeSIColumn(Object operation) {
         return dataLib.valuesEqual(dataLib.getAttribute(operation, siNeededAttribute), includeSIColumnValue);
+    }
+
+    void setIncludeUncommittedAsOfStart(Object operation) {
+        dataLib.addAttribute(operation, includeUncommittedAsOfStartAttribute, includeUncommittedAsOfStartValue);
+    }
+
+    boolean isScanIncludeUncommittedAsOfStart(Object operation) {
+        return dataLib.valuesEqual(dataLib.getAttribute(operation, includeUncommittedAsOfStartAttribute), includeUncommittedAsOfStartValue);
     }
 
     void setDeletePutAttribute(Object operation) {

@@ -403,7 +403,7 @@ public class Scans extends SpliceUtils {
 			
 			if (scanColumnList.anySetBit() == -1) {
                 final HClientTransactor transactor = getTransactor();
-                transactor.initializeScan(transactor.transactionIdFromScan(scan).getTransactionIdString(), scan, true);
+                transactor.initializeScan(transactor.transactionIdFromScan(scan).getTransactionIdString(), scan, true, false);
 			} else {
 			
 				for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){

@@ -32,17 +32,20 @@ public class SIFilterState implements FilterState {
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
     private final boolean includeSIColumn;
+    private final boolean includeUncommittedAsOfStart;
 
     private final FilterRowState rowState;
     private DecodedKeyValue keyValue;
 
     public SIFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
-                         RollForwardQueue rollForwardQueue, boolean includeSIColumn, ImmutableTransaction myTransaction) {
+                         RollForwardQueue rollForwardQueue, boolean includeSIColumn, boolean includeUncommittedAsOfStart,
+                         ImmutableTransaction myTransaction) {
         this.dataLib = dataLib;
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
         this.rollForwardQueue = rollForwardQueue;
         this.includeSIColumn = includeSIColumn;
+        this.includeUncommittedAsOfStart = includeUncommittedAsOfStart;
         this.myTransaction = myTransaction;
 
         transactionCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(10, TimeUnit.MINUTES).build();
@@ -216,8 +219,21 @@ public class SIFilterState implements FilterState {
             proceedToNextColumn();
             return INCLUDE;
         } else {
-            return SKIP;
+            if (includeUncommittedAsOfStart) {
+                if (isUncommittedAsOfStart()) {
+                    return INCLUDE;
+                } else {
+                    return SKIP;
+                }
+            } else {
+                return SKIP;
+            }
         }
+    }
+
+    private boolean isUncommittedAsOfStart() throws IOException {
+        final Transaction transaction = loadTransaction();
+        return myTransaction.isUncommittedAsOfStart(transaction);
     }
 
     /**

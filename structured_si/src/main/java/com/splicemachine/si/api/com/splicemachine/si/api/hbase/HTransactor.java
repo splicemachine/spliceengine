@@ -34,13 +34,14 @@ public interface HTransactor extends HClientTransactor {
     boolean isFilterNeededScan(Scan scan);
     boolean isGetIncludeSIColumn(Get get);
     boolean isScanIncludeSIColumn(Scan scan);
+    boolean isScanIncludeUncommittedAsOfStart(Scan scan);
 
     void preProcessGet(Get get) throws IOException;
     void preProcessScan(Scan scan) throws IOException;
 
     FilterState newFilterState(TransactionId transactionId) throws IOException;
-    FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn)
-            throws IOException;
+    FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn,
+                               boolean includeUncommittedAsOfStart) throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
     Result filterResult(FilterState filterState, Result result) throws IOException;
 

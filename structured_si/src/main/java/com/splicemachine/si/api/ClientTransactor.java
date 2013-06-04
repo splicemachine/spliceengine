@@ -18,7 +18,7 @@ public interface ClientTransactor<PutOp, GetOp, ScanOp, MutationOp> {
     void initializeGet(String transactionId, GetOp get) throws IOException;
     void initializeGet(String transactionId, GetOp get, boolean includeSIColumn) throws IOException;
     void initializeScan(String transactionId, ScanOp scan);
-    void initializeScan(String transactionId, ScanOp scan, boolean includeSIColumn);
+    void initializeScan(String transactionId, ScanOp scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart);
     void initializePut(String transactionId, PutOp put);
 
     PutOp createDeletePut(TransactionId transactionId, Object rowKey);
