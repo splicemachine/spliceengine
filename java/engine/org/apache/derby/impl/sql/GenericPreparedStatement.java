@@ -164,9 +164,7 @@ public class GenericPreparedStatement
 
 	GenericPreparedStatement() {
 		/* Get the UUID for this prepared statement */
-		UUIDFactory uuidFactory = 
-			Monitor.getMonitor().getUUIDFactory();
-
+		UUIDFactory uuidFactory = Monitor.getMonitor().getUUIDFactory();
 		UUIDValue = uuidFactory.createUUID();
 		UUIDString = UUIDValue.toString();
 		spsAction = false;
@@ -174,19 +172,15 @@ public class GenericPreparedStatement
 
 	/**
 	 */
-	public GenericPreparedStatement(Statement st)
-	{
+	public GenericPreparedStatement(Statement st) {
 		this();
-
 		statement = st;
 	}
 
 	//
 	// PreparedStatement interface
 	//
-	public synchronized boolean	upToDate()
-		throws StandardException
-	{
+	public synchronized boolean	upToDate() throws StandardException {
 		return isUpToDate();
 	}
 
