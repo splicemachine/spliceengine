@@ -55,18 +55,15 @@ public class TupleDescriptor
 
 	public	TupleDescriptor() {}
 
-	public TupleDescriptor(DataDictionary dataDictionary) 
-	{
+	public TupleDescriptor(DataDictionary dataDictionary) {
 		this.dataDictionary = dataDictionary;
 	}
 
-	protected DataDictionary getDataDictionary()
-	{
+	protected DataDictionary getDataDictionary() {
 		return dataDictionary;
 	}
 
-	protected void setDataDictionary(DataDictionary dd) 
-	{
+	protected void setDataDictionary(DataDictionary dd) {
 		dataDictionary = dd;
 	}
 
@@ -76,8 +73,7 @@ public class TupleDescriptor
 	 *
 	 * @return boolean              Whether or not this provider is persistent.
 	 */
-	public boolean isPersistent()
-	{
+	public boolean isPersistent() {
 		return true;
 	}
 
@@ -89,29 +85,24 @@ public class TupleDescriptor
 	//////////////////////////////////////////////////////////////////
 
 
-	DependableFinder getDependableFinder(int formatId)
-	{
+	DependableFinder getDependableFinder(int formatId) {
 		return dataDictionary.getDependableFinder(formatId);
 	}
 
-	DependableFinder getColumnDependableFinder(int formatId, byte[]
-													  columnBitMap)
-	{
+	DependableFinder getColumnDependableFinder(int formatId, byte[] columnBitMap) {
 		return dataDictionary.getColumnDependableFinder(formatId, columnBitMap);
 	}
 	
 	/** Each descriptor must identify itself with its type; i.e index, check
 	 * constraint whatever.
 	 */
-	public String getDescriptorType()
-	{
+	public String getDescriptorType() {
 		if (SanityManager.DEBUG) {SanityManager.NOTREACHED(); }
 		return null; 
 	}
 	/* each descriptor has a name
 	 */
-	public String getDescriptorName()
-	{
+	public String getDescriptorName() {
 		if (SanityManager.DEBUG) {SanityManager.NOTREACHED(); }
 		return null; 
 	}
