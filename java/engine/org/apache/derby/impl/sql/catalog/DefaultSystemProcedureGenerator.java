@@ -88,7 +88,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         return procedures;
     }
 
-    private static final List/*<Procedure>*/ sysCsProcedures = Arrays.asList(new Procedure[]{
+    private static final List/*<Procedure>*/ sysCsProcedures = new ArrayList/*<Procedure>*/(Arrays.asList(new Procedure[]{
             Procedure.newBuilder().name("SYSCS_SET_DATABASE_PROPERTY").numOutputParams(0).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
                     .ownerClass(SYSTEM_PROCEDURES)
@@ -401,7 +401,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .catalog("TABLENAME")
                 .catalog("INDEXNAME")
                 .build()
-    });
+    }));
 
     private static final List/*<Procedure>*/ sqlJProcedures = Arrays.asList(new Procedure[]{
     		Procedure.newBuilder().name("INSTALL_JAR").numOutputParams(0).numResultSets(0)
