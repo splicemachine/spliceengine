@@ -67,14 +67,14 @@ public class BlockImportTask extends AbstractImportTask{
         super.prepareTask(rce, zooKeeper);
     }
 
-    @Override
-    protected CallBuffer<Mutation> getCallBuffer() throws Exception {
-        CallBuffer<Mutation> remote = super.getCallBuffer();
-        //get the local buffer
-
-        return new SwitchingCallBuffer(remote,rce,isRemote,
-                WriteContextFactoryPool.getContextFactory(importContext.getTableId()));
-    }
+//    @Override
+//    protected CallBuffer<Mutation> getCallBuffer() throws Exception {
+//        CallBuffer<Mutation> remote = super.getCallBuffer();
+//        //get the local buffer
+//
+//        return new SwitchingCallBuffer(remote,rce,isRemote,
+//                WriteContextFactoryPool.getContextFactory(importContext.getTableId()));
+//    }
 
     @Override
     protected long importData(ExecRow row, Serializer serializer, RowSerializer rowSerializer, CallBuffer<Mutation> writeBuffer) throws Exception {
@@ -183,7 +183,7 @@ public class BlockImportTask extends AbstractImportTask{
                                     LocalWriteContextFactory localContextFactory) throws IOException, InterruptedException {
             this.remoteBuffer = remoteBuffer;
             this.remoteOnly = remoteOnly;
-            this.localBuffer = LocalCallBuffer.create(localContextFactory.create(rce), new LocalCallBuffer.FlushListener() {
+            this.localBuffer = LocalCallBuffer.create(localContextFactory,rce, new LocalCallBuffer.FlushListener() {
                 @Override
                 public void finished(Map<Mutation, MutationResult> results) throws Exception {
                     for(Mutation mutation:results.keySet()){

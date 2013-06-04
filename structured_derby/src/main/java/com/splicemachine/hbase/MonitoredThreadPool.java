@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Scott Fines
  * Created on: 6/3/13
  */
-public class MonitoredThreadPool implements WriterPoolStatus{
+public class MonitoredThreadPool implements ThreadPoolStatus {
     private final ThreadPoolExecutor writerPool;
 
     private final AtomicInteger numPendingTasks = new AtomicInteger(0);
@@ -33,7 +33,12 @@ public class MonitoredThreadPool implements WriterPoolStatus{
         ThreadPoolExecutor writerPool = new ThreadPoolExecutor(maxThreads,
                 maxThreads,keepAliveSeconds,
                 TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(),factory);
+        writerPool.allowCoreThreadTimeOut(true);
         return new MonitoredThreadPool(writerPool);
+    }
+
+    public void shutdown(){
+        writerPool.shutdown();
     }
 
     public <V> Future<V> submit(Callable<V> task){

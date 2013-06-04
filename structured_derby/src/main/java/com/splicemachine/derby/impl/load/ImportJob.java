@@ -12,7 +12,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 public abstract class ImportJob implements CoprocessorJob {
 
     protected ImportContext context;
-    private final HTableInterface table;
+    protected final HTableInterface table;
     private final String jobId;
 
     protected ImportJob(HTableInterface table, ImportContext context) {

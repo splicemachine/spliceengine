@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.BetterHTablePool;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.impl.SITransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -14,7 +15,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
@@ -24,10 +27,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -86,16 +86,7 @@ public class BlockImportJob extends FileImportJob{
                 String regionHost = next.getHostname();
                 for(String blockHost:blockHosts){
                     if(regionHost.equalsIgnoreCase(blockHost)){
-                        BlockImportTask task = new BlockImportTask(
-                                jobId,
-                                context,
-                                location,
-                                SpliceConstants.DEFAULT_IMPORT_TASK_PRIORITY,
-                                parentTxnString,
-                                false);
-                        Pair<byte[],byte[]> regionBounds = Pair.newPair(next.getRegionInfo().getStartKey(),
-                                next.getRegionInfo().getEndKey());
-                        taskMap.put(task,regionBounds);
+                        putTask(taskMap, parentTxnString, jobId, location, next);
                         found=true;
                         break;
                     }
@@ -111,20 +102,31 @@ public class BlockImportJob extends FileImportJob{
                  * but the hope is that we'll get at least some local writes and the
                  * whole thing won't suck horrendously.
                  */
-                BlockImportTask task = new BlockImportTask(
-                        jobId,
-                        context,
-                        location,
-                        SpliceConstants.DEFAULT_IMPORT_TASK_PRIORITY,
-                        parentTxnString,
-                        false);
-                HRegionLocation next = regionCycle.next();
-                Pair<byte[],byte[]> regionBounds = Pair.newPair(next.getRegionInfo().getStartKey(),
-                        next.getRegionInfo().getEndKey());
-                taskMap.put(task,regionBounds);
+                putTask(taskMap, parentTxnString, jobId, location, regionCycle.next());
             }
         }
         return taskMap;
+    }
+
+    private void putTask(Map<BlockImportTask, Pair<byte[], byte[]>> taskMap, String parentTxnString, String jobId, BlockLocation location, HRegionLocation next) {
+        BlockImportTask task = new BlockImportTask(
+                jobId,
+                context,
+                location,
+                SpliceConstants.DEFAULT_IMPORT_TASK_PRIORITY,
+                parentTxnString,
+                false);
+        byte[] end = next.getRegionInfo().getEndKey();
+        byte[] endKey;
+        if(end.length>0){
+            endKey = new byte[end.length];
+            System.arraycopy(end,0,endKey,0,end.length);
+            BytesUtil.decrementAtIndex(endKey, endKey.length - 1);
+        }else
+            endKey = end;
+        byte[] start = next.getRegionInfo().getStartKey();
+        Pair<byte[],byte[]> regionBounds = Pair.newPair(start, endKey);
+        taskMap.put(task,regionBounds);
     }
 
     private List<HRegionLocation> getRegionLocations(HBaseAdmin admin,byte[] tableBytes)
@@ -132,15 +134,63 @@ public class BlockImportJob extends FileImportJob{
 		/*
 		 * Get the RegionLocations for a table based on the HRegionInfos returned.
 		 */
-        List<HRegionInfo> tableRegions = admin.getTableRegions(tableBytes);
-
-        List<HRegionLocation> regions = Lists.newArrayListWithCapacity(tableRegions.size());
-        for (HRegionInfo tableRegion : tableRegions) {
-            HRegionLocation loc = admin.getConnection().locateRegion(tableRegion.getTableName(),tableRegion.getStartKey());
-            if(loc!=null)
-                regions.add(loc);
-
+        NavigableMap<HRegionInfo,ServerName> regionLocations;
+        if(table instanceof HTable){
+            regionLocations = ((HTable) table).getRegionLocations();
+        }else if(table instanceof BetterHTablePool.ReturningHTable){
+            regionLocations = ((BetterHTablePool.ReturningHTable)table).getDelegate().getRegionLocations();
+        }else{
+            throw new IOException("Unexpected Table Type:" + table.getClass());
         }
+
+        List<HRegionLocation> regions = Lists.newArrayListWithCapacity(regionLocations.size());
+        for (HRegionInfo tableRegion : regionLocations.keySet()) {
+            ServerName serverName = regionLocations.get(tableRegion);
+            regions.add(new HRegionLocation(tableRegion,serverName.getHostname(),serverName.getPort()));
+        }
+
+        /*
+         * It's possible that admin.getTableRegions() will return incorrect regions. particularly in a split
+         * situation, it's possible that the call will return both the parent and the child regions (e.g.
+         * you may see [a,b) AND [a,a1) AND [a2,b) for a < a1 < a2 < b). Because we only want to assign
+         * ONE region for each task, we need to filter those tasks out. Simple enough, just sort by start key
+         * and end key (asc start, descending end), then remove duplicates.
+         */
+        Collections.sort(regions, new Comparator<HRegionLocation>() {
+            @Override
+            public int compare(HRegionLocation o1, HRegionLocation o2) {
+                if(o1==null){
+                    if(o2==null) return 0;
+                    else return -1;
+                }else if(o2==null) return 1;
+
+                HRegionInfo left = o1.getRegionInfo();
+                HRegionInfo right = o2.getRegionInfo();
+                int compare = BytesUtil.emptyBeforeComparator.compare(left.getStartKey(),right.getStartKey());
+                if(compare !=0) return compare; //sort by start key ascending
+                else {
+                    //start keys match, sort by end key descending
+                    compare = BytesUtil.emptyBeforeComparator.compare(left.getEndKey(),right.getEndKey());
+                    if(compare!=0)
+                        return -1*compare;
+                    else
+                        return compare;
+                }
+            }
+        });
+        for(int i=0;i<regions.size();i++){
+            HRegionLocation next = regions.get(i);
+            for(int j=i+1;j<regions.size();j++){
+                HRegionLocation possibleDuplicate = regions.get(j);
+                if(BytesUtil.emptyBeforeComparator.compare(
+                        next.getRegionInfo().getStartKey(),
+                        possibleDuplicate.getRegionInfo().getStartKey())==0){
+                    regions.remove(j);
+                    j--;
+                }
+            }
+        }
+
         return regions;
     }
 
