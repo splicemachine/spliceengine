@@ -33,7 +33,7 @@ public class FilterRowState {
      */
     Map<Long, Transaction> transactionCache;
 
-    List<DecodedKeyValue> commitTimestamps = new ArrayList<DecodedKeyValue>();
+    List commitTimestamps = new ArrayList();
 
     boolean siColumnIncluded = false;
     boolean siTombstoneIncluded = false;
@@ -52,7 +52,7 @@ public class FilterRowState {
             lastValidQualifier = null;
             tombstoneTimestamps = new ArrayList<Long>();
             transactionCache = new HashMap<Long, Transaction>();
-            commitTimestamps = new ArrayList<DecodedKeyValue>();
+            commitTimestamps = new ArrayList();
             siColumnIncluded = false;
         }
     }
@@ -64,11 +64,11 @@ public class FilterRowState {
         this.tombstoneTimestamps.add(tombstoneTimestamp);
     }
 
-    public void rememberCommitTimestamp(DecodedKeyValue keyValue) {
+    public void rememberCommitTimestamp(Object keyValue) {
         commitTimestamps.add(keyValue);
     }
 
-    public List<DecodedKeyValue> getCommitTimestamps() {
+    public List getCommitTimestamps() {
         return commitTimestamps;
     }
 

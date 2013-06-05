@@ -45,10 +45,10 @@ public class SICompactionState {
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
     private Object mutate(Object kv) throws IOException {
-        DecodedKeyValue decodedKeyValue = new DecodedKeyValue(dataLib, kv);
-        final KeyValueType keyValueType = dataStore.getKeyValueType(decodedKeyValue.family, decodedKeyValue.qualifier);
+        final KeyValueType keyValueType = dataStore.getKeyValueType(dataLib.getKeyValueFamily(kv),
+                dataLib.getKeyValueQualifier(kv));
         if (keyValueType.equals(KeyValueType.COMMIT_TIMESTAMP)){
-            return mutateCommitTimestamp(decodedKeyValue);
+            return mutateCommitTimestamp(kv);
         }else{
             return kv;
         }
@@ -57,10 +57,10 @@ public class SICompactionState {
     /**
      * Replace unknown commit timestamps with actual commit times.
      */
-    private Object mutateCommitTimestamp(DecodedKeyValue decodedKeyValue) throws IOException {
-        Object result = decodedKeyValue.keyValue;
-        if (dataStore.isSINull(decodedKeyValue.value)) {
-            final Transaction transaction = getFromCache(decodedKeyValue.timestamp);
+    private Object mutateCommitTimestamp(Object kv) throws IOException {
+        Object result = kv;
+        if (dataStore.isSINull(dataLib.getKeyValueValue(kv))) {
+            final Transaction transaction = getFromCache(dataLib.getKeyValueTimestamp(kv));
             final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
             if (effectiveStatus.equals(TransactionStatus.COMMITTED)
                     || effectiveStatus.equals(TransactionStatus.ROLLED_BACK)
@@ -69,8 +69,8 @@ public class SICompactionState {
                 final Object commitTimestampValue = effectiveStatus.equals(TransactionStatus.COMMITTED) ?
                         dataLib.encode(globalCommitTimestamp) :
                         dataStore.siFail;
-                result = dataLib.newKeyValue(decodedKeyValue.row, decodedKeyValue.family, decodedKeyValue.qualifier,
-                        decodedKeyValue.timestamp, commitTimestampValue);
+                result = dataLib.newKeyValue(dataLib.getKeyValueRow(kv), dataLib.getKeyValueFamily(kv),
+                        dataLib.getKeyValueQualifier(kv), dataLib.getKeyValueTimestamp(kv), commitTimestampValue);
             }
         }
         return result;

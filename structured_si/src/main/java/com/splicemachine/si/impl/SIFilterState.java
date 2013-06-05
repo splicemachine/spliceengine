@@ -35,7 +35,7 @@ public class SIFilterState implements FilterState {
     private final boolean includeUncommittedAsOfStart;
 
     private final FilterRowState rowState;
-    private DecodedKeyValue keyValue;
+    private Object keyValue;
 
     public SIFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
                          RollForwardQueue rollForwardQueue, boolean includeSIColumn, boolean includeUncommittedAsOfStart,
@@ -60,16 +60,36 @@ public class SIFilterState implements FilterState {
      * The order of the column families is important. It is expected that the SI family will be processed first.
      */
     public Filter.ReturnCode filterKeyValue(Object dataKeyValue) throws IOException {
-        keyValue = new DecodedKeyValue(dataLib, dataKeyValue);
-        rowState.updateCurrentRow(keyValue.row);
+        keyValue = dataKeyValue;
+        rowState.updateCurrentRow(row());
         return filterByColumnType();
+    }
+
+    private Object row() {
+        return dataLib.getKeyValueRow(keyValue);
+    }
+
+    private Object family() {
+        return dataLib.getKeyValueFamily(keyValue);
+    }
+
+    private Object qualifier() {
+        return dataLib.getKeyValueQualifier(keyValue);
+    }
+
+    private Object value() {
+        return dataLib.getKeyValueValue(keyValue);
+    }
+
+    private long timestamp() {
+        return dataLib.getKeyValueTimestamp(keyValue);
     }
 
     /**
      * Look at the column family and qualifier to determine how to "dispatch" the current keyValue.
      */
     private Filter.ReturnCode filterByColumnType() throws IOException {
-        final KeyValueType type = dataStore.getKeyValueType(keyValue.family, keyValue.qualifier);
+        final KeyValueType type = dataStore.getKeyValueType(family(), qualifier());
         if (type.equals(KeyValueType.TOMBSTONE)) {
             return processTombstone();
         } else if (type.equals(KeyValueType.COMMIT_TIMESTAMP)) {
@@ -89,7 +109,7 @@ public class SIFilterState implements FilterState {
     private Filter.ReturnCode processCommitTimestampAsUserData() throws IOException {
         boolean later = false;
         for (Long tombstoneTimestamp : rowState.tombstoneTimestamps) {
-            if (tombstoneTimestamp < keyValue.timestamp) {
+            if (tombstoneTimestamp < timestamp()) {
                 later = true;
                 break;
             }
@@ -98,9 +118,9 @@ public class SIFilterState implements FilterState {
             rowState.rememberCommitTimestamp(keyValue);
             return SKIP;
         } else {
-            final DecodedKeyValue oldKeyValue = keyValue;
+            final Object oldKeyValue = keyValue;
             boolean include = false;
-            for(DecodedKeyValue kv : rowState.getCommitTimestamps()) {
+            for(Object kv : rowState.getCommitTimestamps()) {
                 keyValue = kv;
                 if(processUserData().equals(INCLUDE)) {
                     include = true;
@@ -128,10 +148,10 @@ public class SIFilterState implements FilterState {
      */
     private Filter.ReturnCode processCommitTimestamp() throws IOException {
         Transaction transaction;
-        if (dataStore.isSINull(keyValue.value)) {
+        if (dataStore.isSINull(value())) {
             transaction = handleUnknownTransactionStatus();
-        } else if (dataStore.isSIFail(keyValue.value)) {
-            transaction = Transaction.makeFailedTransaction(transactionStore, keyValue.timestamp);
+        } else if (dataStore.isSIFail(value())) {
+            transaction = Transaction.makeFailedTransaction(transactionStore, timestamp());
         } else {
             // TODO: we should avoid loading the full transaction here once roll-forward is revisited
             transaction = getTransactionFromFilterCache();
@@ -141,13 +161,13 @@ public class SIFilterState implements FilterState {
     }
 
     private Transaction getTransactionFromFilterCache() throws IOException {
-        Transaction transaction = transactionCache.getIfPresent(keyValue.timestamp);
+        Transaction transaction = transactionCache.getIfPresent(timestamp());
         if (transaction == null) {
             if (!myTransaction.getEffectiveReadCommitted() && !myTransaction.getEffectiveReadUncommitted()
-                    && !myTransaction.isDescendant(keyValue.timestamp)) {
-                transaction = transactionStore.getTransactionAsOf(keyValue.timestamp, myTransaction.getTransactionId());
+                    && !myTransaction.isDescendant(timestamp())) {
+                transaction = transactionStore.getTransactionAsOf(timestamp(), myTransaction.getTransactionId());
             } else {
-                transaction = transactionStore.getTransaction(keyValue.timestamp);
+                transaction = transactionStore.getTransaction(timestamp());
             }
             transactionCache.put(transaction.getTransactionId().getId(), transaction);
         }
@@ -160,7 +180,7 @@ public class SIFilterState implements FilterState {
      * the current status of the transaction.
      */
     private Transaction handleUnknownTransactionStatus() throws IOException {
-        final Transaction cachedTransaction = rowState.transactionCache.get(keyValue.timestamp);
+        final Transaction cachedTransaction = rowState.transactionCache.get(timestamp());
         if (cachedTransaction == null) {
             final Transaction dataTransaction = getTransactionFromFilterCache();
             final Object[] visibleResult = myTransaction.isVisible(dataTransaction);
@@ -186,7 +206,7 @@ public class SIFilterState implements FilterState {
                         || effectiveStatus.equals(TransactionStatus.ERROR)
                         || effectiveStatus.equals(TransactionStatus.ROLLED_BACK))) {
             // TODO: revisit this in light of nested independent transactions
-            dataStore.recordRollForward(rollForwardQueue, transaction, keyValue.row);
+            dataStore.recordRollForward(rollForwardQueue, transaction, row());
         }
     }
 
@@ -195,8 +215,8 @@ public class SIFilterState implements FilterState {
      * those values in for a given row and stores the tombstone timestamp so it can be used later to filter user data.
      */
     private Filter.ReturnCode processTombstone() throws IOException {
-        rowState.setTombstoneTimestamp(keyValue.timestamp);
-        if (includeUncommittedAsOfStart && !rowState.isSiTombstoneIncluded() && keyValue.timestamp < myTransaction.getTransactionId().getId()) {
+        rowState.setTombstoneTimestamp(timestamp());
+        if (includeUncommittedAsOfStart && !rowState.isSiTombstoneIncluded() && timestamp() < myTransaction.getTransactionId().getId()) {
             rowState.setSiTombstoneIncluded();
             return INCLUDE;
         } else {
@@ -248,14 +268,14 @@ public class SIFilterState implements FilterState {
      * so this manually does the equivalent.
      */
     private void proceedToNextColumn() {
-        rowState.lastValidQualifier = keyValue.qualifier;
+        rowState.lastValidQualifier = qualifier();
     }
 
     /**
      * The second half of manually implementing our own "INCLUDE & NEXT_COL" return code.
      */
     private boolean doneWithColumn() {
-        return dataLib.valuesEqual(keyValue.qualifier, rowState.lastValidQualifier);
+        return dataLib.valuesEqual(qualifier(), rowState.lastValidQualifier);
     }
 
     /**
@@ -266,8 +286,8 @@ public class SIFilterState implements FilterState {
             final Transaction tombstoneTransaction = rowState.transactionCache.get(tombstone);
             final Object[] visibleResult = myTransaction.isVisible(tombstoneTransaction);
             final boolean visible = (Boolean) visibleResult[0];
-            if (visible && (keyValue.timestamp < tombstone
-                    || (keyValue.timestamp == tombstone && dataStore.isSINull(keyValue.value)))) {
+            if (visible && (timestamp() < tombstone
+                    || (timestamp() == tombstone && dataStore.isSINull(value())))) {
                 return true;
             }
         }
@@ -279,7 +299,7 @@ public class SIFilterState implements FilterState {
      * under SI. It handles the various cases of when data should be visible.
      */
     private boolean isVisibleToCurrentTransaction() throws IOException {
-        if (keyValue.timestamp == myTransaction.getTransactionId().getId() && !myTransaction.getTransactionId().independentReadOnly) {
+        if (timestamp() == myTransaction.getTransactionId().getId() && !myTransaction.getTransactionId().independentReadOnly) {
             return true;
         } else {
             final Transaction transaction = loadTransaction();
@@ -291,9 +311,9 @@ public class SIFilterState implements FilterState {
      * Retrieve the transaction for the current cell from the local cache.
      */
     private Transaction loadTransaction() throws IOException {
-        final Transaction transaction = rowState.transactionCache.get(keyValue.timestamp);
+        final Transaction transaction = rowState.transactionCache.get(timestamp());
         if (transaction == null) {
-            throw new RuntimeException("All transactions should already be loaded from the si family for the data row, transaction Id: " + keyValue.timestamp);
+            throw new RuntimeException("All transactions should already be loaded from the si family for the data row, transaction Id: " + timestamp());
         }
         return transaction;
     }
