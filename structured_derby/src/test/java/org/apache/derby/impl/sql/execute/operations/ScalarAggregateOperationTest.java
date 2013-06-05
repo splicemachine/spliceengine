@@ -25,11 +25,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
 		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 		protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(username varchar(40),i int)");
         protected static SpliceTableWatcher nullTableWatcher = new SpliceTableWatcher("NT",CLASS_NAME,"(a int,b int)");
-<<<<<<< HEAD
-        protected static SpliceTableWatcher emptyTableWatcher = new SpliceTableWatcher("EMPTY",CLASS_NAME,"(a int)");
-=======
     	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("EMPTY_TABLE",CLASS_NAME,"(oid int, catalog varchar(40), score int, brand char(40))");
->>>>>>> Removed system table
 
 		protected static String INSERT = String.format("insert into %s.%s (i) values (?)", CLASS_NAME,TABLE_NAME);
 		public static int size = 10;
@@ -40,11 +36,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
                 .around(spliceSchemaWatcher)
                 .around(spliceTableWatcher)
                 .around(nullTableWatcher)
-<<<<<<< HEAD
-                .around(emptyTableWatcher)
-=======
                 .around(spliceTableWatcher2)
->>>>>>> Removed system table
                 .around(new SpliceDataWatcher(){
 				@Override
 				protected void starting(Description description) {
@@ -212,11 +204,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
     @Test
     public void testCountEmptyTableReturnsZero() throws Exception {
         /* Regression test for Bug 410 */
-<<<<<<< HEAD
-        ResultSet rs = methodWatcher.executeQuery("select count(*) from "+emptyTableWatcher.toString());
-=======
         ResultSet rs = methodWatcher.executeQuery("select count(*),max(brand),min(brand) from " + this.getPaddedTableReference("EMPTY_TABLE"));
->>>>>>> Removed system table
 
         int count =0;
         int correctVal = 0;
