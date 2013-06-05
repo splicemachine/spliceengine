@@ -34,7 +34,6 @@ public class SpliceGenericAggregator {
 	public SpliceGenericAggregator(AggregatorInfo aggInfo, ClassFactory cf) {
 		this.aggInfo = aggInfo;
 		this.cf = cf;
-		
 		this.aggregatorColumnId = aggInfo.getAggregatorColNum();
 		this.inputColumnId = aggInfo.getInputColNum();
 		this.resultColumnId = aggInfo.getOutputColNum();
@@ -51,7 +50,7 @@ public class SpliceGenericAggregator {
 	}
 
 	public void merge(ExecRow inputRow, ExecRow mergeRow) throws StandardException {
-		SpliceLogUtils.trace(LOG,"in aggregate merge, aggregatorColumnId="+aggregatorColumnId);
+		SpliceLogUtils.trace(LOG,"in aggregate merge, aggregatorColumnId=%d",aggregatorColumnId);
 		DataValueDescriptor mergeCol = mergeRow.getColumn(aggregatorColumnId + 1);
 		DataValueDescriptor inputCol = inputRow.getColumn(aggregatorColumnId+1);
 		

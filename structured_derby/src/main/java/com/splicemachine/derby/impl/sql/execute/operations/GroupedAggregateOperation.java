@@ -326,8 +326,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return resultRows;
     }
 
-	private int sameGroupingValues(ExecRow currRow,ExecRow newRow) 
-												throws StandardException{
+	private int sameGroupingValues(ExecRow currRow,ExecRow newRow) throws StandardException{
 		for (int index = 0; index< numGCols;index++){
 			DataValueDescriptor currOrderable = currRow.getColumn(order[index].getColumnId()+1);
 			DataValueDescriptor newOrderable = newRow.getColumn(order[index].getColumnId()+1);
@@ -347,22 +346,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 //		SpliceLogUtils.trace(LOG,"After initialization, row=%s",row);
 	}
 	
-	private void mergeVectorAggregates(ExecRow newRow, ExecRow currRow, 
-											int level) throws StandardException {
-//		SpliceLogUtils.trace(LOG,"merging agg %s with %s",currRow, newRow);
-		for(int i=0;i<aggregates.length;i++){
-			SpliceGenericAggregator agg = aggregates[i];
-//			if(agg.isDistinct()){
-//				DataValueDescriptor newValue = agg.getInputColumnValue(newRow);
-//				if (newValue.getString()!=null){
-//					if(distinctValues[level][i].contains(newValue.getString()))
-//						continue;
-//					distinctValues[level][i].add(newValue.getString());
-//				}
-//			}
+	private void mergeVectorAggregates(ExecRow newRow, ExecRow currRow, int level) throws StandardException {
+		for(SpliceGenericAggregator agg : aggregates){
 			agg.merge(newRow,currRow);
 		}
-//		SpliceLogUtils.trace(LOG,"agg row after merging = %s",currRow);
 	}
 	
 	protected ExecIndexRow getNextRowFromScan() throws StandardException {

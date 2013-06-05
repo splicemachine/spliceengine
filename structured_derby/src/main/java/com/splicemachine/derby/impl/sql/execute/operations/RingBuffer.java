@@ -9,7 +9,6 @@ public class RingBuffer<T> implements Iterable<T>{
 		void merge(T one, T two);
 		boolean shouldMerge(T one, T two);
 	}
-	
 	private final List<T> elements;
 	private final int maxSize;
 	private int pos;

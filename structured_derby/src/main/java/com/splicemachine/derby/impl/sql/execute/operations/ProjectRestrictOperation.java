@@ -249,10 +249,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		beginTime = getCurrentTimeMillis();
 		do {
 			candidateRow = source.getNextRowCore();
-
 			SpliceLogUtils.trace(LOG, "candidateRow=%s",candidateRow);
-
-
 			if (candidateRow != null) {
 				beginRT = getCurrentTimeMillis();
 				/* If restriction is null, then all rows qualify */
@@ -267,8 +264,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 					// if the result is null, we make it false --
 					// so the row won't be returned.
 					restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
-					if (! restrict)
-					{
+					if (! restrict) {
 						rowsFiltered++;
 					}
 				}

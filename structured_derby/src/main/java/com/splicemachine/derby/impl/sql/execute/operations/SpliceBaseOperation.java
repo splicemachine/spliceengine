@@ -113,11 +113,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		this.resultSetNumber = resultSetNumber;
 		sequence = new DataValueDescriptor[1];
 		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
-		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
-
-//		SpliceLogUtils.trace(LOG,"begine compile time="+activation.getPreparedStatement().getBeginCompileTimestamp()
-//				+",end compile time="+activation.getPreparedStatement().getEndCompileTimestamp());
-		
+		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);		
 		if (activation.getLanguageConnectionContext().getStatementContext() == null) {
 			SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
 			return;
@@ -403,9 +399,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	@Override
 	public void openCore() throws StandardException {
         this.uniqueSequenceID = SpliceUtils.getUniqueKeyString();
-        sequence[0].setValue(uniqueSequenceID);
         init(SpliceOperationContext.newContext(activation));
-
 	}
 	@Override
 	public void reopenCore() throws StandardException {
@@ -544,7 +538,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public String getUniqueSequenceID() {
-		return this.uniqueSequenceID;
+		return uniqueSequenceID;
 	}
 
     @Override
