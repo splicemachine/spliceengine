@@ -363,6 +363,18 @@ public class InnerJoinTest extends SpliceUnitTest {
     }
 
     @Test
+    public void testJoinOnLeftColTwice() throws Exception {
+
+        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT A2.* from %s A1, %s A2 where A1.si = A2.si and A1.si = A2.sc" , TABLE_NAME_1, TABLE_NAME_1));
+
+        List<Map> results = TestUtils.resultSetToMaps(rs);
+
+        Assert.assertEquals(1, results.size());
+        Assert.assertEquals("0", results.get(0).get("SI"));
+        Assert.assertEquals("0", results.get(0).get("SC"));
+    }
+
+    @Test
     public void testThreeTableNestedLoopJoin() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("SELECT STAFF.EMPNUM,WORKS.HOURS,UPUNIQ.COL2 FROM STAFF,WORKS,UPUNIQ\n" +
                 "WHERE STAFF.EMPNUM = WORKS.EMPNUM AND UPUNIQ.COL2 = 'A'");
