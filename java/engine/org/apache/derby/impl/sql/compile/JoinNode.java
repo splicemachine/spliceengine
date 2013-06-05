@@ -1657,18 +1657,9 @@ public class JoinNode extends TableOperatorNode {
 
             NonLocalColumnReferenceVisitor visitor = new NonLocalColumnReferenceVisitor();
             rightResultSet.accept(visitor);
+            List nonLocalRefs = visitor.getNonLocalColumnRefs();
 
-            ResultColumnList leftProjectedCols = leftResultSet.getResultColumns();
-
-            for (Iterator it = visitor.getNonLocalColumnRefs().iterator(); it.hasNext(); ) {
-                ColumnReference colRef = (ColumnReference) it.next();
-                ResultColumn rightRC = colRef.getSource();
-
-                ResultColumn leftRC = leftProjectedCols.getResultColumn(rightRC.getName());
-                rightRC.setResultSetNumber(leftRC.getResultSetNumber());
-                rightRC.setVirtualColumnId(leftRC.getVirtualColumnId());
-
-            }
+            ColumnMappingUtils.updateColumnMappings(leftResultSet.getResultColumns(), nonLocalRefs.iterator() );
         }
 
 

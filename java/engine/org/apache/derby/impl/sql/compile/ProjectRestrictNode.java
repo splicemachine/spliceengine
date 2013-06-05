@@ -1459,6 +1459,15 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
    		// }
    		// static Method exprN = method pointer to exprN;
 
+       if(childResult instanceof JoinNode){
+
+           CollectNodesVisitor colRefVisitor = new CollectNodesVisitor(ColumnReference.class);
+           resultColumns.accept(colRefVisitor);
+
+           Vector colRefs = colRefVisitor.getList();
+
+           ColumnMappingUtils.updateColumnMappings(childResult.getResultColumns(), colRefs.iterator());
+       }
 
 
 
