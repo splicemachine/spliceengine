@@ -260,7 +260,8 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
 	public static void populate(Result currentResult, DataValueDescriptor[] destRow) throws StandardException {
-		SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",currentResult.raw().length,destRow.length);
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",currentResult.raw().length,destRow.length);
 		/**
 		 * We have to use dataMap here instead of using currentResult.getValue() because for some reason columns larger
 		 * than 9 will go missing if you call getValue() --likely its due to the fact that we are serializing ints
@@ -278,7 +279,8 @@ public class SpliceUtils extends SpliceUtilities {
 	}
 
     public static void populate(Result currentResult, DataValueDescriptor[] destRow,Serializer serializer) throws StandardException {
-        SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",currentResult.raw().length,destRow.length);
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",currentResult.raw().length,destRow.length);
         /**
          * We have to use dataMap here instead of using currentResult.getValue() because for some reason columns larger
          * than 9 will go missing if you call getValue() --likely its due to the fact that we are serializing ints
@@ -296,7 +298,8 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static void populate(Result currentResult, FormatableBitSet scanColumnList, DataValueDescriptor[] destRow,Serializer serializer) throws StandardException {
-        SpliceLogUtils.trace(LOG,"populate current Result %s using scanColumnList %s and destRow with size %d",currentResult,scanColumnList,destRow.length);
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG,"populate current Result %s using scanColumnList %s and destRow with size %d",currentResult,scanColumnList,destRow.length);
         try {
             if(scanColumnList == null) populate(currentResult,destRow,serializer);
             else{
@@ -312,9 +315,11 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static void populate(Result currentResult, FormatableBitSet scanColumnList, DataValueDescriptor[] destRow) throws StandardException {
-        SpliceLogUtils.trace(LOG,"populate current Result %s using scanColumnList %s and destRow with size %d",currentResult,scanColumnList,destRow.length);
+        if (LOG.isTraceEnabled())
+        	SpliceLogUtils.trace(LOG,"populate current Result %s using scanColumnList %s and destRow with size %d",currentResult,scanColumnList,destRow.length);
         try {
-            if(scanColumnList == null) populate(currentResult,destRow);
+            if(scanColumnList == null) 
+            	populate(currentResult,destRow);
             else{
                 Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
                 for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
