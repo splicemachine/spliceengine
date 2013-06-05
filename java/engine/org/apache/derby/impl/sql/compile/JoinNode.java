@@ -1690,11 +1690,12 @@ public class JoinNode extends TableOperatorNode {
                     table = (FromBaseTable)rightResultSet;
                 }
                 PredicateList nonStoreRestrictionList = table.nonStoreRestrictionList;
-                FormatableBitSet leftHashBits = new FormatableBitSet(nonStoreRestrictionList.size());
+                int[] leftHashCols = new int[nonStoreRestrictionList.size()];
+
                 String leftTableName = null;
                 long leftTableNumber = -1;
 
-                FormatableBitSet rightHashBits = new FormatableBitSet(nonStoreRestrictionList.size());
+                int[] rightHashCols = new int[nonStoreRestrictionList.size()];
                 String rightTableName = null;
                 long rightTableNumber = -1;
 
@@ -1716,10 +1717,8 @@ public class JoinNode extends TableOperatorNode {
                         rightCol = maybeLeftCol;
                     }
 
-                    leftHashBits.grow(leftCol.getColumnNumber()+1);
-                    leftHashBits.set(leftCol.getColumnNumber());
-                    rightHashBits.grow(rightCol.getColumnNumber()+1);
-                    rightHashBits.set(rightCol.getColumnNumber());
+                    leftHashCols[i] = leftCol.getColumnNumber();
+                    rightHashCols[i] = rightCol.getColumnNumber();
 
                     leftTableName = leftCol.getSource().getTableColumnDescriptor().getTableDescriptor().getName();
                     leftTableNumber = leftCol.getSource().getTableColumnDescriptor().getTableDescriptor().getHeapConglomerateId();
@@ -1727,14 +1726,14 @@ public class JoinNode extends TableOperatorNode {
                     rightTableNumber = rightCol.getSource().getTableColumnDescriptor().getTableDescriptor().getHeapConglomerateId();
 		        }
 
-                FormatableHashtable leftHashTable = createFormatableHashtable(leftTableName, leftTableNumber, leftHashBits);
+                FormatableHashtable leftHashTable = createFormatableHashtable(leftTableName, leftTableNumber, leftHashCols);
 
                 //add the left hash array to the method call
                 int leftHashKeyItem = acb.addItem(leftHashTable);
                 mb.push(leftHashKeyItem);
                 numArgs++;
 
-                FormatableHashtable rightHashTable = createFormatableHashtable(rightTableName, rightTableNumber, rightHashBits);
+                FormatableHashtable rightHashTable = createFormatableHashtable(rightTableName, rightTableNumber, rightHashCols);
 
                 //add the right hash array to the method call
                 int rightHashKeyItem = acb.addItem(rightHashTable);
@@ -1848,32 +1847,17 @@ public class JoinNode extends TableOperatorNode {
     }
 
     /**
-     * Build an integer array of column indexes to hash
-     *
-     * @param hashBits
-     * @return
-     */
-    private int[] convertToIntArray(FormatableBitSet hashBits) {
-        int[] hashArray = new int[hashBits.getNumBitsSet()];
-        for(int pos=0, next = hashBits.anySetBit();next!=-1;pos++,next = hashBits.anySetBit(next)){
-            hashArray[pos] = next;
-        }
-        return hashArray;
-    }
-
-    /**
      * Create a FormatableHashtable with the indexes of the columns to hash, the table number and table name containing
      * those columns.
      *
      * @param tableName
      * @param tableNumber
-     * @param hashBits
+     * @param hashCols
      * @return
      */
-    private FormatableHashtable createFormatableHashtable(String tableName, long tableNumber, FormatableBitSet hashBits) {
+    private FormatableHashtable createFormatableHashtable(String tableName, long tableNumber, int[] hashCols) {
 
-        int[] hashColsArray = convertToIntArray(hashBits);
-        FormatableIntHolder[] fihArray = FormatableIntHolder.getFormatableIntHolders(hashColsArray);
+        FormatableIntHolder[] fihArray = FormatableIntHolder.getFormatableIntHolders(hashCols);
         FormatableArrayHolder hashColsHolder = new FormatableArrayHolder(fihArray);
 
         FormatableHashtable fHashTable = new FormatableHashtable();
