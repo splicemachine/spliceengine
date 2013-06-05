@@ -64,13 +64,12 @@ public class DerbyBytesUtil {
 	
 	public static DataValueDescriptor fromBytes (byte[] bytes, DataValueDescriptor descriptor) throws StandardException, IOException {
         //TODO -sf- move this into the Serializer abstraction
-		SpliceLogUtils.trace(LOG,"fromBytes %s",descriptor.getTypeName());
         /*
          * Because HBaseRowLocations are just byte[] row keys, there's no reason to re-serialize them, they've
          * already been serialized and compacted.
          */
-        if(descriptor instanceof HBaseRowLocation){
-            ((HBaseRowLocation)descriptor).setValue(bytes);
+        if(descriptor.getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
+            descriptor.setValue(bytes);
             return descriptor;
         }
         if (bytes.length == 0) {
@@ -156,17 +155,14 @@ public class DerbyBytesUtil {
          */
 
         byte[] result;
-
-        if(descriptor instanceof HBaseRowLocation){
-            result = ((HBaseRowLocation)descriptor).getBytes();
-        }else if(descriptor instanceof LazyDataValueDescriptor){
-            LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) descriptor;
-            result = ldvd.getBytes();
-        }else{
-            result = getRowKey(descriptor).serialize(getObject(descriptor));
+        if(descriptor.getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
+            return descriptor.getBytes();
+        } else if(descriptor instanceof LazyDataValueDescriptor){ // XXX TODO JLEACH
+            return ((LazyDataValueDescriptor) descriptor).getBytes(); // Remove Upcast
+        } else {
+            return getRowKey(descriptor).serialize(getObject(descriptor));
         }
 
-        return result;
 	}
 
 	
@@ -210,10 +206,7 @@ public class DerbyBytesUtil {
 				else if (rowKey.getSerializedClass() == String.class) {
 					String test = (String)descriptors[i].cloneValue(true).getObject();
 					byte[] testByteArray = Bytes.toBytes(test);
-//                    if(testByteArray.length != 0)
-                        BytesUtil.incrementAtIndex(testByteArray, testByteArray.length - 1);
-//                    else
-//                        testByteArray = new byte[]{(byte)1};
+                    BytesUtil.incrementAtIndex(testByteArray, testByteArray.length - 1);
 					values[i] = Bytes.toString(testByteArray);										
 				}
 				else if (rowKey.getSerializedClass() == BigDecimal.class) {
@@ -237,21 +230,18 @@ public class DerbyBytesUtil {
 											 DataValueDescriptor uniqueString, 
 											 int[] hash_keys, 
 											 boolean[] sortOrder) throws IOException, StandardException {
-		SpliceLogUtils.debug(LOG, "generateSortedHashKey");
 		StructBuilder builder = new StructBuilder();
 		Object[] values = new Object[hash_keys.length+2];
 		RowKey rowKey;
 		rowKey = getRowKey(uniqueString);
 		builder.add(rowKey);
 		values[0] = uniqueString.getObject();
-		SpliceLogUtils.trace(LOG, "generateSortedHashKey#uniqueString " + values[0]);
 		for (int i=0;i<hash_keys.length;i++) {
 			rowKey = getRowKey(descriptors[hash_keys[i]]);
 			if (sortOrder != null && !sortOrder[hash_keys[i]])
 				rowKey.setOrder(Order.DESCENDING);
 			builder.add(rowKey);
 			values[i+1] = descriptors[hash_keys[i]].getObject();
-			SpliceLogUtils.trace(LOG, "generateSortedHashKey#iteration value" + values[i+1]);
 		}
 		values[hash_keys.length+1] = SpliceUtils.getUniqueKey();
 		builder.add(new VariableLengthByteArrayRowKey());		
@@ -260,7 +250,8 @@ public class DerbyBytesUtil {
 	
 	public static byte[] generateBeginKeyForTemp(DataValueDescriptor uniqueString) throws StandardException {
 		try {
-			SpliceLogUtils.trace(LOG,"generateBeginKeyForTemp is %s",uniqueString.getTraceString());
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG,"generateBeginKeyForTemp is %s",uniqueString.getTraceString());
 			StructBuilder builder = new StructBuilder();
 			Object[] values = new Object[1];
 			RowKey rowKey;
@@ -274,9 +265,7 @@ public class DerbyBytesUtil {
 		}
 	}
 
-	public static byte[] generateEndKeyForTemp(DataValueDescriptor uniqueString) throws StandardException, IOException {
-		
-		SpliceLogUtils.trace(LOG,"generateEndKeyForTemp is %s",uniqueString.getTraceString());
+	public static byte[] generateEndKeyForTemp(DataValueDescriptor uniqueString) throws StandardException, IOException {		
 		byte[] bytes = generateBeginKeyForTemp(uniqueString);
 		BytesUtil.incrementAtIndex(bytes,bytes.length-1);
 		return bytes;		
@@ -301,7 +290,6 @@ public class DerbyBytesUtil {
 			rowKey = getRowKey(q.getOrderable());
 			builder.add(rowKey);
 			if(i == qualifiers[0].length-1){
-				LOG.trace("Incremented Value: " + q.getOrderable().getTraceString());				
 				if(rowKey.getSerializedClass() == byte[].class) {
 					byte[] test = (byte[])q.getOrderable().getObject();
 					byte[] copy = new byte[test.length];
@@ -330,7 +318,8 @@ public class DerbyBytesUtil {
 				}else
 					throw new RuntimeException("Unable to parse key class "+rowKey.getSerializedClass());
 			}else {
-				LOG.trace("Created Value: " + q.getOrderable().getTraceString());	
+				if (LOG.isTraceEnabled())
+					LOG.trace("Created Value: " + q.getOrderable().getTraceString());	
 				values[i+1] = q.getOrderable().getObject();
 			}
 		}
@@ -356,9 +345,9 @@ public class DerbyBytesUtil {
 		rowKey = getRowKey(uniqueString);
 		builder.add(rowKey);
 		values[0] = uniqueString.getString();
-		SpliceLogUtils.trace(LOG, "generateSortedHashScan#uniqueString " + values[0]);
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "generateSortedHashScan#uniqueString " + values[0]);
 		for (int i=0;i<qualifiers[0].length;i++) {
-			LOG.trace("Created Value: " + qualifiers[0][i].getOrderable().getTraceString());				
 			rowKey = getRowKey(qualifiers[0][i].getOrderable());
 			builder.add(rowKey);
 			values[i+1] = qualifiers[0][i].getOrderable().getObject();
