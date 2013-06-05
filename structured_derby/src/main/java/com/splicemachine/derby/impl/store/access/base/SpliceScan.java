@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access.base;
 
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.impl.sql.execute.LazyScan;
 import com.splicemachine.derby.impl.sql.execute.ParallelScan;
@@ -106,14 +107,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	
 	public void close() throws StandardException {
-		if (LOG.isTraceEnabled())
-		try {
-			if (scanner != null)
-				scanner.close();
-			table.close();
-		} catch (IOException e) {
-			throw StandardException.newException("Error closing scanner and table ",e);
-		}
+			Closeables.closeQuietly(scanner);
+			Closeables.closeQuietly(table);
 	}
 
 	protected void attachFilter() {
