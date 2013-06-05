@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.base.Splitter;
+import com.gotometrics.orderly.IntegerRowKey;
 import com.gotometrics.orderly.RowKey;
 import com.gotometrics.orderly.StructRowKey;
 import com.gotometrics.orderly.VariableLengthByteArrayRowKey;
@@ -18,6 +19,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -144,7 +146,7 @@ public class TableSplit{
              */
             try{
                 int splitNum = Integer.parseInt(splitPosition);
-                toSplit[0] = Bytes.toBytes(splitNum);
+                toSplit[0] = splitNum;
             }catch(NumberFormatException nfe){
                 //not an integer, so assume you know what you're doing.
                 toSplit[0] = splitPosition.getBytes();
@@ -162,7 +164,7 @@ public class TableSplit{
 
     private static RowKey getRowKey() {
         //TODO -sf- improve this for the case of Primary Keys
-        RowKey[] fields = new RowKey[]{new VariableLengthByteArrayRowKey()};
+        RowKey[] fields = new RowKey[]{new IntegerRowKey()};
 
         return new StructRowKey(fields);
     }
@@ -207,5 +209,11 @@ public class TableSplit{
                 return conn;
         }
         throw Util.noCurrentConnection();
+    }
+
+    public static void main(String... args) throws Exception{
+        byte[] bytes = Bytes.toBytesBinary("Y\\x95\\x99Y\\x95\\x99");
+        StructRowKey rowKey = new StructRowKey(new RowKey[]{new VariableLengthByteArrayRowKey()});
+        System.out.println(Bytes.toInt((byte[])((Object[])rowKey.deserialize(bytes))[0]));
     }
 }

@@ -44,7 +44,7 @@ public class RowSerializer {
         else if(cols!=null)
             this.values = new Object[cols.getNumBitsSet()];
         else
-            this.values = new Object[1];
+            this.values = new Object[2];
 
         StructBuilder builder = new StructBuilder();
         if(this.cols!=null){
@@ -59,6 +59,7 @@ public class RowSerializer {
             if(appendPostfix)
                 builder.add(new VariableLengthByteArrayRowKey());
         }else{
+            builder.add(new IntegerRowKey());
             builder.add(new VariableLengthByteArrayRowKey());
         }
         rowKey = builder.toRowKey();
@@ -87,10 +88,9 @@ public class RowSerializer {
              */
             if(salter==null)
                 salter = new Random(System.currentTimeMillis());
-            byte[][] uniqueKeyPieces = new byte[][]{Bytes.toBytes(salter.nextInt()),SpliceUtils.getUniqueKey()};
-            byte[] key = BytesUtil.concatenate(uniqueKeyPieces,4+uniqueKeyPieces[1].length);
 
-            values[0] = key;
+            values[0] = salter.nextInt();
+            values[1] = SpliceUtils.getUniqueKey();
         }
 
         return rowKey.serialize(values);
