@@ -102,7 +102,11 @@ public class SITransactorTest extends SIConstants {
     }
 
     private String scan(TransactionId transactionId, String name, boolean includeUncommittedAsOfStart) throws IOException {
-        return scanAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, includeUncommittedAsOfStart);
+        return scan(transactionId, name, includeUncommittedAsOfStart, true);
+    }
+
+    private String scan(TransactionId transactionId, String name, boolean includeUncommittedAsOfStart, boolean decodeTimestamps) throws IOException {
+        return scanAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, includeUncommittedAsOfStart, decodeTimestamps);
     }
 
     private String scanNoColumns(TransactionId transactionId, String name, boolean deleted) throws IOException {
@@ -182,14 +186,15 @@ public class SITransactorTest extends SIConstants {
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Object rawTuple = reader.get(testSTable, get);
-            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, true, true, false, false);
+            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, true, true, false, false, true);
         } finally {
             reader.close(testSTable);
         }
     }
 
     static String scanAgeDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
-                                TransactionId transactionId, String name, boolean includeUncommittedAsOfStart) throws IOException {
+                                TransactionId transactionId, String name, boolean includeUncommittedAsOfStart,
+                                boolean decodeTimestamps) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
@@ -202,7 +207,8 @@ public class SITransactorTest extends SIConstants {
             if (results.hasNext()) {
                 Object rawTuple = results.next();
                 Assert.assertTrue(!results.hasNext());
-                return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, false, true, includeUncommittedAsOfStart, true);
+                return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, false, true,
+                        includeUncommittedAsOfStart, true, decodeTimestamps);
             } else {
                 return "";
             }
@@ -229,7 +235,7 @@ public class SITransactorTest extends SIConstants {
             }
             Object rawTuple = results.next();
             Assert.assertTrue(!results.hasNext());
-            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, false, true, false, false);
+            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, false, true, false, false, true);
         } finally {
             reader.close(testSTable);
         }
@@ -264,7 +270,7 @@ public class SITransactorTest extends SIConstants {
                 final Object value = results.next();
                 final String name = (String) dataLib.decode(dataLib.getResultKey(value), String.class);
                 final String s = readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, value, false,
-                        includeSIColumn, includeUncommittedAsOfStart, true);
+                        includeSIColumn, includeUncommittedAsOfStart, true, true);
                 result.append(s);
                 if (s.length() > 0) {
                     result.append("\n");
@@ -278,7 +284,8 @@ public class SITransactorTest extends SIConstants {
 
     private static String readRawTuple(boolean useSimple, TransactorSetup transactorSetup, TransactionId transactionId,
                                        String name, SDataLib dataLib, Object rawTuple, boolean singleRowRead,
-                                       boolean includeSIColumn, boolean includeUncommittedAsOfStart, boolean dumpKeyValues)
+                                       boolean includeSIColumn, boolean includeUncommittedAsOfStart, boolean dumpKeyValues,
+                                       boolean decodeTimestamps)
             throws IOException {
         if (rawTuple != null) {
             Object result = rawTuple;
@@ -297,7 +304,7 @@ public class SITransactorTest extends SIConstants {
                 }
             }
             if (result != null) {
-                String suffix = dumpKeyValues ? "[ " + resultToKeyValueString(transactorSetup, name, dataLib, result) + "]": "";
+                String suffix = dumpKeyValues ? "[ " + resultToKeyValueString(transactorSetup, name, dataLib, result, decodeTimestamps) + "]": "";
                 return resultToStringDirect(transactorSetup, name, dataLib, result) + suffix;
             }
         }
@@ -320,23 +327,36 @@ public class SITransactorTest extends SIConstants {
         return name + " age=" + age + " job=" + job;
     }
 
-    private static String resultToKeyValueString(TransactorSetup transactorSetup, String name, SDataLib dataLib, Object result) {
+    private static String resultToKeyValueString(TransactorSetup transactorSetup, String name, SDataLib dataLib,
+                                                 Object result, boolean decodeTimestamps) {
         final Map<Long, String> timestampDecoder = new HashMap<Long, String>();
         final StringBuilder s = new StringBuilder();
         for (Object kv : dataLib.listResult(result)) {
             final String family = (String) dataLib.decode(dataLib.getKeyValueFamily(kv), String.class);
             String qualifier = "?";
-            Object value = "?";
+            String value = "?";
             if (dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), transactorSetup.ageQualifier)) {
-                value = dataLib.decode(dataLib.getKeyValueValue(kv), Integer.class);
+                value = dataLib.decode(dataLib.getKeyValueValue(kv), Integer.class).toString();
                 qualifier = "age";
             } else if (dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), transactorSetup.jobQualifier)) {
-                value = dataLib.decode(dataLib.getKeyValueValue(kv), String.class);
+                value = (String) dataLib.decode(dataLib.getKeyValueValue(kv), String.class);
                 qualifier = "job";
+            } else if (dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), transactorSetup.tombstoneQualifier)) {
+                qualifier = "X";
+                value = "";
+            } else if (dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), transactorSetup.commitTimestampQualifier)) {
+                qualifier = "TX";
+                value = "";
             }
             final long timestamp = dataLib.getKeyValueTimestamp(kv);
-            String timestampString = timestampToStableString(timestampDecoder, timestamp);
-            s.append(family + "." + qualifier + "@" + timestampString + "=" + value + " ");
+            String timestampString;
+            if (decodeTimestamps) {
+                timestampString = timestampToStableString(timestampDecoder, timestamp);
+            } else {
+                timestampString = new Long(timestamp).toString();
+            }
+            String equalString = value.length() > 0 ? "=" : "";
+            s.append(family + "." + qualifier + "@" + timestampString + equalString + value + " ");
         }
         return s.toString();
     }
@@ -454,7 +474,7 @@ public class SITransactorTest extends SIConstants {
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe4 age=20 job=null[ S.?@~9=? V.age@~9=20 ]", scan(t2, "joe4"));
+        Assert.assertEquals("joe4 age=20 job=null[ S.TX@~9 V.age@~9=20 ]", scan(t2, "joe4"));
 
         Assert.assertEquals("joe4 age=20 job=null", read(t2, "joe4"));
     }
@@ -465,7 +485,7 @@ public class SITransactorTest extends SIConstants {
         insertAge(t1, "joe120", 20);
         transactor.commit(t1);
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe120 age=20 job=null[ S.?@~9=? V.age@~9=20 ]", scan(t2, "joe120", true));
+        Assert.assertEquals("joe120 age=20 job=null[ S.TX@~9 V.age@~9=20 ]", scan(t2, "joe120", true));
     }
 
     @Test
@@ -473,7 +493,7 @@ public class SITransactorTest extends SIConstants {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe121", 20);
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe121 age=20 job=null[ S.?@~9=? V.age@~9=20 ]", scan(t2, "joe121", true));
+        Assert.assertEquals("joe121 age=20 job=null[ S.TX@~9 V.age@~9=20 ]", scan(t2, "joe121", true));
         transactor.commit(t1);
     }
 
@@ -483,7 +503,7 @@ public class SITransactorTest extends SIConstants {
         insertAge(t1, "joe122", 20);
         TransactionId t2 = transactor.beginTransaction();
         transactor.commit(t1);
-        Assert.assertEquals("joe122 age=20 job=null[ S.?@~9=? V.age@~9=20 ]", scan(t2, "joe122", true));
+        Assert.assertEquals("joe122 age=20 job=null[ S.TX@~9 V.age@~9=20 ]", scan(t2, "joe122", true));
     }
 
     @Test
@@ -509,8 +529,68 @@ public class SITransactorTest extends SIConstants {
 
         insertAge(t2, "joe125", 21);
 
-        Assert.assertEquals("joe125 age=21 job=null[ S.?@~9=? V.age@~9=21 V.age@~8=20 ]", scan(t3, "joe125", true));
+        Assert.assertEquals("joe125 age=21 job=null[ S.TX@~9 V.age@~9=21 V.age@~8=20 ]", scan(t3, "joe125", true));
         transactor.commit(t2);
+    }
+
+    @Test
+    public void writeScanWithDeleteActive() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe128", 20);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+
+        TransactionId t3 = transactor.beginTransaction();
+
+        deleteRow(t2, "joe128");
+
+        Assert.assertEquals("joe128 age=20 job=null[ S.TX@~9 V.age@~9=20 ]", scan(t3, "joe128", false));
+        transactor.commit(t2);
+    }
+
+    @Test
+    public void writeScanWithDeleteActiveUncommittedAsOfStart() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe129", 20);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+
+        TransactionId t3 = transactor.beginTransaction();
+
+        deleteRow(t2, "joe129");
+
+        Assert.assertEquals("joe129 age=-1 job=null[ S.X@~9 S.TX@~9 V.age@~9=-1 V.age@~8=20 ]", scan(t3, "joe129", true));
+        transactor.commit(t2);
+    }
+
+    @Test
+    public void writeScanWithManyDeletesUncommittedAsOfStart() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe130", 20);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+
+        TransactionId t3 = transactor.beginTransaction();
+
+        deleteRow(t2, "joe130");
+        transactor.commit(t2);
+
+        TransactionId t4 = transactor.beginTransaction();
+        insertAge(t4, "joe130", 21);
+        transactor.commit(t4);
+
+        TransactionId t5 = transactor.beginTransaction();
+        deleteRow(t5, "joe130");
+        transactor.commit(t5);
+
+        Assert.assertEquals("joe130 age=-1 job=null[ S.X@~9 S.TX@~9 V.age@~9=-1 V.age@~8=20 ]", scan(t3, "joe130", true));
+
+        if (useSimple) {
+            Assert.assertEquals("joe130 age=-1 job=null[ S.X@3 S.TX@3 V.age@3=-1 V.age@1=20 ]", scan(t3, "joe130", true, false));
+        }
     }
 
     @Test
@@ -538,9 +618,9 @@ public class SITransactorTest extends SIConstants {
         insertAge(t5, "124doe", 24);
         transactor.commit(t5);
 
-        Assert.assertEquals("124boe age=21 job=null[ S.?@~9=? V.age@~9=21 ]\n" +
-                "124joe age=20 job=null[ S.?@~9=? V.age@~9=20 ]\n" +
-                "124moe age=22 job=null[ S.?@~9=? V.age@~9=22 ]\n", scanAll(t, "124a", "124zz", null, true, true));
+        Assert.assertEquals("124boe age=21 job=null[ S.TX@~9 V.age@~9=21 ]\n" +
+                "124joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
+                "124moe age=22 job=null[ S.TX@~9 V.age@~9=22 ]\n", scanAll(t, "124a", "124zz", null, true, true));
         transactor.commit(t3);
     }
 
@@ -570,7 +650,7 @@ public class SITransactorTest extends SIConstants {
         insertAge(t5, "127joe", 24);
         transactor.commit(t5);
 
-        Assert.assertEquals("127joe age=22 job=null[ S.?@~9=? V.age@~9=22 V.age@~8=21 ]\n", scanAll(t, "127a", "127zz", null, true, true));
+        Assert.assertEquals("127joe age=22 job=null[ S.TX@~9 V.age@~9=22 V.age@~8=21 ]\n", scanAll(t, "127a", "127zz", null, true, true));
     }
 
     @Test
@@ -598,9 +678,9 @@ public class SITransactorTest extends SIConstants {
         insertAge(t5, "126doe", 24);
         transactor.commit(t5);
 
-        Assert.assertEquals("126boe age=21 job=null[ S.?@~9=? V.age@~9=21 ]\n" +
-                "126joe age=20 job=null[ S.?@~9=? V.age@~9=20 ]\n" +
-                "126moe age=22 job=null[ S.?@~9=? V.age@~9=22 ]\n", scanAll(t, "126a", "126zz", null, true, true));
+        Assert.assertEquals("126boe age=21 job=null[ S.TX@~9 V.age@~9=21 ]\n" +
+                "126joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
+                "126moe age=22 job=null[ S.TX@~9 V.age@~9=22 ]\n", scanAll(t, "126a", "126zz", null, true, true));
         transactor.commit(t3);
     }
 
@@ -1006,10 +1086,10 @@ public class SITransactorTest extends SIConstants {
         transactor.commit(t2);
 
         TransactionId t3 = transactor.beginTransaction();
-        String expected = "110boe age=40 job=null[ S.?@~9=? V.age@~9=40 ]\n" +
-                "110joe age=20 job=null[ S.?@~9=? V.age@~9=20 ]\n" +
-                "110toe age=30 job=null[ S.?@~9=? V.age@~9=30 ]\n" +
-                "110xoe age=60 job=null[ S.?@~9=? V.age@~9=60 ]\n";
+        String expected = "110boe age=40 job=null[ S.TX@~9 V.age@~9=40 ]\n" +
+                "110joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
+                "110toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
+                "110xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
         Assert.assertEquals(expected, scanAll(t3, "110a", "110z", null, true));
     }
 
@@ -1049,10 +1129,10 @@ public class SITransactorTest extends SIConstants {
         transactor.commit(t2);
 
         TransactionId t3 = transactor.beginTransaction();
-        String expected = "111boe age=null job=null[ S.?@~9=? ]\n" +
-                "111joe age=20 job=null[ S.?@~9=? V.age@~9=20 ]\n" +
-                "111toe age=30 job=null[ S.?@~9=? V.age@~9=30 ]\n" +
-                "111xoe age=60 job=null[ S.?@~9=? V.age@~9=60 ]\n";
+        String expected = "111boe age=null job=null[ S.TX@~9 ]\n" +
+                "111joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
+                "111toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
+                "111xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
         Assert.assertEquals(expected, scanAll(t3, "111a", "111z", null, true));
     }
 
@@ -2985,7 +3065,7 @@ public class SITransactorTest extends SIConstants {
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe119 age=null job=null[ S.?@~9=? ]", scan(t2, "joe119"));
+        Assert.assertEquals("joe119 age=null job=null[ S.TX@~9 ]", scan(t2, "joe119"));
 
         Assert.assertEquals("joe119 age=null job=null", read(t2, "joe119"));
     }

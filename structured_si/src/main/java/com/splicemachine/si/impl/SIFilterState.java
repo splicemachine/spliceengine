@@ -98,6 +98,7 @@ public class SIFilterState implements FilterState {
             rowState.rememberCommitTimestamp(keyValue);
             return SKIP;
         } else {
+            final DecodedKeyValue oldKeyValue = keyValue;
             boolean include = false;
             for(DecodedKeyValue kv : rowState.getCommitTimestamps()) {
                 keyValue = kv;
@@ -106,6 +107,7 @@ public class SIFilterState implements FilterState {
                     break;
                 }
             }
+            keyValue = oldKeyValue;
             if (include) {
                 rowState.setSiColumnIncluded();
                 return INCLUDE;
@@ -194,7 +196,12 @@ public class SIFilterState implements FilterState {
      */
     private Filter.ReturnCode processTombstone() throws IOException {
         rowState.setTombstoneTimestamp(keyValue.timestamp);
-        return SKIP;
+        if (includeUncommittedAsOfStart && !rowState.isSiTombstoneIncluded() && keyValue.timestamp < myTransaction.getTransactionId().getId()) {
+            rowState.setSiTombstoneIncluded();
+            return INCLUDE;
+        } else {
+            return SKIP;
+        }
     }
 
     /**

@@ -36,6 +36,7 @@ public class FilterRowState {
     List<DecodedKeyValue> commitTimestamps = new ArrayList<DecodedKeyValue>();
 
     boolean siColumnIncluded = false;
+    boolean siTombstoneIncluded = false;
 
     public FilterRowState(SDataLib dataLib) {
         this.dataLib = dataLib;
@@ -79,4 +80,11 @@ public class FilterRowState {
         this.siColumnIncluded = true;
     }
 
+    public boolean isSiTombstoneIncluded() {
+        return siTombstoneIncluded;
+    }
+
+    public void setSiTombstoneIncluded() {
+        this.siTombstoneIncluded = true;
+    }
 }

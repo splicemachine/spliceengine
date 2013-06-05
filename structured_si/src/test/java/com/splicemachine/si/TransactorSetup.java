@@ -29,6 +29,8 @@ public class TransactorSetup extends SIConstants {
     Object family;
     Object ageQualifier;
     Object jobQualifier;
+    Object commitTimestampQualifier;
+    Object tombstoneQualifier;
 
     ClientTransactor clientTransactor;
     public Transactor transactor;
@@ -51,10 +53,14 @@ public class TransactorSetup extends SIConstants {
         final Cache<Long, Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, immutableCache, activeCache, cache, 1000);
 
+        final String tombstoneQualifierString = SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING;
+        tombstoneQualifier = dataLib.encode(tombstoneQualifierString);
+        final String commitTimestampQualifierString = SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
+        commitTimestampQualifier = dataLib.encode(commitTimestampQualifierString);
         transactor = new SITransactor(new SimpleTimestampSource(), dataLib, writer,
                 new DataStore(dataLib, reader, writer, "si-needed", SI_NEEDED_VALUE, ONLY_SI_FAMILY_NEEDED_VALUE,
                         "si-uncommitted", 1, "si-transaction-id", "si-delete-put", SNAPSHOT_ISOLATION_FAMILY,
-                        SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING, SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING,
+                        commitTimestampQualifierString, tombstoneQualifierString,
                         SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN_STRING,
                         -1, -2, userColumnsFamilyName),
                 transactionStore, storeSetup.getClock(), 1500);
