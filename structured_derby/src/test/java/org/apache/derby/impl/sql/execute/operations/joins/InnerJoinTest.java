@@ -176,6 +176,16 @@ public class InnerJoinTest extends SpliceUnitTest {
     }
 
     @Test
+    public void testProjectionOverMergeSortJoin() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select 10*t1.GRADE as foo from STAFF t1 where t1.EMPNUM not in (select t2.EMPNUM from WORKS t2 where t1.EMPNUM = t2.EMPNUM)");
+
+        List<Map> results = TestUtils.resultSetToMaps(rs);
+
+        Assert.assertEquals(1, results.size());
+        Assert.assertEquals(new BigDecimal(130), results.get(0).get("FOO"));
+    }
+
+    @Test
      public void testThreeTableJoin() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select t1.orl_order_id, t2.cst_id, t3.itm_id " +
                 "from order_line t1, customer t2, item t3 " +
