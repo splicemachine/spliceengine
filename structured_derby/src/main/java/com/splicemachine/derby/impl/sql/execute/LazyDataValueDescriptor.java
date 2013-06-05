@@ -33,7 +33,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
     }
 
     public LazyDataValueDescriptor(DataValueDescriptor dvd, DVDSerializer DVDSerializer){
-        this.setDvd(dvd);
+        this.dvd = dvd;
         this.DVDSerializer = DVDSerializer;
     }
 
@@ -510,9 +510,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-
         out.writeBoolean(dvd != null);
-
         if(dvd != null){
             out.writeObject(dvd);
         }
