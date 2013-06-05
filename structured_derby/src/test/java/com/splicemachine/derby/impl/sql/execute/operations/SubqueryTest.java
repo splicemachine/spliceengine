@@ -197,17 +197,14 @@ public class SubqueryTest {
     public void testSubqueryWithAny() throws Exception {
         TestUtils.tableLookupByNumber(spliceClassWatcher);
         ResultSet rs = methodWatcher.executeQuery(
-                String.format("select * from %s.s t1 where t1.s >= ANY (select t2.b from %s.t t2)",schemaWatcher.schemaName,schemaWatcher.schemaName));
+                String.format("select * from %s.z1 t1 where t1.s >= ANY (select t2.b from %s.z2 t2)",schemaWatcher.schemaName,schemaWatcher.schemaName));
         List<Map> results = TestUtils.resultSetToMaps(rs);
         Assert.assertEquals(2, results.size());
 
         for(Map result : results){
             Assert.assertNotNull("Value for column I should not be null", result.get("I"));
             Assert.assertNotNull("Value for column S should not be null", result.get("S"));
-
-            //The below assertion fails due to bug 511 commenting this for now as the test
-            //also covers the fix for filter null values from the left side of a join
-            //Assert.assertNotNull("Value for column C should not be null", result.get("C"));
+            Assert.assertNotNull("Value for column C should not be null", result.get("C"));
         }
     }
 }
