@@ -10,12 +10,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-<<<<<<< HEAD
 
 @Ignore("Bug 535")
-=======
-@Ignore
->>>>>>> Commented out class until ready
 public class ConstraintConstantOperationTest extends SpliceUnitTest {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
