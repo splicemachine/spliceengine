@@ -4,12 +4,10 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
-
 import com.google.common.primitives.Bytes;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
@@ -60,6 +58,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	private ExecIndexRow[] resultRows;
 	private HashSet<String>[][] distinctValues;
 	private boolean completedExecution = false;
+	private int numGCols;
 
     protected RowProvider rowProvider;
     private Accumulator scanAccumulator = TimingStats.uniformAccumulator();
@@ -137,9 +136,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
             byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
             byte[] finish = BytesUtil.copyAndIncrement(start);
-			if(regionScanner==null){
-                isTemp = true;
-			}else{
+		if(regionScanner==null){
+               isTemp = true;
+		}else{
 				Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
                 rowProvider = new SimpleRegionAwareRowProvider(SpliceUtils.NA_TRANSACTION_ID,
                         context.getRegion(),
@@ -151,6 +150,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				rowProvider.open();
                 isTemp = !context.isSink() || context.getTopOperation()!=this;
 			}
+			numGCols = order.length - numDistinctAggs;	
 	}
 
 	@Override
@@ -226,7 +226,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		@Override
 		public boolean shouldMerge(ExecIndexRow one, ExecIndexRow two){
 			try {
-				return sameGroupingValues(one,two) == numGCols();
+				return sameGroupingValues(one,two) == numGCols;
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG,e);
 				return false; //will never happen
@@ -260,7 +260,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
          */
         if(resultRows==null){
             if(isRollup&&!useScan){
-                resultRows = new ExecIndexRow[numGCols()+1];
+                resultRows = new ExecIndexRow[numGCols+1];
             }else{
                 resultRows = new ExecIndexRow[1];
             }
@@ -272,10 +272,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
 		do{
 			//the next row pulled isn't empty, so have to process it
-			SpliceLogUtils.trace(LOG,"nextRow=%s",nextRow);
+			//SpliceLogUtils.trace(LOG,"nextRow=%s",nextRow);
             ExecIndexRow[] rolledUpRows = getRolledUpRows(nextRow,useScan);
-            SpliceLogUtils.trace(LOG,"adding rolledUpRows %s", Arrays.toString(rolledUpRows));
-            for(ExecIndexRow rolledUpRow:rolledUpRows){
+            //SpliceLogUtils.trace(LOG,"adding rolledUpRows %s", Arrays.toString(rolledUpRows));
+            for(ExecIndexRow rolledUpRow:rolledUpRows) {
                 if(!useScan)
                     initializeVectorAggregation(rolledUpRow);
 				if(!currentAggregations.merge(rolledUpRow,merger)){
@@ -294,18 +294,18 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		}while(nextRow!=null);
 		
 		ExecRow next = finalizeResults();
-		SpliceLogUtils.trace(LOG,"next aggregated row = %s",next);
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG,"next aggregated row = %s",next);
 		return next;
 	}
 
     private ExecIndexRow[] getRolledUpRows(ExecIndexRow rowToRollUp, boolean scanned) throws StandardException {
-        SpliceLogUtils.trace(LOG,"getRolledUpRows?"+isRollup);
         if(!isRollup||scanned){
             resultRows[0] = rowToRollUp;
             return resultRows;
         }
 
-        int rollUpPos = numGCols();
+        int rollUpPos = numGCols;
         int pos = 0;
         ExecIndexRow nextRow =  (ExecIndexRow)rowToRollUp.getClone();
         SpliceLogUtils.trace(LOG,"setting rollup cols to null");
@@ -328,16 +328,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
 	private int sameGroupingValues(ExecRow currRow,ExecRow newRow) 
 												throws StandardException{
-		for (int index = 0; index< numGCols();index++){
-			DataValueDescriptor currOrderable = 
-					currRow.getColumn(order[index].getColumnId()+1);
-			DataValueDescriptor newOrderable = 
-					newRow.getColumn(order[index].getColumnId()+1);
-			if(!currOrderable.compare(DataValueDescriptor.ORDER_OP_EQUALS,
-														newOrderable,true,true))
+		for (int index = 0; index< numGCols;index++){
+			DataValueDescriptor currOrderable = currRow.getColumn(order[index].getColumnId()+1);
+			DataValueDescriptor newOrderable = newRow.getColumn(order[index].getColumnId()+1);
+			if(!currOrderable.compare(DataValueDescriptor.ORDER_OP_EQUALS,newOrderable,true,true))
 				return index;
 		}
-		return numGCols();
+		return numGCols;
 	}
 	
 	protected void initializeVectorAggregation(ExecRow row)
@@ -368,10 +365,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 //		SpliceLogUtils.trace(LOG,"agg row after merging = %s",currRow);
 	}
 	
-	private int numGCols(){
-		return order.length - numDistinctAggs;
-	}
-
 	protected ExecIndexRow getNextRowFromScan() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getting next row from scan");
 		if(rowProvider!=null){
