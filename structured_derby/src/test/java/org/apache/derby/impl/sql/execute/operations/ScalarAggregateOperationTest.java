@@ -25,6 +25,8 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
 		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 		protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(username varchar(40),i int)");
         protected static SpliceTableWatcher nullTableWatcher = new SpliceTableWatcher("NT",CLASS_NAME,"(a int,b int)");
+        protected static SpliceTableWatcher emptyTableWatcher = new SpliceTableWatcher("EMPTY",CLASS_NAME,"(a int)");
+
 		protected static String INSERT = String.format("insert into %s.%s (i) values (?)", CLASS_NAME,TABLE_NAME);
 		public static int size = 10;
 		public static Stats stats = new Stats();
@@ -34,6 +36,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
                 .around(spliceSchemaWatcher)
                 .around(spliceTableWatcher)
                 .around(nullTableWatcher)
+                .around(emptyTableWatcher)
                 .around(new SpliceDataWatcher(){
 				@Override
 				protected void starting(Description description) {
@@ -201,15 +204,13 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
     @Test
     public void testCountEmptyTableReturnsZero() throws Exception {
         /* Regression test for Bug 410 */
-        ResultSet rs = methodWatcher.executeQuery("select count(*),max(constraintid),min(constraintid) from sys.syschecks");
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from "+emptyTableWatcher.toString());
 
         int count =0;
         int correctVal = 0;
         while(rs.next()){
             count++;
             Assert.assertEquals("Incorrect count returned!",correctVal,rs.getInt(1));
-            Assert.assertNull("max returned a value!",rs.getObject(2));
-            Assert.assertNull("min returned a value!",rs.getObject(3));
         }
         Assert.assertEquals("Incorrect num rows returned",1,count);
 

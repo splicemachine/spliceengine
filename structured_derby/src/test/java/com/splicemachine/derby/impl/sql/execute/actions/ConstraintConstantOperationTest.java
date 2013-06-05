@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+@Ignore("Bug 535")
 public class ConstraintConstantOperationTest extends SpliceUnitTest {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();

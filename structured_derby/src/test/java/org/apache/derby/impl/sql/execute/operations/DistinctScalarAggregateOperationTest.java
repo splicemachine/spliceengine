@@ -18,51 +18,53 @@ public class DistinctScalarAggregateOperationTest extends SpliceUnitTest {
 	private static Logger LOG = Logger.getLogger(DistinctScalarAggregateOperationTest.class);
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(DistinctScalarAggregateOperationTest.class.getSimpleName());	
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("ORDERSUMMARY",DistinctScalarAggregateOperationTest.class.getSimpleName(),"(oid int, catalog varchar(40), score int, brand varchar(40))");
-	
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher)
-		.around(new SpliceDataWatcher(){
-			@Override
-			protected void starting(Description description) {
-				try {
-					Statement s = spliceClassWatcher.getStatement();
-					s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(1, 'clothes', 2, 'zara')");
-					s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(2, 'clothes', 2, 'ann taylor')");
-					s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(2, 'clothes', 2, 'd&g')");
-					s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(2, 'showes', 3, 'zara')");
-					s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(3, 'showes', 3, 'burberry')");
-					s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(3, 'clothes', 2, 'd&g')");
-					s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(3, 'handbags', 5, 'd&g')");
-					s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(3, 'handbags', 5, 'd&g')");
-					s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(4, 'furniture', 6, 'ea')");
-                    spliceClassWatcher.splitTable("ordersummary", spliceSchemaWatcher.schemaName);
-				} catch (Exception e) {
-					e.printStackTrace();
-					throw new RuntimeException(e);
-				}
-				finally {
-					spliceClassWatcher.closeAll();
-				}
-            }
-			
-		});
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
-		
-	@Test
-	public void testDistinctScalarAggregate() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select sum(distinct score),max(distinct score),min(distinct score) from" + this.getPaddedTableReference("ORDERSUMMARY"));
-		if (rs.next()) {
-			LOG.info("sum of distinct="+rs.getInt(1));
-			Assert.assertEquals("incorrect sum",16, rs.getInt(1));
+    protected static SpliceTableWatcher emptyTableWatcher = new SpliceTableWatcher("EMPTY",DistinctScalarAggregateOperationTest.class.getSimpleName(),"(a int)");
+
+	@ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher)
+            .around(spliceTableWatcher)
+            .around(emptyTableWatcher)
+            .around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        Statement s = spliceClassWatcher.getStatement();
+                        s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(1, 'clothes', 2, 'zara')");
+                        s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(2, 'clothes', 2, 'ann taylor')");
+                        s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(2, 'clothes', 2, 'd&g')");
+                        s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(2, 'showes', 3, 'zara')");
+                        s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(3, 'showes', 3, 'burberry')");
+                        s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(3, 'clothes', 2, 'd&g')");
+                        s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(3, 'handbags', 5, 'd&g')");
+                        s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(3, 'handbags', 5, 'd&g')");
+                        s.execute("insert into " +DistinctScalarAggregateOperationTest.class.getSimpleName()+ ".ordersummary values(4, 'furniture', 6, 'ea')");
+                        spliceClassWatcher.splitTable("ordersummary", spliceSchemaWatcher.schemaName);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    }
+                    finally {
+                        spliceClassWatcher.closeAll();
+                    }
+                }
+
+            });
+
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+
+    @Test
+    public void testDistinctScalarAggregate() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select sum(distinct score),max(distinct score),min(distinct score) from" + this.getPaddedTableReference("ORDERSUMMARY"));
+        if (rs.next()) {
+            LOG.info("sum of distinct="+rs.getInt(1));
+            Assert.assertEquals("incorrect sum",16, rs.getInt(1));
             Assert.assertEquals("incorrect max",6,rs.getInt(2));
             Assert.assertEquals("incorrect min",2,rs.getInt(3));
-		}else{
+        }else{
             Assert.fail("No results returned!");
         }
-	}
+    }
 
     @Test
     public void testDistinctScalarAggregateRepeatedly() throws Exception {
@@ -90,14 +92,10 @@ public class DistinctScalarAggregateOperationTest extends SpliceUnitTest {
 
     @Test
     public void testDistinctScalarAggregateReturnsZeroOnEmptyTable() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select count(distinct constraintid),min(distinct constraintid),max(distinct constraintid) from sys.syschecks");
+        //TODO -sf- remove the implicit assumption that there won't be any data in this system table
+        ResultSet rs = methodWatcher.executeQuery("select count(distinct a), min(distinct a), max(distinct a) from "+ emptyTableWatcher.toString());
 
         Assert.assertTrue("No rows returned!",rs.next());
         Assert.assertEquals("incorrect count returned",0,rs.getInt(1));
-        Assert.assertNull("incorrect min returned",rs.getObject(2));
-        Assert.assertNull("incorrect max returned",rs.getObject(3));
-
-
-
     }
 }
