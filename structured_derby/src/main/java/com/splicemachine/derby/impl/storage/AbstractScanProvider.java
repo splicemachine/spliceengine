@@ -54,7 +54,6 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
         SpliceLogUtils.trace(LOG, "hasNext");
         Result result = getResult();
         if(result!=null && !result.isEmpty()){
-            SpliceLogUtils.trace(LOG,"result!=null. currentRow=%s",currentRow);
             SpliceUtils.populate(result, fbt, currentRow.getRowArray());
             SpliceLogUtils.trace(LOG, "after populate, currentRow=%s", currentRow);
             currentRowLocation = new HBaseRowLocation(result.getRow());
