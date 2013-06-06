@@ -84,7 +84,7 @@ public class LazyDataValueDescriptorTest {
     }
 
     @Test
-    public void testSerializingWholeDescriptor() throws Exception{
+     public void testSerializingWholeDescriptor() throws Exception{
 
         byte[] fooBytes = justBytes("foo");
 
@@ -99,9 +99,29 @@ public class LazyDataValueDescriptorTest {
 
         LazyDataValueDescriptor ldvdFromBytes = (LazyDataValueDescriptor) SerializationUtils.deserializeObject(wholeDvdBytes);
 
-        Assert.assertTrue(ldvdFromBytes.isSerialized());
+        Assert.assertFalse(ldvdFromBytes.isDeserialized());
         Assert.assertEquals("foo", ldvdFromBytes.getString());
+        Assert.assertTrue(ldvdFromBytes.isDeserialized());
         Assert.assertTrue("Foo bytes match after deserialization of whole DVD", Bytes.equals(fooBytes, ldvd.getBytes()));
     }
+
+    @Test
+    public void testSerializingWholeDvdNotDeserialized() throws Exception{
+
+        byte[] fooBytes = justBytes("foo");
+
+        LazyDataValueDescriptor ldvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        ldvd.initForDeserialization(fooBytes);
+
+        Assert.assertFalse(ldvd.isDeserialized());
+
+        LazyDataValueDescriptor newLdvd = SerializationUtils.roundTripObject(ldvd);
+
+        Assert.assertFalse(newLdvd.isDeserialized());
+        Assert.assertEquals("foo", newLdvd.getString());
+        Assert.assertTrue("Foo bytes match after deserialization of whole DVD", Bytes.equals(fooBytes, newLdvd.getBytes()));
+    }
+
+
 
 }

@@ -8,6 +8,7 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.types.BooleanDataValue;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -496,6 +497,11 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
     }
 
     @Override
+    public boolean isLazy() {
+        return true;
+    }
+
+    @Override
     public boolean isNull() {
         forceDeserialization();
         return getDvd() == null || getDvd().isNull();
@@ -513,7 +519,7 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
         out.writeBoolean(getDvd() != null);
 
         if(getDvd() != null){
-            out.writeObject(getDvd());
+            out.writeUTF(getDvd().getClass().getCanonicalName());
         }
 
         out.writeBoolean(dvdBytes != null);
@@ -531,7 +537,15 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 
         if(in.readBoolean()){
-            setDvd((DataValueDescriptor) in.readObject());
+            DataValueDescriptor dvd = (DataValueDescriptor) createClassInstance(in.readUTF());
+
+            if(dvd instanceof StringDataValue){
+                setDvd((StringDataValue) dvd);
+            }else{
+                setDvd(dvd);
+            }
+
+            getDvd().setToNull();
         }
 
         if(in.readBoolean()){
@@ -539,13 +553,17 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
             dvdBytes = fbs.getByteArray();
         }
 
-        try{
-            DVDSerializer = (DVDSerializer) Class.forName(in.readUTF()).newInstance();
-        }catch(Exception e){
-            throw new RuntimeException("Error deserializing serialization class", e);
-        }
+        DVDSerializer = (DVDSerializer) createClassInstance(in.readUTF());
 
         deserialized = in.readBoolean();
+    }
+
+    protected Object createClassInstance(String className) throws IOException {
+        try{
+            return Class.forName(className).newInstance();
+        }catch (Exception e){
+            throw new IOException("Error Instantiating Class: " + className, e);
+        }
     }
 
     @Override

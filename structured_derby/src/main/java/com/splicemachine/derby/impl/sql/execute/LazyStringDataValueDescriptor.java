@@ -170,13 +170,13 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
         out.writeBoolean(getDvd() != null);
 
         if(getDvd() != null){
-            out.writeObject(getDvd());
+            out.writeUTF(getDvd().getClass().getCanonicalName());
         }
 
-        out.writeBoolean(isSerialized());
-
-        if(isSerialized()){
-            out.writeObject(new FormatableBitSet(dvdBytes));
+        try{
+            out.writeObject(new FormatableBitSet(getBytes()));
+        }catch(StandardException e){
+            throw new IOException("Error reading bytes from DVD", e);
         }
 
         out.writeUTF(DVDSerializer.getClass().getCanonicalName());
@@ -188,20 +188,14 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 
         if(in.readBoolean()){
-            setDvd((StringDataValue) in.readObject());
+            setDvd((StringDataValue) createClassInstance(in.readUTF()));
+            getDvd().setToNull();
         }
 
-        if(in.readBoolean()){
-            FormatableBitSet fbs = (FormatableBitSet) in.readObject();
-            dvdBytes = fbs.getByteArray();
-        }
+        FormatableBitSet fbs = (FormatableBitSet) in.readObject();
+        dvdBytes = fbs.getByteArray();
 
-        try{
-            DVDSerializer = (DVDSerializer) Class.forName(in.readUTF()).newInstance();
-        }catch(Exception e){
-            throw new RuntimeException("Error deserializing serialization class", e);
-        }
-
+        DVDSerializer = (DVDSerializer) createClassInstance(in.readUTF());
         deserialized = in.readBoolean();
     }
 
