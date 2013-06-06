@@ -89,22 +89,6 @@
 			<version>2.3</version>
 		</dependency>
 		<dependency>
-			<groupId>com.gotometrics.orderly</groupId>
-			<artifactId>orderly</artifactId>
-			<version>0.11</version>
-			<!-- we manage our own versions of hadoop and hbase -->
-			<exclusions>
-				<exclusion>
-					<groupId>org.apache.hadoop</groupId>
-					<artifactId>hadoop-core</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.apache.hbase</groupId>
-					<artifactId>hbase</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 			<version>1.7.1</version>
