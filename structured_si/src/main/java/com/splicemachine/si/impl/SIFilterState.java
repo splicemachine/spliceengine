@@ -37,9 +37,17 @@ public class SIFilterState implements FilterState {
     private final FilterRowState rowState;
     private Object keyValue;
 
+    private final TransactionSource transactionSource;
+
     public SIFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
                          RollForwardQueue rollForwardQueue, boolean includeSIColumn, boolean includeUncommittedAsOfStart,
                          ImmutableTransaction myTransaction) {
+        this.transactionSource = new TransactionSource() {
+            @Override
+            public Transaction getTransaction(long timestamp) throws IOException {
+                return getTransactionFromFilterCache(timestamp);
+            }
+        };
         this.dataLib = dataLib;
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
@@ -151,23 +159,23 @@ public class SIFilterState implements FilterState {
         if (dataStore.isSINull(value())) {
             transaction = handleUnknownTransactionStatus();
         } else if (dataStore.isSIFail(value())) {
-            transaction = Transaction.makeFailedTransaction(transactionStore, timestamp());
+            transaction = Transaction.makeFailedTransaction(timestamp());
         } else {
             // TODO: we should avoid loading the full transaction here once roll-forward is revisited
-            transaction = getTransactionFromFilterCache();
+            transaction = getTransactionFromFilterCache(timestamp());
         }
         rowState.transactionCache.put(transaction.getTransactionId().getId(), transaction);
         return SKIP;
     }
 
-    private Transaction getTransactionFromFilterCache() throws IOException {
-        Transaction transaction = transactionCache.getIfPresent(timestamp());
+    private Transaction getTransactionFromFilterCache(long timestamp) throws IOException {
+        Transaction transaction = transactionCache.getIfPresent(timestamp);
         if (transaction == null) {
             if (!myTransaction.getEffectiveReadCommitted() && !myTransaction.getEffectiveReadUncommitted()
-                    && !myTransaction.isDescendant(timestamp())) {
-                transaction = transactionStore.getTransactionAsOf(timestamp(), myTransaction.getTransactionId());
+                    && !myTransaction.isDescendant(transactionStore.getImmutableTransaction(timestamp))) {
+                transaction = transactionStore.getTransactionAsOf(timestamp, myTransaction.getTransactionId());
             } else {
-                transaction = transactionStore.getTransaction(timestamp());
+                transaction = transactionStore.getTransaction(timestamp);
             }
             transactionCache.put(transaction.getTransactionId().getId(), transaction);
         }
@@ -182,8 +190,8 @@ public class SIFilterState implements FilterState {
     private Transaction handleUnknownTransactionStatus() throws IOException {
         final Transaction cachedTransaction = rowState.transactionCache.get(timestamp());
         if (cachedTransaction == null) {
-            final Transaction dataTransaction = getTransactionFromFilterCache();
-            final Object[] visibleResult = myTransaction.isVisible(dataTransaction);
+            final Transaction dataTransaction = getTransactionFromFilterCache(timestamp());
+            final Object[] visibleResult = myTransaction.isVisible(dataTransaction, transactionSource);
             final TransactionStatus dataStatus = (TransactionStatus) visibleResult[1];
             if (dataStatus.equals(TransactionStatus.COMMITTED) || dataStatus.equals(TransactionStatus.ROLLED_BACK)
                     || dataStatus.equals(TransactionStatus.ERROR)) {
@@ -260,7 +268,7 @@ public class SIFilterState implements FilterState {
 
     private boolean isUncommittedAsOfStart() throws IOException {
         final Transaction transaction = loadTransaction();
-        return myTransaction.isUncommittedAsOfStart(transaction);
+        return myTransaction.isUncommittedAsOfStart(transaction, transactionSource);
     }
 
     /**
@@ -284,7 +292,7 @@ public class SIFilterState implements FilterState {
     private boolean tombstoneAfterData() throws IOException {
         for (long tombstone : rowState.tombstoneTimestamps) {
             final Transaction tombstoneTransaction = rowState.transactionCache.get(tombstone);
-            final Object[] visibleResult = myTransaction.isVisible(tombstoneTransaction);
+            final Object[] visibleResult = myTransaction.isVisible(tombstoneTransaction, transactionSource);
             final boolean visible = (Boolean) visibleResult[0];
             if (visible && (timestamp() < tombstone
                     || (timestamp() == tombstone && dataStore.isSINull(value())))) {
@@ -303,7 +311,7 @@ public class SIFilterState implements FilterState {
             return true;
         } else {
             final Transaction transaction = loadTransaction();
-            return (Boolean) myTransaction.isVisible(transaction)[0];
+            return (Boolean) myTransaction.isVisible(transaction, transactionSource)[0];
         }
     }
 

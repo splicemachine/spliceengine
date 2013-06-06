@@ -226,9 +226,7 @@ public class TransactionStore {
                 final Boolean dependent = getBooleanFieldFromResult(resultTuple, encodedSchema.dependentQualifier);
                 final Transaction result = new Transaction(
                         dependent ? DefaultTransactionBehavior.instance : IndependentTransactionBehavior.instance,
-                        this, transactionId.getId(), beginTimestamp, keepAlive, parent,
-                        dependent,
-                        children,
+                        transactionId.getId(), beginTimestamp, keepAlive, parent, dependent, children,
                         getBooleanFieldFromResult(resultTuple, encodedSchema.allowWritesQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.readUncommittedQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.readCommittedQualifier),

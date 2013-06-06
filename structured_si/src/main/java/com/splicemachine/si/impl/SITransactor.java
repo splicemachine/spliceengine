@@ -49,9 +49,18 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
 
     private final TransactorListener listener;
 
+    private final TransactionSource transactionSource;
+
     public SITransactor(TimestampSource timestampSource, SDataLib dataLib, STableWriter dataWriter, DataStore dataStore,
-                        TransactionStore transactionStore, Clock clock, int transactionTimeoutMS,
+                        final TransactionStore transactionStore, Clock clock, int transactionTimeoutMS,
                         TransactorListener listener) {
+        transactionSource = new TransactionSource() {
+            @Override
+            public Transaction getTransaction(long timestamp) throws IOException {
+                return transactionStore.getTransaction(timestamp);
+            }
+        };
+
         this.timestampSource = timestampSource;
         this.dataLib = dataLib;
         this.dataWriter = dataWriter;
@@ -409,10 +418,15 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
             throws IOException {
         Set<Long> toRollForward = new HashSet<Long>();
         Set<Long> childConflicts = new HashSet<Long>();
-        long myTxnId = updateTransaction.getTransactionId().getId();
         for (Object dataCommitKeyValue : dataCommitKeyValues) {
-            final long dataTransactionId = dataLib.getKeyValueTimestamp(dataCommitKeyValue);
-            if(dataTransactionId==myTxnId) continue; //we can't conflict with ourselves
+            checkCommitTimestampForConflict(updateTransaction, toRollForward, childConflicts, dataCommitKeyValue);
+        }
+        return new Object[]{toRollForward, childConflicts};
+    }
+
+    private void checkCommitTimestampForConflict(ImmutableTransaction updateTransaction, Set<Long> toRollForward, Set<Long> childConflicts, Object dataCommitKeyValue) throws IOException {
+        final long dataTransactionId = dataLib.getKeyValueTimestamp(dataCommitKeyValue);
+        if (!updateTransaction.sameTransaction(dataTransactionId)) {
             final Object commitTimestampValue = dataLib.getKeyValueValue(dataCommitKeyValue);
             if (dataStore.isSINull(commitTimestampValue)) {
                 Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
@@ -430,7 +444,6 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
                 }
             }
         }
-        return new Object[]{toRollForward, childConflicts};
     }
 
     /**
@@ -453,7 +466,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
             throws IOException {
         if (!updateTransaction.sameTransaction(dataTransaction)) {
             Transaction t1 = transactionStore.getTransaction(updateTransaction.getTransactionId().getId());
-            final ConflictType conflict = t1.isConflict(dataTransaction);
+            final ConflictType conflict = t1.isConflict(dataTransaction, transactionSource);
             switch (conflict) {
                 case NONE:
                     break;

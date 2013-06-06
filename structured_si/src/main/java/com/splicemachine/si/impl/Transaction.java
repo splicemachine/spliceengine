@@ -39,11 +39,11 @@ public class Transaction extends ImmutableTransaction {
 
     public final Long counter;
 
-    public Transaction(TransactionBehavior transactionBehavior, TransactionStore transactionStore, long id, long beginTimestamp, long keepAlive, Transaction parent,
+    public Transaction(TransactionBehavior transactionBehavior, long id, long beginTimestamp, long keepAlive, Transaction parent,
                        boolean dependent, Set<Long> children,
                        boolean allowWrites, Boolean readUncommitted, Boolean readCommitted, TransactionStatus status,
                        Long commitTimestamp, Long globalCommitTimestamp, Long counter) {
-        super(transactionBehavior, transactionStore, id, allowWrites, readCommitted, parent, dependent, readUncommitted,
+        super(transactionBehavior, id, allowWrites, readCommitted, parent, dependent, readUncommitted,
                 beginTimestamp);
         this.keepAlive = keepAlive;
         this.parent = parent;
@@ -54,8 +54,8 @@ public class Transaction extends ImmutableTransaction {
         this.counter = counter;
     }
 
-    public static Transaction makeFailedTransaction(TransactionStore transactionStore, long timestamp) {
-        return new Transaction(DefaultTransactionBehavior.instance, transactionStore, timestamp,
+    public static Transaction makeFailedTransaction(long timestamp) {
+        return new Transaction(DefaultTransactionBehavior.instance, timestamp,
                 timestamp, 0, Transaction.getRootTransaction(), true, null, false, false, null,
                 TransactionStatus.ERROR, null, null, null);
     }
@@ -130,7 +130,7 @@ public class Transaction extends ImmutableTransaction {
     ////
 
     public static Transaction getRootTransaction() {
-        return new Transaction(RootTransactionBehavior.instance, null, -1, 0, 0, null, true, null, false, false, false,
+        return new Transaction(RootTransactionBehavior.instance, -1, 0, 0, null, true, null, false, false, false,
                 TransactionStatus.ACTIVE, null, null, null);
     }
 

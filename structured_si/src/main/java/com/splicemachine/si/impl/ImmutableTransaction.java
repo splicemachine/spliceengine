@@ -16,7 +16,6 @@ import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
  */
 public class ImmutableTransaction {
     final TransactionBehavior behavior;
-    private final TransactionStore transactionStore;
 
     private final SITransactionId transactionId;
     private final ImmutableTransaction immutableParent;
@@ -27,12 +26,10 @@ public class ImmutableTransaction {
     private final Boolean readUncommitted;
     private final Boolean readCommitted;
 
-    public ImmutableTransaction(TransactionBehavior behavior, TransactionStore transactionStore,
-                                SITransactionId transactionId, boolean allowWrites, Boolean readCommitted,
-                                ImmutableTransaction immutableParent, boolean dependent, Boolean readUncommitted,
-                                long beginTimestamp) {
+    public ImmutableTransaction(TransactionBehavior behavior, SITransactionId transactionId, boolean allowWrites,
+                                Boolean readCommitted, ImmutableTransaction immutableParent, boolean dependent,
+                                Boolean readUncommitted, long beginTimestamp) {
         this.behavior = behavior;
-        this.transactionStore = transactionStore;
         this.transactionId = transactionId;
         this.immutableParent = immutableParent;
         this.dependent = dependent;
@@ -42,11 +39,10 @@ public class ImmutableTransaction {
         this.readCommitted = readCommitted;
     }
 
-    public ImmutableTransaction(TransactionBehavior behavior, TransactionStore transactionStore, long id,
-                                boolean allowWrites, Boolean readCommitted, ImmutableTransaction immutableParent,
-                                boolean dependent, Boolean readUncommitted,
+    public ImmutableTransaction(TransactionBehavior behavior, long id, boolean allowWrites, Boolean readCommitted,
+                                ImmutableTransaction immutableParent, boolean dependent, Boolean readUncommitted,
                                 long beginTimestamp) {
-        this(behavior, transactionStore, new SITransactionId(id), allowWrites, readCommitted, immutableParent,
+        this(behavior, new SITransactionId(id), allowWrites, readCommitted, immutableParent,
                 dependent, readUncommitted, beginTimestamp);
     }
 
@@ -78,10 +74,6 @@ public class ImmutableTransaction {
 
     ////
 
-    public boolean isDescendant(long transactionId2) throws IOException {
-        return isDescendant(transactionStore.getImmutableTransaction(transactionId2));
-    }
-
     public boolean isDescendant(ImmutableTransaction t2) throws IOException {
         final ImmutableTransaction t1 = this;
         final ImmutableTransaction[] intersections = intersect(false, t1.getChain(), t2.getChain());
@@ -89,12 +81,12 @@ public class ImmutableTransaction {
         return et2.immutableParent.sameTransaction(t1);
     }
 
-    public Object[] isVisible(Transaction t2) throws IOException {
+    public Object[] isVisible(Transaction t2, TransactionSource transactionSource) throws IOException {
         final ImmutableTransaction t1 = this;
         final ImmutableTransaction[] intersections = intersect(true, t1.getChain(), t2.getChain());
         final ImmutableTransaction et1 = intersections[1];
         final ImmutableTransaction et2 = intersections[2];
-        final Transaction met2 = transactionStore.getTransaction(et2.getTransactionId().getId());
+        final Transaction met2 = transactionSource.getTransaction(et2.getTransactionId().getId());
         final boolean readCommitted1 = getEffectiveReadCommitted();
         final boolean readUncommitted1 = getEffectiveReadUncommitted();
         boolean visible = false;
@@ -119,11 +111,11 @@ public class ImmutableTransaction {
         return new Object[]{visible, effectiveStatus2};
     }
 
-    public boolean isUncommittedAsOfStart(Transaction t2) throws IOException {
+    public boolean isUncommittedAsOfStart(Transaction t2, TransactionSource transactionSource) throws IOException {
         final ImmutableTransaction t1 = this;
         final ImmutableTransaction[] intersections = intersect(true, t1.getChain(), t2.getChain());
         final ImmutableTransaction et2 = intersections[2];
-        final Transaction met2 = transactionStore.getTransaction(et2.getTransactionId().getId());
+        final Transaction met2 = transactionSource.getTransaction(et2.getTransactionId().getId());
         final TransactionStatus effectiveStatus2 = t2.getEffectiveStatus(et2);
         if (met2.getBeginTimestamp() < t1.getBeginTimestamp()) {
             if (effectiveStatus2.equals(COMMITTED)) {
@@ -135,13 +127,13 @@ public class ImmutableTransaction {
         return false;
     }
 
-    public ConflictType isConflict(ImmutableTransaction t2) throws IOException {
+    public ConflictType isConflict(ImmutableTransaction t2, TransactionSource transactionSource) throws IOException {
         final ImmutableTransaction t1 = this;
         final ImmutableTransaction[] intersections = intersect(true, t1.getChain(), t2.getChain());
         final ImmutableTransaction shared = intersections[0];
         final ImmutableTransaction et1 = intersections[1];
         final ImmutableTransaction et2 = intersections[2];
-        final Transaction met2 = transactionStore.getTransaction(et2.getTransactionId().getId());
+        final Transaction met2 = transactionSource.getTransaction(et2.getTransactionId().getId());
         if (met2.getStatus().equals(COMMITTED)) {
             if (et1.isDescendant(et2)) {
                 return ConflictType.CHILD;
@@ -207,6 +199,10 @@ public class ImmutableTransaction {
                 && !other.getTransactionId().independentReadOnly);
     }
 
+    public boolean sameTransaction(long timestamp) {
+        return (getTransactionId().getId() == timestamp);
+    }
+
     @Override
     public String toString() {
         return "ImmutableTransaction: " + transactionId;
@@ -216,7 +212,7 @@ public class ImmutableTransaction {
         if (transactionId.getId() != newTransactionId.getId()) {
             throw new RuntimeException("Cannot clone transaction with different id");
         }
-        return new ImmutableTransaction(behavior, transactionStore, (SITransactionId) newTransactionId,
+        return new ImmutableTransaction(behavior, (SITransactionId) newTransactionId,
                 allowWrites, readCommitted, parent, dependent, readUncommitted, beginTimestamp);
     }
 
