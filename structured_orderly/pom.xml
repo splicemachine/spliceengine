@@ -3,6 +3,7 @@
 	<artifactId>structured_orderly</artifactId>
 		<packaging>jar</packaging>
 	<name>structured_orderly</name>
+	<description>Our fork of the orderly library</description>
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
