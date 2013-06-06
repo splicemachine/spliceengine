@@ -39,13 +39,19 @@ REFERENCING
 }
 */
 
-    public SpliceTriggerWatcher(String trigger,String schemaName, String createString) {
-        this.triggerName = trigger.toUpperCase();
+    /**
+     *
+     * @param triggerName name for the trigger.
+     * @param schemaName schema in which to place the trigger;
+     * @param createString trigger creation string
+     */
+    public SpliceTriggerWatcher(String triggerName,String schemaName, String createString) {
+        this.triggerName = triggerName.toUpperCase();
         this.schemaName = schemaName.toUpperCase();
         this.createString = createString;
     }
     @Override
-    protected void starting(Description description) {
+    public void starting(Description description) {
         LOG.trace("Starting");
         Connection connection = null;
         Statement statement = null;
@@ -62,7 +68,7 @@ REFERENCING
             connection.commit();
         } catch (Exception e) {
             LOG.error("Create trigger statement is invalid ");
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             throw new RuntimeException(e);
         } finally {
             DbUtils.closeQuietly(rs);
@@ -72,23 +78,23 @@ REFERENCING
         super.starting(description);
     }
     @Override
-    protected void finished(Description description) {
+    public void finished(Description description) {
         LOG.trace("finished");
         executeDrop(schemaName, triggerName);
     }
 
-    public static void executeDrop(String schemaName,String functionName) {
+    public static void executeDrop(String schemaName,String triggerName) {
         LOG.trace("executeDrop");
         Connection connection = null;
         Statement statement = null;
         try {
             connection = SpliceNetConnection.getConnection();
             statement = connection.createStatement();
-            statement.execute("drop trigger " + schemaName.toUpperCase() + "." + functionName.toUpperCase());
+            statement.execute("drop trigger " + schemaName.toUpperCase() + "." + triggerName.toUpperCase());
             connection.commit();
         } catch (Exception e) {
             LOG.error("error Dropping " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             throw new RuntimeException(e);
         } finally {
             DbUtils.closeQuietly(statement);

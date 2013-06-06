@@ -10,8 +10,6 @@ import org.junit.rules.TestRule;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 
 public class AlterTableConstantOperationTest extends SpliceUnitTest {
     public static final String CLASS_NAME = AlterTableConstantOperationTest.class.getSimpleName().toUpperCase();
@@ -73,7 +71,7 @@ public class AlterTableConstantOperationTest extends SpliceUnitTest {
      * @throws Exception
      */
     @Test
-    @Ignore("Connection 2 is seeing new column before connection 1 commits after adding it.")
+    @Ignore("Bug 542. Connection 2 is seeing new column before connection 1 commits after adding it.")
     public void testAlterTableIsolation() throws Exception{
         Connection connection1 = methodWatcher.createConnection();
         Connection connection2 = methodWatcher.createConnection();

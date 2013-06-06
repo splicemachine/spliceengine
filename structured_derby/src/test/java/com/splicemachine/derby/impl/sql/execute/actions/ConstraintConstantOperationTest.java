@@ -57,7 +57,6 @@ public class ConstraintConstantOperationTest extends SpliceUnitTest {
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
-    @Ignore("Bug 535")
     public void testInsertGoodRow() throws Exception{
         methodWatcher.getStatement().execute("insert into"+this.getPaddedTableReference("Tasks")+"(TaskId, StartedAt, FinishedAt) values (1234,0500,0600)");
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference("Tasks"), 1234));
@@ -65,7 +64,6 @@ public class ConstraintConstantOperationTest extends SpliceUnitTest {
     }
 
     @Test(expected=SQLException.class)
-    @Ignore("Bug 535")
     public void testInsertBadRow() throws Exception{
         methodWatcher.getStatement().execute("insert into" + this.getPaddedTableReference("Tasks") + "(TaskId, StartedAt, FinishedAt) values (1235,0601,0600)");
     }
