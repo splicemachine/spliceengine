@@ -1,6 +1,8 @@
 package com.splicemachine.derby.test.framework;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 
 public class SpliceUnitTest {
 	public String getSchemaName() {
@@ -27,6 +29,11 @@ public class SpliceUnitTest {
 		}
 		return i;
 	}
+
+    public static int columnWidth(ResultSet rs ) throws SQLException {
+        return rs.getMetaData().getColumnCount();
+    }
+
 	public static String format(String format, Object...args) {
 		return String.format(format, args);
 	}

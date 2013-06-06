@@ -13,8 +13,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
-public class AlterTableConstantOperationTest extends SpliceUnitTest {
-    public static final String CLASS_NAME = AlterTableConstantOperationTest.class.getSimpleName().toUpperCase();
+public class TriggerConstantOperationTest extends SpliceUnitTest {
+    public static final String CLASS_NAME = TriggerConstantOperationTest.class.getSimpleName().toUpperCase();
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String TABLE_NAME_1 = "A";
