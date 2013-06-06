@@ -13,6 +13,9 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * Represents an application level transaction that spans many atomic writes to the underlying data store (i.e. HBase).
  */
 public class Transaction extends ImmutableTransaction {
+    static final Transaction rootTransaction = new Transaction(RootTransactionBehavior.instance, -1, 0, 0, null, true,
+            null, false, false, false, TransactionStatus.ACTIVE, null, null, null);
+
     /**
      * the parent transaction or null if this is a root level transaction
      */
@@ -130,8 +133,7 @@ public class Transaction extends ImmutableTransaction {
     ////
 
     public static Transaction getRootTransaction() {
-        return new Transaction(RootTransactionBehavior.instance, -1, 0, 0, null, true, null, false, false, false,
-                TransactionStatus.ACTIVE, null, null, null);
+        return rootTransaction;
     }
 
     public Transaction getParent() {

@@ -6,9 +6,10 @@ import com.splicemachine.si.api.TransactionId;
  * Represents an SI transaction identifier. Exposes it as either a long or a string.
  */
 public class SITransactionId implements TransactionId {
+    private static final String IRO = ".IRO";
+
     private final long id;
     public final boolean independentReadOnly;
-    private final String IRO = ".IRO";
 
     public SITransactionId(long id) {
         this.id = id;
@@ -49,5 +50,25 @@ public class SITransactionId implements TransactionId {
     @Override
     public String toString() {
         return getTransactionIdString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        SITransactionId that = (SITransactionId) o;
+
+        if (id != that.id) return false;
+        if (independentReadOnly != that.independentReadOnly) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (id ^ (id >>> 32));
+        result = 31 * result + (independentReadOnly ? 1 : 0);
+        return result;
     }
 }

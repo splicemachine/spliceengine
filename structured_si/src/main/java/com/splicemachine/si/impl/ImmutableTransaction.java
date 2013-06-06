@@ -1,9 +1,13 @@
 package com.splicemachine.si.impl;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.splicemachine.si.api.TransactionId;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -25,6 +29,15 @@ public class ImmutableTransaction {
     private final long beginTimestamp;
     private final Boolean readUncommitted;
     private final Boolean readCommitted;
+
+    private final LoadingCache<List, ImmutableTransaction[]> intersectCache = CacheBuilder.newBuilder().maximumSize(10000).build(
+            new CacheLoader<List, ImmutableTransaction[]>() {
+                @Override
+                public ImmutableTransaction[] load(List key) throws Exception {
+                    return intersectDirect((Boolean) key.get(0), (ImmutableTransaction) key.get(1), (ImmutableTransaction) key.get(2));
+                }
+            }
+    );
 
     public ImmutableTransaction(TransactionBehavior behavior, SITransactionId transactionId, boolean allowWrites,
                                 Boolean readCommitted, ImmutableTransaction immutableParent, boolean dependent,
@@ -76,14 +89,14 @@ public class ImmutableTransaction {
 
     public boolean isDescendant(ImmutableTransaction t2) throws IOException {
         final ImmutableTransaction t1 = this;
-        final ImmutableTransaction[] intersections = intersect(false, t1.getChain(), t2.getChain());
+        final ImmutableTransaction[] intersections = intersect(false, t1, t2);
         final ImmutableTransaction et2 = intersections[2];
         return et2.immutableParent.sameTransaction(t1);
     }
 
     public Object[] isVisible(Transaction t2, TransactionSource transactionSource) throws IOException {
         final ImmutableTransaction t1 = this;
-        final ImmutableTransaction[] intersections = intersect(true, t1.getChain(), t2.getChain());
+        final ImmutableTransaction[] intersections = intersect(true, t1, t2);
         final ImmutableTransaction et1 = intersections[1];
         final ImmutableTransaction et2 = intersections[2];
         final Transaction met2 = transactionSource.getTransaction(et2.getTransactionId().getId());
@@ -113,7 +126,7 @@ public class ImmutableTransaction {
 
     public boolean isUncommittedAsOfStart(Transaction t2, TransactionSource transactionSource) throws IOException {
         final ImmutableTransaction t1 = this;
-        final ImmutableTransaction[] intersections = intersect(true, t1.getChain(), t2.getChain());
+        final ImmutableTransaction[] intersections = intersect(true, t1, t2);
         final ImmutableTransaction et2 = intersections[2];
         final Transaction met2 = transactionSource.getTransaction(et2.getTransactionId().getId());
         final TransactionStatus effectiveStatus2 = t2.getEffectiveStatus(et2);
@@ -129,7 +142,7 @@ public class ImmutableTransaction {
 
     public ConflictType isConflict(ImmutableTransaction t2, TransactionSource transactionSource) throws IOException {
         final ImmutableTransaction t1 = this;
-        final ImmutableTransaction[] intersections = intersect(true, t1.getChain(), t2.getChain());
+        final ImmutableTransaction[] intersections = intersect(true, t1, t2);
         final ImmutableTransaction shared = intersections[0];
         final ImmutableTransaction et1 = intersections[1];
         final ImmutableTransaction et2 = intersections[2];
@@ -164,7 +177,13 @@ public class ImmutableTransaction {
         return Collections.unmodifiableList(result);
     }
 
-    public ImmutableTransaction[] intersect(boolean collapse, List<ImmutableTransaction> chain1, List<ImmutableTransaction> chain2) {
+    public ImmutableTransaction[] intersect(boolean collapse, ImmutableTransaction transaction1, ImmutableTransaction transaction2) throws IOException {
+        return intersectCache.getUnchecked(Arrays.asList(new Object[]{collapse, transaction1, transaction2}));
+    }
+
+    private static ImmutableTransaction[] intersectDirect(boolean collapse, ImmutableTransaction transaction1, ImmutableTransaction transaction2) throws IOException {
+        List<ImmutableTransaction> chain1 = transaction1.getChain();
+        List<ImmutableTransaction> chain2 = transaction2.getChain();
         for (int i2 = 0; i2 < chain2.size(); i2++) {
             for (int i1 = 0; i1 < chain1.size(); i1++) {
                 if (chain1.get(i1).sameTransaction(chain2.get(i2))) {
@@ -216,4 +235,20 @@ public class ImmutableTransaction {
                 allowWrites, readCommitted, parent, dependent, readUncommitted, beginTimestamp);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ImmutableTransaction that = (ImmutableTransaction) o;
+
+        if (!transactionId.equals(that.transactionId)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return transactionId.hashCode();
+    }
 }
