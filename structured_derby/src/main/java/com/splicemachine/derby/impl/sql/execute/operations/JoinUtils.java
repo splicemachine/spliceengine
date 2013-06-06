@@ -54,7 +54,7 @@ public class JoinUtils {
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Error merging rows", e);
 		}
-        SpliceLogUtils.trace(LOG, "final mergedRow " + mergedRow);
+        SpliceLogUtils.trace(LOG, "final mergedRow %s",mergedRow);
 		return mergedRow;
 	}
 
