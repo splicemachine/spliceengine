@@ -63,6 +63,14 @@
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>structured_orderly</artifactId>
+			<version>1.0.1-SNAPSHOT</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+		
+		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
 			<version>${gson.version}</version>
@@ -171,6 +179,12 @@
 						<artifactId>structured_si</artifactId>
 						<version>1.0.1-SNAPSHOT</version>
 					</dependency>
+					<dependency>
+						<groupId>com.splicemachine</groupId>
+						<artifactId>structured_orderly</artifactId>
+						<version>1.0.1-SNAPSHOT</version>
+					</dependency>
+
 				</dependencies>
 			</plugin>
 
