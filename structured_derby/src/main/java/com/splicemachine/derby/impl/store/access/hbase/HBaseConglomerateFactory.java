@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerateFactory;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 
 
 /**
@@ -92,12 +93,9 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory {
      *
 	 * @exception  StandardException  Standard exception policy.
 	 * 
-	 * FIXME: need to 
      **/
     public Conglomerate readConglomerate(TransactionManager xact_mgr, ContainerKey container_key) throws StandardException {
-    	if (LOG.isTraceEnabled()) {
-    		LOG.trace("readConglomerate container_key " + container_key.getContainerId());
-    	}
+    	SpliceLogUtils.trace(LOG, "readConglomerate container_key %d", container_key.getContainerId());
     	return ConglomerateUtils.readConglomerate(container_key.getContainerId(), HBaseConglomerate.class, xact_mgr.getActiveStateTxIdString());
     }
 	

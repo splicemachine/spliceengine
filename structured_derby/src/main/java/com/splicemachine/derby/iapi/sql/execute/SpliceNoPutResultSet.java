@@ -98,13 +98,13 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 	@Override
 	public ExecRow getAbsoluteRow(int row) throws StandardException {
-		SpliceLogUtils.trace(LOG,"getAbsoluteRow row: "+row);
+		SpliceLogUtils.trace(LOG,"getAbsoluteRow row: %s",row);
 		return null;
 	}
 
 	@Override
 	public ExecRow getRelativeRow(int row) throws StandardException {
-		SpliceLogUtils.trace(LOG,"getRelativeRow row: "+row);
+		SpliceLogUtils.trace(LOG,"getRelativeRow row: %s",row);
 		return null;
 	}
 
@@ -162,7 +162,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 	@Override
 	public boolean checkRowPosition(int isType) throws StandardException {
-		SpliceLogUtils.trace(LOG, "checkRowPosition isType: "+ isType);
+		SpliceLogUtils.trace(LOG, "checkRowPosition isType: %d",isType);
 		return false;
 	}
 
@@ -174,7 +174,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 	@Override
 	public void close() throws StandardException {
-		SpliceLogUtils.trace(LOG, "close="+closed);
+		SpliceLogUtils.trace(LOG, "close=%s",closed);
 		if(closed) return; //nothing to do;
 
         try{
@@ -223,13 +223,13 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 	@Override
 	public long getTimeSpent(int type) {
-		SpliceLogUtils.trace(LOG,"getTimeSpent type "+type);
+		SpliceLogUtils.trace(LOG,"getTimeSpent type %d",type);
 		return 0;
 	}
 
 	@Override
 	public NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries) {
-		SpliceLogUtils.trace(LOG,"getSubqueryTrackingArray with numSubqueries "+ numSubqueries);
+		SpliceLogUtils.trace(LOG,"getSubqueryTrackingArray with numSubqueries %d",numSubqueries);
 		if (subqueryTrackingArray == null)
 			subqueryTrackingArray = new NoPutResultSet[numSubqueries];
 

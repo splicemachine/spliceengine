@@ -40,7 +40,7 @@ public class OperationUtils {
 		operation.generateLeftOperationStack(operationStack);
 		SpliceLogUtils.trace(log, "operationStack=%s",operationStack);
 		SpliceOperation regionOperation = operationStack.get(0);
-		log.trace("regionOperation="+regionOperation);
+		SpliceLogUtils.trace(log,"regionOperation=%s",regionOperation);
 		RowProvider provider;
 		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && operation != regionOperation) {
 			SpliceLogUtils.trace(log,"scanning Temp Table");

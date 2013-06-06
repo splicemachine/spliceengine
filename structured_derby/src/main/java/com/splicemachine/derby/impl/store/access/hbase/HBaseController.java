@@ -59,8 +59,6 @@ public class HBaseController  extends SpliceController {
 		try {
 			Put put = Puts.buildInsert(row, transID);
 			destRowLocation.setValue(put.getRow());
-			if (LOG.isTraceEnabled())
-				LOG.trace("insertAndFetchLocation returned rowlocation " + destRowLocation.getBytes());	
 			htable.put(put);
 		} catch (Exception e) {
 			throw StandardException.newException("insert and fetch location error",e);

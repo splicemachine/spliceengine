@@ -13,6 +13,8 @@ import org.apache.derby.iapi.store.access.TransactionInfo;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.utils.SpliceLogUtils;
+
 public class HBaseStore implements ModuleControl, ModuleSupportable {
 	protected SpliceTransactionFactory transactionFactory;
 	private static Logger LOG = Logger.getLogger(HBaseStore.class);
@@ -43,79 +45,63 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 	}
 
 	public boolean isReadOnly() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("isReadOnly " + false);
+		SpliceLogUtils.trace(LOG,"isReadOnly %s",false);
 		return false;
 	}
 	
 	public TransactionInfo[] getTransactionInfo() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getTransactionInfo");
+		SpliceLogUtils.trace(LOG,"getTransactionInfo");
 		return new TransactionInfo[0];
 	}
 	
 	public void startReplicationMaster(String dbmaster, String host, int port,String replicationMode) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("startReplication");
+		SpliceLogUtils.trace(LOG,"startReplication");
 	}
 	public void stopReplicationMaster() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("stopReplicationMaster");
+		SpliceLogUtils.trace(LOG,"stopReplicationMaster");
 	}
 	public void freeze() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("freeze");		
+		SpliceLogUtils.trace(LOG,"freeze");		
 	}
 	public void unfreeze() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("unfreeze");				
+		SpliceLogUtils.trace(LOG,"unfreeze");				
 	}
 	public void failover(String dbname) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("failover");						
+		SpliceLogUtils.trace(LOG,"failover");						
 	}
 	public void backup(String  backupDir, boolean wait) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("backup");								
+		SpliceLogUtils.trace(LOG,"backup");								
 	}
 	public void backupAndEnableLogArchiveMode(String backupDir,boolean deleteOnlineArchivedLogFiles,boolean wait) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("backupAndEnableLogArchiveMode");								
+		SpliceLogUtils.trace(LOG,"backupAndEnableLogArchiveMode");								
 	}
 
 	public void disableLogArchiveMode(boolean deleteOnlineArchivedLogFiles) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("disableLogArchiveMode");								
+		SpliceLogUtils.trace(LOG,"disableLogArchiveMode");								
 	}
 
 	public void checkpoint() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("checkpoint");									
+		SpliceLogUtils.trace(LOG,"checkpoint");									
 	}
 
 	public void waitForPostCommitToFinishWork() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("waitForPostCommitToFinishWork");									
+		SpliceLogUtils.trace(LOG,"waitForPostCommitToFinishWork");									
 	}
 	
 	public void waitUntilQueueIsEmpty() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("waitUntilQueueIsEmpty");									
+		SpliceLogUtils.trace(LOG,"waitUntilQueueIsEmpty");									
 	}
 	public void getRawStoreProperties(TransactionController transactionController) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getRawStoreProperties " + transactionController);	
+		SpliceLogUtils.trace(LOG,"getRawStoreProperties %s",transactionController);	
 	}
 
 	public Transaction marshallTransaction(ContextManager contextManager, String transactionName, String transactionId) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("marshalTransaction with Context Manager " + contextManager + " and transaction name " + transactionName);
+		SpliceLogUtils.trace(LOG, "marshalTransaction with Context Manager %s  and transaction name %s", contextManager, transactionName);
 		return transactionFactory.marshalTransaction(this, contextManager, transactionName, transactionId);
 	}
 	
 	public Transaction findUserTransaction(ContextManager contextManager, String transactionName) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("findUserTransaction with Context Manager " + contextManager + " and transaction name " + transactionName);
+		SpliceLogUtils.trace(LOG, "marshalTransaction with Context Manager %s  and transaction name %s", contextManager, transactionName);
 		return transactionFactory.findUserTransaction(this, contextManager, transactionName);
 	}
 

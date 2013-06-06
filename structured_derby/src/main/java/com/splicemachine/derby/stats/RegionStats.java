@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Maps;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Statistics gatherer for coprocessor-exec stages. Collects statistics from
@@ -158,16 +159,13 @@ public class RegionStats {
                 maxRecords = regionTotalRecords;
                 largestRegion = region;
             }
-            
-            LOG.debug(">>>region="+region+",regionTotalTime="+regionTotalTime+",regionTotalRecords="+regionTotalRecords);
-
+            SpliceLogUtils.debug(LOG, ">>>region=%s,regionTotalTime=%s,regionTotalRecords=%d",region,regionTotalTime,regionTotalRecords);
             totalTime+=regionTotalTime;
             totalRecords += regionTotalRecords;
             times[pos] = regionTotalTime;
             records[pos] = regionTotalRecords;
             pos++;
-            
-            LOG.debug(">>>region="+region+",totalTime="+regionTotalTime+",totalRecords="+regionTotalRecords);
+            SpliceLogUtils.debug(LOG, ">>>region=%s,totalTime=%d,totalRecords=%d",region,regionTotalTime,regionTotalRecords);
         }
         
         if (isSunk)

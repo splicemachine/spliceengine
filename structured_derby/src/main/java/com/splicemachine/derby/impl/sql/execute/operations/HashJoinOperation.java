@@ -80,7 +80,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 	
 	
 	protected void getMergedRow(ExecRow leftRow, ExecRow rightRow) {
-		SpliceLogUtils.trace(LOG, "getMergedRow with leftRow " + leftRow + ", right row " + rightRow);
+		SpliceLogUtils.trace(LOG, "getMergedRow with leftRow %s, right row %s",leftRow,rightRow);
 		int colInCtr;
 		int colOutCtr;
 		int leftNumCols;
@@ -117,7 +117,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Error merging rows", e);
 		}
 		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "final mergedRow " + mergedRow);
+			SpliceLogUtils.trace(LOG, "final mergedRow %s",mergedRow);
 	}
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {
@@ -158,7 +158,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 		protected ExecRow leftRow;
 		protected NoPutResultSet probeResultSet;
 		NestedLoopIterator(ExecRow leftRow) throws StandardException {
-			SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow " + leftRow);
+			SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
 			this.leftRow = leftRow;
 			probeResultSet = ((SpliceOperation) getRightResultSet()).executeProbeScan();
 			probeResultSet.openCore();
@@ -171,7 +171,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 			try {
 				ExecRow rightRow;
 				if ( (rightRow = probeResultSet.getNextRowCore()) != null) {
-					SpliceLogUtils.trace(LOG, "right has result " + rightRow);
+					SpliceLogUtils.trace(LOG, "right has result %s",rightRow);
 					rowsSeenRight++;
 					getMergedRow(leftRow,rightRow);	
 				} else {
@@ -182,7 +182,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 				if (restriction != null) {
 					DataValueDescriptor restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
 					if ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean()) {
-						SpliceLogUtils.trace(LOG, "restricted row " + mergedRow);
+						SpliceLogUtils.trace(LOG, "restricted row %s",mergedRow);
 						hasNext();
 					}
 				}
@@ -200,7 +200,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 
 		@Override
 		public ExecRow next() {
-			SpliceLogUtils.trace(LOG, "next row=" + mergedRow);
+			SpliceLogUtils.trace(LOG, "next row=%s",mergedRow);
 			return mergedRow;
 		}
 

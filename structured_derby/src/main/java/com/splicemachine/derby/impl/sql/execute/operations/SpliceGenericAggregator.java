@@ -82,8 +82,6 @@ public class SpliceGenericAggregator {
 	void merge(Storable aggregatedIn,Storable aggregatedOut) throws StandardException {
 		ExecAggregator uaIn = (ExecAggregator)(((UserDataValue)aggregatedIn).getObject());
 		ExecAggregator uaOut = (ExecAggregator)(((UserDataValue)aggregatedOut).getObject());
-		
-		SpliceLogUtils.trace(LOG,"in merge, uaIn="+uaIn+",uaIn="+uaIn);
 		uaOut.merge(uaIn);
 	}
 	

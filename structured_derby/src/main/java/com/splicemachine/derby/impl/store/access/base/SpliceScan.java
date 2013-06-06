@@ -10,6 +10,8 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.BackingStoreHashtable;
@@ -184,10 +186,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		return false;
 	}
 
-	public boolean fetchNext(DataValueDescriptor[] destRow) throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("FetchNext " + destRow+" with "+destRow.length);
-		
+	public boolean fetchNext(DataValueDescriptor[] destRow) throws StandardException {		
 		next();
 		if (currentResult != null) {
 			fetch(destRow);
@@ -227,15 +226,11 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	public void fetchLocation(RowLocation destRowLocation) throws StandardException {
 		if (currentResult == null)
 			throw StandardException.newException("currentResult is null ");
-		if (LOG.isTraceEnabled())
-			LOG.trace("fetchLocation " + currentResult.getRow());
+		SpliceLogUtils.trace(LOG, "fetchLocation %s", currentResult.getRow());
 		destRowLocation.setValue(this.currentResult.getRow());		
 	}
 
 	public void fetchWithoutQualify(DataValueDescriptor[] destRow) throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("HBaseScan fetchWithoutQualify destRow = "+ destRow.toString());
-
         try{
             if(destRow!=null){
                 SpliceUtils.populate(currentResult, scanColumnList, destRow);
@@ -274,8 +269,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		this.estimatedRowCount = estimatedRowCount;
 	}
 	public void fetchSet(long max_rowcnt, int[] key_column_numbers,BackingStoreHashtable hashTable) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("IndexScan fetchSet for number of rows " + max_rowcnt);
+		SpliceLogUtils.trace(LOG, "IndexScan fetchSet for number of rows %d", max_rowcnt);
 		if (!scannerInitialized)
 			initialize();
 		if (max_rowcnt == 0)
@@ -286,8 +280,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		DataValueDescriptor[] fetchedRow = null;
 		try {
 			while ((currentResult = scanner.next()) != null) {
-				if (LOG.isTraceEnabled())
-					LOG.trace("fetch set iterator " + currentResult);
+				SpliceLogUtils.trace(LOG,"fetch set iterator %s",currentResult);
 				fetchedRow = RowUtil.newTemplate(
 						spliceConglomerate.getTransaction().getDataValueFactory(),
 						null, spliceConglomerate.getFormatIds(), spliceConglomerate.getCollationIds());
@@ -311,8 +304,6 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	
 	public void reopenScan(DataValueDescriptor[] startKeyValue,int startSearchOperator, Qualifier[][] qualifier,DataValueDescriptor[] stopKeyValue, int stopSearchOperator) throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("reopenScan startKeyValue " +startKeyValue + ", startSearchOperator " + startSearchOperator + ", qualifier " + qualifier + ", stopKeyValue " + stopKeyValue + ", stopSearchOperator " + stopSearchOperator);
 		this.startKeyValue = startKeyValue;
 		this.startSearchOperator = startSearchOperator;
 		this.qualifier = qualifier;
@@ -330,9 +321,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	
 	public void reopenScanByRowLocation(RowLocation startRowLocation, Qualifier[][] qualifier) throws StandardException {
-		if (LOG.isTraceEnabled()) 
-			LOG.trace("reopenScanByRowLocation " +startRowLocation + " for qualifier " + qualifier);
-
+		SpliceLogUtils.trace(LOG,"reopenScanByRowLocation %s  for qualifier ",startRowLocation,qualifier);
 		this.qualifier = qualifier;
 		setupScan();
 		scan.setStartRow(startRowLocation.getBytes());
@@ -345,16 +334,13 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	
 	public boolean positionAtRowLocation(RowLocation rl) throws StandardException {
-		if (LOG.isTraceEnabled()) 
-			LOG.trace("positionAtRowLocation " + rl);
+		SpliceLogUtils.trace(LOG, "positionAtRowLocation %s", rl);
 		if (this.currentRowLocation != null)
 			return this.currentRowLocation.equals(rl);
 		return false;
 	}
 	
 	public int fetchNextGroup(DataValueDescriptor[][] row_array, RowLocation[] rowloc_array) throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("HBaseScan fetchNextGroup " +row_array + " for conglomerate " + this.spliceConglomerate.getConglomerate().getId());
 		try {
 			if (!scannerInitialized)
 				initialize();
@@ -365,9 +351,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 			Result[] results = scanner.next(row_array.length);
 			// Have To generate template
 			DataValueDescriptor[] template = null;
-			if (results != null && results.length > 0) {				
-				if (LOG.isTraceEnabled())
-					LOG.trace("HBaseScan fetchNextGroup total number of results="+results.length);
+			if (results != null && results.length > 0) {
+				SpliceLogUtils.trace(LOG,"HBaseScan fetchNextGroup total number of results=%d",results.length);
 				for (int i = 0; i < results.length; i++) {
 					if (results[i] != null) {
 						if (i == 0)
@@ -388,8 +373,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	
 	public boolean replace(DataValueDescriptor[] row, FormatableBitSet validColumns) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("replace values for these valid Columns " + validColumns);
+		SpliceLogUtils.trace(LOG, "replace values for these valid Columns %s",validColumns);
 		try {
 			table.put(Puts.buildInsert(currentRowLocation.getBytes(), row, validColumns, transID));
 			return true;
@@ -399,13 +383,10 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	private void logIndexKeys() {
 		try {
-//			LOG.trace("Instantiate Splice Scan for conglomerate " + spliceConglomerate + ", scanColumnList " + scanColumnList);
-//			LOG.trace("startSearchOperator " + startSearchOperator);
 			if (startKeyValue != null) {
 				for (int i =0;i<startKeyValue.length;i++)
 					LOG.trace("startkey - "+startKeyValue[i].getTypeName() + " : " + startKeyValue[i].getTraceString());
 			}
-//			LOG.trace("stopSearchOperator " + stopSearchOperator);
 			if (stopKeyValue != null) {
 				for (int i =0;i<stopKeyValue.length;i++)
 					LOG.trace("stopKey - "+stopKeyValue[i].getTypeName() + " : " + stopKeyValue[i].getTraceString());

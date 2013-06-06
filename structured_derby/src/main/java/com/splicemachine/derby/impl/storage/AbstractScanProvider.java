@@ -38,7 +38,7 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 
     @Override
     public RowLocation getCurrentRowLocation() {
-    	SpliceLogUtils.trace(LOG, "getCurrentRowLocation %s" + currentRowLocation);
+    	SpliceLogUtils.trace(LOG, "getCurrentRowLocation %s",currentRowLocation);
         return currentRowLocation;
     }
 

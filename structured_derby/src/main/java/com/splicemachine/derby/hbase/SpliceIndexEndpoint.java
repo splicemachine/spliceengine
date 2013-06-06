@@ -121,7 +121,8 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         return response;
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public MutationResult deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         final HRegion region = rce.getRegion();
@@ -141,7 +142,8 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                 mutation.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
                 if(mutation instanceof Put){
                     try{
-                        OperationStatus[] statuses = region.put(new Pair[]{Pair.newPair((Put)mutation,null)});
+                        @SuppressWarnings("deprecation")
+						OperationStatus[] statuses = region.put(new Pair[]{Pair.newPair((Put)mutation,null)});
                         OperationStatus status = statuses[0];
                         switch (status.getOperationStatusCode()) {
                             case NOT_RUN:

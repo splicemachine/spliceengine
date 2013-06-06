@@ -40,14 +40,9 @@ public abstract class SpliceController implements ConglomerateController {
 		}
 		this.trans = trans;
 		this.transID = SpliceUtils.getTransID(trans);
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("instantiate HBaseControl with openHBase: " + openSpliceConglomerate);
-//		htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 	}
 	
 	public void close() throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("close:");
 		try {
 			if ((openSpliceConglomerate != null) && (openSpliceConglomerate.getTransactionManager() != null))
 				openSpliceConglomerate.getTransactionManager().closeMe(this);
@@ -57,20 +52,17 @@ public abstract class SpliceController implements ConglomerateController {
 	}
 	
 	public void getTableProperties(Properties prop) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getTableProperties: " + prop);		
+		SpliceLogUtils.trace(LOG, "getTableProperties: %s", prop);		
 	}
 
 	
 	public Properties getInternalTablePropertySet(Properties prop) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getInternalTablePropertySet: " + prop);		
+		SpliceLogUtils.trace(LOG, "getInternalTablePropertySet: %s", prop);		
 		return prop;
 	}
 	
 	public boolean closeForEndTransaction(boolean closeHeldScan) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("closeForEndTransaction:");				
+		SpliceLogUtils.trace(LOG,"closeForEndTransaction:");				
 		return false;
 	}
 
@@ -82,8 +74,6 @@ public abstract class SpliceController implements ConglomerateController {
 	
 	
 	public boolean delete(RowLocation loc) throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("delete row location " + loc.getBytes());
         HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 		try {
             SpliceUtils.doDelete(htable, transID, loc.getBytes());
@@ -152,9 +142,6 @@ public abstract class SpliceController implements ConglomerateController {
 
 	
 	public boolean fetch(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, boolean waitForLock) throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("fetch rowlocation " + loc + ", destRow " + destRow + ", validColumns " + validColumns + ", waitForLock " + waitForLock);
-
         HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 		try {
 			Get get = SpliceUtils.createGet(loc, destRow, validColumns, transID);

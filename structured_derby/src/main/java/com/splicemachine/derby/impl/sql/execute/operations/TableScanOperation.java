@@ -90,7 +90,7 @@ public class TableScanOperation extends ScanOperation {
         this.indexColItem = indexColItem;
         this.indexName = indexName;
         runTimeStatisticsOn = (activation != null && activation.getLanguageConnectionContext().getRunTimeStatisticsMode());
-        SpliceLogUtils.trace(LOG, "statisticsTimingOn="+statisticsTimingOn+",isTopResultSet="+isTopResultSet+",runTimeStatisticsOn="+runTimeStatisticsOn);
+        SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s,isTopResultSet=%s,runTimeStatisticsOn%s",statisticsTimingOn,isTopResultSet,runTimeStatisticsOn);
         init(SpliceOperationContext.newContext(activation));
         recordConstructorTime(); 
     }

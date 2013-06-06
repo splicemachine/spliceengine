@@ -173,7 +173,7 @@ public class OnceOperation extends SpliceBaseOperation {
 		final List<SpliceOperation> operationStack =getOperationStack();
 		SpliceLogUtils.trace(LOG, "operationStack=%s",operationStack);
 		SpliceOperation regionOperation = operationStack.get(0);
-		LOG.trace("regionOperation="+regionOperation);
+		SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
 		RowProvider provider = getReduceRowProvider(this, getExecRowDefinition());
 		return new SpliceNoPutResultSet(activation,this, provider);
 	}

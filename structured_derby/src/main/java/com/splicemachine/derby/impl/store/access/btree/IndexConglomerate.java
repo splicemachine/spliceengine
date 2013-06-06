@@ -185,12 +185,7 @@ public class IndexConglomerate extends SpliceConglomerate {
 	@exception StandardException Standard exception policy.
 	**/
 	public void drop(TransactionManager xact_manager) throws StandardException{
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("drop " + xact_manager);
-
-        //xact_manager.getRawStoreXact().dropContainer(id);
-		//FIXME: need a new API on RawTransaction
-		//xact_manager.getRawStoreXact().dropHTable(Long.toString(id.getContainerId()));
+		SpliceLogUtils.trace(LOG, "drop %s",xact_manager);
 	}
 
     /**
@@ -274,11 +269,8 @@ public class IndexConglomerate extends SpliceConglomerate {
 	public long load(
 	TransactionManager      xact_manager,
 	boolean                 createConglom,
-	RowLocationRetRowSource rowSource)
-		 throws StandardException
-	{
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("load rowSource" + rowSource);
+	RowLocationRetRowSource rowSource) throws StandardException {
+		SpliceLogUtils.trace(LOG, "load rowSource %s",rowSource);
         long num_rows_loaded = 0;
         return(num_rows_loaded);
 	}
@@ -293,8 +285,7 @@ public class IndexConglomerate extends SpliceConglomerate {
 	    LockingPolicy                   locking_policy,
 	    StaticCompiledOpenConglomInfo   static_info,
 	   DynamicCompiledOpenConglomInfo  dynamic_info) throws StandardException {
-			if (LOG.isTraceEnabled())
-				LOG.trace("open conglomerate id: " + Long.toString(id.getContainerId()));
+		SpliceLogUtils.trace(LOG, "open conglomerate id: %s", id);
 	        OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,hold,open_mode,lock_level,locking_policy,static_info,dynamic_info,this);
 					return new IndexController(open_conglom, rawtran);
 	}
@@ -325,8 +316,6 @@ public class IndexConglomerate extends SpliceConglomerate {
     DynamicCompiledOpenConglomInfo  dynamic_info)
 		throws StandardException
 	{
-//    	if (LOG.isTraceEnabled())
-//    		LOG.trace("open scan: " + Long.toString(id.getContainerId()));
         OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,hold,open_mode,lock_level, locking_policy, static_info, dynamic_info,this);
 		SpliceScan indexScan = new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,qualifier,stopKeyValue,stopSearchOperator,rawtran,true);
 		return(indexScan);
@@ -334,21 +323,14 @@ public class IndexConglomerate extends SpliceConglomerate {
 
 	public void purgeConglomerate(
     TransactionManager              xact_manager,
-    Transaction                     rawtran)
-        throws StandardException
-    {
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("purgeConglomerate: " + Long.toString(id.getContainerId()));
+    Transaction                     rawtran) throws StandardException {
+		SpliceLogUtils.trace(LOG, "purgeConglomerate: %s", id);
     }
 
 	public void compressConglomerate(
     TransactionManager              xact_manager,
-    Transaction                     rawtran)
-        throws StandardException
-    {
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("compressConglomerate: " + Long.toString(id.getContainerId()));
-
+    Transaction                     rawtran) throws StandardException {
+		SpliceLogUtils.trace(LOG,"compressConglomerate: %s", id);
     }
 
     /**
@@ -366,12 +348,8 @@ public class IndexConglomerate extends SpliceConglomerate {
     int                             open_mode,
     int                             lock_level,
     LockingPolicy                   locking_policy,
-    int                             isolation_level)
-		throws StandardException
-	{
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("defragmentConglomerate: " + Long.toString(id.getContainerId()));
-
+    int                             isolation_level) throws StandardException {
+		SpliceLogUtils.trace(LOG,"defragmentConglomerate: ", id);
         return null;
 	}
 
@@ -396,10 +374,8 @@ public class IndexConglomerate extends SpliceConglomerate {
     public StoreCostController openStoreCost(
     TransactionManager  xact_manager,
     Transaction         rawtran)
-		throws StandardException
-    {
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("openStoreCost: " + Long.toString(id.getContainerId()));
+		throws StandardException {
+    	SpliceLogUtils.trace(LOG, "openStoreCost: %s", id);
        	OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,false,ContainerHandle.MODE_READONLY,TransactionController.MODE_TABLE,(LockingPolicy) null,(StaticCompiledOpenConglomInfo) null,(DynamicCompiledOpenConglomInfo) null, this);
         IndexCostController hbasecost = new IndexCostController();
 		return(hbasecost);
@@ -428,10 +404,8 @@ public class IndexConglomerate extends SpliceConglomerate {
      *
 	 * @return this
      **/
-    public DataValueDescriptor getConglom()
-    {
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("getConglom: " + Long.toString(id.getContainerId()));
+    public DataValueDescriptor getConglom() {
+    	SpliceLogUtils.trace(LOG, "getConglom: %s", id);
         return(this);
     }
 
@@ -645,8 +619,6 @@ public class IndexConglomerate extends SpliceConglomerate {
 	}
 	
 	public void btreeWriteExternal(ObjectOutput out)  throws IOException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("btreeWriteExternal " + conglom_format_id);
 	        FormatIdUtil.writeFormatIdInteger(out, conglom_format_id);
 			out.writeLong(id.getContainerId());
 			out.writeInt((int) id.getSegmentId());
@@ -658,8 +630,6 @@ public class IndexConglomerate extends SpliceConglomerate {
 		}
 	
 	public void btreeReadExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("btreeReadExternal");
 	        conglom_format_id = FormatIdUtil.readFormatIdInteger(in);
 			long containerid         = in.readLong();
 			int segmentid			= in.readInt();

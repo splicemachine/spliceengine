@@ -4,6 +4,8 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
 import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.log4j.Logger;
@@ -44,11 +46,11 @@ public class TransactionKeepAlive {
     }
 
     private static void performKeepAlive() {
-        LOG.trace("running keepAlive task");
+    	SpliceLogUtils.trace(LOG,"running keepAlive task");
         final ContextService contextService = ContextService.getFactory();
         final Set contextManagers = getContextManagers(contextService);
         if (contextManagers != null) {
-            LOG.trace("contextManager count " + contextManagers.size());
+            SpliceLogUtils.trace(LOG,"contextManager count %d",contextManagers.size());
             final Set<String> keptAlive = new HashSet<String>();
             for (Object o : contextManagers) {
                 final ContextManager contextManager = (ContextManager) o;
@@ -56,7 +58,7 @@ public class TransactionKeepAlive {
                 if (transactionId != null && !keptAlive.contains(transactionId)) {
                     final HTransactor transactor = HTransactorFactory.getTransactor();
                     try {
-                        LOG.trace("keeping alive " + transactionId);
+                    	SpliceLogUtils.trace(LOG,"keeping alive %s",transactionId);
                         transactor.keepAlive(transactor.transactionIdFromString(transactionId));
                         keptAlive.add(transactionId);
                     } catch (IOException e) {
@@ -65,6 +67,7 @@ public class TransactionKeepAlive {
                     }
                 }
             }
+            SpliceLogUtils.trace(LOG, "keptAlive count %d",keptAlive.size());
             LOG.trace("keptAlive count " + keptAlive.size());
         }
     }

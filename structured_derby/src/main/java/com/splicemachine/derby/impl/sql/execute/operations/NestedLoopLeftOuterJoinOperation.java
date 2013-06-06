@@ -166,7 +166,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		protected NoPutResultSet probeResultSet;
 		protected boolean seenRow;
 		NestedLoopLeftIterator(ExecRow leftRow, boolean hash) throws StandardException {
-			SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow " + leftRow);
+			SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
 			this.leftRow = leftRow;
 			if (hash)
 				probeResultSet = ((SpliceOperation) getRightResultSet()).executeProbeScan();
@@ -184,7 +184,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				if ( (rightRow = probeResultSet.getNextRowCore()) != null) {
 					probeResultSet.setCurrentRow(rightRow);
 					rowsSeenRight++;
-					SpliceLogUtils.trace(LOG, "right has result " + rightRow);
+					SpliceLogUtils.trace(LOG, "right has result %s",rightRow);
 					mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 				} else {
 					if (seenRow) {
@@ -200,7 +200,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				if (restriction != null) {
 					DataValueDescriptor restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
 					if ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean()) {
-						SpliceLogUtils.trace(LOG, "restricted row " + mergedRow);
+						SpliceLogUtils.trace(LOG, "restricted row %s",mergedRow);
 						hasNext();
 					}
 				}
@@ -219,7 +219,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 
 		@Override
 		public ExecRow next() {
-			SpliceLogUtils.trace(LOG, "next row=" + mergedRow);
+			SpliceLogUtils.trace(LOG, "next row=%s",mergedRow);
 			return mergedRow;
 		}
 

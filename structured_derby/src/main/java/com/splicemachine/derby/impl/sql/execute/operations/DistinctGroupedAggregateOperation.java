@@ -130,7 +130,7 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
     	ExecIndexRow inputRow = null;
     	if(rowProvider!=null){
     		if(rowProvider.hasNext() && (inputRow = (ExecIndexRow)rowProvider.next())!=null){
-    			SpliceLogUtils.trace(LOG,"inputRow="+inputRow);
+    			SpliceLogUtils.trace(LOG,"inputRow=%",inputRow);
     			initializeVectorAggregation(inputRow);
     			return inputRow;
 
@@ -150,7 +150,7 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 			else{
 				inputRow = (ExecIndexRow)sourceExecIndexRow.getClone();
 				SpliceUtils.populate(result, null, inputRow.getRowArray());
-				SpliceLogUtils.trace(LOG,"inputRow="+inputRow);
+				SpliceLogUtils.trace(LOG,"inputRow=%s",inputRow);
 				
 				if(inputRow!=null)
 					initializeVectorAggregation(inputRow);

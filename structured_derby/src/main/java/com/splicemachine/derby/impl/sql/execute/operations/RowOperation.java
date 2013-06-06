@@ -115,7 +115,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	}
 	
 	public ExecRow	getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG, "getNextRowCore, next="+next+",cachedRow="+cachedRow);
+		SpliceLogUtils.trace(LOG, "getNextRowCore, next=%s, cachedRow=%s",next,cachedRow);
 		currentRow = null;
 		if (!next) {
 			next = true;
@@ -129,7 +129,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	private ExecRow getRow() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getRow");
 		if (cachedRow != null) {
-			SpliceLogUtils.trace(LOG,"getRow,cachedRow="+cachedRow);
+			SpliceLogUtils.trace(LOG,"getRow,cachedRow=%s",cachedRow);
 		    return cachedRow;
 		}
 		else if (row != null) {
@@ -196,7 +196,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	
 	@Override
 	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow rowTemplate) throws StandardException{
-		SpliceLogUtils.trace(LOG, "getMapRowProvider,top="+top);
+		SpliceLogUtils.trace(LOG, "getMapRowProvider,top=%s",top);
 		top.init(SpliceOperationContext.newContext(activation));
 		return RowProviders.sourceProvider(top, LOG);
 	}

@@ -61,12 +61,9 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost) throws StandardException {
     	super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-    	SpliceLogUtils.trace(LOG, "instantiated with parameters");
-    	SpliceLogUtils.trace(LOG, "source="+source);
     	this.source = source;
     	this.rowAllocator = ra;
     	this.rowAllocatorMethodName = (ra == null) ? null : ra.getMethodName();
-    	SpliceLogUtils.trace(LOG,"RowAllocatorMethodNameXX "+rowAllocatorMethodName);
     	this.aggregateItem = aggregateItem;
 	}
     

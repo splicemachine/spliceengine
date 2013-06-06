@@ -103,7 +103,8 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
         }
     }
 
-    private Throwable translateException(Throwable t) throws IOException {
+    @SuppressWarnings("deprecation")
+	private Throwable translateException(Throwable t) throws IOException {
         /*
          * Convenience error interpreter taken from HConnectionImplementation because the method isn't
          * public. Probably should move it to a more centralized, more easily dealt with scenario, but

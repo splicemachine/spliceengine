@@ -86,7 +86,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		this.doesProjection = doesProjection;
 		this.source = (SpliceOperation) source;
 		init(SpliceOperationContext.newContext(activation));
-		SpliceLogUtils.trace(LOG, "statisticsTimingOn="+statisticsTimingOn+",isTopResultSet="+isTopResultSet);
+		SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s, isTopResultSet=%s",statisticsTimingOn,isTopResultSet);
 		recordConstructorTime();
     }
     

@@ -321,8 +321,7 @@ public class SpliceTransactionManager implements XATransactionController,
 			if (tempCongloms != null)
 				conglom = (Conglomerate) tempCongloms.get(new Long(conglomId));
 		} else {
-			conglom = accessmanager.conglomCacheFind(this, conglomId);
-			LOG.debug("findExistingConglomerate found=" + conglomId);
+			conglom = accessmanager.conglomCacheFind(this, conglomId);			
 		}
 
 		if (conglom == null) {

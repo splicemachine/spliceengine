@@ -102,11 +102,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	public SpliceBaseOperation(Activation activation, int resultSetNumber, double optimizerEstimatedRowCount,double optimizerEstimatedCost) throws StandardException {
-//		SpliceLogUtils.trace(LOG,"instantiated for resultSetNumber %d", resultSetNumber);
 		if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming())
-		    beginTime = startExecutionTime = getCurrentTimeMillis();
-		SpliceLogUtils.trace(LOG, "statisticsTimingOn="+statisticsTimingOn+",isTopResultSet="+isTopResultSet);
-		
+		    beginTime = startExecutionTime = getCurrentTimeMillis();		
 		this.optimizerEstimatedCost = optimizerEstimatedCost;
 		this.optimizerEstimatedRowCount = optimizerEstimatedRowCount;
 		this.activation = activation;
@@ -274,10 +271,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		return 0;
 	}
 	@Override
-	public void close() throws StandardException
-	{
-//		SpliceLogUtils.trace(LOG, "super close: isOpern="+isOpen+",isTopResultSet="+isTopResultSet+",statisticsTimingOn="+statisticsTimingOn
-//				+",activation.getLanguageConnectionContext()="+activation.getLanguageConnectionContext());
+	public void close() throws StandardException {
 		if (!isOpen)
 			return;
 
@@ -306,7 +300,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
                     // get the RuntimeStatisticsImpl object which is the wrapper for all 
                     // gathered statistics about all the different resultsets
                     RunTimeStatistics rsImpl = rssf.getRunTimeStatistics(activation, this, subqueryTrackingArray); 
-                    SpliceLogUtils.trace(LOG, "top resultset, RunTimeStatistics="+rsImpl+",EndExecutionTimestamp="+rsImpl.getEndExecutionTimestamp());
+                    SpliceLogUtils.trace(LOG, "top resultset, RunTimeStatistics=%s,EndExecutionTimestamp=%s",rsImpl,rsImpl.getEndExecutionTimestamp());
                     // save the RTW (wrapper)object in the lcc
                     lcc.setRunTimeStatisticsObject(rsImpl);
                     

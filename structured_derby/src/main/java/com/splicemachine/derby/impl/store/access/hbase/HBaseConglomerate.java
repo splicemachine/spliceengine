@@ -225,10 +225,8 @@ public class HBaseConglomerate extends SpliceConglomerate {
 	TransactionManager      xact_manager,
 	boolean                 createConglom,
 	RowLocationRetRowSource rowSource)
-		 throws StandardException
-	{
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("load rowSource" + rowSource);
+		 throws StandardException {
+		SpliceLogUtils.trace(LOG, "load rowSourc %s", rowSource);
         long num_rows_loaded = 0;
         return(num_rows_loaded);
 	}
@@ -281,8 +279,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
     DynamicCompiledOpenConglomInfo  dynamic_info)
 		throws StandardException
 	{
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("open scan: " + Long.toString(id.getContainerId()));
+		SpliceLogUtils.trace(LOG, "open scan: %s", id);
 		if (!RowUtil.isRowEmpty(startKeyValue) || !RowUtil.isRowEmpty(stopKeyValue))
 			throw StandardException.newException(SQLState.HEAP_UNIMPLEMENTED_FEATURE);
         OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,hold,open_mode,
@@ -293,13 +290,11 @@ public class HBaseConglomerate extends SpliceConglomerate {
 	}
 
 	public void purgeConglomerate(TransactionManager xact_manager,Transaction rawtran) throws StandardException {
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("purgeConglomerate: " + Long.toString(id.getContainerId()));
+		SpliceLogUtils.trace(LOG,"purgeConglomerate: %s", id);
     }
 
 	public void compressConglomerate(TransactionManager xact_manager,Transaction rawtran) throws StandardException {
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("compressConglomerate: " + Long.toString(id.getContainerId()));
+		SpliceLogUtils.trace(LOG,"compressConglomerate: %s", id);
     }
 
     /**
@@ -317,12 +312,8 @@ public class HBaseConglomerate extends SpliceConglomerate {
     int                             open_mode,
     int                             lock_level,
     LockingPolicy                   locking_policy,
-    int                             isolation_level)
-		throws StandardException
-	{
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("defragmentConglomerate: " + Long.toString(id.getContainerId()));
-
+    int                             isolation_level) throws StandardException {
+		SpliceLogUtils.trace(LOG, "defragmentConglomerate: %s", id);
         return null;
 	}
 
@@ -346,14 +337,10 @@ public class HBaseConglomerate extends SpliceConglomerate {
      **/
     public StoreCostController openStoreCost(
     TransactionManager  xact_manager,
-    Transaction         rawtran)
-		throws StandardException
-    {
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("openStoreCost: " + Long.toString(id.getContainerId()));
+    Transaction         rawtran) throws StandardException {
+    	SpliceLogUtils.trace(LOG,"openStoreCost: %s", id);
     	OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,false,ContainerHandle.MODE_READONLY,TransactionController.MODE_TABLE,(LockingPolicy) null,(StaticCompiledOpenConglomInfo) null,(DynamicCompiledOpenConglomInfo) null, this);
         HBaseCostController hbasecost = new HBaseCostController(open_conglom);
-
 		return(hbasecost);
     }
 
@@ -371,10 +358,8 @@ public class HBaseConglomerate extends SpliceConglomerate {
      *
 	 * @return this
      **/
-    public DataValueDescriptor getConglom()
-    {
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("getConglom: " + Long.toString(id.getContainerId()));
+    public DataValueDescriptor getConglom() {
+    	SpliceLogUtils.trace(LOG, "getConglom: %s",id);
         return(this);
     }
 
@@ -402,10 +387,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
      * (ACCESS_HEAP_V3_ID).  
      * <p>
      **/
-	public void writeExternal(ObjectOutput out) throws IOException
-    {
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("writeExternal: " + Long.toString(id.getContainerId()));
+	public void writeExternal(ObjectOutput out) throws IOException {
         FormatIdUtil.writeFormatIdInteger(out, this.getTypeFormatId());
 		out.writeInt((int) id.getSegmentId());
         out.writeLong(id.getContainerId());

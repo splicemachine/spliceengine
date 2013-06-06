@@ -72,8 +72,6 @@ public class SortOperation extends SpliceBaseOperation {
 						 double optimizerEstimatedRowCount,
 						 double optimizerEstimatedCost) throws StandardException{
 		super(a,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-//		SpliceLogUtils.trace(LOG,"instantiated with parameters");
-//		SpliceLogUtils.trace(LOG,"source="+s);
 		this.source = s;
 		this.distinct = distinct;
 		this.orderingItem = orderingItem;

@@ -106,9 +106,7 @@ public class SpliceRealResultSetStatisticsFactory
 		if (preStmt == null)
 			return null;
 
-		SpliceLogUtils.trace(LOG, "in getRunTimeStatistics, activation.getPreparedStatement()="+activation.getPreparedStatement());
-		SpliceLogUtils.trace(LOG, "preStmt compile time="+preStmt.getBeginCompileTimestamp()+",rs.getBeginExecutionTimestamp()="
-				+rs.getBeginExecutionTimestamp()+",rs.getEndExecutionTimestamp()="+rs.getEndExecutionTimestamp());
+		SpliceLogUtils.trace(LOG, "in getRunTimeStatistics, activation.getPreparedStatement()=%s",activation.getPreparedStatement());
 
 		ResultSetStatistics topResultSetStatistics;
 

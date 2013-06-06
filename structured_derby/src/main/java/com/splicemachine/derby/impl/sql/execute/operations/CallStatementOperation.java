@@ -85,7 +85,7 @@ public class CallStatementOperation extends NoRowsOperation {
 
 		@Override
 		public void close() {
-			SpliceLogUtils.trace(LOG, "close in callableRowProvider for CallStatement, StatementContext="+
+			SpliceLogUtils.trace(LOG, "close in callableRowProvider for CallStatement, StatementContext=%s",
 					activation.getLanguageConnectionContext().getStatementContext());
 			if (!isOpen)
 				return;

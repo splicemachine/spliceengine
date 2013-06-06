@@ -196,7 +196,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         //someone else may have initialized this if so, we don't need to repeat, so return
         if(state.get()!=State.STARTING) return;
 
-        SpliceLogUtils.debug(LOG,"Setting up index for conglomerate "+congomId);
+        SpliceLogUtils.debug(LOG,"Setting up index for conglomerate %d",congomId);
 
         if(!initializationLock.tryLock(STARTUP_LOCK_BACKOFF_PERIOD, TimeUnit.MILLISECONDS)){
             throw new IndexNotSetUpException("Unable to initialize index management for table "+ congomId

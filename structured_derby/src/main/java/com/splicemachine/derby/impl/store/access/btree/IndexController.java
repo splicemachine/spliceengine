@@ -38,13 +38,12 @@ public class IndexController  extends SpliceController  {
 
 	@Override
 	public int insert(DataValueDescriptor[] row) throws StandardException {
-        SpliceLogUtils.trace(LOG,"insert row %s",row);
+        SpliceLogUtils.trace(LOG,"insert row");
         HTableInterface htable = getHTable();
 		try {
 			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
 			htable.put(Puts.buildInsert(rowKey, row, transID,new Serializer()));
-//			htable.put(SpliceUtils.insert(row,DerbyBytesUtil.generateIndexKey(row,((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo()),  transID));
 			return 0;
 		} catch (Exception e) {
 			LOG.error(e.getMessage(),e);
@@ -55,19 +54,14 @@ public class IndexController  extends SpliceController  {
 	}
 
 	@Override
-	public void insertAndFetchLocation(DataValueDescriptor[] row,
-			RowLocation destRowLocation) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("insertAndFetchLocation row " + row);
+	public void insertAndFetchLocation(DataValueDescriptor[] row,RowLocation destRowLocation) throws StandardException {
+		SpliceLogUtils.trace(LOG, "insertAndFetchLocation rowLocation %s",destRowLocation);
         HTableInterface htable = getHTable();
 		try {
 			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
 			Put put = Puts.buildInsert(rowKey,row,transID,new Serializer());
-//			Put put = SpliceUtils.insert(row,DerbyBytesUtil.generateIndexKey(row,((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo()), transID);
 			destRowLocation.setValue(put.getRow());
-			if (LOG.isTraceEnabled())
-				LOG.trace("insertAndFetchLocation returned rowlocation " + destRowLocation.getBytes());	
 			htable.put(put);
 		} catch (Exception e) {
 			throw StandardException.newException("insert and fetch location error",e);
@@ -78,8 +72,7 @@ public class IndexController  extends SpliceController  {
 
 	@Override
 	public boolean replace(RowLocation loc, DataValueDescriptor[] row, FormatableBitSet validColumns) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("replace rowlocation " + loc + ", destRow " + row + ", validColumns " + validColumns);
+		SpliceLogUtils.trace(LOG, "replace rowlocation %s, destRow %s, validColumns ", loc, row, validColumns);
         HTableInterface htable = getHTable();
 		try {
 			boolean[] sortOrder = ((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();

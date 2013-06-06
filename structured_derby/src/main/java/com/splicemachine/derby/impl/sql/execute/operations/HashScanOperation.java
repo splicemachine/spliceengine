@@ -144,12 +144,10 @@ public class HashScanOperation extends ScanOperation {
         for (int index = 0; index < fihArray.length; index++) {
             keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(accessedCols, fihArray[index].getInt());
         }
-        LOG.info("activation.getClass()="+activation.getClass()+",aactivation="+activation);
     }
 
     @Override
 	public List<NodeType> getNodeTypes() {
-		SpliceLogUtils.trace(LOG, "getNodeTypes");
 		return nodeTypes;
 	}
 
@@ -257,10 +255,9 @@ public class HashScanOperation extends ScanOperation {
 		  try {
 			regionScanner.next(keyValues);
 			while (!keyValues.isEmpty()) {
-				SpliceLogUtils.trace(LOG, "getNextRowCore retrieved hbase values " + keyValues);
-				  
+				SpliceLogUtils.trace(LOG, "getNextRowCore retrieved hbase values %s",keyValues);
 				  SpliceUtils.populate(keyValues, currentRow.getRowArray(),accessedCols,baseColumnMap);
-				  SpliceLogUtils.trace(LOG, "getNextRowCore retrieved derby row " + currentRow);
+				  SpliceLogUtils.trace(LOG, "getNextRowCore retrieved derby row %s",currentRow);
 				  this.setCurrentRow(currentRow);
 				  currentRowLocation = new HBaseRowLocation(keyValues.get(0).getRow());
 				  return currentRow;

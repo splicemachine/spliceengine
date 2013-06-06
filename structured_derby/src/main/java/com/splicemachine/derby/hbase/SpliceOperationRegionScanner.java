@@ -52,7 +52,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     public SpliceOperationRegionScanner(SpliceOperation topOperation,
                                         SpliceOperationContext context) throws StandardException {
     	stats.start();
-    	SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
+    	SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at %d",stats.getStartTime());
         this.topOperation = topOperation;
         this.statement = context.getPreparedStatement();
         this.context = context;
@@ -67,9 +67,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     }
 
 	public SpliceOperationRegionScanner(final RegionScanner regionScanner, final Scan scan, final HRegion region) {
-		SpliceLogUtils.trace(LOG, "instantiated with "+regionScanner+", and scan "+scan);
+		SpliceLogUtils.trace(LOG, "instantiated with %s, and scan %s",regionScanner,scan);
 		stats.start();
-		SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at "+stats.getStartTime());
+		SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at %d",stats.getStartTime());
 		this.regionScanner = regionScanner;
         try {
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
@@ -118,7 +118,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	                results.addAll(family.get(bytes));
 	            }
 
-	            SpliceLogUtils.trace(LOG,"next returns results: "+ nextRow);
+	            SpliceLogUtils.trace(LOG,"next returns results: %s",nextRow);
 	            stats.writeAccumulator().tick(System.nanoTime()-start);
 	        }else{
                 finished=true;
@@ -167,7 +167,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 }
                 finalStats = stats.finish();
                 ((SpliceBaseOperation)topOperation).nextTime +=finalStats.getTotalTime();
-                SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SpliceOperationRegionScanner at "+stats.getFinishTime());
+                SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SpliceOperationRegionScanner at %d",stats.getFinishTime());
                 context.close(success);
             }
         } finally {

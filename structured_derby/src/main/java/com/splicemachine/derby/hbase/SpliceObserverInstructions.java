@@ -54,7 +54,7 @@ public class SpliceObserverInstructions implements Externalizable {
 
 	public SpliceObserverInstructions(GenericStorablePreparedStatement statement,  SpliceOperation topOperation,
                                       ActivationContext activationContext, String transactionId ) {
-		SpliceLogUtils.trace(LOG, "instantiated with statement " + statement);
+		SpliceLogUtils.trace(LOG, "instantiated with statement %s", statement);
 		this.statement = statement;
 		this.topOperation = topOperation;
         this.activationContext = activationContext;
@@ -88,7 +88,7 @@ public class SpliceObserverInstructions implements Externalizable {
 	 * @return
 	 */
 	public GenericStorablePreparedStatement getStatement() {
-		SpliceLogUtils.trace(LOG, "getStatement " + statement);
+		SpliceLogUtils.trace(LOG, "getStatement %s",statement);
 		return statement;
 	}
 
@@ -108,7 +108,7 @@ public class SpliceObserverInstructions implements Externalizable {
 	 * @return
 	 */
 	public SpliceOperation getTopOperation() {
-		SpliceLogUtils.trace(LOG, "getTopOperation " + topOperation);
+		SpliceLogUtils.trace(LOG, "getTopOperation %s",topOperation);
 		return topOperation;
     }
 

@@ -44,7 +44,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 			Properties              properties,
 			int                     conglom_format_id,
 			int                     tmpFlag) throws StandardException {
-        SpliceLogUtils.trace(LOG, "create segmentId " + segmentId + ", input_containerid " + input_containerid);
+        SpliceLogUtils.trace(LOG, "create segmentId %d, input_containerid %d", segmentId,input_containerid);
 		if (properties != null) {
 			String value = properties.getProperty(RawStoreFactory.MINIMUM_RECORD_SIZE_PARAMETER);
 			int minimumRecordSize = (value == null) ? RawStoreFactory.MINIMUM_RECORD_SIZE_DEFAULT : Integer.parseInt(value);
@@ -71,7 +71,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 	}
 
 	public void boot_create(long containerid,DataValueDescriptor[]   template) {
-//        SpliceLogUtils.trace(LOG,"boot_create containerid " + containerid);
 		id = new ContainerKey(0, containerid);
 		this.format_ids = ConglomerateUtil.createFormatIds(template);
 	}
@@ -106,8 +105,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 	}
 
 	public final long getContainerid() {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("getContainerid " + id.getContainerId());
 		return(id.getContainerId());
 	}
 

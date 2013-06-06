@@ -173,6 +173,7 @@ public class BetterHTablePool {
 
 
         @Override
+        @Deprecated
         public Result getRowOrBefore(byte[] row, byte[] family) throws IOException {
             return table.getRowOrBefore(row, family);
         }

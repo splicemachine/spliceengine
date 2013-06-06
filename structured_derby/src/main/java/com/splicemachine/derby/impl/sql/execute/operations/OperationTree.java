@@ -28,26 +28,26 @@ public class OperationTree implements IOperationTree {
 	}
 	@Override
 	public void traverse(SpliceOperation operation) {
-		SpliceLogUtils.trace(LOG, "traversing parent operation: " + operation);
+		SpliceLogUtils.trace(LOG, "traversing parent operation: %s",operation);
 		currentExecutionOperation = operation;
 		traverseSingleTree(currentExecutionOperation);
 		while ( (currentExecutionOperation = allWaits.poll()) != null) {
-			SpliceLogUtils.trace(LOG,"   traversing wait operation: " + currentExecutionOperation);
+			SpliceLogUtils.trace(LOG,"   traversing wait operation: %s",currentExecutionOperation);
 			traverseSingleTree(currentExecutionOperation);
 		}		
 		if (LOG.isTraceEnabled()) {	
-			LOG.trace("Operation Tree Generated:");
+			SpliceLogUtils.trace(LOG,"Operation Tree Generated:");
 			for (SpliceOperation op: operationTree.keySet()) {
-				LOG.trace("  Operation: " + op);
+				SpliceLogUtils.trace(LOG,"  Operation: %s",op);
 				for (SpliceOperation waitOp: operationTree.get(op)) {
-					LOG.trace("      Waiting on Operation: " + waitOp);
+					SpliceLogUtils.trace(LOG,"      Waiting on Operation: %s",waitOp);
 				}
 			}
 		}
 	}
 	
 	private void traverseSingleTree(SpliceOperation operation) {
-		SpliceLogUtils.trace(LOG, "traverseSingleTree " + operation);
+		SpliceLogUtils.trace(LOG, "traverseSingleTree %s", operation);
 		for (SpliceOperation spliceOperation: operation.getSubOperations()) {
 			if (spliceOperation.getNodeTypes().contains(NodeType.REDUCE)) {
 				SpliceLogUtils.trace(LOG,"found reduce operation %s",spliceOperation);
@@ -74,12 +74,12 @@ public class OperationTree implements IOperationTree {
 	}
 	@Override
 	public NoPutResultSet execute() throws StandardException{	
-		SpliceLogUtils.trace(LOG, "execute with operationTree with  " + operationTree.keySet().size() + " execution stacks");
+		SpliceLogUtils.trace(LOG, "execute with operationTree with %d execution stacks",operationTree.keySet().size());
 		SpliceOperation operation = null;
 		while (operationTree.keySet().size() > 0) {
 			for (SpliceOperation op: operationTree.keySet())
 				if (operationTree.get(op).size() == 0) {
-					SpliceLogUtils.trace(LOG, "Executing Set of Operations with executing step " + op);
+					SpliceLogUtils.trace(LOG, "Executing Set of Operations with executing step %s",op);
 					if (op.getNodeTypes().contains(NodeType.REDUCE)){
 						op.executeShuffle();
 						//if we are also a scan, AND we are the last operationTree to execute, then create the scan
@@ -96,7 +96,7 @@ public class OperationTree implements IOperationTree {
 	}
 	
 	private void operationFinished(String uniqueID) {
-		SpliceLogUtils.trace(LOG, "operation " + uniqueID + " finished, cleaning up operation tree");
+		SpliceLogUtils.trace(LOG, "operation %s finished, cleaning up operation tree",uniqueID);
 		for (SpliceOperation parentOperation : operationTree.keySet()) {
 			if (parentOperation.getUniqueSequenceID().equals(uniqueID)) {
 				operationTree.remove(parentOperation);

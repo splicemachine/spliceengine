@@ -349,7 +349,7 @@ public class DerbyBytesUtil {
 			rowKey = getRowKey(qualifiers[0][i].getOrderable());
 			builder.add(rowKey);
 			values[i+1] = qualifiers[0][i].getOrderable().getObject();
-			SpliceLogUtils.trace(LOG, "generateSortedHashScan#iteration value " + values[i+1]);
+			SpliceLogUtils.trace(LOG, "generateSortedHashScan#iteration value %s",values[i+1]);
 		}
 		return builder.toRowKey().serialize(values);
 	}

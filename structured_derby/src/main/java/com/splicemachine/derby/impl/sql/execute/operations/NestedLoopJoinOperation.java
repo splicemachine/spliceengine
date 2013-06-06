@@ -187,7 +187,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
         private boolean returnedRight=false;
 
 		NestedLoopIterator(ExecRow leftRow, boolean hash) throws StandardException {
-			SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow " + leftRow);
+			SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
 			this.leftRow = leftRow;
 			if (hash) {
 				SpliceLogUtils.trace(LOG, "Iterator - executeProbeScan on %s",getRightResultSet());
@@ -225,7 +225,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
                         return false;
                     }
 
-                    SpliceLogUtils.trace(LOG, "right has result " + rightRow);
+                    SpliceLogUtils.trace(LOG, "right has result %s", rightRow);
 					/*
 					 * the right result set's row might be used in other branches up the stack which
 					 * occur under serialization, so the activation has to be sure and set the current row
@@ -247,7 +247,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				if (restriction != null) {
 					DataValueDescriptor restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
 					if ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean()) {
-						SpliceLogUtils.trace(LOG, "restricted row " + mergedRow);
+						SpliceLogUtils.trace(LOG, "restricted row %s",mergedRow);
 						populated=false;
 						hasNext();
 					}
@@ -276,7 +276,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
         @Override
 		public ExecRow next() {
-			SpliceLogUtils.trace(LOG, "next row=" + mergedRow);
+			SpliceLogUtils.trace(LOG, "next row=%s",mergedRow);
 			populated=false;
 			return mergedRow;
 		}
