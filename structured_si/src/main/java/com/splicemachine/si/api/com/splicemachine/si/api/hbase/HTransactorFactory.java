@@ -3,7 +3,7 @@ package com.splicemachine.si.api.com.splicemachine.si.api.hbase;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.si.api.HbaseConfigurationSource;
+import com.splicemachine.constants.SpliceConfiguration;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
@@ -33,7 +33,6 @@ import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Result;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class HTransactorFactory extends SIConstants {
@@ -41,56 +40,37 @@ public class HTransactorFactory extends SIConstants {
     private final static Cache<Long, ActiveTransactionCacheEntry> activeCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
     private final static Cache<Long, Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
 
-    private static volatile HTablePool hTablePool;
-
-    public static void setTransactor(ManagedTransactor transactorToUse) {
-        managedTransactor = transactorToUse;
-    }
-
-    public static HClientTransactor getClientTransactor() {
-        return managedTransactor.getTransactor();
-    }
-
     private static volatile ManagedTransactor managedTransactor;
 
-    //deliberate boxing here to ensure the lock is not shared by anyone else
-    private static final Object lock = new Integer(1);
-
-    public HTransactor newTransactor(HbaseConfigurationSource configSource) throws IOException {
-        return getTransactor(configSource).getTransactor();
-    }
-
-    public static HTransactor getTransactor() {
-        return getTransactor(new HbaseConfigurationSource() {
-            @Override
-            public Configuration getConfiguration() {
-                return config;
-            }
-        }).getTransactor();
+    public static void setTransactor(ManagedTransactor managedTransactorToUse) {
+        managedTransactor = managedTransactorToUse;
     }
 
     public static TransactorStatus getTransactorStatus() {
-        getTransactor();
-        return managedTransactor;
+        return getTransactorDirect();
     }
 
-    public static ManagedTransactor getTransactor(HbaseConfigurationSource configSource) {
-        if(managedTransactor !=null) return managedTransactor;
-        synchronized (lock) {
-            //double-checked locking--make sure someone else didn't already create it
-            if(managedTransactor !=null)
-                return managedTransactor;
+    public static HTransactor getTransactor() {
+        return getTransactorDirect().getTransactor();
+    }
 
-            final Configuration configuration = configSource.getConfiguration();
-//            TransactionTableCreator.createTransactionTableIfNeeded(configuration);
-            TimestampSource timestampSource = new ZooKeeperTimestampSource(zkSpliceTransactionPath);
-            if (hTablePool == null) {
-                synchronized (HTransactorFactory.class) {
-                    if (hTablePool == null) {
-                        hTablePool = new HTablePool(configuration, Integer.MAX_VALUE);
-                    }
-                }
+    public static HClientTransactor getClientTransactor() {
+        return getTransactorDirect().getTransactor();
+    }
+
+    private static ManagedTransactor getTransactorDirect() {
+        if (managedTransactor != null) {
+            return managedTransactor;
+        }
+        synchronized (HTransactorFactory.class) {
+            //double-checked locking--make sure someone else didn't already create it
+            if (managedTransactor != null) {
+                return managedTransactor;
             }
+
+            final Configuration configuration = SpliceConfiguration.create();
+            TimestampSource timestampSource = new ZooKeeperTimestampSource(zkSpliceTransactionPath);
+            HTablePool hTablePool = new HTablePool(configuration, Integer.MAX_VALUE);
             HStore store = new HStore(new HPoolTableSource(hTablePool));
             SDataLib dataLib = new HDataLibAdapter(new HDataLib());
             final STableReader reader = new HTableReaderAdapter(store);
