@@ -112,10 +112,12 @@ public abstract class SingleScanRowProvider  implements RowProvider {
 
             return future.getJobStats();
         } catch (ExecutionException ee) {
+        	SpliceLogUtils.error(LOG, ee);
             baseError = Exceptions.parseException(ee.getCause());
             throw baseError;
         } catch (InterruptedException e) {
-            baseError = Exceptions.parseException(e);
+        	SpliceLogUtils.error(LOG, e);
+        	baseError = Exceptions.parseException(e);
             throw baseError;
         }finally{
             if(future!=null){

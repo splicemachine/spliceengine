@@ -141,11 +141,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                 long processTime = System.nanoTime();
                 execIndexRow = getNextRowFromScan(false);
                 if(execIndexRow==null)continue;
-
-                SpliceLogUtils.trace(LOG,"aggResult =%s before",aggResult);
                 aggResult = aggregate(execIndexRow,aggResult,false,true);
-                SpliceLogUtils.trace(LOG,"aggResult =%s after",aggResult);
-
                 stats.tick(System.nanoTime()-processTime);
             }while(execIndexRow!=null);
 		}else{
@@ -159,7 +155,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                 stats.tick(System.nanoTime()-processTime);
             }while(execIndexRow!=null);
 		}
-		SpliceLogUtils.trace(LOG, "aggResult=%s",aggResult);
 		if(aggResult==null) return null; //we didn't have any rows to aggregate
 		if(countOfRows==0){
 			aggResult = finishAggregation(aggResult);
@@ -173,10 +168,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 									ExecIndexRow aggResult, boolean doInitialize, boolean isScan) throws StandardException{
 		if(aggResult==null){
 			aggResult = (ExecIndexRow)execIndexRow.getClone();
-			SpliceLogUtils.trace(LOG, "aggResult = %s aggregate before", aggResult);
 			if(doInitialize){
 				initializeScalarAggregation(aggResult);
-				SpliceLogUtils.trace(LOG, "aggResult = %s aggregate after",aggResult);
 			}
 		}else
 			accumulateScalarAggregation(execIndexRow, aggResult, false,isScan);
