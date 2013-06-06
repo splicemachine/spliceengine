@@ -23,7 +23,7 @@ public class ZooKeeperTimestampSource implements TimestampSource {
         String id = null;
         try {
             id = ZkUtils.create(transactionPath + "/txn-", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
-            SpliceLogUtils.debug(LOG,"Begin transaction at server and create znode for transId="+id);
+            SpliceLogUtils.debug(LOG,"Begin transaction at server and create znode for transId=%s",id);
         } catch (KeeperException e) {
             throw new RuntimeException("Unable to create a new transaction id",e);
         } catch (InterruptedException e) {

@@ -11,7 +11,8 @@ import org.apache.log4j.Logger;
 public class TransactionTableCreator extends SIConstants {
     static final Logger LOG = Logger.getLogger(TransactionTableCreator.class);
 
-    public static void createTransactionTableIfNeeded(Configuration configuration) {
+    @SuppressWarnings("deprecation")
+	public static void createTransactionTableIfNeeded(Configuration configuration) {
         try {
             @SuppressWarnings("resource")
             HBaseAdmin admin = new HBaseAdmin(configuration);

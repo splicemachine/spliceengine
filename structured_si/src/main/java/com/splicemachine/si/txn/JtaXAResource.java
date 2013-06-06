@@ -2,9 +2,10 @@ package com.splicemachine.si.txn;
 
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
+import org.apache.log4j.Logger;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
@@ -15,7 +16,7 @@ import java.util.Map;
  * View hbase as a JTA transactional resource. This allows it to participate in transactions across multiple resources.
  */
 public class JtaXAResource implements XAResource {
-    static final Log LOG = LogFactory.getLog(JtaXAResource.class);
+    private static final Logger LOG = Logger.getLogger(JtaXAResource.class);
     private Map<Xid, TransactionId> xidToTransactionState = new HashMap<Xid, TransactionId>();
     private final Transactor transactor;
     private ThreadLocal<TransactionId> threadLocalTransactionState = new ThreadLocal<TransactionId>();
@@ -27,8 +28,7 @@ public class JtaXAResource implements XAResource {
 
     @Override
     public void commit(final Xid xid, final boolean onePhase) throws XAException {
-        if (LOG.isInfoEnabled())
-            LOG.info("commit [" + xid.toString() + "] " + (onePhase ? "one phase" : "two phase"));
+    	SpliceLogUtils.trace(LOG, "commit [%s] with onePhase %s",xid, onePhase);
         TransactionId state = xidToTransactionState.remove(xid);
         if (state == null) {
             throw new XAException(XAException.XAER_NOTA);
@@ -50,12 +50,12 @@ public class JtaXAResource implements XAResource {
     }
     @Override
     public void end(final Xid xid, final int flags) throws XAException {
-        LOG.info("end [" + xid.toString() + "] ");
+    	SpliceLogUtils.trace(LOG, "end [%s]",xid);
         threadLocalTransactionState.remove();
     }
     @Override
     public void forget(final Xid xid) throws XAException {
-        LOG.info("forget [" + xid.toString() + "] ");
+    	SpliceLogUtils.trace(LOG, "forget [%s]",xid);
         threadLocalTransactionState.remove();
         TransactionId state = xidToTransactionState.remove(xid);
         if (state != null) {
@@ -81,7 +81,7 @@ public class JtaXAResource implements XAResource {
     }
     @Override
     public int prepare(final Xid xid) throws XAException {
-        LOG.info("prepare [" + xid.toString() + "] ");
+    	SpliceLogUtils.trace(LOG,"prepare[%s]",xid);
         return 0;
     }
 
@@ -91,7 +91,7 @@ public class JtaXAResource implements XAResource {
     }
     @Override
     public void rollback(final Xid xid) throws XAException {
-        LOG.info("rollback [" + xid.toString() + "] ");
+    	SpliceLogUtils.trace(LOG,"rollback [%s]",xid);
         forget(xid);
         threadLocalTransactionState.remove();
     }
@@ -102,7 +102,7 @@ public class JtaXAResource implements XAResource {
     }
     @Override
     public void start(final Xid xid, final int flags) throws XAException {
-        LOG.info("start [" + xid.toString() + "] ");
+    	SpliceLogUtils.trace(LOG, "start [%s]",xid);
         try {
             TransactionId state = transactor.beginTransaction();
             threadLocalTransactionState.set(state);
