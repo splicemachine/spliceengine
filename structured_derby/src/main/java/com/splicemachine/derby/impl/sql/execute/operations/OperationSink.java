@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.gotometrics.orderly.StringRowKey;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -12,15 +11,12 @@ import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 
 /**
  * @author Scott Fines

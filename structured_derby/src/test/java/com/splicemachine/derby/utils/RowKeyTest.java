@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.google.common.collect.Lists;
 import com.gotometrics.orderly.IntegerRowKey;
 import com.gotometrics.orderly.StringRowKey;
+
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;

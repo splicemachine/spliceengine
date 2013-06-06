@@ -1,24 +1,18 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
 import com.gotometrics.orderly.RowKey;
 import com.gotometrics.orderly.StructRowKey;
 import com.gotometrics.orderly.VariableLengthByteArrayRowKey;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
-import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

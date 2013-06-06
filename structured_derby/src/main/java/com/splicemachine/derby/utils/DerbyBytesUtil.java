@@ -9,11 +9,9 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-
 import com.google.common.io.Closeables;
 import com.gotometrics.orderly.*;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.store.access.Qualifier;

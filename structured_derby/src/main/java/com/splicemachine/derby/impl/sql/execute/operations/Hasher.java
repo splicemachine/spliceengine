@@ -7,6 +7,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import com.gotometrics.orderly.Order;
 import com.gotometrics.orderly.RowKey;
 import com.gotometrics.orderly.StringRowKey;
