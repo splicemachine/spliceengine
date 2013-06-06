@@ -453,30 +453,126 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public int compare(DataValueDescriptor other) throws StandardException {
-        forceDeserialization();
 
-        return getDvd().compare(unwrap(other));
+        int result;
+
+        boolean thisIsNull = this.isNull();
+        boolean otherIsNull = other.isNull();
+
+       if(thisIsNull || otherIsNull){
+           if(thisIsNull && otherIsNull){
+               result = 0;
+           }else if(thisIsNull){
+               result = 1;
+           }else{
+               result = -1;
+           }
+       }else if(other.isLazy() && this.isSameType(other)){
+           result = Bytes.compareTo(this.getBytes(), other.getBytes());
+       }else{
+           forceDeserialization();
+           result = getDvd().compare(unwrap(other));
+       }
+
+        return result;
+    }
+
+    private boolean isSameType(DataValueDescriptor dvd){
+        return this.getTypeFormatId() == dvd.getTypeFormatId();
     }
 
     @Override
     public int compare(DataValueDescriptor other, boolean nullsOrderedLow) throws StandardException {
-        forceDeserialization();
 
-        return getDvd().compare(unwrap(other), nullsOrderedLow);
+        int result;
+
+        boolean isThisNull = this.isNull();
+        boolean isOtherNull = other.isNull();
+
+        if( isThisNull || isOtherNull){
+
+            if(isThisNull && isOtherNull){
+
+                result = 0;
+
+            }else if( isThisNull ){
+
+                result = nullsOrderedLow ? -1 : 1;
+
+            }else{
+
+                result = nullsOrderedLow ? 1 : -1;
+
+            }
+
+        } else {
+            result = compare(other);
+        }
+
+        return result;
     }
 
     @Override
     public boolean compare(int op, DataValueDescriptor other, boolean orderedNulls, boolean unknownRV) throws StandardException {
-        forceDeserialization();
 
-        return getDvd().compare(op, unwrap(other), orderedNulls, unknownRV);
+        int compareResult = compare(other);
+
+        boolean result;
+
+        switch(op)
+        {
+            case ORDER_OP_LESSTHAN:
+                result = (compareResult < 0);   // this <  other
+                break;
+            case ORDER_OP_EQUALS:
+                result = (compareResult == 0);  // this == other
+                break;
+            case ORDER_OP_LESSOREQUALS:
+                result = (compareResult <= 0);  // this <= other
+                break;
+            case ORDER_OP_GREATERTHAN:
+                result = (compareResult > 0);   // this > other
+                break;
+            case ORDER_OP_GREATEROREQUALS:
+                result = (compareResult >= 0);  // this >= other
+                break;
+            default:
+                result = false;
+        }
+
+        return result;
+
     }
 
     @Override
     public boolean compare(int op, DataValueDescriptor other, boolean orderedNulls, boolean nullsOrderedLow, boolean unknownRV) throws StandardException {
-        forceDeserialization();
 
-        return getDvd().compare(op, unwrap(other), orderedNulls, nullsOrderedLow, unknownRV);
+        int compareResult = compare(other, nullsOrderedLow);
+
+        boolean result;
+
+        switch(op)
+        {
+            case ORDER_OP_LESSTHAN:
+                result = (compareResult < 0);   // this <  other
+                break;
+            case ORDER_OP_EQUALS:
+                result = (compareResult == 0);  // this == other
+                break;
+            case ORDER_OP_LESSOREQUALS:
+                result = (compareResult <= 0);  // this <= other
+                break;
+            case ORDER_OP_GREATERTHAN:
+                result = (compareResult > 0);   // this > other
+                break;
+            case ORDER_OP_GREATEROREQUALS:
+                result = (compareResult >= 0);  // this >= other
+                break;
+            default:
+                result = false;
+        }
+
+        return result;
     }
 
     @Override
@@ -503,8 +599,23 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public boolean isNull() {
-        forceDeserialization();
-        return getDvd() == null || getDvd().isNull();
+
+        boolean isWrappedDvdNull = getDvd().isNull();
+
+        boolean result;
+
+        if(isWrappedDvdNull){
+
+            result = dvdBytes == null || dvdBytes.length == 0;
+
+        }else{
+
+            result = false;
+
+        }
+
+        return result;
+
     }
 
     @Override
@@ -568,7 +679,6 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public int getTypeFormatId() {
-        forceDeserialization();
         return getDvd().getTypeFormatId();
     }
 

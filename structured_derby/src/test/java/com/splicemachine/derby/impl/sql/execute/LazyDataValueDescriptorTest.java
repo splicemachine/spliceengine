@@ -2,9 +2,11 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
 import com.splicemachine.homeless.SerializationUtils;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class LazyDataValueDescriptorTest {
@@ -122,6 +124,81 @@ public class LazyDataValueDescriptorTest {
         Assert.assertTrue("Foo bytes match after deserialization of whole DVD", Bytes.equals(fooBytes, newLdvd.getBytes()));
     }
 
+    @Test
+    public void testCompareWithoutDeserialization() throws Exception{
 
+        byte[] fooBytes = justBytes("foo");
+        byte[] barBytes = justBytes("bar");
+
+        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        fooDvd.initForDeserialization(fooBytes);
+
+        LazyDataValueDescriptor barDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        barDvd.initForDeserialization(barBytes);
+
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(barDvd.getDvd().isNull());
+
+        Assert.assertTrue(fooDvd.compare(barDvd) > 0);
+
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(barDvd.getDvd().isNull());
+    }
+
+    @Ignore
+    @Test
+    public void testPerfCompare() throws Exception {
+        String string1 = new String("abcdefghijklmnopqrstuvwxyz");
+        String string2 = new String("abcdefghijklmnopqrstuvwxyz1");
+
+        byte[] bytes1 = justBytes(string1);
+        byte[] bytes2 = justBytes(string2);
+
+        SQLVarchar sv1 = new SQLVarchar(string1);
+        SQLVarchar sv2 = new SQLVarchar(string2);
+
+
+        int x = 0;
+
+        long b1 = System.currentTimeMillis();
+
+        for(int i=0; i < 1000000000; i++){
+
+            if(Bytes.compareTo(bytes1, bytes2) < 0){
+                x++;
+            }
+
+        }
+        long a1 = System.currentTimeMillis();
+
+        int y = 0;
+
+        long b2 = System.currentTimeMillis();
+
+        for(int i=0; i < 1000000000; i++){
+
+            if(string1.compareTo(string2) < 0){
+                y++;
+            }
+
+        }
+        long a2 = System.currentTimeMillis();
+
+        int z = 0;
+
+        long b3 = System.currentTimeMillis();
+
+        for(int i=0; i < 1000000000; i++){
+
+            if(sv1.compareTo(sv2) < 0){
+                z++;
+            }
+
+        }
+        long a3 = System.currentTimeMillis();
+
+        System.out.println("Same results? " +  (x == y  && x == z) + " x: " + x + " y: " + y + " z: " + z);
+        System.out.println((a1 - b1) + " vs " + (a2 - b2) + " vs " + (a3-b3));
+    }
 
 }
