@@ -10,22 +10,16 @@ import com.splicemachine.derby.impl.job.scheduler.AsyncJobScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
 import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
-import com.splicemachine.si.api.TransactionStoreStatus;
-import com.splicemachine.si.api.TransactorStatus;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
 import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
-import com.splicemachine.si.data.hbase.HTransactorAdapter;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
-import com.splicemachine.tools.ThreadSafeResourcePool;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 import net.sf.ehcache.Cache;
@@ -35,9 +29,6 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import javax.management.*;
@@ -305,17 +296,8 @@ public class SpliceDriver extends SIConstants {
             mbs.registerMBean(jobScheduler,jobSchedulerName);
 
             //register transaction stuff
-            HTransactor transactor = HTransactorFactory.getTransactor();
-            if(transactor instanceof TransactorStatus){
-                ObjectName transactorName = new ObjectName("com.splicemachine.txn:type=TransactorStatus");
-                mbs.registerMBean(transactor,transactorName);
-            }
-
-            TransactionStoreStatus transactionStoreStatus = transactor.getTransactionStoreStatus();
-            ObjectName txnStoreStatus = new ObjectName("com.splicemachine.txn:type=TransactionStoreStatus");
-            mbs.registerMBean(transactionStoreStatus,txnStoreStatus);
-
-
+            ObjectName transactorName = new ObjectName("com.splicemachine.txn:type=TransactorStatus");
+            mbs.registerMBean(HTransactorFactory.getTransactorStatus(), transactorName);
         } catch (MalformedObjectNameException e) {
             //we want to log the message, but this shouldn't affect startup
             SpliceLogUtils.error(LOG,"Unable to register JMX entries",e);

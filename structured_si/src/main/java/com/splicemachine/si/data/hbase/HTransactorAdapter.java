@@ -16,7 +16,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import java.io.IOException;
 import java.util.List;
 
-public class HTransactorAdapter implements HTransactor,TransactorStatus {
+public class HTransactorAdapter implements HTransactor {
     Transactor delegate;
 
     public HTransactorAdapter(Transactor delegate) {
@@ -197,35 +197,5 @@ public class HTransactorAdapter implements HTransactor,TransactorStatus {
     @Override
     public boolean isDeletePut(Mutation put) {
         return delegate.isDeletePut(put);
-    }
-
-    @Override
-    public long getTotalChildTransactions() {
-        return ((TransactorStatus)delegate).getTotalChildTransactions();
-    }
-
-    @Override
-    public long getTotalTransactions() {
-        return ((TransactorStatus)delegate).getTotalTransactions();
-    }
-
-    @Override
-    public long getTotalCommittedTransactions() {
-        return ((TransactorStatus)delegate).getTotalCommittedTransactions();
-    }
-
-    @Override
-    public long getTotalRolledBackTransactions() {
-        return ((TransactorStatus)delegate).getTotalRolledBackTransactions();
-    }
-
-    @Override
-    public long getTotalFailedTransactions() {
-        return ((TransactorStatus)delegate).getTotalFailedTransactions();
-    }
-
-    @Override
-    public TransactionStoreStatus getTransactionStoreStatus() {
-        return ((SITransactor)delegate).getTransactionStore();
     }
 }

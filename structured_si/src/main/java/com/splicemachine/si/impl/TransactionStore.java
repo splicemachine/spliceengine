@@ -1,9 +1,8 @@
 package com.splicemachine.si.impl;
 
 import com.google.common.cache.Cache;
-import com.google.common.cache.CacheStats;
 import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.api.TransactionStoreStatus;
+import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.*;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -21,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Library of functions used by the SI module when accessing the transaction table. Encapsulates low-level data access
  * calls so the other classes can be expressed at a higher level.
  */
-public class TransactionStore implements TransactionStoreStatus {
+public class TransactionStore {
     static final Logger LOG = Logger.getLogger(TransactionStore.class);
 
     private final SDataLib dataLib;
@@ -35,14 +34,15 @@ public class TransactionStore implements TransactionStoreStatus {
     private final TransactionSchema encodedSchema;
     private int waitForCommittingMS;
 
-    private final AtomicLong writes = new AtomicLong(0l);
+    private final TransactorListener listener;
+
     private final AtomicLong loadedTxns = new AtomicLong(0l);
 
 
     public TransactionStore(TransactionSchema transactionSchema, SDataLib dataLib,
                             STableReader reader, STableWriter writer,
                             Cache<Long, ImmutableTransaction> immutableTransactionCache, Cache<Long, ActiveTransactionCacheEntry> activeTransactionCache,
-                            Cache<Long, Transaction> transactionCache, int waitForCommittingMS) {
+                            Cache<Long, Transaction> transactionCache, int waitForCommittingMS, TransactorListener listener) {
         this.transactionSchema = transactionSchema;
         this.encodedSchema = transactionSchema.encodedSchema(dataLib);
         this.dataLib = dataLib;
@@ -52,6 +52,7 @@ public class TransactionStore implements TransactionStoreStatus {
         this.immutableTransactionCache = immutableTransactionCache;
         this.writer = writer;
         this.waitForCommittingMS = waitForCommittingMS;
+        this.listener = listener;
     }
 
     public void recordNewTransaction(TransactionId startTransactionTimestamp, TransactionParams params,
@@ -238,7 +239,7 @@ public class TransactionStore implements TransactionStoreStatus {
                 } else {
                     //LOG.warn("cache NOT " + transactionId.getTransactionIdString());
                 }
-                loadedTxns.incrementAndGet();
+                listener.loadTransaction();
                 return result;
             }
         } finally {
@@ -341,7 +342,7 @@ public class TransactionStore implements TransactionStoreStatus {
         try {
             if (expectedStatus == null) {
                 writer.write(transactionSTable, put);
-                writes.incrementAndGet();
+                listener.writeTransaction();
                 return true;
             } else {
                 return writer.checkAndPut(transactionSTable, encodedSchema.siFamily, encodedSchema.statusQualifier,
@@ -370,78 +371,4 @@ public class TransactionStore implements TransactionStoreStatus {
         throw new RuntimeException("Unable to obtain timestamp");
     }
 
-    @Override
-    public long getActiveTxnCacheHits() {
-        return activeTransactionCache.stats().hitCount();
-    }
-
-    @Override
-    public long getActiveTxnCacheMisses() {
-        return activeTransactionCache.stats().missCount();
-    }
-
-    @Override
-    public double getActiveTxnCacheHitRatio() {
-        return activeTransactionCache.stats().hitRate();
-    }
-
-    @Override
-    public long getActiveTxnEvictionCount() {
-        return activeTransactionCache.stats().evictionCount();
-    }
-
-    @Override
-    public long getImmutableTxnCacheHits() {
-        return immutableTransactionCache.stats().hitCount();
-    }
-
-    @Override
-    public long getImmutableTxnCacheMisses() {
-        return immutableTransactionCache.stats().missCount();
-    }
-
-    @Override
-    public double getImmutableTxnCacheHitRatio() {
-        return immutableTransactionCache.stats().hitRate();
-    }
-
-    @Override
-    public long getImmutableTxnEvictionCount() {
-        return immutableTransactionCache.stats().evictionCount();
-    }
-
-    @Override
-    public long getCacheHits() {
-        return transactionCache.stats().hitCount();
-    }
-
-    @Override
-    public long getCacheMisses() {
-        return transactionCache.stats().missCount();
-    }
-
-    @Override
-    public double getCacheHitRatio() {
-        return transactionCache.stats().hitRate();
-    }
-
-    @Override
-    public long getCacheEvictionCount() {
-        return transactionCache.stats().evictionCount();
-    }
-
-    @Override
-    public long getNumLoadedTxns() {
-        return loadedTxns.get();
-    }
-
-    @Override
-    public long getNumTxnUpdatesWritten() {
-        return writes.get();
-    }
-
-    @Override
-    public int getCommitWaitTimeoutMs() {
-        return waitForCommittingMS;
-    }
 }

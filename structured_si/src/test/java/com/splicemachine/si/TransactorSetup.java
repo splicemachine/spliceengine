@@ -4,7 +4,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
 import com.splicemachine.si.data.hbase.HTransactorAdapter;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.DataStore;
@@ -19,6 +18,7 @@ import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.TransactionStore;
+import com.splicemachine.si.jmx.ManagedTransactor;
 
 import java.util.concurrent.TimeUnit;
 
@@ -34,7 +34,7 @@ public class TransactorSetup extends SIConstants {
 
     ClientTransactor clientTransactor;
     public Transactor transactor;
-    public HTransactor hTransactor;
+    public ManagedTransactor hTransactor;
     public final TransactionStore transactionStore;
     public RollForwardQueue rollForwardQueue;
 
@@ -51,7 +51,8 @@ public class TransactorSetup extends SIConstants {
         final Cache<Long, ImmutableTransaction> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         final Cache<Long, ActiveTransactionCacheEntry> activeCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         final Cache<Long, Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-        transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, immutableCache, activeCache, cache, 1000);
+        final ManagedTransactor listener = new ManagedTransactor(immutableCache, activeCache, cache);
+        transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, immutableCache, activeCache, cache, 1000, listener);
 
         final String tombstoneQualifierString = SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING;
         tombstoneQualifier = dataLib.encode(tombstoneQualifierString);
@@ -63,9 +64,10 @@ public class TransactorSetup extends SIConstants {
                         commitTimestampQualifierString, tombstoneQualifierString,
                         SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN_STRING,
                         -1, -2, userColumnsFamilyName),
-                transactionStore, storeSetup.getClock(), 1500);
+                transactionStore, storeSetup.getClock(), 1500, listener);
         if (!simple) {
-            hTransactor = new HTransactorAdapter(transactor);
+            listener.setTransactor(new HTransactorAdapter(transactor));
+            hTransactor = listener;
         }
         clientTransactor = transactor;
     }
