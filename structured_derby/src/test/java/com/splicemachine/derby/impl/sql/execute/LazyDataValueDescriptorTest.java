@@ -5,17 +5,15 @@ import com.splicemachine.homeless.SerializationUtils;
 import org.apache.derby.iapi.types.BooleanDataValue;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.Orderable;
-import org.apache.derby.iapi.types.SQLBoolean;
 import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class LazyDataValueDescriptorTest {
 
     private byte[] justBytes(String value) throws Exception {
-        LazyDataValueDescriptor ldvd = new LazyDataValueDescriptor(new SQLVarchar(value), new StringDVDSerializer());
+        LazyStringDataValueDescriptor ldvd = new LazyStringDataValueDescriptor(new SQLVarchar(value), new StringDVDSerializer());
         return ldvd.getBytes();
     }
 
@@ -24,7 +22,7 @@ public class LazyDataValueDescriptorTest {
 
         byte[] stringBytes = justBytes("foo");
 
-        LazyDataValueDescriptor ldvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor ldvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         ldvd.initForDeserialization(stringBytes);
 
         Assert.assertTrue(ldvd.getDvd().isNull());
@@ -40,7 +38,7 @@ public class LazyDataValueDescriptorTest {
 
         byte[] stringBytes = justBytes("foo");
 
-        LazyDataValueDescriptor ldvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor ldvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         ldvd.initForDeserialization(stringBytes);
 
         Assert.assertFalse(ldvd.isDeserialized());
@@ -56,14 +54,14 @@ public class LazyDataValueDescriptorTest {
     @Test
     public void testLazySerialization() throws Exception{
 
-        LazyDataValueDescriptor ldvd = new LazyDataValueDescriptor(new SQLVarchar("foo"), new StringDVDSerializer());
+        LazyStringDataValueDescriptor ldvd = new LazyStringDataValueDescriptor(new SQLVarchar("foo"), new StringDVDSerializer());
 
         Assert.assertFalse(ldvd.isSerialized());
 
         ldvd.getBytes();
         Assert.assertTrue(ldvd.isSerialized());
 
-        LazyDataValueDescriptor ldvd2 = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor ldvd2 = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         ldvd2.initForDeserialization(ldvd.getBytes());
 
         Assert.assertEquals("foo", ldvd2.getString());
@@ -75,7 +73,7 @@ public class LazyDataValueDescriptorTest {
         byte[] fooBytes = justBytes("foo");
         byte[] barBytes = justBytes("bar");
 
-        LazyDataValueDescriptor ldvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor ldvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         ldvd.initForDeserialization(fooBytes);
 
         Assert.assertTrue(ldvd.getDvd().isNull());
@@ -93,7 +91,7 @@ public class LazyDataValueDescriptorTest {
 
         byte[] fooBytes = justBytes("foo");
 
-        LazyDataValueDescriptor ldvd = new LazyDataValueDescriptor(new SQLVarchar("foo"), new StringDVDSerializer());
+        LazyStringDataValueDescriptor ldvd = new LazyStringDataValueDescriptor(new SQLVarchar("foo"), new StringDVDSerializer());
 
         Assert.assertFalse(ldvd.isSerialized());
         Assert.assertEquals("foo", ldvd.getString());
@@ -102,7 +100,7 @@ public class LazyDataValueDescriptorTest {
 
         byte[]  wholeDvdBytes = SerializationUtils.serializeToBytes(ldvd);
 
-        LazyDataValueDescriptor ldvdFromBytes = (LazyDataValueDescriptor) SerializationUtils.deserializeObject(wholeDvdBytes);
+        LazyStringDataValueDescriptor ldvdFromBytes = (LazyStringDataValueDescriptor) SerializationUtils.deserializeObject(wholeDvdBytes);
 
         Assert.assertFalse(ldvdFromBytes.isDeserialized());
         Assert.assertEquals("foo", ldvdFromBytes.getString());
@@ -115,12 +113,12 @@ public class LazyDataValueDescriptorTest {
 
         byte[] fooBytes = justBytes("foo");
 
-        LazyDataValueDescriptor ldvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor ldvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         ldvd.initForDeserialization(fooBytes);
 
         Assert.assertFalse(ldvd.isDeserialized());
 
-        LazyDataValueDescriptor newLdvd = SerializationUtils.roundTripObject(ldvd);
+        LazyStringDataValueDescriptor newLdvd = SerializationUtils.roundTripObject(ldvd);
 
         Assert.assertFalse(newLdvd.isDeserialized());
         Assert.assertEquals("foo", newLdvd.getString());
@@ -133,10 +131,10 @@ public class LazyDataValueDescriptorTest {
         byte[] fooBytes = justBytes("foo");
         byte[] barBytes = justBytes("bar");
 
-        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor fooDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         fooDvd.initForDeserialization(fooBytes);
 
-        LazyDataValueDescriptor barDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor barDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         barDvd.initForDeserialization(barBytes);
 
         Assert.assertTrue(fooDvd.getDvd().isNull());
@@ -156,10 +154,10 @@ public class LazyDataValueDescriptorTest {
 
         byte[] fooBytes = justBytes("foo");
 
-        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor fooDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         fooDvd.initForDeserialization(fooBytes);
 
-        LazyDataValueDescriptor barDvd = new LazyDataValueDescriptor(new SQLVarchar("bar"), new StringDVDSerializer());
+        LazyStringDataValueDescriptor barDvd = new LazyStringDataValueDescriptor(new SQLVarchar("bar"), new StringDVDSerializer());
 
         Assert.assertTrue(fooDvd.getDvd().isNull());
         Assert.assertFalse(barDvd.isSerialized());
@@ -177,7 +175,7 @@ public class LazyDataValueDescriptorTest {
 
         byte[] fooBytes = justBytes("foo");
 
-        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor fooDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         fooDvd.initForDeserialization(fooBytes);
 
         DataValueDescriptor barDvd = new SQLVarchar("bar");
@@ -195,10 +193,10 @@ public class LazyDataValueDescriptorTest {
 
         byte[] fooBytes = justBytes("foo");
 
-        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor fooDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         fooDvd.initForDeserialization(fooBytes);
 
-        LazyDataValueDescriptor barDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor barDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
 
         Assert.assertTrue(fooDvd.getDvd().isNull());
         Assert.assertTrue(barDvd.isNull());
@@ -218,10 +216,10 @@ public class LazyDataValueDescriptorTest {
         byte[] fooBytes = justBytes("foo");
         byte[] barBytes = justBytes("bar");
 
-        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor fooDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         fooDvd.initForDeserialization(fooBytes);
 
-        LazyDataValueDescriptor barDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor barDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         barDvd.initForDeserialization(barBytes);
 
         Assert.assertTrue(fooDvd.getDvd().isNull());
@@ -252,10 +250,10 @@ public class LazyDataValueDescriptorTest {
 
         byte[] fooBytes = justBytes("foo");
 
-        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor fooDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         fooDvd.initForDeserialization(fooBytes);
 
-        LazyDataValueDescriptor barDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor barDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
 
         Assert.assertTrue(fooDvd.getDvd().isNull());
         Assert.assertTrue(barDvd.isNull());
@@ -281,10 +279,10 @@ public class LazyDataValueDescriptorTest {
         byte[] fooBytes = justBytes("foo");
         byte[] barBytes = justBytes("bar");
 
-        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor fooDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         fooDvd.initForDeserialization(fooBytes);
 
-        LazyDataValueDescriptor barDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor barDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         barDvd.initForDeserialization(barBytes);
 
         Assert.assertTrue(fooDvd.getDvd().isNull());
@@ -319,7 +317,7 @@ public class LazyDataValueDescriptorTest {
 
         byte[] fooBytes = justBytes("foo");
 
-        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor fooDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         fooDvd.initForDeserialization(fooBytes);
 
         Assert.assertTrue(fooDvd.getDvd().isNull());
@@ -333,7 +331,7 @@ public class LazyDataValueDescriptorTest {
 
         byte[] fooBytes = justBytes("foo");
 
-        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        LazyStringDataValueDescriptor fooDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         fooDvd.initForDeserialization(fooBytes);
 
         int varcharTypeId = new SQLVarchar().getTypeFormatId();

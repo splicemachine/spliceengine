@@ -138,8 +138,9 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
         return sdv;
     }
 
-    private void setDvd(StringDataValue sdv) {
-        this.sdv = sdv;
+    @Override
+    protected void setDvd(DataValueDescriptor sdv) {
+        this.sdv = (StringDataValue) sdv;
     }
 
     @Override

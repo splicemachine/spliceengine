@@ -20,7 +20,7 @@ import java.io.ObjectOutput;
 import java.sql.*;
 import java.util.Calendar;
 
-public class LazyDataValueDescriptor implements DataValueDescriptor {
+public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     private static Logger LOG = Logger.getLogger(LazyDataValueDescriptor.class);
 
@@ -38,6 +38,12 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
         this.setDvd(dvd);
         this.DVDSerializer = DVDSerializer;
     }
+
+
+    protected abstract DataValueDescriptor getDvd();
+
+    protected abstract void setDvd(DataValueDescriptor dvd);
+
 
     public void initForDeserialization(byte[] bytes){
         this.dvdBytes = bytes;
@@ -187,23 +193,8 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
     }
 
     @Override
-    public DataValueDescriptor cloneHolder() {
-        return new LazyDataValueDescriptor(getDvd().cloneHolder(), DVDSerializer);
-    }
-
-    @Override
-    public DataValueDescriptor cloneValue(boolean forceMaterialization) {
-        return new LazyDataValueDescriptor(getDvd().cloneValue(forceMaterialization), DVDSerializer);
-    }
-
-    @Override
     public DataValueDescriptor recycle() {
         return null;
-    }
-
-    @Override
-    public DataValueDescriptor getNewNull() {
-        return new LazyDataValueDescriptor(getDvd().getNewNull(), DVDSerializer);
     }
 
     @Override
@@ -406,69 +397,32 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public BooleanDataValue equals(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
-        return convertToSqlBoolean(left, right, ORDER_OP_EQUALS);
+        return SQLBoolean.truthValue(left, right, left.compare(right) == 0);
     }
 
     @Override
     public BooleanDataValue notEquals(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
-        return flipBoolean(convertToSqlBoolean(left, right, ORDER_OP_EQUALS));
+        return SQLBoolean.truthValue(left, right, left.compare(right) != 0);
     }
 
     @Override
     public BooleanDataValue lessThan(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
-        return convertToSqlBoolean(left, right, ORDER_OP_LESSTHAN);
+        return SQLBoolean.truthValue(left, right, left.compare(right) < 0);
     }
 
     @Override
     public BooleanDataValue greaterThan(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
-        return convertToSqlBoolean(left, right, ORDER_OP_GREATERTHAN);
+        return SQLBoolean.truthValue(left, right, left.compare(right) > 0);
     }
 
     @Override
     public BooleanDataValue lessOrEquals(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
-        return convertToSqlBoolean(left, right, ORDER_OP_LESSOREQUALS);
+        return SQLBoolean.truthValue(left, right, left.compare(right) <= 0);
     }
 
     @Override
     public BooleanDataValue greaterOrEquals(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
-        return convertToSqlBoolean(left, right, ORDER_OP_GREATEROREQUALS);
-    }
-
-    private SQLBoolean convertToSqlBoolean(DataValueDescriptor left, DataValueDescriptor right, int op) throws StandardException {
-
-        SQLBoolean result;
-
-        if(left.isNull() || right.isNull()){
-
-            result = SQLBoolean.unknownTruthValue();
-
-        }else{
-
-            if(left.compare(op, right, false, false)){
-
-                result = SQLBoolean.trueTruthValue();
-
-            }else{
-
-                result = SQLBoolean.falseTruthValue();
-
-            }
-        }
-
-        return result;
-    }
-
-    private SQLBoolean flipBoolean(SQLBoolean bool){
-
-        SQLBoolean flipped;
-
-        if(bool.getBoolean()){
-            flipped = SQLBoolean.falseTruthValue();
-        }else{
-            flipped = SQLBoolean.trueTruthValue();
-        }
-
-        return flipped;
+        return SQLBoolean.truthValue(left, right, left.compare(right) >= 0);
     }
 
     @Override
@@ -691,14 +645,6 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
     @Override
     public int getTypeFormatId() {
         return getDvd().getTypeFormatId();
-    }
-
-    protected DataValueDescriptor getDvd() {
-        return dvd;
-    }
-
-    protected void setDvd(DataValueDescriptor dvd) {
-        this.dvd = dvd;
     }
 
     @Override
