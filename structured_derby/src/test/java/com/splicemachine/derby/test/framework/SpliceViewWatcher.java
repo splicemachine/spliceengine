@@ -11,42 +11,23 @@ import java.sql.Statement;
 
 /**
  * @author Jeff Cunningham
- *         Date: 6/5/13
+ *         Date: 6/7/13
  */
-public class SpliceTriggerWatcher extends TestWatcher {
-    public static final String CREATE_TRIGGER = "create trigger ";
-    private static final Logger LOG = Logger.getLogger(SpliceTriggerWatcher.class);
-    protected String triggerName;
+public class SpliceViewWatcher extends TestWatcher {
+    public static final String CREATE_VIEW = "create view ";
+    private static final Logger LOG = Logger.getLogger(SpliceViewWatcher.class);
+    protected String viewName;
     protected String schemaName;
     protected String createString;
-    // TODO: add more specific trigger building params
-/*
-CREATE TRIGGER TriggerName
-AFTER
-{ INSERT | DELETE | UPDATE [ OF column-Name [, column-Name]* ]
-ON table-Name
-[ ReferencingClause ]
-FOR EACH { ROW | STATEMENT } MODE DB2SQL
-Triggered-SQL-statement
-
-ReferencingClause:
-
-REFERENCING
-{
-{ OLD | NEW } [ AS ] correlation-Name [ { OLD | NEW } [ AS ] correlation-Name ] |
-{ OLD_TABLE | NEW_TABLE } [ AS ] Identifier [ { OLD_TABLE | NEW_TABLE }
-[AS] Identifier ]
-}
-*/
 
     /**
      *
-     * @param triggerName name for the trigger.
-     * @param schemaName schema in which to place the trigger;
-     * @param createString trigger creation string
+     * @param viewName name for the view.
+     * @param schemaName schema in which to place the view;
+     * @param createString view creation string
      */
-    public SpliceTriggerWatcher(String triggerName,String schemaName, String createString) {
-        this.triggerName = triggerName.toUpperCase();
+    public SpliceViewWatcher(String viewName,String schemaName, String createString) {
+        this.viewName = viewName.toUpperCase();
         this.schemaName = schemaName.toUpperCase();
         this.createString = createString;
     }
@@ -58,16 +39,16 @@ REFERENCING
         ResultSet rs = null;
         try {
             connection = SpliceNetConnection.getConnection();
-            rs = connection.getMetaData().getTables(null, schemaName, triggerName, null);
+            rs = connection.getMetaData().getTables(null, schemaName, viewName, null);
             if (rs.next()) {
-                executeDrop(schemaName, triggerName);
+                executeDrop(schemaName, viewName);
             }
             connection.commit();
             statement = connection.createStatement();
-            statement.execute(CREATE_TRIGGER + schemaName + "." + triggerName + " " + createString);
+            statement.execute(CREATE_VIEW + schemaName + "." + viewName + " " + createString);
             connection.commit();
         } catch (Exception e) {
-            LOG.error("Create trigger statement is invalid ");
+            LOG.error("Create view statement is invalid ");
             e.printStackTrace(System.err);
             throw new RuntimeException(e);
         } finally {
@@ -80,17 +61,17 @@ REFERENCING
     @Override
     public void finished(Description description) {
         LOG.trace("finished");
-        executeDrop(schemaName, triggerName);
+        executeDrop(schemaName, viewName);
     }
 
-    public static void executeDrop(String schemaName,String triggerName) {
+    public static void executeDrop(String schemaName,String viewName) {
         LOG.trace("executeDrop");
         Connection connection = null;
         Statement statement = null;
         try {
             connection = SpliceNetConnection.getConnection();
             statement = connection.createStatement();
-            statement.execute("drop trigger " + schemaName.toUpperCase() + "." + triggerName.toUpperCase());
+            statement.execute("drop view " + schemaName.toUpperCase() + "." + viewName.toUpperCase());
             connection.commit();
         } catch (Exception e) {
             LOG.error("error Dropping " + e.getMessage());
@@ -102,10 +83,9 @@ REFERENCING
         }
     }
 
-
     @Override
     public String toString() {
-        return schemaName+"."+triggerName;
+        return schemaName+"."+viewName;
     }
 
 }

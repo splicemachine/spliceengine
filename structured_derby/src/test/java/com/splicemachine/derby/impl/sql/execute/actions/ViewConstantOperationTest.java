@@ -7,9 +7,9 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 
@@ -18,21 +18,21 @@ import java.util.List;
  *         Date: 6/6/13
  */
 public class ViewConstantOperationTest extends SpliceUnitTest {
-    private static List<String> empNameVals = Arrays.asList(
+    public static final String CLASS_NAME = ViewConstantOperationTest.class.getSimpleName().toUpperCase();
+
+    private static final List<String> empNameVals = Arrays.asList(
             "(001,'Jeff','Cunningham')",
             "(002,'Bill','Gates')",
             "(003,'John','Jones')",
             "(004,'Warren','Buffet')",
             "(005,'Tom','Jones')");
 
-    private static List<String> empPrivVals = Arrays.asList(
+    private static final List<String> empPrivVals = Arrays.asList(
             "(001,'04/08/1900','555-123-4567')",
             "(002,'02/20/1999','555-123-4577')",
             "(003,'11/31/2001','555-123-4587')",
             "(004,'06/05/1985','555-123-4597')",
             "(005,'09/19/1968','555-123-4507')");
-
-    public static final String CLASS_NAME = ViewConstantOperationTest.class.getSimpleName().toUpperCase();
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String EMP_NAME_TABLE = "emp_name";
@@ -88,7 +88,8 @@ public class ViewConstantOperationTest extends SpliceUnitTest {
         Connection connection1 = methodWatcher.createConnection();
         connection1.setAutoCommit(false);
         // create
-        connection1.createStatement().execute(String.format("create view %s.%s (id, lname, fname, dob, ssn) as select n.id, n.lname, n.fname, p.dob, p.ssn from %s n, %s p where n.id = p.id",
+        connection1.createStatement().execute(
+                String.format("create view %s.%s (id, lname, fname, dob, ssn) as select n.id, n.lname, n.fname, p.dob, p.ssn from %s n, %s p where n.id = p.id",
                 tableSchema.schemaName,
                 VIEW_NAME_1,
                 this.getTableReference(EMP_NAME_TABLE),
@@ -103,6 +104,36 @@ public class ViewConstantOperationTest extends SpliceUnitTest {
         // attempt read
         try {
             resultSet = connection1.createStatement().executeQuery(String.format("select * from %s", VIEW_NAME_1));
+        } catch (SQLException e) {
+            // expected
+        }
+        Assert.assertEquals(0, resultSetSize(resultSet));
+    }
+
+    /**
+     * Basic view create / drop with view in different schema than tables.
+     * @throws Exception
+     */
+    @Test
+    public void testViewCreateDropDiffSchema() throws Exception {
+        Connection connection1 = methodWatcher.createConnection();
+        connection1.setAutoCommit(false);
+        // create
+        connection1.createStatement().execute(String.format("create view %s.%s (id, lname, fname, dob, ssn) as select n.id, n.lname, n.fname, p.dob, p.ssn from %s n, %s p where n.id = p.id",
+                viewSchema.schemaName,
+                VIEW_NAME_2,
+                this.getTableReference(EMP_NAME_TABLE),
+                this.getTableReference(EMP_PRIV_TABLE)));
+        ResultSet resultSet = connection1.createStatement().executeQuery(String.format("select * from %s.%s", viewSchema.schemaName, VIEW_NAME_2));
+        Assert.assertEquals(5, resultSetSize(resultSet));
+
+        // drop
+        connection1.createStatement().execute(String.format("drop view %s.%s", viewSchema.schemaName, VIEW_NAME_2));
+        connection1.commit();
+
+        // attempt read
+        try {
+            resultSet = connection1.createStatement().executeQuery(String.format("select * from %s", VIEW_NAME_2));
         } catch (SQLException e) {
             // expected
         }
@@ -206,6 +237,96 @@ public class ViewConstantOperationTest extends SpliceUnitTest {
             Assert.fail("Expected an exception but didn't get one.");
         } catch (Exception e) {
             // expected
+        }
+    }
+
+    /**
+     * Test view creation isolation.
+     * @throws Exception
+     */
+    @Test
+    @Ignore("Bug 548")
+    public void testViewCreationIsolation() throws Exception {
+        String create =  String.format("create view %s.%s (id, lname, fname, dob, ssn) as select n.id, n.lname, n.fname, p.dob, p.ssn from %s n, %s p where n.id = p.id",
+                tableSchema.schemaName,
+                VIEW_NAME_1,
+                this.getTableReference(EMP_NAME_TABLE),
+                this.getTableReference(EMP_PRIV_TABLE));
+        String query = String.format("select * from %s.%s", tableSchema.schemaName, VIEW_NAME_1);
+
+        Connection connection1 = methodWatcher.createConnection();
+        Statement statement1 = connection1.createStatement();
+        Connection connection2 = methodWatcher.createConnection();
+        try {
+            connection1.setAutoCommit(false);
+            connection2.setAutoCommit(false);
+            statement1.execute(create);
+
+            ResultSet resultSet = connection2.createStatement().executeQuery(query);
+            Assert.assertEquals("Read Committed Violated", 0, resultSetSize(resultSet));
+
+            resultSet = connection1.createStatement().executeQuery(query);
+            Assert.assertTrue("Connection should see its own writes",resultSet.next());
+
+            connection1.commit();
+            resultSet = connection2.createStatement().executeQuery(query);
+            Assert.assertEquals("Read Committed Violated", 0, resultSetSize(resultSet));
+
+            connection2.commit();
+            resultSet = connection2.createStatement().executeQuery(query);
+            Assert.assertTrue("New Transaction cannot see created object",resultSet.next());
+        } finally {
+            // drop/delete the damn thing
+            try {
+                statement1.execute(String.format("drop view %s.%s", tableSchema.schemaName, VIEW_NAME_1));
+            } catch (SQLException e) {
+                // ignore
+            }
+        }
+    }
+
+    /**
+     * Test view rollback isolation.
+     * @throws Exception
+     */
+    @Test
+    @Ignore("Bug 548")
+    public void testViewRollbackIsolation() throws Exception {
+        String create =  String.format("create view %s.%s (id, lname, fname, dob, ssn) as select n.id, n.lname, n.fname, p.dob, p.ssn from %s n, %s p where n.id = p.id",
+                tableSchema.schemaName,
+                VIEW_NAME_1,
+                this.getTableReference(EMP_NAME_TABLE),
+                this.getTableReference(EMP_PRIV_TABLE));
+        String query = String.format("select * from %s.%s", tableSchema.schemaName, VIEW_NAME_1);
+
+        Connection connection1 = methodWatcher.createConnection();
+        Statement statement1 = connection1.createStatement();
+        Connection connection2 = methodWatcher.createConnection();
+        try {
+            connection1.setAutoCommit(false);
+            connection2.setAutoCommit(false);
+            statement1.execute(create);
+
+            ResultSet resultSet = connection2.createStatement().executeQuery(query);
+            Assert.assertEquals("Read Committed Violated", 0, resultSetSize(resultSet));
+
+            resultSet = connection1.createStatement().executeQuery(query);
+            Assert.assertTrue("Connection should see its own writes",resultSet.next());
+
+            connection1.rollback();
+            resultSet = connection2.createStatement().executeQuery(query);
+            Assert.assertEquals("Read Committed Violated", 0, resultSetSize(resultSet));
+
+            connection2.commit();
+            resultSet = connection2.createStatement().executeQuery(query);
+            Assert.assertFalse("New Transaction can see rolledback object", resultSet.next());
+        } finally {
+            // drop/delete the damn thing
+            try {
+                statement1.execute(String.format("drop view %s.%s", tableSchema.schemaName, VIEW_NAME_1));
+            } catch (SQLException e) {
+                // ignore
+            }
         }
     }
 }

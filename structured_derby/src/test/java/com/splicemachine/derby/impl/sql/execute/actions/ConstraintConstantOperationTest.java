@@ -40,6 +40,7 @@ import java.sql.SQLException;
  */
 @Ignore("Bug 535")
 public class ConstraintConstantOperationTest extends SpliceUnitTest {
+    private static final String CLASS_NAME = ConstraintConstantOperationTest.class.getSimpleName().toUpperCase();
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static SpliceSchemaWatcher spliceSchemaWatcher =
@@ -48,24 +49,44 @@ public class ConstraintConstantOperationTest extends SpliceUnitTest {
             new SpliceTableWatcher("Tasks",ConstraintConstantOperationTest.class.getSimpleName(),
     "(TaskId INT, StartedAt INT, FinishedAt INT, CONSTRAINT CHK_StartedAt_Before_FinishedAt CHECK (StartedAt < FinishedAt))");
 
+    private static String eNameDef = "(id int not null, fname varchar(8) not null, lname varchar(10) not null)";
+    private static String ePrivDef = "(id int not null, dob varchar(10) not null, ssn varchar(12) not null)";
+    protected static SpliceTableWatcher empNameTable = new SpliceTableWatcher("emp_name",CLASS_NAME, eNameDef);
+    protected static SpliceTableWatcher empPrivTable = new SpliceTableWatcher("emp_priv",CLASS_NAME, ePrivDef);
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
-            .around(spliceTableWatcher);
+            .around(spliceTableWatcher)
+            .around(empNameTable)
+            .around(empPrivTable);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
     public void testInsertGoodRow() throws Exception{
-        methodWatcher.getStatement().execute("insert into"+this.getPaddedTableReference("Tasks")+"(TaskId, StartedAt, FinishedAt) values (1234,0500,0600)");
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference("Tasks"), 1234));
+        methodWatcher.getStatement().execute(String.format("insert into %s (TaskId, StartedAt, FinishedAt) values (1234,0500,0600)",
+                        this.getTableReference("Tasks")));
+        ResultSet rs = methodWatcher.executeQuery(String.format("select * from %s where name = '%s'",
+                        this.getTableReference("Tasks"),
+                        1234));
         Assert.assertTrue(rs.next());
     }
 
     @Test(expected=SQLException.class)
     public void testInsertBadRow() throws Exception{
-        methodWatcher.getStatement().execute("insert into" + this.getPaddedTableReference("Tasks") + "(TaskId, StartedAt, FinishedAt) values (1235,0601,0600)");
+        methodWatcher.getStatement().execute(
+                String.format("insert into %s (TaskId, StartedAt, FinishedAt) values (1235,0601,0600)",
+                        this.getTableReference("Tasks")));
     }
 
+    @Test
+    public void testAddForeignKey() throws Exception {
+        methodWatcher.getStatement().execute(String.format("alter table %s.%s add foreign key (N_ID) references %s.%s (id)",
+                spliceSchemaWatcher.schemaName,
+                "emp_priv",
+                spliceSchemaWatcher.schemaName,
+                "emp_name"));
+    }
 }
