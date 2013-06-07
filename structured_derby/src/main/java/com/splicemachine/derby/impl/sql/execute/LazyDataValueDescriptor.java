@@ -515,39 +515,18 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
     @Override
     public boolean compare(int op, DataValueDescriptor other, boolean orderedNulls, boolean unknownRV) throws StandardException {
 
-        int compareResult = compare(other);
-
-        boolean result;
-
-        switch(op)
-        {
-            case ORDER_OP_LESSTHAN:
-                result = (compareResult < 0);   // this <  other
-                break;
-            case ORDER_OP_EQUALS:
-                result = (compareResult == 0);  // this == other
-                break;
-            case ORDER_OP_LESSOREQUALS:
-                result = (compareResult <= 0);  // this <= other
-                break;
-            case ORDER_OP_GREATERTHAN:
-                result = (compareResult > 0);   // this > other
-                break;
-            case ORDER_OP_GREATEROREQUALS:
-                result = (compareResult >= 0);  // this >= other
-                break;
-            default:
-                result = false;
-        }
-
-        return result;
+        return compareResultWithOperator(op, compare(other));
 
     }
 
     @Override
     public boolean compare(int op, DataValueDescriptor other, boolean orderedNulls, boolean nullsOrderedLow, boolean unknownRV) throws StandardException {
 
-        int compareResult = compare(other, nullsOrderedLow);
+        return compareResultWithOperator(op, compare(other, nullsOrderedLow));
+
+    }
+
+    private boolean compareResultWithOperator(int op, int compareResult){
 
         boolean result;
 
