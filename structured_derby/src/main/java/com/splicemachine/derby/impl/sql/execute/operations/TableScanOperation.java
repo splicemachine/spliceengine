@@ -11,6 +11,7 @@ import java.util.Properties;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -164,7 +165,6 @@ public class TableScanOperation extends ScanOperation {
 
     @Override
 	public ExecRow getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG,"%s:getNextRowCore",tableName);
 		beginTime = getCurrentTimeMillis();
 		List<KeyValue> keyValues = new ArrayList<KeyValue>();
 		try {
@@ -175,23 +175,22 @@ public class TableScanOperation extends ScanOperation {
 				currentRowLocation = null;
 			} else {
 				SpliceUtils.populate(keyValues, currentRow.getRowArray(), accessedCols, baseColumnMap);
-
-                if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()) instanceof RowLocation){
+                if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
                     /*
                      * If indexName !=null, then we are currently scanning an index,
                      *so our RowLocation should point to the main table, and not to the
                      * index (that we're actually scanning)
                      */
                     currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
-                }else
-                    currentRowLocation = new HBaseRowLocation(keyValues.get(0).getRow());
+                } else {
+                    currentRowLocation.setValue(keyValues.get(0).getRow());
+                }
 			}
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrow(LOG, tableName+":Error during getNextRowCore",
 																				StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
 		}
 		setCurrentRow(currentRow);
-		SpliceLogUtils.trace(LOG,"<%s> emitting %s",tableName,currentRow);
 		nextTime += getElapsedMillis(beginTime);
 		return currentRow;
 	}
