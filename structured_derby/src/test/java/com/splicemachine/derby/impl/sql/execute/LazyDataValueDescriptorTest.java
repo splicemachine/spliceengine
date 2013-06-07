@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute;
 import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
 import com.splicemachine.homeless.SerializationUtils;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.Orderable;
 import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
@@ -188,7 +189,7 @@ public class LazyDataValueDescriptorTest {
     }
 
     @Test
-    public void testCompareWithLazyNullsOrderedLow() throws Exception{
+     public void testCompareWithLazyNullsOrderedLow() throws Exception{
 
         byte[] fooBytes = justBytes("foo");
 
@@ -208,6 +209,70 @@ public class LazyDataValueDescriptorTest {
 
         Assert.assertTrue(fooDvd.getDvd().isNull());
     }
+
+    @Test
+    public void testCompareWithOperator() throws Exception{
+
+        byte[] fooBytes = justBytes("foo");
+        byte[] barBytes = justBytes("bar");
+
+        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        fooDvd.initForDeserialization(fooBytes);
+
+        LazyDataValueDescriptor barDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        barDvd.initForDeserialization(barBytes);
+
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(barDvd.getDvd().isNull());
+
+        Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_GREATEROREQUALS, barDvd, false, false));
+        Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_GREATERTHAN, barDvd, false, false));
+        Assert.assertFalse(fooDvd.compare(Orderable.ORDER_OP_EQUALS, barDvd, false, false));
+        Assert.assertFalse(fooDvd.compare(Orderable.ORDER_OP_LESSTHAN, barDvd, false, false));
+        Assert.assertFalse(fooDvd.compare(Orderable.ORDER_OP_LESSOREQUALS, barDvd, false, false));
+
+        Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_EQUALS, fooDvd, false, false));
+        Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_LESSOREQUALS, fooDvd, false, false));
+        Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_GREATEROREQUALS, fooDvd, false, false));
+
+        Assert.assertFalse(barDvd.compare(Orderable.ORDER_OP_GREATEROREQUALS, fooDvd, false, false));
+        Assert.assertFalse(barDvd.compare(Orderable.ORDER_OP_GREATERTHAN, fooDvd, false, false));
+        Assert.assertFalse(barDvd.compare(Orderable.ORDER_OP_EQUALS, fooDvd, false, false));
+        Assert.assertTrue(barDvd.compare(Orderable.ORDER_OP_LESSTHAN, fooDvd, false, false));
+        Assert.assertTrue(barDvd.compare(Orderable.ORDER_OP_LESSOREQUALS, fooDvd, false, false));
+
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(barDvd.getDvd().isNull());
+    }
+
+    @Test
+    public void testCompareWithOperatorAndOrderedNulls() throws Exception{
+
+        byte[] fooBytes = justBytes("foo");
+
+        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        fooDvd.initForDeserialization(fooBytes);
+
+        LazyDataValueDescriptor barDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(barDvd.isNull());
+
+        Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_GREATEROREQUALS, barDvd, false, true, false));
+        Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_GREATERTHAN, barDvd, false, true, false));
+        Assert.assertFalse(fooDvd.compare(Orderable.ORDER_OP_EQUALS, barDvd, false, true, false));
+        Assert.assertFalse(fooDvd.compare(Orderable.ORDER_OP_LESSTHAN, barDvd, false, true, false));
+        Assert.assertFalse(fooDvd.compare(Orderable.ORDER_OP_LESSOREQUALS, barDvd, false, true, false));
+
+        Assert.assertFalse(fooDvd.compare(Orderable.ORDER_OP_GREATEROREQUALS, barDvd, false, false, false));
+        Assert.assertFalse(fooDvd.compare(Orderable.ORDER_OP_GREATERTHAN, barDvd, false, false, false));
+        Assert.assertFalse(fooDvd.compare(Orderable.ORDER_OP_EQUALS, barDvd, false, false, false));
+        Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_LESSTHAN, barDvd, false, false, false));
+        Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_LESSOREQUALS, barDvd, false, false, false));
+
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+    }
+
 
     @Test
     public void testLazyIsNull() throws Exception{
