@@ -140,65 +140,103 @@ public class LazyDataValueDescriptorTest {
         Assert.assertTrue(barDvd.getDvd().isNull());
 
         Assert.assertTrue(fooDvd.compare(barDvd) > 0);
+        Assert.assertTrue(barDvd.compare(fooDvd) < 0);
+        Assert.assertTrue(fooDvd.compare(fooDvd) == 0);
+
 
         Assert.assertTrue(fooDvd.getDvd().isNull());
         Assert.assertTrue(barDvd.getDvd().isNull());
     }
 
-    @Ignore
     @Test
-    public void testPerfCompare() throws Exception {
-        String string1 = new String("abcdefghijklmnopqrstuvwxyz");
-        String string2 = new String("abcdefghijklmnopqrstuvwxyz1");
+    public void testCompareWithUnserializedRightSide() throws Exception{
 
-        byte[] bytes1 = justBytes(string1);
-        byte[] bytes2 = justBytes(string2);
+        byte[] fooBytes = justBytes("foo");
 
-        SQLVarchar sv1 = new SQLVarchar(string1);
-        SQLVarchar sv2 = new SQLVarchar(string2);
+        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        fooDvd.initForDeserialization(fooBytes);
 
+        LazyDataValueDescriptor barDvd = new LazyDataValueDescriptor(new SQLVarchar("bar"), new StringDVDSerializer());
 
-        int x = 0;
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertFalse(barDvd.isSerialized());
 
-        long b1 = System.currentTimeMillis();
+        Assert.assertTrue(fooDvd.compare(barDvd) > 0);
+        Assert.assertTrue(barDvd.compare(fooDvd) < 0);
+        Assert.assertTrue(fooDvd.compare(fooDvd) == 0);
 
-        for(int i=0; i < 1000000000; i++){
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(barDvd.isSerialized());
+    }
 
-            if(Bytes.compareTo(bytes1, bytes2) < 0){
-                x++;
-            }
+    @Test
+    public void testCompareWithNonLazyRightSide() throws Exception{
 
-        }
-        long a1 = System.currentTimeMillis();
+        byte[] fooBytes = justBytes("foo");
 
-        int y = 0;
+        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        fooDvd.initForDeserialization(fooBytes);
 
-        long b2 = System.currentTimeMillis();
+        DataValueDescriptor barDvd = new SQLVarchar("bar");
 
-        for(int i=0; i < 1000000000; i++){
+        Assert.assertTrue(fooDvd.getDvd().isNull());
 
-            if(string1.compareTo(string2) < 0){
-                y++;
-            }
+        Assert.assertTrue(fooDvd.compare(barDvd) > 0);
+        Assert.assertTrue(fooDvd.compare(fooDvd) == 0);
 
-        }
-        long a2 = System.currentTimeMillis();
+        Assert.assertFalse(fooDvd.getDvd().isNull());
+    }
 
-        int z = 0;
+    @Test
+    public void testCompareWithLazyNullsOrderedLow() throws Exception{
 
-        long b3 = System.currentTimeMillis();
+        byte[] fooBytes = justBytes("foo");
 
-        for(int i=0; i < 1000000000; i++){
+        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        fooDvd.initForDeserialization(fooBytes);
 
-            if(sv1.compareTo(sv2) < 0){
-                z++;
-            }
+        LazyDataValueDescriptor barDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
 
-        }
-        long a3 = System.currentTimeMillis();
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(barDvd.isNull());
 
-        System.out.println("Same results? " +  (x == y  && x == z) + " x: " + x + " y: " + y + " z: " + z);
-        System.out.println((a1 - b1) + " vs " + (a2 - b2) + " vs " + (a3-b3));
+        Assert.assertTrue(fooDvd.compare(barDvd, true) > 0);
+        Assert.assertTrue(fooDvd.compare(barDvd, false) < 0);
+        Assert.assertTrue(barDvd.compare(fooDvd, true) < 0);
+        Assert.assertTrue(barDvd.compare(fooDvd, false) > 0);
+        Assert.assertTrue(barDvd.compare(barDvd) == 0);
+
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+    }
+
+    @Test
+    public void testLazyIsNull() throws Exception{
+
+        byte[] fooBytes = justBytes("foo");
+
+        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        fooDvd.initForDeserialization(fooBytes);
+
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertFalse(fooDvd.isNull());
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+
+    }
+
+    @Test
+    public void testLazyGetTypeFormatId() throws Exception{
+
+        byte[] fooBytes = justBytes("foo");
+
+        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        fooDvd.initForDeserialization(fooBytes);
+
+        int varcharTypeId = new SQLVarchar().getTypeFormatId();
+
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertEquals(fooDvd.getTypeFormatId(), varcharTypeId);
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+
     }
 
 }
