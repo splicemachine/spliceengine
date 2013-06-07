@@ -161,8 +161,7 @@ public class SIFilterState implements FilterState {
         } else if (dataStore.isSIFail(value())) {
             transaction = Transaction.makeFailedTransaction(timestamp());
         } else {
-            // TODO: we should avoid loading the full transaction here once roll-forward is revisited
-            transaction = getTransactionFromFilterCache(timestamp());
+            transaction = Transaction.makeCommittedTransaction(timestamp(), (Long) dataLib.decode(value(), Long.class));
         }
         rowState.transactionCache.put(transaction.getTransactionId().getId(), transaction);
         return SKIP;
