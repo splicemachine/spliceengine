@@ -17,6 +17,7 @@ public class SICompactionState {
     private final SDataLib dataLib;
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
+    private final DecodedKeyValue keyValue;
 
     /**
      * Cache of transactions that have been read during the execution of this compaction.
@@ -25,6 +26,7 @@ public class SICompactionState {
 
     public SICompactionState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore) {
         this.dataLib = dataLib;
+        this.keyValue = new DecodedKeyValue(dataLib);
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
     }
@@ -37,30 +39,30 @@ public class SICompactionState {
      */
     public void mutate(List rawList, List results) throws IOException {
         for (Object kv : rawList) {
-            results.add(mutate(kv));
+            keyValue.setKeyValue(kv);
+            results.add(mutate(keyValue));
         }
     }
 
     /**
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
-    private Object mutate(Object kv) throws IOException {
-        final KeyValueType keyValueType = dataStore.getKeyValueType(dataLib.getKeyValueFamily(kv),
-                dataLib.getKeyValueQualifier(kv));
+    private Object mutate(DecodedKeyValue kv) throws IOException {
+        final KeyValueType keyValueType = dataStore.getKeyValueType(kv.family(), kv.qualifier());
         if (keyValueType.equals(KeyValueType.COMMIT_TIMESTAMP)){
             return mutateCommitTimestamp(kv);
         }else{
-            return kv;
+            return kv.keyValue();
         }
     }
 
     /**
      * Replace unknown commit timestamps with actual commit times.
      */
-    private Object mutateCommitTimestamp(Object kv) throws IOException {
-        Object result = kv;
-        if (dataStore.isSINull(dataLib.getKeyValueValue(kv))) {
-            final Transaction transaction = getFromCache(dataLib.getKeyValueTimestamp(kv));
+    private Object mutateCommitTimestamp(DecodedKeyValue kv) throws IOException {
+        Object result = kv.keyValue();
+        if (dataStore.isSINull(kv.value())) {
+            final Transaction transaction = getFromCache(kv.timestamp());
             final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
             if (effectiveStatus.equals(TransactionStatus.COMMITTED)
                     || effectiveStatus.equals(TransactionStatus.ROLLED_BACK)
@@ -69,8 +71,7 @@ public class SICompactionState {
                 final Object commitTimestampValue = effectiveStatus.equals(TransactionStatus.COMMITTED) ?
                         dataLib.encode(globalCommitTimestamp) :
                         dataStore.siFail;
-                result = dataLib.newKeyValue(dataLib.getKeyValueRow(kv), dataLib.getKeyValueFamily(kv),
-                        dataLib.getKeyValueQualifier(kv), dataLib.getKeyValueTimestamp(kv), commitTimestampValue);
+                result = dataLib.newKeyValue(kv.row(), kv.family(), kv.qualifier(), kv.timestamp(), commitTimestampValue);
             }
         }
         return result;

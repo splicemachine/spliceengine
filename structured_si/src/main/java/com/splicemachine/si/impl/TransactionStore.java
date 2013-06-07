@@ -36,9 +36,6 @@ public class TransactionStore {
 
     private final TransactorListener listener;
 
-    private final AtomicLong loadedTxns = new AtomicLong(0l);
-
-
     public TransactionStore(TransactionSchema transactionSchema, SDataLib dataLib,
                             STableReader reader, STableWriter writer,
                             Cache<Long, ImmutableTransaction> immutableTransactionCache, Cache<Long, ActiveTransactionCacheEntry> activeTransactionCache,

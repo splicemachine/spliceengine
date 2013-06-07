@@ -46,9 +46,9 @@ public class FilterRowState {
      * Called for every key-value encountered by the filter. It is expected that key-values are read in row order.
      * Detects when the filter has moved to a new row and updates the state appropriately.
      */
-    public void updateCurrentRow(Object rowKey) {
-        if (currentRowKey == null || !dataLib.valuesEqual(currentRowKey, rowKey)) {
-            currentRowKey = rowKey;
+    public void updateCurrentRow(DecodedKeyValue keyValue) {
+        if (currentRowKey == null || !dataLib.valuesEqual(currentRowKey, keyValue.row())) {
+            currentRowKey = keyValue.row();
             lastValidQualifier = null;
             tombstoneTimestamps = new ArrayList<Long>();
             transactionCache = new HashMap<Long, Transaction>();
