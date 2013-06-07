@@ -151,8 +151,6 @@ public class DerbyBytesUtil {
         /*
          * Don't bother to re-serialize HBaseRowLocations, they're already just bytes.
          */
-
-        byte[] result;
         if(descriptor.getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
             return descriptor.getBytes();
         } else if(descriptor instanceof LazyDataValueDescriptor){ // XXX TODO JLEACH
