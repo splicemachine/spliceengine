@@ -48,6 +48,8 @@ public class HScan implements HRead, SScan, IOperation {
 
     @Override
     public void addFamilyToReadIfNeeded(byte[] family) {
-        scan.addFamily(family);
+        if(scan.hasFamilies()) {
+            scan.addFamily(family);
+        }
     }
 }
