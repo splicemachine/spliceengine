@@ -74,7 +74,7 @@ public class DerbyBytesUtil {
             descriptor.setToNull();
             return descriptor;
         }
-        if(descriptor instanceof LazyDataValueDescriptor){
+        if(descriptor.isLazy()){
             LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) descriptor;
             ldvd.initForDeserialization(bytes);
             return ldvd;
@@ -151,10 +151,9 @@ public class DerbyBytesUtil {
         /*
          * Don't bother to re-serialize HBaseRowLocations, they're already just bytes.
          */
-        if(descriptor.getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
+        if(descriptor.getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID
+                || descriptor.isLazy()){
             return descriptor.getBytes();
-        } else if(descriptor instanceof LazyDataValueDescriptor){ // XXX TODO JLEACH
-            return ((LazyDataValueDescriptor) descriptor).getBytes(); // Remove Upcast
         } else {
             return getRowKey(descriptor).serialize(getObject(descriptor));
         }
