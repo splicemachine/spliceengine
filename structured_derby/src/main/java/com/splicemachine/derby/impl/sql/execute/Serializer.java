@@ -30,12 +30,9 @@ public class Serializer {
         if (descriptor.isNull()) {
             return new byte[] {};
         }
-        if (descriptor.getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID)
+        if (descriptor.getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID
+                || descriptor.isLazy()){
             return descriptor.getBytes();
-
-        if(descriptor instanceof LazyDataValueDescriptor){
-            LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) descriptor;
-            return ldvd.getBytes();
         }
 
         switch(descriptor.getTypeFormatId()){
@@ -98,7 +95,7 @@ public class Serializer {
             return descriptor;
         }
 
-        if(descriptor instanceof LazyDataValueDescriptor){
+        if(descriptor.isLazy()){
             LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) descriptor;
             ldvd.initForDeserialization(bytes);
             return ldvd;
