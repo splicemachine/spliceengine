@@ -457,7 +457,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
            result = Bytes.compareTo(this.getBytes(), other.getBytes());
        }else{
            forceDeserialization();
-           result = getDvd().compare(unwrap(other));
+           result = getDvd().compare(other);
        }
 
         return result;
