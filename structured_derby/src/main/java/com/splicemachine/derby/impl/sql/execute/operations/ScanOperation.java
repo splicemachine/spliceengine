@@ -307,6 +307,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
             SpliceLogUtils.logAndThrowRuntime(LOG, e);
         }
 
+        //TODO -sf- push in the column information so that we can do scan casting for correctness
         return Scans.setupScan(startPosition == null ? null : startPosition.getRowArray(), startSearchOperator,
                 stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator,
                 autoCastedQuals, conglomerate.getAscDescInfo(), pkCols,accessedCols,

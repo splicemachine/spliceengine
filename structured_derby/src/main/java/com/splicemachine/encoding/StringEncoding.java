@@ -1,0 +1,67 @@
+package com.splicemachine.encoding;
+
+import org.apache.hadoop.hbase.util.Bytes;
+
+/**
+ * UTF-8 encodes Strings in such a way that NULL < "" < Character.MIN_CODE_POINT < aa < aaa < b< ba<...<
+ * Character.MAX_CODE_POINT < ..., and does not use 0x00 (reserved for separators).
+ *
+ * Note that UTF-8 encoding is already lexicographically sorted in bytes, by design. Hence, all we
+ * really have to do is remove 0x00 elements. Since UTF-8 never uses the values 0xff or 0xfe, so adding
+ * 1 to every byte will suffice.
+ *
+ * @author Scott Fines
+ * Created on: 6/7/13
+ */
+public class StringEncoding {
+
+    /**
+     * trims unicode \u0000 from the end of value before serializing
+     *
+     * @param value
+     * @param desc
+     * @return
+     */
+    public static byte[] toNonNullBytes(String value, boolean desc){
+        int nullIndex = value.indexOf('\u0000');
+        if(nullIndex!=-1){
+            value = value.substring(0,nullIndex);
+        }
+        return toBytes(value,desc);
+    }
+
+    public static byte[] toBytes(String value, boolean desc){
+        //convert to UTF-8 encoding
+        byte[] data = Bytes.toBytes(value);
+        for(int i=0;i<data.length;i++){
+            byte newD = (byte)(data[i] + 1);
+            if(desc)
+                newD ^= 0xff; //reverse the sign bit so that data is reversed in 2's complement
+            data[i] = newD;
+        }
+        return data;
+    }
+
+    /**
+     * SIDE EFFECT WARNING: Transforms the passed in byte[] in place!
+     *
+     * @param data the string data to deserialize
+     * @param desc
+     * @return
+     */
+    public static String getString(byte[] data, boolean desc){
+        for(int i=0;i<data.length;i++){
+            byte datum = data[i];
+            if(desc)
+                datum ^= 0xff;
+            data[i] = (byte)(datum-1);
+        }
+        return Bytes.toString(data);
+    }
+
+    public static String getStringCopy(byte[] data, boolean desc){
+        byte[] dataToCopy = new byte[data.length];
+        System.arraycopy(data,0,dataToCopy,0,data.length);
+        return getString(dataToCopy,desc);
+    }
+}

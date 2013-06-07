@@ -1,14 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.gotometrics.orderly.*;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.ByteDataInput;
+import com.splicemachine.derby.utils.ByteDataOutput;
+import com.splicemachine.encoding.Encoding;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
-import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.*;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -19,13 +19,6 @@ import java.sql.Timestamp;
  *         Created on: 2/25/13
  */
 public class Serializer {
-    private RowKey longRowKey;
-    private RowKey intRowKey;
-    private RowKey bytesRowKey;
-    private RowKey decimalRowKey;
-    private RowKey floatRowKey;
-    private RowKey stringRowKey;
-
     public byte[] serialize(DataValueDescriptor descriptor) throws IOException, StandardException {
         if (descriptor.isNull()) {
             return new byte[] {};
@@ -37,50 +30,44 @@ public class Serializer {
 
         switch(descriptor.getTypeFormatId()){
             case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
-                return getByteRowKey().serialize(Bytes.toBytes(descriptor.getBoolean()));
+                return Encoding.encode(descriptor.getBoolean());
             case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
-                return getLongRowKey().serialize(descriptor.getTimestamp(null).getTime());
+                return Encoding.encode(descriptor.getDate(null).getTime());
             case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
-                return getDecimalRowKey().serialize(BigDecimal.valueOf(descriptor.getDouble()));
+                return Encoding.encode(descriptor.getDouble());
             case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
+                return Encoding.encode(descriptor.getShort());
             case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
-                return getIntegerRowKey().serialize(descriptor.getInt());
+                return Encoding.encode(descriptor.getInt());
             case StoredFormatIds.SQL_LONGINT_ID: //return new SQLLongint();
-                return getLongRowKey().serialize(descriptor.getLong());
+                return Encoding.encode(descriptor.getLong());
             case StoredFormatIds.SQL_REAL_ID: //return new SQLReal();
-                return getFloatRowKey().serialize(descriptor.getFloat());
+                return Encoding.encode(descriptor.getFloat());
             case StoredFormatIds.SQL_REF_ID: //return new SQLRef();
             case StoredFormatIds.SQL_USERTYPE_ID_V3: //return new UserType();
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                ObjectOutputStream oos = new ObjectOutputStream(bos);
-                oos.writeObject(descriptor.getObject());
-                byte[] out = bos.toByteArray();
-                oos.flush();
-                bos.flush();
-                oos.close();
-                bos.close();
-                return out;
-//		    		return getRowKey(descriptor).serialize(Bytes.toBytes(descriptor.getShort()));
+                ByteDataOutput bdo = new ByteDataOutput();
+                bdo.writeObject(descriptor.getObject());
+                return bdo.toByteArray();
             case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
-                return getLongRowKey().serialize(descriptor.getTime(null).getTime());
+                return Encoding.encode(descriptor.getTime(null).getTime());
             case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
-                return getLongRowKey().serialize(descriptor.getTimestamp(null).getTime());
+                return Encoding.encode(descriptor.getTimestamp(null).getTime());
             case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
-                return getByteRowKey().serialize(Bytes.toBytes(descriptor.getByte()));
+                return Encoding.encode(descriptor.getByte());
             case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
             case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
             case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
             case StoredFormatIds.XML_ID: //return new XML();
             case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
-                return getStringRowKey().serialize(descriptor.getString());
+                return Encoding.encode(descriptor.getString());
             case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
-            case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit();
+            case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit(); TODO -sf- LONGVARBIT does not allow comparisons, so no need to do a variable binary encoding
             case StoredFormatIds.SQL_BLOB_ID: //return new SQLBlob();
             case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
             case StoredFormatIds.SQL_BIT_ID: //return new SQLBit();
-                return getByteRowKey().serialize(descriptor.getBytes());
+                return Encoding.encode(descriptor.getBytes());
             case StoredFormatIds.SQL_DECIMAL_ID:
-                return getDecimalRowKey().serialize(descriptor.getObject());
+                return Encoding.encode((BigDecimal) descriptor.getObject());
             default:
                 throw new IOException("Attempt to serialize an unimplemented serializable object " + descriptor.getClass());
         }
@@ -103,129 +90,64 @@ public class Serializer {
 
         switch (descriptor.getTypeFormatId()) {
             case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
-                descriptor.setValue(Bytes.toBoolean((byte[])getByteRowKey().deserialize(bytes)));
+                descriptor.setValue(Encoding.decodeBoolean(bytes));
                 break;
             case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
-                descriptor.setValue(new Date((Long) getLongRowKey().deserialize(bytes)));
+                descriptor.setValue(new Date(Encoding.decodeLong(bytes)));
                 break;
             case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
-                descriptor.setValue(((BigDecimal) getDecimalRowKey().deserialize(bytes)).doubleValue());
+                descriptor.setValue(Encoding.decodeDouble(bytes));
                 break;
             case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
+                descriptor.setValue(Encoding.decodeShort(bytes));
             case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
-                descriptor.setValue(((Integer) getIntegerRowKey().deserialize(bytes)).intValue());
+                descriptor.setValue(Encoding.decodeInt(bytes));
                 break;
             case StoredFormatIds.SQL_LONGINT_ID: //return new SQLLongint();
-                descriptor.setValue(((Long) getLongRowKey().deserialize(bytes)).longValue());
+                descriptor.setValue(Encoding.decodeLong(bytes));
                 break;
             case StoredFormatIds.SQL_REAL_ID: //return new SQLReal();
-                descriptor.setValue(((Float) getFloatRowKey().deserialize(bytes)).floatValue());
+                descriptor.setValue(Encoding.decodeFloat(bytes));
                 break;
             case StoredFormatIds.SQL_REF_ID: //return new SQLRef();
             case StoredFormatIds.SQL_USERTYPE_ID_V3: //return new UserType();
-                ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-                ObjectInputStream ois = new ObjectInputStream(bis);
+                ByteDataInput bdi = new ByteDataInput(bytes);
                 try {
-                    descriptor.setValue(ois.readObject());
+                    descriptor.setValue(bdi.readObject());
                 } catch (ClassNotFoundException e) {
                     throw new IOException(e);
                 }
-                ois.close();
-                bis.close();
                 break;
             case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
-                descriptor.setValue(Bytes.toShort((byte[])getByteRowKey().deserialize(bytes)));
+                descriptor.setValue(Encoding.decodeByte(bytes));
                 break;
             case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
-                descriptor.setValue(new Time((Long)getLongRowKey().deserialize(bytes)));
+                descriptor.setValue(new Time(Encoding.decodeLong(bytes)));
                 break;
             case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
-                descriptor.setValue(new Timestamp((Long)getLongRowKey().deserialize(bytes)));
+                descriptor.setValue(new Timestamp(Encoding.decodeLong(bytes)));
                 break;
             case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
             case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
             case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
             case StoredFormatIds.XML_ID: //return new XML();
             case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
-                descriptor.setValue((String)getStringRowKey().deserialize(bytes));
+                descriptor.setValue(Encoding.decodeString(bytes));
                 break;
             case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
             case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit();
             case StoredFormatIds.SQL_BLOB_ID: //return new SQLBlob();
             case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
             case StoredFormatIds.SQL_BIT_ID: //return new SQLBit();
-                descriptor.setValue((byte[])getByteRowKey().deserialize(bytes));
+                descriptor.setValue(Encoding.decodeBytes(bytes));
                 break;
             case StoredFormatIds.SQL_DECIMAL_ID:
-                descriptor.setBigDecimal((BigDecimal)getDecimalRowKey().deserialize(bytes));
+                descriptor.setBigDecimal(Encoding.decodeBigDecimal(bytes));
                 break;
             default:
                 throw new IOException("Attempt to serialize an unimplemented serializable object " + descriptor.getClass());
         }
         return descriptor;
-    }
-
-
-    private RowKey getStringRowKey() {
-        if(stringRowKey==null)stringRowKey = new NullRemovingRowKey();
-        return stringRowKey;
-    }
-
-    private RowKey getFloatRowKey() {
-        if(floatRowKey == null) floatRowKey = new FloatRowKey();
-        return floatRowKey;
-    }
-
-    private RowKey getIntegerRowKey() {
-        if(intRowKey==null)intRowKey = new IntegerRowKey();
-        return intRowKey;
-    }
-
-    private RowKey getDecimalRowKey() {
-        if(decimalRowKey==null)decimalRowKey = new BigDecimalRowKey();
-        return decimalRowKey;
-    }
-
-    private RowKey getLongRowKey() {
-        if(longRowKey==null)longRowKey = new LongRowKey();
-        return longRowKey;
-    }
-
-    private RowKey getByteRowKey() {
-        if(bytesRowKey ==null) bytesRowKey = new VariableLengthByteArrayRowKey();
-        return bytesRowKey;
-    }
-
-    /**
-     * String RowKey which trims off extraneous whitespace and empty characters before serializing.
-     */
-    private static class NullRemovingRowKey extends UTF8RowKey {
-
-        @Override public Class<?> getSerializedClass() { return String.class; }
-
-        @Override
-        public int getSerializedLength(Object o) throws IOException {
-            return super.getSerializedLength(toUTF8(o));
-        }
-
-        private Object toUTF8(Object o) {
-            if(o==null|| o instanceof byte[]) return o;
-            String replacedString = o.toString().replaceAll("\u0000","");
-//				if(replacedString.length()<=0)
-//					return null;
-            return Bytes.toBytes(replacedString);
-        }
-
-        @Override
-        public void serialize(Object o, ImmutableBytesWritable w) throws IOException {
-            super.serialize(toUTF8(o),w);
-        }
-
-        @Override
-        public Object deserialize(ImmutableBytesWritable w) throws IOException {
-            byte[] b = (byte[])super.deserialize(w);
-            return b ==null? b :  Bytes.toString(b);
-        }
     }
 
 }

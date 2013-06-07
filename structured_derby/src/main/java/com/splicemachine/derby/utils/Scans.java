@@ -423,6 +423,8 @@ public class Scans extends SpliceUtils {
 				}
 			}
 
+            //TODO -sf- do type-casting, overflow checks, etc. to make sure that we don't miss scans
+            //TODO -sf- remove trailing null entries with Strings here
 			if(generateKey){
 				scan.setStartRow(DerbyBytesUtil.generateScanKeyForIndex(startKeyValue,startSearchOperator,sortOrder));
 				scan.setStopRow(DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue,stopSearchOperator,sortOrder));
