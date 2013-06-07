@@ -19,7 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class LStore implements STableReader, STableWriter {
+public class LStore implements STableReader<LTuple>, STableWriter<LTuple, LTuple, Object> {
     private final Map<String, Map<String, LRowLock>> locks = new HashMap<String, Map<String, LRowLock>>();
     private final Map<String, Map<LRowLock, String>> reverseLocks = new HashMap<String, Map<LRowLock, String>>();
     private final Map<String, List<LTuple>> relations = new HashMap<String, List<LTuple>>();
@@ -52,10 +52,10 @@ public class LStore implements STableReader, STableWriter {
     }
 
     @Override
-    public Object get(STable table, SGet get) {
-        Iterator results = runScan(table, (LGet) get);
+    public LTuple get(STable table, SGet get) {
+        Iterator<LTuple> results = runScan(table, (LGet) get);
         if (results.hasNext()) {
-            Object result = results.next();
+            LTuple result = results.next();
             assert !results.hasNext();
             return result;
         }
@@ -125,17 +125,17 @@ public class LStore implements STableReader, STableWriter {
     }
 
     @Override
-    public void write(STable table, Object put) {
+    public void write(STable table, LTuple put) {
         write(table, Arrays.asList(put));
     }
 
     @Override
-    public void write(STable table, Object put, boolean durable) {
+    public void write(STable table, LTuple put, boolean durable) {
         write(table, Arrays.asList(put));
     }
 
     @Override
-    public void write(STable table, Object put, SRowLock rowLock) {
+    public void write(STable table, LTuple put, SRowLock rowLock) {
         write(table, put);
     }
 
@@ -155,12 +155,11 @@ public class LStore implements STableReader, STableWriter {
     }
 
     @Override
-    public boolean checkAndPut(STable table, final Object family, final Object qualifier, Object expectedValue, Object put) throws IOException {
-        LTuple lPut = (LTuple) put;
+    public boolean checkAndPut(STable table, final Object family, final Object qualifier, Object expectedValue, LTuple put) throws IOException {
         SRowLock lock = null;
         try {
-            lock = lockRow(table, lPut.key);
-            LGet get = new LGet(lPut.key, lPut.key, null, null, null);
+            lock = lockRow(table, put.key);
+            LGet get = new LGet(put.key, put.key, null, null, null);
             Iterator results = runScan(table, get);
             LTuple result = (LTuple) results.next();
             assert !results.hasNext();
@@ -287,20 +286,19 @@ public class LStore implements STableReader, STableWriter {
     }
 
     @Override
-    public void delete(STable table, Object delete, SRowLock lock) throws IOException {
-        final LTuple lDelete = (LTuple) delete;
+    public void delete(STable table, LTuple delete, SRowLock lock) throws IOException {
         final String relationIdentifier = ((LTable) table).relationIdentifier;
         final List<LTuple> tuples = relations.get(relationIdentifier);
         final List<LTuple> newTuples = new ArrayList<LTuple>();
         for (LTuple tuple : tuples) {
             LTuple newTuple = tuple;
-            if (tuple.key.equals(lDelete.key)) {
+            if (tuple.key.equals(delete.key)) {
                 final List<LKeyValue> values = tuple.values;
                 final List<LKeyValue> newValues = new ArrayList<LKeyValue>();
-                if (!lDelete.values.isEmpty()) {
+                if (!delete.values.isEmpty()) {
                     for (LKeyValue value : values) {
                         boolean keep = true;
-                        for (LKeyValue deleteValue : (lDelete).values) {
+                        for (LKeyValue deleteValue : (delete).values) {
                             if (value.family.equals(deleteValue.family)
                                     && value.qualifier.equals(deleteValue.qualifier)
                                     && value.timestamp.equals(deleteValue.timestamp)) {

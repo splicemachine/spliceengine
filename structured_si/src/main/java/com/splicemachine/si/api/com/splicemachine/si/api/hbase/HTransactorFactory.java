@@ -11,11 +11,9 @@ import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;
-import com.splicemachine.si.data.hbase.HDataLibAdapter;
 import com.splicemachine.si.data.hbase.HPoolTableSource;
-import com.splicemachine.si.data.hbase.HStore;
-import com.splicemachine.si.data.hbase.HTableReaderAdapter;
-import com.splicemachine.si.data.hbase.HTableWriterAdapter;
+import com.splicemachine.si.data.hbase.HTableReader;
+import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.data.hbase.HTransactorAdapter;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.DataStore;
@@ -71,10 +69,10 @@ public class HTransactorFactory extends SIConstants {
             final Configuration configuration = SpliceConfiguration.create();
             TimestampSource timestampSource = new ZooKeeperTimestampSource(zkSpliceTransactionPath);
             HTablePool hTablePool = new HTablePool(configuration, Integer.MAX_VALUE);
-            HStore store = new HStore(new HPoolTableSource(hTablePool));
-            SDataLib dataLib = new HDataLibAdapter(new HDataLib());
-            final STableReader reader = new HTableReaderAdapter(store);
-            final STableWriter writer = new HTableWriterAdapter(store);
+            final HPoolTableSource tableSource = new HPoolTableSource(hTablePool);
+            SDataLib dataLib = new HDataLib();
+            final STableReader reader = new HTableReader(tableSource);
+            final STableWriter writer = new HTableWriter();
             final TransactionSchema transactionSchema = new TransactionSchema(TRANSACTION_TABLE,
                     DEFAULT_FAMILY,
                     SNAPSHOT_ISOLATION_CHILDREN_FAMILY,

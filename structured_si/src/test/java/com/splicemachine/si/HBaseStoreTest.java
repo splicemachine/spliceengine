@@ -5,10 +5,8 @@ import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;
-import com.splicemachine.si.data.hbase.HDataLibAdapter;
-import com.splicemachine.si.data.hbase.HStore;
-import com.splicemachine.si.data.hbase.HTableReaderAdapter;
-import com.splicemachine.si.data.hbase.HTableWriterAdapter;
+import com.splicemachine.si.data.hbase.HTableReader;
+import com.splicemachine.si.data.hbase.HTableWriter;
 import org.junit.Assert;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -25,10 +23,9 @@ public class HBaseStoreTest {
 
         try {
             final TestHTableSource tableSource = new TestHTableSource(testCluster, "table1", new String[]{"foo"});
-            final HStore store = new HStore(tableSource);
-            SDataLib SDataLib = new HDataLibAdapter(new HDataLib());
-            STableReader reader = new HTableReaderAdapter(store);
-            STableWriter writer = new HTableWriterAdapter(store);
+            SDataLib SDataLib = new HDataLib();
+            STableReader reader = new HTableReader(tableSource);
+            STableWriter writer = new HTableWriter();
 
             RelationHelper api = new RelationHelper(SDataLib, reader, writer);
             api.open("table1");

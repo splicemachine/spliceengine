@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LDataLib implements SDataLib {
+public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTuple> {
 
     @Override
     public Object newRowKey(Object... args) {
@@ -54,12 +54,12 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
-    public void addKeyValueToPut(Object put, Object family, Object qualifier, Long timestamp, Object value) {
+    public void addKeyValueToPut(LTuple put, Object family, Object qualifier, Long timestamp, Object value) {
         addKeyValueToTuple(put, family, qualifier, timestamp, value);
     }
 
-    private void addKeyValueToTuple(Object tuple, Object family, Object qualifier, Long timestamp, Object value) {
-        LTuple lTuple = (LTuple) tuple;
+    private void addKeyValueToTuple(LTuple tuple, Object family, Object qualifier, Long timestamp, Object value) {
+        LTuple lTuple = tuple;
         final LKeyValue newCell = new LKeyValue(lTuple.key, (String) family, (String) qualifier, timestamp, value);
         lTuple.values.add(newCell);
     }
@@ -84,23 +84,22 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
-    public Object newResult(Object key, List keyValues) {
+    public LTuple newResult(Object key, List<LKeyValue> keyValues) {
         return new LTuple((String) key, new ArrayList<LKeyValue>(keyValues));
     }
 
     @Override
-    public Object newPut(Object key) {
+    public LTuple newPut(Object key) {
         return newPut(key, null);
     }
 
     @Override
-    public Object newPut(Object key, SRowLock lock) {
+    public LTuple newPut(Object key, SRowLock lock) {
         return new LTuple((String) key, new ArrayList(), (LRowLock) lock);
     }
 
-
     @Override
-    public SGet newGet(Object rowKey, List families, List columns, Long effectiveTimestamp) {
+    public SGet newGet(Object rowKey, List<Object> families, List<List<Object>> columns, Long effectiveTimestamp) {
         return new LGet(rowKey, rowKey, families, columns, effectiveTimestamp);
     }
 
@@ -144,12 +143,12 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
-    public Object getResultKey(Object result) {
+    public Object getResultKey(LTuple result) {
         return getTupleKey(result);
     }
 
     @Override
-    public Object getPutKey(Object put) {
+    public Object getPutKey(LTuple put) {
         return getTupleKey(put);
     }
 
@@ -183,15 +182,15 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
-    public List getResultColumn(Object result, Object family, Object qualifier) {
-        List<Object> values = getValuesForColumn((LTuple) result, family, qualifier);
+    public List<LKeyValue> getResultColumn(LTuple result, Object family, Object qualifier) {
+        List<LKeyValue> values = getValuesForColumn(result, family, qualifier);
         LStore.sortValues(values);
         return values;
     }
 
     @Override
-    public Object getResultValue(Object result, Object family, Object qualifier) {
-        final List valuesForColumn = getValuesForColumn((LTuple) result, family, qualifier);
+    public Object getResultValue(LTuple result, Object family, Object qualifier) {
+        final List valuesForColumn = getValuesForColumn(result, family, qualifier);
         if (valuesForColumn.isEmpty()) {
             return null;
         }
@@ -199,8 +198,8 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
-    public Map getResultFamilyMap(Object result, Object family) {
-        final List<LKeyValue> valuesForFamily = getValuesForFamily((LTuple) result, family);
+    public Map getResultFamilyMap(LTuple result, Object family) {
+        final List<LKeyValue> valuesForFamily = getValuesForFamily(result, family);
         final Map familyMap = new HashMap();
         for (LKeyValue kv : valuesForFamily) {
             familyMap.put(kv.qualifier, kv.value);
@@ -209,54 +208,54 @@ public class LDataLib implements SDataLib {
     }
 
     @Override
-    public List listResult(Object result) {
+    public List<LKeyValue> listResult(LTuple result) {
         return listPut(result);
     }
 
     @Override
-    public List listPut(Object put) {
-        final List<LKeyValue> values = ((LTuple) put).values;
+    public List<LKeyValue> listPut(LTuple put) {
+        final List<LKeyValue> values = put.values;
         LStore.sortValues(values);
         return values;
     }
 
     @Override
-    public Object newKeyValue(Object rowKey, Object family, Object qualifier, Long timestamp, Object value) {
+    public LKeyValue newKeyValue(Object rowKey, Object family, Object qualifier, Long timestamp, Object value) {
         return new LKeyValue((String) rowKey, (String) family, (String) qualifier, timestamp, value);
     }
 
     @Override
-    public Object getKeyValueRow(Object keyValue) {
-        return ((LKeyValue) keyValue).rowKey;
+    public Object getKeyValueRow(LKeyValue keyValue) {
+        return keyValue.rowKey;
     }
 
     @Override
-    public Object getKeyValueFamily(Object keyValue) {
-        return ((LKeyValue) keyValue).family;
+    public Object getKeyValueFamily(LKeyValue keyValue) {
+        return keyValue.family;
     }
 
     @Override
-    public Object getKeyValueQualifier(Object keyValue) {
-        return ((LKeyValue) keyValue).qualifier;
+    public Object getKeyValueQualifier(LKeyValue keyValue) {
+        return keyValue.qualifier;
     }
 
     @Override
-    public Object getKeyValueValue(Object keyValue) {
-        return ((LKeyValue) keyValue).value;
+    public Object getKeyValueValue(LKeyValue keyValue) {
+        return keyValue.value;
     }
 
     @Override
-    public long getKeyValueTimestamp(Object keyValue) {
-        return ((LKeyValue) keyValue).timestamp;
+    public long getKeyValueTimestamp(LKeyValue keyValue) {
+        return keyValue.timestamp;
     }
 
     @Override
-    public Object newDelete(Object rowKey) {
+    public LTuple newDelete(Object rowKey) {
         return newPut(rowKey, null);
     }
 
     @Override
-    public void addKeyValueToDelete(Object delete, Object family, Object qualifier, long timestamp) {
+    public void addKeyValueToDelete(LTuple delete, Object family, Object qualifier, long timestamp) {
         addKeyValueToTuple(delete, family, qualifier, timestamp, null);
     }
 }

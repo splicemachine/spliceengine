@@ -1,13 +1,17 @@
 package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.SGet;
+import com.splicemachine.si.data.api.SRead;
+import com.splicemachine.si.data.api.SRowLock;
+import com.splicemachine.si.data.api.SScan;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.RowLock;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -17,13 +21,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class HDataLib implements IHDataLib {
+public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete> {
+
+    @Override
+    public Result newResult(Object key, List keyValues) {
+        return new Result(keyValues);
+    }
 
     @Override
     public byte[] newRowKey(Object... args) {
         List<byte[]> bytes = new ArrayList<byte[]>();
         for (Object a : args) {
-            bytes.add(HDataLib.convertToBytes(a));
+            bytes.add(convertToBytes(a));
         }
         return BytesUtil.concat(bytes);
     }
@@ -39,7 +48,7 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
-    public List getResultColumn(Result result, byte[] family, byte[] qualifier) {
+    public List<KeyValue> getResultColumn(Result result, byte[] family, byte[] qualifier) {
         return result.getColumn(family, qualifier);
     }
 
@@ -49,17 +58,17 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
-    public Map getResultFamilyMap(Result result, byte[] family) {
+    public Map<byte[], byte[]> getResultFamilyMap(Result result, byte[] family) {
         return result.getFamilyMap(family);
     }
 
     @Override
-    public List listResult(Result result) {
+    public List<KeyValue> listResult(Result result) {
         return result.list();
     }
 
     @Override
-    public List listPut(Put put) {
+    public List<KeyValue> listPut(Put put) {
         final Map<byte[], List<KeyValue>> familyMap = put.getFamilyMap();
         List result = new ArrayList();
         for (List<KeyValue> subList : familyMap.values()) {
@@ -138,18 +147,25 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
-    public void addAttribute(OperationWithAttributes operation, String attributeName, byte[] value) {
-        operation.setAttribute(attributeName, value);
+    public void addAttribute(Object operation, String attributeName, byte[] value) {
+        OperationWithAttributes hOperation;
+        if (operation instanceof OperationWithAttributes) {
+            hOperation = (OperationWithAttributes) operation;
+        } else {
+            hOperation = ((IOperation) operation).getOperation();
+        }
+        hOperation.setAttribute(attributeName, value);
     }
 
     @Override
-    public byte[] getAttribute(OperationWithAttributes operation, String attributeName) {
-        return operation.getAttribute(attributeName);
-    }
-
-    @Override
-    public Result newResult(byte[] key, List keyValues) {
-        return new Result(keyValues);
+    public byte[] getAttribute(Object operation, String attributeName) {
+        OperationWithAttributes hOperation;
+        if (operation instanceof Put) {
+            hOperation = (OperationWithAttributes) operation;
+        } else {
+            hOperation = ((IOperation) operation).getOperation();
+        }
+        return hOperation.getAttribute(attributeName);
     }
 
     @Override
@@ -158,12 +174,12 @@ public class HDataLib implements IHDataLib {
     }
 
     @Override
-    public Put newPut(byte[] key, RowLock lock) {
-        return new Put(key, lock);
+    public Put newPut(byte[] key, SRowLock lock) {
+        return new Put(key, ((HRowLock) lock).lock);
     }
 
     @Override
-    public Get newGet(byte[] rowKey, List families, List columns, Long effectiveTimestamp) {
+    public SGet newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         Get get = new Get(rowKey);
         if (families != null) {
             for (Object f : families) {
@@ -171,7 +187,7 @@ public class HDataLib implements IHDataLib {
             }
         }
         if (columns != null) {
-            for (List c : (List<List>) columns) {
+            for (List c : columns) {
                 get.addColumn((byte[]) c.get(0), (byte[]) c.get(1));
             }
         }
@@ -182,20 +198,72 @@ public class HDataLib implements IHDataLib {
                 throw new RuntimeException(e);
             }
         }
-        return get;
+        return new HGet(get);
     }
 
     @Override
-    public void setReadTimeRange(Get get, long minTimestamp, long maxTimestamp) {
-        try {
-            get.setTimeRange(minTimestamp, maxTimestamp);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    public void setReadTimeRange(SRead read, long minTimestamp, long maxTimestamp) {
+        if (read instanceof HGet) {
+            try {
+                ((HGet) read).get.setTimeRange(minTimestamp, maxTimestamp);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            try {
+                ((HScan) read).scan.setTimeRange(minTimestamp, maxTimestamp);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
     @Override
-    public Scan newScan(byte[] startRowKey, byte[] endRowKey, List families, List columns, Long effectiveTimestamp) {
+    public void setReadMaxVersions(SRead read) {
+        if (read instanceof HGet) {
+            ((HGet) read).getGet().setMaxVersions();
+        } else {
+            ((HScan) read).getScan().setMaxVersions();
+        }
+    }
+
+    @Override
+    public void setReadMaxVersions(SRead read, int max) {
+        if (read instanceof HGet) {
+            try {
+                ((HGet) read).getGet().setMaxVersions(max);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            ((HScan) read).getScan().setMaxVersions(max);
+        }
+    }
+
+    @Override
+    public void addFamilyToRead(SRead read, byte[] family) {
+        if (read instanceof HGet) {
+            ((HGet) read).get.addFamily(family);
+        } else {
+            ((HScan) read).scan.addFamily(family);
+        }
+    }
+
+    @Override
+    public void addFamilyToReadIfNeeded(SRead read, byte[] family) {
+        if (read instanceof HGet) {
+            if (((HGet) read).get.hasFamilies()) {
+                ((HGet) read).get.addFamily(family);
+            }
+        } else {
+            if(((HScan) read).scan.hasFamilies()) {
+                ((HScan) read).scan.addFamily(family);
+            }
+        }
+    }
+
+    @Override
+    public SScan newScan(byte[] startRowKey, byte[] endRowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         Scan scan = new Scan();
         scan.setStartRow(startRowKey);
         scan.setStopRow(endRowKey);
@@ -205,7 +273,7 @@ public class HDataLib implements IHDataLib {
             }
         }
         if (columns != null) {
-            for (List c : (List<List>) columns) {
+            for (List c : columns) {
                 scan.addColumn((byte[]) c.get(0), (byte[]) c.get(1));
             }
         }
@@ -216,64 +284,17 @@ public class HDataLib implements IHDataLib {
                 throw new RuntimeException(e);
             }
         }
-        return scan;
+        return new HScan(scan);
     }
 
     @Override
-    public void setReadTimeRange(Scan scan, long minTimestamp, long maxTimestamp) {
-        try {
-            scan.setTimeRange(minTimestamp, maxTimestamp);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public Delete newDelete(byte[] rowKey) {
+        return new Delete(rowKey);
     }
 
     @Override
-    public void setReadMaxVersions(Scan scan) {
-        scan.setMaxVersions();
-    }
-
-    @Override
-    public void setReadMaxVersions(Get get, int max) {
-        try {
-            get.setMaxVersions(max);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void setReadMaxVersions(Get get) {
-        get.setMaxVersions();
-    }
-
-    @Override
-    public void setReadMaxVersions(Scan scan, int max) {
-        scan.setMaxVersions(max);
-    }
-
-    @Override
-    public void addFamilyToRead(Get get, byte[] family) {
-        get.addFamily(family);
-    }
-
-    @Override
-    public void addFamilyToRead(Scan scan, byte[] family) {
-        scan.addFamily(family);
-    }
-
-    @Override
-    public void addFamilyToReadIfNeeded(Get get, byte[] family) {
-        if (get.hasFamilies()) {
-            get.addFamily(family);
-        }
-    }
-
-    @Override
-    public void addFamilyToReadIfNeeded(Scan scan, byte[] family) {
-        if(scan.hasFamilies()) {
-            scan.addFamily(family);
-        }
+    public void addKeyValueToDelete(Delete delete, byte[] family, byte[] qualifier, long timestamp) {
+        delete.deleteColumn(family, qualifier, timestamp);
     }
 
     static byte[] convertToBytes(Object value) {
@@ -291,15 +312,5 @@ public class HDataLib implements IHDataLib {
             return (byte[]) value;
         }
         throw new RuntimeException("Unsupported class " + value.getClass().getName() + " for " + value);
-    }
-
-    @Override
-    public Delete newDelete(byte[] rowKey) {
-        return new Delete(rowKey);
-    }
-
-    @Override
-    public void addKeyValueToDelete(Delete delete, byte[] family, byte[] qualifier, long timestamp) {
-        delete.deleteColumn(family, qualifier, timestamp);
     }
 }

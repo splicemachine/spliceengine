@@ -4,7 +4,9 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.light.LDataLib;
+import com.splicemachine.si.data.light.LKeyValue;
 import com.splicemachine.si.data.light.LStore;
+import com.splicemachine.si.data.light.LTuple;
 import com.splicemachine.si.data.light.ManualClock;
 import org.junit.Assert;
 import org.junit.Test;
@@ -17,21 +19,21 @@ public class LStoreTest {
 		LStore store = new LStore(new ManualClock());
 
 		STable table = store.open("table1");
-		SDataLib SDataLib = new LDataLib();
-		final Object testKey = SDataLib.newRowKey(new Object[]{"joe"});
-		Object tuple = SDataLib.newPut(testKey);
-		SDataLib.addKeyValueToPut(tuple, SDataLib.encode("foo"), SDataLib.encode("age"), 1L, SDataLib.encode(23));
+		SDataLib<Object, LTuple, LKeyValue, LTuple, LTuple> dataLib = new LDataLib();
+		final Object testKey = dataLib.newRowKey(new Object[]{"joe"});
+		LTuple tuple = dataLib.newPut(testKey);
+		dataLib.addKeyValueToPut(tuple, dataLib.encode("foo"), dataLib.encode("age"), 1L, dataLib.encode(23));
 		store.write(table, tuple);
-		SGet get = SDataLib.newGet(testKey, null, null, null);
-		final Object outputTuple = store.get(table, get);
-		Assert.assertEquals("joe", SDataLib.getResultKey(outputTuple));
-		final List outputCells = SDataLib.listResult(outputTuple);
+		SGet get = dataLib.newGet(testKey, null, null, null);
+		final LTuple outputTuple = store.get(table, get);
+		Assert.assertEquals("joe", dataLib.getResultKey(outputTuple));
+		final List<LKeyValue> outputCells = dataLib.listResult(outputTuple);
 		Assert.assertEquals(1, outputCells.size());
-		final Object outputCell = outputCells.get(0);
-		Assert.assertEquals("foo", SDataLib.getKeyValueFamily(outputCell));
-		Assert.assertEquals("age", SDataLib.getKeyValueQualifier(outputCell));
-		Assert.assertEquals(23, SDataLib.getKeyValueValue(outputCell));
-		Assert.assertEquals(1L, SDataLib.getKeyValueTimestamp(outputCell));
+		final LKeyValue outputCell = outputCells.get(0);
+		Assert.assertEquals("foo", dataLib.getKeyValueFamily(outputCell));
+		Assert.assertEquals("age", dataLib.getKeyValueQualifier(outputCell));
+		Assert.assertEquals(23, dataLib.getKeyValueValue(outputCell));
+		Assert.assertEquals(1L, dataLib.getKeyValueTimestamp(outputCell));
 	}
 
 	@Test

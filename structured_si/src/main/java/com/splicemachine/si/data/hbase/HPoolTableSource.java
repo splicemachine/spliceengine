@@ -10,7 +10,6 @@ import java.io.IOException;
  */
 public class HPoolTableSource implements HTableSource {
     private final HTablePool pool;
-    private final HDataLib dataLib = new HDataLib();
 
     public HPoolTableSource(HTablePool pool) {
         this.pool = pool;
@@ -18,6 +17,6 @@ public class HPoolTableSource implements HTableSource {
 
     @Override
     public HTableInterface getTable(String tableName) throws IOException {
-        return pool.getTable(dataLib.encode(tableName));
+        return pool.getTable(HDataLib.convertToBytes(tableName));
     }
 }

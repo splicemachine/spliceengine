@@ -11,11 +11,11 @@ public class LGet implements SGet, SScan {
     final Object startTupleKey;
     final Object endTupleKey;
     final java.util.List families;
-    final List<List> columns;
+    final List<List<Object>> columns;
     Long effectiveTimestamp;
     final Map<String, Object> attributes;
 
-    public LGet(Object startTupleKey, Object endTupleKey, List families, List<List> columns,
+    public LGet(Object startTupleKey, Object endTupleKey, List families, List<List<Object>> columns,
                 Long effectiveTimestamp) {
         this.startTupleKey = startTupleKey;
         this.endTupleKey = endTupleKey;

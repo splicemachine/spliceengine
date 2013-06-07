@@ -6,10 +6,10 @@ import java.util.Iterator;
 /**
  * Means of opening data and reading data from them.
  */
-public interface STableReader {
+public interface STableReader<Result> {
     STable open(String tableName) throws IOException;
     void close(STable table) throws IOException;
 
-    Object get(STable table, SGet get) throws IOException;
-    Iterator scan(STable table, SScan scan) throws IOException;
+    Result get(STable table, SGet get) throws IOException;
+    Iterator<Result> scan(STable table, SScan scan) throws IOException;
 }
