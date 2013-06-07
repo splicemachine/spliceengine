@@ -2,8 +2,10 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
 import com.splicemachine.homeless.SerializationUtils;
+import org.apache.derby.iapi.types.BooleanDataValue;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.Orderable;
+import org.apache.derby.iapi.types.SQLBoolean;
 import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
@@ -271,6 +273,44 @@ public class LazyDataValueDescriptorTest {
         Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_LESSOREQUALS, barDvd, false, false, false));
 
         Assert.assertTrue(fooDvd.getDvd().isNull());
+    }
+
+    @Test
+    public void testTopLevelComparisonMethods() throws Exception{
+
+        byte[] fooBytes = justBytes("foo");
+        byte[] barBytes = justBytes("bar");
+
+        LazyDataValueDescriptor fooDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        fooDvd.initForDeserialization(fooBytes);
+
+        LazyDataValueDescriptor barDvd = new LazyDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+        barDvd.initForDeserialization(barBytes);
+
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(barDvd.getDvd().isNull());
+
+        assertSqlTrue(fooDvd.greaterThan(fooDvd, barDvd));
+        assertSqlTrue(fooDvd.greaterOrEquals(fooDvd, barDvd));
+        assertSqlFalse(fooDvd.lessThan(fooDvd, barDvd));
+        assertSqlFalse(fooDvd.lessOrEquals(fooDvd, barDvd));
+        assertSqlFalse(fooDvd.equals(fooDvd, barDvd));
+        assertSqlTrue(fooDvd.notEquals(fooDvd, barDvd));
+
+        assertSqlTrue(fooDvd.equals(fooDvd, fooDvd));
+        assertSqlFalse(fooDvd.notEquals(fooDvd, fooDvd));
+
+        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(barDvd.getDvd().isNull());
+
+    }
+
+    private void assertSqlTrue(BooleanDataValue sqlBool){
+        Assert.assertTrue(sqlBool.getBoolean());
+    }
+
+    private void assertSqlFalse(BooleanDataValue sqlBool){
+        Assert.assertFalse(sqlBool.getBoolean());
     }
 
 

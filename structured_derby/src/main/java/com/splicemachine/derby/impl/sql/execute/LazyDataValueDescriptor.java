@@ -8,6 +8,7 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.types.BooleanDataValue;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLBoolean;
 import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -405,38 +406,69 @@ public class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public BooleanDataValue equals(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
-        forceDeserialization();
-        return getDvd().equals(unwrap(left), unwrap(right));
+        return convertToSqlBoolean(left, right, ORDER_OP_EQUALS);
     }
 
     @Override
     public BooleanDataValue notEquals(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
-        forceDeserialization();
-        return getDvd().notEquals(unwrap(left), unwrap(right));
+        return flipBoolean(convertToSqlBoolean(left, right, ORDER_OP_EQUALS));
     }
 
     @Override
     public BooleanDataValue lessThan(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
-        forceDeserialization();
-        return getDvd().lessThan(unwrap(left), unwrap(right));
+        return convertToSqlBoolean(left, right, ORDER_OP_LESSTHAN);
     }
 
     @Override
     public BooleanDataValue greaterThan(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
-        forceDeserialization();
-        return getDvd().greaterThan(unwrap(left), unwrap(right));
+        return convertToSqlBoolean(left, right, ORDER_OP_GREATERTHAN);
     }
 
     @Override
     public BooleanDataValue lessOrEquals(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
-        forceDeserialization();
-        return getDvd().lessOrEquals(unwrap(left), unwrap(right));
+        return convertToSqlBoolean(left, right, ORDER_OP_LESSOREQUALS);
     }
 
     @Override
     public BooleanDataValue greaterOrEquals(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
-        forceDeserialization();
-        return getDvd().greaterOrEquals(unwrap(left), unwrap(right));
+        return convertToSqlBoolean(left, right, ORDER_OP_GREATEROREQUALS);
+    }
+
+    private SQLBoolean convertToSqlBoolean(DataValueDescriptor left, DataValueDescriptor right, int op) throws StandardException {
+
+        SQLBoolean result;
+
+        if(left.isNull() || right.isNull()){
+
+            result = SQLBoolean.unknownTruthValue();
+
+        }else{
+
+            if(left.compare(op, right, false, false)){
+
+                result = SQLBoolean.trueTruthValue();
+
+            }else{
+
+                result = SQLBoolean.falseTruthValue();
+
+            }
+        }
+
+        return result;
+    }
+
+    private SQLBoolean flipBoolean(SQLBoolean bool){
+
+        SQLBoolean flipped;
+
+        if(bool.getBoolean()){
+            flipped = SQLBoolean.falseTruthValue();
+        }else{
+            flipped = SQLBoolean.trueTruthValue();
+        }
+
+        return flipped;
     }
 
     @Override
