@@ -30,9 +30,8 @@ public class Serializer {
         if (descriptor.isNull()) {
             return new byte[] {};
         }
-        if(descriptor instanceof HBaseRowLocation){
-            return ((HBaseRowLocation)descriptor).getBytes();
-        }
+        if (descriptor.getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID)
+            return descriptor.getBytes();
 
         if(descriptor instanceof LazyDataValueDescriptor){
             LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) descriptor;
