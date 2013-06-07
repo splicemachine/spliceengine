@@ -3,7 +3,7 @@ package com.splicemachine.si.data.api;
 import java.util.List;
 import java.util.Map;
 
-public interface SDataLib<Data, Result, KeyValue, Put, Delete> {
+public interface SDataLib<Data, Result, KeyValue, Put, Delete, Get extends SGet, Scan extends SScan, Read extends SRead> {
     Data newRowKey(Object[] args);
 
     Data encode(Object value);
@@ -33,13 +33,13 @@ public interface SDataLib<Data, Result, KeyValue, Put, Delete> {
     Data getKeyValueValue(KeyValue keyValue);
     long getKeyValueTimestamp(KeyValue keyValue);
 
-    SGet newGet(Data rowKey, List<Data> families, List<List<Data>> columns, Long effectiveTimestamp);
-    SScan newScan(Data startRowKey, Data endRowKey, List<Data> families, List<List<Data>> columns, Long effectiveTimestamp);
-    void setReadTimeRange(SRead get, long minTimestamp, long maxTimestamp);
-    void setReadMaxVersions(SRead get);
-    void setReadMaxVersions(SRead get, int max);
-    void addFamilyToRead(SRead read, Data siFamily);
-    void addFamilyToReadIfNeeded(SRead get, Data family);
+    Get newGet(Data rowKey, List<Data> families, List<List<Data>> columns, Long effectiveTimestamp);
+    Scan newScan(Data startRowKey, Data endRowKey, List<Data> families, List<List<Data>> columns, Long effectiveTimestamp);
+    void setReadTimeRange(Read get, long minTimestamp, long maxTimestamp);
+    void setReadMaxVersions(Read get);
+    void setReadMaxVersions(Read get, int max);
+    void addFamilyToRead(Read read, Data siFamily);
+    void addFamilyToReadIfNeeded(Read get, Data family);
 
     Delete newDelete(Data rowKey);
     void addKeyValueToDelete(Delete delete, Data family, Data qualifier, long timestamp);

@@ -4,8 +4,10 @@ import com.splicemachine.si.data.api.SScan;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Scan;
 
-public class HScan implements SScan, IOperation {
-    final Scan scan;
+import java.io.IOException;
+
+public class HScan implements HRead, SScan, IOperation {
+    private final Scan scan;
 
     public HScan(Scan scan) {
         this.scan = scan;
@@ -18,5 +20,34 @@ public class HScan implements SScan, IOperation {
 
     public Scan getScan() {
         return scan;
+    }
+
+    @Override
+    public void setReadTimeRange(long minTimestamp, long maxTimestamp) {
+        try {
+            scan.setTimeRange(minTimestamp, maxTimestamp);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void setReadMaxVersions() {
+        scan.setMaxVersions();
+    }
+
+    @Override
+    public void setReadMaxVersions(int max) {
+        scan.setMaxVersions(max);
+    }
+
+    @Override
+    public void addFamilyToRead(byte[] family) {
+        scan.addFamily(family);
+    }
+
+    @Override
+    public void addFamilyToReadIfNeeded(byte[] family) {
+        scan.addFamily(family);
     }
 }

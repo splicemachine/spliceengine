@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTuple> {
+public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTuple, LGet, LGet, LGet> {
 
     @Override
     public Object newRowKey(Object... args) {
@@ -99,32 +99,32 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTu
     }
 
     @Override
-    public SGet newGet(Object rowKey, List<Object> families, List<List<Object>> columns, Long effectiveTimestamp) {
+    public LGet newGet(Object rowKey, List<Object> families, List<List<Object>> columns, Long effectiveTimestamp) {
         return new LGet(rowKey, rowKey, families, columns, effectiveTimestamp);
     }
 
     @Override
-    public void setReadTimeRange(SRead get, long minTimestamp, long maxTimestamp) {
+    public void setReadTimeRange(LGet get, long minTimestamp, long maxTimestamp) {
         assert minTimestamp == 0L;
-        ((LGet) get).effectiveTimestamp = maxTimestamp - 1;
+        get.effectiveTimestamp = maxTimestamp - 1;
     }
 
     @Override
-    public void setReadMaxVersions(SRead get) {
+    public void setReadMaxVersions(LGet get) {
     }
 
     @Override
-    public void setReadMaxVersions(SRead get, int max) {
+    public void setReadMaxVersions(LGet get, int max) {
     }
 
     @Override
-    public void addFamilyToRead(SRead get, Object family) {
-        ((LGet) get).families.add(family);
+    public void addFamilyToRead(LGet get, Object family) {
+        get.families.add(family);
     }
 
     @Override
-    public void addFamilyToReadIfNeeded(SRead get, Object family) {
-        ensureFamilyDirect((LGet) get, family);
+    public void addFamilyToReadIfNeeded(LGet get, Object family) {
+        ensureFamilyDirect(get, family);
     }
 
     private void ensureFamilyDirect(LGet lGet, Object family) {
@@ -138,7 +138,7 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTu
     }
 
     @Override
-    public SScan newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp) {
+    public LGet newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp) {
         return new LGet(startRowKey, endRowKey, families, columns, effectiveTimestamp);
     }
 

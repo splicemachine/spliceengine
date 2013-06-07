@@ -19,7 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class LStore implements STableReader<LTuple>, STableWriter<LTuple, LTuple, Object> {
+public class LStore implements STableReader<LTable, LTuple, LGet, LGet>, STableWriter<LTable, LTuple, LTuple, Object, LRowLock> {
     private final Map<String, Map<String, LRowLock>> locks = new HashMap<String, Map<String, LRowLock>>();
     private final Map<String, Map<LRowLock, String>> reverseLocks = new HashMap<String, Map<LRowLock, String>>();
     private final Map<String, List<LTuple>> relations = new HashMap<String, List<LTuple>>();
@@ -47,13 +47,13 @@ public class LStore implements STableReader<LTuple>, STableWriter<LTuple, LTuple
     }
 
     @Override
-    public STable open(String tableName) {
+    public LTable open(String tableName) {
         return new LTable(tableName);
     }
 
     @Override
-    public LTuple get(STable table, SGet get) {
-        Iterator<LTuple> results = runScan(table, (LGet) get);
+    public LTuple get(LTable table, LGet get) {
+        Iterator<LTuple> results = runScan(table, get);
         if (results.hasNext()) {
             LTuple result = results.next();
             assert !results.hasNext();
@@ -63,8 +63,8 @@ public class LStore implements STableReader<LTuple>, STableWriter<LTuple, LTuple
     }
 
     @Override
-    public Iterator scan(STable table, SScan scan) {
-        return runScan(table, (LGet) scan);
+    public Iterator scan(LTable table, LGet scan) {
+        return runScan(table, scan);
     }
 
     private Iterator runScan(STable table, LGet get) {
@@ -121,28 +121,28 @@ public class LStore implements STableReader<LTuple>, STableWriter<LTuple, LTuple
     }
 
     @Override
-    public void close(STable table) {
+    public void close(LTable table) {
     }
 
     @Override
-    public void write(STable table, LTuple put) {
+    public void write(LTable table, LTuple put) throws IOException {
         write(table, Arrays.asList(put));
     }
 
     @Override
-    public void write(STable table, LTuple put, boolean durable) {
+    public void write(LTable table, LTuple put, boolean durable) throws IOException {
         write(table, Arrays.asList(put));
     }
 
     @Override
-    public void write(STable table, LTuple put, SRowLock rowLock) {
+    public void write(LTable table, LTuple put, LRowLock rowLock) throws IOException {
         write(table, put);
     }
 
     @Override
-    public void write(STable table, List puts) {
+    public void write(LTable table, List puts) {
         synchronized (this) {
-            final String relationIdentifier = ((LTable) table).relationIdentifier;
+            final String relationIdentifier = table.relationIdentifier;
             List<LTuple> newTuples = relations.get(relationIdentifier);
             if (newTuples == null) {
                 newTuples = new ArrayList<LTuple>();
@@ -155,8 +155,8 @@ public class LStore implements STableReader<LTuple>, STableWriter<LTuple, LTuple
     }
 
     @Override
-    public boolean checkAndPut(STable table, final Object family, final Object qualifier, Object expectedValue, LTuple put) throws IOException {
-        SRowLock lock = null;
+    public boolean checkAndPut(LTable table, final Object family, final Object qualifier, Object expectedValue, LTuple put) throws IOException {
+        LRowLock lock = null;
         try {
             lock = lockRow(table, put.key);
             LGet get = new LGet(put.key, put.key, null, null, null);
@@ -211,9 +211,9 @@ public class LStore implements STableReader<LTuple>, STableWriter<LTuple, LTuple
     }
 
     @Override
-    public SRowLock lockRow(STable sTable, Object rowKey) {
+    public LRowLock lockRow(LTable sTable, Object rowKey) {
         synchronized (this) {
-            String table = ((LTable) sTable).relationIdentifier;
+            String table = sTable.relationIdentifier;
             Map<String, LRowLock> lockTable = locks.get(table);
             Map<LRowLock, String> reverseLockTable = reverseLocks.get(table);
             if (lockTable == null) {
@@ -234,9 +234,9 @@ public class LStore implements STableReader<LTuple>, STableWriter<LTuple, LTuple
     }
 
     @Override
-    public void unLockRow(STable sTable, SRowLock lock) {
+    public void unLockRow(LTable sTable, LRowLock lock) {
         synchronized (this) {
-            String table = ((LTable) sTable).relationIdentifier;
+            String table = sTable.relationIdentifier;
             Map<String, LRowLock> lockTable = locks.get(table);
             Map<LRowLock, String> reverseLockTable = reverseLocks.get(table);
             if (lockTable == null) {
@@ -286,8 +286,8 @@ public class LStore implements STableReader<LTuple>, STableWriter<LTuple, LTuple
     }
 
     @Override
-    public void delete(STable table, LTuple delete, SRowLock lock) throws IOException {
-        final String relationIdentifier = ((LTable) table).relationIdentifier;
+    public void delete(LTable table, LTuple delete, LRowLock lock) throws IOException {
+        final String relationIdentifier = table.relationIdentifier;
         final List<LTuple> tuples = relations.get(relationIdentifier);
         final List<LTuple> newTuples = new ArrayList<LTuple>();
         for (LTuple tuple : tuples) {

@@ -17,6 +17,6 @@ public class HCoprocessorTableSource implements HTableSource {
 
     @Override
     public HTableInterface getTable(String tableName) throws IOException {
-        return environment.getTable(HDataLib.convertToBytes(tableName));
+        return environment.getTable(HDataLib.convertToBytes(tableName, String.class));
     }
 }

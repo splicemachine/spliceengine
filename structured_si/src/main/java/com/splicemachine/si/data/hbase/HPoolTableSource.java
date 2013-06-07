@@ -17,6 +17,6 @@ public class HPoolTableSource implements HTableSource {
 
     @Override
     public HTableInterface getTable(String tableName) throws IOException {
-        return pool.getTable(HDataLib.convertToBytes(tableName));
+        return pool.getTable(HDataLib.convertToBytes(tableName, String.class));
     }
 }

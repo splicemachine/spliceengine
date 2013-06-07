@@ -2,10 +2,8 @@ package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.SRowLock;
-import com.splicemachine.si.data.api.SScan;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -21,7 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete> {
+public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete, HGet, HScan, HRead> {
 
     @Override
     public Result newResult(Object key, List keyValues) {
@@ -32,7 +30,7 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete>
     public byte[] newRowKey(Object... args) {
         List<byte[]> bytes = new ArrayList<byte[]>();
         for (Object a : args) {
-            bytes.add(convertToBytes(a));
+            bytes.add(convertToBytes(a, a.getClass()));
         }
         return BytesUtil.concat(bytes);
     }
@@ -109,7 +107,7 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete>
 
     @Override
     public byte[] encode(Object value) {
-        return convertToBytes(value);
+        return convertToBytes(value, value.getClass());
     }
 
     @Override
@@ -179,7 +177,7 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete>
     }
 
     @Override
-    public SGet newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
+    public HGet newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         Get get = new Get(rowKey);
         if (families != null) {
             for (Object f : families) {
@@ -202,68 +200,32 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete>
     }
 
     @Override
-    public void setReadTimeRange(SRead read, long minTimestamp, long maxTimestamp) {
-        if (read instanceof HGet) {
-            try {
-                ((HGet) read).get.setTimeRange(minTimestamp, maxTimestamp);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            try {
-                ((HScan) read).scan.setTimeRange(minTimestamp, maxTimestamp);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
+    public void setReadTimeRange(HRead read, long minTimestamp, long maxTimestamp) {
+        read.setReadTimeRange(minTimestamp, maxTimestamp);
     }
 
     @Override
-    public void setReadMaxVersions(SRead read) {
-        if (read instanceof HGet) {
-            ((HGet) read).getGet().setMaxVersions();
-        } else {
-            ((HScan) read).getScan().setMaxVersions();
-        }
+    public void setReadMaxVersions(HRead read) {
+        read.setReadMaxVersions();
     }
 
     @Override
-    public void setReadMaxVersions(SRead read, int max) {
-        if (read instanceof HGet) {
-            try {
-                ((HGet) read).getGet().setMaxVersions(max);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            ((HScan) read).getScan().setMaxVersions(max);
-        }
+    public void setReadMaxVersions(HRead read, int max) {
+        read.setReadMaxVersions(max);
     }
 
     @Override
-    public void addFamilyToRead(SRead read, byte[] family) {
-        if (read instanceof HGet) {
-            ((HGet) read).get.addFamily(family);
-        } else {
-            ((HScan) read).scan.addFamily(family);
-        }
+    public void addFamilyToRead(HRead read, byte[] family) {
+        read.addFamilyToRead(family);
     }
 
     @Override
-    public void addFamilyToReadIfNeeded(SRead read, byte[] family) {
-        if (read instanceof HGet) {
-            if (((HGet) read).get.hasFamilies()) {
-                ((HGet) read).get.addFamily(family);
-            }
-        } else {
-            if(((HScan) read).scan.hasFamilies()) {
-                ((HScan) read).scan.addFamily(family);
-            }
-        }
+    public void addFamilyToReadIfNeeded(HRead read, byte[] family) {
+        read.addFamilyToReadIfNeeded(family);
     }
 
     @Override
-    public SScan newScan(byte[] startRowKey, byte[] endRowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
+    public HScan newScan(byte[] startRowKey, byte[] endRowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         Scan scan = new Scan();
         scan.setStartRow(startRowKey);
         scan.setStopRow(endRowKey);
@@ -297,20 +259,20 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete>
         delete.deleteColumn(family, qualifier, timestamp);
     }
 
-    static byte[] convertToBytes(Object value) {
-        if (value instanceof String) {
+    static byte[] convertToBytes(Object value, Class clazz) {
+        if (clazz == String.class) {
             return Bytes.toBytes((String) value);
-        } else if (value instanceof Integer) {
+        } else if (clazz == Integer.class) {
             return Bytes.toBytes((Integer) value);
-        } else if (value instanceof Short) {
+        } else if (clazz == Short.class) {
             return Bytes.toBytes((Short) value);
-        } else if (value instanceof Long) {
+        } else if (clazz == Long.class) {
             return Bytes.toBytes((Long) value);
-        } else if (value instanceof Boolean) {
+        } else if (clazz == Boolean.class) {
             return Bytes.toBytes((Boolean) value);
-        } else if (value instanceof byte[]) {
+        } else if (clazz == byte[].class) {
             return (byte[]) value;
         }
-        throw new RuntimeException("Unsupported class " + value.getClass().getName() + " for " + value);
+        throw new RuntimeException("Unsupported class " + clazz.getName() + " for " + value);
     }
 }
