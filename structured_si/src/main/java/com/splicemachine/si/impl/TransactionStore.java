@@ -52,29 +52,30 @@ public class TransactionStore {
         this.listener = listener;
     }
 
-    public void recordNewTransaction(TransactionId startTransactionTimestamp, TransactionParams params,
+    public void recordNewTransaction(long startTransactionTimestamp, TransactionParams params,
                                      TransactionStatus status, long beginTimestamp, long counter) throws IOException {
         writePut(makeCreateTuple(startTransactionTimestamp, params, status, beginTimestamp, counter));
     }
 
-    public void addChildToTransaction(TransactionId transactionId, TransactionId childTransactionId) throws IOException {
-        if (!((SITransactionId) transactionId).isRootTransaction()) {
+    public void addChildToTransaction(long transactionId, long childTransactionId) throws IOException {
+        if (transactionId != Transaction.ROOT_ID) {
             Object put = makeBasePut(transactionId);
-            dataLib.addKeyValueToPut(put, encodedSchema.siChildrenFamily, dataLib.encode(childTransactionId.getTransactionIdString()), null,
+            dataLib.addKeyValueToPut(put, encodedSchema.siChildrenFamily,
+                    dataLib.encode(String.valueOf(childTransactionId)), null,
                     dataLib.encode(true));
             writePut(put);
         }
     }
 
-    public boolean recordTransactionEnd(TransactionId startTransactionTimestamp, long commitTimestamp,
+    public boolean recordTransactionEnd(long startTransactionTimestamp, long commitTimestamp,
                                         Long globalCommitTimestamp, TransactionStatus expectedStatus,
                                         TransactionStatus newStatus) throws IOException {
-        Tracer.traceStatus(startTransactionTimestamp.getId(), newStatus, true);
+        Tracer.traceStatus(startTransactionTimestamp, newStatus, true);
         try {
             return writePut(makeCommitPut(startTransactionTimestamp, commitTimestamp, globalCommitTimestamp, newStatus),
                     (expectedStatus == null) ? null : encodedStatus(expectedStatus));
         } finally {
-            Tracer.traceStatus(startTransactionTimestamp.getId(), newStatus, false);
+            Tracer.traceStatus(startTransactionTimestamp, newStatus, false);
         }
     }
 
@@ -86,18 +87,18 @@ public class TransactionStore {
         }
     }
 
-    public boolean recordTransactionStatusChange(TransactionId startTransactionTimestamp, TransactionStatus expectedStatus,
+    public boolean recordTransactionStatusChange(long startTransactionTimestamp, TransactionStatus expectedStatus,
                                                  TransactionStatus newStatus)
             throws IOException {
-        Tracer.traceStatus(startTransactionTimestamp.getId(), newStatus, true);
+        Tracer.traceStatus(startTransactionTimestamp, newStatus, true);
         try {
             return writePut(makeStatusUpdateTuple(startTransactionTimestamp, newStatus), encodedStatus(expectedStatus));
         } finally {
-            Tracer.traceStatus(startTransactionTimestamp.getId(), newStatus, false);
+            Tracer.traceStatus(startTransactionTimestamp, newStatus, false);
         }
     }
 
-    public void recordKeepAlive(TransactionId startTransactionTimestamp)
+    public void recordKeepAlive(long startTransactionTimestamp)
             throws IOException {
         writePut(makeKeepAliveTuple(startTransactionTimestamp));
     }
@@ -107,7 +108,7 @@ public class TransactionStore {
     }
 
     public ImmutableTransaction getImmutableTransaction(TransactionId transactionId) throws IOException {
-        final ImmutableTransaction result = getImmutableTransactionFromCache(transactionId);
+        final ImmutableTransaction result = getImmutableTransactionFromCache(transactionId.getId());
         if (result.getTransactionId().getTransactionIdString().equals(transactionId.getTransactionIdString())) {
             return result;
         } else {
@@ -115,49 +116,48 @@ public class TransactionStore {
         }
     }
 
-    private ImmutableTransaction getImmutableTransactionFromCache(TransactionId transactionId) throws IOException {
-        final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId.getId());
+    private ImmutableTransaction getImmutableTransactionFromCache(long transactionId) throws IOException {
+        final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId);
         if (cachedTransaction != null) {
             return cachedTransaction;
         }
-        ImmutableTransaction immutableCachedTransaction = immutableTransactionCache.getIfPresent(transactionId.getId());
+        ImmutableTransaction immutableCachedTransaction = immutableTransactionCache.getIfPresent(transactionId);
         if (immutableCachedTransaction != null) {
             return immutableCachedTransaction;
         }
         immutableCachedTransaction = getImmutableTransactionDirect(transactionId);
-        immutableTransactionCache.put(transactionId.getId(), immutableCachedTransaction);
+        immutableTransactionCache.put(transactionId, immutableCachedTransaction);
         return immutableCachedTransaction;
     }
 
-    public Transaction getTransaction(long transactionId) throws IOException {
-        return getTransactionDirect(new SITransactionId(transactionId), false);
+    public Transaction getTransaction(TransactionId transactionId) throws IOException {
+        return getTransaction(transactionId.getId());
     }
 
-    public Transaction getTransaction(TransactionId transactionId) throws IOException {
+    public Transaction getTransaction(long transactionId) throws IOException {
         return getTransactionDirect(transactionId, false);
     }
 
-    public Transaction getImmutableTransactionDirect(TransactionId transactionId) throws IOException {
+    public Transaction getImmutableTransactionDirect(long transactionId) throws IOException {
         return getTransactionDirect(transactionId, true);
     }
 
-    public Transaction getTransactionAsOf(long beginTimestamp, TransactionId perspective) throws IOException {
-        TransactionId transactionId = new SITransactionId(beginTimestamp);
-        final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId.getId());
+    public Transaction getTransactionAsOf(long beginTimestamp, long perspective) throws IOException {
+        final Transaction cachedTransaction = transactionCache.getIfPresent(beginTimestamp);
         if (cachedTransaction != null) {
             return cachedTransaction;
         }
-        final ActiveTransactionCacheEntry activeEntry = activeTransactionCache.getIfPresent(transactionId.getId());
-        if (activeEntry != null && activeEntry.effectiveTimestamp >= perspective.getId()) {
+        final ActiveTransactionCacheEntry activeEntry = activeTransactionCache.getIfPresent(beginTimestamp);
+        if (activeEntry != null && activeEntry.effectiveTimestamp >= perspective) {
             return activeEntry.transaction;
         }
-        final Transaction transaction = loadTransaction(transactionId, false);
-        activeTransactionCache.put(transactionId.getId(), new ActiveTransactionCacheEntry(perspective.getId(), transaction));
+        final Transaction transaction = loadTransaction(beginTimestamp, false);
+        activeTransactionCache.put(beginTimestamp, new ActiveTransactionCacheEntry(perspective, transaction));
         return transaction;
     }
 
-    private Transaction getTransactionDirect(TransactionId transactionId, boolean immutableOnly) throws IOException {
-        final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId.getId());
+    private Transaction getTransactionDirect(long transactionId, boolean immutableOnly) throws IOException {
+        final Transaction cachedTransaction = transactionCache.getIfPresent(transactionId);
         if (cachedTransaction != null) {
             //LOG.warn("cache HIT " + transactionId.getTransactionIdString());
             return cachedTransaction;
@@ -165,29 +165,29 @@ public class TransactionStore {
         return loadTransaction(transactionId, immutableOnly);
     }
 
-    private Transaction loadTransaction(TransactionId transactionId, boolean immutableOnly) throws IOException {
+    private Transaction loadTransaction(long transactionId, boolean immutableOnly) throws IOException {
         if (immutableOnly) {
             return loadTransactionDirect(transactionId);
         } else {
             Transaction transaction = loadTransactionDirect(transactionId);
             if (transaction.isCommitting()) {
                 try {
-                    Tracer.traceWaiting(transactionId.getId());
+                    Tracer.traceWaiting(transactionId);
                     Thread.sleep(waitForCommittingMS);
                 } catch (InterruptedException e) {
                     //ignore this
                 }
                 transaction = loadTransactionDirect(transactionId);
                 if (transaction.isCommitting()) {
-                    throw new DoNotRetryIOException("Transaction is committing: " + transactionId.getTransactionIdString());
+                    throw new DoNotRetryIOException("Transaction is committing: " + transactionId);
                 }
             }
             return transaction;
         }
     }
 
-    private Transaction loadTransactionDirect(TransactionId transactionId) throws IOException {
-        if (((SITransactionId) transactionId).isRootTransaction()) {
+    private Transaction loadTransactionDirect(long transactionId) throws IOException {
+        if (transactionId == Transaction.ROOT_ID) {
             return Transaction.getRootTransaction();
         }
         Object tupleKey = dataLib.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
@@ -204,7 +204,7 @@ public class TransactionStore {
                 TransactionStatus status = getTransactionStatusField(resultTuple, encodedSchema.statusQualifier);
                 Long parentId = getLongField(resultTuple, encodedSchema.parentQualifier);
                 if (parentId == null) {
-                    parentId = Transaction.getRootTransaction().getTransactionId().getId();
+                    parentId = Transaction.ROOT_ID;
                 }
                 Transaction parent = null;
                 if (parentId != null) {
@@ -223,13 +223,13 @@ public class TransactionStore {
                 final Boolean dependent = getBooleanFieldFromResult(resultTuple, encodedSchema.dependentQualifier);
                 final Transaction result = new Transaction(
                         dependent ? DefaultTransactionBehavior.instance : IndependentTransactionBehavior.instance,
-                        transactionId.getId(), beginTimestamp, keepAlive, parent, dependent, children,
+                        transactionId, beginTimestamp, keepAlive, parent, dependent, children,
                         getBooleanFieldFromResult(resultTuple, encodedSchema.allowWritesQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.readUncommittedQualifier),
                         getBooleanFieldFromResult(resultTuple, encodedSchema.readCommittedQualifier),
                         status, commitTimestamp, globalCommitTimestamp, counter);
                 if (!result.isEffectivelyActive()) {
-                    transactionCache.put(transactionId.getId(), result);
+                    transactionCache.put(transactionId, result);
                     //LOG.warn("cache PUT " + transactionId.getTransactionIdString());
                 } else {
                     //LOG.warn("cache NOT " + transactionId.getTransactionIdString());
@@ -240,7 +240,7 @@ public class TransactionStore {
         } finally {
             reader.close(transactionSTable);
         }
-        throw new RuntimeException("transaction ID not found: " + transactionId.getId());
+        throw new RuntimeException("transaction ID not found: " + transactionId);
     }
 
     private Long getLongField(Object resultTuple, Object commitQualifier) {
@@ -266,19 +266,19 @@ public class TransactionStore {
         return result;
     }
 
-    private Object makeStatusUpdateTuple(TransactionId transactionId, TransactionStatus newStatus) {
+    private Object makeStatusUpdateTuple(long transactionId, TransactionStatus newStatus) {
         Object put = makeBasePut(transactionId);
         addFieldToPut(put, encodedSchema.statusQualifier, newStatus.ordinal());
         return put;
     }
 
-    private Object makeKeepAliveTuple(TransactionId transactionId) {
+    private Object makeKeepAliveTuple(long transactionId) {
         Object put = makeBasePut(transactionId);
         addFieldToPut(put, encodedSchema.keepAliveQualifier, encodedSchema.siNull);
         return put;
     }
 
-    private Object makeCreateTuple(TransactionId transactionId, TransactionParams params, TransactionStatus status,
+    private Object makeCreateTuple(long transactionId, TransactionParams params, TransactionStatus status,
                                    long beginTimestamp, long counter) {
         Object put = makeBasePut(transactionId);
         addFieldToPut(put, encodedSchema.dependentQualifier, params.dependent);
@@ -298,11 +298,11 @@ public class TransactionStore {
         if (status != null) {
             addFieldToPut(put, encodedSchema.statusQualifier, status.ordinal());
         }
-        addFieldToPut(put, encodedSchema.idQualifier, transactionId.getId());
+        addFieldToPut(put, encodedSchema.idQualifier, transactionId);
         return put;
     }
 
-    private Object makeCommitPut(TransactionId transactionId, long commitTimestamp, Long globalCommitTimestamp,
+    private Object makeCommitPut(long transactionId, long commitTimestamp, Long globalCommitTimestamp,
                                  TransactionStatus newStatus) {
         Object put = makeBasePut(transactionId);
         addFieldToPut(put, encodedSchema.commitQualifier, commitTimestamp);
@@ -313,13 +313,13 @@ public class TransactionStore {
         return put;
     }
 
-    private Object makeBasePut(TransactionId transactionId) {
+    private Object makeBasePut(long transactionId) {
         Object rowKey = dataLib.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
         return dataLib.newPut(rowKey);
     }
 
-    private long transactionIdToRowKey(TransactionId transactionId) {
-        byte[] result = Bytes.toBytes(transactionId.getId());
+    private long transactionIdToRowKey(long id) {
+        byte[] result = Bytes.toBytes(id);
         ArrayUtils.reverse(result);
         return Bytes.toLong(result);
     }
@@ -348,7 +348,7 @@ public class TransactionStore {
         }
     }
 
-    public long getTimestamp(TransactionId transactionId) throws IOException {
+    public long getTimestamp(long transactionId) throws IOException {
         final STable transactionSTable = reader.open(transactionSchema.tableName);
         final Transaction transaction = loadTransactionDirect(transactionId);
         long current = transaction.counter;

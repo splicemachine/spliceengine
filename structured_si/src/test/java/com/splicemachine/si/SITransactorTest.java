@@ -2642,7 +2642,8 @@ public class SITransactorTest extends SIConstants {
                 @Override
                 public Object apply(@Nullable Long aLong) {
                     try {
-                        Assert.assertTrue(transactorSetup.transactionStore.recordTransactionStatusChange(t1, TransactionStatus.COMMITTING, TransactionStatus.ERROR));
+                        Assert.assertTrue(transactorSetup.transactionStore.recordTransactionStatusChange(t1.getId(),
+                                TransactionStatus.COMMITTING, TransactionStatus.ERROR));
                     } catch (IOException e) {
                         exception[0] = e;
                         throw new RuntimeException(e);

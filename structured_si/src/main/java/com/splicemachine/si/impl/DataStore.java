@@ -96,12 +96,12 @@ public class DataStore {
         return (Boolean) dataLib.decode(neededValue, Boolean.class);
     }
 
-    void addTransactionIdToPut(Object put, TransactionId transactionId) {
-        dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, transactionId.getId(), siNull);
+    void addTransactionIdToPut(Object put, long transactionId) {
+        dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, transactionId, siNull);
     }
 
-    void setTransactionId(SITransactionId transactionId, Object operation) {
-        dataLib.addAttribute(operation, transactionIdAttribute, dataLib.encode(transactionId.getTransactionIdString()));
+    void setTransactionId(long transactionId, Object operation) {
+        dataLib.addAttribute(operation, transactionIdAttribute, dataLib.encode(String.valueOf(transactionId)));
     }
 
     SITransactionId getTransactionIdFromOperation(Object put) {
@@ -169,7 +169,7 @@ public class DataStore {
     }
 
     public void recordRollForward(RollForwardQueue rollForwardQueue, ImmutableTransaction transaction, Object row) {
-        recordRollForward(rollForwardQueue, transaction.getTransactionId().getId(), row);
+        recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), row);
     }
 
     public void recordRollForward(RollForwardQueue rollForwardQueue, long transactionId, Object row) {
@@ -201,8 +201,8 @@ public class DataStore {
         dataLib.addAttribute(newPut, SUPPRESS_INDEXING_ATTRIBUTE_NAME, SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
     }
 
-    public void setTombstoneOnPut(Object put, SITransactionId transactionId) {
-        dataLib.addKeyValueToPut(put, siFamily, tombstoneQualifier, transactionId.getId(), siNull);
+    public void setTombstoneOnPut(Object put, long transactionId) {
+        dataLib.addKeyValueToPut(put, siFamily, tombstoneQualifier, transactionId, siNull);
     }
 
     public void setTombstonesOnColumns(STable table, long timestamp, Object put) throws IOException {

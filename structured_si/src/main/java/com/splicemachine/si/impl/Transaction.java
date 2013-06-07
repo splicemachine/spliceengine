@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl;
 
-import java.util.Collections;
 import java.util.Set;
 
 import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
@@ -13,7 +12,8 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * Represents an application level transaction that spans many atomic writes to the underlying data store (i.e. HBase).
  */
 public class Transaction extends ImmutableTransaction {
-    static final Transaction rootTransaction = new Transaction(RootTransactionBehavior.instance, -1, 0, 0, null, true,
+    public static final long ROOT_ID = -1;
+    static final Transaction rootTransaction = new Transaction(RootTransactionBehavior.instance, ROOT_ID, 0, 0, null, true,
             null, false, false, false, TransactionStatus.ACTIVE, null, null, null);
 
     /**

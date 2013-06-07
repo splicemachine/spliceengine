@@ -67,6 +67,10 @@ public class ImmutableTransaction {
         return transactionId;
     }
 
+    public long getLongTransactionId() {
+        return transactionId.getId();
+    }
+
     public boolean isReadOnly() {
         return !allowWrites;
     }

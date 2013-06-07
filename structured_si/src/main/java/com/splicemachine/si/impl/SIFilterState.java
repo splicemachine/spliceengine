@@ -155,7 +155,7 @@ public class SIFilterState implements FilterState {
         if (transaction == null) {
             if (!myTransaction.getEffectiveReadCommitted() && !myTransaction.getEffectiveReadUncommitted()
                     && !myTransaction.isDescendant(transactionStore.getImmutableTransaction(timestamp))) {
-                transaction = transactionStore.getTransactionAsOf(timestamp, myTransaction.getTransactionId());
+                transaction = transactionStore.getTransactionAsOf(timestamp, myTransaction.getLongTransactionId());
             } else {
                 transaction = transactionStore.getTransaction(timestamp);
             }

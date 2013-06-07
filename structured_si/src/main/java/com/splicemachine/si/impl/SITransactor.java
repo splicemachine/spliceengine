@@ -105,20 +105,19 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
                                                Boolean readCommitted) throws IOException {
         if (allowWrites || readCommitted != null || readUncommitted != null) {
             final TransactionParams params = new TransactionParams(parent, dependent, allowWrites, readUncommitted, readCommitted);
-            final SITransactionId transactionId = assignTransactionId();
-            final long beginTimestamp = getBeginTimestamp(transactionId, params.parent);
-            transactionStore.recordNewTransaction(transactionId, params, ACTIVE, beginTimestamp, 0L);
-            final TransactionId childTransactionId = transactionId;
-            transactionStore.addChildToTransaction(params.parent, childTransactionId);
+            final long timestamp = assignTransactionId();
+            final long beginTimestamp = getBeginTimestamp(timestamp, params.parent.getId());
+            transactionStore.recordNewTransaction(timestamp, params, ACTIVE, beginTimestamp, 0L);
+            transactionStore.addChildToTransaction(params.parent.getId(), timestamp);
             listener.beginTransaction(parent);
-            return childTransactionId;
+            return new SITransactionId(timestamp);
         } else {
-            return createLightweightChildTransaction(parent);
+            return createLightweightChildTransaction(parent.getId());
         }
     }
 
-    private SITransactionId assignTransactionId() throws IOException {
-        return new SITransactionId(timestampSource.nextTimestamp());
+    private long assignTransactionId() throws IOException {
+        return timestampSource.nextTimestamp();
     }
 
     /**
@@ -126,16 +125,16 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      *
      * @return the new transaction ID.
      */
-    private long getBeginTimestamp(SITransactionId transactionId, TransactionId parentId) throws IOException {
-        if (((SITransactionId) parentId).isRootTransaction()) {
-            return transactionId.getId();
+    private long getBeginTimestamp(long transactionId, long parentId) throws IOException {
+        if (parentId == Transaction.ROOT_ID) {
+            return transactionId;
         } else {
             return transactionStore.getTimestamp(parentId);
         }
     }
 
-    private long getCommitTimestamp(TransactionId parentId) throws IOException {
-        if (((SITransactionId) parentId).isRootTransaction()) {
+    private long getCommitTimestamp(long parentId) throws IOException {
+        if (parentId == Transaction.ROOT_ID) {
             return timestampSource.nextTimestamp();
         } else {
             return transactionStore.getTimestamp(parentId);
@@ -154,21 +153,21 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      * Create a non-resource intensive child. This avoids hitting the transaction table. The same transaction ID is
      * given to many callers, and calls to commit, rollback, etc are ignored.
      */
-    private TransactionId createLightweightChildTransaction(TransactionId parent) {
-        return new SITransactionId(parent.getId(), true);
+    private TransactionId createLightweightChildTransaction(long parent) {
+        return new SITransactionId(parent, true);
     }
 
     @Override
     public void keepAlive(TransactionId transactionId) throws IOException {
         if (!isIndependentReadOnly(transactionId)) {
-            transactionStore.recordKeepAlive(transactionId);
+            transactionStore.recordKeepAlive(transactionId.getId());
         }
     }
 
     @Override
     public void commit(TransactionId transactionId) throws IOException {
         if (!isIndependentReadOnly(transactionId)) {
-            final Transaction transaction = transactionStore.getTransaction(transactionId);
+            final Transaction transaction = transactionStore.getTransaction(transactionId.getId());
             ensureTransactionActive(transaction);
             performCommit(transaction);
             listener.commitTransaction();
@@ -179,13 +178,13 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      * Update the transaction table to show this transaction is committed.
      */
     private void performCommit(Transaction transaction) throws IOException {
-        final SITransactionId transactionId = transaction.getTransactionId();
+        final long transactionId = transaction.getLongTransactionId();
         if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, COMMITTING)) {
             throw new IOException("committing failed");
         }
-        Tracer.traceCommitting(transaction.getTransactionId().getId());
+        Tracer.traceCommitting(transaction.getLongTransactionId());
         final Long globalCommitTimestamp = getGlobalCommitTimestamp(transaction);
-        final long commitTimestamp = getCommitTimestamp(transaction.getParent().getTransactionId());
+        final long commitTimestamp = getCommitTimestamp(transaction.getParent().getLongTransactionId());
         if (!transactionStore.recordTransactionEnd(transactionId, commitTimestamp, globalCommitTimestamp, COMMITTING, COMMITTED)) {
             throw new DoNotRetryIOException("commit failed");
         }
@@ -195,11 +194,11 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     public void rollback(TransactionId transactionId) throws IOException {
         if (!isIndependentReadOnly(transactionId)) {
             listener.rollbackTransaction();
-            rollbackDirect(transactionId);
+            rollbackDirect(transactionId.getId());
         }
     }
 
-    private void rollbackDirect(TransactionId transactionId) throws IOException {
+    private void rollbackDirect(long transactionId) throws IOException {
         Transaction transaction = transactionStore.getTransaction(transactionId);
         // currently the application above us tries to rollback already committed transactions.
         // This is poor form, but if it happens just silently ignore it.
@@ -214,11 +213,11 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     public void fail(TransactionId transactionId) throws IOException {
         if (!isIndependentReadOnly(transactionId)) {
             listener.failTransaction();
-            failDirect(transactionId);
+            failDirect(transactionId.getId());
         }
     }
 
-    private void failDirect(TransactionId transactionId) throws IOException {
+    private void failDirect(long transactionId) throws IOException {
         transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ERROR);
     }
 
@@ -282,19 +281,19 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
 
     private void initializeOperation(String transactionId, Object operation, boolean includeSIColumn,
                                      boolean includeUncommittedAsOfStart) {
-        flagForSITreatment((SITransactionId) transactionIdFromString(transactionId), includeSIColumn,
+        flagForSITreatment(transactionIdFromString(transactionId).getId(), includeSIColumn,
                 includeUncommittedAsOfStart, operation);
     }
 
     @Override
     public PutOp createDeletePut(TransactionId transactionId, Object rowKey) {
-        return createDeletePutDirect((SITransactionId) transactionId, rowKey);
+        return createDeletePutDirect(transactionId.getId(), rowKey);
     }
 
     /**
      * Create a "put" operation that will effectively delete a given row.
      */
-    private PutOp createDeletePutDirect(SITransactionId transactionId, Object rowKey) {
+    private PutOp createDeletePutDirect(long transactionId, Object rowKey) {
         final PutOp deletePut = (PutOp) dataLib.newPut(rowKey);
         flagForSITreatment(transactionId, false, false, deletePut);
         dataStore.setTombstoneOnPut(deletePut, transactionId);
@@ -312,7 +311,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      * Set an attribute on the operation that identifies it as needing "snapshot isolation" treatment. This is so that
      * later when the operation comes through for processing we will know how to handle it.
      */
-    private void flagForSITreatment(SITransactionId transactionId, boolean includeSIColumn,
+    private void flagForSITreatment(long transactionId, boolean includeSIColumn,
                                     boolean includeUncommittedAsOfStart, Object operation) {
         dataStore.setSINeededAttribute(operation, includeSIColumn);
         if (includeUncommittedAsOfStart) {
@@ -365,10 +364,6 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
 
     private void performPut(STable table, RollForwardQueue rollForwardQueue, PutOp put, ImmutableTransaction transaction)
             throws IOException {
-//        if (table instanceof HbRegion) {
-//            LOG.error("performPut table = " + ((HbRegion) table).region.toString());
-//            LOG.error("performPut transaction = " + transaction.getTransactionId().getTransactionIdString());
-//        }
         final Object rowKey = dataLib.getPutKey(put);
         final SRowLock lock = dataWriter.lockRow(table, rowKey);
         Set<Long> dataTransactionsToRollForward;
@@ -453,7 +448,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     private Transaction checkTransactionTimeout(Transaction dataTransaction) throws IOException {
         if ((clock.getTime() - dataTransaction.keepAlive) > transactionTimeoutMS) {
             fail(dataTransaction.getTransactionId());
-            return transactionStore.getTransaction(dataTransaction.getTransactionId());
+            return transactionStore.getTransaction(dataTransaction.getLongTransactionId());
         } else {
             return dataTransaction;
         }
@@ -465,7 +460,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     private ConflictType checkTransactionConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction)
             throws IOException {
         if (!updateTransaction.sameTransaction(dataTransaction)) {
-            Transaction t1 = transactionStore.getTransaction(updateTransaction.getTransactionId().getId());
+            Transaction t1 = transactionStore.getTransaction(updateTransaction.getLongTransactionId());
             final ConflictType conflict = t1.isConflict(dataTransaction, transactionSource);
             switch (conflict) {
                 case NONE:
@@ -494,10 +489,9 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     Object createUltimatePut(ImmutableTransaction transaction, SRowLock lock, PutOp put, STable table) throws IOException {
         final Object rowKey = dataLib.getPutKey(put);
         final Object newPut = dataLib.newPut(rowKey, lock);
-        final SITransactionId transactionId = transaction.getTransactionId();
-        final long timestamp = transactionId.getId();
+        final long timestamp = transaction.getLongTransactionId();
         dataStore.copyPutKeyValues(put, true, newPut, timestamp);
-        dataStore.addTransactionIdToPut(newPut, transactionId);
+        dataStore.addTransactionIdToPut(newPut, timestamp);
         if (isDeletePut((MutationOp) put)) {
             dataStore.setTombstonesOnColumns(table, timestamp, newPut);
         }
@@ -597,9 +591,9 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
             for (Object row : rows) {
                 try {
                     if (transaction.isCommitted()) {
-                        dataStore.setCommitTimestamp(table, row, transaction.getTransactionId().getId(), transaction.getCommitTimestamp());
+                        dataStore.setCommitTimestamp(table, row, transaction.getLongTransactionId(), transaction.getCommitTimestamp());
                     } else {
-                        dataStore.setCommitTimestampToFail(table, row, transaction.getTransactionId().getId());
+                        dataStore.setCommitTimestampToFail(table, row, transaction.getLongTransactionId());
                     }
                     Tracer.traceRowRollForward(row);
                 } catch (NotServingRegionException e) {
