@@ -24,8 +24,6 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     private static Logger LOG = Logger.getLogger(LazyDataValueDescriptor.class);
 
-    private DataValueDescriptor dvd;
-
     protected byte[] dvdBytes;
     protected DVDSerializer DVDSerializer;
     protected boolean deserialized;
