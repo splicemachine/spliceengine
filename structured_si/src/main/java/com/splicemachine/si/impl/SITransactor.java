@@ -362,12 +362,8 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
         performPut(table, rollForwardQueue, put, transaction);
     }
 
-<<<<<<< HEAD
-    private void performPut(STable table, RollForwardQueue rollForwardQueue, PutOp put, ImmutableTransaction transaction)
-            throws IOException {
-=======
+
     private void performPut(STable table, RollForwardQueue rollForwardQueue, PutOp put, ImmutableTransaction transaction) throws IOException {
->>>>>>> Code Cleanup
         final Object rowKey = dataLib.getPutKey(put);
         final SRowLock lock = dataWriter.lockRow(table, rowKey);
         Set<Long> dataTransactionsToRollForward;
