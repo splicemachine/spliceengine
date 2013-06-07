@@ -32,6 +32,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -173,6 +174,8 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
                     pkCols.set(pk-1);
                 }
             }
+            if (currentRowLocation == null)
+            	currentRowLocation = new HBaseRowLocation();
         } catch (Exception e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
         }
