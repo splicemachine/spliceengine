@@ -948,4 +948,18 @@ public interface DataValueDescriptor extends Storable, Orderable
      * @return the estimated memory usage
      */
     int estimateMemoryUsage();
+
+    /*
+     *
+     * Splice Added Methods
+     *
+     */
+
+    /**
+     * Knowing if the DVD is lazy allows comparison of the bytes rather than the objects (which is faster)
+     *
+     * @return true if lazy
+     */
+    boolean isLazy();
+
 }

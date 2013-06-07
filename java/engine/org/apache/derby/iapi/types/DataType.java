@@ -1258,4 +1258,8 @@ public abstract class DataType
 		return StandardException.newException(
 				SQLState.LANG_FORMAT_EXCEPTION, getTypeName());
 	}
+
+    public boolean isLazy() {
+        return false;
+    }
 }
