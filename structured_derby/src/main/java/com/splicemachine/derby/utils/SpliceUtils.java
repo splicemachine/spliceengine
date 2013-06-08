@@ -386,7 +386,6 @@ public class SpliceUtils extends SpliceUtilities {
 				Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
 				for(int i=scanList.anySetBit();i!=-1;i=scanList.anySetBit(i)){
 					byte[] value = dataMap.get(Bytes.toBytes(i));
-					SpliceLogUtils.trace(LOG,"Attempting to place column[%d] into destRow %s",i,destRow[bitSetToDestRowMap[i]]);
 					fill(value, destRow[bitSetToDestRowMap[i]]);
 				}
 			}catch(IOException e){
@@ -397,8 +396,9 @@ public class SpliceUtils extends SpliceUtilities {
     
 
 	public static void populate(List<KeyValue> keyValues, DataValueDescriptor[] destRow) throws StandardException {
-		SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",keyValues.size(),destRow.length);
-		try{
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",keyValues.size(),destRow.length);
+			try {
 			int position;
 			for (KeyValue keyValue: keyValues) {
 				if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
@@ -439,7 +439,8 @@ public class SpliceUtils extends SpliceUtilities {
 }
 
     public static void populate(List<KeyValue> keyValues, DataValueDescriptor[] destRow,Serializer serializer) throws StandardException {
-        SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",keyValues.size(),destRow.length);
+        if (LOG.isTraceEnabled())
+        	SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",keyValues.size(),destRow.length);
         try{
     		int placeHolder = 0;
 			for (KeyValue keyValue : keyValues) {
