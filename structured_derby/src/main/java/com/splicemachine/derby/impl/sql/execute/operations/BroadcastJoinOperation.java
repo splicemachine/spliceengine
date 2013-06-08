@@ -4,7 +4,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -20,16 +20,14 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.types.SQLInteger;
+import org.apache.derby.shared.common.reference.MessageId;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 public class BroadcastJoinOperation extends JoinOperation {
@@ -43,7 +41,7 @@ public class BroadcastJoinOperation extends JoinOperation {
 	protected int rightHashKeyItem;
 	protected int[] rightHashKeys;
 	protected ExecRow rightTemplate;
-	protected static List<NodeType> nodeTypes; 
+	protected static List<NodeType> nodeTypes;
 	protected Scan reduceScan;
 	protected RowProvider clientProvider;
 	protected SQLInteger rowType;
@@ -53,28 +51,28 @@ public class BroadcastJoinOperation extends JoinOperation {
 	protected Hasher leftHasher;
 	protected Iterator<ExecRow> rightIterator;
 	protected BroadcastNextRowIterator broadcastIterator;
-	protected Map<byte[],List<ExecRow>> rightSideMap;
+	protected Map<HashableBytes, List<ExecRow>> rightSideMap;
 	protected Map<byte[],List<ExecRow>> rightSideList;
-	protected static Cache<String,Map<byte[],List<ExecRow>>> broadcastJoinCache; // Needs to be concurrent
+	protected static final Cache<String,Map<HashableBytes,List<ExecRow>>> broadcastJoinCache;
 
-	
+
 	static {
 		nodeTypes = new ArrayList<NodeType>();
 		nodeTypes.add(NodeType.MAP);
 		nodeTypes.add(NodeType.SCROLL);
 		broadcastJoinCache = CacheBuilder.newBuilder().
-				maximumSize(50000).expireAfterWrite(10, TimeUnit.MINUTES).removalListener(new RemovalListener<String,Map<byte[],List<ExecRow>>>() {
+				maximumSize(50000).expireAfterWrite(10, TimeUnit.MINUTES).removalListener(new RemovalListener<String,Map<HashableBytes,List<ExecRow>>>() {
 					@Override
-					public void onRemoval(RemovalNotification<String,Map<byte[],List<ExecRow>>> notification) {
+					public void onRemoval(RemovalNotification<String,Map<HashableBytes,List<ExecRow>>> notification) {
 						SpliceLogUtils.trace(LOG, "Removing unique sequence ID %s",notification.getKey());
 					}
 				}).build();
 	}
-	
+
 	public BroadcastJoinOperation() {
 		super();
 	}
-	
+
 	public BroadcastJoinOperation(NoPutResultSet leftResultSet,
 			   int leftNumCols,
 			   NoPutResultSet rightResultSet,
@@ -88,7 +86,7 @@ public class BroadcastJoinOperation extends JoinOperation {
 			   boolean notExistsRightSide,
 			   double optimizerEstimatedRowCount,
 			   double optimizerEstimatedCost,
-			   String userSuppliedOptimizerOverrides) throws StandardException {		
+			   String userSuppliedOptimizerOverrides) throws StandardException {
 				super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
 						activation, restriction, resultSetNumber,oneRowRightSide, notExistsRightSide,
 						optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides);
@@ -97,7 +95,7 @@ public class BroadcastJoinOperation extends JoinOperation {
 				this.rightHashKeyItem = rightHashKeyItem;
                 init(SpliceOperationContext.newContext(activation));
 	}
-	
+
 	@Override
 	public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
 		SpliceLogUtils.trace(LOG, "readExternal");
@@ -117,35 +115,41 @@ public class BroadcastJoinOperation extends JoinOperation {
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getNextRowCore");
-		return null;
-		/*
-		try {
-			if (rightSideMap == null)
-				rightSideMap = retrieveRightSideCache();
-			
-			if (broadcastIterator == null || !broadcastIterator.hasNext()) {
-				if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
-					mergedRow = null;
-					this.setCurrentRow(mergedRow);
-					return mergedRow;
-				} else {
-					broadcastIterator = new BroadcastNextRowIterator(false,leftRow,leftHasher);	
-				}
-			}
-		*/
+        if (rightSideMap == null)
+            rightSideMap = retrieveRightSideCache();
+
+        if (broadcastIterator == null || !broadcastIterator.hasNext()) {
+            if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
+                mergedRow = null;
+                this.setCurrentRow(mergedRow);
+                return mergedRow;
+            } else {
+                broadcastIterator = new BroadcastNextRowIterator(false,leftRow,leftHasher);
+                return getNextRowCore();
+            }
+        } else {
+            return broadcastIterator.next();
+        }
 	}
 
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template){
+	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException{
+        return leftResultSet.getReduceRowProvider(top, template);
+        /*
         if(clientProvider==null){
             SpliceUtils.setInstructions(reduceScan,activation,top);
             clientProvider = new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
         }
         return clientProvider;
+        */
 	}
 
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+        return leftResultSet.getMapRowProvider(top, template);
+    }
 
-	
+
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG, "init");
@@ -157,16 +161,16 @@ public class BroadcastJoinOperation extends JoinOperation {
 		leftHasher = new Hasher(leftRow.getRowArray(),leftHashKeys,null);
 		rightResultSet.init(context);
 	}
-		
+
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeScan");
 		final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
 		this.generateLeftOperationStack(opStack);
 		SpliceLogUtils.trace(LOG,"operationStack=%s",opStack);
-		
+
 		// Get the topmost value, instead of the bottommost, in case it's you
-		SpliceOperation regionOperation = opStack.get(opStack.size()-1); 
+		SpliceOperation regionOperation = opStack.get(opStack.size()-1);
 		SpliceLogUtils.trace(LOG,"regionOperation=%s",opStack);
 		RowProvider provider;
 		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)){
@@ -183,57 +187,57 @@ public class BroadcastJoinOperation extends JoinOperation {
 		JoinUtils.getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition(),wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
 	}
-	
+
 	@Override
 	public List<NodeType> getNodeTypes() {
 		SpliceLogUtils.trace(LOG, "getNodeTypes");
 		return nodeTypes;
 	}
-	
+
 	@Override
 	public SpliceOperation getLeftOperation() {
 		SpliceLogUtils.trace(LOG,"getLeftOperation");
 		return leftResultSet;
 	}
 
-	protected void resetRightSide() {
-		this.rights = new ArrayList<ExecRow>();
-		this.rightIterator = null;
-	}
-	
 	protected class BroadcastNextRowIterator implements Iterator<ExecRow> {
 		protected Iterator<ExecRow> rightSideIterator;
 		protected ExecRow leftRow;
-		protected ExecRow rightRow;		
+		protected ExecRow rightRow;
 		protected boolean outerJoin;
 		protected Hasher leftHasher;
 		protected boolean seenRow;
-		public BroadcastNextRowIterator(boolean outerJoin, ExecRow leftRow, Hasher leftHasher) {
+		public BroadcastNextRowIterator(boolean outerJoin, ExecRow leftRow, Hasher leftHasher) throws StandardException {
 			this.leftRow = leftRow;
 			this.outerJoin = outerJoin;
 			this.leftHasher = leftHasher;
-		//	List<ExecRow> rows = rightSideMap.get(leftHasher.generateSortedHashKeyWithoutUniqueKey(leftRow.getRowArray()));
-		//	if (rows != null)
-		//		rightSideIterator = rows.iterator();
-		}
+            try {
+		        List<ExecRow> rows = rightSideMap.get(new HashableBytes(leftHasher.generateSortedHashKeyWithoutUniqueKey(leftRow.getRowArray())));
+                if (rows != null) {
+                    rightSideIterator = rows.iterator();
+                }
+            } catch (IOException e){
+                throw StandardException.newException(MessageId.SPLICE_GENERIC_EXCEPTION, e, "Problem generating hashkey for row %s", leftRow);
+            }
+        }
 
-		@Override
+        @Override
 		public boolean hasNext() {
 			if (rightSideIterator != null && rightSideIterator.hasNext()) {
 				mergedRow = JoinUtils.getMergedRow(leftRow, rightSideIterator.next(), wasRightOuterJoin, rightNumCols,leftNumCols, mergedRow);
 				setCurrentRow(mergedRow);
-				currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());					
+				currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
 				SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
 				return true;
 			}
 			if (rightSideIterator == null && outerJoin) {
 				mergedRow = JoinUtils.getMergedRow(leftRow, getEmptyRow(), wasRightOuterJoin, rightNumCols,leftNumCols, mergedRow);
 				setCurrentRow(mergedRow);
-				currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());					
+				currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
 				SpliceLogUtils.trace(LOG, "current row returned %s",currentRow);
 				return true;
 			}
-				
+
 			return false;
 		}
 
@@ -245,43 +249,49 @@ public class BroadcastJoinOperation extends JoinOperation {
 
 		@Override
 		public void remove() {
-			throw new RuntimeException("Cannot Be Removed - Not Implemented!");			
-		}			
+			throw new RuntimeException("Cannot Be Removed - Not Implemented!");
+		}
 	}
 	protected ExecRow getEmptyRow () {
 		throw new RuntimeException("Should only be called on outer joins");
 	}
-	
-	private Map<byte[], List<ExecRow>> retrieveRightSideCache() throws StandardException, IOException {
-		Map<byte[], List<ExecRow>> cache;
-		if ( (cache = broadcastJoinCache.getIfPresent(this.uniqueSequenceID)) == null) {
-			loadCache();
-			retrieveRightSideCache();
-		}
-		return cache;	
-	}
-	
-	private synchronized void loadCache() throws StandardException, IOException {
-		SpliceLogUtils.trace(LOG, "loadCache for uniqueSequenceID " + uniqueSequenceID);
-		if (broadcastJoinCache.getIfPresent(this.uniqueSequenceID) == null) { // Race Condition between regions
-			NoPutResultSet resultSet = rightResultSet.executeScan();
-			ExecRow rightRow;
-			Map<byte[], List<ExecRow>> cache = new ConcurrentHashMap<byte[],List<ExecRow>>();
-			Hasher hasher = new Hasher(rightTemplate.getRowArray(),rightHashKeys,null);
-			byte[] hashKey;
-			List<ExecRow> rows;
-			while ( (rightRow = resultSet.getNextRowCore()) != null) {
-				hashKey = hasher.generateSortedHashKeyWithoutUniqueKey(rightRow.getRowArray());
-				if ( (rows = cache.get(hashKey)) != null) {
-					rows.add(rightRow);
-				} else {
-					rows = new ArrayList<ExecRow>();
-					rows.add(rightRow);
-					cache.put(hashKey, rows);
-				}
-			}
-			broadcastJoinCache.put(this.uniqueSequenceID, cache);
-		}
-	}
-	
+
+    private Map<HashableBytes, List<ExecRow>> retrieveRightSideCache() throws StandardException {
+        try {
+            // Cache population is what we want here concurrency-wise: only one Callable will be invoked to
+            // populate the cache for a given key; any other concurrent .get(k, callable) calls will block
+            return broadcastJoinCache.get(uniqueSequenceID, new Callable<Map<HashableBytes, List<ExecRow>>>() {
+                @Override
+                public Map<HashableBytes, List<ExecRow>> call() throws Exception {
+                    SpliceLogUtils.trace(LOG, "Load right-side cache for BroadcastJoin, uniqueSequenceID " + uniqueSequenceID);
+                    return loadRightSide();
+                }
+            });
+        } catch (Exception e) {
+            throw StandardException.newException(MessageId.SPLICE_GENERIC_EXCEPTION, e,
+                    "Problem loading right-hand cache for BroadcastJoin, uniqueSequenceID " + uniqueSequenceID);
+        }
+    }
+
+    private Map<HashableBytes, List<ExecRow>> loadRightSide() throws StandardException, IOException {
+        HashableBytes hashKey;
+        List<ExecRow> rows;
+        Map<HashableBytes, List<ExecRow>> cache = new HashMap<HashableBytes, List<ExecRow>>();
+        Hasher hasher = new Hasher(rightRow.getRowArray(), rightHashKeys, null);
+        NoPutResultSet resultSet = rightResultSet.executeScan();
+        resultSet.openCore();
+
+        while ((rightRow = resultSet.getNextRowCore()) != null) {
+            hashKey = new HashableBytes(hasher.generateSortedHashKeyWithoutUniqueKey(rightRow.getRowArray()));
+            if ((rows = cache.get(hashKey)) != null) {
+                rows.add(rightRow);
+            } else {
+                rows = new ArrayList<ExecRow>();
+                rows.add(rightRow);
+                cache.put(hashKey, rows);
+            }
+        }
+        return Collections.unmodifiableMap(cache);
+    }
+
 }

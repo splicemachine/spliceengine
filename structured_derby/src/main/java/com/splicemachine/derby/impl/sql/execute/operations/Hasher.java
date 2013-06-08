@@ -47,8 +47,9 @@ public class Hasher {
         		Arrays.toString(descriptors),Arrays.toString(hashKeys));
         this.hashKeys = hashKeys;
         this.sortOrder = sortOrder;
-        values = new Object[hashKeys.length];
+        values = new Object[hashKeys.length + 1];
         StructBuilder structBuilder = new StructBuilder();
+        structBuilder.add(new StringRowKey());
         RowKey rowKey;
         for (int i=0;i<hashKeys.length;i++) {
         	rowKey = DerbyBytesUtil.getRowKey(descriptors[hashKeys[i]]);

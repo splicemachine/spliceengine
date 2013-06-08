@@ -785,6 +785,26 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
 	}
 
+	//@Override
+	public NoPutResultSet getBroadcastJoinResultSet(
+			NoPutResultSet leftResultSet, int leftNumCols,
+			NoPutResultSet rightResultSet, int rightNumCols,
+			int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
+			int resultSetNumber, boolean oneRowRightSide,
+			boolean notExistsRightSide, double optimizerEstimatedRowCount,
+			double optimizerEstimatedCost, String userSuppliedOptimizerOverrides)
+			throws StandardException {
+		SpliceLogUtils.trace(LOG, "getBroadcastJoinResultSet");
+        try{
+            return new BroadcastJoinOperation(leftResultSet, leftNumCols,
+                    rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
+                    oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
+                    optimizerEstimatedCost, userSuppliedOptimizerOverrides);
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
+	}
+
 	@Override
 	public NoPutResultSet getDDLResultSet(Activation activation)
 			throws StandardException {
