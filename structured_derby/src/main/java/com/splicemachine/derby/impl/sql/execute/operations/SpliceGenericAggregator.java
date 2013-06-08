@@ -34,9 +34,9 @@ public class SpliceGenericAggregator {
 	public SpliceGenericAggregator(AggregatorInfo aggInfo, ClassFactory cf) {
 		this.aggInfo = aggInfo;
 		this.cf = cf;
-		this.aggregatorColumnId = aggInfo.getAggregatorColNum();
-		this.inputColumnId = aggInfo.getInputColNum();
-		this.resultColumnId = aggInfo.getOutputColNum();
+		this.aggregatorColumnId = aggInfo.getAggregatorColNum()+1;
+		this.inputColumnId = aggInfo.getInputColNum()+1;
+		this.resultColumnId = aggInfo.getOutputColNum()+1;
 	}
 	
 	public AggregatorInfo getAggregatorInfo(){
@@ -44,16 +44,14 @@ public class SpliceGenericAggregator {
 	}
 	
 	public void accumulate(ExecRow nextRow,ExecRow accumulatorRow) throws StandardException {
-		DataValueDescriptor nextCol = nextRow.getColumn(inputColumnId+1);
-		DataValueDescriptor aggCol = accumulatorRow.getColumn(aggregatorColumnId+1);
+		DataValueDescriptor nextCol = nextRow.getColumn(inputColumnId);
+		DataValueDescriptor aggCol = accumulatorRow.getColumn(aggregatorColumnId);
 		accumulate(nextCol,aggCol);
 	}
 
 	public void merge(ExecRow inputRow, ExecRow mergeRow) throws StandardException {
-		SpliceLogUtils.trace(LOG,"in aggregate merge, aggregatorColumnId=%d",aggregatorColumnId);
-		DataValueDescriptor mergeCol = mergeRow.getColumn(aggregatorColumnId + 1);
-		DataValueDescriptor inputCol = inputRow.getColumn(aggregatorColumnId+1);
-		
+		DataValueDescriptor mergeCol = mergeRow.getColumn(aggregatorColumnId);
+		DataValueDescriptor inputCol = inputRow.getColumn(aggregatorColumnId);
 		merge(inputCol,mergeCol);
 	}
 	
@@ -61,14 +59,13 @@ public class SpliceGenericAggregator {
 		return aggInfo.isDistinct();
 	}
 	
-	public DataValueDescriptor getInputColumnValue(ExecRow row) 
-											throws StandardException{
-		return row.getColumn(inputColumnId+1); 
+	public DataValueDescriptor getInputColumnValue(ExecRow row) throws StandardException{
+		return row.getColumn(inputColumnId); 
 	}
 	
 	public boolean finish(ExecRow row) throws StandardException{
-		DataValueDescriptor outputCol = row.getColumn(resultColumnId+1);
-		DataValueDescriptor aggCol = row.getColumn(aggregatorColumnId+1);
+		DataValueDescriptor outputCol = row.getColumn(resultColumnId);
+		DataValueDescriptor aggCol = row.getColumn(aggregatorColumnId);
 		
 		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
 		if(ua ==null) ua = getAggregatorInstance();
@@ -86,7 +83,7 @@ public class SpliceGenericAggregator {
 	}
 	
 	void initialize(ExecRow row) throws StandardException{
-		UserDataValue aggColumn = (UserDataValue)row.getColumn(aggregatorColumnId+1);
+		UserDataValue aggColumn = (UserDataValue)row.getColumn(aggregatorColumnId);
 		
 		ExecAggregator ua = (ExecAggregator)aggColumn.getObject();
 		if(ua == null){

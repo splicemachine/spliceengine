@@ -8,8 +8,6 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
-import com.splicemachine.derby.stats.Accumulator;
-import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -46,7 +44,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	protected int rowsInput = 0;
 
 	protected boolean isOpen=false;
-    protected Accumulator scanAccumulator = TimingStats.uniformAccumulator();
     /*indicates whether or not this operation is looking at the TEMP space*/
     private boolean isTemp;
 
@@ -120,7 +117,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		try {
 			sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(activation));
 			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
-
             isTemp = !context.isSink()||context.getTopOperation()!=this;
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
@@ -129,30 +125,23 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG, "getNextRowCore");
-		return doAggregation(isTemp,scanAccumulator);
+		return doAggregation(isTemp);
 	}
 
-	protected ExecRow doAggregation(boolean useScan,Accumulator stats) throws StandardException{
+	protected ExecRow doAggregation(boolean useScan) throws StandardException{
 		ExecIndexRow execIndexRow;
 		ExecIndexRow aggResult = null;
 		if(useScan){
             do{
-                long processTime = System.nanoTime();
                 execIndexRow = getNextRowFromScan(false);
                 if(execIndexRow==null)continue;
                 aggResult = aggregate(execIndexRow,aggResult,false,true);
-                stats.tick(System.nanoTime()-processTime);
             }while(execIndexRow!=null);
 		}else{
             do{
-                long processTime = System.nanoTime();
                 execIndexRow = getNextRowFromSource(false);
                 if(execIndexRow==null) continue;
-
                 aggResult = aggregate(execIndexRow,aggResult,true,false);
-
-                stats.tick(System.nanoTime()-processTime);
             }while(execIndexRow!=null);
 		}
 		if(aggResult==null) return null; //we didn't have any rows to aggregate
@@ -177,32 +166,25 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 	
 	protected ExecIndexRow getNextRowFromScan(boolean doClone) throws StandardException {
-		//TODO -sf- make sure that only one scanner does the final aggregation 
-		SpliceLogUtils.trace(LOG, "getting next result from TEMP Table");
 		List<KeyValue> keyValues = new ArrayList<KeyValue>();
 		try{
 			regionScanner.next(keyValues);
-			SpliceLogUtils.trace(LOG,"keyValues.length=%d, regionScanner=%s",keyValues.size(),regionScanner);
 		}catch(IOException ioe){
 			SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION, ioe));
 		}
 		if(keyValues.isEmpty())
 			return null;
 		else{
-			SpliceLogUtils.trace(LOG,"populating next row");
 			ExecIndexRow row = (ExecIndexRow)sourceExecIndexRow.getClone();
 			SpliceUtils.populate(keyValues,row.getRowArray());
-			SpliceLogUtils.trace(LOG, "returned row = %s",row);
 			return row;
 		}
 	}
 	
 	private ExecIndexRow getNextRowFromSource(boolean doClone) throws StandardException{
-		SpliceLogUtils.trace(LOG,"getNextRowFromSource");
 		ExecRow sourceRow;
 		ExecIndexRow inputRow = null;
 		if((sourceRow = source.getNextRowCore())!=null){
-			SpliceLogUtils.trace(LOG,"sourceRow=%s",sourceRow);
 			rowsInput++;
 			sourceExecIndexRow.execRowToExecIndexRow(doClone? sourceRow.getClone():sourceRow);
 			inputRow = sourceExecIndexRow;
@@ -220,11 +202,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	protected void initializeScalarAggregation(ExecRow aggResult) throws StandardException{
 		for(SpliceGenericAggregator aggregator: aggregates){
-			//SpliceLogUtils.trace(LOG, "BEFORE INITIALIZATION: aggResult = %s",aggResult);
 			aggregator.initialize(aggResult);
-			//SpliceLogUtils.trace(LOG, "BEFORE FIRST ACCUMULATE: aggResult = %s",aggResult);
 			aggregator.accumulate(aggResult,aggResult);
-			//SpliceLogUtils.trace(LOG, "AFTER FIRST ACCUMULATE: aggResult = %s",aggResult);
 		}
 	}
 	
@@ -234,8 +213,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		int size = aggregates.length;
 		for(int i=0;i<size;i++){
 			SpliceGenericAggregator currAggregate = aggregates[i];
-			if(isScan||hasDistinctAggregates &&
-					!currAggregate.isDistinct()){
+			if(isScan||hasDistinctAggregates && !currAggregate.isDistinct()){
 				currAggregate.merge(nextRow, aggResult);
 			}else{
 				currAggregate.accumulate(nextRow,aggResult);
