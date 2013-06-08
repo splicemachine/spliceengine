@@ -15,6 +15,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.tables.SpliceCustomerTable;
 import com.splicemachine.derby.test.framework.tables.SpliceOrderLineTable;
 
+@Ignore
 public class CorePerformanceReport extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = CorePerformanceReport.class.getSimpleName().toUpperCase();
