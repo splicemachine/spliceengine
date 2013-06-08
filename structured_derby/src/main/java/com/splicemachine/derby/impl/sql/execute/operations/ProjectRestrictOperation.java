@@ -43,15 +43,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	protected boolean shortCircuitOpen;
 	protected SpliceOperation source;
 	protected static List<NodeType> nodeTypes;
-    private boolean alwaysFalse;
-	
-	// Set in init method
+    private boolean alwaysFalse;	
 	protected GeneratedMethod restriction;
 	protected GeneratedMethod projection;
-	
-	public long restrictionTime;
-	public long projectionTime;
-
     private ExecRow candidateRow;
     private ExecRow result;
     private boolean restrict;
@@ -110,8 +104,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         reuseResult = in.readBoolean();
         doesProjection = in.readBoolean();
         source = (SpliceOperation) in.readObject();
-        restrictionTime = in.readLong();
-        projectionTime = in.readLong();
     }
 
     @Override
@@ -126,8 +118,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         out.writeBoolean(reuseResult);
         out.writeBoolean(doesProjection);
         out.writeObject(source);
-        out.writeLong(restrictionTime);
-        out.writeLong(projectionTime);
     }
 
 	@Override
@@ -180,8 +170,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		return nodeTypes;
 	}
 	
-	private ExecRow doProjection(ExecRow sourceRow) throws StandardException {
-		SpliceLogUtils.trace(LOG, "doProjection");
+	private ExecRow doProjection(ExecRow sourceRow) throws StandardException { 
 		ExecRow result;
 			if (projection != null) {
 				result = (ExecRow) projection.invoke(activation);
@@ -244,14 +233,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		result = null;
 		restrict = false;
 		restrictBoolean = null;
-		long beginRT = 0;
 
 		beginTime = getCurrentTimeMillis();
 		do {
 			candidateRow = source.getNextRowCore();
-			SpliceLogUtils.trace(LOG, "candidateRow=%s",candidateRow);
 			if (candidateRow != null) {
-				beginRT = getCurrentTimeMillis();
 				/* If restriction is null, then all rows qualify */
 				if (restriction == null) {
 					restrict = true;
@@ -259,8 +245,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				else {
 					setCurrentRow(candidateRow);
 					restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
-					restrictionTime += getElapsedMillis(beginRT);
-
 					// if the result is null, we make it false --
 					// so the row won't be returned.
 					restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
@@ -269,13 +253,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 					}
 				}
 				rowsSeen++;
-				SpliceLogUtils.trace(LOG,"restricting row %s?%b",candidateRow,restrict);
 			}
 		} while ( (candidateRow != null) && (! restrict ) );
 		if (candidateRow != null)  {
-			beginRT = getCurrentTimeMillis();
 			result = doProjection(candidateRow);
-			projectionTime += getElapsedMillis(beginRT);
 		}
 		/* Clear the current row, if null */
 		else {
@@ -283,10 +264,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		}
 		currentRow = result;
 		setCurrentRow(currentRow);
-		if (statisticsTimingOn)
-		{
-			if (! isTopResultSet)
-			{
+		if (statisticsTimingOn) {
+			if (! isTopResultSet) {
 				/* This is simply for RunTimeStats */
 				//TODO: need to getStatementContext() from somewhere
 				if (activation.getLanguageConnectionContext().getStatementContext() == null) 
