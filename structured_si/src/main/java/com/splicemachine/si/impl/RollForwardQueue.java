@@ -78,7 +78,7 @@ public class RollForwardQueue {
 
     /**
      * A reference to the task that is scheduled to reset the queue. As tasks run they check that this is still scheduled.
-     * This is a safety measure against the possibility of the reset task failing and failing to re-shedule itself.
+     * This is a safety measure against the possibility of the reset task failing and failing to re-schedule itself.
      */
     private ScheduledFuture<?> resetterHandle;
 
