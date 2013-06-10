@@ -128,7 +128,7 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTu
     }
 
     private void ensureFamilyDirect(LGet lGet, Object family) {
-        if (lGet.families.isEmpty() && lGet.columns.isEmpty()) {
+        if (lGet.families.isEmpty() && (lGet.columns == null || lGet.columns.isEmpty())) {
         } else {
             if (lGet.families.contains(family)) {
             } else {

@@ -5,6 +5,7 @@ import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.SITransactor;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -125,7 +126,7 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
-    public Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException {
+    public Filter.ReturnCode filterKeyValue(FilterState filterState, KeyValue keyValue) throws IOException {
         return delegate.filterKeyValue(filterState, keyValue);
     }
 

@@ -4,6 +4,7 @@ import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
@@ -42,7 +43,7 @@ public interface HTransactor extends HClientTransactor {
     FilterState newFilterState(TransactionId transactionId) throws IOException;
     FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn,
                                boolean includeUncommittedAsOfStart) throws IOException;
-    Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
+    Filter.ReturnCode filterKeyValue(FilterState filterState, KeyValue keyValue) throws IOException;
     Result filterResult(FilterState filterState, Result result) throws IOException;
 
     void rollForward(HRegion region, long transactionId, List rows) throws IOException;

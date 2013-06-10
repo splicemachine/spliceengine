@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * The primary interface to the transaction module.
  */
-public interface Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> extends ClientTransactor<PutOp, GetOp, ScanOp, MutationOp> {
+public interface Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue> extends ClientTransactor<PutOp, GetOp, ScanOp, MutationOp> {
     /**
      * Start a writable transaction in "snapshot isolation" concurrency mode.
      */
@@ -60,9 +60,8 @@ public interface Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> extend
 
     FilterState newFilterState(TransactionId transactionId) throws IOException;
     FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn,
-                               boolean includeUncommittedAsOfStart)
-            throws IOException;
-    Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException;
+                               boolean includeUncommittedAsOfStart) throws IOException;
+    Filter.ReturnCode filterKeyValue(FilterState filterState, KeyValue keyValue) throws IOException;
     ResultType filterResult(FilterState filterState, ResultType result) throws IOException;
 
     void rollForward(STable table, long transactionId, List rows) throws IOException;

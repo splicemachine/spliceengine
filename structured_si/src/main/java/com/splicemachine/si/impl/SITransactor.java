@@ -35,8 +35,8 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
-public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, MutationOp, ResultType>
-        implements Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType> {
+public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, MutationOp, ResultType, KeyValue>
+        implements Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
 
     private final TimestampSource timestampSource;
@@ -539,7 +539,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     @Override
-    public Filter.ReturnCode filterKeyValue(FilterState filterState, Object keyValue) throws IOException {
+    public Filter.ReturnCode filterKeyValue(FilterState filterState, KeyValue keyValue) throws IOException {
         return ((SIFilterState) filterState).filterKeyValue(keyValue);
     }
 
@@ -547,12 +547,12 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     public ResultType filterResult(FilterState filterState, ResultType result) throws IOException {
         final SDataLib dataLib = dataStore.dataLib;
         final List<Object> filteredCells = new ArrayList<Object>();
-        final List keyValues = dataLib.listResult(result);
+        final List<KeyValue> keyValues = dataLib.listResult(result);
         if (keyValues != null) {
             Object qualifierToSkip = null;
             Object familyToSkip = null;
 
-            for (Object keyValue : keyValues) {
+            for (KeyValue keyValue : keyValues) {
                 if (familyToSkip != null
                         && dataLib.valuesEqual(familyToSkip, dataLib.getKeyValueFamily(keyValue))
                         && dataLib.valuesEqual(qualifierToSkip, dataLib.getKeyValueQualifier(keyValue))) {

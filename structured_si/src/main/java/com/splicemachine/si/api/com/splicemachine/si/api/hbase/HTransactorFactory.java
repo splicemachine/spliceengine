@@ -27,6 +27,7 @@ import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
 import com.splicemachine.si.txn.ZooKeeperTimestampSource;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Result;
@@ -102,7 +103,7 @@ public class HTransactorFactory extends SIConstants {
                     SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN_STRING,
                     EMPTY_BYTE_ARRAY, SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
                     DEFAULT_FAMILY);
-            final HTransactorAdapter transactor = new HTransactorAdapter(new SITransactor<Object, SGet, SScan, Mutation, Result>
+            final HTransactorAdapter transactor = new HTransactorAdapter(new SITransactor<Object, SGet, SScan, Mutation, Result, KeyValue>
                     (timestampSource, dataLib, writer, rowStore, transactionStore,
                             new SystemClock(), TRANSACTION_TIMEOUT, managedTransactor));
             managedTransactor.setTransactor(transactor);
