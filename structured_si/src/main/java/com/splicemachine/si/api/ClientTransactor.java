@@ -1,8 +1,6 @@
 package com.splicemachine.si.api;
 
-import com.splicemachine.si.data.api.SGet;
-import com.splicemachine.si.data.api.SScan;
-import org.apache.hadoop.hbase.client.Delete;
+import com.splicemachine.si.impl.TransactionId;
 
 import java.io.IOException;
 

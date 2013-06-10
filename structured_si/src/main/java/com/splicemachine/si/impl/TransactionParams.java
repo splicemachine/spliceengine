@@ -1,7 +1,5 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.TransactionId;
-
 /**
  * Package up several transaction parameters so they can be passed around as a single object.
  */

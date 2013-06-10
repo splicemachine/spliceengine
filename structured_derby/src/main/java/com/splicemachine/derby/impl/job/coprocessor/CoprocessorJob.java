@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.splicemachine.job.Job;
-import com.splicemachine.si.api.TransactionId;
+import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
 

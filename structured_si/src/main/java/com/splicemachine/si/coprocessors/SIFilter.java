@@ -1,9 +1,9 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.si.api.FilterState;
-import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
+import com.splicemachine.si.impl.FilterState;
 import com.splicemachine.si.impl.RollForwardQueue;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.FilterBase;

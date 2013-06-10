@@ -2,8 +2,6 @@ package com.splicemachine.si;
 
 import com.google.common.base.Function;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.si.api.FilterState;
-import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
@@ -13,10 +11,11 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.hbase.HScan;
 import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.data.light.LStore;
+import com.splicemachine.si.impl.FilterState;
 import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
-import com.splicemachine.si.impl.SITransactionId;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionStatus;
@@ -24,7 +23,6 @@ import com.splicemachine.si.impl.WriteConflict;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
@@ -1268,16 +1266,6 @@ public class SITransactorTest extends SIConstants {
         TransactionId t4 = transactor.beginTransaction();
         insertAge(t4, "joe23", 22);
         Assert.assertEquals("joe23 age=22 job=null", read(t3, "joe23"));
-    }
-
-    @Test
-    public void nestedReadOnlyIds() {
-        final SITransactionId id = new SITransactionId(100L, true);
-        Assert.assertEquals(100L, id.getId());
-        Assert.assertEquals("100.IRO", id.getTransactionIdString());
-        final SITransactionId id2 = new SITransactionId("200.IRO");
-        Assert.assertEquals(200L, id2.getId());
-        Assert.assertEquals("200.IRO", id2.getTransactionIdString());
     }
 
     @Test

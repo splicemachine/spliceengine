@@ -1,12 +1,10 @@
 package com.splicemachine.si.jmx;
 
 import com.google.common.cache.Cache;
-import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.ImmutableTransaction;
-import com.splicemachine.si.impl.SITransactionId;
 import com.splicemachine.si.impl.Transaction;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -47,11 +45,11 @@ public class ManagedTransactor implements TransactorListener, TransactorStatus {
     // Implement TransactorListener
 
     @Override
-    public void beginTransaction(TransactionId parent) {
-        if(((SITransactionId)parent).isRootTransaction()) {
-            createdTxns.incrementAndGet();
-        } else {
+    public void beginTransaction(boolean nested) {
+        if(nested) {
             createdChildTxns.incrementAndGet();
+        } else {
+            createdTxns.incrementAndGet();
         }
     }
 

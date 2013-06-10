@@ -3,7 +3,6 @@ package com.splicemachine.si.impl;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.splicemachine.si.api.TransactionId;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,7 +20,7 @@ import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
 public class ImmutableTransaction {
     final TransactionBehavior behavior;
 
-    private final SITransactionId transactionId;
+    private final TransactionId transactionId;
     private final ImmutableTransaction immutableParent;
     private final boolean dependent;
     private final boolean allowWrites;
@@ -39,7 +38,7 @@ public class ImmutableTransaction {
             }
     );
 
-    public ImmutableTransaction(TransactionBehavior behavior, SITransactionId transactionId, boolean allowWrites,
+    public ImmutableTransaction(TransactionBehavior behavior, TransactionId transactionId, boolean allowWrites,
                                 Boolean readCommitted, ImmutableTransaction immutableParent, boolean dependent,
                                 Boolean readUncommitted, long beginTimestamp) {
         this.behavior = behavior;
@@ -55,7 +54,7 @@ public class ImmutableTransaction {
     public ImmutableTransaction(TransactionBehavior behavior, long id, boolean allowWrites, Boolean readCommitted,
                                 ImmutableTransaction immutableParent, boolean dependent, Boolean readUncommitted,
                                 long beginTimestamp) {
-        this(behavior, new SITransactionId(id), allowWrites, readCommitted, immutableParent,
+        this(behavior, new TransactionId(id), allowWrites, readCommitted, immutableParent,
                 dependent, readUncommitted, beginTimestamp);
     }
 
@@ -63,7 +62,7 @@ public class ImmutableTransaction {
         return beginTimestamp;
     }
 
-    public SITransactionId getTransactionId() {
+    public TransactionId getTransactionId() {
         return transactionId;
     }
 
@@ -235,7 +234,7 @@ public class ImmutableTransaction {
         if (transactionId.getId() != newTransactionId.getId()) {
             throw new RuntimeException("Cannot clone transaction with different id");
         }
-        return new ImmutableTransaction(behavior, (SITransactionId) newTransactionId,
+        return new ImmutableTransaction(behavior, newTransactionId,
                 allowWrites, readCommitted, parent, dependent, readUncommitted, beginTimestamp);
     }
 

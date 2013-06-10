@@ -1,27 +1,25 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.TransactionId;
-
 /**
  * Represents an SI transaction identifier. Exposes it as either a long or a string.
  */
-public class SITransactionId implements TransactionId {
+public class TransactionId {
     private static final String IRO = ".IRO";
 
     private final long id;
     public final boolean independentReadOnly;
 
-    public SITransactionId(long id) {
+    TransactionId(long id) {
         this.id = id;
         this.independentReadOnly = false;
     }
 
-    public SITransactionId(long id, boolean independentReadOnly) {
+    TransactionId(long id, boolean independentReadOnly) {
         this.id = id;
         this.independentReadOnly = independentReadOnly;
     }
 
-    public SITransactionId(String transactionId) {
+    TransactionId(String transactionId) {
         if (transactionId.endsWith(IRO)) {
             this.id = Long.parseLong(transactionId.substring(0, transactionId.length() - IRO.length()));
             this.independentReadOnly = true;
@@ -31,19 +29,17 @@ public class SITransactionId implements TransactionId {
         }
     }
 
-    @Override
     public long getId() {
         return id;
     }
 
-    @Override
     public String getTransactionIdString() {
         final String baseId = Long.valueOf(id).toString();
         final String suffix = independentReadOnly ? IRO : "";
         return baseId + suffix;
     }
 
-    public boolean isRootTransaction() {
+    boolean isRootTransaction() {
         return getId() == Transaction.getRootTransaction().getTransactionId().getId();
     }
 
@@ -57,7 +53,7 @@ public class SITransactionId implements TransactionId {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SITransactionId that = (SITransactionId) o;
+        TransactionId that = (TransactionId) o;
 
         if (id != that.id) return false;
         if (independentReadOnly != that.independentReadOnly) return false;

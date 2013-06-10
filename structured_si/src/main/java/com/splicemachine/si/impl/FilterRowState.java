@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Helper class for SIFilterState. Captures the state associated with the current row being processed by the filter.
+ * Helper class for FilterState. Captures the state associated with the current row being processed by the filter.
  */
 public class FilterRowState {
     private final SDataLib dataLib;

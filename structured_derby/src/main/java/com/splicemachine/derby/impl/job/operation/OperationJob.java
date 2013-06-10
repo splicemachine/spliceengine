@@ -4,8 +4,8 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.impl.SITransactionId;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
+import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
@@ -63,7 +63,7 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
 
     @Override
     public TransactionId getParentTransaction() {
-        return new SITransactionId(instructions.getTransactionId());
+        return HTransactorFactory.getClientTransactor().transactionIdFromString(instructions.getTransactionId());
     }
 
     @Override

@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.SRead;
@@ -104,11 +103,11 @@ public class DataStore {
         dataLib.addAttribute(operation, transactionIdAttribute, dataLib.encode(String.valueOf(transactionId)));
     }
 
-    SITransactionId getTransactionIdFromOperation(Object put) {
+    TransactionId getTransactionIdFromOperation(Object put) {
         Object value = dataLib.getAttribute(put, transactionIdAttribute);
         String transactionId = (String) dataLib.decode(value, String.class);
         if (transactionId != null) {
-            return new SITransactionId(transactionId);
+            return new TransactionId(transactionId);
         }
         return null;
     }

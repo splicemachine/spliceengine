@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.ParentTransactionManager;
 import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;

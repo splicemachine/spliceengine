@@ -1,7 +1,6 @@
 package com.splicemachine.si.impl;
 
 import com.google.common.cache.Cache;
-import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.*;
 import org.apache.commons.lang.ArrayUtils;
@@ -14,7 +13,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Library of functions used by the SI module when accessing the transaction table. Encapsulates low-level data access
@@ -104,7 +102,7 @@ public class TransactionStore {
     }
 
     public ImmutableTransaction getImmutableTransaction(long beginTimestamp) throws IOException {
-        return getImmutableTransaction(new SITransactionId(beginTimestamp));
+        return getImmutableTransaction(new TransactionId(beginTimestamp));
     }
 
     public ImmutableTransaction getImmutableTransaction(TransactionId transactionId) throws IOException {
@@ -285,7 +283,7 @@ public class TransactionStore {
         addFieldToPut(put, encodedSchema.startQualifier, beginTimestamp);
         addFieldToPut(put, encodedSchema.counterQualifier, counter);
         addFieldToPut(put, encodedSchema.keepAliveQualifier, encodedSchema.siNull);
-        if (params.parent != null && !((SITransactionId) params.parent).isRootTransaction()) {
+        if (params.parent != null && !params.parent.isRootTransaction()) {
             addFieldToPut(put, encodedSchema.parentQualifier, params.parent.getId());
         }
         addFieldToPut(put, encodedSchema.allowWritesQualifier, params.allowWrites);

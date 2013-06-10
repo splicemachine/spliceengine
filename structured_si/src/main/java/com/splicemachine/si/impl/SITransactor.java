@@ -1,9 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.Clock;
-import com.splicemachine.si.api.FilterState;
 import com.splicemachine.si.api.TimestampSource;
-import com.splicemachine.si.api.TransactionId;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.SDataLib;
@@ -109,8 +107,8 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
             final long beginTimestamp = getBeginTimestamp(timestamp, params.parent.getId());
             transactionStore.recordNewTransaction(timestamp, params, ACTIVE, beginTimestamp, 0L);
             transactionStore.addChildToTransaction(params.parent.getId(), timestamp);
-            listener.beginTransaction(parent);
-            return new SITransactionId(timestamp);
+            listener.beginTransaction(!parent.isRootTransaction());
+            return new TransactionId(timestamp);
         } else {
             return createLightweightChildTransaction(parent.getId());
         }
@@ -154,7 +152,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
      * given to many callers, and calls to commit, rollback, etc are ignored.
      */
     private TransactionId createLightweightChildTransaction(long parent) {
-        return new SITransactionId(parent, true);
+        return new TransactionId(parent, true);
     }
 
     @Override
@@ -222,14 +220,14 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     private boolean isIndependentReadOnly(TransactionId transactionId) {
-        return ((SITransactionId) transactionId).independentReadOnly;
+        return transactionId.independentReadOnly;
     }
 
     // Transaction ID manipulation
 
     @Override
     public TransactionId transactionIdFromString(String transactionId) {
-        return new SITransactionId(transactionId);
+        return new TransactionId(transactionId);
     }
 
     @Override
@@ -356,7 +354,7 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     private void processPutDirect(STable table, RollForwardQueue rollForwardQueue, PutOp put) throws IOException {
-        final SITransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
+        final TransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
         final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
         ensureTransactionAllowsWrites(transaction);
         performPut(table, rollForwardQueue, put, transaction);
@@ -534,13 +532,13 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
                                       boolean includeSIColumn, boolean includeUncommittedAsOfStart)
             throws IOException {
-        return new SIFilterState(dataLib, dataStore, transactionStore, rollForwardQueue, includeSIColumn,
+        return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue, includeSIColumn,
                 includeUncommittedAsOfStart, transactionStore.getImmutableTransaction(transactionId));
     }
 
     @Override
     public Filter.ReturnCode filterKeyValue(FilterState filterState, KeyValue keyValue) throws IOException {
-        return ((SIFilterState) filterState).filterKeyValue(keyValue);
+        return filterState.filterKeyValue(keyValue);
     }
 
     @Override

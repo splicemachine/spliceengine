@@ -3,7 +3,6 @@ package com.splicemachine.si.impl;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.api.FilterState;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
@@ -18,8 +17,8 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
  * Contains the logic for performing an HBase-style filter using "snapshot isolation" logic. This means it filters out
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
-public class SIFilterState implements FilterState {
-    static final Logger LOG = Logger.getLogger(SIFilterState.class);
+public class FilterState {
+    static final Logger LOG = Logger.getLogger(FilterState.class);
 
     /**
      * The transactions that have been loaded as part of running this filter.
@@ -39,9 +38,9 @@ public class SIFilterState implements FilterState {
 
     private final TransactionSource transactionSource;
 
-    public SIFilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
-                         RollForwardQueue rollForwardQueue, boolean includeSIColumn, boolean includeUncommittedAsOfStart,
-                         ImmutableTransaction myTransaction) {
+    FilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
+                RollForwardQueue rollForwardQueue, boolean includeSIColumn, boolean includeUncommittedAsOfStart,
+                ImmutableTransaction myTransaction) {
         this.transactionSource = new TransactionSource() {
             @Override
             public Transaction getTransaction(long timestamp) throws IOException {
@@ -68,7 +67,7 @@ public class SIFilterState implements FilterState {
      * implementation.
      * The order of the column families is important. It is expected that the SI family will be processed first.
      */
-    public Filter.ReturnCode filterKeyValue(Object dataKeyValue) throws IOException {
+    Filter.ReturnCode filterKeyValue(Object dataKeyValue) throws IOException {
         keyValue.setKeyValue(dataKeyValue);
         rowState.updateCurrentRow(keyValue);
         return filterByColumnType();

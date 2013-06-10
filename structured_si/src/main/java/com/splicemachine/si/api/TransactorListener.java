@@ -1,7 +1,7 @@
 package com.splicemachine.si.api;
 
 public interface TransactorListener {
-    void beginTransaction(TransactionId parent);
+    void beginTransaction(boolean nested);
     void commitTransaction();
     void rollbackTransaction();
     void failTransaction();

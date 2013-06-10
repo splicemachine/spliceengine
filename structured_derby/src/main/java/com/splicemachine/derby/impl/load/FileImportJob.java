@@ -4,8 +4,8 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.si.api.TransactionId;
-import com.splicemachine.si.impl.SITransactionId;
+import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
+import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -53,7 +53,7 @@ public class FileImportJob extends ImportJob{
             end = endRow;
         }
 
-        TransactionId parentTxn = new SITransactionId(context.getTransactionId());
+        TransactionId parentTxn = HTransactorFactory.getClientTransactor().transactionIdFromString(context.getTransactionId());
         return Collections.singletonMap(new FileImportTask(getJobId(),context,
                 SpliceConstants.importTaskPriority,parentTxn.getTransactionIdString()),Pair.newPair(start, end));
     }

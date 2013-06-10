@@ -1,8 +1,10 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.si.data.api.STable;
+import com.splicemachine.si.impl.FilterState;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
+import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.filter.Filter;
 
 import java.io.IOException;
