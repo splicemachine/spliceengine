@@ -1653,7 +1653,7 @@ public class JoinNode extends TableOperatorNode {
         leftResultSet.generate(acb, mb); // arg 1
         mb.push(leftResultSet.resultColumns.size()); // arg 2
 
-        if (isNestedLoopOverMergeSortJoin()) {
+        if (isNestedLoopOverHashableJoin()) {
 
             NonLocalColumnReferenceVisitor visitor = new NonLocalColumnReferenceVisitor();
             rightResultSet.accept(visitor);
@@ -1680,7 +1680,7 @@ public class JoinNode extends TableOperatorNode {
              * predicates which are part of the query.
              *
              */
-            if(isMergeSortJoin(rightResultSet)){
+            if(isHashableJoin(rightResultSet)){
                 FromBaseTable table = null;
                 if(rightResultSet instanceof ProjectRestrictNode){
                     //if the table is a ProjectRestrict, then you have to go past,
@@ -1818,7 +1818,7 @@ public class JoinNode extends TableOperatorNode {
 
 	}
 
-    private boolean isNestedLoopOverMergeSortJoin(){
+    private boolean isNestedLoopOverHashableJoin(){
 
         boolean result = false;
 
@@ -1826,13 +1826,13 @@ public class JoinNode extends TableOperatorNode {
 
             JoinNode leftChildJoinNode = (JoinNode) leftResultSet;
 
-            result = isMergeSortJoin(leftChildJoinNode.rightResultSet) && !isMergeSortJoin(rightResultSet);
+            result = isHashableJoin(leftChildJoinNode.rightResultSet) && !isHashableJoin(rightResultSet);
         }
 
         return result;
     }
 
-    private boolean isMergeSortJoin(ResultSetNode node){
+    private boolean isHashableJoin(ResultSetNode node){
 
         boolean result = false;
 
@@ -1840,7 +1840,7 @@ public class JoinNode extends TableOperatorNode {
 
             Optimizable nodeOpt = (Optimizable) node;
 
-            result = nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy() instanceof MergeSortJoinStrategy;
+            result = nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy() instanceof HashableJoinStrategy;
         }
 
         return result;
