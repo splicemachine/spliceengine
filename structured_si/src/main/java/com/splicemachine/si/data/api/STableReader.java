@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 /**
- * Means of opening data and reading data from them.
+ * Means of opening tables and reading data from them.
  */
 public interface STableReader<Table extends STable, Result, Get extends SGet, Scan extends SScan> {
     Table open(String tableName) throws IOException;

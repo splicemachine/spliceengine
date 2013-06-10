@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Means of writing to data. To be used in conjunction with STableReader.
+ * Means of writing to tables. To be used in conjunction with STableReader.
  */
 public interface STableWriter<Table extends STable, Put, Delete, Data, Lock extends SRowLock> {
     void write(Table table, Put put) throws IOException;
