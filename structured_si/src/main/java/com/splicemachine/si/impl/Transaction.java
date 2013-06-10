@@ -118,7 +118,7 @@ public class Transaction extends ImmutableTransaction {
 
     public TransactionStatus getEffectiveStatus(ImmutableTransaction scope) {
         if (((status.equals(ACTIVE) || status.equals(COMMITTED))
-                && !parent.sameTransaction(getRootTransaction()))
+                && !parent.isRootTransaction())
                 && !sameTransaction(scope)) {
             return parent.getEffectiveStatus(scope);
         }

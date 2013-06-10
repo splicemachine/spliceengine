@@ -215,6 +215,10 @@ public class ImmutableTransaction {
         }
     }
 
+    public boolean isRootTransaction() {
+        return transactionId.getId() == Transaction.ROOT_ID;
+    }
+
     public boolean sameTransaction(ImmutableTransaction other) {
         return (getTransactionId().getId() == other.getTransactionId().getId()
                 && !getTransactionId().independentReadOnly
@@ -254,4 +258,5 @@ public class ImmutableTransaction {
     public int hashCode() {
         return transactionId.hashCode();
     }
+
 }
