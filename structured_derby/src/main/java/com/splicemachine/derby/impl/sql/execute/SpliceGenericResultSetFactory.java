@@ -718,17 +718,17 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
 	}
 
-	@Override
-	public NoPutResultSet getMergeSortLeftOuterJoinResultSet(
-			NoPutResultSet leftResultSet, int leftNumCols,
-			NoPutResultSet rightResultSet, int rightNumCols,
+    @Override
+    public NoPutResultSet getMergeSortLeftOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem,
-			GeneratedMethod joinClause, int resultSetNumber,
-			GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
-			boolean oneRowRightSide, boolean notExistsRightSide,
-			double optimizerEstimatedRowCount, double optimizerEstimatedCost,
-			String userSuppliedOptimizerOverrides) throws StandardException {
-		SpliceLogUtils.trace(LOG, "getMergeSortLeftOuterJoinResultSet");
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
+            boolean oneRowRightSide, boolean notExistsRightSide,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getMergeSortLeftOuterJoinResultSet");
         try{
             return new MergeSortLeftOuterJoinOperation(leftResultSet, leftNumCols,
                     rightResultSet, rightNumCols,leftHashKeyItem,rightHashKeyItem,
@@ -744,7 +744,34 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-	}
+    }
+    @Override
+    public NoPutResultSet getBroadcastLeftOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
+            boolean oneRowRightSide, boolean notExistsRightSide,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getMergeSortLeftOuterJoinResultSet");
+        try{
+            return new MergeSortLeftOuterJoinOperation(leftResultSet, leftNumCols,
+                    rightResultSet, rightNumCols,leftHashKeyItem,rightHashKeyItem,
+                    leftResultSet.getActivation(), joinClause,
+                    resultSetNumber,
+                    emptyRowFun,
+                    wasRightOuterJoin,
+                    oneRowRightSide,
+                    notExistsRightSide,
+                    optimizerEstimatedRowCount,
+                    optimizerEstimatedCost,
+                    userSuppliedOptimizerOverrides);
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
+    }
 
 	@Override
 	public NoPutResultSet getNestedLoopJoinResultSet(
@@ -785,7 +812,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
 	}
 
-	//@Override
+	@Override
 	public NoPutResultSet getBroadcastJoinResultSet(
 			NoPutResultSet leftResultSet, int leftNumCols,
 			NoPutResultSet rightResultSet, int rightNumCols,
