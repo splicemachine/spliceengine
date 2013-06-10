@@ -678,18 +678,25 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
         boolean result = false;
 
-        if(dvd == null && o instanceof LazyDataValueDescriptor){
+        if(o instanceof DataValueDescriptor){
 
-            result = Bytes.equals(dvdBytes, ((LazyDataValueDescriptor) o).dvdBytes);
+            DataValueDescriptor otherDVD = (DataValueDescriptor) o;
 
-        }else if (dvd != null && o instanceof DataValueDescriptor ){
+            if(otherDVD.isLazy()){
+                LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) otherDVD;
 
-            result = dvd.equals(unwrap( (DataValueDescriptor) o));
-
+                if(dvdBytes != null && ldvd.dvdBytes != null){
+                    result = Bytes.equals(dvdBytes, ((LazyDataValueDescriptor) o).dvdBytes);
+                } else {
+                    result = dvd.equals(ldvd.dvd);
+                }
+            } else{
+                forceDeserialization();
+                result = dvd.equals(otherDVD);
+            }
         }
 
         return result;
-
     }
 
     protected DVDSerializer getDVDSerializer(){
