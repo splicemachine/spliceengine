@@ -60,7 +60,7 @@ public class SIObserver extends BaseRegionObserver {
                 transactor.rollForward(region, transactionId, rowList);
             }
         };
-        rollForwardQueue = new RollForwardQueue(action, 10000, 10 * S, 5 * 60 * S);
+        rollForwardQueue = new RollForwardQueue(action, 10000, 10 * S, 5 * 60 * S, tableName);
         super.start(e);
     }
 

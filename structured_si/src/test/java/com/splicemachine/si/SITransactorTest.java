@@ -64,7 +64,7 @@ public class SITransactorTest extends SIConstants {
                 STable testSTable = reader.open(storeSetup.getPersonTableName());
                 transactor.rollForward(testSTable, transactionId, rowList);
             }
-        }, 10, 100, 1000);
+        }, 10, 100, 1000, "test");
     }
 
     @Before

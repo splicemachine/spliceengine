@@ -45,7 +45,7 @@ public class RollForwardQueue {
     /**
      * The thread pool to use for running asynchronous roll-forward actions.
      */
-    public static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(0);
+    public static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
 
     /**
      * A plug-point to define what action to take at roll-forward time.
@@ -72,7 +72,7 @@ public class RollForwardQueue {
     private final int resetMS;
 
     /**
-     * The queue of pending roll-forward requests. It is a map from transaction ID to row key.
+     * The queue of pending roll-forward requests. It is a map from transaction ID to a set of row keys.
      */
     private Map<Long, Set> transactionMap;
 
@@ -87,15 +87,18 @@ public class RollForwardQueue {
      */
     private int count;
 
+    private final String tableName;
+
     /**
      * It is expected that one queue will be created for each HBase region. All of the queues in a JVM will use a shared
      * thread pool.
      */
-    public RollForwardQueue(RollForwardAction action, int maxCount, int rollForwardDelayMS, int resetMS) {
+    public RollForwardQueue(RollForwardAction action, int maxCount, int rollForwardDelayMS, int resetMS, String tableName) {
         this.action = action;
         this.maxCount = maxCount;
         this.rollForwardDelayMS = rollForwardDelayMS;
         this.resetMS = resetMS;
+        this.tableName = tableName;
         reset();
     }
 
