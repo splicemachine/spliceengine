@@ -25,11 +25,11 @@ public class LazyDataValueDescriptorTest {
         LazyStringDataValueDescriptor ldvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         ldvd.initForDeserialization(stringBytes);
 
-        Assert.assertTrue(ldvd.getDvd().isNull());
+        Assert.assertTrue(ldvd.sdv.isNull());
 
         Assert.assertEquals("foo", ldvd.getString());
 
-        Assert.assertFalse(ldvd.getDvd().isNull());
+        Assert.assertFalse(ldvd.sdv.isNull());
 
     }
 
@@ -42,13 +42,13 @@ public class LazyDataValueDescriptorTest {
         ldvd.initForDeserialization(stringBytes);
 
         Assert.assertFalse(ldvd.isDeserialized());
-        Assert.assertTrue(ldvd.getDvd().isNull());
+        Assert.assertTrue(ldvd.sdv.isNull());
 
         Assert.assertEquals("foo", ldvd.getString());
 
         Assert.assertTrue(ldvd.getString() == ldvd.getString());
 
-        Assert.assertFalse(ldvd.getDvd().isNull());
+        Assert.assertFalse(ldvd.sdv.isNull());
     }
 
     @Test
@@ -76,7 +76,7 @@ public class LazyDataValueDescriptorTest {
         LazyStringDataValueDescriptor ldvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         ldvd.initForDeserialization(fooBytes);
 
-        Assert.assertTrue(ldvd.getDvd().isNull());
+        Assert.assertTrue(ldvd.sdv.isNull());
         Assert.assertEquals("foo", ldvd.getString());
         Assert.assertEquals("Bytes still present after forcing deserialization", fooBytes, ldvd.getBytes());
 
@@ -137,16 +137,16 @@ public class LazyDataValueDescriptorTest {
         LazyStringDataValueDescriptor barDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         barDvd.initForDeserialization(barBytes);
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
-        Assert.assertTrue(barDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
+        Assert.assertTrue(barDvd.sdv.isNull());
 
         Assert.assertTrue(fooDvd.compare(barDvd) > 0);
         Assert.assertTrue(barDvd.compare(fooDvd) < 0);
         Assert.assertTrue(fooDvd.compare(fooDvd) == 0);
 
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
-        Assert.assertTrue(barDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
+        Assert.assertTrue(barDvd.sdv.isNull());
     }
 
     @Test
@@ -159,14 +159,14 @@ public class LazyDataValueDescriptorTest {
 
         LazyStringDataValueDescriptor barDvd = new LazyStringDataValueDescriptor(new SQLVarchar("bar"), new StringDVDSerializer());
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
         Assert.assertFalse(barDvd.isSerialized());
 
         Assert.assertTrue(fooDvd.compare(barDvd) > 0);
         Assert.assertTrue(barDvd.compare(fooDvd) < 0);
         Assert.assertTrue(fooDvd.compare(fooDvd) == 0);
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
         Assert.assertTrue(barDvd.isSerialized());
     }
 
@@ -180,12 +180,12 @@ public class LazyDataValueDescriptorTest {
 
         DataValueDescriptor barDvd = new SQLVarchar("bar");
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
 
         Assert.assertTrue(fooDvd.compare(barDvd) > 0);
         Assert.assertTrue(fooDvd.compare(fooDvd) == 0);
 
-        Assert.assertFalse(fooDvd.getDvd().isNull());
+        Assert.assertFalse(fooDvd.sdv.isNull());
     }
 
     @Test
@@ -198,7 +198,7 @@ public class LazyDataValueDescriptorTest {
 
         LazyStringDataValueDescriptor barDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
         Assert.assertTrue(barDvd.isNull());
 
         Assert.assertTrue(fooDvd.compare(barDvd, true) > 0);
@@ -207,7 +207,7 @@ public class LazyDataValueDescriptorTest {
         Assert.assertTrue(barDvd.compare(fooDvd, false) > 0);
         Assert.assertTrue(barDvd.compare(barDvd) == 0);
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
     }
 
     @Test
@@ -222,8 +222,8 @@ public class LazyDataValueDescriptorTest {
         LazyStringDataValueDescriptor barDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         barDvd.initForDeserialization(barBytes);
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
-        Assert.assertTrue(barDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
+        Assert.assertTrue(barDvd.sdv.isNull());
 
         Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_GREATEROREQUALS, barDvd, false, false));
         Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_GREATERTHAN, barDvd, false, false));
@@ -241,8 +241,8 @@ public class LazyDataValueDescriptorTest {
         Assert.assertTrue(barDvd.compare(Orderable.ORDER_OP_LESSTHAN, fooDvd, false, false));
         Assert.assertTrue(barDvd.compare(Orderable.ORDER_OP_LESSOREQUALS, fooDvd, false, false));
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
-        Assert.assertTrue(barDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
+        Assert.assertTrue(barDvd.sdv.isNull());
     }
 
     @Test
@@ -255,7 +255,7 @@ public class LazyDataValueDescriptorTest {
 
         LazyStringDataValueDescriptor barDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
         Assert.assertTrue(barDvd.isNull());
 
         Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_GREATEROREQUALS, barDvd, false, true, false));
@@ -270,7 +270,7 @@ public class LazyDataValueDescriptorTest {
         Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_LESSTHAN, barDvd, false, false, false));
         Assert.assertTrue(fooDvd.compare(Orderable.ORDER_OP_LESSOREQUALS, barDvd, false, false, false));
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
     }
 
     @Test
@@ -285,8 +285,8 @@ public class LazyDataValueDescriptorTest {
         LazyStringDataValueDescriptor barDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         barDvd.initForDeserialization(barBytes);
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
-        Assert.assertTrue(barDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
+        Assert.assertTrue(barDvd.sdv.isNull());
 
         assertSqlTrue(fooDvd.greaterThan(fooDvd, barDvd));
         assertSqlTrue(fooDvd.greaterOrEquals(fooDvd, barDvd));
@@ -298,8 +298,8 @@ public class LazyDataValueDescriptorTest {
         assertSqlTrue(fooDvd.equals(fooDvd, fooDvd));
         assertSqlFalse(fooDvd.notEquals(fooDvd, fooDvd));
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
-        Assert.assertTrue(barDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
+        Assert.assertTrue(barDvd.sdv.isNull());
 
     }
 
@@ -320,9 +320,9 @@ public class LazyDataValueDescriptorTest {
         LazyStringDataValueDescriptor fooDvd = new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         fooDvd.initForDeserialization(fooBytes);
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
         Assert.assertFalse(fooDvd.isNull());
-        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
 
     }
 
@@ -336,9 +336,9 @@ public class LazyDataValueDescriptorTest {
 
         int varcharTypeId = new SQLVarchar().getTypeFormatId();
 
-        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
         Assert.assertEquals(fooDvd.getTypeFormatId(), varcharTypeId);
-        Assert.assertTrue(fooDvd.getDvd().isNull());
+        Assert.assertTrue(fooDvd.sdv.isNull());
 
     }
 
