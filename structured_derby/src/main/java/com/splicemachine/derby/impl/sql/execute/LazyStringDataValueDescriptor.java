@@ -20,8 +20,8 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
     public LazyStringDataValueDescriptor(){}
 
-    public LazyStringDataValueDescriptor(StringDataValue sdv, DVDSerializer DVDSerializer){
-        init(sdv, DVDSerializer);
+    public LazyStringDataValueDescriptor(StringDataValue sdv, DVDSerializer dvdSerializer){
+        init(sdv, dvdSerializer);
     }
 
     /**
@@ -146,13 +146,13 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
     @Override
     public DataValueDescriptor cloneHolder() {
         forceDeserialization();
-        return new LazyStringDataValueDescriptor((StringDataValue) sdv.cloneHolder(), DVDSerializer);
+        return new LazyStringDataValueDescriptor((StringDataValue) sdv.cloneHolder(), dvdSerializer);
     }
 
     @Override
     public DataValueDescriptor cloneValue(boolean forceMaterialization) {
         forceDeserialization();
-        return new LazyStringDataValueDescriptor((StringDataValue)  sdv.cloneValue(forceMaterialization), DVDSerializer);
+        return new LazyStringDataValueDescriptor((StringDataValue)  sdv.cloneValue(forceMaterialization), dvdSerializer);
     }
 
     @Override
@@ -162,7 +162,7 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
     @Override
     public DataValueDescriptor getNewNull() {
-        return new LazyStringDataValueDescriptor((StringDataValue) sdv.getNewNull(), DVDSerializer);
+        return new LazyStringDataValueDescriptor((StringDataValue) sdv.getNewNull(), dvdSerializer);
     }
 
     @Override
@@ -180,7 +180,7 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
             throw new IOException("Error reading bytes from DVD", e);
         }
 
-        out.writeUTF(DVDSerializer.getClass().getCanonicalName());
+        out.writeUTF(dvdSerializer.getClass().getCanonicalName());
 
         out.writeBoolean(deserialized);
     }

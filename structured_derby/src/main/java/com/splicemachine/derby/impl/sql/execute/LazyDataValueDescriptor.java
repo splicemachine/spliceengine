@@ -34,7 +34,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     DataValueDescriptor dvd = null;
 
     protected byte[] dvdBytes;
-    protected DVDSerializer DVDSerializer;
+    protected DVDSerializer dvdSerializer;
     protected boolean deserialized;
 
     //Sort of a cached return value for the isNull() call of the DataValueDescriptor
@@ -49,15 +49,15 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     }
 
-    public LazyDataValueDescriptor(DataValueDescriptor dvd, DVDSerializer DVDSerializer){
-       init(dvd, DVDSerializer);
+    public LazyDataValueDescriptor(DataValueDescriptor dvd, DVDSerializer dvdSerializer){
+       init(dvd, dvdSerializer);
     }
 
     protected void init(DataValueDescriptor dvd, DVDSerializer dvdSerializer){
         this.dvd = dvd;
         typeFormatId = dvd.getTypeFormatId();
         isNull = dvd.isNull() && (dvdBytes == null || dvdBytes.length == 0) ;
-        this.DVDSerializer = dvdSerializer;
+        this.dvdSerializer = dvdSerializer;
     }
 
     public void initForDeserialization(byte[] bytes){
@@ -78,7 +78,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     protected void forceDeserialization()  {
         if( !isDeserialized() && isSerialized()){
             try{
-                DVDSerializer.deserialize(dvdBytes, dvd);
+                dvdSerializer.deserialize(dvdBytes, dvd);
                 deserialized = true;
             }catch(Exception e){
                 SpliceLogUtils.error(LOG, "Error lazily deserializing bytes", e);
@@ -89,7 +89,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     protected void forceSerialization(){
         if(!isSerialized()){
             try{
-                dvdBytes = DVDSerializer.serialize(dvd);
+                dvdBytes = dvdSerializer.serialize(dvd);
             }catch(Exception e){
                 SpliceLogUtils.error(LOG, "Error serializing DataValueDescriptor to bytes", e);
             }
@@ -629,7 +629,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
             out.writeObject(new FormatableBitSet(dvdBytes));
         }
 
-        out.writeUTF(DVDSerializer.getClass().getCanonicalName());
+        out.writeUTF(dvdSerializer.getClass().getCanonicalName());
 
         out.writeBoolean(deserialized);
     }
@@ -647,7 +647,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
             dvdBytes = fbs.getByteArray();
         }
 
-        DVDSerializer = (DVDSerializer) createClassInstance(in.readUTF());
+        dvdSerializer = (DVDSerializer) createClassInstance(in.readUTF());
 
         deserialized = in.readBoolean();
     }
@@ -693,7 +693,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     }
 
     protected DVDSerializer getDVDSerializer(){
-        return DVDSerializer;
+        return dvdSerializer;
     }
 }
 
