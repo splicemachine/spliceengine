@@ -21,8 +21,6 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.services.context.ContextManager;
-
 import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
@@ -41,14 +39,12 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
 import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.error.StandardException;
 
 import org.apache.derby.impl.sql.execute.HashScanResultSet;
 
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.util.StringUtil;
-import org.apache.derby.catalog.UUID;
 
 import java.util.Enumeration;
 import java.util.Properties;
@@ -242,7 +238,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable
 				if (ap.getJoinStrategy() == null)
 				{
 					throw StandardException.newException(SQLState.LANG_INVALID_JOIN_STRATEGY, 
-						userSpecifiedJoinStrategy, getBaseTableName());
+						userSpecifiedJoinStrategy, getBaseTableName(),
+                            StringUtil.stringJoin(optimizer.getJoinStrategyNames(), ", "));
 				}
 
 				found = true;

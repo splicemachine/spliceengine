@@ -2473,9 +2473,10 @@ Guide.
 
             <msg>
                 <name>42Y56</name>
-                <text>Invalid join strategy '{0}' specified in Properties list on table '{1}'. The currently supported values for a join strategy are: 'hash' and 'nestedloop'.</text>
+                <text>Invalid join strategy '{0}' specified in Properties list on table '{1}'. The currently supported values for a join strategy are: {2}.</text>
                 <arg>strategyValue</arg>
                 <arg>tableName</arg>
+                <arg>supportedStrategyNames</arg>
             </msg>
 
             <msg>

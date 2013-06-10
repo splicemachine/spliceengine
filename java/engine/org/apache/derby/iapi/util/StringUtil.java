@@ -608,5 +608,24 @@ public class StringUtil
 		}
 		return result.toString();
 	}
+
+    /**
+     * Join a string array into a single string with glue.
+     *
+     *
+     * @param parts string array of parts to be joined
+     * @param glue string inserted between each part
+     * @return parts joined with glue
+     */
+    public static String stringJoin(String[] parts, String glue) {
+        StringBuilder sb = new StringBuilder();
+        for (int i=0; i<parts.length; i++){
+           sb.append(parts[i]);
+           if (i != (parts.length - 1)){
+               sb.append(glue);
+           }
+        }
+        return sb.toString();
+    }
 }
 

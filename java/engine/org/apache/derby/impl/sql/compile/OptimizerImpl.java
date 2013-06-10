@@ -2530,6 +2530,16 @@ public class OptimizerImpl implements Optimizer
 		return joinStrategies.length;
 	}
 
+    /** @see Optimizer#getJoinStrategyNames */
+    public String[] getJoinStrategyNames()
+    {
+        String[] names = new String[getNumberOfJoinStrategies()];
+        for (int i = 0; i < joinStrategies.length; i++) {
+            names[i] = joinStrategies[i].getName();
+        }
+        return names;
+    }
+
 	/** @see Optimizer#getJoinStrategy */
 	public JoinStrategy getJoinStrategy(int whichStrategy) {
 		if (SanityManager.DEBUG) {

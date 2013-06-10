@@ -293,6 +293,11 @@ public interface Optimizer {
 	 */
 	public int tableLockThreshold();
 
+    /**
+     * Gets the names of available join strategies.
+     */
+    String[] getJoinStrategyNames();
+
 	/**
 	 * Gets a join strategy by number (zero-based).
 	 */
