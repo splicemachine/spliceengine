@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
@@ -265,7 +266,8 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
         for(int i=0;i<constraintDescriptors.size();i++){
             ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
-            if(td.getConglomerateDescriptor(cDescriptor.getConglomerateId()).getConglomerateNumber()!=congomId)
+            org.apache.derby.catalog.UUID conglomerateId = cDescriptor.getConglomerateId();
+            if(conglomerateId != null && td.getConglomerateDescriptor(conglomerateId).getConglomerateNumber()!=congomId)
                 continue;
 
             switch(cDescriptor.getConstraintType()){
@@ -327,7 +329,9 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
          */
         for(int i=0;i<constraints.size();i++){
             ConstraintDescriptor constraint = (ConstraintDescriptor)constraints.get(i);
-            if(constraint.getConglomerateId().equals(conglomDesc.getUUID())&&constraint.getConstraintType()==DataDictionary.UNIQUE_CONSTRAINT){
+            org.apache.derby.catalog.UUID conglomerateId = constraint.getConglomerateId();
+            if(constraint.getConstraintType()==DataDictionary.UNIQUE_CONSTRAINT &&
+                    (conglomerateId != null && conglomerateId.equals(conglomDesc.getUUID()))){
                return new IndexFactory(conglomDesc.getConglomerateNumber(),indexDescriptor,true);
             }
         }
