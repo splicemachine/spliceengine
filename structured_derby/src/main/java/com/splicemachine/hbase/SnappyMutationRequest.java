@@ -1,10 +1,16 @@
 package com.splicemachine.hbase;
 
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.ByteDataInput;
+import com.splicemachine.derby.utils.ByteDataOutput;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.Writable;
 import org.xerial.snappy.Snappy;
+import org.xerial.snappy.SnappyInputStream;
+import org.xerial.snappy.SnappyOutputStream;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -35,7 +41,7 @@ public class SnappyMutationRequest  extends MutationRequest {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         byte[] bytes = new byte[in.readInt()];
-        in.read(bytes);
+        in.readFully(bytes);
 
         fromBytes(bytes);
     }
@@ -70,5 +76,25 @@ public class SnappyMutationRequest  extends MutationRequest {
                 mutations.add(delete);
             }
         }
+    }
+
+    public static void main(String... args) throws Exception{
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        SnappyOutputStream sos = new SnappyOutputStream(baos);
+        ObjectOutputStream oos = new ObjectOutputStream(sos);
+        MutationRequest request = new UncompressedMutationRequest(Bytes.toBytes("regionStart"));
+        Put put = new Put(Bytes.toBytes("testRowKey"));
+        put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(1),Bytes.toBytes("hello"));
+        request.addMutation(put);
+
+        oos.writeObject(request);
+        oos.flush();
+
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        SnappyInputStream sis = new SnappyInputStream(bais);
+        ObjectInputStream ois = new ObjectInputStream(sis);
+
+        MutationRequest newReq = (MutationRequest)ois.readObject();
+        System.out.println(newReq);
     }
 }

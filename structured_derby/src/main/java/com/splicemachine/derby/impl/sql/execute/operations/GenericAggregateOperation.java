@@ -3,11 +3,11 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
-
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import org.apache.derby.iapi.error.SQLWarningFactory;
@@ -24,7 +24,6 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.execute.AggregatorInfo;
 import org.apache.derby.impl.sql.execute.AggregatorInfoList;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -162,6 +161,40 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 	 *
 	 * @exception StandardException Thrown on error
 	 */
+	
+	protected final HashBuffer.AggregateFinisher<ByteBuffer,ExecIndexRow> aggregateFinisher = new HashBuffer.AggregateFinisher<ByteBuffer,ExecIndexRow>() {
+
+		@Override
+		public ExecIndexRow finishAggregation(ExecIndexRow row) throws StandardException {
+			SpliceLogUtils.trace(LOG, "finishAggregation");
+			int	size = aggregates.length;
+
+			/*
+			** If the row in which we are to place the aggregate
+			** result is null, then we have an empty input set.
+			** So we'll have to create our own row and set it
+			** up.  Note: we needn't initialize in this case,
+			** finish() will take care of it for us.
+			*/ 
+			if (row == null) {
+				row = getActivation().getExecutionFactory().getIndexableRow((ExecRow) rowAllocator.invoke(activation));
+			}
+			setCurrentRow(row);
+			boolean eliminatedNulls = false;
+			for (int i = 0; i < size; i++) {
+				SpliceGenericAggregator currAggregate = aggregates[i];
+				if (currAggregate.finish(row))
+					eliminatedNulls = true;
+			}
+
+			if (eliminatedNulls)
+				addWarning(SQLWarningFactory.newSQLWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION));
+		
+			return row;
+		}
+	
+	};
+	
 	protected final ExecIndexRow finishAggregation(ExecIndexRow row) throws StandardException {
 		SpliceLogUtils.trace(LOG, "finishAggregation");
 		int	size = aggregates.length;

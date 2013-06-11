@@ -209,7 +209,7 @@ public class SortOperation extends SpliceBaseOperation {
     public OperationSink.Translator getTranslator() throws IOException{
         try{
             final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,descColumns,sequence[0]);
-            final Serializer serializer = new Serializer();
+            final Serializer serializer = Serializer.get();
 
             final byte[][] keySet = new byte[2][];
             return new OperationSink.Translator() {

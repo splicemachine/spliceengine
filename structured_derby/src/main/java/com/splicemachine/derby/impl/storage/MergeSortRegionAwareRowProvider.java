@@ -68,7 +68,7 @@ public class MergeSortRegionAwareRowProvider extends SingleScanRowProvider {
         this.rightHasher = rightHasher;
         this.table = table;
         this.rowType = rowType;
-        this.serializer = new Serializer();
+        this.serializer = Serializer.get();
     }
     public MergeSortRegionAwareRowProvider(String transactionId, HRegion region,byte[] table,
                                            byte[] columnFamily,

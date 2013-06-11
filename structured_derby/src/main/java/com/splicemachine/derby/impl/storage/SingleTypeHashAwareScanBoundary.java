@@ -47,9 +47,7 @@ public class SingleTypeHashAwareScanBoundary extends BaseHashAwareScanBoundary {
             return hasher.generateSortedHashScanKey(execRow.getRowArray());
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        }
+        } 
         return null;
     }
 
@@ -62,9 +60,7 @@ public class SingleTypeHashAwareScanBoundary extends BaseHashAwareScanBoundary {
             return start;
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, e);
-        }
+        } 
         return null;
     }
 	

@@ -1889,13 +1889,11 @@ public class SITransactorTest extends SIConstants {
         } finally {
             reader.close(testSTable);
         }
-
-        //System.out.println("store2 = " + store);
     }
 
     @Test
     public void asynchRollForward() throws IOException, InterruptedException {
-        checkAsynchRollForward(61, "commit", false, new Function<Object[], Object>() {
+        checkAsynchRollForward(61, "commit", false, null, false, new Function<Object[], Object>() {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
@@ -1903,14 +1901,14 @@ public class SITransactorTest extends SIConstants {
                 final SDataLib dataLib = storeSetup.getDataLib();
                 final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(cell), Long.class);
                 Assert.assertEquals(t.getId() + 1, timestamp);
-                return null;  //To change body of implemented methods use File | Settings | File Templates.
+                return null;
             }
         });
     }
 
     @Test
     public void asynchRollForwardRolledBackTransaction() throws IOException, InterruptedException {
-        checkAsynchRollForward(71, "rollback", false, new Function<Object[], Object>() {
+        checkAsynchRollForward(71, "rollback", false, null, false, new Function<Object[], Object>() {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
@@ -1918,14 +1916,14 @@ public class SITransactorTest extends SIConstants {
                 final SDataLib dataLib = storeSetup.getDataLib();
                 final long timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
                 Assert.assertEquals(-2, timestamp);
-                return null;  //To change body of implemented methods use File | Settings | File Templates.
+                return null;
             }
         });
     }
 
     @Test
     public void asynchRollForwardFailedTransaction() throws IOException, InterruptedException {
-        checkAsynchRollForward(71, "fail", false, new Function<Object[], Object>() {
+        checkAsynchRollForward(71, "fail", false, null, false, new Function<Object[], Object>() {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
@@ -1933,14 +1931,74 @@ public class SITransactorTest extends SIConstants {
                 final SDataLib dataLib = storeSetup.getDataLib();
                 final long timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
                 Assert.assertEquals(-2, timestamp);
-                return null;  //To change body of implemented methods use File | Settings | File Templates.
+                return null;
+            }
+        });
+    }
+
+    @Test
+    public void asynchRollForwardNestedCommitFail() throws IOException, InterruptedException {
+        checkAsynchRollForward(131, "commit", true, "fail", false, new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final long timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                Assert.assertEquals(-2, timestamp);
+                return null;
+            }
+        });
+    }
+
+    @Test
+    public void asynchRollForwardNestedFailCommitTransaction() throws IOException, InterruptedException {
+        checkAsynchRollForward(132, "fail", true, "commit", false, new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final long timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                Assert.assertEquals(-2, timestamp);
+                return null;
+            }
+        });
+    }
+
+    @Test
+    public void asynchRollForwardNestedCommitCommit() throws IOException, InterruptedException {
+        checkAsynchRollForward(133, "commit", true, "commit", false, new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(cell), Long.class);
+                Assert.assertEquals(t.getId() + 1, timestamp);
+                return null;
+            }
+        });
+    }
+
+    @Test
+    public void asynchRollForwardNestedFailFail() throws IOException, InterruptedException {
+        checkAsynchRollForward(134, "fail", true, "fail", false, new Function<Object[], Object>() {
+            @Override
+            public Object apply(@Nullable Object[] input) {
+                TransactionId t = (TransactionId) input[0];
+                Object cell = input[1];
+                final SDataLib dataLib = storeSetup.getDataLib();
+                final long timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                Assert.assertEquals(-2, timestamp);
+                return null;
             }
         });
     }
 
     @Test
     public void asynchRollForwardFollowedByWriteConflict() throws IOException, InterruptedException {
-        checkAsynchRollForward(83, "commit", true, new Function<Object[], Object>() {
+        checkAsynchRollForward(83, "commit", false, null, true, new Function<Object[], Object>() {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
@@ -1953,10 +2011,21 @@ public class SITransactorTest extends SIConstants {
         });
     }
 
-    private void checkAsynchRollForward(int testIndex, String commitRollBackOrFail, boolean conflictingWrite, Function<Object[], Object> timestampDecoder) throws IOException, InterruptedException {
+    private void checkAsynchRollForward(int testIndex, String commitRollBackOrFail, boolean nested, String parentCommitRollBackOrFail,
+                                        boolean conflictingWrite, Function<Object[], Object> timestampDecoder)
+            throws IOException, InterruptedException {
         try {
             Tracer.rollForwardDelayOverride = 100;
-            TransactionId t1 = transactor.beginTransaction();
+            TransactionId t0 = null;
+            if (nested) {
+                t0 = transactor.beginTransaction();
+            }
+            TransactionId t1;
+            if (nested) {
+                t1 = transactor.beginChildTransaction(t0, true);
+            } else {
+                t1 = transactor.beginTransaction();
+            }
             TransactionId t1b = null;
             if (conflictingWrite) {
                 t1b = transactor.beginTransaction();
@@ -1972,6 +2041,17 @@ public class SITransactorTest extends SIConstants {
                 transactor.fail(t1);
             } else {
                 throw new RuntimeException("unknown value");
+            }
+            if (nested) {
+                if (parentCommitRollBackOrFail.equals("commit")) {
+                    transactor.commit(t0);
+                } else if (parentCommitRollBackOrFail.equals("rollback")) {
+                    transactor.rollback(t0);
+                } else if (parentCommitRollBackOrFail.equals("fail")) {
+                    transactor.fail(t0);
+                } else {
+                    throw new RuntimeException("unknown value");
+                }
             }
             Object result = readRaw(testRow);
             final SDataLib dataLib = storeSetup.getDataLib();
@@ -1992,7 +2072,7 @@ public class SITransactorTest extends SIConstants {
                 Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c2));
             }
             TransactionId t2 = transactor.beginTransaction(false);
-            if (commitRollBackOrFail.equals("commit")) {
+            if (commitRollBackOrFail.equals("commit") && (!nested || parentCommitRollBackOrFail.equals("commit"))) {
                 Assert.assertEquals(testRow + " age=20 job=null", read(t2, testRow));
             } else {
                 Assert.assertEquals(testRow + " absent", read(t2, testRow));

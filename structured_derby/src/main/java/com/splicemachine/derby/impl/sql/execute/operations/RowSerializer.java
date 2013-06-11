@@ -1,13 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.gotometrics.orderly.*;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.Random;
@@ -20,11 +18,10 @@ import java.util.Random;
  */
 public class RowSerializer {
     private FormatableBitSet cols;
-    private Object[] values;
-    private StructRowKey rowKey;
     private int[] colsToRowArrayMap;
     private final boolean appendPostfix;
     private Random salter;
+    private MultiFieldEncoder encoder;
 
     public RowSerializer(DataValueDescriptor[] rowTemplate,
                          FormatableBitSet cols,boolean appendPostfix) throws StandardException {
@@ -40,42 +37,45 @@ public class RowSerializer {
         this.colsToRowArrayMap = colsToRowArrayMap;
 
         if(cols!=null &&appendPostfix)
-            this.values = new Object[cols.getNumBitsSet()+1];
+            this.encoder = MultiFieldEncoder.create(cols.getNumBitsSet()+1);
         else if(cols!=null)
-            this.values = new Object[cols.getNumBitsSet()];
+            this.encoder = MultiFieldEncoder.create(cols.getNumBitsSet());
         else
-            this.values = new Object[1];
+            this.encoder = MultiFieldEncoder.create(2);
 
-        StructBuilder builder = new StructBuilder();
-        if(this.cols!=null){
-            for(int i= this.cols.anySetBit();i!=-1;i=this.cols.anySetBit(i)){
-                RowKey rowKey;
-                if(colsToRowArrayMap!=null)
-                    rowKey = DerbyBytesUtil.getRowKey(rowTemplate[colsToRowArrayMap[i+1]]);
-                else
-                    rowKey = DerbyBytesUtil.getRowKey(rowTemplate[i]);
-                builder.add(rowKey);
-            }
-            if(appendPostfix)
-                builder.add(new VariableLengthByteArrayRowKey());
-        }else{
-            builder.add(new VariableLengthByteArrayRowKey());
-        }
-        rowKey = builder.toRowKey();
+//        StructBuilder builder = new StructBuilder();
+//        if(this.cols!=null){
+//            for(int i= this.cols.anySetBit();i!=-1;i=this.cols.anySetBit(i)){
+//                RowKey rowKey;
+//                if(colsToRowArrayMap!=null)
+//                    rowKey = DerbyBytesUtil.getRowKey(rowTemplate[colsToRowArrayMap[i+1]]);
+//                else
+//                    rowKey = DerbyBytesUtil.getRowKey(rowTemplate[i]);
+//                builder.add(rowKey);
+//            }
+//            if(appendPostfix)
+//                builder.add(new VariableLengthByteArrayRowKey());
+//        }else{
+//            builder.add(new IntegerRowKey());
+//            builder.add(new VariableLengthByteArrayRowKey());
+//        }
+//        rowKey = builder.toRowKey();
     }
 
     public byte[] serialize(DataValueDescriptor[] row) throws StandardException, IOException {
+        encoder.reset();
+
         int pos;
         if(cols!=null){
             pos =0;
             for(int i=cols.anySetBit();i!=-1;pos++,i=cols.anySetBit(i)){
                 if(colsToRowArrayMap!=null)
-                    values[pos] = DerbyBytesUtil.getObject(row[colsToRowArrayMap[i+1]]);
+                    encoder = DerbyBytesUtil.encodeInto(encoder,row[colsToRowArrayMap[i+1]],false);
                 else
-                    values[pos] = DerbyBytesUtil.getObject(row[i]);
+                    encoder = DerbyBytesUtil.encodeInto(encoder,row[i],false);
             }
             if(appendPostfix)
-                values[pos] = SpliceUtils.getUniqueKey();
+                encoder = encoder.encodeNext(SpliceUtils.getUniqueKey());
         }else{
             /*
              * There are no columns to use to construct the key out of, which is handy, we
@@ -87,12 +87,11 @@ public class RowSerializer {
              */
             if(salter==null)
                 salter = new Random(System.currentTimeMillis());
-            byte[][] uniqueKeyPieces = new byte[][]{Bytes.toBytes(salter.nextInt()),SpliceUtils.getUniqueKey()};
-            byte[] key = BytesUtil.concatenate(uniqueKeyPieces,4+uniqueKeyPieces[1].length);
 
-            values[0] = key;
+            encoder.encodeNext(salter.nextInt());
+            encoder.encodeNext(SpliceUtils.getUniqueKey());
         }
 
-        return rowKey.serialize(values);
+        return encoder.build();
     }
 }

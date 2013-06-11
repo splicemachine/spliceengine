@@ -238,7 +238,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 
     @Override
     public OperationSink.Translator getTranslator() throws IOException {
-        final Serializer serializer = new Serializer();
+        final Serializer serializer = Serializer.get();
         try {
             final DataValueDescriptor[] additionalDescriptors = {activation.getDataValueFactory().getDataValue(joinSide.ordinal(), null)};
             Hasher hasher = null;

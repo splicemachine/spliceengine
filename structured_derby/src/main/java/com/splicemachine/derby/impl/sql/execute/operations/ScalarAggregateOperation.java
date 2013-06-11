@@ -223,7 +223,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public OperationSink.Translator getTranslator() throws IOException {
-        final Serializer serializer = new Serializer();
+        final Serializer serializer = Serializer.get();
 
         final byte[][] keySet=  new byte[2][];
         try {

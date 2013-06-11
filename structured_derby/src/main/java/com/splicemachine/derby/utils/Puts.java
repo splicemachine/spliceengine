@@ -83,7 +83,7 @@ public class Puts {
 	 */
 	public static Put buildInsert(DataValueDescriptor[] row, String transactionID,
 																DataValueDescriptor...extraColumns) throws IOException{
-		return buildInsert(SpliceUtils.getUniqueKey(),row,null,transactionID,new Serializer(),extraColumns);
+		return buildInsert(SpliceUtils.getUniqueKey(),row,null,transactionID,Serializer.get(),extraColumns);
 	}
 
     /**
@@ -125,7 +125,7 @@ public class Puts {
 	 */
 	public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row, FormatableBitSet validColumns,
                                   String transactionID, DataValueDescriptor...extraColumns) throws IOException{
-        return buildInsert(rowKey, row, validColumns, transactionID, new Serializer(), extraColumns);
+        return buildInsert(rowKey, row, validColumns, transactionID, Serializer.get(), extraColumns);
 	}
 
     public static Put buildTempTableInsert(byte[] rowKey, DataValueDescriptor[] row,
@@ -203,16 +203,5 @@ public class Puts {
         }
     }
 
-	private static void addColumn(Put put,DataValueDescriptor descriptor, int columnNum) throws IOException {
-		if(descriptor==null)
-			return; //nothing to do
-
-		try {
-			byte[] data = DerbyBytesUtil.generateBytes(descriptor);
-			put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(columnNum),data);
-		} catch (StandardException e) {
-			throw new IOException(e);
-		}
-	}
 
 }

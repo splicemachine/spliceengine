@@ -6,7 +6,7 @@ import java.io.*;
  * @author Scott Fines
  *         Created on: 4/5/13
  */
-public class ByteDataOutput implements ObjectOutput {
+public class ByteDataOutput implements ObjectOutput,Closeable {
     private final ByteArrayOutputStream baos;
     private final ObjectOutput dataOutput;
 

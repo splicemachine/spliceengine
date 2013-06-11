@@ -54,7 +54,7 @@ public class DistinctScanOperation extends ScanOperation{
     private List<KeyValue> values;
     private List<ExecRow> finishedValues;
     private boolean completed = false;
-    private Serializer serializer;
+    private Serializer serializer = Serializer.get();
 
     private final RingBuffer<ExecRow> currentRows = new RingBuffer<ExecRow>(SpliceConstants.ringBufferSize);
     private final RingBuffer.Merger<ExecRow> distinctMerger = new RingBuffer.Merger<ExecRow>() {
@@ -171,8 +171,6 @@ public class DistinctScanOperation extends ScanOperation{
             return null;
         if(values==null)
             values = new ArrayList<KeyValue>(currentRow.nColumns());
-        if(serializer==null)
-            serializer = new Serializer();
         try{
             do{
                 values.clear();
@@ -249,7 +247,7 @@ public class DistinctScanOperation extends ScanOperation{
             @Override
             public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
                 try {
-                    byte[] tempRow = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),null);
+                    byte[] tempRow = hasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray());
                     Put put = Puts.buildInsert(tempRow,row.getRowArray(),SpliceUtils.NA_TRANSACTION_ID,serializer);
                     return Collections.<Mutation>singletonList(put);
                 } catch (StandardException e) {

@@ -212,13 +212,9 @@ public class BroadcastJoinOperation extends JoinOperation {
             this.leftRow = leftRow;
             this.outerJoin = outerJoin;
             this.leftHasher = leftHasher;
-            try {
-                List<ExecRow> rows = rightSideMap.get(new HashableBytes(leftHasher.generateSortedHashKeyWithoutUniqueKey(leftRow.getRowArray())));
-                if (rows != null) {
-                    rightSideIterator = rows.iterator();
-                }
-            } catch (IOException e) {
-                throw StandardException.newException(MessageId.SPLICE_GENERIC_EXCEPTION, e, "Problem generating hashkey for row %s", leftRow);
+            List<ExecRow> rows = rightSideMap.get(new HashableBytes(leftHasher.generateSortedHashKeyWithoutUniqueKey(leftRow.getRowArray())));
+            if (rows != null) {
+            	rightSideIterator = rows.iterator();
             }
         }
 
