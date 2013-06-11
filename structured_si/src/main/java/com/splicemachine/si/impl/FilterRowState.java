@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.data.api.SDataLib;
+import org.apache.hadoop.hbase.filter.Filter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +39,9 @@ public class FilterRowState {
     boolean siColumnIncluded = false;
     boolean siTombstoneIncluded = false;
 
+    boolean inData = false;
+    Filter.ReturnCode shortCircuit = null;
+
     public FilterRowState(SDataLib dataLib) {
         this.dataLib = dataLib;
     }
@@ -54,6 +58,8 @@ public class FilterRowState {
             transactionCache = new HashMap<Long, Transaction>();
             commitTimestamps = new ArrayList();
             siColumnIncluded = false;
+            inData = false;
+            shortCircuit = null;
         }
     }
 

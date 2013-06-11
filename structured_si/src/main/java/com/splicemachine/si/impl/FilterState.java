@@ -77,6 +77,9 @@ public class FilterState {
      * Look at the column family and qualifier to determine how to "dispatch" the current keyValue.
      */
     private Filter.ReturnCode filterByColumnType() throws IOException {
+        if (rowState.inData) {
+            return processUserDataShortCircuit();
+        }
         final KeyValueType type = dataStore.getKeyValueType(keyValue.family(), keyValue.qualifier());
         if (type.equals(KeyValueType.TOMBSTONE)) {
             return processTombstone();
@@ -88,9 +91,26 @@ public class FilterState {
                 return processCommitTimestamp();
             }
         } else if (type.equals(KeyValueType.USER_DATA)) {
-            return processUserData();
+            return processUserDataSetupShortCircuit();
         } else {
             return processUnknownFamilyData();
+        }
+    }
+
+    private Filter.ReturnCode processUserDataSetupShortCircuit() throws IOException {
+        final Filter.ReturnCode result = processUserData();
+        rowState.inData = true;
+        if (rowState.transactionCache.size() == 1) {
+            rowState.shortCircuit = result;
+        }
+        return result;
+    }
+
+    private Filter.ReturnCode processUserDataShortCircuit() throws IOException {
+        if (rowState.shortCircuit != null) {
+            return rowState.shortCircuit;
+        } else {
+            return processUserData();
         }
     }
 
