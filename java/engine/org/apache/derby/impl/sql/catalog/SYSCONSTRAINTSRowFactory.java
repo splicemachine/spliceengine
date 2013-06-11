@@ -316,7 +316,6 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory
 		}
 
 		boolean typeSet = false;
-        UUID conglomUUID = ((SubKeyConstraintDescriptor)parentTupleDescriptor).getIndexId();
 		switch (constraintSType.charAt(0))
 		{
 			case 'P' : 
@@ -345,6 +344,9 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory
 						parentTupleDescriptor.getClass().getName());
 					}
 				}
+
+                SubKeyConstraintDescriptor subKeyConstraintDescriptor =  (SubKeyConstraintDescriptor)parentTupleDescriptor;
+                UUID conglomUUID = subKeyConstraintDescriptor.getIndexId();
 				conglomDesc = td.getConglomerateDescriptor(conglomUUID);
 				/* Take care the rare case of conglomDesc being null.  The
 				 * reason is that our "td" is out of date.  Another thread
@@ -367,7 +369,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory
 					if (scd != null)
 						scd.setTableDescriptor(td);
 					// try again now
-					conglomDesc = td.getConglomerateDescriptor( conglomUUID);
+					conglomDesc = td.getConglomerateDescriptor(conglomUUID);
 				}
 
 				if (SanityManager.DEBUG)
@@ -375,9 +377,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory
 					SanityManager.ASSERT(conglomDesc != null,
 					"conglomDesc is expected to be non-null for backing index");
 				}
-				keyColumns = conglomDesc.getIndexDescriptor().baseColumnPositions();
-				referencedConstraintId = ((SubKeyConstraintDescriptor) 
-											parentTupleDescriptor).getKeyConstraintId();
+				referencedConstraintId = subKeyConstraintDescriptor.getKeyConstraintId();
 				keyColumns = conglomDesc.getIndexDescriptor().baseColumnPositions();
 				break;
 
