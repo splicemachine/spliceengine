@@ -14,7 +14,6 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.tables.SpliceCustomerTable;
 import com.splicemachine.derby.test.framework.tables.SpliceOrderLineTable;
-
 @Ignore
 public class CorePerformanceReport extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -23,6 +22,7 @@ public class CorePerformanceReport extends SpliceUnitTest {
 	public static final String TABLE_NAME_2 = "ORDER_LINE";	
 	public static final String TABLE_NAME_3 = "CUSTOMER_LOAD";
 	public static final String TABLE_NAME_4 = "ORDER_LINE_LOAD";	
+	public static final String TABLE_NAME_5 = "ORDER_LINE_LOAD10K";	
 	
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceCustomerTable spliceTableWatcher1 = new SpliceCustomerTable(TABLE_NAME_1,CLASS_NAME) {
@@ -41,6 +41,13 @@ public class CorePerformanceReport extends SpliceUnitTest {
 	};
 	protected static SpliceCustomerTable spliceTableWatcher3 = new SpliceCustomerTable(TABLE_NAME_3,CLASS_NAME); 
 	protected static SpliceOrderLineTable spliceTableWatcher4 = new SpliceOrderLineTable(TABLE_NAME_4,CLASS_NAME);
+	protected static SpliceOrderLineTable spliceTableWatcher5 = new SpliceOrderLineTable(TABLE_NAME_5,CLASS_NAME) {
+		@Override
+		protected void starting(Description description) {
+			super.starting(description);
+			importData(getResourceDirectory()+"order_line_small.csv");
+		}
+	};
 
 	
 	@ClassRule 
@@ -49,7 +56,8 @@ public class CorePerformanceReport extends SpliceUnitTest {
 		.around(spliceTableWatcher1)
 		.around(spliceTableWatcher2)
 		.around(spliceTableWatcher3)
-		.around(spliceTableWatcher4);
+		.around(spliceTableWatcher4)
+		.around(spliceTableWatcher5);
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 	
@@ -70,6 +78,14 @@ public class CorePerformanceReport extends SpliceUnitTest {
 			Assert.assertEquals(500000,rs.getInt(1));
 		}
 	}
+	
+	@Test
+	public void count500KOrderLinesAgain() throws Exception {
+		ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s",this.getTableReference(TABLE_NAME_2)));
+		while (rs.next()) {
+			Assert.assertEquals(500000,rs.getInt(1));
+		}
+	}
 
 	@Test
 	public void aggregate10KCustomersByZipCode() throws Exception {
@@ -80,16 +96,20 @@ public class CorePerformanceReport extends SpliceUnitTest {
 		}
 		Assert.assertEquals(566, count);
 	}	
-	/*
+	@Test
+	public void joinAndAggregateByZipcode10KOrderLinesWith10KCustomers() throws Exception {
+		ResultSet rs = methodWatcher.executeQuery(format("select cst_zipcode, sum(orl_qty_sold*orl_unit_price) from %s " +
+				"left outer join %s on orl_customer_id=cst_id group by cst_zipcode",this.getTableReference(TABLE_NAME_5),this.getTableReference(TABLE_NAME_1)));
+		while (rs.next()) {
+		}	
+	}
+	
 	@Test
 	public void joinAndAggregateByZipcode500KOrderLinesWith10KCustomers() throws Exception {
-		int count = 0;
 		ResultSet rs = methodWatcher.executeQuery(format("select cst_zipcode, sum(orl_qty_sold*orl_unit_price) from %s " +
-				"left outer join %s on orl_customer_id=cst_id group by cst_zipcode",this.getTableReference(TABLE_NAME_1),this.getTableReference(TABLE_NAME_2)));
+				"left outer join %s on orl_customer_id=cst_id group by cst_zipcode",this.getTableReference(TABLE_NAME_2),this.getTableReference(TABLE_NAME_1)));
 		while (rs.next()) {
-			count++;
 		}	
-		Assert.assertEquals(217, count);
 	}
-	*/
+	
 }
