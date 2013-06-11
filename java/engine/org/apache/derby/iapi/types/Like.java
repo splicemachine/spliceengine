@@ -431,7 +431,9 @@ public class Like {
 				// we return a string stripping out the escape char
 				// leaving the _? in place as normal chars.
                 
-				return padWithNulls(greaterEqualString(pattern, escChar), maxWidth);
+				// -SF- removing this because Splice does not need to pad for scans
+				return greaterEqualString(pattern, escChar);
+//				return padWithNulls(greaterEqualString(pattern, escChar), maxWidth);
 			}
 			// drop through if no escape found
 		}
@@ -453,7 +455,9 @@ public class Like {
 											firstAnyString :
 											firstAnyChar);
 		}
-		return padWithNulls(pattern, maxWidth);
+		return pattern;
+		//-SF- removed because Splice doesn't do padding
+//		return padWithNulls(pattern, maxWidth);
 	}
 
     /** 
