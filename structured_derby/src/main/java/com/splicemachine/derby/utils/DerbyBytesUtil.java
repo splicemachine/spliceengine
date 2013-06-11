@@ -183,10 +183,7 @@ public class DerbyBytesUtil {
                 case StoredFormatIds.XML_ID: //return new XML();
                 case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
                     String value = dvd.getString();
-                    if(stripNullStrings)
-                        return Encoding.encodeNullFree(value);
-                    else
-                        return Encoding.encode(value);
+                    return Encoding.encode(value);
                 case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
                 case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit(); TODO -sf- LONGVARBIT does not allow comparisons, so no need to do a variable binary encoding
                 case StoredFormatIds.SQL_BLOB_ID: //return new SQLBlob();
