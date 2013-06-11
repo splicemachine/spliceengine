@@ -111,5 +111,13 @@ public class CorePerformanceReport extends SpliceUnitTest {
 		while (rs.next()) {
 		}	
 	}
-	
+
+    @Test
+    public void broadcastJoinAndAggregateByZipcode500KOrderLinesWith10KCustomers() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select cst_zipcode, sum(orl_qty_sold*orl_unit_price) from %s " +
+                "left outer join %s --DERBY-PROPERTIES joinStrategy=broadcast \n" +
+                "on orl_customer_id=cst_id group by cst_zipcode",this.getTableReference(TABLE_NAME_2),this.getTableReference(TABLE_NAME_1)));
+        while (rs.next()) {
+        }
+    }
 }
