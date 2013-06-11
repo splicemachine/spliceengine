@@ -136,8 +136,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		if(numDistinctAggs>0)
 			distinctValues = (HashSet<String>[][])new HashSet[resultRows.length][aggregates.length];
 
-            byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
-            byte[] finish = BytesUtil.copyAndIncrement(start);
 		if(regionScanner==null){
                isTemp = true;
 		}else{
@@ -191,7 +189,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             @Nonnull
             @Override
             public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
-                    //keySet[0] = hasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray()); // Moved to getNextRowCore
             		keySet[1] = postfix;
                     byte[] rowKey = Bytes.concat(keySet);
                     Put put = Puts.buildTempTableInsert(rowKey,row.getRowArray(),null,serializer);
