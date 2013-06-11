@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class RingBuffer<T> implements Iterable<T>{
-	public interface Merger<T> {
+import org.apache.derby.iapi.sql.execute.ExecRow;
+
+public class RingBuffer<T extends ExecRow> implements Iterable<T>{
+	public interface Merger<T extends ExecRow> {
 		void merge(T one, T two);
 		boolean shouldMerge(T one, T two);
 	}

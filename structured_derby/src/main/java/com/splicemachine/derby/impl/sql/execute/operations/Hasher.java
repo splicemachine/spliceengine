@@ -15,6 +15,7 @@ import com.gotometrics.orderly.StructBuilder;
 import com.gotometrics.orderly.StructRowKey;
 import com.gotometrics.orderly.VariableLengthByteArrayRowKey;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 /**
@@ -110,7 +111,7 @@ public class Hasher {
     }
 
 
-    public byte[] generateSortedHashKey(DataValueDescriptor[] descriptors, DataValueDescriptor[] additionalDescriptors) throws StandardException, IOException {
+    public byte[] generateSortedHashKey(DataValueDescriptor[] descriptors, DataValueDescriptor[] additionalDescriptors) throws StandardException {
         SpliceLogUtils.trace(LOG, "generateSortedHashKey");
         int i = 0;
         for (int k = 0;k<hashKeys.length;k++) {
@@ -122,10 +123,10 @@ public class Hasher {
             i++;
         }
         values[hashKeys.length+additionalDescriptors.length+1] = SpliceUtils.getUniqueKey();
-        return structRowKey.serialize(values);
+		return structRowKeySerializeValues();
     }
 
-    public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors, DataValueDescriptor[] additionalDescriptors) throws StandardException, IOException {
+    public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors, DataValueDescriptor[] additionalDescriptors) throws StandardException {
 		SpliceLogUtils.trace(LOG, "generateSortedHashKey");
 		int i = 0;
         for (int hashKey : hashKeys) {
@@ -136,22 +137,22 @@ public class Hasher {
             values[i + 1] = DerbyBytesUtil.getObject(additionalDescriptor);
             i++;
         }
-		return structRowKey.serialize(values);
+		return structRowKeySerializeValues();
 	}
 
-	public byte[] generateSortedHashKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
+	public byte[] generateSortedHashKey(DataValueDescriptor[] descriptors) throws StandardException {
 		for (int i=0;i<hashKeys.length;i++) {
 			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
 		}
 		values[hashKeys.length+1] = SpliceUtils.getUniqueKey();
-		return structRowKey.serialize(values);
+		return structRowKeySerializeValues();
 	}	
 
-	public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
+	public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors) throws StandardException {
 		for (int i=0;i<hashKeys.length;i++) {
 			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
 		}
-		return structRowKey.serialize(values);
+		return structRowKeySerializeValues();
 	}	
 
 	
@@ -164,17 +165,15 @@ public class Hasher {
 	 * @throws StandardException
 	 * @throws IOException
 	 */
-	public byte[] generateSortedHashScanKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
+	public byte[] generateSortedHashScanKey(DataValueDescriptor[] descriptors) throws StandardException {
 		for (int i=0;i<hashKeys.length;i++) {
 			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
 		}
 		values[hashKeys.length+1] = null;
-		return structRowKey.serialize(values);
+		return structRowKeySerializeValues();
 	}
 	
 	public int compareHashKeys(DataValueDescriptor[] left, DataValueDescriptor[] right) throws StandardException, IOException{
-		//TODO -sf- can we do this without re-serializing?
-		//answer - jl- not that I know of...
 		byte[] leftBytes = generateSortedHashScanKey(left);
 		byte[] rightBytes = generateSortedHashScanKey(right);
 		return Bytes.compareTo(leftBytes,rightBytes);
@@ -188,16 +187,25 @@ public class Hasher {
 	 * @throws StandardException
 	 * @throws IOException
 	 */
-	public byte[] generateSortedHashKeyWithPostfix(DataValueDescriptor[] descriptors, byte[] postfix) throws StandardException, IOException {
+	public byte[] generateSortedHashKeyWithPostfix(DataValueDescriptor[] descriptors, byte[] postfix) throws StandardException {
 		SpliceLogUtils.trace(LOG, "generateSortedHashKeyWithPostfix");
 		for (int i=0;i<hashKeys.length;i++) {
 			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
 		}
 		values[hashKeys.length+1] = postfix;
-		return structRowKey.serialize(values);
+		return structRowKeySerializeValues();
 	}
 
     public byte[] getPrefixBytes() throws IOException {
         return new StringRowKey().serialize(values[0]);
     }
+    
+    private byte[] structRowKeySerializeValues() throws StandardException {
+		try {
+			return structRowKey.serialize(values);
+		}	 catch (Exception e) {
+			throw Exceptions.parseException(e);
+		}
+    }
+    
 }
