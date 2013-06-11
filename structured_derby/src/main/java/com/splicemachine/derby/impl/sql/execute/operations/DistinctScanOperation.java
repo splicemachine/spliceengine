@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
@@ -19,17 +18,16 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -50,38 +48,26 @@ public class DistinctScanOperation extends ScanOperation{
     private String tableName;
     private String indexName;
     private int[] keyColumns;
-
     private List<KeyValue> values;
-    private List<ExecRow> finishedValues;
     private boolean completed = false;
     private Serializer serializer = Serializer.get();
+    protected Hasher hasher;
+    protected byte[] currentByteArray;
+	private HashBuffer<ByteBuffer,ExecRow> currentRows = new HashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize); 
+	private final HashBuffer.Merger<ByteBuffer,ExecRow> merger = new HashBuffer.Merger<ByteBuffer,ExecRow>() {
+		@Override
+		public ExecRow shouldMerge(ByteBuffer key){
+			return currentRows.get(key);
+		}
 
-    private final RingBuffer<ExecRow> currentRows = new RingBuffer<ExecRow>(SpliceConstants.ringBufferSize);
-    private final RingBuffer.Merger<ExecRow> distinctMerger = new RingBuffer.Merger<ExecRow>() {
-        @Override
-        public void merge(ExecRow one, ExecRow two) {
+		@Override
+		public void merge(ExecRow curr,ExecRow next){
             //throw away the second row, since we only want to keep the first
             //this is effectively a no-op
-        }
-
-        @Override
-        public boolean shouldMerge(ExecRow one, ExecRow two) {
-            //make sure they match on the key columns
-            for(int col:keyColumns){
-                try {
-                    DataValueDescriptor left = one.getColumn(col+1);
-                    DataValueDescriptor right = two.getColumn(col+1);
-
-                    //if they aren't equal, then we shouldn't merge
-                    if(left.compare(right)!=0)
-                        return false;
-                } catch (StandardException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return true;
-        }
-    };
+		}
+	};
+	
+  
 
     public DistinctScanOperation(long conglomId,
                                  StaticCompiledOpenConglomInfo scoci, Activation activation,
@@ -151,6 +137,8 @@ public class DistinctScanOperation extends ScanOperation{
         for(int index=0;index<fihArray.length;index++){
             keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(accessedCols,fihArray[index].getInt());
         }
+	    hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
+	    values = new ArrayList<KeyValue>(currentRow.nColumns());
     }
 
     @Override
@@ -165,12 +153,14 @@ public class DistinctScanOperation extends ScanOperation{
 
     @Override
     public ExecRow getNextRowCore() throws StandardException {
-        if(finishedValues!=null &&finishedValues.size()>0)
-            return finishedValues.remove(0);
-        else if(completed)
-            return null;
-        if(values==null)
-            values = new ArrayList<KeyValue>(currentRow.nColumns());
+    	if (completed) {
+    		if(currentRows!=null &&currentRows.size()>0) {
+    			ByteBuffer key = currentRows.keySet().iterator().next();
+    			return makeCurrent(key.array(),currentRows.remove(key));
+    		}
+    		else 
+    			return null;
+    	}
         try{
             do{
                 values.clear();
@@ -178,8 +168,9 @@ public class DistinctScanOperation extends ScanOperation{
                 if(values.isEmpty()) continue;
                 SpliceUtils.populate(values,currentRow.getRowArray(),accessedCols,baseColumnMap,serializer);
                 ExecRow row = currentRow.getClone();
-                if(!currentRows.merge(row,distinctMerger)){
-                    ExecRow finalized = currentRows.add(row);
+                currentByteArray = hasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray()); 
+                if (!currentRows.merge(ByteBuffer.wrap(currentByteArray), row, merger)) {
+                    ExecRow finalized = currentRows.add(ByteBuffer.wrap(currentByteArray),row);
                     if(finalized!=null&&finalized!=row){
                         return finalized;
                     }
@@ -187,11 +178,10 @@ public class DistinctScanOperation extends ScanOperation{
             }while(!values.isEmpty());
 
             completed = true;
-            //we've exhausted the scan. Empty the buffer and return
-            finishedValues = Lists.newArrayList(currentRows);
-            if(finishedValues.size()>0)
-                return finishedValues.remove(0);
-            else
+            if(currentRows.size()>0) {
+    			ByteBuffer key = currentRows.keySet().iterator().next();
+    			return makeCurrent(key.array(),currentRows.remove(key));
+    		} else
                 return null;
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -240,19 +230,12 @@ public class DistinctScanOperation extends ScanOperation{
 
     @Override
     public OperationSink.Translator getTranslator() throws IOException {
-        final Hasher hasher = new Hasher(currentRow.getRowArray(),keyColumns,null,sequence[0]);
-
         return new OperationSink.Translator() {
             @Nonnull
             @Override
             public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
-                try {
-                    byte[] tempRow = hasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray());
-                    Put put = Puts.buildInsert(tempRow,row.getRowArray(),SpliceUtils.NA_TRANSACTION_ID,serializer);
-                    return Collections.<Mutation>singletonList(put);
-                } catch (StandardException e) {
-                    throw Exceptions.getIOException(e);
-                }
+                Put put = Puts.buildInsert(currentByteArray,row.getRowArray(),SpliceUtils.NA_TRANSACTION_ID,serializer);
+                return Collections.<Mutation>singletonList(put);
             }
 
             @Override
@@ -265,5 +248,10 @@ public class DistinctScanOperation extends ScanOperation{
     @Override
     public String prettyPrint(int indentLevel) {
         return "Distinct"+super.prettyPrint(indentLevel);
-    }
+    }	
+	private <T extends ExecRow> ExecRow makeCurrent(byte[] key, T row) throws StandardException{
+		setCurrentRow(row);
+		currentByteArray = key;
+		return row;
+	}
 }
