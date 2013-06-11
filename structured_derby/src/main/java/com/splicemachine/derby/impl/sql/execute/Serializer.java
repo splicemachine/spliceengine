@@ -19,6 +19,14 @@ import java.sql.Timestamp;
  *         Created on: 2/25/13
  */
 public class Serializer {
+    private static final Serializer INSTANCE = new Serializer();
+
+    private Serializer(){}
+
+    public static Serializer get(){
+        return INSTANCE;
+    }
+
     public byte[] serialize(DataValueDescriptor descriptor) throws IOException, StandardException {
         if (descriptor.isNull()) {
             return new byte[] {};

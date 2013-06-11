@@ -187,7 +187,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public OperationSink.Translator getTranslator() throws IOException {
-
+        final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
+        final Serializer serializer = Serializer.get();
+        final byte[][] keySet = new byte[2][];
         return new OperationSink.Translator() {
             @Nonnull
             @Override

@@ -43,7 +43,7 @@ public class IndexController  extends SpliceController  {
 		try {
 			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
-			htable.put(Puts.buildInsert(rowKey, row, transID,new Serializer()));
+			htable.put(Puts.buildInsert(rowKey, row, transID,Serializer.get()));
 			return 0;
 		} catch (Exception e) {
 			LOG.error(e.getMessage(),e);
@@ -60,7 +60,7 @@ public class IndexController  extends SpliceController  {
 		try {
 			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
-			Put put = Puts.buildInsert(rowKey,row,transID,new Serializer());
+			Put put = Puts.buildInsert(rowKey,row,transID,Serializer.get());
 			destRowLocation.setValue(put.getRow());
 			htable.put(put);
 		} catch (Exception e) {

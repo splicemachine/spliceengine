@@ -75,7 +75,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor {
 
 		LineReader reader = null;
 		//open a serializer to serialize our data
-        Serializer serializer = new Serializer();
+        Serializer serializer = Serializer.get();
         CSVParser csvParser = getCsvParser(context);
         try{
             CallBuffer<Mutation> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(context.getTableName().getBytes());
@@ -139,7 +139,7 @@ public class SpliceImportCoprocessor extends BaseEndpointCoprocessor {
 		InputStream is;
 		Reader reader = null;
 		long numImported=0l;
-        Serializer serializer = new Serializer();
+        Serializer serializer =  Serializer.get();
         FormatableBitSet pkCols = context.getPrimaryKeys();
 		try{
             CallBuffer<Mutation> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(context.getTableName().getBytes());

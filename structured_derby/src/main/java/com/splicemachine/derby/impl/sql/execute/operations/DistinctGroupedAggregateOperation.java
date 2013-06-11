@@ -81,7 +81,7 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
     @Override
     public OperationSink.Translator getTranslator() throws IOException {
         final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
-        final Serializer serializer = new Serializer();
+        final Serializer serializer = Serializer.get();
         final byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
         return new OperationSink.Translator() {
             @Nonnull

@@ -67,7 +67,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
     @Override
     public OperationSink.Translator getTranslator() throws IOException {
-        final Serializer serializer = new Serializer();
+        final Serializer serializer = Serializer.get();
         boolean modifiedPrimaryKeys = false;
         FormatableBitSet heapList = ((UpdateConstantOperation)constants).getBaseRowReadList();
         if(pkColumns!=null){

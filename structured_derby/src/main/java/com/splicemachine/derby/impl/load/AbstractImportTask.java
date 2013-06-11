@@ -76,7 +76,7 @@ public abstract class AbstractImportTask extends ZkTask {
     public void execute() throws ExecutionException, InterruptedException {
         try{
             ExecRow row = getExecRow(importContext);
-            Serializer serializer = new Serializer();
+            Serializer serializer = Serializer.get();
             FormatableBitSet pkCols = importContext.getPrimaryKeys();
 
             CallBuffer<Mutation> writeBuffer = getCallBuffer();

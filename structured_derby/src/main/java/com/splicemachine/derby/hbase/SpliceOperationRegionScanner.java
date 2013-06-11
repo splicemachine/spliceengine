@@ -41,7 +41,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     protected Iterator<ExecRow> currentRows;
     protected List<KeyValue> currentResult;
     protected Activation activation; // has to be passed by reference... jl
-    private Serializer serializer = new Serializer();
+    private Serializer serializer = Serializer.get();
     private TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
     private TaskStats finalStats;
     private SpliceOperationContext context;

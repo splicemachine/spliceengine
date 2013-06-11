@@ -83,7 +83,7 @@ public class Puts {
 	 */
 	public static Put buildInsert(DataValueDescriptor[] row, String transactionID,
 																DataValueDescriptor...extraColumns) throws IOException{
-		return buildInsert(SpliceUtils.getUniqueKey(),row,null,transactionID,new Serializer(),extraColumns);
+		return buildInsert(SpliceUtils.getUniqueKey(),row,null,transactionID,Serializer.get(),extraColumns);
 	}
 
     /**
@@ -125,7 +125,7 @@ public class Puts {
 	 */
 	public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row, FormatableBitSet validColumns,
                                   String transactionID, DataValueDescriptor...extraColumns) throws IOException{
-        return buildInsert(rowKey, row, validColumns, transactionID, new Serializer(), extraColumns);
+        return buildInsert(rowKey, row, validColumns, transactionID, Serializer.get(), extraColumns);
 	}
 
     public static Put buildTempTableInsert(byte[] rowKey, DataValueDescriptor[] row,

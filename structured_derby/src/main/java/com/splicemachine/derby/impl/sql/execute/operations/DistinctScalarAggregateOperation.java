@@ -240,7 +240,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 
     @Override
     public OperationSink.Translator getTranslator() throws IOException {
-        final Serializer serializer = new Serializer();
+        final Serializer serializer = Serializer.get();
         final Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
 
         final byte[][] keySet = new byte[2][];

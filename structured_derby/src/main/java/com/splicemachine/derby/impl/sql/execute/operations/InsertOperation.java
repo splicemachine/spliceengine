@@ -69,7 +69,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 
     @Override
     public OperationSink.Translator getTranslator() throws IOException {
-        final Serializer serializer = new Serializer();
+        final Serializer serializer = Serializer.get();
         try {
             final RowSerializer rowKeySerializer = new RowSerializer(getExecRowDefinition().getRowArray(),pkColumns,pkColumns==null);
             return new OperationSink.Translator() {
