@@ -6,9 +6,11 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HClientTransactor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -263,7 +265,7 @@ public class Scans extends SpliceUtils {
 					 * We have to check for whether or not the serialized bytes for this descriptor
 					 * is actually populated--otherwise we would filter out all non-null entries.
 					 */
-					byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
+					byte[] bytes = DerbyBytesUtil.generateBytes(dvd,true);
 					if(bytes.length>0){
 						masterList.addFilter(new SingleColumnValueFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
 								Bytes.toBytes(pos),
@@ -313,10 +315,11 @@ public class Scans extends SpliceUtils {
 							Bytes.toBytes(qualifier.getColumnId()),
 							compareOp));
 				}else{
-					SingleColumnValueFilter filter = new SingleColumnValueFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
+                    byte[] bytes = DerbyBytesUtil.generateBytes(dvd,true);
+                    SingleColumnValueFilter filter = new SingleColumnValueFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
 							Bytes.toBytes(qualifier.getColumnId()),
 							getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),
-							DerbyBytesUtil.generateBytes(dvd));
+                            bytes);
 					filter.setFilterIfMissing(true);
 					list.addFilter(filter);
 				}

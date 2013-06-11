@@ -203,16 +203,5 @@ public class Puts {
         }
     }
 
-	private static void addColumn(Put put,DataValueDescriptor descriptor, int columnNum) throws IOException {
-		if(descriptor==null)
-			return; //nothing to do
-
-		try {
-			byte[] data = DerbyBytesUtil.generateBytes(descriptor);
-			put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(columnNum),data);
-		} catch (StandardException e) {
-			throw new IOException(e);
-		}
-	}
 
 }

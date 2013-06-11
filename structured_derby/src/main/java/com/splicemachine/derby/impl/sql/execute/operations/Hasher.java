@@ -1,23 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.util.Arrays;
-
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.gotometrics.orderly.Order;
-import com.gotometrics.orderly.RowKey;
-import com.gotometrics.orderly.StringRowKey;
-import com.gotometrics.orderly.StructBuilder;
-import com.gotometrics.orderly.StructRowKey;
-import com.gotometrics.orderly.VariableLengthByteArrayRowKey;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.util.Arrays;
 /**
  * Class to speed up the hashing function for Aggregates, Scalar, Sort
  * 
@@ -26,12 +18,12 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class Hasher {
 	private static Logger LOG = Logger.getLogger(Hasher.class);
-	protected StructRowKey structRowKey;
+    protected MultiFieldEncoder encoder;
 	protected int[] hashKeys;
-	protected Object[] values;
 	protected boolean[] sortOrder;
-	
-	public Hasher(DataValueDescriptor[] descriptors, int[] hashKeys, boolean[] sortOrder, DataValueDescriptor prefixString) {
+    protected boolean[] additionalSortOrder;
+
+    public Hasher(DataValueDescriptor[] descriptors, int[] hashKeys, boolean[] sortOrder, DataValueDescriptor prefixString) {
 		this(descriptors,hashKeys,sortOrder,prefixString,null,null);
 	}
 	/**
@@ -48,17 +40,18 @@ public class Hasher {
         		Arrays.toString(descriptors),Arrays.toString(hashKeys));
         this.hashKeys = hashKeys;
         this.sortOrder = sortOrder;
-        values = new Object[hashKeys.length + 1];
-        StructBuilder structBuilder = new StructBuilder();
-        structBuilder.add(new StringRowKey());
-        RowKey rowKey;
-        for (int i=0;i<hashKeys.length;i++) {
-        	rowKey = DerbyBytesUtil.getRowKey(descriptors[hashKeys[i]]);
-            if (sortOrder != null && !sortOrder[hashKeys[i]])
-            	rowKey.setOrder(Order.DESCENDING);
-            structBuilder.add(rowKey);
-        }
-        structRowKey = structBuilder.toRowKey();
+        encoder = MultiFieldEncoder.create(descriptors.length+1);
+
+//        StructBuilder structBuilder = new StructBuilder();
+//        structBuilder.add(new StringRowKey());
+//        RowKey rowKey;
+//        for (int i=0;i<hashKeys.length;i++) {
+//        	rowKey = DerbyBytesUtil.getRowKey(descriptors[hashKeys[i]]);
+//            if (sortOrder != null && !sortOrder[hashKeys[i]])
+//            	rowKey.setOrder(Order.DESCENDING);
+//            structBuilder.add(rowKey);
+//        }
+//        structRowKey = structBuilder.toRowKey();
     }
 
 	
@@ -80,103 +73,88 @@ public class Hasher {
                     Arrays.toString(descriptors),Arrays.toString(hashKeys),prefixString,Arrays.toString(additional));
             this.hashKeys = hashKeys;
             this.sortOrder = sortOrder;
+            this.additionalSortOrder = additionalsortOrder;
             if (additional == null)
-                values = new Object[hashKeys.length+2];
+                encoder = MultiFieldEncoder.create(hashKeys.length+2);
             else
-                values = new Object[hashKeys.length+additional.length+2];
+                encoder = MultiFieldEncoder.create(hashKeys.length+additional.length+2);
 
-            values[0] = prefixString.getObject();
-            StructBuilder structBuilder = new StructBuilder();
-            structBuilder.add(new StringRowKey());
-            RowKey rowKey;
-            for (int i=0;i<hashKeys.length;i++) {
-                rowKey = DerbyBytesUtil.getRowKey(descriptors[hashKeys[i]]);
-                if (sortOrder != null && !sortOrder[hashKeys[i]])
-                    rowKey.setOrder(Order.DESCENDING);
-                structBuilder.add(rowKey);
-            }
-            if(additional!=null){
-                for (int i=0;i<additional.length;i++) {
-                    rowKey = DerbyBytesUtil.getRowKey(additional[i]);
-                    if (additionalsortOrder != null && !additionalsortOrder[i])
-                        rowKey.setOrder(Order.DESCENDING);
-                    structBuilder.add(rowKey);
-                }
-            }
-            structBuilder.add(new VariableLengthByteArrayRowKey());
-            structRowKey = structBuilder.toRowKey();
+            encoder.encodeNext(prefixString.getString());
+            encoder.mark();
+
+//            StructBuilder structBuilder = new StructBuilder();
+//            structBuilder.add(new StringRowKey());
+//            RowKey rowKey;
+//            for (int i=0;i<hashKeys.length;i++) {
+//                rowKey = DerbyBytesUtil.getRowKey(descriptors[hashKeys[i]]);
+//                if (sortOrder != null && !sortOrder[hashKeys[i]])
+//                    rowKey.setOrder(Order.DESCENDING);
+//                structBuilder.add(rowKey);
+//            }
+//            if(additional!=null){
+//                for (int i=0;i<additional.length;i++) {
+//                    rowKey = DerbyBytesUtil.getRowKey(additional[i]);
+//                    if (additionalsortOrder != null && !additionalsortOrder[i])
+//                        rowKey.setOrder(Order.DESCENDING);
+//                    structBuilder.add(rowKey);
+//                }
+//            }
+//            structBuilder.add(new VariableLengthByteArrayRowKey());
+//            structRowKey = structBuilder.toRowKey();
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, e);
         }
     }
 
 
-    public byte[] generateSortedHashKey(DataValueDescriptor[] descriptors, DataValueDescriptor[] additionalDescriptors) throws StandardException {
-        SpliceLogUtils.trace(LOG, "generateSortedHashKey");
-        int i = 0;
+    private void encodeAll(DataValueDescriptor[] descriptors, DataValueDescriptor[] additionalDescriptors) throws StandardException, IOException {
+        encoder.reset();
         for (int k = 0;k<hashKeys.length;k++) {
-            values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[k]]);
-            i++;
+            encoder = DerbyBytesUtil.encodeInto(encoder, descriptors[hashKeys[k]], sortOrder != null && !sortOrder[hashKeys[k]]);
         }
         for (int j = 0;j<additionalDescriptors.length;j++) {
-            values[i+1] = DerbyBytesUtil.getObject(additionalDescriptors[j]);
-            i++;
+            encoder = DerbyBytesUtil.encodeInto(encoder,additionalDescriptors[j],additionalSortOrder!=null&&!additionalSortOrder[j]);
         }
-        values[hashKeys.length+additionalDescriptors.length+1] = SpliceUtils.getUniqueKey();
-		return structRowKeySerializeValues();
     }
 
-    public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors, DataValueDescriptor[] additionalDescriptors) throws StandardException {
+    public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors, DataValueDescriptor[] additionalDescriptors) throws StandardException, IOException {
+        encoder.reset();
 		SpliceLogUtils.trace(LOG, "generateSortedHashKey");
-		int i = 0;
-        for (int hashKey : hashKeys) {
-            values[i + 1] = DerbyBytesUtil.getObject(descriptors[hashKey]);
-            i++;
-        }
-        for (DataValueDescriptor additionalDescriptor : additionalDescriptors) {
-            values[i + 1] = DerbyBytesUtil.getObject(additionalDescriptor);
-            i++;
-        }
-		return structRowKeySerializeValues();
+        encodeAll(descriptors,additionalDescriptors);
+        return encoder.build();
 	}
 
-	public byte[] generateSortedHashKey(DataValueDescriptor[] descriptors) throws StandardException {
+	public byte[] generateSortedHashKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
+        encoder.reset();
 		for (int i=0;i<hashKeys.length;i++) {
-			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
+            encoder = DerbyBytesUtil.encodeInto(encoder, descriptors[hashKeys[i]], sortOrder != null && !sortOrder[hashKeys[i]]);
 		}
-		values[hashKeys.length+1] = SpliceUtils.getUniqueKey();
-		return structRowKeySerializeValues();
-	}	
+        encoder = encoder.encodeNext(SpliceUtils.getUniqueKey());
+        return encoder.build();
+	}
 
-	public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors) throws StandardException {
-		for (int i=0;i<hashKeys.length;i++) {
-			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
-		}
-		return structRowKeySerializeValues();
-	}	
+	public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
+        encoder.reset();
+        for (int i=0;i<hashKeys.length;i++) {
+            encoder = DerbyBytesUtil.encodeInto(encoder, descriptors[hashKeys[i]], sortOrder != null && !sortOrder[hashKeys[i]]);
+        }
+        return encoder.build();
+	}
 
-	
 	/**
 	 * 
 	 * This method allows for key checking removing the postfix...
-	 * 
+	 *
+     * @deprecated use {@link #generateSortedHashKeyWithoutUniqueKey(org.apache.derby.iapi.types.DataValueDescriptor[])}
+     * instead.
 	 * @param descriptors
 	 * @return
 	 * @throws StandardException
 	 * @throws IOException
 	 */
-	public byte[] generateSortedHashScanKey(DataValueDescriptor[] descriptors) throws StandardException {
-		for (int i=0;i<hashKeys.length;i++) {
-			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
-		}
-		values[hashKeys.length+1] = null;
-		return structRowKeySerializeValues();
-	}
-	
-	public int compareHashKeys(DataValueDescriptor[] left, DataValueDescriptor[] right) throws StandardException, IOException{
-		byte[] leftBytes = generateSortedHashScanKey(left);
-		byte[] rightBytes = generateSortedHashScanKey(right);
-		return Bytes.compareTo(leftBytes,rightBytes);
+    @Deprecated
+	public byte[] generateSortedHashScanKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
+        return generateSortedHashKeyWithoutUniqueKey(descriptors);
 	}
 	
 	/**
@@ -187,25 +165,18 @@ public class Hasher {
 	 * @throws StandardException
 	 * @throws IOException
 	 */
-	public byte[] generateSortedHashKeyWithPostfix(DataValueDescriptor[] descriptors, byte[] postfix) throws StandardException {
+	public byte[] generateSortedHashKeyWithPostfix(DataValueDescriptor[] descriptors, byte[] postfix) throws StandardException, IOException {
+        encoder.reset();
 		SpliceLogUtils.trace(LOG, "generateSortedHashKeyWithPostfix");
 		for (int i=0;i<hashKeys.length;i++) {
-			values[i+1] = DerbyBytesUtil.getObject(descriptors[hashKeys[i]]);
+            encoder = DerbyBytesUtil.encodeInto(encoder,descriptors[hashKeys[i]],sortOrder!=null&&!sortOrder[hashKeys[i]]);
 		}
-		values[hashKeys.length+1] = postfix;
-		return structRowKeySerializeValues();
+        encoder = encoder.encodeNext(postfix);
+		return encoder.build();
 	}
 
     public byte[] getPrefixBytes() throws IOException {
-        return new StringRowKey().serialize(values[0]);
-    }
-    
-    private byte[] structRowKeySerializeValues() throws StandardException {
-		try {
-			return structRowKey.serialize(values);
-		}	 catch (Exception e) {
-			throw Exceptions.parseException(e);
-		}
+        return encoder.getEncodedBytes(0);
     }
     
 }

@@ -1,15 +1,12 @@
 package com.splicemachine.derby.utils;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
+import java.io.*;
 
 /**
  * @author Scott Fines
  *         Created on: 4/9/13
  */
-public class ByteDataInput implements ObjectInput {
+public class ByteDataInput implements ObjectInput,Closeable {
     private final ByteArrayInputStream bais;
     private final ObjectInput wrapper;
 

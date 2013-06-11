@@ -247,7 +247,7 @@ public class BytesUtil {
         for(byte[] nextBytes:bytes){
             if(nextBytes==null) break;
             if(!isStart){
-                concatedBytes[offset] = 1;
+                concatedBytes[offset] = 0x00; //safe because we know that it's never used in our encoding
                 offset++;
             }else
                 isStart = false;

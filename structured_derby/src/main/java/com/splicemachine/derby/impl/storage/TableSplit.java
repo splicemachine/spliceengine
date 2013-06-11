@@ -1,25 +1,21 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.base.Splitter;
-import com.gotometrics.orderly.IntegerRowKey;
-import com.gotometrics.orderly.RowKey;
-import com.gotometrics.orderly.StructRowKey;
-import com.gotometrics.orderly.VariableLengthByteArrayRowKey;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -130,8 +126,6 @@ public class TableSplit{
 
     private static void doSplit(HBaseAdmin admin,String splitPoints, long conglomId) throws SQLException {
         byte[] tableName = Long.toString(conglomId).getBytes();
-        RowKey rowKey = getRowKey();
-        Object[] toSplit = new Object[1];
         for(String splitPosition: Splitter.on(',').trimResults().omitEmptyStrings().split(splitPoints)){
             /*
              * If the table has no primary keys, then an easy and convenient way of splitting the
@@ -144,15 +138,15 @@ public class TableSplit{
              * Because of that, if you just feed in ints, then we will parse them as ints first,
              * rather than as Strings.
              */
+            byte[] pos;
             try{
-                int splitNum = Integer.parseInt(splitPosition);
-                toSplit[0] = splitNum;
+                pos = Encoding.encode(splitPosition);
             }catch(NumberFormatException nfe){
                 //not an integer, so assume you know what you're doing.
-                toSplit[0] = splitPosition.getBytes();
+                pos = Encoding.encode(splitPosition.getBytes());
             }
             try {
-                admin.split(tableName,rowKey.serialize(toSplit));
+                admin.split(tableName,pos);
             } catch (IOException e) {
                throw new SQLException(e.getMessage(),e);
             } catch (InterruptedException e) {
@@ -160,13 +154,6 @@ public class TableSplit{
             }
             waitForSplitsToFinish(conglomId,admin);
         }
-    }
-
-    private static RowKey getRowKey() {
-        //TODO -sf- improve this for the case of Primary Keys
-        RowKey[] fields = new RowKey[]{new IntegerRowKey()};
-
-        return new StructRowKey(fields);
     }
 
     private static long getConglomerateId(Connection conn, String schemaName, String tableName) throws SQLException {
@@ -209,11 +196,5 @@ public class TableSplit{
                 return conn;
         }
         throw Util.noCurrentConnection();
-    }
-
-    public static void main(String... args) throws Exception{
-        byte[] bytes = Bytes.toBytesBinary("Y\\x95\\x99Y\\x95\\x99");
-        StructRowKey rowKey = new StructRowKey(new RowKey[]{new VariableLengthByteArrayRowKey()});
-        System.out.println(Bytes.toInt((byte[])((Object[])rowKey.deserialize(bytes))[0]));
     }
 }

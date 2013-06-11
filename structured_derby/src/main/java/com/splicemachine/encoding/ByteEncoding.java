@@ -97,7 +97,7 @@ final class ByteEncoding {
     }
 
     public static void main(String... args) throws Exception{
-        byte[] test = new byte[]{-1,0,1,2,3,4};
+        byte[] test = new byte[]{5};
         byte[] myEncoding = encode(test,false);
         System.out.println(Arrays.toString(myEncoding));
 
@@ -105,4 +105,5 @@ final class ByteEncoding {
         System.out.println(Arrays.toString(theirEncoding));
         System.out.println(Arrays.toString(decode(myEncoding,false)));
     }
+
 }

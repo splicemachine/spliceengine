@@ -3,6 +3,9 @@ package com.splicemachine.encoding;
 import java.math.BigDecimal;
 
 /**
+ * Utilities for encoding various values using a sort-order preserving encoding
+ * inspired by orderly (github.com/ndimiduk/orderly).
+ *
  * @author Scott Fines
  * Created on: 6/8/13
  */
@@ -10,18 +13,67 @@ public final class Encoding {
 
     private Encoding(){} //can't construct me!
 
+    /**
+     * Encode a boolean in an ascending, sort-order-preserving encoding.
+     *
+     * Ascending in this case means that {@code true} comes before {@code false}.
+     *
+     * This is equivalent to calling {@link #encode(boolean, false)}.
+     *
+     * @param value the value to encode
+     * @return an ascending sort-order-preserving encoding.
+     */
     public static byte[] encode(boolean value){
         return ScalarEncoding.toBytes(value,false);
     }
 
+    /**
+     * Decode an ascending, sort-order-preserved encoding into a boolean. Ascending in this
+     * case means that {@code true} sorts before {@code false}.
+     *
+     * This is equivalent to calling {@link #decodeBoolean(byte[],false)}.
+     *
+     * @param data ascending, sort-order-preserved encoding of a boolean.
+     * @return {@code true} if {@code data} represents {@code true} in an ascending, order-preserving
+     * encoding, false otherwise.
+     */
     public static boolean decodeBoolean(byte[] data){
         return ScalarEncoding.toBoolean(data,false);
     }
 
+    /**
+     * Encode a boolean into an order-preserving encoding. The {@code desc} flag denotes
+     * whether to sort in ascending or descending order.
+     *
+     * Ascending in this case means that {@code true} comes before {@code false}, while
+     * descending reverses this order.
+     *
+     * @param value the value to encode
+     * @param desc {@code true} if values are to be sorted in descending order, {@code false} for
+     *                         ascending order encoding.
+     * @return an order-preserving encoding respecting the ascending/descending order specified by {@code desc}.
+     */
     public static byte[] encode(boolean value, boolean desc){
         return ScalarEncoding.toBytes(value,desc);
     }
 
+    /**
+     * Decode an order-preserving encoding into a boolean. The {@code desc} flag denotes
+     * whether the encoding was sorted in ascending or descending order.
+     *
+     * Ascending in this case means that {@code true} comes before {@code false}, while
+     * descending reverses this order.
+     *
+     * WARNING: In general, the encoding is not knowledgeless of the {@code desc} flag. This means that
+     * the {@code desc} flag <em>must</em> be set the same as when the data was encoded,
+     * or incorrect results may be returned. I.e. if {@code true} is encoded with {@code desc=true},
+     * then the resulting bytes are decoded with {@code desc=false}, the returned value may be {@code false},
+     * which is incorrect.
+     *
+     * @param data
+     * @param desc
+     * @return
+     */
     public static boolean decodeBoolean(byte[] data,boolean desc){
         return ScalarEncoding.toBoolean(data, desc);
     }
@@ -151,6 +203,10 @@ public final class Encoding {
     }
 
     public static String decodeString(byte[] value){
+        return StringEncoding.getStringCopy(value,false);
+    }
+
+    public static String decodeStringInPlace(byte[] value){
         return StringEncoding.getString(value,false);
     }
 
@@ -159,6 +215,10 @@ public final class Encoding {
     }
 
     public static String decodeString(byte[] value,boolean desc){
+        return StringEncoding.getStringCopy(value,desc);
+    }
+
+    public static String decodeStringInPlace(byte[] value,boolean desc){
         return StringEncoding.getString(value,desc);
     }
 

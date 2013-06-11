@@ -47,7 +47,7 @@ public class Serializer {
             case StoredFormatIds.SQL_USERTYPE_ID_V3: //return new UserType();
                 ByteDataOutput bdo = new ByteDataOutput();
                 bdo.writeObject(descriptor.getObject());
-                return bdo.toByteArray();
+                return Encoding.encode(bdo.toByteArray());
             case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
                 return Encoding.encode(descriptor.getTime(null).getTime());
             case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
@@ -111,7 +111,7 @@ public class Serializer {
                 break;
             case StoredFormatIds.SQL_REF_ID: //return new SQLRef();
             case StoredFormatIds.SQL_USERTYPE_ID_V3: //return new UserType();
-                ByteDataInput bdi = new ByteDataInput(bytes);
+                ByteDataInput bdi = new ByteDataInput(Encoding.decodeBytes(bytes));
                 try {
                     descriptor.setValue(bdi.readObject());
                 } catch (ClassNotFoundException e) {

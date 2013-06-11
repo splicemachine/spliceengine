@@ -208,6 +208,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	}
 
 	protected Scan buildScan() {
+        conglomerate.getFormat_ids();
 		try{
             populateStartAndStopPositions();
             populateQualifiers();

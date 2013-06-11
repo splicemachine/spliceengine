@@ -1,13 +1,10 @@
 package com.splicemachine.derby.utils.test;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Properties;
-
+import com.gotometrics.orderly.StringRowKey;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.monitor.ModuleFactory;
@@ -24,15 +21,11 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.gotometrics.orderly.IntegerRowKey;
-import com.gotometrics.orderly.Order;
-import com.gotometrics.orderly.RowKey;
-import com.gotometrics.orderly.StringRowKey;
-import com.gotometrics.orderly.StructBuilder;
-import com.gotometrics.orderly.StructRowKey;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Properties;
 
 @Ignore
 public class DerbyBytesUtilTest {
@@ -153,36 +146,37 @@ public class DerbyBytesUtilTest {
 						ScanController.GT, null)) < 0);
 	}
 
-	@Test
-	public void testGenerateSortedHashScan() throws Exception {
-		GenericScanQualifier gsq = new GenericScanQualifier();
-		gsq.setQualifier(0, generateDataValueDescriptor("test1"),0,false,false,false);
-		Qualifier[][] qs = new Qualifier[][] { new Qualifier[] { gsq } };
+//	@Test
+//	public void testGenerateSortedHashScan() throws Exception {
+//		GenericScanQualifier gsq = new GenericScanQualifier();
+//		gsq.setQualifier(0, generateDataValueDescriptor("test1"),0,false,false,false);
+//		Qualifier[][] qs = new Qualifier[][] { new Qualifier[] { gsq } };
+//
+//		byte[] bytes = DerbyBytesUtil.generateSortedHashScan(qs,
+//				gsq.getOrderable());
+//
+//		// check that it deserializes correctly
+//		 RowKey rowKey = DerbyBytesUtil.getRowKey(gsq.getOrderable());
+//		 Object o = rowKey.deserialize(bytes);
+//		 assertEquals(gsq.getOrderable().getString(),(String)o);
+//	}
 
-		byte[] bytes = DerbyBytesUtil.generateSortedHashScan(qs,
-				gsq.getOrderable());
-
-		// check that it deserializes correctly
-		 RowKey rowKey = DerbyBytesUtil.getRowKey(gsq.getOrderable());
-		 Object o = rowKey.deserialize(bytes);
-		 assertEquals(gsq.getOrderable().getString(),(String)o);
-	}
-	
-	@Test
-	public void testComparingIncrementedSortedHashScan() throws Exception {
-		GenericScanQualifier gsq = new GenericScanQualifier();
-		gsq.setQualifier(0, generateDataValueDescriptor("test1"),0,false,false,false);
-		Qualifier[][] qs = new Qualifier[][] { new Qualifier[] { gsq } };
-
-		byte[] bytes = DerbyBytesUtil.generateSortedHashScan(qs,
-				gsq.getOrderable());
-
-		// check that it deserializes correctly
-		 RowKey rowKey = DerbyBytesUtil.getRowKey(gsq.getOrderable());
-		 Object o = rowKey.deserialize(bytes);
-		 assertEquals(gsq.getOrderable().getString(),(String)o);		
-		
-	}
+    //removed--tested in the Encoding tests
+//	@Test
+//	public void testComparingIncrementedSortedHashScan() throws Exception {
+//		GenericScanQualifier gsq = new GenericScanQualifier();
+//		gsq.setQualifier(0, generateDataValueDescriptor("test1"),0,false,false,false);
+//		Qualifier[][] qs = new Qualifier[][] { new Qualifier[] { gsq } };
+//
+//		byte[] bytes = DerbyBytesUtil.generateSortedHashScan(qs,
+//				gsq.getOrderable());
+//
+//		// check that it deserializes correctly
+////		 RowKey rowKey = DerbyBytesUtil.getRowKey(gsq.getOrderable());
+////		 Object o = rowKey.deserialize(bytes);
+////		 assertEquals(gsq.getOrderable().getString(),(String)o);
+//
+//	}
 	
 	@Test
 	public void testIncrementedSortedHashScanKeyIncludesCorrectly() throws Exception{
@@ -251,18 +245,16 @@ public class DerbyBytesUtilTest {
 
 	@Test
 	public void testIndexGeneration() throws IOException {
-		StructBuilder builder = new StructBuilder();
-		builder.add(new StringRowKey());
-		builder.add(new IntegerRowKey());
-		StructRowKey structRowKey = builder.toRowKey();
-		Object[] test = { "John", 11 };
-		Object[] test2 = { "Monte", 11 };
-		byte[] testKey = structRowKey.serialize(test);
-		byte[] testKey2 = structRowKey.serialize(test2);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(2);
+        byte[] testKey = encoder.encodeNext("John").encodeNext(11).build();
+
+        encoder.reset();
+        byte[] testKey2 = encoder.encodeNext("Monte").encodeNext(11).build();
+
 		Assert.assertTrue(Bytes.compareTo(testKey, testKey2) < 0);
-		structRowKey.setOrder(Order.DESCENDING);
-		testKey = structRowKey.serialize(test);
-		testKey2 = structRowKey.serialize(test2);
+
+        testKey = encoder.encodeNext("John",true).encodeNext(11,true).build();
+        testKey2 = encoder.encodeNext("Monte",true).encodeNext(11,true).build();
 		Assert.assertTrue(Bytes.compareTo(testKey, testKey2) > 0);
 	}
 

@@ -249,7 +249,7 @@ public class DistinctScanOperation extends ScanOperation{
             @Override
             public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
                 try {
-                    byte[] tempRow = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),null);
+                    byte[] tempRow = hasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray());
                     Put put = Puts.buildInsert(tempRow,row.getRowArray(),SpliceUtils.NA_TRANSACTION_ID,serializer);
                     return Collections.<Mutation>singletonList(put);
                 } catch (StandardException e) {
