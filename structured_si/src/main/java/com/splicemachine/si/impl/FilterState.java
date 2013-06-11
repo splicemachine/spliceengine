@@ -108,9 +108,9 @@ public class FilterState {
         } else {
             final Object oldKeyValue = keyValue.keyValue();
             boolean include = false;
-            for(Object kv : rowState.getCommitTimestamps()) {
+            for (Object kv : rowState.getCommitTimestamps()) {
                 keyValue.setKeyValue(kv);
-                if(processUserData().equals(INCLUDE)) {
+                if (processUserData().equals(INCLUDE)) {
                     include = true;
                     break;
                 }
@@ -135,18 +135,26 @@ public class FilterState {
      * relevant transaction data to be loaded up into the local cache.
      */
     private Filter.ReturnCode processCommitTimestamp() throws IOException {
-        Transaction transaction;
-        if (dataStore.isSINull(keyValue.value())) {
-            transaction = handleUnknownTransactionStatus();
-        } else {
-            if (dataStore.isSIFail(keyValue.value())) {
-                transaction = Transaction.makeFailedTransaction(keyValue.timestamp());
-            } else {
-                transaction = Transaction.makeCommittedTransaction(keyValue.timestamp(), (Long) dataLib.decode(keyValue.value(), Long.class));
-            }
+        Transaction transaction = transactionCache.getIfPresent(keyValue.timestamp());
+        if (transaction == null) {
+            transaction = processCommitTimestampDirect();
         }
         rowState.transactionCache.put(transaction.getTransactionId().getId(), transaction);
         return SKIP;
+    }
+
+    private Transaction processCommitTimestampDirect() throws IOException {
+        Transaction transaction;
+        if (dataStore.isSINull(keyValue.value())) {
+            transaction = handleUnknownTransactionStatus();
+        } else if (dataStore.isSIFail(keyValue.value())) {
+            transaction = Transaction.makeFailedTransaction(keyValue.timestamp());
+            transactionCache.put(keyValue.timestamp(), transaction);
+        } else {
+            transaction = Transaction.makeCommittedTransaction(keyValue.timestamp(), (Long) dataLib.decode(keyValue.value(), Long.class));
+            transactionCache.put(keyValue.timestamp(), transaction);
+        }
+        return transaction;
     }
 
     private Transaction getTransactionFromFilterCache(long timestamp) throws IOException {

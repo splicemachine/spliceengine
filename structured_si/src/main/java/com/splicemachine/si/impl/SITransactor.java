@@ -585,10 +585,11 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     @Override
     public void rollForward(STable table, long transactionId, List rows) throws IOException {
         final Transaction transaction = transactionStore.getTransaction(transactionId);
-        if (transaction.isCommitted() || transaction.isFailed()) {
+        final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
+        if (effectiveStatus.equals(COMMITTED) || effectiveStatus.equals(ROLLED_BACK) || effectiveStatus.equals(ERROR)) {
             for (Object row : rows) {
                 try {
-                    if (transaction.isCommitted()) {
+                    if (effectiveStatus.equals(COMMITTED)) {
                         dataStore.setCommitTimestamp(table, row, transaction.getLongTransactionId(), transaction.getCommitTimestamp());
                     } else {
                         dataStore.setCommitTimestampToFail(table, row, transaction.getLongTransactionId());
