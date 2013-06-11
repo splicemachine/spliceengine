@@ -12,7 +12,7 @@ public class StringDVDSerializer implements DVDSerializer {
 
     @Override
     public byte[] serialize(DataValueDescriptor dvd) throws Exception {
-        return Encoding.encodeNullFree(dvd.getString());
+        return Encoding.encode(dvd.getString());
     }
 
 

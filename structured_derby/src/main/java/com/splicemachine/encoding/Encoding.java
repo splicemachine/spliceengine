@@ -64,15 +64,15 @@ public final class Encoding {
      * Ascending in this case means that {@code true} comes before {@code false}, while
      * descending reverses this order.
      *
-     * WARNING: In general, the encoding is not knowledgeless of the {@code desc} flag. This means that
+     * WARNING: In general, the encoding is not immune to the {@code desc} flag. This means that
      * the {@code desc} flag <em>must</em> be set the same as when the data was encoded,
      * or incorrect results may be returned. I.e. if {@code true} is encoded with {@code desc=true},
      * then the resulting bytes are decoded with {@code desc=false}, the returned value may be {@code false},
      * which is incorrect.
      *
-     * @param data
-     * @param desc
-     * @return
+     * @param data the encoded boolean data
+     * @param desc the sort-order of the encoding
+     * @return an order-preserving encoding respecting the ascending/descending order specified by {@code desc}.
      */
     public static boolean decodeBoolean(byte[] data,boolean desc){
         return ScalarEncoding.toBoolean(data, desc);
