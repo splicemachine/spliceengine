@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -133,10 +134,14 @@ public class Hasher {
         return encoder.build();
 	}
 
-	public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
+	public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors) throws StandardException  {
         encoder.reset();
         for (int i=0;i<hashKeys.length;i++) {
-            encoder = DerbyBytesUtil.encodeInto(encoder, descriptors[hashKeys[i]], sortOrder != null && !sortOrder[hashKeys[i]]);
+            try{
+                encoder = DerbyBytesUtil.encodeInto(encoder, descriptors[hashKeys[i]], sortOrder != null && !sortOrder[hashKeys[i]]);
+            }catch(IOException ioe){
+                throw Exceptions.parseException(ioe);
+            }
         }
         return encoder.build();
 	}
@@ -153,7 +158,7 @@ public class Hasher {
 	 * @throws IOException
 	 */
     @Deprecated
-	public byte[] generateSortedHashScanKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
+	public byte[] generateSortedHashScanKey(DataValueDescriptor[] descriptors) throws StandardException {
         return generateSortedHashKeyWithoutUniqueKey(descriptors);
 	}
 	
@@ -165,12 +170,16 @@ public class Hasher {
 	 * @throws StandardException
 	 * @throws IOException
 	 */
-	public byte[] generateSortedHashKeyWithPostfix(DataValueDescriptor[] descriptors, byte[] postfix) throws StandardException, IOException {
+	public byte[] generateSortedHashKeyWithPostfix(DataValueDescriptor[] descriptors, byte[] postfix) throws StandardException {
         encoder.reset();
 		SpliceLogUtils.trace(LOG, "generateSortedHashKeyWithPostfix");
 		for (int i=0;i<hashKeys.length;i++) {
-            encoder = DerbyBytesUtil.encodeInto(encoder,descriptors[hashKeys[i]],sortOrder!=null&&!sortOrder[hashKeys[i]]);
-		}
+            try{
+                encoder = DerbyBytesUtil.encodeInto(encoder,descriptors[hashKeys[i]],sortOrder!=null&&!sortOrder[hashKeys[i]]);
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
+        }
         encoder = encoder.encodeNext(postfix);
 		return encoder.build();
 	}
