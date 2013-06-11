@@ -51,8 +51,11 @@ public class TransactorSetup extends SIConstants {
         final Cache<Long, ImmutableTransaction> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         final Cache<Long, ActiveTransactionCacheEntry> activeCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         final Cache<Long, Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+        final Cache<Long, Transaction> committedCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+        final Cache<Long, Transaction> failedCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
         final ManagedTransactor listener = new ManagedTransactor(immutableCache, activeCache, cache);
-        transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, immutableCache, activeCache, cache, 1000, listener);
+        transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, immutableCache, activeCache,
+                cache, committedCache, failedCache, 1000, listener);
 
         final String tombstoneQualifierString = SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING;
         tombstoneQualifier = dataLib.encode(tombstoneQualifierString);

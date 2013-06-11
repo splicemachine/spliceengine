@@ -13,6 +13,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Library of functions used by the SI module when accessing the transaction table. Encapsulates low-level data access
@@ -26,6 +28,8 @@ public class TransactionStore {
     private final Cache<Long, ImmutableTransaction> immutableTransactionCache;
     private final Cache<Long, ActiveTransactionCacheEntry> activeTransactionCache;
     private final Cache<Long, Transaction> transactionCache;
+    private final Cache<Long, Transaction> committedTransactionCache;
+    private final Cache<Long, Transaction> failedTransactionCache;
     private final STableWriter writer;
 
     private final TransactionSchema transactionSchema;
@@ -36,18 +40,48 @@ public class TransactionStore {
 
     public TransactionStore(TransactionSchema transactionSchema, SDataLib dataLib,
                             STableReader reader, STableWriter writer,
-                            Cache<Long, ImmutableTransaction> immutableTransactionCache, Cache<Long, ActiveTransactionCacheEntry> activeTransactionCache,
-                            Cache<Long, Transaction> transactionCache, int waitForCommittingMS, TransactorListener listener) {
+                            Cache<Long, ImmutableTransaction> immutableTransactionCache,
+                            Cache<Long, ActiveTransactionCacheEntry> activeTransactionCache,
+                            Cache<Long, Transaction> transactionCache,
+                            Cache<Long, Transaction> committedTransactionCache,
+                            Cache<Long, Transaction> failedTransactionCache,
+                            int waitForCommittingMS, TransactorListener listener) {
         this.transactionSchema = transactionSchema;
         this.encodedSchema = transactionSchema.encodedSchema(dataLib);
         this.dataLib = dataLib;
         this.reader = reader;
         this.activeTransactionCache = activeTransactionCache;
         this.transactionCache = transactionCache;
+        this.committedTransactionCache = committedTransactionCache;
+        this.failedTransactionCache = failedTransactionCache;
         this.immutableTransactionCache = immutableTransactionCache;
         this.writer = writer;
         this.waitForCommittingMS = waitForCommittingMS;
         this.listener = listener;
+    }
+
+    public Transaction makeCommittedTransaction(final long timestamp, final long globalCommitTimestamp) {
+        // avoid using the cache get() that takes a loader to avoid the object creation cost of the anonymous inner class
+        Transaction result = committedTransactionCache.getIfPresent(timestamp);
+        if (result == null) {
+            result = new Transaction(DefaultTransactionBehavior.instance, timestamp,
+                    timestamp, 0, Transaction.getRootTransaction(), true, null, false, false, false,
+                    TransactionStatus.COMMITTED, globalCommitTimestamp, null, null);
+            committedTransactionCache.put(timestamp, result);
+        }
+        return result;
+    }
+
+    public Transaction makeFailedTransaction(final long timestamp) {
+        // avoid using the cache get() that takes a loader to avoid the object creation cost of the anonymous inner class
+        Transaction result = failedTransactionCache.getIfPresent(timestamp);
+        if (result == null) {
+            result = new Transaction(DefaultTransactionBehavior.instance, timestamp,
+                    timestamp, 0, Transaction.getRootTransaction(), true, null, false, false, false,
+                    TransactionStatus.ERROR, null, null, null);
+            failedTransactionCache.put(timestamp, result);
+        }
+        return result;
     }
 
     public void recordNewTransaction(long startTransactionTimestamp, TransactionParams params,

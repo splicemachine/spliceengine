@@ -148,10 +148,10 @@ public class FilterState {
         if (dataStore.isSINull(keyValue.value())) {
             transaction = handleUnknownTransactionStatus();
         } else if (dataStore.isSIFail(keyValue.value())) {
-            transaction = Transaction.makeFailedTransaction(keyValue.timestamp());
+            transaction = transactionStore.makeFailedTransaction(keyValue.timestamp());
             transactionCache.put(keyValue.timestamp(), transaction);
         } else {
-            transaction = Transaction.makeCommittedTransaction(keyValue.timestamp(), (Long) dataLib.decode(keyValue.value(), Long.class));
+            transaction = transactionStore.makeCommittedTransaction(keyValue.timestamp(), (Long) dataLib.decode(keyValue.value(), Long.class));
             transactionCache.put(keyValue.timestamp(), transaction);
         }
         return transaction;

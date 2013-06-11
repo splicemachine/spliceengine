@@ -38,6 +38,8 @@ public class HTransactorFactory extends SIConstants {
     private final static Cache<Long, ImmutableTransaction> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
     private final static Cache<Long, ActiveTransactionCacheEntry> activeCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
     private final static Cache<Long, Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+    private final static Cache<Long, Transaction> committedCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+    private final static Cache<Long, Transaction> failedCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
 
     private static volatile ManagedTransactor managedTransactor;
 
@@ -92,7 +94,7 @@ public class HTransactorFactory extends SIConstants {
             );
             managedTransactor = new ManagedTransactor(immutableCache, activeCache, cache);
             final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
-                    immutableCache, activeCache, cache, 1000, managedTransactor);
+                    immutableCache, activeCache, cache, committedCache, failedCache, 1000, managedTransactor);
 
             final DataStore rowStore = new DataStore(dataLib, reader, writer, "si-needed", SI_NEEDED_VALUE,
                     ONLY_SI_FAMILY_NEEDED_VALUE,

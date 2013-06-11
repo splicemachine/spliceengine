@@ -57,18 +57,6 @@ public class Transaction extends ImmutableTransaction {
         this.counter = counter;
     }
 
-    public static Transaction makeFailedTransaction(long timestamp) {
-        return new Transaction(DefaultTransactionBehavior.instance, timestamp,
-                timestamp, 0, Transaction.getRootTransaction(), true, null, false, false, false,
-                TransactionStatus.ERROR, null, null, null);
-    }
-
-    public static Transaction makeCommittedTransaction(long timestamp, long globalCommitTimestamp) {
-        return new Transaction(DefaultTransactionBehavior.instance, timestamp,
-                timestamp, 0, Transaction.getRootTransaction(), true, null, false, false, false,
-                TransactionStatus.COMMITTED, globalCommitTimestamp, null, null);
-    }
-
     // immediate functions - These functions are based solely on the transaction's immediate state (i.e. not on the
     // state of their parent)
 
