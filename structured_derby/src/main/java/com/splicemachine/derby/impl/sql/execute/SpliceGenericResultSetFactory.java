@@ -757,7 +757,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             String userSuppliedOptimizerOverrides) throws StandardException {
         SpliceLogUtils.trace(LOG, "getMergeSortLeftOuterJoinResultSet");
         try{
-            return new MergeSortLeftOuterJoinOperation(leftResultSet, leftNumCols,
+            return new BroadcastLeftOuterJoinOperation(leftResultSet, leftNumCols,
                     rightResultSet, rightNumCols,leftHashKeyItem,rightHashKeyItem,
                     leftResultSet.getActivation(), joinClause,
                     resultSetNumber,

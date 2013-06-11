@@ -14,11 +14,13 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 	private static Logger LOG = Logger.getLogger(BroadcastLeftOuterJoinOperation.class);
-	protected String emptyRowFunMethodName;
-	protected boolean wasRightOuterJoin;
 	protected GeneratedMethod emptyRowFun;
 	protected ExecRow emptyRow;
-	
+
+    {
+        isOuterJoin = true;
+    }
+
 	public BroadcastLeftOuterJoinOperation() {
 		super();
 	}
@@ -44,7 +46,7 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 						activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide,
 						optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides);
 				SpliceLogUtils.trace(LOG, "instantiate");
-				this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();	
+				emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
 				this.wasRightOuterJoin = wasRightOuterJoin;
                 init(SpliceOperationContext.newContext(activation));
                 recordConstructorTime(); 
@@ -65,33 +67,14 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 		writeNullableString(emptyRowFunMethodName, out);
 		out.writeBoolean(wasRightOuterJoin);
 	}
-	
-	@Override
-	public ExecRow getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG, "getNextRowCore");
-		if (broadcastIterator == null)
-			//broadcastIterator = new BroadcastNextRowIterator(true);
-		if (broadcastIterator.hasNext()) {
-			return broadcastIterator.next();
-		} else {
-			setCurrentRow(null);
-			return null;
-		}
-		return null;
-	}
-	
-	@Override
-	public void init(SpliceOperationContext context) throws StandardException{
-		SpliceLogUtils.trace(LOG, "init");
-		super.init(context);
-		try {
-			emptyRowFun = (emptyRowFunMethodName == null) ? null : context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunMethodName);
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Error initiliazing node", e);
-		}
-	}
-	
-	protected ExecRow getEmptyRow () {
+
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException {
+        super.init(context);
+        emptyRowFun = (emptyRowFunMethodName == null) ? null : context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunMethodName);
+    }
+
+    protected ExecRow getEmptyRow () {
 		if (emptyRow ==null)
 			try {
 				emptyRow =  (ExecRow) emptyRowFun.invoke(activation);

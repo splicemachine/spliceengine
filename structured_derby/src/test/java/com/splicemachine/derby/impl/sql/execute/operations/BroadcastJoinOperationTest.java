@@ -46,6 +46,14 @@ public class BroadcastJoinOperationTest extends SpliceUnitTest {
     }
 
     @Test
+    public void testSimpleLeftEquijoin() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select staff.empnum from staff left join works --DERBY-PROPERTIES joinStrategy=broadcast \n" +
+                "on staff.empnum = works.empnum");
+        List results = TestUtils.resultSetToMaps(rs);
+        Assert.assertEquals(13, results.size());
+    }
+
+    @Test
     public void testFailsOnNonEquijoin() throws Exception {
         Exception caught = null;
         try {
