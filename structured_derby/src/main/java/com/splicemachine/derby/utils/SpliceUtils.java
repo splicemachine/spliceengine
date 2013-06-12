@@ -50,7 +50,6 @@ import java.util.Map;
  * @author scottfines
  */
 
-@SuppressWarnings(value = "deprecation")
 public class SpliceUtils extends SpliceUtilities {
 	private static Logger LOG = Logger.getLogger(SpliceUtils.class);
 	public static UUIDHexGenerator gen = new UUIDHexGenerator("Splice", null);
@@ -259,19 +258,20 @@ public class SpliceUtils extends SpliceUtilities {
         }
     }
 
-	public static void populate(Result currentResult, DataValueDescriptor[] destRow) throws StandardException {
+	public static void populate(KeyValue[] raw, DataValueDescriptor[] destRow) throws StandardException {
 		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",currentResult.raw().length,destRow.length);
+			SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",raw.length,destRow.length);
 		/**
 		 * We have to use dataMap here instead of using currentResult.getValue() because for some reason columns larger
 		 * than 9 will go missing if you call getValue() --likely its due to the fact that we are serializing ints
 		 * as strings instead of as ints themselves.
-		 */
-		Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
+		 */		
 		try{
 			for(int i=0;i<destRow.length;i++){
-				byte[] value = dataMap.get(Bytes.toBytes(i));
-				fill(value,destRow[i]);
+				if (i<raw.length)
+					fill(raw[i].getValue(),destRow[i]);
+				else 
+					fill(null,destRow[i]);
 			}
 		}catch(IOException ioe){
 			SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
@@ -319,7 +319,7 @@ public class SpliceUtils extends SpliceUtilities {
         	SpliceLogUtils.trace(LOG,"populate current Result %s using scanColumnList %s and destRow with size %d",currentResult,scanColumnList,destRow.length);
         try {
             if(scanColumnList == null) 
-            	populate(currentResult,destRow);
+            	populate(currentResult.raw(),destRow);
             else{
                 Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
                 for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
@@ -380,7 +380,7 @@ public class SpliceUtils extends SpliceUtilities {
 
     public static void populate(Result currentResult, DataValueDescriptor[] destRow,
 															FormatableBitSet scanList,int[] bitSetToDestRowMap) throws StandardException{
-		if(scanList==null||scanList.getNumBitsSet()<=0) populate(currentResult,destRow);
+		if(scanList==null||scanList.getNumBitsSet()<=0) populate(currentResult.raw(),destRow);
 		else{
 			try{
 				Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
