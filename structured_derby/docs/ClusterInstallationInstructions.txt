@@ -25,7 +25,8 @@ Instructions for Cluster Installation:
 	
 		
 To restart servers (On Ubuntu3):
-	zookeeper-client
+    (GD: Start zookeeper services)
+	Run zookeeper-client
 		rmr /startupPath
 		rmr /spliceJobs 
 		rmr /derbyPropertyPath
@@ -33,6 +34,7 @@ To restart servers (On Ubuntu3):
 		rmr /hbase      
 		rmr /conglomerates
 		rmr /transactions 
+    (GD: Start hdfs service)
 	sudo -su hdfs hadoop fs -rmr /hbase
 	select hbase -> Actions -> Create Root Directory
 	Actions - Start (Master and Region Servers)

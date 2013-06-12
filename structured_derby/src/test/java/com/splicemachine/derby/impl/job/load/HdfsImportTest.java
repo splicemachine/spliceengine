@@ -27,6 +27,9 @@ public class HdfsImportTest extends SpliceUnitTest {
 	protected static String TABLE_6 = "F";
 	protected static String TABLE_7 = "G";
 	protected static String TABLE_8 = "H";
+	protected static String TABLE_9 = "I";
+	protected static String TABLE_10 = "J";
+	
 	
 	
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
@@ -39,6 +42,8 @@ public class HdfsImportTest extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_6,spliceSchemaWatcher.schemaName,"(name varchar(40), title varchar(40), age int)");
 	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_7,spliceSchemaWatcher.schemaName,"(name varchar(40), title varchar(40), age int)");
 	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_8,spliceSchemaWatcher.schemaName,"(cust_city_id int, cust_city_name varchar(64), cust_state_id int)");
+	protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_9,spliceSchemaWatcher.schemaName,"(order_date TIMESTAMP)");
+	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_10,spliceSchemaWatcher.schemaName,"(i int, j float, k varchar(20), l TIMESTAMP)");
 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -50,7 +55,9 @@ public class HdfsImportTest extends SpliceUnitTest {
 		.around(spliceTableWatcher5)
 		.around(spliceTableWatcher6)
 		.around(spliceTableWatcher7)
-		.around(spliceTableWatcher8);
+		.around(spliceTableWatcher8)
+		.around(spliceTableWatcher9)
+		.around(spliceTableWatcher10);
 		
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -155,6 +162,49 @@ public class HdfsImportTest extends SpliceUnitTest {
 		}
 		Assert.assertTrue("import failed!",results.size()>0);
 	}
+	
+	@Test
+	public void testImportISODateFormat() throws Exception{
+		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
+				",',','\"',null)",spliceSchemaWatcher.schemaName,TABLE_9));
+        ps.setString(1,getResourceDirectory()+"iso_order_date.csv");
+		ps.execute();
+
+		ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName, TABLE_9));
+		List<String> results = Lists.newArrayList();
+		while(rs.next()){
+			Timestamp order_date = rs.getTimestamp(1);
+			Assert.assertNotNull("order_date incorrect",order_date);
+			Assert.assertEquals(order_date.toString(),"2013-06-06 15:02:48.0");
+			results.add(String.format("order_date:%s",order_date));
+		}
+		Assert.assertTrue("import failed!",results.size()==1);
+	}
+	
+	@Test
+	public void testImportNullFields() throws Exception{
+		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
+				",',','\"',null)",spliceSchemaWatcher.schemaName,TABLE_10));
+        ps.setString(1,getResourceDirectory()+"null_field.csv");
+		ps.execute();
+
+		ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName, TABLE_10));
+		int count = 0;
+		while(rs.next()){
+			Integer i = rs.getInt(1);
+			Float j = rs.getFloat(2);
+			String k = rs.getString(3);
+			Timestamp l = rs.getTimestamp(4);
+			Assert.assertEquals(i.byteValue(),0);
+			Assert.assertEquals(j.byteValue(),0);
+			Assert.assertNull("String failure " + k,k);
+			Assert.assertNull("Timestamp failure " + l,l);
+			count++;
+		}
+		Assert.assertTrue("import failed!" + count,count==1);
+	}
+
+
 
 	@Test
 	public void testHdfsImportNullColList() throws Exception{

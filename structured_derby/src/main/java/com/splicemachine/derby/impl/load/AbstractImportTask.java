@@ -119,15 +119,15 @@ public abstract class AbstractImportTask extends ZkTask {
     private void populateRow(String[] line, FormatableBitSet activeCols, ExecRow row) throws StandardException {
         if(activeCols!=null){
             for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
-                row.getColumn(activePos+1).setValue(line[pos]);
+                row.getColumn(activePos+1).setValue(line[pos] == null || line[pos].length() == 0 ? null : line[pos]);  // pass in null for null or empty string
             }
         }else{
             for(int pos=0;pos<line.length-1;pos++){
-                row.getColumn(pos+1).setValue(line[pos]);
+                row.getColumn(pos+1).setValue(line[pos] == null || line[pos].length() == 0 ? null : line[pos]); // pass in null for null or empty string
             }
             //the last entry in the line array can be an empty string, which correlates to the row's nColumns() = line.length-1
             if(row.nColumns()==line.length){
-                row.getColumn(line.length).setValue(line[line.length-1]);
+                row.getColumn(line.length).setValue(line[line.length-1] == null || line[line.length-1].length() == 0 ? null : line[line.length-1]); // pass in null for null or empty string
             }
         }
     }
