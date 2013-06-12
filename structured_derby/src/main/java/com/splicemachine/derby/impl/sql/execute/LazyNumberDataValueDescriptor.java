@@ -27,15 +27,6 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
         this.ndv = ndv;
     }
 
-    protected void forceDeserialization() {
-        super.forceDeserialization();
-        if(ndv == null && dvd != null){
-            ndv = (NumberDataValue) dvd;
-        }
-    }
-
-
-
     @Override
     public NumberDataValue plus(NumberDataValue addend1, NumberDataValue addend2, NumberDataValue result) throws StandardException {
         forceDeserialization();
@@ -88,10 +79,6 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
     public NumberDataValue sqrt(NumberDataValue result) throws StandardException {
         forceDeserialization();
         return ndv.sqrt(result);
-    }
-
-    protected void resetForSerialization(){
-        super.resetForSerialization();
     }
 
     @Override
