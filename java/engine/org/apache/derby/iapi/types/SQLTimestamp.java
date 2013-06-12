@@ -465,15 +465,17 @@ public final class SQLTimestamp extends DataType
     static final char DATE_SEPARATOR = '-';
     private static final char[] DATE_SEPARATORS = { DATE_SEPARATOR};
     private static final char IBM_DATE_TIME_SEPARATOR = '-';
-    private static final char ODBC_DATE_TIME_SEPARATOR = ' ';
-    private static final char[] DATE_TIME_SEPARATORS = {IBM_DATE_TIME_SEPARATOR, ODBC_DATE_TIME_SEPARATOR};
+    private static final char ODBC_DATE_TIME_SEPARATOR = ' '; 
+    private static final char ISO_DATE_TIME_SEPARATOR = 'T'; // ISO separator
+    private static final char ISO_TIME_TERMINATOR = 'Z'; // ISO terminator (Zulu)
+    private static final char[] DATE_TIME_SEPARATORS = {IBM_DATE_TIME_SEPARATOR, ODBC_DATE_TIME_SEPARATOR, ISO_DATE_TIME_SEPARATOR};
     private static final char[] DATE_TIME_SEPARATORS_OR_END
-    = {IBM_DATE_TIME_SEPARATOR, ODBC_DATE_TIME_SEPARATOR, (char) 0};
+    = {IBM_DATE_TIME_SEPARATOR, ODBC_DATE_TIME_SEPARATOR, ISO_DATE_TIME_SEPARATOR, ISO_TIME_TERMINATOR, (char) 0};
     private static final char IBM_TIME_SEPARATOR = '.';
     private static final char ODBC_TIME_SEPARATOR = ':';
     private static final char[] TIME_SEPARATORS = {IBM_TIME_SEPARATOR, ODBC_TIME_SEPARATOR};
     private static final char[] TIME_SEPARATORS_OR_END = {IBM_TIME_SEPARATOR, ODBC_TIME_SEPARATOR, (char) 0};
-    private static final char[] END_OF_STRING = {(char) 0};
+    private static final char[] END_OF_STRING = {ISO_TIME_TERMINATOR, (char) 0};
     
     private void parseTimestamp( String timestampStr, boolean isJDBCEscape, LocaleFinder localeFinder, Calendar cal)
         throws StandardException
@@ -563,8 +565,8 @@ public final class SQLTimestamp extends DataType
         int nano = 0;
         if( parser.getCurrentSeparator() != 0)
         {
-            char timeSeparator = (parser.getCurrentSeparator() == ODBC_DATE_TIME_SEPARATOR)
-              ? ODBC_TIME_SEPARATOR : IBM_TIME_SEPARATOR;
+            char timeSeparator = ((parser.getCurrentSeparator() == ODBC_DATE_TIME_SEPARATOR) || (parser.getCurrentSeparator() == ISO_DATE_TIME_SEPARATOR))
+            		? ODBC_TIME_SEPARATOR : IBM_TIME_SEPARATOR;
             hour = parser.parseInt( 2, true, TIME_SEPARATORS, false);
             if( timeSeparator == parser.getCurrentSeparator())
             {
