@@ -43,7 +43,7 @@ public class SingleTypeHashAwareScanBoundary extends BaseHashAwareScanBoundary {
     @Override
     public byte[] getStartKey(Result result) {
         try {
-            SpliceUtils.populate(result, execRow.getRowArray());
+            SpliceUtils.populate(result.raw(), execRow.getRowArray());
             return hasher.generateSortedHashScanKey(execRow.getRowArray());
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
@@ -54,7 +54,7 @@ public class SingleTypeHashAwareScanBoundary extends BaseHashAwareScanBoundary {
     @Override
     public byte[] getStopKey(Result result) {
         try {
-        	SpliceUtils.populate(result, execRow.getRowArray());
+        	SpliceUtils.populate(result.raw(), execRow.getRowArray());
             byte[] start = hasher.generateSortedHashScanKey(execRow.getRowArray());
             BytesUtil.incrementAtIndex(start, start.length - 1);
             return start;
