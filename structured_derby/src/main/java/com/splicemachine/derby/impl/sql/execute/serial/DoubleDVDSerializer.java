@@ -1,23 +1,18 @@
 package com.splicemachine.derby.impl.sql.execute.serial;
 
-import com.gotometrics.orderly.BigDecimalRowKey;
-import com.gotometrics.orderly.DoubleRowKey;
+import com.splicemachine.encoding.Encoding;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
-import java.math.BigDecimal;
 
 public class DoubleDVDSerializer implements DVDSerializer {
 
-    private BigDecimalRowKey rowKey = new BigDecimalRowKey();
-
     @Override
     public void deserialize(byte[] bytes, DataValueDescriptor ldvd) throws Exception {
-        BigDecimal bd = (BigDecimal) rowKey.deserialize(bytes);
-        ldvd.setValue(bd.doubleValue());
+        ldvd.setValue(Encoding.decodeDouble(bytes));
     }
 
     @Override
     public byte[] serialize(DataValueDescriptor obj) throws Exception {
-        return rowKey.serialize(new BigDecimal(obj.getDouble()));
+        return Encoding.encode(obj.getDouble());
     }
 }
