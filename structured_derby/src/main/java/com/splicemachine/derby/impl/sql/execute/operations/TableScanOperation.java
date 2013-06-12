@@ -42,7 +42,7 @@ public class TableScanOperation extends ScanOperation {
 	protected int[] indexCols;
 	public String userSuppliedOptimizerOverrides;
 	public int rowsPerRead;
-	
+    private List<KeyValue> keyValues;
 	protected boolean runTimeStatisticsOn;
 	private Properties scanProperties;
 	public String startPositionString;
@@ -118,6 +118,7 @@ public class TableScanOperation extends ScanOperation {
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException{
 		super.init(context);
+	    keyValues = new ArrayList<KeyValue>(currentRow.nColumns());
 	}
 
 	@Override
@@ -166,9 +167,9 @@ public class TableScanOperation extends ScanOperation {
     @Override
 	public ExecRow getNextRowCore() throws StandardException {
 		beginTime = getCurrentTimeMillis();
-		List<KeyValue> keyValues = new ArrayList<KeyValue>();
 		try {
-			regionScanner.next(keyValues);
+	        keyValues.clear();
+	        regionScanner.next(keyValues);
 			if (keyValues.isEmpty()) {
 				SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
 				currentRow = null;
