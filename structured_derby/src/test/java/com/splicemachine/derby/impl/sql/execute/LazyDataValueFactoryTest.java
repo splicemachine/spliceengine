@@ -49,32 +49,10 @@ public class LazyDataValueFactoryTest {
         final DVDSerializer serializer1 = dvd1.getDVDSerializer();
 
         LazyStringDataValueDescriptor dvd2 = (LazyStringDataValueDescriptor) lfac.getVarcharDataValue("foo");
-        final DVDSerializer serializer2 = dvd1.getDVDSerializer();
+        final DVDSerializer serializer2 = dvd2.getDVDSerializer();
 
         //Getting a DVDSerializer from the same thread should get the same instance
         Assert.assertTrue(serializer1 == serializer2);
-
-        final AtomicBoolean didTestRun = new AtomicBoolean(false);
-
-        Thread thread = new Thread(){
-            @Override
-            public void run() {
-
-                LazyStringDataValueDescriptor dvd3 = (LazyStringDataValueDescriptor) lfac.getVarcharDataValue("foo");
-                DVDSerializer serializer3 = dvd3.getDVDSerializer();
-
-                //On a different thread, it should create a new serializer and use that one
-                Assert.assertFalse(serializer1 == serializer3);
-
-                didTestRun.compareAndSet(false, true);
-
-            }
-        };
-
-        thread.start();
-        thread.join(10000);
-
-        Assert.assertTrue("Thread to get a new serializer didn't run", didTestRun.get());
     }
 
 }
