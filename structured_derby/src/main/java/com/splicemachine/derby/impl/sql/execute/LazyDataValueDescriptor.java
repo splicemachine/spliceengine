@@ -39,7 +39,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     //Sort of a cached return value for the isNull() call of the DataValueDescriptor
     //The isNull() method is hit very hard here and in derby, this makes that call much faster
-    private boolean isNull = false;
+    protected boolean isNull = false;
 
     //Also the cached dvd.getTypeFormat(), avoids the double method invocation when calling
     //this.getTypeFormatId

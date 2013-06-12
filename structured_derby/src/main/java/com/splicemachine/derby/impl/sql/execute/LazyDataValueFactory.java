@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.splicemachine.derby.impl.sql.execute.serial.DoubleDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -13,6 +14,11 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
             return new StringDVDSerializer();
         }};
 
+    private static ThreadLocal<DoubleDVDSerializer> doubleSerializer = new ThreadLocal<DoubleDVDSerializer>(){
+        @Override
+        protected DoubleDVDSerializer initialValue() {
+            return new DoubleDVDSerializer();
+        }};
 
     @Override
     public StringDataValue getVarcharDataValue(String value) {
@@ -51,7 +57,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
             case StoredFormatIds.SQL_BOOLEAN_ID: return new SQLBoolean();
             case StoredFormatIds.SQL_CHAR_ID: return new LazyStringDataValueDescriptor(new SQLChar(), stringSerializer.get());
             case StoredFormatIds.SQL_DATE_ID: return new SQLDate();
-            case StoredFormatIds.SQL_DOUBLE_ID: return new SQLDouble();
+            case StoredFormatIds.SQL_DOUBLE_ID: return new LazyNumberDataValueDescriptor(new SQLDouble(), doubleSerializer.get());
             case StoredFormatIds.SQL_DECIMAL_ID: return new SQLDecimal();
             case StoredFormatIds.SQL_INTEGER_ID: return new SQLInteger();
             case StoredFormatIds.SQL_LONGINT_ID: return new SQLLongint();
@@ -71,5 +77,30 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
             case StoredFormatIds.XML_ID: return new XML();
             default:return null;
         }
+    }
+
+    @Override
+    public NumberDataValue getDataValue(double value, NumberDataValue previous) throws StandardException {
+
+        if(previous instanceof LazyNumberDataValueDescriptor){
+            previous.setValue(value);
+        }else{
+            previous = new LazyNumberDataValueDescriptor(new SQLDouble(value), doubleSerializer.get());
+        }
+
+        return previous;
+    }
+
+    @Override
+    public NumberDataValue getDataValue(Double value, NumberDataValue previous) throws StandardException {
+
+        if(previous instanceof LazyNumberDataValueDescriptor){
+            previous.setValue(value);
+        }else{
+            previous = new LazyNumberDataValueDescriptor(new SQLDouble(value), doubleSerializer.get());
+        }
+
+        return previous;
+
     }
 }
