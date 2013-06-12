@@ -7,9 +7,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HClientTransactor;
 import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -114,15 +112,8 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Scan createScan(String transactionId) {
-/*
-    	try {
-    		throw new Exception("Transactional Scan");    		
-    	} catch (Exception e) {
-    		e.printStackTrace();
-    	}
-    	*/
         try {
-            return (Scan) attachTransaction(new Scan(), transactionId);
+            return attachTransaction(new Scan(), transactionId);
         } catch (Exception e) {
         	SpliceLogUtils.logAndThrowRuntime(LOG, e);
         	return null;
@@ -138,7 +129,7 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Get createGet(String transactionId, byte[] row) throws IOException {
-        return (Get) attachTransaction(new Get(row), transactionId);
+        return attachTransaction(new Get(row), transactionId);
     }
 
     public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
@@ -179,42 +170,49 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Put createPut(byte[] newRowKey, Mutation mutation) throws IOException {
-        return createPut( newRowKey, getTransactionId(mutation));
+        return createPut(newRowKey, getTransactionId(mutation));
     }
 
     public static Put createPut(byte[] newRowKey, String transactionID) throws IOException {
-        return (Put) attachTransaction(new Put(newRowKey), transactionID);
+        return attachTransaction(new Put(newRowKey), transactionID);
     }
 
     /**
      * Attach transactional information to the specified operation.
      *
      * @param op the operation to attach to.
-     * @param txnId the transaction id to attach.
+     * @param transactionId the transaction id to attach.
      */
-    public static OperationWithAttributes attachTransaction(OperationWithAttributes op, String txnId) throws IOException {
-        if (txnId == null) {
-            throw new RuntimeException("Cannot create operation with a null transactionId");
-        }
-        if (txnId.equals(NA_TRANSACTION_ID)) {
-            op.setAttribute(SI_EXEMPT, Bytes.toBytes(true));
-        } else {
-            if (op instanceof Get) {
-                getTransactor().initializeGet(txnId, (Get) op);
-            } else if (op instanceof Put) {
-                getTransactor().initializePut(txnId, (Put) op);
-            } else if (op instanceof Delete) {
-                throw new RuntimeException("Direct deleted not supported, expected to use delete put");
-            } else {
-                getTransactor().initializeScan(txnId, (Scan) op);
-            }
+    public static Put attachTransaction(Put op, String transactionId) throws IOException {
+        if (!attachTransactionNA(op, transactionId)) {
+            getTransactor().initializePut(transactionId, op);
         }
         return op;
     }
-    
 
-    public static Delete createDelete(String transactionId, byte[] row) throws IOException {
-        return (Delete) attachTransaction(new Delete(row), transactionId);
+    public static Get attachTransaction(Get op, String transactionId) throws IOException {
+        if (!attachTransactionNA(op, transactionId)) {
+            getTransactor().initializeGet(transactionId, op);
+        }
+        return op;
+    }
+
+    public static Scan attachTransaction(Scan op, String transactionId) throws IOException {
+        if (!attachTransactionNA(op, transactionId)) {
+            getTransactor().initializeScan(transactionId, op);
+        }
+        return op;
+    }
+
+    private static boolean attachTransactionNA(OperationWithAttributes op, String transactionId) {
+        if (transactionId == null) {
+            throw new RuntimeException("Cannot create operation with a null transactionId");
+        }
+        if (transactionId.equals(NA_TRANSACTION_ID)) {
+            op.setAttribute(SI_EXEMPT, Bytes.toBytes(true));
+            return true;
+        }
+        return false;
     }
 
     public static Put createDeletePut(Mutation mutation, byte[] rowKey) {
@@ -223,7 +221,7 @@ public class SpliceUtils extends SpliceUtilities {
 
     public static Put createDeletePut(String transactionId, byte[] rowKey) {
         final HClientTransactor clientTransactor = HTransactorFactory.getClientTransactor();
-        return (Put) clientTransactor.createDeletePut(clientTransactor.transactionIdFromString(transactionId), rowKey);
+        return clientTransactor.createDeletePut(clientTransactor.transactionIdFromString(transactionId), rowKey);
     }
 
     public static boolean isDelete(Mutation mutation) {

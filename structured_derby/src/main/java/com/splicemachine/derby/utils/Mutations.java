@@ -21,20 +21,6 @@ public class Mutations {
     private Mutations(){}
 
     /**
-     * Create an actual Delete instance.
-     *
-     * Unlike {@link #getDeleteOp(String, byte[])}, this method is guaranteed to return
-     * a Delete instance that is properly managed transactionally.
-     *
-     * @param transactionId the transaction id for the delete
-     * @param row the row to delete
-     * @return a transactionally-aware delete.
-     */
-    public static Delete createDelete(String transactionId, byte[] row) throws IOException {
-        return SpliceUtils.createDelete(transactionId, row);
-    }
-
-    /**
      * Create a Delete operation.
      *
      * Because of HBase locking semantics, it's not always possible to use an actual HBase Delete
