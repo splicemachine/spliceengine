@@ -5,7 +5,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Iterators;
-import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -13,7 +12,6 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -28,6 +26,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -53,9 +52,9 @@ public class BroadcastJoinOperation extends JoinOperation {
     protected Hasher leftHasher;
     protected Iterator<ExecRow> rightIterator;
     protected BroadcastNextRowIterator broadcastIterator;
-    protected Map<HashableBytes, List<ExecRow>> rightSideMap;
+    protected Map<ByteBuffer, List<ExecRow>> rightSideMap;
     protected boolean isOuterJoin = false;
-    protected static final Cache<String, Map<HashableBytes, List<ExecRow>>> broadcastJoinCache;
+    protected static final Cache<String, Map<ByteBuffer, List<ExecRow>>> broadcastJoinCache;
 
 
     static {
@@ -63,9 +62,9 @@ public class BroadcastJoinOperation extends JoinOperation {
         nodeTypes.add(NodeType.MAP);
         nodeTypes.add(NodeType.SCROLL);
         broadcastJoinCache = CacheBuilder.newBuilder().
-                maximumSize(50000).expireAfterWrite(10, TimeUnit.MINUTES).removalListener(new RemovalListener<String, Map<HashableBytes, List<ExecRow>>>() {
+                maximumSize(50000).expireAfterWrite(10, TimeUnit.MINUTES).removalListener(new RemovalListener<String, Map<ByteBuffer, List<ExecRow>>>() {
             @Override
-            public void onRemoval(RemovalNotification<String, Map<HashableBytes, List<ExecRow>>> notification) {
+            public void onRemoval(RemovalNotification<String, Map<ByteBuffer, List<ExecRow>>> notification) {
                 SpliceLogUtils.trace(LOG, "Removing unique sequence ID %s", notification.getKey());
             }
         }).build();
@@ -203,9 +202,9 @@ public class BroadcastJoinOperation extends JoinOperation {
         public BroadcastNextRowIterator(ExecRow leftRow, Hasher leftHasher) throws StandardException {
             this.leftRow = leftRow;
             this.leftHasher = leftHasher;
-            List<ExecRow> rows = rightSideMap.get(new HashableBytes(leftHasher.generateSortedHashKeyWithoutUniqueKey(leftRow.getRowArray())));
+            List<ExecRow> rows = rightSideMap.get(ByteBuffer.wrap(leftHasher.generateSortedHashKeyWithoutUniqueKey(leftRow.getRowArray())));
             if (rows != null) {
-                if (!notExistsRightSide){
+                if (!notExistsRightSide) {
                     // Sorry for the double negative: only populate the iterator if we're not executing an antijoin
                     rightSideIterator = rows.iterator();
                 }
@@ -242,13 +241,13 @@ public class BroadcastJoinOperation extends JoinOperation {
         throw new RuntimeException("Should only be called on outer joins");
     }
 
-    private Map<HashableBytes, List<ExecRow>> retrieveRightSideCache() throws StandardException {
+    private Map<ByteBuffer, List<ExecRow>> retrieveRightSideCache() throws StandardException {
         try {
             // Cache population is what we want here concurrency-wise: only one Callable will be invoked to
             // populate the cache for a given key; any other concurrent .get(k, callable) calls will block
-            return broadcastJoinCache.get(uniqueSequenceID, new Callable<Map<HashableBytes, List<ExecRow>>>() {
+            return broadcastJoinCache.get(uniqueSequenceID, new Callable<Map<ByteBuffer, List<ExecRow>>>() {
                 @Override
-                public Map<HashableBytes, List<ExecRow>> call() throws Exception {
+                public Map<ByteBuffer, List<ExecRow>> call() throws Exception {
                     SpliceLogUtils.trace(LOG, "Load right-side cache for BroadcastJoin, uniqueSequenceID " + uniqueSequenceID);
                     return loadRightSide();
                 }
@@ -259,17 +258,17 @@ public class BroadcastJoinOperation extends JoinOperation {
         }
     }
 
-    private Map<HashableBytes, List<ExecRow>> loadRightSide() throws StandardException, IOException {
-        HashableBytes hashKey;
+    private Map<ByteBuffer, List<ExecRow>> loadRightSide() throws StandardException, IOException {
+        ByteBuffer hashKey;
         List<ExecRow> rows;
-        Map<HashableBytes, List<ExecRow>> cache = new HashMap<HashableBytes, List<ExecRow>>();
+        Map<ByteBuffer, List<ExecRow>> cache = new HashMap<ByteBuffer, List<ExecRow>>();
         Hasher hasher = new Hasher(rightRow.getRowArray(), rightHashKeys, null);
         NoPutResultSet resultSet = rightResultSet.executeScan();
         resultSet.openCore();
 
         while ((rightRow = resultSet.getNextRowCore()) != null) {
-            hashKey = new HashableBytes(hasher.generateSortedHashKeyWithoutUniqueKey(rightRow.getRowArray()));
-            if ((rows = cache.get(hashKey)) != null){
+            hashKey = ByteBuffer.wrap(hasher.generateSortedHashKeyWithoutUniqueKey(rightRow.getRowArray()));
+            if ((rows = cache.get(hashKey)) != null) {
                 // Only add additional row for same hash if we need it
                 if (!oneRowRightSide) {
                     rows.add(rightRow.getClone());
