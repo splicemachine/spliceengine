@@ -14,7 +14,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.tables.SpliceCustomerTable;
 import com.splicemachine.derby.test.framework.tables.SpliceOrderLineTable;
-@Ignore
+//@Ignore
 public class CorePerformanceReport extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = CorePerformanceReport.class.getSimpleName().toUpperCase();
@@ -117,6 +117,13 @@ public class CorePerformanceReport extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(format("select cst_zipcode, sum(orl_qty_sold*orl_unit_price) from %s " +
                 "left outer join %s --DERBY-PROPERTIES joinStrategy=broadcast \n" +
                 "on orl_customer_id=cst_id group by cst_zipcode",this.getTableReference(TABLE_NAME_2),this.getTableReference(TABLE_NAME_1)));
+        while (rs.next()) {
+        }
+    }
+
+    @Test
+    public void aggregate500kOrderLines() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select orl_unit_price, orl_unit_cost, orl_discount from  %s group by orl_unit_price, orl_unit_cost, orl_discount",this.getTableReference(TABLE_NAME_2)));
         while (rs.next()) {
         }
     }
