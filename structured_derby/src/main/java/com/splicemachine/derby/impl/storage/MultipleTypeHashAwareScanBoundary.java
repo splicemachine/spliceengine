@@ -46,7 +46,7 @@ public class MultipleTypeHashAwareScanBoundary extends BaseHashAwareScanBoundary
 			rowType = (SQLInteger) DerbyBytesUtil.fromBytes(data, rowType);
 			if (rowType.getInt() == JoinSide.RIGHT.ordinal()) {
 				ExecRow right = rightRow.getClone();
-				SpliceUtils.populate(result, right.getRowArray());	
+				SpliceUtils.populate(result.raw(), right.getRowArray());	
 				return rightHasher.generateSortedHashScanKey(right.getRowArray());
 			} else {					
 				SpliceUtils.populate(result,null,leftRow.getRowArray());
@@ -65,7 +65,7 @@ public class MultipleTypeHashAwareScanBoundary extends BaseHashAwareScanBoundary
     	try {
 			rowType = (SQLInteger) DerbyBytesUtil.fromBytes(result.getValue(SpliceConstants.DEFAULT_FAMILY.getBytes(), JoinUtils.JOIN_SIDE_COLUMN), rowType);
 			if (rowType.getInt() == JoinSide.RIGHT.ordinal()) {
-				SpliceUtils.populate(result, rightRow.getRowArray());	
+				SpliceUtils.populate(result.raw(), rightRow.getRowArray());	
 				stopKey = rightHasher.generateSortedHashScanKey(rightRow.getRowArray());
 			} else {					
 				SpliceUtils.populate(result,null,leftRow.getRowArray());
