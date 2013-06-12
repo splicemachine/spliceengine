@@ -1,13 +1,10 @@
 package com.splicemachine.si.data.light;
 
-import com.splicemachine.si.data.api.SGet;
-import com.splicemachine.si.data.api.SScan;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LGet implements SGet, SScan {
+public class LGet {
     final Object startTupleKey;
     final Object endTupleKey;
     final java.util.List families;

@@ -1,19 +1,14 @@
 package com.splicemachine.si.data.light;
 
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SGet;
-import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.SRowLock;
-import com.splicemachine.si.data.api.SScan;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTuple, LGet, LGet, LGet> {
+public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTuple, LGet, LGet, Object> {
 
     @Override
     public Object newRowKey(Object... args) {
@@ -104,26 +99,50 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTu
     }
 
     @Override
-    public void setReadTimeRange(LGet get, long minTimestamp, long maxTimestamp) {
+    public void setGetTimeRange(LGet get, long minTimestamp, long maxTimestamp) {
         assert minTimestamp == 0L;
         get.effectiveTimestamp = maxTimestamp - 1;
     }
 
     @Override
-    public void setReadMaxVersions(LGet get) {
+    public void setGetMaxVersions(LGet get) {
     }
 
     @Override
-    public void setReadMaxVersions(LGet get, int max) {
+    public void setGetMaxVersions(LGet get, int max) {
     }
 
     @Override
-    public void addFamilyToRead(LGet get, Object family) {
+    public void addFamilyToGet(LGet get, Object family) {
         get.families.add(family);
     }
 
     @Override
-    public void addFamilyToReadIfNeeded(LGet get, Object family) {
+    public void addFamilyToGetIfNeeded(LGet get, Object family) {
+        ensureFamilyDirect(get, family);
+    }
+
+    @Override
+    public void setScanTimeRange(LGet get, long minTimestamp, long maxTimestamp) {
+        assert minTimestamp == 0L;
+        get.effectiveTimestamp = maxTimestamp - 1;
+    }
+
+    @Override
+    public void setScanMaxVersions(LGet get) {
+    }
+
+    @Override
+    public void setScanMaxVersions(LGet get, int max) {
+    }
+
+    @Override
+    public void addFamilyToScan(LGet get, Object family) {
+        get.families.add(family);
+    }
+
+    @Override
+    public void addFamilyToScanIfNeeded(LGet get, Object family) {
         ensureFamilyDirect(get, family);
     }
 

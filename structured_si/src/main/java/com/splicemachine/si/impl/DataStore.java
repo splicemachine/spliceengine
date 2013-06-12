@@ -1,8 +1,6 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SGet;
-import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -139,7 +137,7 @@ public class DataStore {
 
     List getCommitTimestamp(STable table, Object rowKey) throws IOException {
         final List<List<Object>> columns = Arrays.asList(Arrays.asList(siFamily, commitTimestampQualifier));
-        SGet get = dataLib.newGet(rowKey, null, columns, null);
+        Object get = dataLib.newGet(rowKey, null, columns, null);
         Object result = reader.get(table, get);
         if (result != null) {
             return dataLib.getResultColumn(result, siFamily, commitTimestampQualifier);
@@ -215,8 +213,8 @@ public class DataStore {
 
     private Map getUserData(STable table, Object rowKey) throws IOException {
         final List<Object> families = Arrays.asList(userColumnFamily);
-        SGet get = dataLib.newGet(rowKey, families, null, null);
-        dataLib.setReadMaxVersions(get, 1);
+        Object get = dataLib.newGet(rowKey, families, null, null);
+        dataLib.setGetMaxVersions(get, 1);
         Object result = reader.get(table, get);
         if (result != null) {
             return dataLib.getResultFamilyMap(result, userColumnFamily);
@@ -224,12 +222,20 @@ public class DataStore {
         return null;
     }
 
-    public void addSIFamilyToRead(SRead read) {
-        dataLib.addFamilyToRead(read, siFamily);
+    public void addSIFamilyToGet(Object read) {
+        dataLib.addFamilyToGet(read, siFamily);
     }
 
-    public void addSIFamilyToReadIfNeeded(SRead read) {
-        dataLib.addFamilyToReadIfNeeded(read, siFamily);
+    public void addSIFamilyToGetIfNeeded(Object read) {
+        dataLib.addFamilyToGetIfNeeded(read, siFamily);
+    }
+
+    public void addSIFamilyToScan(Object read) {
+        dataLib.addFamilyToScan(read, siFamily);
+    }
+
+    public void addSIFamilyToScanIfNeeded(Object read) {
+        dataLib.addFamilyToScanIfNeeded(read, siFamily);
     }
 
     public void addPlaceHolderColumnToEmptyPut(Object put) {

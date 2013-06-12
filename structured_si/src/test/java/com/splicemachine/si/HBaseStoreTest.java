@@ -1,7 +1,6 @@
 package com.splicemachine.si;
 
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;
@@ -32,7 +31,7 @@ public class HBaseStoreTest {
             api.write(new Object[] {"joe"}, "foo", "age", 21, 0L);
 
             Object testKey = SDataLib.newRowKey(new Object[]{"joe"});
-            SGet get = SDataLib.newGet(testKey, null, null, null);
+            Object get = SDataLib.newGet(testKey, null, null, null);
             final Object outputTuple = reader.get(reader.open("table1"), get);
             Assert.assertEquals("joe", Bytes.toString((byte[]) SDataLib.getResultKey(outputTuple)));
             final List outputCells = SDataLib.listResult(outputTuple);

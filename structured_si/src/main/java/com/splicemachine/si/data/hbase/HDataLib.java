@@ -2,7 +2,6 @@ package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.SRowLock;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -19,10 +18,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete, HGet, HScan, HRead> {
+public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes> {
 
     @Override
-    public Result newResult(Object key, List keyValues) {
+    public Result newResult(byte[] key, List keyValues) {
         return new Result(keyValues);
     }
 
@@ -145,25 +144,13 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete,
     }
 
     @Override
-    public void addAttribute(Object operation, String attributeName, byte[] value) {
-        OperationWithAttributes hOperation;
-        if (operation instanceof OperationWithAttributes) {
-            hOperation = (OperationWithAttributes) operation;
-        } else {
-            hOperation = ((IOperation) operation).getOperation();
-        }
-        hOperation.setAttribute(attributeName, value);
+    public void addAttribute(OperationWithAttributes operation, String attributeName, byte[] value) {
+        operation.setAttribute(attributeName, value);
     }
 
     @Override
-    public byte[] getAttribute(Object operation, String attributeName) {
-        OperationWithAttributes hOperation;
-        if (operation instanceof Put) {
-            hOperation = (OperationWithAttributes) operation;
-        } else {
-            hOperation = ((IOperation) operation).getOperation();
-        }
-        return hOperation.getAttribute(attributeName);
+    public byte[] getAttribute(OperationWithAttributes operation, String attributeName) {
+        return operation.getAttribute(attributeName);
     }
 
     @Override
@@ -177,7 +164,7 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete,
     }
 
     @Override
-    public HGet newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
+    public Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         Get get = new Get(rowKey);
         if (families != null) {
             for (Object f : families) {
@@ -196,36 +183,46 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete,
                 throw new RuntimeException(e);
             }
         }
-        return new HGet(get);
+        return get;
     }
 
     @Override
-    public void setReadTimeRange(HRead read, long minTimestamp, long maxTimestamp) {
-        read.setReadTimeRange(minTimestamp, maxTimestamp);
+    public void setGetTimeRange(Get get, long minTimestamp, long maxTimestamp) {
+        try {
+            get.setTimeRange(minTimestamp, maxTimestamp);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public void setReadMaxVersions(HRead read) {
-        read.setReadMaxVersions();
+    public void setGetMaxVersions(Get get) {
+        get.setMaxVersions();
     }
 
     @Override
-    public void setReadMaxVersions(HRead read, int max) {
-        read.setReadMaxVersions(max);
+    public void setGetMaxVersions(Get get, int max) {
+        try {
+            get.setMaxVersions(max);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public void addFamilyToRead(HRead read, byte[] family) {
-        read.addFamilyToRead(family);
+    public void addFamilyToGet(Get get, byte[] family) {
+        get.addFamily(family);
     }
 
     @Override
-    public void addFamilyToReadIfNeeded(HRead read, byte[] family) {
-        read.addFamilyToReadIfNeeded(family);
+    public void addFamilyToGetIfNeeded(Get get, byte[] family) {
+        if (get.hasFamilies()) {
+            get.addFamily(family);
+        }
     }
 
     @Override
-    public HScan newScan(byte[] startRowKey, byte[] endRowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
+    public Scan newScan(byte[] startRowKey, byte[] endRowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         Scan scan = new Scan();
         scan.setStartRow(startRowKey);
         scan.setStopRow(endRowKey);
@@ -246,7 +243,38 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete,
                 throw new RuntimeException(e);
             }
         }
-        return new HScan(scan);
+        return scan;
+    }
+
+    @Override
+    public void setScanTimeRange(Scan scan, long minTimestamp, long maxTimestamp) {
+        try {
+            scan.setTimeRange(minTimestamp, maxTimestamp);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void setScanMaxVersions(Scan scan) {
+        scan.setMaxVersions();
+    }
+
+    @Override
+    public void setScanMaxVersions(Scan scan, int max) {
+        scan.setMaxVersions(max);
+    }
+
+    @Override
+    public void addFamilyToScan(Scan scan, byte[] family) {
+        scan.addFamily(family);
+    }
+
+    @Override
+    public void addFamilyToScanIfNeeded(Scan scan, byte[] family) {
+        if(scan.hasFamilies()) {
+            scan.addFamily(family);
+        }
     }
 
     @Override

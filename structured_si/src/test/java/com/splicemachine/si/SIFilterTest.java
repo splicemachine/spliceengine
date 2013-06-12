@@ -2,7 +2,6 @@ package com.splicemachine.si;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SGet;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.api.Transactor;
@@ -42,7 +41,7 @@ public class SIFilterTest extends SIConstants {
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{name});
-        SGet get = dataLib.newGet(key, null, null, null);
+        Object get = dataLib.newGet(key, null, null, null);
         STable testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             return reader.get(testSTable, get);

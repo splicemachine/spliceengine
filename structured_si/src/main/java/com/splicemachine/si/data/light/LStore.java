@@ -1,9 +1,6 @@
 package com.splicemachine.si.data.light;
 
 import com.splicemachine.si.api.Clock;
-import com.splicemachine.si.data.api.SGet;
-import com.splicemachine.si.data.api.SRowLock;
-import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;

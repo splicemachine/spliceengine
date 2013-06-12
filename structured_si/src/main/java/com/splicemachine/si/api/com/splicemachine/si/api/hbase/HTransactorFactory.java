@@ -6,8 +6,6 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConfiguration;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SGet;
-import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;
@@ -28,9 +26,11 @@ import com.splicemachine.si.jmx.TransactorStatus;
 import com.splicemachine.si.txn.ZooKeeperTimestampSource;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 
 import java.util.concurrent.TimeUnit;
 
@@ -105,7 +105,7 @@ public class HTransactorFactory extends SIConstants {
                     SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN_STRING,
                     EMPTY_BYTE_ARRAY, SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
                     DEFAULT_FAMILY);
-            final HTransactorAdapter transactor = new HTransactorAdapter(new SITransactor<Object, SGet, SScan, Mutation, Result, KeyValue>
+            final HTransactorAdapter transactor = new HTransactorAdapter(new SITransactor<Object, Get, Scan, Mutation, Result, KeyValue>
                     (timestampSource, dataLib, writer, rowStore, transactionStore,
                             new SystemClock(), TRANSACTION_TIMEOUT, managedTransactor));
             managedTransactor.setTransactor(transactor);

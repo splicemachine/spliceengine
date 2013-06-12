@@ -1,10 +1,12 @@
 package com.splicemachine.si.data.hbase;
 
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -23,13 +25,13 @@ public class HbTable implements IHTable {
     }
 
     @Override
-    public Result get(HGet get) throws IOException {
-        return table.get(get.getGet());
+    public Result get(Get get) throws IOException {
+        return table.get(get);
     }
 
     @Override
-    public Iterator<Result> scan(HScan scan) throws IOException {
-        final ResultScanner scanner = table.getScanner(scan.getScan());
+    public Iterator<Result> scan(Scan scan) throws IOException {
+        final ResultScanner scanner = table.getScanner(scan);
         return scanner.iterator();
     }
 

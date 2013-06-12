@@ -5,10 +5,7 @@ import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SGet;
-import com.splicemachine.si.data.api.SRead;
 import com.splicemachine.si.data.api.SRowLock;
-import com.splicemachine.si.data.api.SScan;
 import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableWriter;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -33,7 +30,7 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
-public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, MutationOp, ResultType, KeyValue>
+public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue>
         implements Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
 
@@ -258,12 +255,12 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
     }
 
     @Override
-    public void initializeScan(String transactionId, SScan scan) {
+    public void initializeScan(String transactionId, ScanOp scan) {
         initializeOperation(transactionId, scan);
     }
 
     @Override
-    public void initializeScan(String transactionId, SScan scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart) {
+    public void initializeScan(String transactionId, ScanOp scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart) {
         initializeOperation(transactionId, scan, includeSIColumn, includeUncommittedAsOfStart);
     }
 
@@ -323,21 +320,23 @@ public class SITransactor<PutOp, GetOp extends SGet, ScanOp extends SScan, Mutat
 
     @Override
     public void preProcessGet(GetOp readOperation) throws IOException {
-        preProcessRead(readOperation);
+        dataLib.setGetTimeRange(readOperation, 0, Long.MAX_VALUE);
+        dataLib.setGetMaxVersions(readOperation);
+        if (dataStore.isIncludeSIColumn(readOperation)) {
+            dataStore.addSIFamilyToGet(readOperation);
+        } else {
+            dataStore.addSIFamilyToGetIfNeeded(readOperation);
+        }
     }
 
     @Override
     public void preProcessScan(ScanOp readOperation) throws IOException {
-        preProcessRead(readOperation);
-    }
-
-    private void preProcessRead(SRead read) throws IOException {
-        dataLib.setReadTimeRange(read, 0, Long.MAX_VALUE);
-        dataLib.setReadMaxVersions(read);
-        if (dataStore.isIncludeSIColumn(read)) {
-            dataStore.addSIFamilyToRead(read);
+        dataLib.setScanTimeRange(readOperation, 0, Long.MAX_VALUE);
+        dataLib.setScanMaxVersions(readOperation);
+        if (dataStore.isIncludeSIColumn(readOperation)) {
+            dataStore.addSIFamilyToScan(readOperation);
         } else {
-            dataStore.addSIFamilyToReadIfNeeded(read);
+            dataStore.addSIFamilyToScanIfNeeded(readOperation);
         }
     }
 

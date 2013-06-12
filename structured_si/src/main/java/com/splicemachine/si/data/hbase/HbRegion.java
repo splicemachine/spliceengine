@@ -1,8 +1,10 @@
 package com.splicemachine.si.data.hbase;
 
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import java.io.IOException;
@@ -22,12 +24,12 @@ public class HbRegion implements IHTable {
     }
 
     @Override
-    public Result get(HGet get) throws IOException {
-        return region.get(get.getGet(), null);
+    public Result get(Get get) throws IOException {
+        return region.get(get, null);
     }
 
     @Override
-    public Iterator<Result> scan(HScan scan) throws IOException {
+    public Iterator<Result> scan(Scan scan) throws IOException {
         throw new RuntimeException("not implemented");
     }
 

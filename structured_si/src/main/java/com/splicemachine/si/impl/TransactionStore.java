@@ -226,7 +226,7 @@ public class TransactionStore {
 
         STable transactionSTable = reader.open(transactionSchema.tableName);
         try {
-            SGet get = dataLib.newGet(tupleKey, null, null, null);
+            Object get = dataLib.newGet(tupleKey, null, null, null);
             Object resultTuple = reader.get(transactionSTable, get);
             if (resultTuple != null) {
                 final List keepAliveValues = dataLib.getResultColumn(resultTuple, encodedSchema.siFamily, encodedSchema.keepAliveQualifier);

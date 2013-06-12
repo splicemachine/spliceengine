@@ -1,12 +1,14 @@
 package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.si.data.api.STableReader;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 
 import java.io.IOException;
 import java.util.Iterator;
 
-public class HTableReader implements STableReader<IHTable, Result, HGet, HScan> {
+public class HTableReader implements STableReader<IHTable, Result, Get, Scan> {
     private final HTableSource tableSource;
 
     public HTableReader(HTableSource tableSource) {
@@ -24,12 +26,12 @@ public class HTableReader implements STableReader<IHTable, Result, HGet, HScan> 
     }
 
     @Override
-    public Result get(IHTable table, HGet get) throws IOException {
+    public Result get(IHTable table, Get get) throws IOException {
         return table.get(get);
     }
 
     @Override
-    public Iterator<Result> scan(IHTable table, HScan scan) throws IOException {
+    public Iterator<Result> scan(IHTable table, Scan scan) throws IOException {
         return table.scan(scan);
     }
 }

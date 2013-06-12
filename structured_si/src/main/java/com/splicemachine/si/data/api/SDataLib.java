@@ -3,17 +3,17 @@ package com.splicemachine.si.data.api;
 import java.util.List;
 import java.util.Map;
 
-public interface SDataLib<Data, Result, KeyValue, Put, Delete, Get extends SGet, Scan extends SScan, Read extends SRead> {
+public interface SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, Attributable> {
     Data newRowKey(Object[] args);
 
     Data encode(Object value);
     Object decode(Data value, Class type);
     boolean valuesEqual(Data value1, Data value2);
 
-    void addAttribute(Object operation, String attributeName, Data value);
-    Data getAttribute(Object operation, String attributeName);
+    void addAttribute(Attributable operation, String attributeName, Data value);
+    Data getAttribute(Attributable operation, String attributeName);
 
-    Result newResult(Object key, List<KeyValue> keyValues);
+    Result newResult(Data key, List<KeyValue> keyValues);
     Data getResultKey(Result result);
     List<KeyValue> listResult(Result result);
     List<KeyValue> getResultColumn(Result result, Data family, Data qualifier);
@@ -34,12 +34,18 @@ public interface SDataLib<Data, Result, KeyValue, Put, Delete, Get extends SGet,
     long getKeyValueTimestamp(KeyValue keyValue);
 
     Get newGet(Data rowKey, List<Data> families, List<List<Data>> columns, Long effectiveTimestamp);
+    void setGetTimeRange(Get get, long minTimestamp, long maxTimestamp);
+    void setGetMaxVersions(Get get);
+    void setGetMaxVersions(Get get, int max);
+    void addFamilyToGet(Get read, Data family);
+    void addFamilyToGetIfNeeded(Get get, Data family);
+
     Scan newScan(Data startRowKey, Data endRowKey, List<Data> families, List<List<Data>> columns, Long effectiveTimestamp);
-    void setReadTimeRange(Read get, long minTimestamp, long maxTimestamp);
-    void setReadMaxVersions(Read get);
-    void setReadMaxVersions(Read get, int max);
-    void addFamilyToRead(Read read, Data siFamily);
-    void addFamilyToReadIfNeeded(Read get, Data family);
+    void setScanTimeRange(Scan get, long minTimestamp, long maxTimestamp);
+    void setScanMaxVersions(Scan get);
+    void setScanMaxVersions(Scan get, int max);
+    void addFamilyToScan(Scan read, Data family);
+    void addFamilyToScanIfNeeded(Scan get, Data family);
 
     Delete newDelete(Data rowKey);
     void addKeyValueToDelete(Delete delete, Data family, Data qualifier, long timestamp);

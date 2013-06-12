@@ -83,37 +83,37 @@ public class HTransactorAdapter implements HTransactor {
 
     @Override
     public boolean isFilterNeededGet(Get get) {
-        return delegate.isFilterNeededGet(new HGet(get));
+        return delegate.isFilterNeededGet(get);
     }
 
     @Override
     public boolean isFilterNeededScan(Scan scan) {
-        return delegate.isFilterNeededScan(new HScan(scan));
+        return delegate.isFilterNeededScan(scan);
     }
 
     @Override
     public boolean isGetIncludeSIColumn(Get get) {
-        return delegate.isGetIncludeSIColumn(new HGet(get));
+        return delegate.isGetIncludeSIColumn(get);
     }
 
     @Override
     public boolean isScanIncludeSIColumn(Scan read) {
-        return delegate.isScanIncludeSIColumn(new HScan(read));
+        return delegate.isScanIncludeSIColumn(read);
     }
 
     @Override
     public boolean isScanIncludeUncommittedAsOfStart(Scan scan) {
-        return delegate.isScanIncludeUncommittedAsOfStart(new HScan(scan));
+        return delegate.isScanIncludeUncommittedAsOfStart(scan);
     }
 
     @Override
     public void preProcessGet(Get get) throws IOException {
-        delegate.preProcessGet(new HGet(get));
+        delegate.preProcessGet(get);
     }
 
     @Override
     public void preProcessScan(Scan scan) throws IOException {
-        delegate.preProcessScan(new HScan(scan));
+        delegate.preProcessScan(scan);
     }
 
     @Override
@@ -154,12 +154,12 @@ public class HTransactorAdapter implements HTransactor {
 
     @Override
     public TransactionId transactionIdFromGet(Get get) {
-        return delegate.transactionIdFromGet(new HGet(get));
+        return delegate.transactionIdFromGet(get);
     }
 
     @Override
     public TransactionId transactionIdFromScan(Scan scan) {
-        return delegate.transactionIdFromScan(new HScan(scan));
+        return delegate.transactionIdFromScan(scan);
     }
 
     @Override
@@ -169,7 +169,7 @@ public class HTransactorAdapter implements HTransactor {
 
     @Override
     public void initializeGet(String transactionId, Get get) throws IOException {
-        delegate.initializeGet(transactionId, new HGet(get));
+        delegate.initializeGet(transactionId, get);
     }
 
     @Override
@@ -179,12 +179,12 @@ public class HTransactorAdapter implements HTransactor {
 
     @Override
     public void initializeScan(String transactionId, Scan scan) {
-        delegate.initializeScan(transactionId, new HScan(scan));
+        delegate.initializeScan(transactionId, scan);
     }
 
     @Override
     public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart) {
-        delegate.initializeScan(transactionId, new HScan(scan), includeSIColumn, includeUncommittedAsOfStart);
+        delegate.initializeScan(transactionId, scan, includeSIColumn, includeUncommittedAsOfStart);
     }
 
     @Override

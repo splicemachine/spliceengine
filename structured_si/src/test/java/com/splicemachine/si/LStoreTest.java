@@ -1,8 +1,6 @@
 package com.splicemachine.si;
 
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SGet;
-import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.light.LDataLib;
 import com.splicemachine.si.data.light.LGet;
 import com.splicemachine.si.data.light.LKeyValue;
@@ -21,7 +19,7 @@ public class LStoreTest {
 		LStore store = new LStore(new ManualClock());
 
 		LTable table = store.open("table1");
-		SDataLib<Object, LTuple, LKeyValue, LTuple, LTuple, LGet, LGet, LGet> dataLib = new LDataLib();
+		SDataLib<Object, LTuple, LKeyValue, LTuple, LTuple, LGet, LGet, Object> dataLib = new LDataLib();
 		final Object testKey = dataLib.newRowKey(new Object[]{"joe"});
 		LTuple tuple = dataLib.newPut(testKey);
 		dataLib.addKeyValueToPut(tuple, dataLib.encode("foo"), dataLib.encode("age"), 1L, dataLib.encode(23));
@@ -41,7 +39,7 @@ public class LStoreTest {
 	@Test
 	public void testUsingRelationAPI() throws Exception {
 		LStore store = new LStore( new ManualClock() );
-        SDataLib<Object, LTuple, LKeyValue, LTuple, LTuple, LGet, LGet, LGet> dataLib = new LDataLib();
+        SDataLib<Object, LTuple, LKeyValue, LTuple, LTuple, LGet, LGet, Object> dataLib = new LDataLib();
 		RelationHelper api = new RelationHelper(dataLib, store, store);
 		api.open("table1");
 		api.write(new Object[] {"joe"}, "foo", "age", 21, 0L);
