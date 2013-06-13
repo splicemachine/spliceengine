@@ -29,7 +29,7 @@ public class HashableBytesTest {
 
     @Test
     public void inSet() {
-        Set set = new HashSet();
+        Set<HashableBytes> set = new HashSet<HashableBytes>();
         set.add(new HashableBytes(new byte[] {0, 1}));
         set.add(new HashableBytes(new byte[] {0, 1}));
         Assert.assertEquals(1, set.size());
