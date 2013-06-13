@@ -1,9 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.DerbyLogUtils;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
@@ -18,12 +15,10 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
-
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
