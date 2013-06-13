@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
@@ -18,7 +19,7 @@ import java.util.Random;
  */
 @RunWith(Parameterized.class)
 public class ByteEncodingTest {
-    private static final int numTests=100;
+    private static final int numTests=10;
     private static final int arraysPerTest =100;
     private static final int bytesPerArray = 100;
 
@@ -54,6 +55,15 @@ public class ByteEncodingTest {
         }
     }
 
+    @Test
+    public void testCanSerializeAndDeserializeByteBuffersCorrectly() throws Exception {
+        for(byte[] datum:data){
+            byte[] serialized = ByteEncoding.encode(datum,false);
+            byte[] decoded = ByteEncoding.decode(ByteBuffer.wrap(serialized), false);
+
+            Assert.assertArrayEquals("incorrect encoding for element "+ Arrays.toString(datum),datum,decoded);
+        }
+    }
 
     @Test
     public void testSortOrderCorrect() throws Exception {

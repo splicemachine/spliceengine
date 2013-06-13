@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
@@ -47,6 +48,16 @@ public class FloatEncodingTest {
         for(float datum:data){
             byte[] bits = DecimalEncoding.toBytes(datum,false);
             float deser = DecimalEncoding.toFloat(bits,false);
+            Assert.assertEquals("Incorrect encoding for value "+ datum,datum,deser,Math.pow(10,-6));
+        }
+    }
+
+    @Test
+    public void testCanSerializeAndDeserializeByteBuffersCorrectly() throws Exception {
+        for(float datum:data){
+            byte[] bits = DecimalEncoding.toBytes(datum,false);
+            ByteBuffer wrap = ByteBuffer.wrap(bits);
+            float deser = DecimalEncoding.toFloat(wrap,false);
             Assert.assertEquals("Incorrect encoding for value "+ datum,datum,deser,Math.pow(10,-6));
         }
     }
