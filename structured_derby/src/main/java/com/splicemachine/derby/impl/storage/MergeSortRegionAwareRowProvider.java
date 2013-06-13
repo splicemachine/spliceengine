@@ -173,7 +173,7 @@ public class MergeSortRegionAwareRowProvider extends SingleScanRowProvider {
     }
 
     @Override
-    public void open() {
+    public void open() throws StandardException {
     	SpliceLogUtils.trace(LOG, "open");
         scanner.open();
     }

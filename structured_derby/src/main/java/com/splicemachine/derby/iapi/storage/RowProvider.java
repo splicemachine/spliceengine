@@ -19,8 +19,9 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
 	/**
 	 * Calling multiple times should result in a safe re-opening
 	 * of the iterator.
+	 * @throws StandardException 
 	 */
-	void open();
+	void open() throws StandardException;
 	
 	/**
 	 * Close the iterator

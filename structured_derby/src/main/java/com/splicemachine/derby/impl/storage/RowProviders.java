@@ -67,7 +67,9 @@ public class RowProviders {
 			this.provider = provider;
 		}
 
-		@Override public void open() { provider.open(); }
+		@Override public void open() throws StandardException { 
+			provider.open(); 
+		}
 		@Override public void close() { provider.close(); }
 //		@Override public Scan toScan() { return provider.toScan(); }
 		@Override public byte[] getTableName() { return provider.getTableName(); }
@@ -184,7 +186,7 @@ public class RowProviders {
         }
 
         @Override
-        public void open() {
+        public void open() throws StandardException {
             firstRowProvider.open();
             secondRowProvider.open();
         }
