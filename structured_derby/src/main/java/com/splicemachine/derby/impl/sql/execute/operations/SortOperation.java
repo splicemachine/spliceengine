@@ -13,10 +13,11 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -219,9 +220,10 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        SpliceUtils.setInstructions(reduceScan, getActivation(), top);
-        return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE, reduceScan, template, null);
-    }
+//		SpliceUtils.setInstructions(reduceScan,getActivation(),top);
+		return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null,getRowEncoder().getDual(template));
+	}
+
 
 
     @Override
@@ -269,6 +271,13 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         } catch (StandardException se) {
             throw Exceptions.getIOException(se);
         }
+    }
+
+    @Override
+    public RowEncoder getRowEncoder() throws StandardException {
+        ExecRow def = getExecRowDefinition();
+        KeyType keyType = distinct? KeyType.FIXED_PREFIX_UNIQUE_POSTFIX: KeyType.FIXED_PREFIX_AND_POSTFIX;
+        return RowEncoder.create(def.nColumns(), keyColumns, descColumns, DerbyBytesUtil.generateBytes(sequence[0]), keyType, RowType.COLUMNAR);
     }
 
     @Override

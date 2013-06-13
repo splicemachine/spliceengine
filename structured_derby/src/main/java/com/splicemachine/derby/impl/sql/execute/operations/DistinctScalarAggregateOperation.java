@@ -10,6 +10,10 @@ import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
 import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -61,8 +65,8 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             boolean match =true;
             for(int keyColPos:keyColumns){
                 try{
-                    DataValueDescriptor dvdOne = one.getColumn(keyColPos);
-                    DataValueDescriptor dvdTwo = two.getColumn(keyColPos);
+                    DataValueDescriptor dvdOne = one.getColumn(keyColPos+1);
+                    DataValueDescriptor dvdTwo = two.getColumn(keyColPos+1);
                     if(dvdOne.compare(dvdTwo)!=0){
                         match = false;
                         break;
@@ -87,8 +91,8 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             if(isTemp) return true;
             for(int keyColPos:keyColumns){
                 try{
-                    DataValueDescriptor dvdOne = one.getColumn(keyColPos);
-                    DataValueDescriptor dvdTwo = two.getColumn(keyColPos);
+                    DataValueDescriptor dvdOne = one.getColumn(keyColPos+1);
+                    DataValueDescriptor dvdTwo = two.getColumn(keyColPos+1);
                     if(dvdOne.compare(dvdTwo)!=0) return false;
                 } catch (StandardException e) {
                     SpliceLogUtils.logAndThrowRuntime(LOG,e);
@@ -104,6 +108,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         }
     }
 
+    private RowDecoder decoder;
 
     public DistinctScalarAggregateOperation(){}
 
@@ -213,11 +218,10 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         if(keyValues.isEmpty())
             return null;
         else{
-            ExecIndexRow row = (ExecIndexRow)sourceExecIndexRow.getClone();
-            SpliceUtils.populate(keyValues,row.getRowArray());
-            return row;
+            if(decoder==null)
+                decoder = getRowEncoder().getDual(sourceExecIndexRow,true);
+            return (ExecIndexRow)decoder.decode(keyValues);
         }
-
     }
 
     private ExecRow finalizeResults() throws StandardException {
@@ -273,6 +277,13 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     }
 
     @Override
+    public RowEncoder getRowEncoder() throws StandardException {
+        return RowEncoder.create(sourceExecIndexRow.nColumns(),
+                keyColumns,null,
+                DerbyBytesUtil.generateBytes(sequence[0]), KeyType.FIXED_PREFIX_UNIQUE_POSTFIX, RowType.COLUMNAR);
+    }
+
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeInt(orderItem);
@@ -288,7 +299,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
                         ((FormatableArrayHolder)gsps.getSavedObject(orderItem)).getArray(ColumnOrdering.class);
         keyColumns = new int[order.length];
         for(int index=0;index<order.length;index++){
-            keyColumns[index] = order[index].getColumnId()+1;
+            keyColumns[index] = order[index].getColumnId();
         }
 
         isTemp = !context.isSink() || context.getTopOperation()!=this;

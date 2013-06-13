@@ -265,12 +265,16 @@ public class SpliceUtils extends SpliceUtilities {
 		 * as strings instead of as ints themselves.
 		 */		
 		try{
-			for(int i=0;i<destRow.length;i++){
-				if (i<raw.length)
-					fill(raw[i].getValue(),destRow[i]);
-				else 
-					fill(null,destRow[i]);
-			}
+            int pos=0;
+            for(KeyValue rawKv:raw){
+                if(pos>destRow.length) return;
+                if(Bytes.compareTo(SpliceConstants.DEFAULT_FAMILY_BYTES,rawKv.getFamily())!=0){
+                   continue;
+                }
+                int qualifier = Bytes.toInt(rawKv.getQualifier());
+                DataValueDescriptor next = destRow[qualifier];
+                fill(rawKv.getValue(),next);
+            }
 		}catch(IOException ioe){
 			SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
 		}

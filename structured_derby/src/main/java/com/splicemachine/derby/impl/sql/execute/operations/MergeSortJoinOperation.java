@@ -14,9 +14,17 @@ import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider;
+import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider2;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.utils.marshall.KeyMarshall;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -26,8 +34,10 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -56,7 +66,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     protected enum JoinSide {RIGHT,LEFT};
 	protected JoinSide joinSide;
 	protected RowProvider clientProvider;
-	protected MergeSortRegionAwareRowProvider serverProvider;
+	protected MergeSortRegionAwareRowProvider2 serverProvider;
 	protected SQLInteger rowType;
 	protected byte[] priorHash;
 	protected List<ExecRow> rights;
@@ -188,9 +198,16 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         if(regionScanner==null){
             reduceScan = Scans.newScan(start,finish, getTransactionID());
         }else{
-            serverProvider = new MergeSortRegionAwareRowProvider(getTransactionID(), context.getRegion(),
-                    SpliceConstants.TEMP_TABLE_BYTES,SpliceConstants.DEFAULT_FAMILY_BYTES,
-                    context.getScan(),leftHasher,leftRow,rightHasher,rightRow,null,rowType);
+            //get left-side decoder
+
+            serverProvider = new MergeSortRegionAwareRowProvider2(getTransactionID(),context.getRegion(),
+                    context.getScan(),
+                    SpliceConstants.TEMP_TABLE_BYTES,
+                                getRowEncoder(leftNumCols,leftHashKeys).getDual(leftResultSet.getExecRowDefinition()),
+                                getRowEncoder(rightNumCols,rightHashKeys).getDual(rightResultSet.getExecRowDefinition()));
+//            serverProvider = new MergeSortRegionAwareRowProvider(getTransactionID(), context.getRegion(),
+//                    SpliceConstants.TEMP_TABLE_BYTES,SpliceConstants.DEFAULT_FAMILY_BYTES,
+//                    context.getScan(),leftHasher,leftRow,rightHasher,rightRow,null,rowType);
             serverProvider.open();
         }
 	}
@@ -278,7 +295,96 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         }
     }
 
-	@Override
+    @Override
+    public RowEncoder getRowEncoder() throws StandardException {
+        switch(joinSide){
+            case LEFT:
+                return getRowEncoder(leftNumCols,leftHashKeys);
+            case RIGHT:
+                return getRowEncoder(rightNumCols,rightHashKeys);
+            default:
+                throw new IllegalArgumentException("Incorrect Join side specified!");
+        }
+    }
+
+    private RowEncoder getRowEncoder(final int numCols,int[] keyColumns) throws StandardException {
+        int[] rowColumns;
+        final byte[] joinSideBytes = Encoding.encode(joinSide.ordinal());
+        final byte[] ordinalColumn = JoinUtils.JOIN_SIDE_COLUMN;
+        KeyMarshall keyType = new KeyMarshall() {
+            @Override
+            public void encodeKey(ExecRow row, int[] keyColumns,
+                                  boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
+                KeyType.BARE.encodeKey(row,keyColumns,sortOrder,keyPostfix,keyEncoder);
+                //add ordinal position
+                keyEncoder.setRawBytes(joinSideBytes);
+                //add the postfix
+                keyEncoder.setRawBytes(keyPostfix);
+                //add a unique id
+                keyEncoder.setRawBytes(SpliceUtils.getUniqueKey());
+            }
+
+            @Override
+            public void decode(ExecRow template, int[] reversedKeyColumns, boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
+                /*
+                 * Some Join columns have key sets like [0,0], where the same field is encoded multiple
+                 * times. We need to only decode the first instance, or else we'll get incorrect answers
+                 */
+                rowDecoder.skip(); //skip the query prefix
+                int[] decodedColumns = new int[numCols];
+                for(int key:reversedKeyColumns){
+                    if(key==-1) continue;
+                    if(decodedColumns[key]!=-1){
+                        //we can decode this one, as it's not a duplicate
+                        DerbyBytesUtil.decodeInto(rowDecoder,template.getColumn(key+1));
+                        decodedColumns[key] = -1;
+                    }else{
+                        //skip this one, it's a duplicate of something else
+                        rowDecoder.skip();
+                    }
+                }
+            }
+
+            @Override
+            public int getFieldCount(int[] keyColumns) {
+                return KeyType.FIXED_PREFIX_UNIQUE_POSTFIX.getFieldCount(keyColumns)+1;
+            }
+        };
+        RowType rowType = RowType.COLUMNAR;
+        /*
+         * Because there may be duplicate entries in keyColumns, we need to make sure
+         * that rowColumns deals only with the unique form.
+         */
+        int[] allCols = new int[numCols];
+        int numSet=0;
+        for(int keyCol:keyColumns){
+            int allCol = allCols[keyCol];
+            if(allCol!=-1){
+                //only set it if it hasn't already been set
+                allCols[keyCol] = -1;
+                numSet++;
+            }
+        }
+        int pos=0;
+        rowColumns = new int[numCols-numSet];
+        for(int rowPos=0;rowPos<allCols.length;rowPos++){
+            if(allCols[rowPos]!=-1){
+                rowColumns[pos] = rowPos;
+                pos++;
+            }
+        }
+
+        return new RowEncoder(keyColumns,null,rowColumns,DerbyBytesUtil.generateBytes(sequence[0]),keyType,rowType){
+            @Override
+            protected Put doPut(ExecRow row) throws StandardException {
+                Put put =  super.doPut(row);
+                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,ordinalColumn,joinSideBytes);
+                return put;
+            }
+        };
+    }
+
+    @Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 		JoinUtils.getMergedRow((this.leftResultSet).getExecRowDefinition(),(this.rightResultSet).getExecRowDefinition(),
@@ -313,15 +419,14 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         return "MergeSortJoin:"+super.prettyPrint(indentLevel);
     }
 
-    protected class MergeSortNextRowIterator implements Iterator<ExecRow> {
+    protected class MergeSortNextRowIterator {
 		protected boolean outerJoin;
 		public MergeSortNextRowIterator(boolean outerJoin) {
 			this.outerJoin = outerJoin;
 		}
 
 
-		@Override
-		public boolean hasNext() {
+		public boolean hasNext() throws StandardException {
             JoinSideExecRow joinRow;
             // If have remaining right rows to join with current left row
 			if (rightIterator!= null && rightIterator.hasNext()) {
@@ -410,16 +515,11 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             }
         }
 
-        @Override
 		public ExecRow next() {
 			return currentRow;
 		}
-
-		@Override
-		public void remove() {
-			throw new RuntimeException("Cannot Be Removed - Not Implemented!");			
-		}			
 	}
+
 	protected ExecRow getEmptyRow () {
 		throw new RuntimeException("Should only be called on outer joins");
 	}

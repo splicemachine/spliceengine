@@ -11,10 +11,10 @@ import java.nio.ByteBuffer;
  */
 public class MultiFieldDecoder {
     private byte[] data;
-    private int currentOffset ;
+    private int currentOffset;
 
     private MultiFieldDecoder(){
-        this.currentOffset=0;
+        this.currentOffset=-1;
     }
 
     public static MultiFieldDecoder create(){
@@ -23,8 +23,12 @@ public class MultiFieldDecoder {
 
     public MultiFieldDecoder set(byte[] newData){
         this.data = newData;
-        currentOffset = 0;
+        currentOffset = -1;
         return this;
+    }
+
+    public void reset(){
+        currentOffset=0; //reset to start
     }
 
     public byte decodeNextByte(){
@@ -33,6 +37,10 @@ public class MultiFieldDecoder {
 
     public byte decodeNextByte(boolean desc){
         assert currentOffset<data.length;
+        if(currentOffset>=0 &&data[currentOffset]==0x00){
+            currentOffset++;
+            return 0;
+        }
 
         byte elem =Encoding.decodeByte(data,currentOffset,desc);
         currentOffset+=2; //skip the terminator
@@ -45,6 +53,10 @@ public class MultiFieldDecoder {
 
     public short decodeNextShort(boolean desc){
         assert currentOffset < data.length;
+        if(currentOffset>=0 &&data[currentOffset]==0x00){
+            currentOffset++;
+            return 0;
+        }
 
         short next = Encoding.decodeShort(data,currentOffset,desc);
         //read the bytes to find the next terminator
@@ -59,6 +71,10 @@ public class MultiFieldDecoder {
 
     public int decodeNextInt(boolean desc){
         assert currentOffset < data.length;
+        if(currentOffset>=0 &&data[currentOffset]==0x00){
+            currentOffset++;
+            return 0;
+        }
 
         int next = Encoding.decodeInt(data,currentOffset,desc);
         //next encoding should be 1-5 bytes further than the current offset
@@ -72,6 +88,10 @@ public class MultiFieldDecoder {
 
     public long decodeNextLong(boolean desc){
         assert currentOffset < data.length;
+        if(currentOffset>=0 &&data[currentOffset]==0x00){
+            currentOffset++;
+            return 0;
+        }
 
         long next = Encoding.decodeInt(data,currentOffset,desc);
         adjustOffset(9);
@@ -84,6 +104,10 @@ public class MultiFieldDecoder {
 
     public float decodeNextFloat(boolean desc){
         assert currentOffset < data.length;
+        if(currentOffset>=0 &&data[currentOffset]==0x00){
+            currentOffset++;
+            return 0f;
+        }
 
         float next = Encoding.decodeFloat(data,currentOffset,desc);
         adjustOffset(5);
@@ -96,6 +120,10 @@ public class MultiFieldDecoder {
 
     public double decodeNextDouble(boolean desc){
         assert currentOffset < data.length;
+        if(currentOffset>=0 &&data[currentOffset]==0x00){
+            currentOffset++;
+            return 0d;
+        }
 
         double next = Encoding.decodeDouble(data,currentOffset,desc);
         adjustOffset(9);
@@ -108,6 +136,11 @@ public class MultiFieldDecoder {
 
     public BigDecimal decodeNextBigDecimal(boolean desc){
         assert currentOffset < data.length;
+        if(currentOffset>=0 &&data[currentOffset]==0x00){
+            currentOffset++;
+            return null;
+        }
+
 
         BigDecimal next = Encoding.decodeBigDecimal(data,currentOffset,desc);
         adjustOffset(-1);
@@ -121,11 +154,16 @@ public class MultiFieldDecoder {
     public String decodeNextString(boolean desc){
         assert currentOffset < data.length;
 
-        //determine the length of the string ahead of time
-        int offset = currentOffset;
+        if(currentOffset>=0 &&data[currentOffset]==0x00){
+            currentOffset++;
+            return null;
+        }
+
+         //determine the length of the string ahead of time
+        int offset = currentOffset>=0?currentOffset:0;
         adjustOffset(-1);
         //the string length is the number of bytes that we encode
-        return Encoding.decodeString(data,offset,currentOffset-offset-1,desc);
+        return Encoding.decodeString(data, offset, currentOffset - offset - 1, desc);
     }
 
     public byte[] decodeNextBytes(){
@@ -134,7 +172,10 @@ public class MultiFieldDecoder {
 
     public byte[] decodeNextBytes(boolean desc){
         assert currentOffset < data.length;
-
+        if(currentOffset>=0 &&data[currentOffset]==0x00){
+            currentOffset++;
+            return new byte[]{};
+        }
         byte[] decoded= Encoding.decodeBytes(data,currentOffset,desc);
         currentOffset+=decoded.length+1;
         return decoded;
@@ -142,8 +183,12 @@ public class MultiFieldDecoder {
 
     public byte[] decodeNextBytesUnsorted(){
         assert currentOffset < data.length;
+        if(currentOffset>=0 &&data[currentOffset]==0x00){
+            currentOffset++;
+            return new byte[]{};
+        }
 
-        int length = Encoding.decodeInt(data,currentOffset,false);
+        int length = Encoding.decodeInt(data, currentOffset, false);
         byte[] copy = new byte[length];
         System.arraycopy(data,0,copy,currentOffset,length);
         currentOffset+=length+1;
@@ -159,15 +204,24 @@ public class MultiFieldDecoder {
      */
     public ByteBuffer getNextRaw(){
         //seek to the next terminator
-        int offset = currentOffset;
+        if(currentOffset>data.length) return null;
+        if(currentOffset>=0&&data[currentOffset]==0x00) {
+            currentOffset++;
+            return null;
+        }
+        int offset = currentOffset>=0?currentOffset:0;
         adjustOffset(-1);
 
         int length = currentOffset-offset-1;
-        return ByteBuffer.wrap(data,offset,length);
+        return ByteBuffer.wrap(data, offset, length);
     }
 
     public ByteBuffer getNextRawBytes(){
-        int offset = currentOffset;
+        if(currentOffset>=0&&data[currentOffset]==0x00) {
+            currentOffset++;
+            return null;
+        }
+        int offset = currentOffset>=0?currentOffset:0;
         //read off the length
         int length = Encoding.decodeInt(data,currentOffset,false);
         adjustOffset(5);
@@ -200,6 +254,10 @@ public class MultiFieldDecoder {
     }
 
     public boolean decodeNextBoolean() {
+        if(currentOffset>=0&&data[currentOffset]==0x00) {
+            currentOffset++;
+            return false;
+        }
         boolean value = Encoding.decodeBoolean(data,currentOffset);
         currentOffset+=2;
         return value;
@@ -224,5 +282,39 @@ public class MultiFieldDecoder {
         System.out.println(Encoding.decodeInt(b));
         b = decoder.getNextRaw();
         System.out.println(Encoding.decodeString(b));
+    }
+
+    public static MultiFieldDecoder wrap(byte[] row) {
+        MultiFieldDecoder next = new MultiFieldDecoder();
+        next.set(row);
+        return next;
+    }
+
+    public void skip() {
+        //read out raw bytes, and throw them away
+        if(currentOffset>=0&&currentOffset==0x00){
+            currentOffset++;
+            return;
+        }
+        adjustOffset(-1);
+    }
+
+    /**
+     * Gets a slice of the byte[] that encompases the next {@code numFields} fields.
+     *
+     * @param numFields
+     * @return
+     */
+    public byte[] slice(int numFields) {
+        int offset = currentOffset>=0?currentOffset:0;
+        int fieldsSkipped = 0;
+        while(fieldsSkipped<numFields&&currentOffset<data.length){
+            adjustOffset(-1);
+            fieldsSkipped++;
+        }
+        int length = currentOffset-offset-1;
+        byte[] retData = new byte[length];
+        System.arraycopy(data,offset,retData,0,length);
+        return retData;
     }
 }

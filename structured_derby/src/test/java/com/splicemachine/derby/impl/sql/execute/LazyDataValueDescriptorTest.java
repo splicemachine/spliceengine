@@ -78,10 +78,10 @@ public class LazyDataValueDescriptorTest {
 
         Assert.assertTrue(ldvd.sdv.isNull());
         Assert.assertEquals("foo", ldvd.getString());
-        Assert.assertEquals("Bytes still present after forcing deserialization", fooBytes, ldvd.getBytes());
+        Assert.assertArrayEquals("Bytes still present after forcing deserialization", fooBytes, ldvd.getBytes());
 
         ldvd.initForDeserialization(barBytes);
-        Assert.assertEquals("LDVD should now have bytes representing \"bar\"", barBytes, ldvd.getBytes());
+        Assert.assertArrayEquals("LDVD should now have bytes representing \"bar\"", barBytes, ldvd.getBytes());
         Assert.assertEquals("bar", ldvd.getString());
 
     }

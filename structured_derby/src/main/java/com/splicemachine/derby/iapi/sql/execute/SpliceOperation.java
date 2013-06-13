@@ -4,6 +4,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import java.io.IOException;
 import java.util.List;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
@@ -43,6 +44,14 @@ public interface SpliceOperation extends NoPutResultSet {
 	 */
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow outputRowFormat) throws StandardException;
 		
+    /**
+     * Only needs to be implemented by parallel-type tasks (e.g. tasks which also implement sink()).
+     *
+     * @return a function converting non-null ExecRow objects into Put objects.
+     */
+    public OperationSink.Translator getTranslator() throws IOException;
+
+    public RowEncoder getRowEncoder() throws StandardException;
 	/**
 	 * Initializes the node with the statement and the language context from the SpliceEngine.
 	 * 

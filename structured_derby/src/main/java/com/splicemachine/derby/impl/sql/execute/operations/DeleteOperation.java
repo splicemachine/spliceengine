@@ -5,6 +5,11 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Mutations;
+import com.splicemachine.derby.utils.marshall.KeyMarshall;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -72,7 +77,30 @@ public class DeleteOperation extends DMLWriteOperation {
         };
     }
 
-	@Override
+    @Override
+    public RowEncoder getRowEncoder() throws StandardException {
+        KeyMarshall marshall = new KeyMarshall() {
+            @Override
+            public void encodeKey(ExecRow row, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
+                RowLocation location = (RowLocation)row.getColumn(row.nColumns()).getObject();
+                keyEncoder.setRawBytes(location.getBytes());
+            }
+
+            @Override
+            public void decode(ExecRow template, int[] reversedKeyColumns, boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
+                //no-op
+            }
+
+            @Override
+            public int getFieldCount(int[] keyColumns) {
+                return 1;
+            }
+        };
+
+        return RowEncoder.createDeleteEncoder(getTransactionID(),marshall);
+    }
+
+    @Override
 	public String toString() {
 		return "Delete{destTable="+heapConglom+",source=" + source + "}";
 	}
@@ -81,4 +109,5 @@ public class DeleteOperation extends DMLWriteOperation {
     public String prettyPrint(int indentLevel) {
         return "Delete"+super.prettyPrint(indentLevel);
     }
+
 }

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -14,6 +15,7 @@ import com.google.common.io.Closeables;
 import com.gotometrics.orderly.*;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -59,7 +61,8 @@ public class DerbyBytesUtil {
 
 	
 	
-	public static DataValueDescriptor fromBytes (byte[] bytes, DataValueDescriptor descriptor) throws StandardException, IOException {
+	public static DataValueDescriptor fromBytes (byte[] bytes,
+                                                 DataValueDescriptor descriptor) throws StandardException{
         //TODO -sf- move this into the Serializer abstraction
         /*
          * Because HBaseRowLocations are just byte[] row keys, there's no reason to re-serialize them, they've
@@ -143,8 +146,8 @@ public class DerbyBytesUtil {
         }
     }
 
-    public static byte[] generateBytes (DataValueDescriptor dvd,boolean stripNullStrings) throws StandardException, IOException {
-       /*
+	public static byte[] generateBytes (DataValueDescriptor dvd) throws StandardException {
+         /*
          * Don't bother to re-serialize HBaseRowLocations, they're already just bytes.
          */
         if(dvd.getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID
@@ -168,9 +171,13 @@ public class DerbyBytesUtil {
                     return Encoding.encode(dvd.getFloat());
                 case StoredFormatIds.SQL_REF_ID: //return new SQLRef();
                 case StoredFormatIds.SQL_USERTYPE_ID_V3: //return new UserType();
-                    ByteDataOutput bdo = new ByteDataOutput();
-                    bdo.writeObject(dvd.getObject());
-                    return Encoding.encode(bdo.toByteArray());
+                    try{
+                        ByteDataOutput bdo = new ByteDataOutput();
+                        bdo.writeObject(dvd.getObject());
+                        return Encoding.encode(bdo.toByteArray());
+                    }catch(IOException ioe){
+                        throw Exceptions.parseException(ioe);
+                    }
                 case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
                     return Encoding.encode(dvd.getDate(null).getTime());
                 case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
@@ -196,11 +203,6 @@ public class DerbyBytesUtil {
                     throw StandardException.newException (SQLState.DATA_UNEXPECTED_EXCEPTION,"Attempt to serialize an unimplemented serializable object " + dvd.getClass());
             }
         }
-    }
-
-	public static byte[] generateBytes (DataValueDescriptor dvd) throws StandardException, IOException {
-        //TODO -sf- move this into the Serializer abstraction
-        return generateBytes(dvd,false);
 	}
 
 	
@@ -456,19 +458,12 @@ public class DerbyBytesUtil {
             encodeInto(encoder,dvd,desc);
         }
         return encoder.build();
-//		StructBuilder builder = new StructBuilder();
-//		Object[] values = new Object[descriptors.length];
-//		for (int i=0;i<descriptors.length;i++) {
-//			RowKey rowKey = getRowKey(descriptors[i]);
-//			if (sortOrder != null && !sortOrder[i])
-//				rowKey.setOrder(Order.DESCENDING);
-//			builder.add(rowKey);
-//			values[i] = descriptors[i].getObject();
-//		}
-//		return builder.toRowKey().serialize(values);
 	}
 
-    public static MultiFieldEncoder encodeInto(MultiFieldEncoder encoder, DataValueDescriptor dvd, boolean desc) throws StandardException, IOException {
+    public static MultiFieldEncoder encodeInto(MultiFieldEncoder encoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
+        if(dvd.isLazy()){
+            return encoder.setRawBuffer(((LazyDataValueDescriptor) dvd).getBuffer(desc));
+        }
         switch(dvd.getTypeFormatId()){
             case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
                 return encoder.encodeNext(dvd.getBoolean(),desc);
@@ -486,9 +481,13 @@ public class DerbyBytesUtil {
                 return encoder.encodeNext(dvd.getFloat(), desc);
             case StoredFormatIds.SQL_REF_ID: //return new SQLRef();
             case StoredFormatIds.SQL_USERTYPE_ID_V3: //return new UserType();
-                ByteDataOutput bdo = new ByteDataOutput();
-                bdo.writeObject(dvd.getObject());
-                return encoder.encodeNext(bdo.toByteArray(), desc);
+                try{
+                    ByteDataOutput bdo = new ByteDataOutput();
+                    bdo.writeObject(dvd.getObject());
+                    return encoder.encodeNext(bdo.toByteArray(), desc);
+                }catch(IOException ioe){
+                    throw Exceptions.parseException(ioe);
+                }
             case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
                 return encoder.encodeNext(dvd.getDate(null).getTime(), desc);
             case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
@@ -510,7 +509,8 @@ public class DerbyBytesUtil {
             case StoredFormatIds.SQL_DECIMAL_ID:
                 return encoder.encodeNext((BigDecimal) dvd.getObject(), desc);
             default:
-                throw new IOException("Attempt to serialize an unimplemented serializable object " + dvd.getClass());
+                throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,
+                        "Attempt to serialize an unimplemented serializable object " + dvd.getClass());
         }
     }
 
@@ -526,6 +526,93 @@ public class DerbyBytesUtil {
                 throw new RuntimeException("Error with Key Generation");
 		}
 	}
+
+    public static void decodeInto(MultiFieldDecoder rowDecoder, DataValueDescriptor column) throws StandardException{
+        decodeInto(rowDecoder, column,false);
+    }
+
+    public static void decodeInto(MultiFieldDecoder rowDecoder, DataValueDescriptor column,boolean desc) throws StandardException{
+        int colFormatId = column.getTypeFormatId();
+        if(column.isLazy()){
+            ByteBuffer buffer;
+            if(colFormatId== StoredFormatIds.SQL_REF_ID
+             ||colFormatId == StoredFormatIds.SQL_USERTYPE_ID_V3
+             ||colFormatId == StoredFormatIds.SQL_VARBIT_ID
+             ||colFormatId == StoredFormatIds.SQL_LONGVARBIT_ID
+             ||colFormatId == StoredFormatIds.SQL_BLOB_ID
+             ||colFormatId == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID
+             ||colFormatId == StoredFormatIds.SQL_BIT_ID){
+                buffer = rowDecoder.getNextRawBytes();
+            }else{
+                buffer = rowDecoder.getNextRaw();
+            }
+            ((LazyDataValueDescriptor)column).initForDeserialization(buffer,desc);
+            return;
+        }
+
+        switch(colFormatId){
+            case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
+                column.setValue(rowDecoder.decodeNextBoolean());
+                break;
+            case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
+                column.setValue(new Date(rowDecoder.decodeNextLong()));
+                break;
+            case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
+                column.setValue(rowDecoder.decodeNextDouble());
+                break;
+            case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
+                column.setValue(rowDecoder.decodeNextShort());
+            case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
+                column.setValue(rowDecoder.decodeNextInt());
+                break;
+            case StoredFormatIds.SQL_LONGINT_ID: //return new SQLLongint();
+                column.setValue(rowDecoder.decodeNextLong());
+                break;
+            case StoredFormatIds.SQL_REAL_ID: //return new SQLReal();
+                column.setValue(rowDecoder.decodeNextFloat());
+                break;
+            case StoredFormatIds.SQL_REF_ID: //return new SQLRef();
+            case StoredFormatIds.SQL_USERTYPE_ID_V3: //return new UserType();
+                try{
+                    ByteDataInput bdi = new ByteDataInput(rowDecoder.decodeNextBytesUnsorted());
+                    column.setValue(bdi.readObject());
+                }catch(IOException ioe){
+                    throw Exceptions.parseException(ioe);
+                } catch (ClassNotFoundException e) {
+                    throw Exceptions.parseException(e);
+                }
+                break;
+            case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
+                column.setValue(rowDecoder.decodeNextByte());
+                break;
+            case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
+                column.setValue(new Time(rowDecoder.decodeNextLong()));
+                break;
+            case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
+                column.setValue(new Timestamp(rowDecoder.decodeNextLong()));
+                break;
+            case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
+            case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
+            case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
+            case StoredFormatIds.XML_ID: //return new XML();
+            case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
+                column.setValue(rowDecoder.decodeNextString());
+                break;
+            case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
+            case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit();
+            case StoredFormatIds.SQL_BLOB_ID: //return new SQLBlob();
+            case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
+            case StoredFormatIds.SQL_BIT_ID: //return new SQLBit();
+                column.setValue(rowDecoder.decodeNextBytesUnsorted());
+                break;
+            case StoredFormatIds.SQL_DECIMAL_ID:
+                column.setBigDecimal(rowDecoder.decodeNextBigDecimal());
+                break;
+            default:
+                LOG.error("Byte array generation failed " + column.getClass());
+                throw new RuntimeException("Attempt to serialize an unimplemented serializable object " + column.getClass());
+        }
+    }
 
     /**
      * String RowKey which trims off extraneous whitespace and empty characters before serializing.

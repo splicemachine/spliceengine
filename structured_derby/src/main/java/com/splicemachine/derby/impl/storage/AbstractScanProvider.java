@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -29,12 +30,24 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 
     protected FormatableBitSet fbt;
     protected int called = 0;
+    protected RowDecoder decoder;
+
+
+    protected AbstractScanProvider(ExecRow rowTemplate,FormatableBitSet fbt,RowDecoder decoder){
+        SpliceLogUtils.trace(LOG, "instantiated");
+        this.currentRow = rowTemplate;
+        this.fbt = fbt;
+        this.decoder = decoder;
+    }
 
     protected AbstractScanProvider(ExecRow rowTemplate,FormatableBitSet fbt){
     	SpliceLogUtils.trace(LOG, "instantiated");
         this.currentRow = rowTemplate;
         this.fbt = fbt;
+        this.decoder = null; //TODO -sf- remove when time comes
     }
+
+
 
     @Override
     public RowLocation getCurrentRowLocation() {
@@ -54,7 +67,11 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
         SpliceLogUtils.trace(LOG, "hasNext");
         Result result = getResult();
         if(result!=null && !result.isEmpty()){
-            SpliceUtils.populate(result, fbt, currentRow.getRowArray());
+            if(decoder!=null)
+                currentRow = decoder.decode(result.raw());
+            else
+                SpliceUtils.populate(result, fbt, currentRow.getRowArray());
+
             SpliceLogUtils.trace(LOG, "after populate, currentRow=%s", currentRow);
             currentRowLocation = new HBaseRowLocation(result.getRow());
             populated = true;

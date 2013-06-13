@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
@@ -10,6 +11,12 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.utils.marshall.KeyMarshall;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
@@ -52,8 +59,9 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     private List<KeyValue> values;
     private boolean completed = false;
     private Serializer serializer = Serializer.get();
-    protected Hasher hasher;
+    protected KeyType hasher;
     protected byte[] currentByteArray;
+    protected MultiFieldEncoder keyEncoder;
 	private HashBuffer<ByteBuffer,ExecRow> currentRows = new HashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize); 
 	private final HashBuffer.Merger<ByteBuffer,ExecRow> merger = new HashBuffer.Merger<ByteBuffer,ExecRow>() {
 		@Override
@@ -138,7 +146,10 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         for(int index=0;index<fihArray.length;index++){
             keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(accessedCols,fihArray[index].getInt());
         }
-	    hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
+	    hasher = KeyType.FIXED_PREFIX;
+        keyEncoder = MultiFieldEncoder.create(keyColumns.length+1);
+        DerbyBytesUtil.encodeInto(keyEncoder,sequence[0],false);
+        keyEncoder.mark();
 	    values = new ArrayList<KeyValue>(currentRow.nColumns());
     }
 
@@ -161,10 +172,14 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                 if (values.isEmpty()) continue;
                 SpliceUtils.populate(values, currentRow.getRowArray(), accessedCols, baseColumnMap, serializer);
                 ExecRow row = currentRow.getClone();
-                currentByteArray = hasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray());
-                if (!currentRows.merge(ByteBuffer.wrap(currentByteArray), row, merger)) {
-                    ExecRow finalized = currentRows.add(ByteBuffer.wrap(currentByteArray), row);
-                    if (finalized != null && finalized != row) {
+
+                keyEncoder.reset();
+                hasher.encodeKey(row,keyColumns,null,null,keyEncoder);
+                currentByteArray = keyEncoder.build();
+                ByteBuffer buffer = ByteBuffer.wrap(currentByteArray);
+                if (!currentRows.merge(buffer, row, merger)) {
+                    ExecRow finalized = currentRows.add(buffer,row);
+                    if(finalized!=null&&finalized!=row){
                         return finalized;
                     }
                 }
@@ -205,7 +220,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
         try{
             Scan scan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
-            return new ClientScanProvider(SpliceConstants.TEMP_TABLE_BYTES,scan,template,null);
+            return new ClientScanProvider(SpliceConstants.TEMP_TABLE_BYTES,scan,template,null,getRowEncoder().getDual(template));
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -213,7 +228,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return getMapRowProvider(top,template);
+        return getMapRowProvider(top, template);
     }
 
     @Override
@@ -221,7 +236,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         Scan scan = buildScan();
         RowProvider provider = new ClientScanProvider(Bytes.toBytes(Long.toString(conglomId)),scan,getExecRowDefinition(),null);
 
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation,this);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this);
         return provider.shuffleRows(soi);
     }
 
@@ -246,6 +261,30 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                 return true;
             }
         };
+    }
+
+    @Override
+    public RowEncoder getRowEncoder() throws StandardException {
+        return RowEncoder.create(getExecRowDefinition().nColumns(), keyColumns, null, null, new KeyMarshall() {
+            @Override
+            public void encodeKey(ExecRow row,
+                                  int[] keyColumns,
+                                  boolean[] sortOrder,
+                                  byte[] keyPostfix,
+                                  MultiFieldEncoder keyEncoder) throws StandardException {
+                keyEncoder.setRawBytes(BytesUtil.concatenate(currentByteArray, keyPostfix));
+            }
+
+            @Override
+            public void decode(ExecRow template, int[] reversedKeyColumns,boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
+                hasher.decode(template, reversedKeyColumns, sortOrder,rowDecoder);
+            }
+
+            @Override
+            public int getFieldCount(int[] keyColumns) {
+                return 1;
+            }
+        }, RowType.COLUMNAR);
     }
 
     @Override

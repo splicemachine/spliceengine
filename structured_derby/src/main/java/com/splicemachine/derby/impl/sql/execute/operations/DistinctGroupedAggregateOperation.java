@@ -126,7 +126,7 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
     	if(rowProvider!=null){
     		if(rowProvider.hasNext() && (inputRow = (ExecIndexRow)rowProvider.next())!=null){
     			SpliceLogUtils.trace(LOG,"inputRow=%",inputRow);
-    			initializeVectorAggregation(inputRow);
+//    			initializeVectorAggregation(inputRow);
     			return inputRow;
 
     		}

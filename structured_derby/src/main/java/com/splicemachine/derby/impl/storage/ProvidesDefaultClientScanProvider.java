@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -18,6 +19,14 @@ public class ProvidesDefaultClientScanProvider extends ClientScanProvider{
                                              ExecRow rowTemplate,
                                              FormatableBitSet fbt) {
         super(tableName, scan, rowTemplate, fbt);
+    }
+
+    public ProvidesDefaultClientScanProvider(byte[] tableName,
+                                             Scan scan,
+                                             ExecRow rowTemplate,
+                                             FormatableBitSet fbt,
+                                             RowDecoder decoder) {
+        super(tableName, scan, rowTemplate, fbt,decoder);
     }
 
     @Override

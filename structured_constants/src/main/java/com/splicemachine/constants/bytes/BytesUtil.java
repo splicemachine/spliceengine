@@ -240,12 +240,28 @@ public class BytesUtil {
         return s;
     }
 
+    public static byte[] concatenate(byte[] ... bytes){
+        int length = 0;
+        for(byte[] bytes1:bytes){
+            length+=bytes1.length;
+        }
+
+        byte[] concatenatedBytes = new byte[length+bytes.length-1];
+        copyInto(bytes,concatenatedBytes);
+        return concatenatedBytes;
+    }
+
     public static byte[] concatenate(byte[][] bytes,int size){
         byte[] concatedBytes;
         if(bytes.length>1)
             concatedBytes = new byte[size+bytes.length-1];
         else
             concatedBytes = new byte[size];
+        copyInto(bytes, concatedBytes);
+        return concatedBytes;
+    }
+
+    private static void copyInto(byte[][] bytes, byte[] concatedBytes) {
         int offset = 0;
         boolean isStart=true;
         for(byte[] nextBytes:bytes){
@@ -259,7 +275,6 @@ public class BytesUtil {
             System.arraycopy(nextBytes, 0, concatedBytes, offset, nextBytes.length);
             offset+=nextBytes.length;
         }
-        return concatedBytes;
     }
 
     public static Comparator<byte[]> emptyBeforeComparator = new Comparator<byte[]>() {

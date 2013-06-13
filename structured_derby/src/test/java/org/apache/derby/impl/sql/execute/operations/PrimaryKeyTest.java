@@ -67,7 +67,8 @@ public class PrimaryKeyTest extends SpliceUnitTest {
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 
-    @Test(expected=SQLException.class,timeout =10000)
+    @Test(expected=SQLException.class)
+//    @Test(expected=SQLException.class,timeout =10000)
     public void cannotInsertDuplicatePks() throws Exception{
         try {
             PreparedStatement ps = methodWatcher.prepareStatement(INSERT);

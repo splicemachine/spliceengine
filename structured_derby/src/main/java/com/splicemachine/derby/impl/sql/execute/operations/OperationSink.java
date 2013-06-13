@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -67,15 +68,15 @@ public class OperationSink {
         TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
 
-        Translator translator = operation.getTranslator();
-
-        boolean isTempTable = Arrays.equals(destinationTable,SpliceConstants.TEMP_TABLE_BYTES);
         CallBuffer<Mutation> writeBuffer;
+        byte[] postfix = getPostfix(false);
         try{
+            RowEncoder encoder = operation.getRowEncoder();
+            encoder.setPostfix(postfix);
+
             writeBuffer = tableWriter.writeBuffer(destinationTable);
 
             ExecRow row;
-            boolean shouldMakUnique = !translator.mergeKeys();
             do{
 //                debugFailIfDesired(writeBuffer);
 
@@ -87,13 +88,9 @@ public class OperationSink {
                 stats.readAccumulator().tick(System.nanoTime()-start);
 
                 start = System.nanoTime();
-                byte[] postfix = getPostfix(shouldMakUnique);
-                List<Mutation> mutations = translator.translate(row,postfix);
 
+                encoder.write(row,txnId,writeBuffer);
 
-                for(Mutation mutation:mutations){
-                    writeBuffer.add(mutation);
-                }
                 debugFailIfDesired(writeBuffer);
 
                 stats.writeAccumulator().tick(System.nanoTime() - start);

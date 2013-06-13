@@ -4,6 +4,7 @@ import com.google.common.io.Closeables;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.sql.execute.operations.Hasher;
 
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -26,7 +27,21 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
     private final  RegionAwareScanner scanner;
     private final byte[] table;
 
+
     public SimpleRegionAwareRowProvider(String transactionId, HRegion region,byte[] table,
+                                        byte[] columnFamily,
+                                        byte[] start, byte[] finish,
+                                        final Hasher hasher,
+                                        final ExecRow rowTemplate, FormatableBitSet fbt,RowDecoder decoder) {
+        super(rowTemplate, fbt,decoder);
+        this.table = table;
+        this.scanner = RegionAwareScanner.create(transactionId, region, new SingleTypeHashAwareScanBoundary(
+                columnFamily,rowTemplate, hasher),table,start,finish);
+    }
+
+    public SimpleRegionAwareRowProvider(String transactionId,
+                                        HRegion region,
+                                        byte[] table,
                                            byte[] columnFamily,
                                            byte[] start, byte[] finish,
                                            final Hasher hasher,
@@ -44,6 +59,15 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
 		this.table = table;
 		this.scanner = RegionAwareScanner.create(transactionId, region,boundary,table,start,finish);
 	}
+
+    public SimpleRegionAwareRowProvider(String txnId,HRegion region,Scan scan,byte[] tableName,byte[] columnFamily,
+                                        final Hasher hasher,
+                                        final ExecRow rowTemplate,FormatableBitSet fbt,RowDecoder decoder){
+        super(rowTemplate,fbt,decoder);
+        this.table = tableName;
+        this.scanner = RegionAwareScanner.create(txnId,region,scan,tableName,
+                new SingleTypeHashAwareScanBoundary(columnFamily,rowTemplate,hasher));
+    }
 
     public SimpleRegionAwareRowProvider(String txnId,HRegion region,Scan scan,byte[] tableName,byte[] columnFamily,
                                         final Hasher hasher,

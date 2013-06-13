@@ -266,7 +266,7 @@ public class Scans extends SpliceUtils {
 					 * We have to check for whether or not the serialized bytes for this descriptor
 					 * is actually populated--otherwise we would filter out all non-null entries.
 					 */
-					byte[] bytes = DerbyBytesUtil.generateBytes(dvd,true);
+					byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
 					if(bytes.length>0){
 						masterList.addFilter(new SingleColumnValueFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
 								Bytes.toBytes(pos),
@@ -316,7 +316,7 @@ public class Scans extends SpliceUtils {
 							Bytes.toBytes(qualifier.getColumnId()),
 							compareOp));
 				}else{
-                    byte[] bytes = DerbyBytesUtil.generateBytes(dvd,true);
+                    byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
                     SingleColumnValueFilter filter = new SingleColumnValueFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
 							Bytes.toBytes(qualifier.getColumnId()),
 							getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),

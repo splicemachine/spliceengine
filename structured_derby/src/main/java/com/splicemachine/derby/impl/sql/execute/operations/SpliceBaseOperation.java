@@ -11,6 +11,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -534,6 +535,17 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	public String getUniqueSequenceID() {
 		return uniqueSequenceID;
 	}
+
+    @Override
+    public OperationSink.Translator getTranslator() throws IOException {
+        throw new UnsupportedOperationException("Sink not implemented for this node: "+ this.getClass());
+    }
+
+    @Override
+    public RowEncoder getRowEncoder() throws StandardException {
+        throw new UnsupportedOperationException("Sink not implemented for this node: "+ this.getClass());
+    }
+
 
     /**
      * Called during the executeShuffle() phase, for the execution of parallel operations.

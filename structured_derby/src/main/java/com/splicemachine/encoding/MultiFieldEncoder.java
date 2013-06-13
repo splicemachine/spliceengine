@@ -3,6 +3,7 @@ package com.splicemachine.encoding;
 import com.google.common.base.Preconditions;
 
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 
 /**
  * @author Scott Fines
@@ -218,13 +219,14 @@ public class MultiFieldEncoder {
         for(int srcPos=0;srcPos<currentPos;srcPos++){
             byte[] src = fields[srcPos];
             //TODO -sf- should we blow up here instead?
-            if(src==null)
-                continue;
             if(!isFirst){
                 data[destPos] = 0x00; //we know that 0x00 is never allowed, so it's a safe terminator
                 destPos++;
-            } else
+            } else{
                 isFirst=false;
+            }
+            if(src==null||src.length==0)
+                continue;
 
             System.arraycopy(src,0,data,destPos,src.length);
             destPos+=src.length;
@@ -256,7 +258,19 @@ public class MultiFieldEncoder {
         assert currentPos < numFields;
         fields[currentPos] = keyPrefix;
         currentPos++;
-        currentSize+=keyPrefix.length;
+        currentSize+=keyPrefix!=null?keyPrefix.length: 0;
         return this;
+    }
+
+    public MultiFieldEncoder setRawBuffer(ByteBuffer buffer){
+        assert currentPos < numFields;
+        byte[] bytes;
+        if(buffer==null)
+            bytes= null;
+        else{
+            bytes = new byte[buffer.remaining()];
+            buffer.get(bytes);
+        }
+        return setRawBytes(bytes);
     }
 }

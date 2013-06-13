@@ -1,0 +1,31 @@
+package com.splicemachine.derby.utils.marshall;
+
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Put;
+
+/**
+ * @author Scott Fines
+ *         Created on: 6/12/13
+ */
+interface RowMarshall {
+    /**
+     * @param row the row to encode
+     * @param rowColumns the columns to parse
+     * @param put the put to attach values to
+     * @param rowEncoder {@code null} if the row type does not use multi field encodings
+     * @throws org.apache.derby.iapi.error.StandardException
+     */
+    public void encodeRow(ExecRow row,
+                          int[] rowColumns,
+                          Put put,
+                          MultiFieldEncoder rowEncoder) throws StandardException;
+
+    void decode(KeyValue value,
+                ExecRow template,
+                int[] reversedKeyColumns,
+                MultiFieldDecoder rowDecoder) throws StandardException;
+}

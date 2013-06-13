@@ -9,6 +9,10 @@ import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
 import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -100,7 +104,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             throw Exceptions.parseException(e);
         }
         SpliceUtils.setInstructions(reduceScan,activation,top);
-        return new ProvidesDefaultClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
+        RowDecoder decoder = getRowEncoder().getDual(template);
+        return new ProvidesDefaultClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null,decoder);
 	}
 
     @Override
@@ -251,7 +256,12 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         };
     }
 
-	@Override
+    @Override
+    public RowEncoder getRowEncoder() throws StandardException {
+        return RowEncoder.create(sourceExecIndexRow.nColumns(),null,null,DerbyBytesUtil.generateBytes(sequence[0]), KeyType.PREFIX_UNIQUE_POSTFIX_ONLY, RowType.COLUMNAR);
+    }
+
+    @Override
 	public String toString() {
 		return "ScalarAggregateOperation {source=" + source + "}";
 	}

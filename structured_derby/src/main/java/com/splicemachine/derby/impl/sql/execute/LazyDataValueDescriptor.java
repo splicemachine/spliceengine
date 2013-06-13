@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayInputStream;
@@ -23,6 +24,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.nio.ByteBuffer;
+import java.sql.*;
 import java.util.Calendar;
 
 /**
@@ -32,16 +35,21 @@ import java.util.Calendar;
  * rationale.
  */
 public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
-
+    private static final long serialVersionUID = 2l;
     private static Logger LOG = Logger.getLogger(LazyDataValueDescriptor.class);
 
     //Same as the dvd used in the subclasses, another reference is kept here
     //to avoid a covariant getter call on the subclass (slows down performance)
     DataValueDescriptor dvd = null;
 
-    protected byte[] dvdBytes;
+    /*
+     * One or the other is always non-null, but not both
+     */
+    protected ByteBuffer dvdBuffer;
+
     protected DVDSerializer dvdSerializer;
     protected boolean deserialized;
+    protected boolean descendingOrder;
 
     //Sort of a cached return value for the isNull() call of the DataValueDescriptor
     //The isNull() method is hit very hard here and in derby, this makes that call much faster
@@ -78,19 +86,34 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         updateNullFlag();
     }
 
+    public void initForDeserialization(ByteBuffer buffer){
+        initForDeserialization(buffer,false);
+    }
+
+    public void initForDeserialization(ByteBuffer buffer,boolean desc){
+        this.dvdBuffer = buffer;
+        dvd.setToNull();
+        deserialized = false;
+        isNull = buffer==null || buffer.remaining()==0;
+        descendingOrder = desc;
+        if(dvdBuffer!=null)
+            dvdBuffer.mark(); //mark so that we can reset it as needed
+    }
+
     public boolean isSerialized(){
-        return dvdBytes != null;
+        return dvdBuffer!=null;
     }
 
     public boolean isDeserialized(){
-        return dvd != null && deserialized;
+        return dvd != null && !dvd.isNull();
     }
 
     protected void forceDeserialization()  {
         if( !isDeserialized() && isSerialized()){
             try{
-                dvdSerializer.deserialize(dvdBytes, dvd);
-                deserialized = true;
+                dvdBuffer.reset();
+                dvdSerializer.deserialize(dvdBuffer,dvd,descendingOrder);
+                deserialized=true;
             }catch(Exception e){
                 SpliceLogUtils.error(LOG, "Error lazily deserializing bytes", e);
             }
@@ -100,11 +123,16 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     protected void forceSerialization(){
         if(!isSerialized()){
             try{
-                dvdBytes = dvdSerializer.serialize(dvd);
+                dvdBuffer = ByteBuffer.wrap(dvdSerializer.serialize(dvd));
+                dvdBuffer.mark();
+                descendingOrder=false;
             }catch(Exception e){
                 SpliceLogUtils.error(LOG, "Error serializing DataValueDescriptor to bytes", e);
             }
         }
+        //always reset the buffer even if you've been serialized before
+        if(dvdBuffer!=null)
+            dvdBuffer.reset();
     }
 
     protected void resetForSerialization(){
@@ -182,7 +210,10 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     @Override
     public byte[] getBytes() throws StandardException {
         forceSerialization();
-        return dvdBytes;
+        dvdBuffer.reset();
+        byte[] bytes = new byte[dvdBuffer.remaining()];
+        dvdBuffer.get(bytes);
+        return bytes;
     }
 
     @Override
@@ -411,7 +442,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     protected DataValueDescriptor unwrap(DataValueDescriptor dvd){
 
-        DataValueDescriptor unwrapped = null;
+        DataValueDescriptor unwrapped;
 
         if(dvd instanceof LazyDataValueDescriptor){
             LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) dvd;
@@ -656,6 +687,8 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
             externalDVD = (DataValueDescriptor) createClassInstance(in.readUTF());
             externalDVD.setToNull();
         }
+        dvdBuffer.flip();
+        dvdBuffer.mark();
 
         readDvdBytes(in);
 
@@ -697,8 +730,8 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
             if(otherDVD.isLazy()){
                 LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) otherDVD;
 
-                if(dvdBytes != null && ldvd.dvdBytes != null){
-                    result = Bytes.equals(dvdBytes, ((LazyDataValueDescriptor) o).dvdBytes);
+                if(dvdBuffer!=null && ldvd.dvdBuffer!=null){
+                    return dvdBuffer.equals(ldvd.dvdBuffer);
                 } else {
                     result = dvd.equals(ldvd.dvd);
                 }
@@ -713,6 +746,54 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     protected DVDSerializer getDVDSerializer(){
         return dvdSerializer;
+    }
+
+    public ByteBuffer getBuffer() throws StandardException {
+        return getBuffer(false);
+    }
+
+    public ByteBuffer getBuffer(boolean desc) throws StandardException {
+        if(isNull) return null;
+
+        if(!isSerialized() && isDeserialized()){
+            //need to serialize it, so just serialize it into the correct order
+            try {
+                dvdBuffer = dvdSerializer.serialize(dvd,desc);
+                dvdBuffer.mark();
+                return dvdBuffer;
+            } catch (Exception e) {
+                throw Exceptions.parseException(e);
+            }
+        }
+        //we've already deserialized, check the ordering
+        dvdBuffer.reset();
+        if(desc){
+            if(descendingOrder) {
+                return dvdBuffer;
+            }else{
+                //have to re-order the data
+                byte[] bits = new byte[dvdBuffer.remaining()];
+                dvdBuffer.get(bits);
+
+                for(int i=0;i<bits.length;i++){
+                    bits[i] = (byte)(bits[i]^0xff);
+                }
+                return ByteBuffer.wrap(bits);
+            }
+        }else{
+            if(descendingOrder){
+                //have to re-order the data
+                byte[] bits = new byte[dvdBuffer.remaining()];
+                dvdBuffer.get(bits);
+
+                for(int i=0;i<bits.length;i++){
+                    bits[i] = (byte)(bits[i]^0xff);
+                }
+                return ByteBuffer.wrap(bits);
+            }else{
+                return dvdBuffer;
+            }
+        }
     }
 }
 

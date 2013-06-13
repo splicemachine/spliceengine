@@ -50,6 +50,7 @@ public class RegionAwareScanner implements Closeable {
     private byte[] regionStart;
     private final String transactionId;
     private final Scan scan;
+    private byte[] tableName;
 
     private RegionAwareScanner(String transactionId,
                                HTableInterface table,
@@ -299,4 +300,7 @@ public class RegionAwareScanner implements Closeable {
         return retScan;
     }
 
+    public byte[] getTableName() {
+        return tableName;
+    }
 }

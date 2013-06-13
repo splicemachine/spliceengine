@@ -9,6 +9,9 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -96,7 +99,24 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
         }
     }
 
-	@Override
+    @Override
+    public RowEncoder getRowEncoder() throws StandardException {
+        KeyType keyType;
+        int[] keyColumns = null;
+        if(pkCols==null){
+            //just need a salted row key
+            keyType = KeyType.SALTED;
+        }else{
+            keyColumns = new int[pkCols.length];
+            for(int i=0;i<keyColumns.length;i++){
+                keyColumns[i] = pkCols[i] -1;
+            }
+            keyType = KeyType.BARE;
+        }
+        return RowEncoder.createDoubleWritingEncoder(getExecRowDefinition().nColumns(), keyColumns, null, null, keyType, RowType.COLUMNAR);
+    }
+
+    @Override
 	public String toString() {
 		return "Insert{destTable="+heapConglom+",source=" + source + "}";
 	}

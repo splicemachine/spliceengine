@@ -125,23 +125,10 @@ public class Hasher {
         return encoder.build();
 	}
 
-	public byte[] generateSortedHashKey(DataValueDescriptor[] descriptors) throws StandardException, IOException {
-        encoder.reset();
-		for (int i=0;i<hashKeys.length;i++) {
-            encoder = DerbyBytesUtil.encodeInto(encoder, descriptors[hashKeys[i]], sortOrder != null && !sortOrder[hashKeys[i]]);
-		}
-        encoder = encoder.encodeNextUnsorted(SpliceUtils.getUniqueKey());
-        return encoder.build();
-	}
-
 	public byte[] generateSortedHashKeyWithoutUniqueKey(DataValueDescriptor[] descriptors) throws StandardException  {
         encoder.reset();
         for (int i=0;i<hashKeys.length;i++) {
-            try{
-                encoder = DerbyBytesUtil.encodeInto(encoder, descriptors[hashKeys[i]], sortOrder != null && !sortOrder[hashKeys[i]]);
-            }catch(IOException ioe){
-                throw Exceptions.parseException(ioe);
-            }
+            encoder = DerbyBytesUtil.encodeInto(encoder, descriptors[hashKeys[i]], sortOrder != null && !sortOrder[hashKeys[i]]);
         }
         return encoder.build();
 	}
@@ -174,11 +161,7 @@ public class Hasher {
         encoder.reset();
 		SpliceLogUtils.trace(LOG, "generateSortedHashKeyWithPostfix");
 		for (int i=0;i<hashKeys.length;i++) {
-            try{
-                encoder = DerbyBytesUtil.encodeInto(encoder,descriptors[hashKeys[i]],sortOrder!=null&&!sortOrder[hashKeys[i]]);
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
+            encoder = DerbyBytesUtil.encodeInto(encoder,descriptors[hashKeys[i]],sortOrder!=null&&!sortOrder[hashKeys[i]]);
         }
         encoder = encoder.encodeNextUnsorted(postfix);
 		return encoder.build();

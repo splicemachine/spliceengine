@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -31,7 +32,15 @@ public class ClientScanProvider extends AbstractScanProvider {
 
     private ResultScanner scanner;
 
-	public ClientScanProvider( byte[] tableName, Scan scan,ExecRow rowTemplate,FormatableBitSet fbt) {
+
+	public ClientScanProvider( byte[] tableName, Scan scan,ExecRow rowTemplate,FormatableBitSet fbt,RowDecoder decoder) {
+		super(rowTemplate, fbt,decoder);
+		SpliceLogUtils.trace(LOG, "instantiated");
+		this.tableName = tableName;
+		this.scan = scan;
+	}
+
+    public ClientScanProvider( byte[] tableName, Scan scan,ExecRow rowTemplate,FormatableBitSet fbt) {
 		super(rowTemplate, fbt);
 		SpliceLogUtils.trace(LOG, "instantiated");
 		this.tableName = tableName;

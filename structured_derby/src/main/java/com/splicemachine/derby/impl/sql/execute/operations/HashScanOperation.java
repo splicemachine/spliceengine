@@ -172,7 +172,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
                     if(eliminateDuplicates)
                         tempRow = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
                     else
-                        tempRow = hasher.generateSortedHashKey(row.getRowArray());
+                        tempRow = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),postfix);
 
                     Put put = Puts.buildTempTableInsert(tempRow,row.getRowArray(),null,serializer);
                     return Collections.<Mutation>singletonList(put);

@@ -73,8 +73,6 @@ public class MultipleTypeHashAwareScanBoundary extends BaseHashAwareScanBoundary
 			}        	
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, e);
         }
 		return stopKey;
 	}
