@@ -407,7 +407,7 @@ public class SpliceUtils extends SpliceUtilities {
 				if (destRow.length -1 >= position) {
 					fill(keyValue.getValue(),destRow[Bytes.toInt(keyValue.getQualifier())]);
 				} else {
-					SpliceLogUtils.warn(LOG, "populate - warn %s", keyValue);
+					SpliceLogUtils.warn(LOG, "populate - warn position %d %s", position, keyValue);
 				}
 			}
 		}catch(IOException e){
