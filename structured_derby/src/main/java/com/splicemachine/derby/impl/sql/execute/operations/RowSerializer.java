@@ -75,7 +75,7 @@ public class RowSerializer {
                     encoder = DerbyBytesUtil.encodeInto(encoder,row[i],false);
             }
             if(appendPostfix)
-                encoder = encoder.encodeNext(SpliceUtils.getUniqueKey());
+                encoder = encoder.encodeNextUnsorted(SpliceUtils.getUniqueKey());
         }else{
             /*
              * There are no columns to use to construct the key out of, which is handy, we
@@ -89,7 +89,7 @@ public class RowSerializer {
                 salter = new Random(System.currentTimeMillis());
 
             encoder.encodeNext(salter.nextInt());
-            encoder.encodeNext(SpliceUtils.getUniqueKey());
+            encoder.encodeNextUnsorted(SpliceUtils.getUniqueKey());
         }
 
         return encoder.build();
