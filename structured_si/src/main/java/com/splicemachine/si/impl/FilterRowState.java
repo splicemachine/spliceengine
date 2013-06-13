@@ -11,18 +11,18 @@ import java.util.Map;
 /**
  * Helper class for FilterState. Captures the state associated with the current row being processed by the filter.
  */
-public class FilterRowState {
-    private final SDataLib dataLib;
+public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> {
+    private final SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> dataLib;
 
     /**
      * The key of the row currently being processed.
      */
-    private Object currentRowKey = null;
+    private Data currentRowKey = null;
 
     /**
      * Used to emulate the INCLUDE_AND_NEXT_COLUMN ReturnCode that is in later HBase versions .
      */
-    Object lastValidQualifier = null;
+    Data lastValidQualifier = null;
 
     /**
      * If a tombstone was detected on the row, then the associated timestamp will be stored here.
@@ -34,7 +34,7 @@ public class FilterRowState {
      */
     Map<Long, Transaction> transactionCache;
 
-    List commitTimestamps = new ArrayList();
+    List<KeyValue> commitTimestamps = new ArrayList<KeyValue>();
 
     boolean siColumnIncluded = false;
     boolean siTombstoneIncluded = false;
@@ -50,7 +50,7 @@ public class FilterRowState {
      * Called for every key-value encountered by the filter. It is expected that key-values are read in row order.
      * Detects when the filter has moved to a new row and updates the state appropriately.
      */
-    public void updateCurrentRow(DecodedKeyValue keyValue) {
+    public void updateCurrentRow(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> keyValue) {
         if (currentRowKey == null || !dataLib.valuesEqual(currentRowKey, keyValue.row())) {
             currentRowKey = keyValue.row();
             lastValidQualifier = null;
@@ -70,11 +70,11 @@ public class FilterRowState {
         this.tombstoneTimestamps.add(tombstoneTimestamp);
     }
 
-    public void rememberCommitTimestamp(Object keyValue) {
+    public void rememberCommitTimestamp(KeyValue keyValue) {
         commitTimestamps.add(keyValue);
     }
 
-    public List getCommitTimestamps() {
+    public List<KeyValue> getCommitTimestamps() {
         return commitTimestamps;
     }
 

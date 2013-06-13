@@ -193,7 +193,7 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
-    public Put createDeletePut(TransactionId transactionId, Object rowKey) {
+    public Put createDeletePut(TransactionId transactionId, byte[] rowKey) {
         return (Put) delegate.createDeletePut(transactionId, rowKey);
     }
 

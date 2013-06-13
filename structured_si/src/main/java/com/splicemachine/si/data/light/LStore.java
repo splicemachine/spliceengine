@@ -1,7 +1,6 @@
 package com.splicemachine.si.data.light;
 
 import com.splicemachine.si.api.Clock;
-import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.SICompactionState;
@@ -64,7 +63,7 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet>, STableW
         return runScan(table, scan);
     }
 
-    private Iterator runScan(STable table, LGet get) {
+    private Iterator runScan(LTable table, LGet get) {
         List<LTuple> tuples = relations.get(((LTable) table).relationIdentifier);
         if (tuples == null) {
             tuples = new ArrayList<LTuple>();
@@ -252,7 +251,7 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet>, STableW
         return clock.getTime();
     }
 
-    private List<LTuple> writeSingle(STable sTable, LTuple newTuple, List<LTuple> currentTuples) {
+    private List<LTuple> writeSingle(LTable lTable, LTuple newTuple, List<LTuple> currentTuples) {
         List<LKeyValue> newValues = new ArrayList<LKeyValue>();
         for (LKeyValue c : newTuple.values) {
             if (c.timestamp == null) {

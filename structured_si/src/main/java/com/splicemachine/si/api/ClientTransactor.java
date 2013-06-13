@@ -7,18 +7,18 @@ import java.io.IOException;
 /**
  * Transaction capabilities exposed to client processes (i.e. they don't have direct access to the transaction store).
  */
-public interface ClientTransactor<PutOp, GetOp, ScanOp, MutationOp> {
+public interface ClientTransactor<Put, Get, Scan, Mutation, Data> {
     TransactionId transactionIdFromString(String transactionId);
-    TransactionId transactionIdFromGet(GetOp get);
-    TransactionId transactionIdFromScan(ScanOp scan);
-    TransactionId transactionIdFromPut(PutOp put);
+    TransactionId transactionIdFromGet(Get get);
+    TransactionId transactionIdFromScan(Scan scan);
+    TransactionId transactionIdFromPut(Put put);
 
-    void initializeGet(String transactionId, GetOp get) throws IOException;
-    void initializeGet(String transactionId, GetOp get, boolean includeSIColumn) throws IOException;
-    void initializeScan(String transactionId, ScanOp scan);
-    void initializeScan(String transactionId, ScanOp scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart);
-    void initializePut(String transactionId, PutOp put);
+    void initializeGet(String transactionId, Get get) throws IOException;
+    void initializeGet(String transactionId, Get get, boolean includeSIColumn) throws IOException;
+    void initializeScan(String transactionId, Scan scan);
+    void initializeScan(String transactionId, Scan scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart);
+    void initializePut(String transactionId, Put put);
 
-    PutOp createDeletePut(TransactionId transactionId, Object rowKey);
-    boolean isDeletePut(MutationOp put);
+    Put createDeletePut(TransactionId transactionId, Data rowKey);
+    boolean isDeletePut(Mutation put);
 }

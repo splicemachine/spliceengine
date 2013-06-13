@@ -5,7 +5,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;

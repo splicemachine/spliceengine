@@ -1,6 +1,5 @@
 package com.splicemachine.si.data.hbase;
 
-import com.splicemachine.si.data.api.STable;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
@@ -11,7 +10,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-public interface IHTable extends STable {
+public interface IHTable {
     void close() throws IOException;
     Result get(Get get) throws IOException;
     Iterator<Result> scan(Scan scan) throws IOException;

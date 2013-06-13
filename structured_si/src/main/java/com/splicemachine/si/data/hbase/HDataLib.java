@@ -18,7 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes> {
+public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, HRowLock> {
 
     @Override
     public Result newResult(byte[] key, List keyValues) {
@@ -159,8 +159,8 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete,
     }
 
     @Override
-    public Put newPut(byte[] key, SRowLock lock) {
-        return new Put(key, ((HRowLock) lock).lock);
+    public Put newPut(byte[] key, HRowLock lock) {
+        return new Put(key, lock.lock);
     }
 
     @Override

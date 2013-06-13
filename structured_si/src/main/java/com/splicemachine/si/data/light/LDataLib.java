@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTuple, LGet, LGet, Object> {
+public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTuple, LGet, LGet, Object, LRowLock> {
 
     @Override
     public Object newRowKey(Object... args) {
@@ -89,7 +89,7 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTu
     }
 
     @Override
-    public LTuple newPut(Object key, SRowLock lock) {
+    public LTuple newPut(Object key, LRowLock lock) {
         return new LTuple((String) key, new ArrayList(), (LRowLock) lock);
     }
 

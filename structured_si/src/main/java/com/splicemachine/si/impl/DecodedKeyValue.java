@@ -2,22 +2,22 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.data.api.SDataLib;
 
-public class DecodedKeyValue {
-    private final SDataLib dataLib;
+public class DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> {
+    private final SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> dataLib;
 
-    private Object keyValue;
+    private KeyValue keyValue;
 
-    private Object row;
-    private Object family;
-    private Object qualifier;
-    private Object value;
+    private Data row;
+    private Data family;
+    private Data qualifier;
+    private Data value;
     private Long timestamp;
 
     public DecodedKeyValue(SDataLib dataLib) {
         this.dataLib = dataLib;
     }
 
-    public void setKeyValue(Object keyValue) {
+    public void setKeyValue(KeyValue keyValue) {
         if (keyValue.getClass().equals(DecodedKeyValue.class)) {
             throw new RuntimeException("fail");
         }
@@ -29,32 +29,32 @@ public class DecodedKeyValue {
         this.keyValue = keyValue;
     }
 
-    public Object keyValue() {
+    public KeyValue keyValue() {
         return keyValue;
     }
 
-    public Object row() {
+    public Data row() {
         if (row == null) {
             row = dataLib.getKeyValueRow(keyValue);
         }
         return row;
     }
 
-    public Object family() {
+    public Data family() {
         if (family == null) {
             family = dataLib.getKeyValueFamily(keyValue);
         }
         return family;
     }
 
-    public Object qualifier() {
+    public Data qualifier() {
         if (qualifier == null) {
             qualifier = dataLib.getKeyValueQualifier(keyValue);
         }
         return qualifier;
     }
 
-    public Object value() {
+    public Data value() {
         if (value == null) {
             value = dataLib.getKeyValueValue(keyValue);
         }

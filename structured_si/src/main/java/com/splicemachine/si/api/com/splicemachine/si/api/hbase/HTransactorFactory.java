@@ -10,9 +10,11 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.data.hbase.HPoolTableSource;
+import com.splicemachine.si.data.hbase.HRowLock;
 import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.data.hbase.HTransactorAdapter;
+import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
@@ -26,9 +28,12 @@ import com.splicemachine.si.jmx.TransactorStatus;
 import com.splicemachine.si.txn.ZooKeeperTimestampSource;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 
@@ -105,7 +110,7 @@ public class HTransactorFactory extends SIConstants {
                     SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN_STRING,
                     EMPTY_BYTE_ARRAY, SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
                     DEFAULT_FAMILY);
-            final HTransactorAdapter transactor = new HTransactorAdapter(new SITransactor<Object, Get, Scan, Mutation, Result, KeyValue>
+            final HTransactorAdapter transactor = new HTransactorAdapter(new SITransactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], OperationWithAttributes, Delete, HRowLock>
                     (timestampSource, dataLib, writer, rowStore, transactionStore,
                             new SystemClock(), TRANSACTION_TIMEOUT, managedTransactor));
             managedTransactor.setTransactor(transactor);

@@ -17,7 +17,7 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
  * Contains the logic for performing an HBase-style filter using "snapshot isolation" logic. This means it filters out
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
-public class FilterState {
+public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> {
     static final Logger LOG = Logger.getLogger(FilterState.class);
 
     /**
@@ -26,15 +26,15 @@ public class FilterState {
     final Cache<Long, Transaction> transactionCache;
 
     private final ImmutableTransaction myTransaction;
-    private final SDataLib dataLib;
+    private final SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> dataLib;
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
     private final boolean includeSIColumn;
     private final boolean includeUncommittedAsOfStart;
 
-    private final FilterRowState rowState;
-    private final DecodedKeyValue keyValue;
+    private final FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> rowState;
+    private final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> keyValue;
 
     private final TransactionSource transactionSource;
 
@@ -67,7 +67,7 @@ public class FilterState {
      * implementation.
      * The order of the column families is important. It is expected that the SI family will be processed first.
      */
-    Filter.ReturnCode filterKeyValue(Object dataKeyValue) throws IOException {
+    Filter.ReturnCode filterKeyValue(KeyValue dataKeyValue) throws IOException {
         keyValue.setKeyValue(dataKeyValue);
         rowState.updateCurrentRow(keyValue);
         return filterByColumnType();
@@ -126,9 +126,9 @@ public class FilterState {
             rowState.rememberCommitTimestamp(keyValue.keyValue());
             return SKIP;
         } else {
-            final Object oldKeyValue = keyValue.keyValue();
+            final KeyValue oldKeyValue = keyValue.keyValue();
             boolean include = false;
-            for (Object kv : rowState.getCommitTimestamps()) {
+            for (KeyValue kv : rowState.getCommitTimestamps()) {
                 keyValue.setKeyValue(kv);
                 if (processUserData().equals(INCLUDE)) {
                     include = true;

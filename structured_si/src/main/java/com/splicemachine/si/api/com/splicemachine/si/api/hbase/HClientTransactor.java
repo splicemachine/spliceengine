@@ -20,6 +20,6 @@ public interface HClientTransactor {
     void initializeScan(String transactionId, Scan scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart);
     void initializePut(String transactionId, Put put);
 
-    Put createDeletePut(TransactionId transactionId, Object rowKey);
+    Put createDeletePut(TransactionId transactionId, byte[] rowKey);
     boolean isDeletePut(Mutation put);
 }

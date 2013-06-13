@@ -3,15 +3,15 @@ package com.splicemachine.si.data.api;
 import java.util.List;
 import java.util.Map;
 
-public interface SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, Attributable> {
+public interface SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> {
     Data newRowKey(Object[] args);
 
     Data encode(Object value);
     Object decode(Data value, Class type);
     boolean valuesEqual(Data value1, Data value2);
 
-    void addAttribute(Attributable operation, String attributeName, Data value);
-    Data getAttribute(Attributable operation, String attributeName);
+    void addAttribute(OperationWithAttributes operation, String attributeName, Data value);
+    Data getAttribute(OperationWithAttributes operation, String attributeName);
 
     Result newResult(Data key, List<KeyValue> keyValues);
     Data getResultKey(Result result);
@@ -21,7 +21,7 @@ public interface SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, Attrib
     Map<Data, Data> getResultFamilyMap(Result result, Data family);
 
     Put newPut(Data key);
-    Put newPut(Data key, SRowLock lock);
+    Put newPut(Data key, Lock lock);
     void addKeyValueToPut(Put put, Data family, Data qualifier, Long timestamp, Data value);
     List<KeyValue> listPut(Put put);
     Data getPutKey(Put put);
