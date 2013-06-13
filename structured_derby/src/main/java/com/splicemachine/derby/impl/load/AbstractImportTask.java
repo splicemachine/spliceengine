@@ -11,10 +11,14 @@ import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.DateTimeDataValue;
+import org.apache.derby.iapi.types.SQLTimestamp;
 import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -23,6 +27,11 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -33,6 +42,7 @@ public abstract class AbstractImportTask extends ZkTask {
     private static final long serialVersionUID = 1l;
     protected ImportContext importContext;
     protected FileSystem fileSystem;
+    private DateFormat dateParser;
 
     public AbstractImportTask() { }
 
@@ -123,13 +133,37 @@ public abstract class AbstractImportTask extends ZkTask {
             }
         }else{
             for(int pos=0;pos<line.length-1;pos++){
-                row.getColumn(pos+1).setValue(line[pos] == null || line[pos].length() == 0 ? null : line[pos]); // pass in null for null or empty string
+                String elem = line[pos];
+                setColumn(row, pos, elem);
             }
             //the last entry in the line array can be an empty string, which correlates to the row's nColumns() = line.length-1
             if(row.nColumns()==line.length){
-                row.getColumn(line.length).setValue(line[line.length-1] == null || line[line.length-1].length() == 0 ? null : line[line.length-1]); // pass in null for null or empty string
+                String lastEntry = line[line.length-1];
+                setColumn(row, line.length-1, lastEntry);
             }
         }
+    }
+
+    private void setColumn(ExecRow row, int pos, String elem) throws StandardException {
+        if(elem==null||elem.length()==0)
+            elem=null;
+        DataValueDescriptor dvd = row.getColumn(pos+1);
+        if(elem!=null && dvd instanceof DateTimeDataValue){
+            if(dateParser==null){
+                String timestampFormat = importContext.getTimestampFormat();
+                if(timestampFormat==null)
+                    timestampFormat = "yyyy-mm-dd hh:mm:ss";
+                dateParser = new SimpleDateFormat(timestampFormat);
+            }
+            try{
+                Date parsed = dateParser.parse(elem);
+                Timestamp ts = new Timestamp(parsed.getTime());
+                dvd.setValue(ts);
+            } catch (ParseException e) {
+                throw StandardException.newException(SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+            }
+        }else
+            row.getColumn(pos+1).setValue(elem); // pass in null for null or empty string
     }
 
     protected void reportIntermediate(long numRecordsImported){

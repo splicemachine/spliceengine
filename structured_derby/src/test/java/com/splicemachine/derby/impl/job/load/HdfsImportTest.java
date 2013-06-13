@@ -166,7 +166,7 @@ public class HdfsImportTest extends SpliceUnitTest {
 	@Test
 	public void testImportISODateFormat() throws Exception{
 		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-				",',','\"',null)",spliceSchemaWatcher.schemaName,TABLE_9));
+				",',','\"','yyyy-MM-dd''T''hh:mm:ss.SSS')",spliceSchemaWatcher.schemaName,TABLE_9));
         ps.setString(1,getResourceDirectory()+"iso_order_date.csv");
 		ps.execute();
 
