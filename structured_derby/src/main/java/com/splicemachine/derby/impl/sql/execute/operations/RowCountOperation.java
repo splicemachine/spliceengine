@@ -538,7 +538,9 @@ public class RowCountOperation extends SpliceBaseOperation{
             this.fetchLimit = fetchLimit;
         }
 
-        @Override public void open() { provider.open(); }
+        @Override public void open() throws StandardException { 
+        	provider.open(); 
+        }
         @Override public void close() { provider.close(); }
         @Override public RowLocation getCurrentRowLocation() { return provider.getCurrentRowLocation(); }
         @Override public byte[] getTableName() { return provider.getTableName(); }
