@@ -111,7 +111,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         }
     }
 
-    private Object encodedStatus(TransactionStatus status) {
+    private Data encodedStatus(TransactionStatus status) {
         if (status == null) {
             return encodedSchema.siNull;
         } else {
@@ -298,19 +298,19 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         return result;
     }
 
-    private Object makeStatusUpdateTuple(long transactionId, TransactionStatus newStatus) {
+    private Put makeStatusUpdateTuple(long transactionId, TransactionStatus newStatus) {
         Put put = makeBasePut(transactionId);
         addFieldToPut(put, encodedSchema.statusQualifier, newStatus.ordinal());
         return put;
     }
 
-    private Object makeKeepAliveTuple(long transactionId) {
+    private Put makeKeepAliveTuple(long transactionId) {
         Put put = makeBasePut(transactionId);
         addFieldToPut(put, encodedSchema.keepAliveQualifier, encodedSchema.siNull);
         return put;
     }
 
-    private Object makeCreateTuple(long transactionId, TransactionParams params, TransactionStatus status,
+    private Put makeCreateTuple(long transactionId, TransactionParams params, TransactionStatus status,
                                    long beginTimestamp, long counter) {
         Put put = makeBasePut(transactionId);
         addFieldToPut(put, encodedSchema.dependentQualifier, params.dependent);
@@ -334,7 +334,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         return put;
     }
 
-    private Object makeCommitPut(long transactionId, long commitTimestamp, Long globalCommitTimestamp,
+    private Put makeCommitPut(long transactionId, long commitTimestamp, Long globalCommitTimestamp,
                                  TransactionStatus newStatus) {
         Put put = makeBasePut(transactionId);
         addFieldToPut(put, encodedSchema.commitQualifier, commitTimestamp);
@@ -360,11 +360,11 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         dataLib.addKeyValueToPut(put, encodedSchema.siFamily, qualifier, null, dataLib.encode(value));
     }
 
-    private void writePut(Object put) throws IOException {
+    private void writePut(Put put) throws IOException {
         writePut(put, null);
     }
 
-    private boolean writePut(Object put, Object expectedStatus) throws IOException {
+    private boolean writePut(Put put, Data expectedStatus) throws IOException {
         final Table transactionSTable = reader.open(transactionSchema.tableName);
         try {
             if (expectedStatus == null) {

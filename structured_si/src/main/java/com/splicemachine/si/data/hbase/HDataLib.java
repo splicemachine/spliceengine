@@ -167,8 +167,8 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete,
     public Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         Get get = new Get(rowKey);
         if (families != null) {
-            for (Object f : families) {
-                get.addFamily((byte[]) f);
+            for (byte[] f : families) {
+                get.addFamily(f);
             }
         }
         if (columns != null) {
@@ -227,8 +227,8 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete,
         scan.setStartRow(startRowKey);
         scan.setStopRow(endRowKey);
         if (families != null) {
-            for (Object f : families) {
-                scan.addFamily((byte[]) f);
+            for (byte[] f : families) {
+                scan.addFamily(f);
             }
         }
         if (columns != null) {

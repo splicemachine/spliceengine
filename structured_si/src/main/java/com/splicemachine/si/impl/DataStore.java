@@ -68,7 +68,7 @@ public class DataStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Operation
         dataLib.addAttribute(operation, siNeededAttribute, dataLib.encode(includeSIColumn ? includeSIColumnValue : siNeededValue));
     }
 
-    Object getSINeededAttribute(OperationWithAttributes operation) {
+    Data getSINeededAttribute(OperationWithAttributes operation) {
         return dataLib.getAttribute(operation, siNeededAttribute);
     }
 
