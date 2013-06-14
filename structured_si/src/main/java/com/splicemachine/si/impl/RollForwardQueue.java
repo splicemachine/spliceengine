@@ -224,8 +224,10 @@ public class RollForwardQueue<Data> {
     private void clearRowList(long transactionId) {
         synchronized (this) {
             final Set rowSet = transactionMap.get(transactionId);
-            transactionMap.remove(transactionId);
-            count = count - rowSet.size();
+            if (rowSet != null) {
+                transactionMap.remove(transactionId);
+                count = count - rowSet.size();
+            }
         }
     }
 
