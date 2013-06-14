@@ -141,7 +141,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
 
     public ImmutableTransaction getImmutableTransaction(TransactionId transactionId) throws IOException {
         final ImmutableTransaction result = getImmutableTransactionFromCache(transactionId.getId());
-        if (result.getTransactionId().getTransactionIdString().equals(transactionId.getTransactionIdString())) {
+        if (result.getTransactionId().equals(transactionId)) {
             return result;
         } else {
             return result.cloneWithId(transactionId, result);

@@ -368,7 +368,7 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
             final Object[] conflictResults = ensureNoWriteConflict(transaction, table, rowKey);
             dataTransactionsToRollForward = (Set<Long>) conflictResults[0];
             Set<Long> conflictingChildren = (Set<Long>) conflictResults[1];
-            final Put newPut = createUltimatePut(transaction, lock, put, table);
+            final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table);
             dataStore.suppressIndexing((OperationWithAttributes) newPut);
             dataWriter.write(table, newPut, lock);
             resolveChildConflicts(table, newPut, lock, conflictingChildren);
@@ -482,14 +482,13 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
      * Create a new operation, with the lock, that has all of the keyValues from the original operation.
      * This will also set the timestamp of the data being updated to reflect the transaction doing the update.
      */
-    Put createUltimatePut(ImmutableTransaction transaction, Lock lock, Put put, Table table) throws IOException {
+    Put createUltimatePut(long transactionId, Lock lock, Put put, Table table) throws IOException {
         final Data rowKey = dataLib.getPutKey(put);
         final Put newPut = dataLib.newPut(rowKey, lock);
-        final long timestamp = transaction.getLongTransactionId();
-        dataStore.copyPutKeyValues(put, true, newPut, timestamp);
-        dataStore.addTransactionIdToPut(newPut, timestamp);
+        dataStore.copyPutKeyValues(put, true, newPut, transactionId);
+        dataStore.addTransactionIdToPut(newPut, transactionId);
         if (isDeletePut((Mutation) put)) {
-            dataStore.setTombstonesOnColumns(table, timestamp, newPut);
+            dataStore.setTombstonesOnColumns(table, transactionId, newPut);
         }
         return newPut;
     }
