@@ -131,25 +131,25 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		if(numDistinctAggs>0)
 			distinctValues = (HashSet<String>[][])new HashSet[resultRows.length][aggregates.length];
 
-		if(regionScanner==null){
-               isTemp = true;
-		}else{
-				Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
-                rowProvider = new SimpleRegionAwareRowProvider(SpliceUtils.NA_TRANSACTION_ID,
-                        context.getRegion(),
-                        context.getScan(),
-                        SpliceConstants.TEMP_TABLE_BYTES,
-                        SpliceConstants.DEFAULT_FAMILY_BYTES,
-                        hasher,
-                        sourceExecIndexRow,null);
-				rowProvider.open();
-                isTemp = !context.isSink() || context.getTopOperation()!=this;
-			}
-			numGCols = order.length - numDistinctAggs;	
-		    hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
-		    serializer = Serializer.get();
-		    keySet = new byte[2][];
-	}
+        if (regionScanner == null) {
+            isTemp = true;
+        } else {
+            Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(), keyColumns, null, sequence[0]);
+            rowProvider = new SimpleRegionAwareRowProvider(SpliceUtils.NA_TRANSACTION_ID,
+                    context.getRegion(),
+                    context.getScan(),
+                    SpliceConstants.TEMP_TABLE_BYTES,
+                    SpliceConstants.DEFAULT_FAMILY_BYTES,
+                    hasher,
+                    sourceExecIndexRow, null);
+            rowProvider.open();
+            isTemp = !context.isSink() || context.getTopOperation() != this;
+        }
+        numGCols = order.length - numDistinctAggs;
+        hasher = new Hasher(getExecRowDefinition().getRowArray(), keyColumns, null, sequence[0]);
+        serializer = Serializer.get();
+        keySet = new byte[2][];
+    }
 
 	@Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
