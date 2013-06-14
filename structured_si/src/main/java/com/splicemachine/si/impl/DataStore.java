@@ -138,6 +138,7 @@ public class DataStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Operation
     List<KeyValue> getCommitTimestamp(IHTable table, Data rowKey) throws IOException {
         final List<List<Data>> columns = Arrays.asList(Arrays.asList(siFamily, commitTimestampQualifier));
         Get get = dataLib.newGet(rowKey, null, columns, null);
+        suppressIndexing((OperationWithAttributes) get);
         Result result = reader.get(table, get);
         if (result != null) {
             return dataLib.getResultColumn(result, siFamily, commitTimestampQualifier);
@@ -194,8 +195,12 @@ public class DataStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Operation
      * When this new operation goes through the co-processor stack it should not be indexed (because it already has been
      * when the original operation went through).
      */
-    public void suppressIndexing(OperationWithAttributes newPut) {
-        dataLib.addAttribute(newPut, SUPPRESS_INDEXING_ATTRIBUTE_NAME, (Data) SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
+    public void suppressIndexing(OperationWithAttributes operation) {
+        dataLib.addAttribute(operation, SUPPRESS_INDEXING_ATTRIBUTE_NAME, (Data) SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
+    }
+
+    public boolean isSuppressIndexing(OperationWithAttributes operation) {
+        return dataLib.getAttribute(operation, SUPPRESS_INDEXING_ATTRIBUTE_NAME) != null;
     }
 
     public void setTombstoneOnPut(Put put, long transactionId) {

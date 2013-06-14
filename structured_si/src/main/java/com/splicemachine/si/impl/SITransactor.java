@@ -497,13 +497,15 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
     // Process read operations
 
     @Override
-    public boolean isFilterNeededGet(Get operation) {
-        return isFlaggedForSITreatment((OperationWithAttributes) operation);
+    public boolean isFilterNeededGet(Get get) {
+        return isFlaggedForSITreatment((OperationWithAttributes) get)
+                && !dataStore.isSuppressIndexing((OperationWithAttributes) get);
     }
 
     @Override
-    public boolean isFilterNeededScan(Scan operation) {
-        return isFlaggedForSITreatment((OperationWithAttributes) operation);
+    public boolean isFilterNeededScan(Scan scan) {
+        return isFlaggedForSITreatment((OperationWithAttributes) scan)
+                && !dataStore.isSuppressIndexing((OperationWithAttributes) scan);
     }
 
     @Override
@@ -574,7 +576,7 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
         if (filteredCells.isEmpty()) {
             return null;
         } else {
-            return (Result) dataLib.newResult(dataLib.getResultKey(result), filteredCells);
+            return dataLib.newResult(dataLib.getResultKey(result), filteredCells);
         }
     }
 
