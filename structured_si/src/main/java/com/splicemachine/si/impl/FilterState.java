@@ -24,6 +24,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
      * The transactions that have been loaded as part of running this filter.
      */
     final Cache<Long, Transaction> transactionCache;
+    final Cache<Long, Object[]> visibleCache;
 
     private final ImmutableTransaction myTransaction;
     private final SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> dataLib;
@@ -57,6 +58,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         this.myTransaction = myTransaction;
 
         transactionCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(10, TimeUnit.MINUTES).build();
+        visibleCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(2, TimeUnit.MINUTES).build();
 
         // initialize internal state
         this.rowState = new FilterRowState(dataLib);
@@ -200,7 +202,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         final Transaction cachedTransaction = rowState.transactionCache.get(keyValue.timestamp());
         if (cachedTransaction == null) {
             final Transaction dataTransaction = getTransactionFromFilterCache(keyValue.timestamp());
-            final Object[] visibleResult = myTransaction.isVisible(dataTransaction, transactionSource);
+            final Object[] visibleResult = checkVisibility(dataTransaction);
             final TransactionStatus dataStatus = (TransactionStatus) visibleResult[1];
             if (dataStatus.equals(TransactionStatus.COMMITTED) || dataStatus.equals(TransactionStatus.ROLLED_BACK)
                     || dataStatus.equals(TransactionStatus.ERROR)) {
@@ -210,6 +212,16 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         } else {
             return cachedTransaction;
         }
+    }
+
+    private Object[] checkVisibility(Transaction dataTransaction) throws IOException {
+        final long timestamp = dataTransaction.getLongTransactionId();
+        Object[] result = visibleCache.getIfPresent(timestamp);
+        if (result == null) {
+            result = myTransaction.isVisible(dataTransaction, transactionSource);
+            visibleCache.put(timestamp, result);
+        }
+        return result;
     }
 
     /**
@@ -301,7 +313,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     private boolean tombstoneAfterData() throws IOException {
         for (long tombstone : rowState.tombstoneTimestamps) {
             final Transaction tombstoneTransaction = rowState.transactionCache.get(tombstone);
-            final Object[] visibleResult = myTransaction.isVisible(tombstoneTransaction, transactionSource);
+            final Object[] visibleResult = checkVisibility(tombstoneTransaction);
             final boolean visible = (Boolean) visibleResult[0];
             if (visible && (keyValue.timestamp() < tombstone
                     || (keyValue.timestamp() == tombstone && dataStore.isSINull(keyValue.value())))) {
@@ -320,7 +332,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
             return true;
         } else {
             final Transaction transaction = loadTransaction();
-            return (Boolean) myTransaction.isVisible(transaction, transactionSource)[0];
+            return (Boolean) checkVisibility(transaction)[0];
         }
     }
 
