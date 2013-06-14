@@ -395,7 +395,7 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
      */
     private Object[] ensureNoWriteConflict(ImmutableTransaction updateTransaction, Table table, Data rowKey)
             throws IOException {
-        final List dataCommitKeyValues = dataStore.getCommitTimestamp(table, rowKey);
+        final List<KeyValue> dataCommitKeyValues = dataStore.getCommitTimestamp(table, rowKey);
         if (dataCommitKeyValues != null) {
             return checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValues);
         }
@@ -405,12 +405,12 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
     /**
      * Look at all of the values in the "commitTimestamp" column to see if there are write collisions.
      */
-    private Object[] checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, List dataCommitKeyValues)
+    private Object[] checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, List<KeyValue> dataCommitKeyValues)
             throws IOException {
         Set<Long> toRollForward = new HashSet<Long>();
         Set<Long> childConflicts = new HashSet<Long>();
-        for (Object dataCommitKeyValue : dataCommitKeyValues) {
-            checkCommitTimestampForConflict(updateTransaction, toRollForward, childConflicts, (KeyValue) dataCommitKeyValue);
+        for (KeyValue dataCommitKeyValue : dataCommitKeyValues) {
+            checkCommitTimestampForConflict(updateTransaction, toRollForward, childConflicts, dataCommitKeyValue);
         }
         return new Object[]{toRollForward, childConflicts};
     }

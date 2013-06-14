@@ -138,7 +138,7 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
-    public void rollForward(HRegion region, long transactionId, List rows) throws IOException {
+    public void rollForward(HRegion region, long transactionId, List<byte[]> rows) throws IOException {
         delegate.rollForward(new HbRegion(region), transactionId, rows);
     }
 

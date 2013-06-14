@@ -135,7 +135,7 @@ public class DataStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Operation
         return delete;
     }
 
-    List getCommitTimestamp(IHTable table, Data rowKey) throws IOException {
+    List<KeyValue> getCommitTimestamp(IHTable table, Data rowKey) throws IOException {
         final List<List<Data>> columns = Arrays.asList(Arrays.asList(siFamily, commitTimestampQualifier));
         Get get = dataLib.newGet(rowKey, null, columns, null);
         Result result = reader.get(table, get);

@@ -46,6 +46,6 @@ public interface HTransactor extends HClientTransactor {
     Filter.ReturnCode filterKeyValue(FilterState filterState, KeyValue keyValue) throws IOException;
     Result filterResult(FilterState filterState, Result result) throws IOException;
 
-    void rollForward(HRegion region, long transactionId, List rows) throws IOException;
+    void rollForward(HRegion region, long transactionId, List<byte[]> rows) throws IOException;
     SICompactionState newCompactionState();
 }

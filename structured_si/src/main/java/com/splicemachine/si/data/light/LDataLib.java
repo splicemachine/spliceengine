@@ -175,7 +175,7 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTu
         return ((LTuple) result).key;
     }
 
-    private List getValuesForColumn(LTuple tuple, Object family, Object qualifier) {
+    private List<LKeyValue> getValuesForColumn(LTuple tuple, Object family, Object qualifier) {
         List<LKeyValue> values = tuple.values;
         List<LKeyValue> results = new ArrayList<LKeyValue>();
         for (Object vRaw : values) {
@@ -209,11 +209,11 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTu
 
     @Override
     public Object getResultValue(LTuple result, Object family, Object qualifier) {
-        final List valuesForColumn = getValuesForColumn(result, family, qualifier);
+        final List<LKeyValue> valuesForColumn = getValuesForColumn(result, family, qualifier);
         if (valuesForColumn.isEmpty()) {
             return null;
         }
-        return ((LKeyValue) valuesForColumn.get(0)).value;
+        return valuesForColumn.get(0).value;
     }
 
     @Override

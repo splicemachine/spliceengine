@@ -15,7 +15,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class LStore implements STableReader<LTable, LTuple, LGet, LGet>, STableWriter<LTable, LTuple, LTuple, Object, LRowLock> {
+public class LStore implements STableReader<LTable, LTuple, LGet, LGet>,
+        STableWriter<LTable, LTuple, LTuple, Object, LRowLock> {
     private final Map<String, Map<String, LRowLock>> locks = new HashMap<String, Map<String, LRowLock>>();
     private final Map<String, Map<LRowLock, String>> reverseLocks = new HashMap<String, Map<LRowLock, String>>();
     private final Map<String, List<LTuple>> relations = new HashMap<String, List<LTuple>>();
@@ -136,15 +137,15 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet>, STableW
     }
 
     @Override
-    public void write(LTable table, List puts) {
+    public void write(LTable table, List<LTuple> puts) {
         synchronized (this) {
             final String relationIdentifier = table.relationIdentifier;
             List<LTuple> newTuples = relations.get(relationIdentifier);
             if (newTuples == null) {
                 newTuples = new ArrayList<LTuple>();
             }
-            for (Object t : puts) {
-                newTuples = writeSingle(table, (LTuple) t, newTuples);
+            for (LTuple t : puts) {
+                newTuples = writeSingle(table, t, newTuples);
             }
             relations.put(relationIdentifier, newTuples);
         }
@@ -180,7 +181,7 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet>, STableW
         }
     }
 
-    static void sortValues(List results) {
+    static void sortValues(List<LKeyValue> results) {
         Collections.sort(results, new Comparator<Object>() {
             @Override
             public int compare(Object simpleCell, Object simpleCell2) {
@@ -336,7 +337,7 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet>, STableW
         final List<LTuple> rows = relations.get(tableName);
         final List<LTuple> newRows = new ArrayList<LTuple>(rows.size());
         for (LTuple row : rows) {
-            final ArrayList mutatedValues = new ArrayList();
+            final ArrayList<LKeyValue> mutatedValues = new ArrayList<LKeyValue>();
             compactionState.mutate(row.values, mutatedValues);
             LTuple newRow = new LTuple(row.key, mutatedValues, row.attributes);
             newRows.add(newRow);

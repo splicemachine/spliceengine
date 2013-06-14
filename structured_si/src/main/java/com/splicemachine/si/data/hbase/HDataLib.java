@@ -21,7 +21,7 @@ import java.util.Map;
 public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, HRowLock> {
 
     @Override
-    public Result newResult(byte[] key, List keyValues) {
+    public Result newResult(byte[] key, List<KeyValue> keyValues) {
         return new Result(keyValues);
     }
 
@@ -67,7 +67,7 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete,
     @Override
     public List<KeyValue> listPut(Put put) {
         final Map<byte[], List<KeyValue>> familyMap = put.getFamilyMap();
-        List result = new ArrayList();
+        List<KeyValue> result = new ArrayList<KeyValue>();
         for (List<KeyValue> subList : familyMap.values()) {
             result.addAll(subList);
         }
@@ -172,8 +172,8 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete,
             }
         }
         if (columns != null) {
-            for (List c : columns) {
-                get.addColumn((byte[]) c.get(0), (byte[]) c.get(1));
+            for (List<byte[]> c : columns) {
+                get.addColumn(c.get(0), c.get(1));
             }
         }
         if (effectiveTimestamp != null) {
@@ -232,8 +232,8 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete,
             }
         }
         if (columns != null) {
-            for (List c : columns) {
-                scan.addColumn((byte[]) c.get(0), (byte[]) c.get(1));
+            for (List<byte[]> c : columns) {
+                scan.addColumn(c.get(0), c.get(1));
             }
         }
         if (effectiveTimestamp != null) {
