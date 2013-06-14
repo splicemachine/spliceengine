@@ -42,7 +42,7 @@ public class SIObserver extends BaseRegionObserver {
     private boolean tableEnvMatch = false;
     private String tableName;
     private static final int S = 1000;
-    private RollForwardQueue rollForwardQueue;
+    private RollForwardQueue<byte[]> rollForwardQueue;
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
@@ -53,14 +53,14 @@ public class SIObserver extends BaseRegionObserver {
                 || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
                 || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE))
                 && !tableName.equals(SpliceConstants.TEMP_TABLE);
-        RollForwardAction action = new RollForwardAction() {
+        RollForwardAction<byte[]> action = new RollForwardAction<byte[]>() {
             @Override
-            public void rollForward(long transactionId, List rowList) throws IOException {
+            public void rollForward(long transactionId, List<byte[]> rowList) throws IOException {
                 HTransactor transactor = HTransactorFactory.getTransactor();
                 transactor.rollForward(region, transactionId, rowList);
             }
         };
-        rollForwardQueue = new RollForwardQueue(action, 10000, 10 * S, 5 * 60 * S, tableName);
+        rollForwardQueue = new RollForwardQueue<byte[]>(action, 10000, 10 * S, 5 * 60 * S, tableName);
         super.start(e);
     }
 

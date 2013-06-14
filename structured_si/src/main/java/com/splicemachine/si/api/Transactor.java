@@ -49,7 +49,7 @@ public interface Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue,
     void rollback(TransactionId transactionId) throws IOException;
     void fail(TransactionId transactionId) throws IOException;
 
-    boolean processPut(IHTable table, RollForwardQueue rollForwardQueue, Put put) throws IOException;
+    boolean processPut(IHTable table, RollForwardQueue<Data> rollForwardQueue, Put put) throws IOException;
     boolean isFilterNeededGet(Get get);
     boolean isFilterNeededScan(Scan scan);
     boolean isGetIncludeSIColumn(Get get);
@@ -60,7 +60,7 @@ public interface Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue,
     void preProcessScan(Scan scan) throws IOException;
 
     FilterState newFilterState(TransactionId transactionId) throws IOException;
-    FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn,
+    FilterState newFilterState(RollForwardQueue<Data> rollForwardQueue, TransactionId transactionId, boolean includeSIColumn,
                                boolean includeUncommittedAsOfStart) throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, KeyValue keyValue) throws IOException;
     Result filterResult(FilterState filterState, Result result) throws IOException;

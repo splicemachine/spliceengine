@@ -341,7 +341,7 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
     // Process update operations
 
     @Override
-    public boolean processPut(Table table, RollForwardQueue rollForwardQueue, Put put) throws IOException {
+    public boolean processPut(Table table, RollForwardQueue<Data> rollForwardQueue, Put put) throws IOException {
         if (isFlaggedForSITreatment((OperationWithAttributes) put)) {
             processPutDirect(table, rollForwardQueue, (Put) put);
             return true;
@@ -350,7 +350,7 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
         }
     }
 
-    private void processPutDirect(Table table, RollForwardQueue rollForwardQueue, Put put) throws IOException {
+    private void processPutDirect(Table table, RollForwardQueue<Data> rollForwardQueue, Put put) throws IOException {
         final TransactionId transactionId = dataStore.getTransactionIdFromOperation((OperationWithAttributes) put);
         final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
         ensureTransactionAllowsWrites(transaction);
@@ -358,7 +358,8 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
     }
 
 
-    private void performPut(Table table, RollForwardQueue rollForwardQueue, Put put, ImmutableTransaction transaction) throws IOException {
+    private void performPut(Table table, RollForwardQueue<Data> rollForwardQueue, Put put, ImmutableTransaction transaction)
+            throws IOException {
         final Data rowKey = dataLib.getPutKey(put);
         final Lock lock = dataWriter.lockRow(table, rowKey);
         Set<Long> dataTransactionsToRollForward;

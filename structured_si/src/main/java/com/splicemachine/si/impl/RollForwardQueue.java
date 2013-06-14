@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
  * much code as required inside of the synchronized blocks. All of the mutable state is accessed from inside of
  * synchronized blocks.
  */
-public class RollForwardQueue {
+public class RollForwardQueue<Data> {
     static final Logger LOG = Logger.getLogger(RollForwardQueue.class);
 
     /**
@@ -93,7 +93,7 @@ public class RollForwardQueue {
      * It is expected that one queue will be created for each HBase region. All of the queues in a JVM will use a shared
      * thread pool.
      */
-    public RollForwardQueue(RollForwardAction action, int maxCount, int rollForwardDelayMS, int resetMS, String tableName) {
+    public RollForwardQueue(RollForwardAction<Data> action, int maxCount, int rollForwardDelayMS, int resetMS, String tableName) {
         this.action = action;
         this.maxCount = maxCount;
         this.rollForwardDelayMS = rollForwardDelayMS;
@@ -106,7 +106,7 @@ public class RollForwardQueue {
      * This is the main function for users of the queue. Callers notify the queue that the given row in the underlying
      * table should be updated to reflect the final status of the given transaction.
      */
-    public void recordRow(long transactionId, Object rowKey) {
+    public void recordRow(long transactionId, Data rowKey) {
         synchronized (this) {
             forceResetIfNeeded();
             if (count < maxCount) {
@@ -140,7 +140,7 @@ public class RollForwardQueue {
     private void scheduleRollForward(final long transactionId) {
         final Runnable roller = new Runnable() {
             public void run() {
-                List rowList = takeRowList(transactionId);
+                List<Data> rowList = takeRowList(transactionId);
                 try {
                     action.rollForward(transactionId, rowList);
                 } catch (IOException e) {
@@ -171,7 +171,7 @@ public class RollForwardQueue {
      * Retrieve all of the queued rows for a given transaction. This causes the rows to be atomically removed from the
      * queue.
      */
-    private List takeRowList(long transactionId) {
+    private List<Data> takeRowList(long transactionId) {
         Set rowSet;
         synchronized (this) {
             rowSet = transactionMap.get(transactionId);
@@ -186,11 +186,11 @@ public class RollForwardQueue {
     /**
      * Convert the internal set of wrapped row identifiers into a list of un-wrapped identifiers.
      */
-    private List produceRowList(Set rowSet) {
+    private List<Data> produceRowList(Set rowSet) {
         if (rowSet == null) {
-            return new ArrayList();
+            return new ArrayList<Data>();
         } else {
-            List result = new ArrayList(rowSet.size());
+            List<Data> result = new ArrayList<Data>(rowSet.size());
             for (Object row : rowSet) {
                 result.add(recoverUnhashable(row));
             }
@@ -202,7 +202,7 @@ public class RollForwardQueue {
      * Under HBase row keys are byte arrays. This method wraps byte arrays into objects that can be placed into Sets.
      * This allows duplicate requests for a given row to be ignored.
      */
-    private Object toHashable(Object row) {
+    private Object toHashable(Data row) {
         if (row.getClass().isArray() && row.getClass().getComponentType() == Byte.TYPE) {
             return new HashableBytes((byte[]) row);
         } else {
@@ -213,11 +213,11 @@ public class RollForwardQueue {
     /**
      * The inverse of the toHashable() method. This recovers the original byte array from its hashable wrapper.
      */
-    private Object recoverUnhashable(Object row) {
+    private Data recoverUnhashable(Object row) {
         if (row instanceof HashableBytes) {
-            return ((HashableBytes) row).getBytes();
+            return (Data) ((HashableBytes) row).getBytes();
         } else {
-            return row;
+            return (Data) row;
         }
     }
 

@@ -165,11 +165,11 @@ public class DataStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Operation
         return dataLib.valuesEqual(value, siFail);
     }
 
-    public void recordRollForward(RollForwardQueue rollForwardQueue, ImmutableTransaction transaction, Object row) {
+    public void recordRollForward(RollForwardQueue<Data> rollForwardQueue, ImmutableTransaction transaction, Data row) {
         recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), row);
     }
 
-    public void recordRollForward(RollForwardQueue rollForwardQueue, long transactionId, Object row) {
+    public void recordRollForward(RollForwardQueue<Data> rollForwardQueue, long transactionId, Data row) {
         if (rollForwardQueue != null) {
             rollForwardQueue.recordRow(transactionId, row);
         }
@@ -239,7 +239,7 @@ public class DataStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Operation
     }
 
     public void addPlaceHolderColumnToEmptyPut(Put put) {
-        final List keyValues = dataLib.listPut(put);
+        final List<KeyValue> keyValues = dataLib.listPut(put);
         if (keyValues.isEmpty()) {
             dataLib.addKeyValueToPut(put, siFamily, placeHolderQualifier, 0L, siNull);
         }

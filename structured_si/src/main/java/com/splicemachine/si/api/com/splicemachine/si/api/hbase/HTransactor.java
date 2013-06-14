@@ -30,7 +30,7 @@ public interface HTransactor extends HClientTransactor {
     void rollback(TransactionId transactionId) throws IOException;
     void fail(TransactionId transactionId) throws IOException;
 
-    boolean processPut(HRegion region, RollForwardQueue rollForwardQueue, Put put) throws IOException;
+    boolean processPut(HRegion region, RollForwardQueue<byte[]> rollForwardQueue, Put put) throws IOException;
     boolean isFilterNeededGet(Get get);
     boolean isFilterNeededScan(Scan scan);
     boolean isGetIncludeSIColumn(Get get);
@@ -41,7 +41,7 @@ public interface HTransactor extends HClientTransactor {
     void preProcessScan(Scan scan) throws IOException;
 
     FilterState newFilterState(TransactionId transactionId) throws IOException;
-    FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn,
+    FilterState newFilterState(RollForwardQueue<byte[]> rollForwardQueue, TransactionId transactionId, boolean includeSIColumn,
                                boolean includeUncommittedAsOfStart) throws IOException;
     Filter.ReturnCode filterKeyValue(FilterState filterState, KeyValue keyValue) throws IOException;
     Result filterResult(FilterState filterState, Result result) throws IOException;

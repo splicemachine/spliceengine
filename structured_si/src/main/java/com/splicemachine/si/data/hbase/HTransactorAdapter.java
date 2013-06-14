@@ -77,7 +77,7 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
-    public boolean processPut(HRegion region, RollForwardQueue rollForwardQueue, Put put) throws IOException {
+    public boolean processPut(HRegion region, RollForwardQueue<byte[]> rollForwardQueue, Put put) throws IOException {
         return delegate.processPut(new HbRegion(region), rollForwardQueue, put);
     }
 
@@ -122,7 +122,7 @@ public class HTransactorAdapter implements HTransactor {
     }
 
     @Override
-    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
+    public FilterState newFilterState(RollForwardQueue<byte[]> rollForwardQueue, TransactionId transactionId,
                                       boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
         return delegate.newFilterState(rollForwardQueue, transactionId, includeSIColumn, includeUncommittedAsOfStart);
     }
