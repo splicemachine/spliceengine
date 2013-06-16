@@ -163,7 +163,6 @@ public class SortOperation extends SpliceBaseOperation {
     }
 
     private ExecRow getNextRowFromScan() throws StandardException {
-        // use regionScanner, which field should already have a value (thanks to SpliceBaseOp?)
         List<KeyValue> keyValues = new ArrayList<KeyValue>();
         try {
             regionScanner.next(keyValues);
