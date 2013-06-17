@@ -487,7 +487,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
     Put createUltimatePut(long transactionId, Lock lock, Put put, Table table) throws IOException {
         final Data rowKey = dataLib.getPutKey(put);
         final Put newPut = dataLib.newPut(rowKey, lock);
-        dataStore.copyPutKeyValues(put, true, newPut, transactionId);
+        dataStore.copyPutKeyValues(put, newPut, transactionId);
         dataStore.addTransactionIdToPutKeyValues(newPut, transactionId);
         if (isDeletePut((Mutation) put)) {
             dataStore.setTombstonesOnColumns(table, transactionId, newPut);

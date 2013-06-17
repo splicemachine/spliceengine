@@ -46,10 +46,8 @@ public class SIConstants extends SpliceConstants {
     public static final byte[] TRANSACTION_FAMILY_BYTES = SpliceConstants.DEFAULT_FAMILY.getBytes();
     public static final int SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN = 0;
     public static final int SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN = 1;
-    public static final int SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN = 99;
     public static final String SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING = SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN + "";
     public static final String SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING = SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN + "";
-    public static final String SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN_STRING = SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN + "";
     public static final byte[] SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN);
 
     public static final short SI_NEEDED_VALUE = (short) 0;

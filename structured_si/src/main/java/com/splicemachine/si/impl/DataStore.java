@@ -33,18 +33,17 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
     private final Data siFamily;
     private final Data commitTimestampQualifier;
     private final Data tombstoneQualifier;
-    private final Data placeHolderQualifier;
     private final Data siNull;
     final Data siFail;
 
     private final Data userColumnFamily;
 
     public DataStore(SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock>
-                     dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
+                             dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
                      Data siNeededValue, Data includeSIColumnValue, String includeUncommittedAsOfStartAttribute,
                      Data includeUncommittedAsOfStartValue, String transactionIdAttribute, String deletePutAttribute,
                      String siMetaFamily, Data siCommitQualifier, Data siTombstoneQualifier,
-                     Data placeHolderQualifier, Data siMetaNull, Data siFail, Data userColumnFamily) {
+                     Data siMetaNull, Data siFail, Data userColumnFamily) {
         this.dataLib = dataLib;
         this.reader = reader;
         this.writer = writer;
@@ -58,7 +57,6 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
         this.siFamily = dataLib.encode(siMetaFamily);
         this.commitTimestampQualifier = dataLib.encode(siCommitQualifier);
         this.tombstoneQualifier = dataLib.encode(siTombstoneQualifier);
-        this.placeHolderQualifier = dataLib.encode(placeHolderQualifier);
         this.siNull = dataLib.encode(siMetaNull);
         this.siFail = dataLib.encode(siFail);
         this.userColumnFamily = dataLib.encode(userColumnFamily);
@@ -110,15 +108,13 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
         return null;
     }
 
-    void copyPutKeyValues(Put put, boolean skipPlaceHolder, Put newPut, long timestamp) {
+    void copyPutKeyValues(Put put, Put newPut, long timestamp) {
         for (KeyValue keyValue : dataLib.listPut(put)) {
             final Data qualifier = dataLib.getKeyValueQualifier(keyValue);
-            if (!skipPlaceHolder || !dataLib.valuesEqual(placeHolderQualifier, qualifier)) {
-                dataLib.addKeyValueToPut(newPut, dataLib.getKeyValueFamily(keyValue),
-                        qualifier,
-                        timestamp,
-                        dataLib.getKeyValueValue(keyValue));
-            }
+            dataLib.addKeyValueToPut(newPut, dataLib.getKeyValueFamily(keyValue),
+                    qualifier,
+                    timestamp,
+                    dataLib.getKeyValueValue(keyValue));
         }
     }
 
@@ -246,7 +242,7 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
     public void addPlaceHolderColumnToEmptyPut(Put put) {
         final Iterable<KeyValue> keyValues = dataLib.listPut(put);
         if (!keyValues.iterator().hasNext()) {
-            dataLib.addKeyValueToPut(put, siFamily, placeHolderQualifier, 0L, siNull);
+            dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, 0L, siNull);
         }
     }
 }
