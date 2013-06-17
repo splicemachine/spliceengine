@@ -486,7 +486,7 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
         final Data rowKey = dataLib.getPutKey(put);
         final Put newPut = dataLib.newPut(rowKey, lock);
         dataStore.copyPutKeyValues(put, true, newPut, transactionId);
-        dataStore.addTransactionIdToPut(newPut, transactionId);
+        dataStore.addTransactionIdToPutKeyValues(newPut, transactionId);
         if (isDeletePut((Mutation) put)) {
             dataStore.setTombstonesOnColumns(table, transactionId, newPut);
         }

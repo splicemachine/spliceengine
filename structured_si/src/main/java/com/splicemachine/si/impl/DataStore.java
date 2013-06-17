@@ -93,7 +93,7 @@ public class DataStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Operation
         return (Boolean) dataLib.decode(neededValue, Boolean.class);
     }
 
-    void addTransactionIdToPut(Put put, long transactionId) {
+    void addTransactionIdToPutKeyValues(Put put, long transactionId) {
         dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, transactionId, siNull);
     }
 
