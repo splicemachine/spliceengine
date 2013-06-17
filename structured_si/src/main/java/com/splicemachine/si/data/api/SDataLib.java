@@ -23,7 +23,7 @@ public interface SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, 
     Put newPut(Data key);
     Put newPut(Data key, Lock lock);
     void addKeyValueToPut(Put put, Data family, Data qualifier, Long timestamp, Data value);
-    List<KeyValue> listPut(Put put);
+    Iterable<KeyValue> listPut(Put put);
     Data getPutKey(Put put);
 
     KeyValue newKeyValue(Data rowKey, Data family, Data qualifier, Long timestamp, Data value);

@@ -244,8 +244,8 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
     }
 
     public void addPlaceHolderColumnToEmptyPut(Put put) {
-        final List<KeyValue> keyValues = dataLib.listPut(put);
-        if (keyValues.isEmpty()) {
+        final Iterable<KeyValue> keyValues = dataLib.listPut(put);
+        if (!keyValues.iterator().hasNext()) {
             dataLib.addKeyValueToPut(put, siFamily, placeHolderQualifier, 0L, siNull);
         }
     }

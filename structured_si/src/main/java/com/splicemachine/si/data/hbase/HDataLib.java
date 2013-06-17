@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.hbase;
 
+import com.google.common.collect.Iterables;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.data.api.SDataLib;
 import org.apache.hadoop.hbase.KeyValue;
@@ -64,13 +65,8 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
     }
 
     @Override
-    public List<KeyValue> listPut(Put put) {
-        final Map<byte[], List<KeyValue>> familyMap = put.getFamilyMap();
-        List<KeyValue> result = new ArrayList<KeyValue>();
-        for (List<KeyValue> subList : familyMap.values()) {
-            result.addAll(subList);
-        }
-        return result;
+    public Iterable<KeyValue> listPut(Put put) {
+        return Iterables.concat(put.getFamilyMap().values());
     }
 
     @Override
