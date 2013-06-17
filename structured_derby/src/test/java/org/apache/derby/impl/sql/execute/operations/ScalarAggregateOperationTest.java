@@ -27,7 +27,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
         protected static SpliceTableWatcher nullTableWatcher = new SpliceTableWatcher("NT",CLASS_NAME,"(a int,b int)");
     	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("EMPTY_TABLE",CLASS_NAME,"(oid int, catalog varchar(40), score int, brand char(40))");
 
-		protected static String INSERT = String.format("insert into %s.%s (i) values (?)", CLASS_NAME,TABLE_NAME);
+		protected static String INSERT = String.format("insert into %s.%s (username, i) values (?,?)", CLASS_NAME,TABLE_NAME);
 		public static int size = 10;
 		public static Stats stats = new Stats();
 
@@ -37,38 +37,38 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
                 .around(spliceTableWatcher)
                 .around(nullTableWatcher)
                 .around(spliceTableWatcher2)
-                .around(new SpliceDataWatcher(){
-				@Override
-				protected void starting(Description description) {
-					try {
-						PreparedStatement ps = spliceClassWatcher.prepareStatement(INSERT);
-						for(int i=0;i<size;i++){
-							ps.setInt(1,i);
-							stats.add(i);
-							ps.executeUpdate();
-						}
-						spliceClassWatcher.splitTable(TABLE_NAME,CLASS_NAME,size/3);
+                .around(new SpliceDataWatcher() {
+                    @Override
+                    protected void starting(Description description) {
+                        try {
+                            PreparedStatement ps = spliceClassWatcher.prepareStatement(INSERT);
+                            for (int i = 0; i < size; i++) {
+                                ps.setString(1, format("user%s", i + 1));
+                                ps.setInt(2, i);
+                                stats.add(i);
+                                ps.executeUpdate();
+                            }
+                            spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, size / 3);
 
-                        ps = spliceClassWatcher.prepareStatement("insert into "+nullTableWatcher.toString()+" values (?,?)");
-                        for(int i=0;i<size;i++){
-                            if(i%2==0){
-                                ps.setNull(1, Types.INTEGER);
-                            }else
-                                ps.setInt(1,i);
-                            ps.setInt(2,i*2);
-                            ps.executeUpdate();
+                            ps = spliceClassWatcher.prepareStatement("insert into " + nullTableWatcher.toString() + " values (?,?)");
+                            for (int i = 0; i < size; i++) {
+                                if (i % 2 == 0) {
+                                    ps.setNull(1, Types.INTEGER);
+                                } else
+                                    ps.setInt(1, i);
+                                ps.setInt(2, i * 2);
+                                ps.executeUpdate();
+                            }
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            spliceClassWatcher.closeAll();
                         }
-					} catch (Exception e) {
-						throw new RuntimeException(e);
-					}
-					finally {
-						spliceClassWatcher.closeAll();
-					}
-				}
-				
-			});
-		
-		@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+                    }
+
+                });
+
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 	@Test
 	public void testCountOperation() throws Exception{
@@ -202,6 +202,15 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
     }
 
     @Test
+    public void testSumWithMinOfVarcharInHaving() throws Exception {
+        // Regression test for bug 549
+        ResultSet rs = methodWatcher.executeQuery(format("select sum(i) from %s having min(username) > 'user0'", spliceTableWatcher));
+        rs.next();
+        int sum = rs.getInt(1);
+        Assert.assertEquals(45, sum);
+    }
+
+    @Test
     public void testCountEmptyTableReturnsZero() throws Exception {
         /* Regression test for Bug 410 */
         ResultSet rs = methodWatcher.executeQuery("select count(*),max(brand),min(brand) from " + this.getPaddedTableReference("EMPTY_TABLE"));
@@ -210,7 +219,7 @@ public class ScalarAggregateOperationTest extends SpliceUnitTest {
         int correctVal = 0;
         while(rs.next()){
             count++;
-            Assert.assertEquals("Incorrect count returned!",correctVal,rs.getInt(1));
+            Assert.assertEquals("Incorrect count returned!", correctVal, rs.getInt(1));
         }
         Assert.assertEquals("Incorrect num rows returned",1,count);
 
