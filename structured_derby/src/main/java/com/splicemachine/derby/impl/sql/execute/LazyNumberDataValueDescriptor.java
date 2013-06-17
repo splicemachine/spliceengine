@@ -1,18 +1,17 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.NumberDataValue;
-import org.apache.derby.iapi.types.StringDataValue;
+import org.apache.derby.iapi.types.VariableSizeDataValue;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor implements NumberDataValue{
+public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor implements NumberDataValue, VariableSizeDataValue{
 
     NumberDataValue ndv;
 
@@ -83,7 +82,11 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
 
     @Override
     public void setValue(Number theValue) throws StandardException {
-        ndv.setValue(theValue.doubleValue());
+        if(theValue instanceof Double){
+            ndv.setValue(theValue.doubleValue());
+        }else{
+            ndv.setValue(theValue);
+        }
         resetForSerialization();
     }
 
@@ -101,14 +104,23 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
 
     @Override
     public DataValueDescriptor cloneHolder() {
-        forceDeserialization();
-        return ndv.cloneHolder();
+        LazyNumberDataValueDescriptor newDvd = new LazyNumberDataValueDescriptor((NumberDataValue) ndv.cloneHolder(), dvdSerializer);
+        newDvd.dvdBytes = this.dvdBytes;
+        newDvd.deserialized = this.deserialized;
+        newDvd.updateNullFlag();
+
+        return newDvd;
     }
 
     @Override
     public DataValueDescriptor cloneValue(boolean forceMaterialization) {
-        resetForSerialization();
-        return ndv.cloneValue(forceMaterialization);
+
+        LazyNumberDataValueDescriptor newDvd = new LazyNumberDataValueDescriptor((NumberDataValue) ndv.cloneValue(forceMaterialization), dvdSerializer);
+        newDvd.dvdBytes = this.dvdBytes;
+        newDvd.deserialized = this.deserialized;
+        newDvd.updateNullFlag();
+
+        return newDvd;
     }
 
     @Override
@@ -141,7 +153,6 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
 
         out.writeUTF(dvdSerializer.getClass().getCanonicalName());
 
-        out.writeBoolean(deserialized);
     }
 
     @Override
@@ -160,9 +171,17 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
         }
 
         DVDSerializer extSerializer = (DVDSerializer) createClassInstance(in.readUTF());
-        deserialized = in.readBoolean();
+        deserialized = false;
 
         init(extNDV, extSerializer);
     }
 
+    @Override
+    public void setWidth(int desiredWidth, int desiredScale, boolean errorOnTrunc) throws StandardException {
+        if(ndv instanceof VariableSizeDataValue){
+            ((VariableSizeDataValue) ndv).setWidth(desiredWidth, desiredScale, errorOnTrunc);
+        }else{
+            throw new UnsupportedOperationException("Attempted to setWidth on wrapped " + ndv.getClass().getSimpleName() + " which does not implement VariableSizeDataValue" );
+        }
+    }
 }

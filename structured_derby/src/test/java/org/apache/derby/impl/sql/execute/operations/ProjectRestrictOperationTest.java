@@ -1,11 +1,13 @@
 package org.apache.derby.impl.sql.execute.operations;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.List;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -50,7 +52,7 @@ public class ProjectRestrictOperationTest extends SpliceUnitTest  {
                     for(int i=0;i<10;i++){
                         ps.setInt(1,i);
                         ps.setInt(2,i*2+1);
-                        ps.setDouble(3,i*3);
+                        ps.setBigDecimal(3, new BigDecimal(i*3));
                         ps.executeUpdate();
                     }
 				} catch (Exception e) {
@@ -72,11 +74,11 @@ public class ProjectRestrictOperationTest extends SpliceUnitTest  {
         while(rs.next()){
             int sc = rs.getInt(1);
             int sd = rs.getInt(2);
-            double se = rs.getDouble(3);
-            double div = rs.getDouble(4);
+            BigDecimal se = rs.getBigDecimal(3);
+            BigDecimal div = rs.getBigDecimal(4);
 
-            double correctDiv = (sc*sd)/se;
-            Assert.assertEquals("Incorrect division!",div,correctDiv,Math.pow(10,-6));
+            BigDecimal correctDiv = new BigDecimal(sc*sd).divide(se, NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE, BigDecimal.ROUND_DOWN);
+            Assert.assertEquals("Incorrect division!",div.compareTo(correctDiv), 0);
 
             results.add(String.format("sc=%d,sd=%d,se=%f,div=%f",sc,sd,se,div));
         }
@@ -260,21 +262,23 @@ public class ProjectRestrictOperationTest extends SpliceUnitTest  {
         while(rs.next()){
             int sc = rs.getInt(1);
             int sd = rs.getInt(2);
-            float se = rs.getFloat(3);
+            BigDecimal se = rs.getBigDecimal(3);
             int diff = rs.getInt(4);
             int sum = rs.getInt(5);
             int mult = rs.getInt(6);
-            float div = rs.getFloat(7);
+            BigDecimal div = rs.getBigDecimal(7);
 
             int correctDiff = sd-sc;
             int correctSum = sd+sc;
             int correctMult = sd*sc;
-            float correctDiv = se==0.0f? 0: se/sd;
+
+            BigDecimal correctDiv = se.divide(new BigDecimal(sd), NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE, BigDecimal.ROUND_DOWN);
 
             Assert.assertEquals("Incorrect diff!",correctDiff,diff);
             Assert.assertEquals("Incorrect sum!",correctSum,sum);
             Assert.assertEquals("Incorrect mult!",correctMult,mult);
-            Assert.assertEquals("Incorrect Div!",correctDiv,div,Math.pow(10,-6));
+            Assert.assertEquals("Incorrect Div!", correctDiv.compareTo(div), 0);
+
 
             results.add(String.format("sc=%d,sd=%d,se=%f,diff=%d,sum=%d,mult=%d,div=%f%n",sc,sd,se,diff,sum,mult,div));
         }

@@ -43,7 +43,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     //Also the cached dvd.getTypeFormat(), avoids the double method invocation when calling
     //this.getTypeFormatId
-    private int typeFormatId;
+    protected int typeFormatId;
 
     public LazyDataValueDescriptor(){
 
@@ -56,15 +56,20 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     protected void init(DataValueDescriptor dvd, DVDSerializer dvdSerializer){
         this.dvd = dvd;
         typeFormatId = dvd.getTypeFormatId();
-        isNull = dvd.isNull() && (dvdBytes == null || dvdBytes.length == 0) ;
+        updateNullFlag();
+        deserialized = ! dvd.isNull();
         this.dvdSerializer = dvdSerializer;
+    }
+
+    protected void updateNullFlag(){
+        isNull = dvd.isNull() && (dvdBytes == null || dvdBytes.length == 0) ;
     }
 
     public void initForDeserialization(byte[] bytes){
         this.dvdBytes = bytes;
         dvd.setToNull();
         deserialized = false;
-        isNull = bytes == null || bytes.length == 0;
+        updateNullFlag();
     }
 
     public boolean isSerialized(){
@@ -97,8 +102,9 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     }
 
     protected void resetForSerialization(){
-        isNull = dvd.isNull();
         dvdBytes = null;
+        deserialized = true;
+        updateNullFlag();
     }
 
     @Override
@@ -287,7 +293,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public void setBigDecimal(Number bigDecimal) throws StandardException {
-        dvd.setValue(bigDecimal);
+        dvd.setBigDecimal(bigDecimal);
         resetForSerialization();
     }
 
@@ -621,6 +627,10 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
         if(dvd != null){
             out.writeUTF(dvd.getClass().getCanonicalName());
+        }
+
+        if(!isSerialized()){
+            forceSerialization();
         }
 
         out.writeBoolean(dvdBytes != null);
