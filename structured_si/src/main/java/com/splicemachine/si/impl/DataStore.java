@@ -17,7 +17,7 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
  * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
  * transaction table).
  */
-public class DataStore<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, IHTable, Lock> {
+public class DataStore<Data, Result, KeyValue, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, OperationWithAttributes, IHTable, Lock> {
     final SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> dataLib;
     private final STableReader<IHTable, Result, Get, Scan> reader;
     private final STableWriter<IHTable, Put, Delete, Data, Lock> writer;
@@ -85,7 +85,7 @@ public class DataStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Operation
     }
 
     void setDeletePutAttribute(Put operation) {
-        dataLib.addAttribute((OperationWithAttributes) operation, deletePutAttribute, dataLib.encode(true));
+        dataLib.addAttribute(operation, deletePutAttribute, dataLib.encode(true));
     }
 
     Boolean getDeletePutAttribute(OperationWithAttributes operation) {
@@ -138,7 +138,7 @@ public class DataStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Operation
     List<KeyValue> getCommitTimestamp(IHTable table, Data rowKey) throws IOException {
         final List<List<Data>> columns = Arrays.asList(Arrays.asList(siFamily, commitTimestampQualifier));
         Get get = dataLib.newGet(rowKey, null, columns, null);
-        suppressIndexing((OperationWithAttributes) get);
+        suppressIndexing(get);
         Result result = reader.get(table, get);
         if (result != null) {
             return dataLib.getResultColumn(result, siFamily, commitTimestampQualifier);
@@ -186,7 +186,7 @@ public class DataStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Operation
 
     private void setCommitTimestampDirect(IHTable table, Data rowKey, long transactionId, Data timestampValue) throws IOException {
         Put put = dataLib.newPut(rowKey);
-        suppressIndexing((OperationWithAttributes) put);
+        suppressIndexing(put);
         dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, transactionId, timestampValue);
         writer.write(table, put, false);
     }

@@ -28,7 +28,9 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
-public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data, OperationWithAttributes, Delete, Lock>
+public class SITransactor<Table, Put extends OperationWithAttributes, Get extends OperationWithAttributes,
+        Scan extends OperationWithAttributes, Mutation extends OperationWithAttributes, Result, KeyValue, Data,
+        OperationWithAttributes, Delete extends OperationWithAttributes, Lock>
         implements Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
 
@@ -227,44 +229,44 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
 
     @Override
     public TransactionId transactionIdFromGet(Get operation) {
-        return dataStore.getTransactionIdFromOperation((OperationWithAttributes) operation);
+        return dataStore.getTransactionIdFromOperation(operation);
     }
 
     @Override
     public TransactionId transactionIdFromScan(Scan operation) {
-        return dataStore.getTransactionIdFromOperation((OperationWithAttributes) operation);
+        return dataStore.getTransactionIdFromOperation(operation);
     }
 
     @Override
     public TransactionId transactionIdFromPut(Put operation) {
-        return dataStore.getTransactionIdFromOperation((OperationWithAttributes) operation);
+        return dataStore.getTransactionIdFromOperation(operation);
     }
 
     // Operation initialization. These are expected to be called "client-side" when operations are created.
 
     @Override
     public void initializeGet(String transactionId, Get get) throws IOException {
-        initializeOperation(transactionId, (OperationWithAttributes) get);
+        initializeOperation(transactionId, get);
     }
 
     @Override
     public void initializeGet(String transactionId, Get get, boolean includeSIColumn) throws IOException {
-        initializeOperation(transactionId, (OperationWithAttributes) get, includeSIColumn, false);
+        initializeOperation(transactionId, get, includeSIColumn, false);
     }
 
     @Override
     public void initializeScan(String transactionId, Scan scan) {
-        initializeOperation(transactionId, (OperationWithAttributes) scan);
+        initializeOperation(transactionId, scan);
     }
 
     @Override
     public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart) {
-        initializeOperation(transactionId, (OperationWithAttributes) scan, includeSIColumn, includeUncommittedAsOfStart);
+        initializeOperation(transactionId, scan, includeSIColumn, includeUncommittedAsOfStart);
     }
 
     @Override
     public void initializePut(String transactionId, Put put) {
-        initializeOperation(transactionId, (OperationWithAttributes) put);
+        initializeOperation(transactionId, put);
         dataStore.addPlaceHolderColumnToEmptyPut(put);
     }
 
@@ -288,15 +290,15 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
      */
     private Put createDeletePutDirect(long transactionId, Data rowKey) {
         final Put deletePut = (Put) dataLib.newPut(rowKey);
-        flagForSITreatment(transactionId, false, false, (OperationWithAttributes) deletePut);
+        flagForSITreatment(transactionId, false, false, deletePut);
         dataStore.setTombstoneOnPut(deletePut, transactionId);
         dataStore.setDeletePutAttribute(deletePut);
         return deletePut;
     }
 
     @Override
-    public boolean isDeletePut(Mutation put) {
-        final Boolean deleteAttribute = dataStore.getDeletePutAttribute((OperationWithAttributes) put);
+    public boolean isDeletePut(Mutation mutation) {
+        final Boolean deleteAttribute = dataStore.getDeletePutAttribute(mutation);
         return (deleteAttribute != null && deleteAttribute);
     }
 
@@ -320,7 +322,7 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
     public void preProcessGet(Get readOperation) throws IOException {
         dataLib.setGetTimeRange(readOperation, 0, Long.MAX_VALUE);
         dataLib.setGetMaxVersions(readOperation);
-        if (dataStore.isIncludeSIColumn((OperationWithAttributes) readOperation)) {
+        if (dataStore.isIncludeSIColumn(readOperation)) {
             dataStore.addSIFamilyToGet(readOperation);
         } else {
             dataStore.addSIFamilyToGetIfNeeded(readOperation);
@@ -331,7 +333,7 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
     public void preProcessScan(Scan readOperation) throws IOException {
         dataLib.setScanTimeRange(readOperation, 0, Long.MAX_VALUE);
         dataLib.setScanMaxVersions(readOperation);
-        if (dataStore.isIncludeSIColumn((OperationWithAttributes) readOperation)) {
+        if (dataStore.isIncludeSIColumn(readOperation)) {
             dataStore.addSIFamilyToScan(readOperation);
         } else {
             dataStore.addSIFamilyToScanIfNeeded(readOperation);
@@ -342,8 +344,8 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
 
     @Override
     public boolean processPut(Table table, RollForwardQueue<Data> rollForwardQueue, Put put) throws IOException {
-        if (isFlaggedForSITreatment((OperationWithAttributes) put)) {
-            processPutDirect(table, rollForwardQueue, (Put) put);
+        if (isFlaggedForSITreatment(put)) {
+            processPutDirect(table, rollForwardQueue, put);
             return true;
         } else {
             return false;
@@ -351,7 +353,7 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
     }
 
     private void processPutDirect(Table table, RollForwardQueue<Data> rollForwardQueue, Put put) throws IOException {
-        final TransactionId transactionId = dataStore.getTransactionIdFromOperation((OperationWithAttributes) put);
+        final TransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
         final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
         ensureTransactionAllowsWrites(transaction);
         performPut(table, rollForwardQueue, put, transaction);
@@ -369,7 +371,7 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
             dataTransactionsToRollForward = (Set<Long>) conflictResults[0];
             Set<Long> conflictingChildren = (Set<Long>) conflictResults[1];
             final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table);
-            dataStore.suppressIndexing((OperationWithAttributes) newPut);
+            dataStore.suppressIndexing(newPut);
             dataWriter.write(table, newPut, lock);
             resolveChildConflicts(table, newPut, lock, conflictingChildren);
         } finally {
@@ -384,7 +386,7 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
     private void resolveChildConflicts(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
         if (!conflictingChildren.isEmpty()) {
             Delete delete = dataStore.copyPutToDelete(put, conflictingChildren);
-            dataStore.suppressIndexing((OperationWithAttributes) delete);
+            dataStore.suppressIndexing(delete);
             dataWriter.delete(table, delete, lock);
         }
     }
@@ -497,29 +499,29 @@ public class SITransactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Dat
 
     @Override
     public boolean isFilterNeededGet(Get get) {
-        return isFlaggedForSITreatment((OperationWithAttributes) get)
-                && !dataStore.isSuppressIndexing((OperationWithAttributes) get);
+        return isFlaggedForSITreatment(get)
+                && !dataStore.isSuppressIndexing(get);
     }
 
     @Override
     public boolean isFilterNeededScan(Scan scan) {
-        return isFlaggedForSITreatment((OperationWithAttributes) scan)
-                && !dataStore.isSuppressIndexing((OperationWithAttributes) scan);
+        return isFlaggedForSITreatment(scan)
+                && !dataStore.isSuppressIndexing(scan);
     }
 
     @Override
     public boolean isGetIncludeSIColumn(Get get) {
-        return dataStore.isIncludeSIColumn((OperationWithAttributes) get);
+        return dataStore.isIncludeSIColumn(get);
     }
 
     @Override
     public boolean isScanIncludeSIColumn(Scan read) {
-        return dataStore.isIncludeSIColumn((OperationWithAttributes) read);
+        return dataStore.isIncludeSIColumn(read);
     }
 
     @Override
     public boolean isScanIncludeUncommittedAsOfStart(Scan scan) {
-        return dataStore.isScanIncludeUncommittedAsOfStart((OperationWithAttributes) scan);
+        return dataStore.isScanIncludeUncommittedAsOfStart(scan);
     }
 
     @Override
