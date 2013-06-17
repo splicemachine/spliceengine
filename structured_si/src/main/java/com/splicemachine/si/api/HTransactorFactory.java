@@ -4,6 +4,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConfiguration;
+import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -54,7 +55,7 @@ public class HTransactorFactory extends SIConstants {
         return getTransactorDirect();
     }
 
-    public static Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> getTransactor() {
+    public static Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> getTransactor() {
         return getTransactorDirect().getTransactor();
     }
 
@@ -108,7 +109,7 @@ public class HTransactorFactory extends SIConstants {
                     SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN_STRING,
                     EMPTY_BYTE_ARRAY, SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
                     DEFAULT_FAMILY);
-            final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Put, Get, Scan, Mutation, Result, KeyValue, byte[], Delete, HRowLock>
+            final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes, Delete, HRowLock>
                     (timestampSource, dataLib, writer, rowStore, transactionStore,
                             new SystemClock(), TRANSACTION_TIMEOUT, managedTransactor);
             managedTransactor.setTransactor(transactor);

@@ -17,7 +17,7 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
  * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
  * transaction table).
  */
-public class DataStore<Data, Result, KeyValue, OperationWithAttributes, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock> {
+public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock> {
     final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
     private final STableReader<IHTable, Result, Get, Scan> reader;
     private final STableWriter<IHTable, Put, Delete, Data, Lock> writer;
@@ -166,11 +166,11 @@ public class DataStore<Data, Result, KeyValue, OperationWithAttributes, Put exte
         return dataLib.valuesEqual(value, siFail);
     }
 
-    public void recordRollForward(RollForwardQueue<Data> rollForwardQueue, ImmutableTransaction transaction, Data row) {
+    public void recordRollForward(RollForwardQueue<Data, Hashable> rollForwardQueue, ImmutableTransaction transaction, Data row) {
         recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), row);
     }
 
-    public void recordRollForward(RollForwardQueue<Data> rollForwardQueue, long transactionId, Data row) {
+    public void recordRollForward(RollForwardQueue<Data, Hashable> rollForwardQueue, long transactionId, Data row) {
         if (rollForwardQueue != null) {
             rollForwardQueue.recordRow(transactionId, row);
         }

@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.job.scheduler;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.derby.impl.job.coprocessor.*;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.ByteDataInput;
@@ -347,7 +348,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
             //rollback child transaction
             if(taskStatus.getTransactionId()!=null){
                 try {
-                    Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor = HTransactorFactory.getTransactor();
+                    Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = HTransactorFactory.getTransactor();
                     TransactionId txnId = transactor.transactionIdFromString(taskStatus.getTransactionId());
                     HTransactorFactory.getTransactor().rollback(txnId);
                 } catch (IOException e) {
@@ -576,7 +577,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                         case COMPLETED:
                             try {
                                 if (changedFuture.getTransactionId() != null) {
-                                    Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor = HTransactorFactory.getTransactor();
+                                    Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = HTransactorFactory.getTransactor();
                                     TransactionId txnId = transactor.transactionIdFromString(changedFuture.getTransactionId());
                                     HTransactorFactory.getTransactor().commit(txnId);
                                 }

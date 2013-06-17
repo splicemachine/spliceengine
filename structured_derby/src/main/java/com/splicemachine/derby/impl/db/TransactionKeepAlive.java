@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.db;
 
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.HTransactorFactory;
@@ -63,7 +64,7 @@ public class TransactionKeepAlive {
                 final ContextManager contextManager = (ContextManager) o;
                 final String transactionId = SpliceObserverInstructions.getTransactionId(contextManager);
                 if (transactionId != null && !keptAlive.contains(transactionId)) {
-                    final Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor = HTransactorFactory.getTransactor();
+                    final Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = HTransactorFactory.getTransactor();
                     try {
                     	SpliceLogUtils.trace(LOG,"keeping alive %s",transactionId);
                         transactor.keepAlive(transactor.transactionIdFromString(transactionId));

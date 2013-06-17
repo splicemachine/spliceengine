@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.constants.bytes.HashableBytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -39,13 +38,15 @@ import java.util.concurrent.TimeUnit;
  * much code as required inside of the synchronized blocks. All of the mutable state is accessed from inside of
  * synchronized blocks.
  */
-public class RollForwardQueue<Data> {
+public class RollForwardQueue<Data, Hashable> {
     static final Logger LOG = Logger.getLogger(RollForwardQueue.class);
 
     /**
      * The thread pool to use for running asynchronous roll-forward actions.
      */
     public static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
+
+    private final Hasher<Data, Hashable> hasher;
 
     /**
      * A plug-point to define what action to take at roll-forward time.
@@ -74,7 +75,7 @@ public class RollForwardQueue<Data> {
     /**
      * The queue of pending roll-forward requests. It is a map from transaction ID to a set of row keys.
      */
-    private Map<Long, Set> transactionMap;
+    private Map<Long, Set<Hashable>> transactionMap;
 
     /**
      * A reference to the task that is scheduled to reset the queue. As tasks run they check that this is still scheduled.
@@ -93,7 +94,8 @@ public class RollForwardQueue<Data> {
      * It is expected that one queue will be created for each HBase region. All of the queues in a JVM will use a shared
      * thread pool.
      */
-    public RollForwardQueue(RollForwardAction<Data> action, int maxCount, int rollForwardDelayMS, int resetMS, String tableName) {
+    public RollForwardQueue(Hasher<Data, Hashable> hasher, RollForwardAction<Data> action, int maxCount, int rollForwardDelayMS, int resetMS, String tableName) {
+        this.hasher = hasher;
         this.action = action;
         this.maxCount = maxCount;
         this.rollForwardDelayMS = rollForwardDelayMS;
@@ -110,13 +112,13 @@ public class RollForwardQueue<Data> {
         synchronized (this) {
             forceResetIfNeeded();
             if (count < maxCount) {
-                Set rowSet = transactionMap.get(transactionId);
+                Set<Hashable> rowSet = transactionMap.get(transactionId);
                 if (rowSet == null) {
                     rowSet = new HashSet();
                     transactionMap.put(transactionId, rowSet);
                     scheduleRollForward(transactionId);
                 }
-                final Object newRow = toHashable(rowKey);
+                final Hashable newRow = hasher.toHashable(rowKey);
                 if (!rowSet.contains(newRow)) {
                     rowSet.add(newRow);
                     count = count + 1;
@@ -186,38 +188,15 @@ public class RollForwardQueue<Data> {
     /**
      * Convert the internal set of wrapped row identifiers into a list of un-wrapped identifiers.
      */
-    private List<Data> produceRowList(Set rowSet) {
+    private List<Data> produceRowList(Set<Hashable> rowSet) {
         if (rowSet == null) {
             return new ArrayList<Data>();
         } else {
             List<Data> result = new ArrayList<Data>(rowSet.size());
-            for (Object row : rowSet) {
-                result.add(recoverUnhashable(row));
+            for (Hashable row : rowSet) {
+                result.add(hasher.fromHashable(row));
             }
             return result;
-        }
-    }
-
-    /**
-     * Under HBase row keys are byte arrays. This method wraps byte arrays into objects that can be placed into Sets.
-     * This allows duplicate requests for a given row to be ignored.
-     */
-    private Object toHashable(Data row) {
-        if (row.getClass().isArray() && row.getClass().getComponentType() == Byte.TYPE) {
-            return new HashableBytes((byte[]) row);
-        } else {
-            return row;
-        }
-    }
-
-    /**
-     * The inverse of the toHashable() method. This recovers the original byte array from its hashable wrapper.
-     */
-    private Data recoverUnhashable(Object row) {
-        if (row instanceof HashableBytes) {
-            return (Data) ((HashableBytes) row).getBytes();
-        } else {
-            return (Data) row;
         }
     }
 
@@ -237,7 +216,7 @@ public class RollForwardQueue<Data> {
      */
     private void reset() {
         synchronized (this) {
-            transactionMap = new HashMap<Long, Set>();
+            transactionMap = new HashMap<Long, Set<Hashable>>();
             count = 0;
             scheduleReset();
         }

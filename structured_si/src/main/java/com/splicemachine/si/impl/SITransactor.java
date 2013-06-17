@@ -29,15 +29,15 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
 public class SITransactor<Table, OperationWithAttributes, Put extends OperationWithAttributes, Get extends OperationWithAttributes,
-        Scan extends OperationWithAttributes, Mutation extends OperationWithAttributes, Result, KeyValue, Data,
+        Scan extends OperationWithAttributes, Mutation extends OperationWithAttributes, Result, KeyValue, Data, Hashable,
         Delete extends OperationWithAttributes, Lock>
-        implements Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data> {
+        implements Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data, Hashable> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
 
     private final TimestampSource timestampSource;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
     private final STableWriter<Table, Put, Delete, Data, Lock> dataWriter;
-    private final DataStore<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Table, Lock> dataStore;
+    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Table, Lock> dataStore;
     private final TransactionStore transactionStore;
     private final Clock clock;
     private final int transactionTimeoutMS;
@@ -343,7 +343,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
     // Process update operations
 
     @Override
-    public boolean processPut(Table table, RollForwardQueue<Data> rollForwardQueue, Put put) throws IOException {
+    public boolean processPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
         if (isFlaggedForSITreatment(put)) {
             processPutDirect(table, rollForwardQueue, put);
             return true;
@@ -352,7 +352,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
         }
     }
 
-    private void processPutDirect(Table table, RollForwardQueue<Data> rollForwardQueue, Put put) throws IOException {
+    private void processPutDirect(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
         final TransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
         final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
         ensureTransactionAllowsWrites(transaction);
@@ -360,7 +360,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
     }
 
 
-    private void performPut(Table table, RollForwardQueue<Data> rollForwardQueue, Put put, ImmutableTransaction transaction)
+    private void performPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put, ImmutableTransaction transaction)
             throws IOException {
         final Data rowKey = dataLib.getPutKey(put);
         final Lock lock = dataWriter.lockRow(table, rowKey);

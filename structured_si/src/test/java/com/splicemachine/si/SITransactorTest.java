@@ -8,6 +8,7 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.impl.FilterState;
+import com.splicemachine.si.impl.Hasher;
 import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
@@ -53,7 +54,9 @@ public class SITransactorTest extends SIConstants {
 
     void baseSetUp() {
         transactor = transactorSetup.transactor;
-        transactorSetup.rollForwardQueue = new RollForwardQueue(new RollForwardAction() {
+        transactorSetup.rollForwardQueue = new RollForwardQueue(
+                new NoOpHasher(),
+                new RollForwardAction() {
             @Override
             public void rollForward(long transactionId, List rowList) throws IOException {
                 final STableReader reader = storeSetup.getReader();

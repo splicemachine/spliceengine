@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.derby.impl.sql.execute.constraint.*;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.si.api.Transactor;
@@ -321,7 +322,7 @@ public class IndexSet {
                     " Please wait a bit and try again");
         }
         boolean success = false;
-        Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor = null;
+        Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = null;
         TransactionId txnID = null;
         SpliceTransactionResourceImpl impl = null;
         try {

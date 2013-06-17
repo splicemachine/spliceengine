@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.ByteDataOutput;
@@ -107,7 +108,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
         try {
             //create a child transaction
             if(parentTxnId!=null){
-                Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor = HTransactorFactory.getTransactor();
+                Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = HTransactorFactory.getTransactor();
                 TransactionId parent = transactor.transactionIdFromString(parentTxnId);
                 try {
                     TransactionId childTxnId  = transactor.beginChildTransaction(parent, !readOnly, !readOnly);

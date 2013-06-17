@@ -1,5 +1,6 @@
 package com.splicemachine.si.coprocessors;
 
+import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.SICompactionState;
@@ -23,7 +24,7 @@ public class SICompactionScanner implements InternalScanner {
     private final SICompactionState compactionState;
     private final InternalScanner delegate;
 
-    public SICompactionScanner(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor,
+    public SICompactionScanner(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor,
                                InternalScanner scanner) {
         this.compactionState = transactor.newCompactionState();
         this.delegate = scanner;

@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.gotometrics.orderly.LongRowKey;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.Transactor;
@@ -218,7 +219,7 @@ public class Sequence {
             try{
                 stri = new SpliceTransactionResourceImpl();
 //                //get a read-only child transaction
-                Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor = HTransactorFactory.getTransactor();
+                Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = HTransactorFactory.getTransactor();
                 TransactionId parent = transactor.transactionIdFromString(txnId);
                 TransactionId child = transactor.beginChildTransaction(parent,false,false);
                 try{

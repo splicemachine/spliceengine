@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.derby.impl.sql.execute.constraint.*;
 import com.splicemachine.derby.impl.sql.execute.index.*;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
@@ -209,7 +210,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             throw new IndexNotSetUpException("Unable to initialize index management for table "+ congomId
                     +" within a sufficient time frame. Please wait a bit and try again");
         }
-        Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor = null;
+        Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = null;
         TransactionId txnId = null;
         boolean success = false;
         ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();

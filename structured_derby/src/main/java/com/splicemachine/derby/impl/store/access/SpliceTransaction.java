@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
+import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.si.api.ParentTransactionManager;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.IHTable;
@@ -47,11 +48,11 @@ public class SpliceTransaction implements Transaction {
 	protected static final int	ACTIVE		    = 2;
 
 	//FIXME: this is a temp workaround to integrate our existing transaction code. We need to implement the function here eventually.
-	protected Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor;
+	protected Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor;
 
 	public SpliceTransaction(CompatibilitySpace compatibilitySpace,
                              DataValueFactory dataValueFactory,
-                             Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor,
+                             Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor,
                              String transName) {
 		SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
 		this.compatibilitySpace = compatibilitySpace;
@@ -62,7 +63,7 @@ public class SpliceTransaction implements Transaction {
 	}
 
 	public SpliceTransaction(CompatibilitySpace compatibilitySpace, DataValueFactory dataValueFactory,
-                             Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor,
+                             Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor,
                              String transName, TransactionId transactionId) {
 			SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
 			this.compatibilitySpace = compatibilitySpace;

@@ -1,6 +1,7 @@
 package com.splicemachine.si.jmx;
 
 import com.google.common.cache.Cache;
+import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.hbase.IHTable;
@@ -17,7 +18,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ManagedTransactor implements TransactorListener, TransactorStatus {
-    private Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor;
+    private Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor;
 
     private final AtomicLong createdChildTxns = new AtomicLong(0l);
 
@@ -41,11 +42,11 @@ public class ManagedTransactor implements TransactorListener, TransactorStatus {
         this.transactionCache = transactionCache;
     }
 
-    public Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> getTransactor() {
+    public Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> getTransactor() {
         return transactor;
     }
 
-    public void setTransactor(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor) {
+    public void setTransactor(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor) {
         this.transactor = transactor;
     }
 
