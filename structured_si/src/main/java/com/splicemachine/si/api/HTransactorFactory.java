@@ -106,7 +106,6 @@ public class HTransactorFactory extends SIConstants {
                     "si-transaction-id", "si-delete-put", SNAPSHOT_ISOLATION_FAMILY,
                     SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING,
                     SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING,
-                    SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN_STRING,
                     EMPTY_BYTE_ARRAY, SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
                     DEFAULT_FAMILY);
             final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes, Delete, HRowLock>
