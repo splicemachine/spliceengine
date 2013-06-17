@@ -146,7 +146,8 @@ public class SortOperation extends SpliceBaseOperation {
             keyColumns[i] = order[i].getColumnId();
             descColumns[keyColumns[i]] = order[i].getIsAscending();
         }
-        readingFromTemp = !context.isSink() || context.getTopOperation() != this;
+        readingFromTemp = context.getTopOperation() != null &&
+                (!context.isSink() || context.getTopOperation() != this);
     }
 
     @Override
