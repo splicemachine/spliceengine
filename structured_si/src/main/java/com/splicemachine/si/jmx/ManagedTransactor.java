@@ -1,16 +1,23 @@
 package com.splicemachine.si.jmx;
 
 import com.google.common.cache.Cache;
+import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.TransactorListener;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
+import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.ImmutableTransaction;
 import com.splicemachine.si.impl.Transaction;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ManagedTransactor implements TransactorListener, TransactorStatus {
-    private HTransactor transactor;
+    private Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor;
 
     private final AtomicLong createdChildTxns = new AtomicLong(0l);
 
@@ -34,11 +41,11 @@ public class ManagedTransactor implements TransactorListener, TransactorStatus {
         this.transactionCache = transactionCache;
     }
 
-    public HTransactor getTransactor() {
+    public Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> getTransactor() {
         return transactor;
     }
 
-    public void setTransactor(HTransactor transactor) {
+    public void setTransactor(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor) {
         this.transactor = transactor;
     }
 

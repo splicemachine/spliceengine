@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * The primary interface to the transaction module.
  */
-public interface Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, Data> extends ClientTransactor<Put, Get, Scan, Mutation, Data> {
+public interface Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data> extends ClientTransactor<Put, Get, Scan, Mutation, Data> {
     /**
      * Start a writable transaction in "snapshot isolation" concurrency mode.
      */
@@ -49,7 +49,7 @@ public interface Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue,
     void rollback(TransactionId transactionId) throws IOException;
     void fail(TransactionId transactionId) throws IOException;
 
-    boolean processPut(IHTable table, RollForwardQueue<Data> rollForwardQueue, Put put) throws IOException;
+    boolean processPut(Table table, RollForwardQueue<Data> rollForwardQueue, Put put) throws IOException;
     boolean isFilterNeededGet(Get get);
     boolean isFilterNeededScan(Scan scan);
     boolean isGetIncludeSIColumn(Get get);
@@ -65,6 +65,6 @@ public interface Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue,
     Filter.ReturnCode filterKeyValue(FilterState filterState, KeyValue keyValue) throws IOException;
     Result filterResult(FilterState filterState, Result result) throws IOException;
 
-    void rollForward(IHTable table, long transactionId, List<Data> rows) throws IOException;
+    void rollForward(Table table, long transactionId, List<Data> rows) throws IOException;
     SICompactionState newCompactionState();
 }

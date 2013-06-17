@@ -6,15 +6,16 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HClientTransactor;
+import com.splicemachine.si.api.ClientTransactor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -405,7 +406,7 @@ public class Scans extends SpliceUtils {
 			}
 			
 			if (scanColumnList.anySetBit() == -1) {
-                final HClientTransactor transactor = getTransactor();
+                final ClientTransactor<Put, Get, Scan, Mutation, byte[]> transactor = getTransactor();
                 transactor.initializeScan(transactor.transactionIdFromScan(scan).getTransactionIdString(), scan, true, false);
 			} else {
 			

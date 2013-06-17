@@ -4,16 +4,20 @@ import com.gotometrics.orderly.LongRowKey;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResourcePool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.dictionary.*;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -214,7 +218,7 @@ public class Sequence {
             try{
                 stri = new SpliceTransactionResourceImpl();
 //                //get a read-only child transaction
-                HTransactor transactor = HTransactorFactory.getTransactor();
+                Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor = HTransactorFactory.getTransactor();
                 TransactionId parent = transactor.transactionIdFromString(txnId);
                 TransactionId child = transactor.beginChildTransaction(parent,false,false);
                 try{

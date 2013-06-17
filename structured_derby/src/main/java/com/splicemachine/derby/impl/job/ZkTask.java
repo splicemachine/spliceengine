@@ -7,11 +7,18 @@ import com.splicemachine.derby.utils.ByteDataOutput;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
@@ -100,7 +107,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
         try {
             //create a child transaction
             if(parentTxnId!=null){
-                HTransactor transactor = HTransactorFactory.getTransactor();
+                Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[]> transactor = HTransactorFactory.getTransactor();
                 TransactionId parent = transactor.transactionIdFromString(parentTxnId);
                 try {
                     TransactionId childTxnId  = transactor.beginChildTransaction(parent, !readOnly, !readOnly);

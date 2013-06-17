@@ -4,7 +4,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.data.hbase.HTransactorAdapter;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
@@ -69,7 +68,7 @@ public class TransactorSetup extends SIConstants {
                         -1, -2, userColumnsFamilyName),
                 transactionStore, storeSetup.getClock(), 1500, listener);
         if (!simple) {
-            listener.setTransactor(new HTransactorAdapter(transactor));
+            listener.setTransactor(transactor);
             hTransactor = listener;
         }
         clientTransactor = transactor;
