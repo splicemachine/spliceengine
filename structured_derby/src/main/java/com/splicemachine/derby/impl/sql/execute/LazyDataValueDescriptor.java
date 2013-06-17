@@ -4,7 +4,6 @@ import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayInputStream;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.types.BooleanDataValue;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -16,7 +15,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.sql.*;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Calendar;
 
 /**
@@ -588,36 +594,33 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     @Override
     public boolean isNull() {
         return isNull;
-//
-//        if(isNull){
-//
-//            return isNull;
-//
-//        }else{
-//
-//            boolean isWrappedDvdNull = dvd.isNull();
-//
-//            boolean result;
-//
-//            if(isWrappedDvdNull){
-//
-//                result = dvdBytes == null || dvdBytes.length == 0;
-//
-//            }else{
-//
-//                result = false;
-//
-//            }
-//
-//            return result;
-//        }
-
     }
 
     @Override
     public void restoreToNull() {
         dvd.restoreToNull();
         resetForSerialization();
+    }
+
+    protected void writeDvdBytes(ObjectOutput out) throws IOException {
+        if(!isSerialized()){
+            forceSerialization();
+        }
+
+        byte[] bytes = null;
+
+        try{
+            bytes = getBytes();
+        }catch(StandardException e){
+            throw new IOException("Error reading bytes from DVD", e);
+        }
+
+        out.writeBoolean(bytes != null);
+
+        if(bytes != null){
+            out.writeInt(bytes.length);
+            out.write(bytes);
+        }
     }
 
     @Override
@@ -629,37 +632,36 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
             out.writeUTF(dvd.getClass().getCanonicalName());
         }
 
-        if(!isSerialized()){
-            forceSerialization();
-        }
-
-        out.writeBoolean(dvdBytes != null);
-
-        if(isSerialized()){
-            out.writeObject(new FormatableBitSet(dvdBytes));
-        }
+        writeDvdBytes(out);
 
         out.writeUTF(dvdSerializer.getClass().getCanonicalName());
+    }
 
-        out.writeBoolean(deserialized);
+    protected void readDvdBytes(ObjectInput in) throws IOException, ClassNotFoundException {
+        if(in.readBoolean()){
+
+            int numBytes = in.readInt();
+
+            dvdBytes = new byte[numBytes];
+            in.read(dvdBytes);
+        }
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 
-        if(in.readBoolean()){
-            this.dvd = (DataValueDescriptor) createClassInstance(in.readUTF());
-            dvd.setToNull();
-        }
+        DataValueDescriptor externalDVD = null;
 
         if(in.readBoolean()){
-            FormatableBitSet fbs = (FormatableBitSet) in.readObject();
-            dvdBytes = fbs.getByteArray();
+            externalDVD = (DataValueDescriptor) createClassInstance(in.readUTF());
+            externalDVD.setToNull();
         }
 
-        dvdSerializer = (DVDSerializer) createClassInstance(in.readUTF());
+        readDvdBytes(in);
 
-        deserialized = in.readBoolean();
+        DVDSerializer serializer = (DVDSerializer) createClassInstance(in.readUTF());
+
+        init(externalDVD, serializer);
     }
 
     protected Object createClassInstance(String className) throws IOException {

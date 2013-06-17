@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.derby.iapi.types.VariableSizeDataValue;
@@ -133,19 +132,7 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
             out.writeUTF(ndv.getClass().getCanonicalName());
         }
 
-        byte[] bytes = null;
-
-        try{
-            bytes = getBytes();
-        }catch(StandardException e){
-            throw new IOException("Error reading bytes from DVD", e);
-        }
-
-        out.writeBoolean(bytes != null);
-
-        if(bytes != null){
-            out.writeObject(new FormatableBitSet(bytes));
-        }
+        writeDvdBytes(out);
 
         out.writeUTF(dvdSerializer.getClass().getCanonicalName());
 
@@ -161,13 +148,9 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
             extNDV.setToNull();
         }
 
-        if(in.readBoolean()){
-            FormatableBitSet fbs = (FormatableBitSet) in.readObject();
-            dvdBytes = fbs.getByteArray();
-        }
+        readDvdBytes(in);
 
         DVDSerializer extSerializer = (DVDSerializer) createClassInstance(in.readUTF());
-        deserialized = false;
 
         init(extNDV, extSerializer);
     }
