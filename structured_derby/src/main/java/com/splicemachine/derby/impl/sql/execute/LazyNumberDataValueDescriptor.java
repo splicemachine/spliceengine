@@ -82,11 +82,7 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
 
     @Override
     public void setValue(Number theValue) throws StandardException {
-        if(theValue instanceof Double){
-            ndv.setValue(theValue.doubleValue());
-        }else{
-            ndv.setValue(theValue);
-        }
+        ndv.setValue(theValue);
         resetForSerialization();
     }
 
