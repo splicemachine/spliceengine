@@ -12,7 +12,7 @@ import java.util.Map;
  * Helper class for FilterState. Captures the state associated with the current row being processed by the filter.
  */
 public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> {
-    private final SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> dataLib;
+    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
 
     /**
      * The key of the row currently being processed.

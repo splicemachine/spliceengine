@@ -17,8 +17,8 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
  * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
  * transaction table).
  */
-public class DataStore<Data, Result, KeyValue, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, OperationWithAttributes, IHTable, Lock> {
-    final SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> dataLib;
+public class DataStore<Data, Result, KeyValue, OperationWithAttributes, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock> {
+    final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
     private final STableReader<IHTable, Result, Get, Scan> reader;
     private final STableWriter<IHTable, Put, Delete, Data, Lock> writer;
 
@@ -39,7 +39,7 @@ public class DataStore<Data, Result, KeyValue, Put extends OperationWithAttribut
 
     private final Data userColumnFamily;
 
-    public DataStore(SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock>
+    public DataStore(SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock>
                      dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
                      Data siNeededValue, Data includeSIColumnValue, String includeUncommittedAsOfStartAttribute,
                      Data includeUncommittedAsOfStartValue, String transactionIdAttribute, String deletePutAttribute,

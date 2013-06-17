@@ -3,7 +3,7 @@ package com.splicemachine.si.data.api;
 import java.util.List;
 import java.util.Map;
 
-public interface SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> {
+public interface SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> {
     Data newRowKey(Object[] args);
 
     Data encode(Object value);

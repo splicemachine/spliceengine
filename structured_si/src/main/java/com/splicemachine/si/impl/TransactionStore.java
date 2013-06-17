@@ -23,7 +23,7 @@ import java.util.Set;
 public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, Table> {
     static final Logger LOG = Logger.getLogger(TransactionStore.class);
 
-    private final SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> dataLib;
+    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
     private final STableReader<Table, Result, Get, Scan> reader;
     private final Cache<Long, ImmutableTransaction> immutableTransactionCache;
     private final Cache<Long, ActiveTransactionCacheEntry> activeTransactionCache;

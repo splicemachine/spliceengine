@@ -27,7 +27,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     final Cache<Long, Object[]> visibleCache;
 
     private final ImmutableTransaction myTransaction;
-    private final SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> dataLib;
+    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;

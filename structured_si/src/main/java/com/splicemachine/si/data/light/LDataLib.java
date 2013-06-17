@@ -1,14 +1,13 @@
 package com.splicemachine.si.data.light;
 
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SRowLock;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, LTuple, LTuple, LGet, LGet, Object, LRowLock> {
+public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTuple, LTuple, LGet, LGet, LRowLock> {
 
     @Override
     public Object newRowKey(Object... args) {

@@ -28,16 +28,16 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
-public class SITransactor<Table, Put extends OperationWithAttributes, Get extends OperationWithAttributes,
+public class SITransactor<Table, OperationWithAttributes, Put extends OperationWithAttributes, Get extends OperationWithAttributes,
         Scan extends OperationWithAttributes, Mutation extends OperationWithAttributes, Result, KeyValue, Data,
-        OperationWithAttributes, Delete extends OperationWithAttributes, Lock>
+        Delete extends OperationWithAttributes, Lock>
         implements Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
 
     private final TimestampSource timestampSource;
-    private final SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> dataLib;
+    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
     private final STableWriter<Table, Put, Delete, Data, Lock> dataWriter;
-    private final DataStore<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Table, Lock> dataStore;
+    private final DataStore<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Table, Lock> dataStore;
     private final TransactionStore transactionStore;
     private final Clock clock;
     private final int transactionTimeoutMS;
@@ -544,7 +544,7 @@ public class SITransactor<Table, Put extends OperationWithAttributes, Get extend
 
     @Override
     public Result filterResult(FilterState filterState, Result result) throws IOException {
-        final SDataLib<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> dataLib = dataStore.dataLib;
+        final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib = dataStore.dataLib;
         final List<KeyValue> filteredCells = new ArrayList<KeyValue>();
         final List<KeyValue> keyValues = dataLib.listResult(result);
         if (keyValues != null) {

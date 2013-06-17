@@ -2,7 +2,6 @@ package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SRowLock;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -18,7 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, HRowLock> {
+public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, HRowLock> {
 
     @Override
     public Result newResult(byte[] key, List<KeyValue> keyValues) {
