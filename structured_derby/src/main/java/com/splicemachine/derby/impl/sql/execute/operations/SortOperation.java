@@ -234,45 +234,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         return rs;
     }
 
-    public OperationSink.Translator getTranslator() throws IOException {
-        try {
-            final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(), keyColumns, descColumns, sequence[0]);
-            final Serializer serializer = Serializer.get();
-
-            final byte[][] keySet = new byte[2][];
-            return new OperationSink.Translator() {
-                @Override
-                @Nonnull
-                public List<Mutation> translate(@Nonnull ExecRow row, byte[] postfix) throws IOException {
-                    try {
-
-                        keySet[0] = hasher.generateSortedHashKeyWithoutUniqueKey(currentRow.getRowArray());
-                        byte[] tempRowKey;
-                        if (!distinct) {
-                            keySet[1] = postfix;
-
-                            tempRowKey = Bytes.concat(keySet);
-                        } else
-                            tempRowKey = keySet[0];
-//                        byte[] tempRowKey = distinct?hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(),null):
-//                                hasher.generateSortedHashKeyWithPostfix(currentRow.getRowArray(), SpliceUtils.getUniqueKey());
-                        Put put = Puts.buildTempTableInsert(tempRowKey, row.getRowArray(), null, serializer);
-                        return Collections.<Mutation>singletonList(put);
-                    } catch (StandardException e) {
-                        throw Exceptions.getIOException(e);
-                    }
-                }
-
-                @Override
-                public boolean mergeKeys() {
-                    return distinct;
-                }
-            };
-        } catch (StandardException se) {
-            throw Exceptions.getIOException(se);
-        }
-    }
-
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow def = getExecRowDefinition();

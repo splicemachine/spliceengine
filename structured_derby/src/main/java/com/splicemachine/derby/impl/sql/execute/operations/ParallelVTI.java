@@ -89,10 +89,6 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 		
 	}
 
-    public OperationSink.Translator getTranslator() throws IOException {
-        throw new UnsupportedOperationException("getTranslator is not supported on node "+this.getClass());
-    }
-
     @Override
 	public void readExternal(ObjectInput in) throws IOException,
 			ClassNotFoundException {

@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.primitives.Bytes;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -11,13 +10,14 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider;
 import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider2;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.JoinSideExecRow;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
@@ -33,19 +33,18 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
 public class MergeSortJoinOperation extends JoinOperation implements SinkingOperation {
     private static final long serialVersionUID = 2l;
@@ -193,8 +192,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
         byte[] finish = BytesUtil.copyAndIncrement(start);
         rowType = (SQLInteger) activation.getDataValueFactory().getNullInteger(null);
-        Hasher leftHasher = new Hasher(leftRow.getRowArray(),leftHashKeys,null,sequence[0]);
-        Hasher rightHasher = new Hasher(rightRow.getRowArray(),rightHashKeys,null,sequence[0]);
         if(regionScanner==null){
             reduceScan = Scans.newScan(start,finish, getTransactionID());
         }else{
@@ -220,10 +217,10 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
         ExecRow template = getExecRowDefinition();
         joinSide = JoinSide.LEFT;
-        RowProvider leftProvider = leftResultSet.getMapRowProvider(this,template);
+        RowProvider leftProvider = leftResultSet.getMapRowProvider(this, template);
 
         joinSide = JoinSide.RIGHT;
-        RowProvider rightProvider = rightResultSet.getMapRowProvider(this,template);
+        RowProvider rightProvider = rightResultSet.getMapRowProvider(this, template);
 
         RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
 
@@ -252,48 +249,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 //		}
 		return new SpliceNoPutResultSet(activation,this,provider);
 	}
-
-    public OperationSink.Translator getTranslator() throws IOException {
-        final Serializer serializer = Serializer.get();
-        try {
-            final DataValueDescriptor[] additionalDescriptors = {activation.getDataValueFactory().getDataValue(joinSide.ordinal(), null)};
-            Hasher hasher = null;
-            switch (joinSide) {
-                case LEFT:
-                    hasher = new Hasher(leftResultSet.getExecRowDefinition().getRowArray(),leftHashKeys,null,sequence[0],additionalDescriptors,null);
-                    break;
-                case RIGHT:
-                    hasher = new Hasher(rightResultSet.getExecRowDefinition().getRowArray(),rightHashKeys,null,sequence[0],additionalDescriptors,null);
-                    break;
-            }
-            final Hasher transHasher = hasher;
-            final byte[][] keySet = new byte[2][];
-            return new OperationSink.Translator() {
-                @Nonnull
-                @Override
-                public List<Mutation> translate(@Nonnull ExecRow row, byte[] postfix) throws IOException {
-                    try {
-                        keySet[0] = transHasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray(),additionalDescriptors);
-                        keySet[1] = postfix;
-                        //TODO -sf- possible optimization here. Can we avoid writing duplicate rows at all when oneRowRightSide==true?
-                        byte[] rowKey = Bytes.concat(keySet);
-                        return Collections.<Mutation>singletonList(Puts.buildInsert(rowKey,
-                                row.getRowArray(), null,
-                                SpliceUtils.NA_TRANSACTION_ID, serializer, additionalDescriptors));
-                    } catch (StandardException e) {
-                        throw Exceptions.getIOException(e);
-                    }
-                }
-
-                @Override
-                public boolean mergeKeys() {
-                    return false;
-                }
-            };
-        } catch (StandardException e) {
-            throw Exceptions.getIOException(e);
-        }
-    }
 
     @Override
     public RowEncoder getRowEncoder() throws StandardException {

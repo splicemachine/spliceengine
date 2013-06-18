@@ -1,9 +1,8 @@
 package com.splicemachine.derby.impl.load;
 
 import au.com.bytecode.opencsv.CSVReader;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.hbase.CallBuffer;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.Path;
@@ -29,8 +28,7 @@ public class FileImportTask extends AbstractImportTask{
 
     @Override
     protected long importData(ExecRow row,
-                              Serializer serializer,
-                              RowSerializer rowSerializer,
+                              RowEncoder rowEncoder,
                               CallBuffer<Mutation> writeBuffer) throws Exception {
         InputStream is = null;
         Reader reader = null;
@@ -44,7 +42,7 @@ public class FileImportTask extends AbstractImportTask{
             CSVReader csvReader = getCsvReader(reader,importContext);
             String[] line;
             while((line = csvReader.readNext())!=null){
-                doImportRow(importContext.getTransactionId(),line,importContext.getActiveCols(),row,writeBuffer,rowSerializer,serializer);
+                doImportRow(importContext.getTransactionId(),line,importContext.getActiveCols(),row, writeBuffer, rowEncoder);
                 numImported++;
                 reportIntermediate(numImported);
             }

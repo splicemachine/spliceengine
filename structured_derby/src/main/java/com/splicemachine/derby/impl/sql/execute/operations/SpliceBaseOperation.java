@@ -537,11 +537,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
     @Override
-    public OperationSink.Translator getTranslator() throws IOException {
-        throw new UnsupportedOperationException("Sink not implemented for this node: "+ this.getClass());
-    }
-
-    @Override
     public RowEncoder getRowEncoder() throws StandardException {
         throw new UnsupportedOperationException("Sink not implemented for this node: "+ this.getClass());
     }

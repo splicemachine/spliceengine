@@ -71,35 +71,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 	}
 
     @Override
-    public OperationSink.Translator getTranslator() throws IOException {
-        final Serializer serializer = Serializer.get();
-        try {
-            final RowSerializer rowKeySerializer = new RowSerializer(getExecRowDefinition().getRowArray(),pkColumns,pkColumns==null);
-            return new OperationSink.Translator() {
-                @Nonnull
-                @Override
-                public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
-                    //we ignore the postfix because we want to use our own from RowSerializer
-                    try {
-                        byte[ ]rowKey = rowKeySerializer.serialize(row.getRowArray());
-                        Put put =  Puts.buildInsert(rowKey, row.getRowArray(), getTransactionID(), serializer);
-                        return Collections.<Mutation>singletonList(put);
-                    } catch (StandardException e) {
-                        throw Exceptions.getIOException(e);
-                    }
-                }
-
-                @Override
-                public boolean mergeKeys() {
-                    return true;
-                }
-            };
-        } catch (StandardException e) {
-            throw Exceptions.getIOException(e);
-        }
-    }
-
-    @Override
     public RowEncoder getRowEncoder() throws StandardException {
         KeyType keyType;
         int[] keyColumns = null;

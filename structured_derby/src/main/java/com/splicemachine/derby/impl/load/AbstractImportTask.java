@@ -2,28 +2,25 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.utils.SpliceZooKeeperManager;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DateTimeDataValue;
-import org.apache.derby.iapi.types.SQLTimestamp;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -86,16 +83,29 @@ public abstract class AbstractImportTask extends ZkTask {
     public void execute() throws ExecutionException, InterruptedException {
         try{
             ExecRow row = getExecRow(importContext);
-            Serializer serializer = Serializer.get();
             FormatableBitSet pkCols = importContext.getPrimaryKeys();
 
             CallBuffer<Mutation> writeBuffer = getCallBuffer();
 
-            RowSerializer rowSerializer = new RowSerializer(row.getRowArray(),pkCols,pkCols==null);
+            KeyType keyType = pkCols==null?KeyType.SALTED: KeyType.BARE;
+            RowType rowType = RowType.DENSE_COLUMNAR;
+
+            int[] keyColumns;
+            int pos =0;
+            if(pkCols!=null){
+                keyColumns = new int[pkCols.size()];
+                for(int i=pkCols.anySetBit();i!=-1;i=pkCols.anySetBit(i)){
+                    keyColumns[pos] = i;
+                    pos++;
+                }
+            }else
+                keyColumns = new int[0];
+
+            RowEncoder encoder = RowEncoder.create(row.nColumns(),keyColumns,null,null,keyType,rowType);
 
             Long numImported;
             try{
-                numImported = importData(row,serializer,rowSerializer,writeBuffer);
+                numImported = importData(row,encoder,writeBuffer);
             }finally{
                 writeBuffer.flushBuffer();
                 writeBuffer.close();
@@ -113,17 +123,18 @@ public abstract class AbstractImportTask extends ZkTask {
     }
 
     protected abstract long importData(ExecRow row,
-                                       Serializer serializer,
-                                       RowSerializer rowSerializer,
+                                       RowEncoder rowEncoder,
                                        CallBuffer<Mutation> writeBuffer) throws Exception;
 
     protected void doImportRow(String transactionId,String[] line,FormatableBitSet activeCols, ExecRow row,
-                             CallBuffer<Mutation> writeBuffer,
-                             RowSerializer rowSerializer,Serializer serializer) throws Exception {
+                               CallBuffer<Mutation> writeBuffer,
+                             RowEncoder encoder) throws Exception {
         populateRow(line, activeCols, row);
 
-        Put put = Puts.buildInsertWithSerializer(rowSerializer.serialize(row.getRowArray()),row.getRowArray(),null,transactionId,serializer);
-        writeBuffer.add(put);
+        encoder.write(row,transactionId,writeBuffer);
+
+//        Put put = Puts.buildInsertWithSerializer(rowSerializer.serialize(row.getRowArray()),row.getRowArray(),null,transactionId,serializer);
+//        writeBuffer.add(put);
     }
 
     private void populateRow(String[] line, FormatableBitSet activeCols, ExecRow row) throws StandardException {

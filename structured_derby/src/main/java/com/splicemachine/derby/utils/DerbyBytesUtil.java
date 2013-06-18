@@ -552,24 +552,24 @@ public class DerbyBytesUtil {
 
         switch(colFormatId){
             case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
-                column.setValue(rowDecoder.decodeNextBoolean());
+                column.setValue(rowDecoder.decodeNextBoolean(desc));
                 break;
             case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
-                column.setValue(new Date(rowDecoder.decodeNextLong()));
+                column.setValue(new Date(rowDecoder.decodeNextLong(desc)));
                 break;
             case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
-                column.setValue(rowDecoder.decodeNextDouble());
+                column.setValue(rowDecoder.decodeNextDouble(desc));
                 break;
             case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
-                column.setValue(rowDecoder.decodeNextShort());
+                column.setValue(rowDecoder.decodeNextShort(desc));
             case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
-                column.setValue(rowDecoder.decodeNextInt());
+                column.setValue(rowDecoder.decodeNextInt(desc));
                 break;
             case StoredFormatIds.SQL_LONGINT_ID: //return new SQLLongint();
-                column.setValue(rowDecoder.decodeNextLong());
+                column.setValue(rowDecoder.decodeNextLong(desc));
                 break;
             case StoredFormatIds.SQL_REAL_ID: //return new SQLReal();
-                column.setValue(rowDecoder.decodeNextFloat());
+                column.setValue(rowDecoder.decodeNextFloat(desc));
                 break;
             case StoredFormatIds.SQL_REF_ID: //return new SQLRef();
             case StoredFormatIds.SQL_USERTYPE_ID_V3: //return new UserType();
@@ -583,20 +583,20 @@ public class DerbyBytesUtil {
                 }
                 break;
             case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
-                column.setValue(rowDecoder.decodeNextByte());
+                column.setValue(rowDecoder.decodeNextByte(desc));
                 break;
             case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
-                column.setValue(new Time(rowDecoder.decodeNextLong()));
+                column.setValue(new Time(rowDecoder.decodeNextLong(desc)));
                 break;
             case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
-                column.setValue(new Timestamp(rowDecoder.decodeNextLong()));
+                column.setValue(new Timestamp(rowDecoder.decodeNextLong(desc)));
                 break;
             case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
             case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
             case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
             case StoredFormatIds.XML_ID: //return new XML();
             case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
-                column.setValue(rowDecoder.decodeNextString());
+                column.setValue(rowDecoder.decodeNextString(desc));
                 break;
             case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
             case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit();
@@ -606,7 +606,7 @@ public class DerbyBytesUtil {
                 column.setValue(rowDecoder.decodeNextBytesUnsorted());
                 break;
             case StoredFormatIds.SQL_DECIMAL_ID:
-                column.setBigDecimal(rowDecoder.decodeNextBigDecimal());
+                column.setBigDecimal(rowDecoder.decodeNextBigDecimal(desc));
                 break;
             default:
                 LOG.error("Byte array generation failed " + column.getClass());

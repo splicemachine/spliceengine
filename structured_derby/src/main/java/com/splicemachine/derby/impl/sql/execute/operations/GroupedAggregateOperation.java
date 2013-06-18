@@ -139,8 +139,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         if(regionScanner==null){
             isTemp = true;
         }else{
-            Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
-
             RowEncoder scanEncoder = RowEncoder.create(sourceExecIndexRow.nColumns(),keyColumns,null,keyEncoder.getEncodedBytes(0),KeyType.FIXED_PREFIX,RowType.COLUMNAR);
             rowProvider = new SimpleRegionAwareRowProvider(
                     SpliceUtils.NA_TRANSACTION_ID,
@@ -148,7 +146,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                     context.getScan(),
                     SpliceConstants.TEMP_TABLE_BYTES,
                     SpliceConstants.DEFAULT_FAMILY_BYTES,
-                    hasher,
                     sourceExecIndexRow,null,
                     scanEncoder.getDual(sourceExecIndexRow));
             rowProvider.open();
@@ -185,26 +182,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
         return rowProvider.shuffleRows(soi);
     }
-
-//    @Override
-//    public OperationSink.Translator getTranslator() throws IOException {
-//        return new OperationSink.Translator() {
-//            @Nonnull
-//            @Override
-//            public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
-//                    //keySet[0] = hasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray()); // Moved to getNextRowCore
-//            		keySet[1] = postfix;
-//                    byte[] rowKey = Bytes.concat(keySet);
-//                    Put put = Puts.buildTempTableInsert(rowKey,row.getRowArray(),null,serializer);
-//                    return Collections.<Mutation>singletonList(put);
-//            }
-//
-//            @Override
-//            public boolean mergeKeys() {
-//                return false; //need to make sure we're unique within regions
-//            }
-//        };
-//    }
 
     @Override
     public RowEncoder getRowEncoder() throws StandardException {

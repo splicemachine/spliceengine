@@ -43,14 +43,13 @@ public interface SpliceOperation extends NoPutResultSet {
 	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
 	 */
 	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow outputRowFormat) throws StandardException;
-		
-    /**
-     * Only needs to be implemented by parallel-type tasks (e.g. tasks which also implement sink()).
-     *
-     * @return a function converting non-null ExecRow objects into Put objects.
-     */
-    public OperationSink.Translator getTranslator() throws IOException;
 
+    /**
+     * Encoder for writing ExecRows into HBase (temp table or other location).
+     *
+     * @return
+     * @throws StandardException
+     */
     public RowEncoder getRowEncoder() throws StandardException;
 	/**
 	 * Initializes the node with the statement and the language context from the SpliceEngine.

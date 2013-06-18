@@ -19,9 +19,9 @@ import java.util.Random;
  * Created on: 6/7/13
  */
 @RunWith(Parameterized.class)
-public class DecimalEncodingTest {
-    private static final int numTests=4;
-    private static final int numValuesPerTest=300;
+public class RandomizedDecimalEncodingTest {
+    private static final int numTests=50;
+    private static final int numValuesPerTest=1000;
     private static final int maxSizePerDecimal=17;
 
     @Parameterized.Parameters
@@ -40,7 +40,7 @@ public class DecimalEncodingTest {
 
     private final BigDecimal[] data;
 
-    public DecimalEncodingTest(BigDecimal[] data) {
+    public RandomizedDecimalEncodingTest(BigDecimal[] data) {
         this.data = data;
     }
 

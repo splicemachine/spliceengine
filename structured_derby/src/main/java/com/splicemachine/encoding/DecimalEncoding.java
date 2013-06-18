@@ -159,7 +159,7 @@ final class DecimalEncoding {
         return data;
     }
     public static BigDecimal toBigDecimal(byte[] data, boolean desc){
-        return toBigDecimal(data,0,desc);
+        return toBigDecimal(data,0,data.length,desc);
     }
 
     public static BigDecimal toBigDecimal(ByteBuffer data, boolean desc){
@@ -211,7 +211,7 @@ final class DecimalEncoding {
 
     }
 
-    public static BigDecimal toBigDecimal(byte[] data,int dataOffset, boolean desc){
+    public static BigDecimal toBigDecimal(byte[] data,int dataOffset,int dataLength, boolean desc){
         int h = data[dataOffset];
         if(desc)
             h ^=0xff;
@@ -225,14 +225,18 @@ final class DecimalEncoding {
         long exp =  expOffset[0];
         int offset = (int)(expOffset[1]);
 
-        int length=((data.length-dataOffset-offset)*2);
-        if((data[data.length-1] & 0xf) ==0)
+        int length=((dataLength-offset)*2);
+        if(dataOffset+length>data.length){
+            if((data[data.length-1]&0xf) ==0)
+                length-=1;
+        }else if((data[dataOffset+length-1] & 0xf) ==0)
             length-=1;
 
         //deserialize the digits
         char[] chars = new char[length];
         int pos=0;
-        for(int i=0;i<data.length-offset;i++){
+        for(int i=0;i<dataLength && pos<chars.length;i++){
+//            if(pos>chars.length) break; //we're done
             byte next = data[dataOffset+offset+i];
             if(desc)
                 next ^=0xff;

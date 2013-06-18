@@ -229,34 +229,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 
     @Override
-    public OperationSink.Translator getTranslator() throws IOException {
-        final Serializer serializer = Serializer.get();
-
-        final byte[][] keySet=  new byte[2][];
-        try {
-            keySet[0] = serializer.serialize(sequence[0]);
-        } catch (StandardException e) {
-            throw Exceptions.getIOException(e);
-        }
-
-        return new OperationSink.Translator() {
-            @Nonnull
-            @Override
-            public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
-                keySet[1] = postfix;
-                byte[] key = Bytes.concat(keySet);
-                Put put = Puts.buildInsert(key, row.getRowArray(), SpliceUtils.NA_TRANSACTION_ID, serializer);
-                return Collections.<Mutation>singletonList(put);
-            }
-
-            @Override
-            public boolean mergeKeys() {
-                return false;
-            }
-        };
-    }
-
-    @Override
     public RowEncoder getRowEncoder() throws StandardException {
         return RowEncoder.create(sourceExecIndexRow.nColumns(),null,null,DerbyBytesUtil.generateBytes(sequence[0]), KeyType.PREFIX_UNIQUE_POSTFIX_ONLY, RowType.COLUMNAR);
     }

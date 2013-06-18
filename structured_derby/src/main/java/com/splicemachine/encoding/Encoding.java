@@ -771,8 +771,8 @@ public final class Encoding {
         return DecimalEncoding.toBigDecimal(data, desc);
     }
 
-    public static BigDecimal decodeBigDecimal(byte[] data,int offset,boolean desc){
-        return DecimalEncoding.toBigDecimal(data,offset,desc);
+    public static BigDecimal decodeBigDecimal(byte[] data,int offset,int length,boolean desc){
+        return DecimalEncoding.toBigDecimal(data,offset,length,desc);
     }
 
     /**

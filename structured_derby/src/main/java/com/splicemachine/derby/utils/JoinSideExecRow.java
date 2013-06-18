@@ -1,13 +1,8 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.impl.sql.execute.operations.Hasher;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
-
-import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
-
-import java.io.IOException;
 
 public class JoinSideExecRow {
 	protected ExecRow row;

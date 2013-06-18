@@ -74,31 +74,6 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
     }
 
     @Override
-    public OperationSink.Translator getTranslator() throws IOException {
-        final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
-        final Serializer serializer = Serializer.get();
-        final byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
-        return new OperationSink.Translator() {
-            @Nonnull
-            @Override
-            public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
-                try {
-                    byte[] rowKey = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
-                    Put put = Puts.buildTempTableInsert(rowKey,row.getRowArray(),null,serializer);
-                    return Collections.<Mutation>singletonList(put);
-                } catch (StandardException e) {
-                    throw Exceptions.getIOException(e);
-                }
-            }
-
-            @Override
-            public boolean mergeKeys() {
-                return true; //eliminate duplicates when writing to TEMP
-            }
-        };
-    }
-
-    @Override
 	public ExecRow getExecRowDefinition() {
 		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
 		ExecRow row = sourceExecIndexRow.getClone();

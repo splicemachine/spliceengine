@@ -57,8 +57,6 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	public String startPositionString;
 	public String stopPositionString;
 	
-	protected Hasher hasher;
-	
 	static {
 		nodeTypes = new ArrayList<NodeType>();
 		nodeTypes.add(NodeType.SCAN);
@@ -157,36 +155,6 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		SpliceLogUtils.trace(LOG, "getSubOperations");
 		return new ArrayList<SpliceOperation>();
 	}
-
-    public OperationSink.Translator getTranslator() throws IOException {
-        hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
-        final Serializer serializer = Serializer.get();
-        final byte[] scannedTableName = regionScanner.getRegionInfo().getTableName();
-        //TODO -sf- does this even work?
-        return new OperationSink.Translator() {
-            @Nonnull
-            @Override
-            public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
-                try{
-                    byte[] tempRow;
-                    if(eliminateDuplicates)
-                        tempRow = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),scannedTableName);
-                    else
-                        tempRow = hasher.generateSortedHashKeyWithPostfix(row.getRowArray(),postfix);
-
-                    Put put = Puts.buildTempTableInsert(tempRow,row.getRowArray(),null,serializer);
-                    return Collections.<Mutation>singletonList(put);
-                }catch(StandardException se){
-                    throw Exceptions.getIOException(se);
-                }
-            }
-
-            @Override
-            public boolean mergeKeys() {
-                return false;
-            }
-        };
-    }
 
 	@Override
 	public SpliceOperation getLeftOperation() {

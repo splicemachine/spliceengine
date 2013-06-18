@@ -2,16 +2,13 @@ package com.splicemachine.derby.impl.load;
 
 import au.com.bytecode.opencsv.CSVParser;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
 import com.splicemachine.derby.impl.sql.execute.LocalCallBuffer;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;
-import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
-import com.splicemachine.derby.impl.sql.execute.operations.RowSerializer;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.si.impl.WriteConflict;
@@ -20,7 +17,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -77,7 +73,8 @@ public class BlockImportTask extends AbstractImportTask{
 //    }
 
     @Override
-    protected long importData(ExecRow row, Serializer serializer, RowSerializer rowSerializer, CallBuffer<Mutation> writeBuffer) throws Exception {
+    protected long importData(ExecRow row,
+                              RowEncoder rowEncoder, CallBuffer<Mutation> writeBuffer) throws Exception {
         Path path = importContext.getFilePath();
 
         FSDataInputStream is = null;
@@ -105,7 +102,7 @@ public class BlockImportTask extends AbstractImportTask{
                 long newSize = reader.readLine(text);
                 pos+=newSize;
                 String[] cols = parser.parseLine(text.toString());
-                doImportRow(importContext.getTransactionId(),cols,importContext.getActiveCols(),row,writeBuffer,rowSerializer,serializer);
+                doImportRow(importContext.getTransactionId(),cols,importContext.getActiveCols(),row,writeBuffer,rowEncoder);
                 numImported++;
 
                 reportIntermediate(numImported);

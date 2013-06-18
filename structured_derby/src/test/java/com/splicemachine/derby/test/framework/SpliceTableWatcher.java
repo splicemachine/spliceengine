@@ -49,7 +49,7 @@ public class SpliceTableWatcher extends TestWatcher {
 	@Override
 	protected void finished(Description description) {
 		LOG.trace("finished");
-		executeDrop(schemaName,tableName);
+//		executeDrop(schemaName,tableName);
 	}
 	
 	public static void executeDrop(String schemaName,String tableName) {

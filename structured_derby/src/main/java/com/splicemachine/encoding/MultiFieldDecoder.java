@@ -141,9 +141,10 @@ public class MultiFieldDecoder {
             return null;
         }
 
-
-        BigDecimal next = Encoding.decodeBigDecimal(data,currentOffset,desc);
+        int offset = currentOffset;
         adjustOffset(-1);
+
+        BigDecimal next = Encoding.decodeBigDecimal(data,offset,currentOffset-offset-1,desc);
         return next;
     }
 
@@ -262,6 +263,16 @@ public class MultiFieldDecoder {
             return false;
         }
         boolean value = Encoding.decodeBoolean(data,currentOffset);
+        currentOffset+=2;
+        return value;
+    }
+
+    public boolean decodeNextBoolean(boolean desc) {
+        if(currentOffset>=0&&data[currentOffset]==0x00) {
+            currentOffset++;
+            return false;
+        }
+        boolean value = Encoding.decodeBoolean(data,currentOffset,desc);
         currentOffset+=2;
         return value;
     }

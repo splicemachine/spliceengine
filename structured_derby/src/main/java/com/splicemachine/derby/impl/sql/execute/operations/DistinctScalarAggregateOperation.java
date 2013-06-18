@@ -247,36 +247,6 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     }
 
     @Override
-    public OperationSink.Translator getTranslator() throws IOException {
-        final Serializer serializer = Serializer.get();
-        final Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(),keyColumns,null,sequence[0]);
-
-        final byte[][] keySet = new byte[2][];
-        return new OperationSink.Translator(){
-
-            @Nonnull
-            @Override
-            public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
-                try {
-                    keySet[0] = hasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray());
-                    keySet[1] = postfix;
-
-                    byte[] key = Bytes.concat(keySet);
-                    Put put = Puts.buildInsert(key,row.getRowArray(),SpliceUtils.NA_TRANSACTION_ID,serializer);
-                    return Collections.<Mutation>singletonList(put);
-                } catch (StandardException e) {
-                    throw Exceptions.getIOException(e);
-                }
-            }
-
-            @Override
-            public boolean mergeKeys() {
-                return false; //eliminate duplicates in TEMP
-            }
-        };
-    }
-
-    @Override
     public RowEncoder getRowEncoder() throws StandardException {
         return RowEncoder.create(sourceExecIndexRow.nColumns(),
                 keyColumns,null,

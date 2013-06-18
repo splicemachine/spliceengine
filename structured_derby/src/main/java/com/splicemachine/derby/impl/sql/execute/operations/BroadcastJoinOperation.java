@@ -11,6 +11,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.KeyMarshall;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -49,7 +52,6 @@ public class BroadcastJoinOperation extends JoinOperation {
     protected byte[] priorHash;
     protected List<ExecRow> rights;
     protected byte[] rightHash;
-    protected Hasher leftHasher;
     protected Iterator<ExecRow> rightIterator;
     protected BroadcastNextRowIterator broadcastIterator;
     protected Map<ByteBuffer, List<ExecRow>> rightSideMap;
@@ -125,7 +127,7 @@ public class BroadcastJoinOperation extends JoinOperation {
                 this.setCurrentRow(mergedRow);
                 return mergedRow;
             } else {
-                broadcastIterator = new BroadcastNextRowIterator(leftRow, leftHasher);
+                broadcastIterator = new BroadcastNextRowIterator(leftRow);
                 return getNextRowCore();
             }
         } else {
@@ -152,7 +154,6 @@ public class BroadcastJoinOperation extends JoinOperation {
         rightHashKeys = generateHashKeys(rightHashKeyItem, (SpliceBaseOperation) this.rightResultSet);
         mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
         rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
-        leftHasher = new Hasher(leftRow.getRowArray(), leftHashKeys, null);
         rightResultSet.init(context);
     }
 
@@ -196,13 +197,15 @@ public class BroadcastJoinOperation extends JoinOperation {
 
     protected class BroadcastNextRowIterator implements Iterator<ExecRow> {
         protected ExecRow leftRow;
-        protected Hasher leftHasher;
         protected Iterator<ExecRow> rightSideIterator = null;
+        protected KeyMarshall leftKeyEncoder = KeyType.BARE;
+        protected MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(leftNumCols);
 
-        public BroadcastNextRowIterator(ExecRow leftRow, Hasher leftHasher) throws StandardException {
+        public BroadcastNextRowIterator(ExecRow leftRow) throws StandardException {
             this.leftRow = leftRow;
-            this.leftHasher = leftHasher;
-            List<ExecRow> rows = rightSideMap.get(ByteBuffer.wrap(leftHasher.generateSortedHashKeyWithoutUniqueKey(leftRow.getRowArray())));
+            keyEncoder.reset();
+            leftKeyEncoder.encodeKey(leftRow,leftHashKeys,null,null,keyEncoder);
+            List<ExecRow> rows = rightSideMap.get(ByteBuffer.wrap(keyEncoder.build()));
             if (rows != null) {
                 if (!notExistsRightSide) {
                     // Sorry for the double negative: only populate the iterator if we're not executing an antijoin
@@ -262,12 +265,16 @@ public class BroadcastJoinOperation extends JoinOperation {
         ByteBuffer hashKey;
         List<ExecRow> rows;
         Map<ByteBuffer, List<ExecRow>> cache = new HashMap<ByteBuffer, List<ExecRow>>();
-        Hasher hasher = new Hasher(rightRow.getRowArray(), rightHashKeys, null);
+        KeyMarshall hasher = KeyType.BARE;
         NoPutResultSet resultSet = rightResultSet.executeScan();
         resultSet.openCore();
+        MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(rightNumCols);
+        keyEncoder.mark();
 
         while ((rightRow = resultSet.getNextRowCore()) != null) {
-            hashKey = ByteBuffer.wrap(hasher.generateSortedHashKeyWithoutUniqueKey(rightRow.getRowArray()));
+            keyEncoder.reset();
+            hasher.encodeKey(rightRow,rightHashKeys,null,null,keyEncoder);
+            hashKey = ByteBuffer.wrap(keyEncoder.build());
             if ((rows = cache.get(hashKey)) != null) {
                 // Only add additional row for same hash if we need it
                 if (!oneRowRightSide) {

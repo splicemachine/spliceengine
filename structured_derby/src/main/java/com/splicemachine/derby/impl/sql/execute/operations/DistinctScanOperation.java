@@ -247,23 +247,6 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public OperationSink.Translator getTranslator() throws IOException {
-        return new OperationSink.Translator() {
-            @Nonnull
-            @Override
-            public List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException {
-                Put put = Puts.buildInsert(currentByteArray,row.getRowArray(),SpliceUtils.NA_TRANSACTION_ID,serializer);
-                return Collections.<Mutation>singletonList(put);
-            }
-
-            @Override
-            public boolean mergeKeys() {
-                return true;
-            }
-        };
-    }
-
-    @Override
     public RowEncoder getRowEncoder() throws StandardException {
         return RowEncoder.create(getExecRowDefinition().nColumns(), keyColumns, null, null, new KeyMarshall() {
             @Override
