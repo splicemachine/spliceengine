@@ -2,6 +2,8 @@ package com.splicemachine.encoding;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
+import java.nio.ByteBuffer;
+
 /**
  * UTF-8 encodes Strings in such a way that NULL < "" < Character.MIN_CODE_POINT < aa < aaa < b< ba<...<
  * Character.MAX_CODE_POINT < ..., and does not use 0x00 (reserved for separators).
@@ -68,9 +70,15 @@ public class StringEncoding {
         return Bytes.toString(data);
     }
 
-    public static String getStringCopy(byte[] data, boolean desc){
-        byte[] dataToCopy = new byte[data.length];
-        System.arraycopy(data,0,dataToCopy,0,data.length);
+    public static String getStringCopy(byte[] data,int offset,int length, boolean desc){
+        byte[] dataToCopy = new byte[length];
+        System.arraycopy(data,offset,dataToCopy,0,length);
+        return getString(dataToCopy,desc);
+    }
+
+    public static String getStringCopy(ByteBuffer buffer,boolean desc){
+        byte[] dataToCopy = new byte[buffer.remaining()];
+        buffer.get(dataToCopy);
         return getString(dataToCopy,desc);
     }
 

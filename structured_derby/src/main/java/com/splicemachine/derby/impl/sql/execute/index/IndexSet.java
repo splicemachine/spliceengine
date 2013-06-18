@@ -2,17 +2,24 @@ package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.derby.impl.sql.execute.constraint.*;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactor;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.dictionary.*;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
@@ -315,7 +322,7 @@ public class IndexSet {
                     " Please wait a bit and try again");
         }
         boolean success = false;
-        HTransactor transactor = null;
+        Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = null;
         TransactionId txnID = null;
         SpliceTransactionResourceImpl impl = null;
         try {

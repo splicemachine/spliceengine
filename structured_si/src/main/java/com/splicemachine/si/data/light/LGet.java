@@ -7,7 +7,7 @@ import java.util.Map;
 public class LGet {
     final Object startTupleKey;
     final Object endTupleKey;
-    final java.util.List families;
+    final List families;
     final List<List<Object>> columns;
     Long effectiveTimestamp;
     final Map<String, Object> attributes;

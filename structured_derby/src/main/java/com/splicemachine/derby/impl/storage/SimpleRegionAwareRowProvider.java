@@ -60,7 +60,7 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
     }
 
     @Override
-    public void open() {
+    public void open() throws StandardException {
         scanner.open();
     }
 

@@ -174,6 +174,15 @@ public class CallStatementOperationTest extends SpliceUnitTest {
                 count++;
             }
             Assert.assertTrue("incorrect rows returned",count>0);
-        }	
-    
+        }
+
+    @Test
+    public void testSysGetTableTypes() throws Exception {
+        // Was throwing NPE, just test that doesn't blow
+        try {
+        Assert.assertTrue(methodWatcher.prepareCall("EXECUTE STATEMENT SYS.\"getTableTypes\"").execute());
+        } catch (Exception e) {
+            Assert.fail("Blowing on getTableTypes");
+        }
+    }
 }

@@ -4,7 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
+import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;

@@ -1,8 +1,8 @@
 package com.splicemachine.si.data.hbase;
 
+import com.google.common.collect.Iterables;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SRowLock;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -18,10 +18,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes> {
+public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, HRowLock> {
 
     @Override
-    public Result newResult(byte[] key, List keyValues) {
+    public Result newResult(byte[] key, List<KeyValue> keyValues) {
         return new Result(keyValues);
     }
 
@@ -65,13 +65,8 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete,
     }
 
     @Override
-    public List<KeyValue> listPut(Put put) {
-        final Map<byte[], List<KeyValue>> familyMap = put.getFamilyMap();
-        List result = new ArrayList();
-        for (List<KeyValue> subList : familyMap.values()) {
-            result.addAll(subList);
-        }
-        return result;
+    public Iterable<KeyValue> listPut(Put put) {
+        return Iterables.concat(put.getFamilyMap().values());
     }
 
     @Override
@@ -159,21 +154,21 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete,
     }
 
     @Override
-    public Put newPut(byte[] key, SRowLock lock) {
-        return new Put(key, ((HRowLock) lock).lock);
+    public Put newPut(byte[] key, HRowLock lock) {
+        return new Put(key, lock.lock);
     }
 
     @Override
     public Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         Get get = new Get(rowKey);
         if (families != null) {
-            for (Object f : families) {
-                get.addFamily((byte[]) f);
+            for (byte[] f : families) {
+                get.addFamily(f);
             }
         }
         if (columns != null) {
-            for (List c : columns) {
-                get.addColumn((byte[]) c.get(0), (byte[]) c.get(1));
+            for (List<byte[]> c : columns) {
+                get.addColumn(c.get(0), c.get(1));
             }
         }
         if (effectiveTimestamp != null) {
@@ -227,13 +222,13 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, Put, Delete,
         scan.setStartRow(startRowKey);
         scan.setStopRow(endRowKey);
         if (families != null) {
-            for (Object f : families) {
-                scan.addFamily((byte[]) f);
+            for (byte[] f : families) {
+                scan.addFamily(f);
             }
         }
         if (columns != null) {
-            for (List c : columns) {
-                scan.addColumn((byte[]) c.get(0), (byte[]) c.get(1));
+            for (List<byte[]> c : columns) {
+                scan.addColumn(c.get(0), c.get(1));
             }
         }
         if (effectiveTimestamp != null) {

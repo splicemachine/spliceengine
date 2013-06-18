@@ -1,17 +1,12 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
-import com.google.common.base.Function;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
-import com.splicemachine.derby.stats.TaskStats;
-
 import java.io.IOException;
 import java.util.List;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.hadoop.hbase.client.Put;
 
 /**
  * 

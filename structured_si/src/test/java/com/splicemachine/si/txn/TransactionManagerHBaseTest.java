@@ -2,7 +2,7 @@ package com.splicemachine.si.txn;
 
 import com.splicemachine.si.HStoreSetup;
 import com.splicemachine.si.TransactorSetup;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
+import com.splicemachine.si.api.HTransactorFactory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 

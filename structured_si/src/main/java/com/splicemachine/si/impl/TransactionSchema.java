@@ -48,8 +48,8 @@ public class TransactionSchema {
         this.counterQualifier = counterQualifier;
     }
 
-    public TransactionSchema encodedSchema(SDataLib SDataLib) {
-        return new TransactionSchema(tableName,
+    public EncodedTransactionSchema encodedSchema(SDataLib SDataLib) {
+        return new EncodedTransactionSchema(tableName,
                 SDataLib.encode(siFamily),
                 SDataLib.encode(siChildrenFamily),
                 SDataLib.encode(siNull),

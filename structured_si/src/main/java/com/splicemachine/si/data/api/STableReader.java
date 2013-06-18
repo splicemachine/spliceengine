@@ -6,7 +6,7 @@ import java.util.Iterator;
 /**
  * Means of opening tables and reading data from them.
  */
-public interface STableReader<Table extends STable, Result, Get, Scan> {
+public interface STableReader<Table, Result, Get, Scan> {
     Table open(String tableName) throws IOException;
     void close(Table table) throws IOException;
 

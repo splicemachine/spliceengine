@@ -4,11 +4,11 @@ import com.google.common.base.Function;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.impl.FilterState;
+import com.splicemachine.si.impl.Hasher;
 import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
@@ -54,11 +54,13 @@ public class SITransactorTest extends SIConstants {
 
     void baseSetUp() {
         transactor = transactorSetup.transactor;
-        transactorSetup.rollForwardQueue = new RollForwardQueue(new RollForwardAction() {
+        transactorSetup.rollForwardQueue = new RollForwardQueue(
+                new NoOpHasher(),
+                new RollForwardAction() {
             @Override
             public void rollForward(long transactionId, List rowList) throws IOException {
                 final STableReader reader = storeSetup.getReader();
-                STable testSTable = reader.open(storeSetup.getPersonTableName());
+                Object testSTable = reader.open(storeSetup.getPersonTableName());
                 transactor.rollForward(testSTable, transactionId, rowList);
             }
         }, 10, 100, 1000, "test");
@@ -158,7 +160,7 @@ public class SITransactorTest extends SIConstants {
     private static void processPutDirect(boolean useSimple,
                                          TransactorSetup transactorSetup, StoreSetup storeSetup, STableReader reader,
                                          Object put) throws IOException {
-        STable testSTable = reader.open(storeSetup.getPersonTableName());
+        Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             if (useSimple) {
                 Assert.assertTrue(transactorSetup.transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
@@ -178,7 +180,7 @@ public class SITransactorTest extends SIConstants {
         Object key = dataLib.newRowKey(new Object[]{name});
         Object get = dataLib.newGet(key, null, null, null);
         transactorSetup.clientTransactor.initializeGet(transactionId.getTransactionIdString(), get, true);
-        STable testSTable = reader.open(storeSetup.getPersonTableName());
+        Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Object rawTuple = reader.get(testSTable, get);
             return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, true, true, false, false, true);
@@ -196,7 +198,7 @@ public class SITransactorTest extends SIConstants {
         Object key = dataLib.newRowKey(new Object[]{name});
         Object scan = dataLib.newScan(key, key, null, null, null);
         transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), scan, true, includeUncommittedAsOfStart);
-        STable testSTable = reader.open(storeSetup.getPersonTableName());
+        Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Iterator results = reader.scan(testSTable, scan);
             if (results.hasNext()) {
@@ -221,7 +223,7 @@ public class SITransactorTest extends SIConstants {
         Object scan = dataLib.newScan(key, key, new ArrayList(), null, null);
         transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), scan, true, false);
         transactorSetup.transactor.preProcessScan(scan);
-        STable testSTable = reader.open(storeSetup.getPersonTableName());
+        Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Iterator results = reader.scan(testSTable, scan);
             if (deleted) {
@@ -256,7 +258,7 @@ public class SITransactorTest extends SIConstants {
         }
         transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), get, includeSIColumn,
                 includeUncommittedAsOfStart);
-        STable testSTable = reader.open(storeSetup.getPersonTableName());
+        Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Iterator results = reader.scan(testSTable, get);
             StringBuilder result = new StringBuilder();
@@ -1841,7 +1843,7 @@ public class SITransactorTest extends SIConstants {
                 transactorSetup.clientTransactor.transactionIdFromPut(put).getTransactionIdString(),
                 put2);
         Assert.assertTrue(dataLib.valuesEqual(dataLib.encode((short) 0), dataLib.getAttribute(put2, "si-needed")));
-        STable testSTable = reader.open(storeSetup.getPersonTableName());
+        Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
             Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put2));
@@ -2210,7 +2212,7 @@ public class SITransactorTest extends SIConstants {
         if (allversions) {
             dataLib.setGetMaxVersions(get);
         }
-        STable testSTable = reader.open(storeSetup.getPersonTableName());
+        Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             return reader.get(testSTable, get);
         } finally {

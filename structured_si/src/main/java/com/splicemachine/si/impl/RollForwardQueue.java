@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.constants.bytes.HashableBytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -39,13 +38,15 @@ import java.util.concurrent.TimeUnit;
  * much code as required inside of the synchronized blocks. All of the mutable state is accessed from inside of
  * synchronized blocks.
  */
-public class RollForwardQueue {
+public class RollForwardQueue<Data, Hashable> {
     static final Logger LOG = Logger.getLogger(RollForwardQueue.class);
 
     /**
      * The thread pool to use for running asynchronous roll-forward actions.
      */
     public static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
+
+    private final Hasher<Data, Hashable> hasher;
 
     /**
      * A plug-point to define what action to take at roll-forward time.
@@ -74,7 +75,7 @@ public class RollForwardQueue {
     /**
      * The queue of pending roll-forward requests. It is a map from transaction ID to a set of row keys.
      */
-    private Map<Long, Set> transactionMap;
+    private Map<Long, Set<Hashable>> transactionMap;
 
     /**
      * A reference to the task that is scheduled to reset the queue. As tasks run they check that this is still scheduled.
@@ -93,7 +94,8 @@ public class RollForwardQueue {
      * It is expected that one queue will be created for each HBase region. All of the queues in a JVM will use a shared
      * thread pool.
      */
-    public RollForwardQueue(RollForwardAction action, int maxCount, int rollForwardDelayMS, int resetMS, String tableName) {
+    public RollForwardQueue(Hasher<Data, Hashable> hasher, RollForwardAction<Data> action, int maxCount, int rollForwardDelayMS, int resetMS, String tableName) {
+        this.hasher = hasher;
         this.action = action;
         this.maxCount = maxCount;
         this.rollForwardDelayMS = rollForwardDelayMS;
@@ -106,17 +108,17 @@ public class RollForwardQueue {
      * This is the main function for users of the queue. Callers notify the queue that the given row in the underlying
      * table should be updated to reflect the final status of the given transaction.
      */
-    public void recordRow(long transactionId, Object rowKey) {
+    public void recordRow(long transactionId, Data rowKey) {
         synchronized (this) {
             forceResetIfNeeded();
             if (count < maxCount) {
-                Set rowSet = transactionMap.get(transactionId);
+                Set<Hashable> rowSet = transactionMap.get(transactionId);
                 if (rowSet == null) {
                     rowSet = new HashSet();
                     transactionMap.put(transactionId, rowSet);
                     scheduleRollForward(transactionId);
                 }
-                final Object newRow = toHashable(rowKey);
+                final Hashable newRow = hasher.toHashable(rowKey);
                 if (!rowSet.contains(newRow)) {
                     rowSet.add(newRow);
                     count = count + 1;
@@ -140,7 +142,7 @@ public class RollForwardQueue {
     private void scheduleRollForward(final long transactionId) {
         final Runnable roller = new Runnable() {
             public void run() {
-                List rowList = takeRowList(transactionId);
+                List<Data> rowList = takeRowList(transactionId);
                 try {
                     action.rollForward(transactionId, rowList);
                 } catch (IOException e) {
@@ -171,7 +173,7 @@ public class RollForwardQueue {
      * Retrieve all of the queued rows for a given transaction. This causes the rows to be atomically removed from the
      * queue.
      */
-    private List takeRowList(long transactionId) {
+    private List<Data> takeRowList(long transactionId) {
         Set rowSet;
         synchronized (this) {
             rowSet = transactionMap.get(transactionId);
@@ -186,46 +188,25 @@ public class RollForwardQueue {
     /**
      * Convert the internal set of wrapped row identifiers into a list of un-wrapped identifiers.
      */
-    private List produceRowList(Set rowSet) {
+    private List<Data> produceRowList(Set<Hashable> rowSet) {
         if (rowSet == null) {
-            return new ArrayList();
+            return new ArrayList<Data>();
         } else {
-            List result = new ArrayList(rowSet.size());
-            for (Object row : rowSet) {
-                result.add(recoverUnhashable(row));
+            List<Data> result = new ArrayList<Data>(rowSet.size());
+            for (Hashable row : rowSet) {
+                result.add(hasher.fromHashable(row));
             }
             return result;
-        }
-    }
-
-    /**
-     * Under HBase row keys are byte arrays. This method wraps byte arrays into objects that can be placed into Sets.
-     * This allows duplicate requests for a given row to be ignored.
-     */
-    private Object toHashable(Object row) {
-        if (row.getClass().isArray() && row.getClass().getComponentType() == Byte.TYPE) {
-            return new HashableBytes((byte[]) row);
-        } else {
-            return row;
-        }
-    }
-
-    /**
-     * The inverse of the toHashable() method. This recovers the original byte array from its hashable wrapper.
-     */
-    private Object recoverUnhashable(Object row) {
-        if (row instanceof HashableBytes) {
-            return ((HashableBytes) row).getBytes();
-        } else {
-            return row;
         }
     }
 
     private void clearRowList(long transactionId) {
         synchronized (this) {
             final Set rowSet = transactionMap.get(transactionId);
-            transactionMap.remove(transactionId);
-            count = count - rowSet.size();
+            if (rowSet != null) {
+                transactionMap.remove(transactionId);
+                count = count - rowSet.size();
+            }
         }
     }
 
@@ -235,7 +216,7 @@ public class RollForwardQueue {
      */
     private void reset() {
         synchronized (this) {
-            transactionMap = new HashMap<Long, Set>();
+            transactionMap = new HashMap<Long, Set<Hashable>>();
             count = 0;
             scheduleReset();
         }

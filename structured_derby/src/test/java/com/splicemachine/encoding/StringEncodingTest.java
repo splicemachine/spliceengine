@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
@@ -76,6 +77,14 @@ public class StringEncodingTest {
         Arrays.sort(dataToCheck);
 
         Assert.assertTrue("Sort incorrect!",Arrays.equals(dataToCheck,deserData));
+    }
 
+    @Test
+    public void testCanDeserializeByteBuffersCorrectly() throws Exception {
+        for(String datum:dataToCheck){
+            byte[] ser = StringEncoding.toBytes(datum,false);
+            String ret = StringEncoding.getStringCopy(ByteBuffer.wrap(ser),false);
+            Assert.assertEquals(datum,ret);
+        }
     }
 }

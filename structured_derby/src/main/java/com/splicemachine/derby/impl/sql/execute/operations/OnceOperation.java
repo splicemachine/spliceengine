@@ -6,7 +6,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -245,7 +244,9 @@ public class OnceOperation extends SpliceBaseOperation {
             this.delegate = delegate;
         }
 
-        @Override public void open() { delegate.open(); }
+        @Override public void open() throws StandardException { 
+        	delegate.open(); 
+        }
         @Override public void close() { delegate.close(); }
         @Override public RowLocation getCurrentRowLocation() { return delegate.getCurrentRowLocation(); }
         @Override public byte[] getTableName() { return delegate.getTableName(); }

@@ -5,6 +5,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
@@ -103,7 +104,7 @@ final class DecimalEncoding {
             byte b = 0x00;
             if(desc)
                 b ^= 0xff;
-            data[0] = b;
+            data[0] = (byte)(b<<Byte.SIZE-2);
             return data;
         }
 
@@ -112,7 +113,7 @@ final class DecimalEncoding {
             byte b = 0x02;
             if(desc)
                 b ^= 0xff;
-            data[0] = b;
+            data[0] = (byte)((b<<Byte.SIZE-2) &0xff);
             return data;
         }
         int precision = value.precision();
@@ -157,9 +158,61 @@ final class DecimalEncoding {
 
         return data;
     }
-
     public static BigDecimal toBigDecimal(byte[] data, boolean desc){
-        byte h = data[0];
+        return toBigDecimal(data,0,desc);
+    }
+
+    public static BigDecimal toBigDecimal(ByteBuffer data, boolean desc){
+        data.mark();
+        int h = data.get();
+        if(desc)
+            h ^=0xff;
+        h &=0xff;
+        h >>>=Byte.SIZE-2;
+        if(h==0x00) return null;
+        if(h==0x02) return BigDecimal.ZERO;
+        data.reset();
+
+        byte sign = (byte)(h==0x01 ? -1:0);
+        long[] expOffset = ScalarEncoding.toLongWithOffset(data,2, desc);
+        long exp =  expOffset[0];
+
+        int length=((data.remaining())*2);
+        int maxPos = data.remaining();
+        if((data.get(data.remaining()) & 0xf) ==0){
+            length-=1;
+            maxPos++;
+        }
+
+        //deserialize the digits
+        char[] chars = new char[length];
+        int pos=0;
+        for(int i=0;i<maxPos;i++){
+            byte next = data.get();
+            if(desc)
+                next ^=0xff;
+            byte f = (byte)((next>>>4) & 0xf);
+            chars[pos] = (char)('0'+f-1);
+            pos++;
+
+            f = (byte)(next&0xf);
+            if(f==0)
+                break;
+            else{
+                chars[pos] = (char)('0'+f-1);
+                pos++;
+            }
+        }
+
+
+        int scale = (int)(exp-length+1l);
+        BigInteger i = new BigInteger(sign==0?new String(chars): '-'+new String(chars));
+        return new BigDecimal(i,-scale);
+
+    }
+
+    public static BigDecimal toBigDecimal(byte[] data,int dataOffset, boolean desc){
+        int h = data[dataOffset];
         if(desc)
             h ^=0xff;
         h &=0xff;
@@ -168,20 +221,19 @@ final class DecimalEncoding {
         if(h==0x02) return BigDecimal.ZERO;
 
         byte sign = (byte)(h==0x01 ? -1:0);
-        long[] expOffset = ScalarEncoding.toLongWithOffset(data, 2, desc);
+        long[] expOffset = ScalarEncoding.toLongWithOffset(data, dataOffset,2, desc);
         long exp =  expOffset[0];
         int offset = (int)(expOffset[1]);
 
-        int length=((data.length-offset)*2);
+        int length=((data.length-dataOffset-offset)*2);
         if((data[data.length-1] & 0xf) ==0)
             length-=1;
 
         //deserialize the digits
-        StringBuilder sb = new StringBuilder();
         char[] chars = new char[length];
         int pos=0;
         for(int i=0;i<data.length-offset;i++){
-            byte next = data[offset+i];
+            byte next = data[dataOffset+offset+i];
             if(desc)
                 next ^=0xff;
             byte f = (byte)((next>>>4) & 0xf);
@@ -218,7 +270,21 @@ final class DecimalEncoding {
     }
 
     public static double toDouble(byte[] data, boolean desc){
-        long l = Bytes.toLong(data);
+        return toDouble(data, 0, desc);
+    }
+
+    public static double toDouble(ByteBuffer data,boolean desc){
+        long l = data.asLongBuffer().get();
+        if(desc)
+            l ^= 0xff;
+
+        l--;
+        l ^= (~l >> Long.SIZE-1) | Long.MIN_VALUE;
+        return Double.longBitsToDouble(l);
+    }
+
+    public static double toDouble(byte[] data, int offset,boolean desc){
+        long l = Bytes.toLong(data,offset);
         if(desc)
             l ^= 0xff;
 
@@ -239,22 +305,36 @@ final class DecimalEncoding {
     }
 
     public static float toFloat(byte[] data, boolean desc){
-        int j = Bytes.toInt(data);
-        if(desc)
-            j^=0xff;
+        return toFloat(data,0,desc);
+    }
 
-        j^= (~j >> Integer.SIZE-1)|Integer.MIN_VALUE;
+    public static float toFloat(ByteBuffer data, boolean desc){
+        int j = data.asIntBuffer().get();
+        if(desc)
+            j ^= 0xff;
+
+        j ^= (~j >> Integer.SIZE-1)|Integer.MIN_VALUE;
+
+        return Float.intBitsToFloat(j);
+    }
+
+    public static float toFloat(byte[] data, int offset,boolean desc){
+        int j = Bytes.toInt(data,offset);
+        if(desc)
+            j ^= 0xff;
+
+        j ^= (~j >> Integer.SIZE-1)|Integer.MIN_VALUE;
 
         return Float.intBitsToFloat(j);
     }
 
     public static void main(String... args) throws Exception{
-        double test = 1.234567d;
-        byte[] data = toBytes(test,false);
-        byte[] serialize = new DoubleRowKey().serialize(test);
-        System.out.println(Arrays.toString(data));
-        System.out.println(Arrays.toString(serialize));
-        double back = toDouble(data,false);
-        System.out.println(back);
+        byte b = 0x02;
+        System.out.printf("%8s%n",Integer.toBinaryString(b));
+        b <<= 6;
+        System.out.printf("%8s%n",Integer.toBinaryString(b));
+        b &= 0xff;
+        System.out.printf("%8s%n",Integer.toBinaryString(b));
+
     }
 }

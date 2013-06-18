@@ -130,7 +130,7 @@ public class Hasher {
 		for (int i=0;i<hashKeys.length;i++) {
             encoder = DerbyBytesUtil.encodeInto(encoder, descriptors[hashKeys[i]], sortOrder != null && !sortOrder[hashKeys[i]]);
 		}
-        encoder = encoder.encodeNext(SpliceUtils.getUniqueKey());
+        encoder = encoder.encodeNextUnsorted(SpliceUtils.getUniqueKey());
         return encoder.build();
 	}
 
@@ -180,7 +180,7 @@ public class Hasher {
                 throw Exceptions.parseException(e);
             }
         }
-        encoder = encoder.encodeNext(postfix);
+        encoder = encoder.encodeNextUnsorted(postfix);
 		return encoder.build();
 	}
 

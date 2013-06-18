@@ -17,24 +17,25 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
  * Contains the logic for performing an HBase-style filter using "snapshot isolation" logic. This means it filters out
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
-public class FilterState {
+public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> {
     static final Logger LOG = Logger.getLogger(FilterState.class);
 
     /**
      * The transactions that have been loaded as part of running this filter.
      */
     final Cache<Long, Transaction> transactionCache;
+    final Cache<Long, Object[]> visibleCache;
 
     private final ImmutableTransaction myTransaction;
-    private final SDataLib dataLib;
+    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
     private final boolean includeSIColumn;
     private final boolean includeUncommittedAsOfStart;
 
-    private final FilterRowState rowState;
-    private final DecodedKeyValue keyValue;
+    private final FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> rowState;
+    private final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> keyValue;
 
     private final TransactionSource transactionSource;
 
@@ -57,6 +58,7 @@ public class FilterState {
         this.myTransaction = myTransaction;
 
         transactionCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(10, TimeUnit.MINUTES).build();
+        visibleCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(2, TimeUnit.MINUTES).build();
 
         // initialize internal state
         this.rowState = new FilterRowState(dataLib);
@@ -67,7 +69,7 @@ public class FilterState {
      * implementation.
      * The order of the column families is important. It is expected that the SI family will be processed first.
      */
-    Filter.ReturnCode filterKeyValue(Object dataKeyValue) throws IOException {
+    Filter.ReturnCode filterKeyValue(KeyValue dataKeyValue) throws IOException {
         keyValue.setKeyValue(dataKeyValue);
         rowState.updateCurrentRow(keyValue);
         return filterByColumnType();
@@ -126,9 +128,9 @@ public class FilterState {
             rowState.rememberCommitTimestamp(keyValue.keyValue());
             return SKIP;
         } else {
-            final Object oldKeyValue = keyValue.keyValue();
+            final KeyValue oldKeyValue = keyValue.keyValue();
             boolean include = false;
-            for (Object kv : rowState.getCommitTimestamps()) {
+            for (KeyValue kv : rowState.getCommitTimestamps()) {
                 keyValue.setKeyValue(kv);
                 if (processUserData().equals(INCLUDE)) {
                     include = true;
@@ -200,7 +202,7 @@ public class FilterState {
         final Transaction cachedTransaction = rowState.transactionCache.get(keyValue.timestamp());
         if (cachedTransaction == null) {
             final Transaction dataTransaction = getTransactionFromFilterCache(keyValue.timestamp());
-            final Object[] visibleResult = myTransaction.isVisible(dataTransaction, transactionSource);
+            final Object[] visibleResult = checkVisibility(dataTransaction);
             final TransactionStatus dataStatus = (TransactionStatus) visibleResult[1];
             if (dataStatus.equals(TransactionStatus.COMMITTED) || dataStatus.equals(TransactionStatus.ROLLED_BACK)
                     || dataStatus.equals(TransactionStatus.ERROR)) {
@@ -210,6 +212,16 @@ public class FilterState {
         } else {
             return cachedTransaction;
         }
+    }
+
+    private Object[] checkVisibility(Transaction dataTransaction) throws IOException {
+        final long timestamp = dataTransaction.getLongTransactionId();
+        Object[] result = visibleCache.getIfPresent(timestamp);
+        if (result == null) {
+            result = myTransaction.isVisible(dataTransaction, transactionSource);
+            visibleCache.put(timestamp, result);
+        }
+        return result;
     }
 
     /**
@@ -301,7 +313,7 @@ public class FilterState {
     private boolean tombstoneAfterData() throws IOException {
         for (long tombstone : rowState.tombstoneTimestamps) {
             final Transaction tombstoneTransaction = rowState.transactionCache.get(tombstone);
-            final Object[] visibleResult = myTransaction.isVisible(tombstoneTransaction, transactionSource);
+            final Object[] visibleResult = checkVisibility(tombstoneTransaction);
             final boolean visible = (Boolean) visibleResult[0];
             if (visible && (keyValue.timestamp() < tombstone
                     || (keyValue.timestamp() == tombstone && dataStore.isSINull(keyValue.value())))) {
@@ -320,7 +332,7 @@ public class FilterState {
             return true;
         } else {
             final Transaction transaction = loadTransaction();
-            return (Boolean) myTransaction.isVisible(transaction, transactionSource)[0];
+            return (Boolean) checkVisibility(transaction)[0];
         }
     }
 

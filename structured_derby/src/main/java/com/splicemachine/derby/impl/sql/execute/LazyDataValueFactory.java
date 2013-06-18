@@ -1,15 +1,19 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.splicemachine.derby.impl.sql.execute.serial.DecimalDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.DoubleDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.types.*;
 
+import java.math.BigDecimal;
+
 public class LazyDataValueFactory extends J2SEDataValueFactory{
 
     private static final StringDVDSerializer stringSerializer = new StringDVDSerializer();
     private static final DoubleDVDSerializer doubleSerializer = new DoubleDVDSerializer();
+    private static final DecimalDVDSerializer decimalSerializer = new DecimalDVDSerializer();
 
     @Override
     public StringDataValue getVarcharDataValue(String value) {
@@ -49,7 +53,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
             case StoredFormatIds.SQL_CHAR_ID: return new LazyStringDataValueDescriptor(new SQLChar(), stringSerializer);
             case StoredFormatIds.SQL_DATE_ID: return new SQLDate();
             case StoredFormatIds.SQL_DOUBLE_ID: return new LazyNumberDataValueDescriptor(new SQLDouble(), doubleSerializer);
-            case StoredFormatIds.SQL_DECIMAL_ID: return new SQLDecimal();
+            case StoredFormatIds.SQL_DECIMAL_ID: return new LazyNumberDataValueDescriptor(new SQLDecimal(), decimalSerializer);
             case StoredFormatIds.SQL_INTEGER_ID: return new SQLInteger();
             case StoredFormatIds.SQL_LONGINT_ID: return new SQLLongint();
             case StoredFormatIds.SQL_REAL_ID: return new SQLReal();
@@ -93,5 +97,34 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
 
         return previous;
 
+    }
+
+    @Override
+    public NumberDataValue getDecimalDataValue(Long value, NumberDataValue previous) throws StandardException {
+
+        if(previous instanceof LazyNumberDataValueDescriptor){
+            previous.setValue(value);
+        }else{
+            previous = new LazyNumberDataValueDescriptor(new SQLDecimal(BigDecimal.valueOf(value.longValue())), decimalSerializer);
+        }
+
+        return previous;
+    }
+
+    @Override
+    public NumberDataValue getDecimalDataValue(String value) throws StandardException {
+        return new LazyNumberDataValueDescriptor(new SQLDecimal(value), decimalSerializer);
+    }
+
+    @Override
+    public NumberDataValue getNullDecimal(NumberDataValue dataValue) {
+
+        if(dataValue == null){
+            dataValue = new LazyNumberDataValueDescriptor(new SQLDecimal(), decimalSerializer);
+        }else{
+            dataValue.setToNull();
+        }
+
+        return dataValue;
     }
 }

@@ -3,7 +3,10 @@ package com.splicemachine.derby.impl.storage;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
@@ -141,11 +144,12 @@ public class RegionAwareScanner implements Closeable {
         return new RegionAwareScanner(txnId,table,region,localScan,boundary);
     }
 
-    public void open(){
+    public void open() throws StandardException {
         try{
             buildScans();
-        }catch(IOException ioe){
-           SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
+        }catch(Exception ioe){
+        	SpliceLogUtils.error(LOG, ioe);
+        	throw Exceptions.parseException(ioe);
         }
     }
 
@@ -182,6 +186,8 @@ public class RegionAwareScanner implements Closeable {
         }if(remoteFinish!=null){
             Scan lookAheadScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
             lookAheadScan.setFilter(scan.getFilter());
+            System.out.println("has remote finish? " + table.getTableDescriptor().getNameAsString());
+            System.out.println("has remote finish? " + lookAheadScan);
             lookAheadScanner = table.getScanner(lookAheadScan);
         }
     }

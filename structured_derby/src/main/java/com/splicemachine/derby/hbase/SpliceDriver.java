@@ -16,7 +16,7 @@ import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
+import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;

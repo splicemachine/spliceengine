@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.sql.execute;
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.CharacterStreamDescriptor;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.types.*;
 import org.apache.log4j.Logger;
 
@@ -174,11 +173,7 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
             out.writeUTF(sdv.getClass().getCanonicalName());
         }
 
-        try{
-            out.writeObject(new FormatableBitSet(getBytes()));
-        }catch(StandardException e){
-            throw new IOException("Error reading bytes from DVD", e);
-        }
+        writeDvdBytes(out);
 
         out.writeUTF(dvdSerializer.getClass().getCanonicalName());
 
@@ -195,11 +190,9 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
             extSDV.setToNull();
         }
 
-        FormatableBitSet fbs = (FormatableBitSet) in.readObject();
-        dvdBytes = fbs.getByteArray();
+        readDvdBytes(in);
 
         DVDSerializer extSerializer = (DVDSerializer) createClassInstance(in.readUTF());
-        deserialized = in.readBoolean();
 
         init(extSDV, extSerializer);
     }

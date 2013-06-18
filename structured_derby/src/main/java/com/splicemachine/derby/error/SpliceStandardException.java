@@ -10,6 +10,7 @@ import org.apache.derby.iapi.error.StandardException;
  *
  */
 public class SpliceStandardException extends Exception{
+	private static final long serialVersionUID = -298352016321581086L;
 	public SpliceStandardException() {
 		
 	}

@@ -176,11 +176,25 @@ public class MultiFieldEncoder {
         return this;
     }
 
-    public MultiFieldEncoder encodeNext(byte[] value){
+    /**
+     * WARNING: This encoding is <em>not</em> sortable, and will <em>not</em> retain
+     * the sort order of the original byte[]. Only use this if sorting that byte[] is unnecessary.
+     *
+     * @param value the value to be encoded
+     * @return a MultiFieldEncoder with {@code value} set in the next available
+     * position.
+     */
+    public MultiFieldEncoder encodeNextUnsorted(byte[] value){
         assert currentPos<fields.length;
-        byte[] encode = ByteEncoding.encode(value, false);
-        currentSize+=encode.length;
-        fields[currentPos] = encode;
+        //append a length field
+        byte[] length = ScalarEncoding.toBytes(value.length,false);
+        byte[] total = new byte[length.length+value.length+1];
+        System.arraycopy(length,0,total,0,length.length);
+        total[length.length] = 0x00;
+        System.arraycopy(value,0,total,length.length+1,value.length);
+
+        currentSize+=total.length;
+        fields[currentPos] = total;
         currentPos++;
         return this;
     }
@@ -236,5 +250,13 @@ public class MultiFieldEncoder {
     public byte[] getEncodedBytes(int i) {
         Preconditions.checkArgument(i<currentPos,"No bytes available in the current encoder");
         return fields[i];
+    }
+
+    public MultiFieldEncoder setRawBytes(byte[] keyPrefix) {
+        assert currentPos < numFields;
+        fields[currentPos] = keyPrefix;
+        currentPos++;
+        currentSize+=keyPrefix.length;
+        return this;
     }
 }

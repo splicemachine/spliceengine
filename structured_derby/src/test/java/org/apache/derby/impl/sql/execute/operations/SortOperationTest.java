@@ -233,6 +233,22 @@ public class SortOperationTest extends SpliceUnitTest {
 		Assert.assertEquals("results are wrong", Arrays.asList("bob,1.2", "joe,5.5", "tom,13.4667"), returnedByName);
 	}
 
+    @Test
+	public void testDistinctOrderByFloat() throws Exception {
+        // Tests for columns returning in reverse order (age, name not name, age) which actually causes Derby Network protocol exception
+        try {
+            ResultSet rs = methodWatcher.executeQuery(format("select distinct name, age from %s order by age", this.getTableReference(TABLE_NAME_2)));
+            List<String> returnedByName = new ArrayList<String>();
+            while (rs.next()) {
+                String v = rs.getObject(1) + "," + rs.getObject(2);
+                returnedByName.add(v);
+            }
+            Assert.assertEquals("results are wrong", Arrays.asList("bob,1.2", "joe,5.5", "tom,13.4667"), returnedByName);
+        } catch (Exception e) {
+            Assert.fail(e.getCause().getMessage());
+        }
+    }
+
 	private static class Triplet implements Comparable<Triplet>{
 		private final String k1;
 		private final String k2;

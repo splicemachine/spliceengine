@@ -100,7 +100,6 @@ public class GroupByOrderByTest {
     }
 
     @Test
-    @Ignore("bug 508")
     public void testSelectAllColumnsGroupByOrderBy() throws Exception {
         TestUtils.tableLookupByNumber(spliceClassWatcher);
         ResultSet rs = methodWatcher.executeQuery(

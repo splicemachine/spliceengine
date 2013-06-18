@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ParameterValueSet;
 import org.apache.derby.iapi.sql.ResultDescription;
@@ -14,7 +13,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.BaseActivation;
 import org.apache.derby.impl.sql.execute.IndexRow;
 import org.apache.log4j.Logger;
-
 import java.io.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -28,7 +26,6 @@ import java.util.Map;
  * @author Scott Fines
  * Created on: 5/17/13
  */
-@SuppressWarnings("UnusedDeclaration")
 public class ActivationSerializer {
 
     private static final Logger LOG = Logger.getLogger(ActivationSerializer.class);
@@ -146,7 +143,8 @@ public class ActivationSerializer {
             }
         }
 
-        private Activation read(ObjectInput in) throws IOException,
+        @SuppressWarnings("rawtypes")
+		private Activation read(ObjectInput in) throws IOException,
                 IllegalAccessException,
                 NoSuchFieldException,
                 ClassNotFoundException, StandardException {
@@ -209,7 +207,7 @@ public class ActivationSerializer {
     }
 
     private static interface FieldStorageFactory<F extends FieldStorage> {
-        F create(Object objectToStore, Class type);
+        F create(Object objectToStore, @SuppressWarnings("rawtypes") Class type);
 
         boolean isType(Class type);
     }

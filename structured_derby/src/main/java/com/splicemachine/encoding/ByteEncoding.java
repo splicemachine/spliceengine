@@ -3,6 +3,7 @@ package com.splicemachine.encoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.gotometrics.orderly.VariableLengthByteArrayRowKey;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
@@ -23,16 +24,15 @@ final class ByteEncoding {
 
     static byte[] encode(byte[] value, boolean desc){
         StringBuilder sb = new StringBuilder();
-        for(int i=0;i<value.length;i++){
-            byte next = value[i];
+        for (byte next : value) {
             String unsignedByte = Integer.toString(UnsignedBytes.toInt(next));
-            if(unsignedByte.length()==1){
+            if (unsignedByte.length() == 1) {
                 sb = sb.append(TWO_ZERO_PAD);
                 sb = sb.append(unsignedByte);
-            }else if(unsignedByte.length()==2){
+            } else if (unsignedByte.length() == 2) {
                 sb = sb.append(ONE_ZERO_PAD);
                 sb = sb.append(unsignedByte);
-            }else
+            } else
                 sb = sb.append(unsignedByte);
         }
         String strRep = sb.toString();
@@ -63,11 +63,49 @@ final class ByteEncoding {
         return data;
     }
 
+    static byte[] decode(ByteBuffer value, boolean desc){
+        //convert back into character encoding
+        StringBuilder sb = new StringBuilder();
+        int total = value.remaining();
+        for(int i=0;i<total;i++){
+            byte c = value.get();
+            if(desc)
+                c ^= 0xff;
+
+            byte leftNibble = (byte)((c >>>4) & 0x0f);
+            sb.append(BCD_DEC_LOOKUP[leftNibble]);
+
+            byte rightNibble = (byte)(c &0x0f);
+            if(rightNibble!=0x01)
+                sb.append(BCD_DEC_LOOKUP[rightNibble]);
+        }
+        String bcdStr = sb.toString();
+        //every 3 digits is 1 byte
+        final byte[] result = new byte[bcdStr.length()/3];
+
+        final char[] digits = bcdStr.toCharArray();
+        for(int i=0;i<result.length;i++){
+            int digitIdx = 3*i;
+            //TODO -sf- this is really ugly
+            StringBuilder b = new StringBuilder();
+            for(int j=0;j<3;j++){
+                b.append(digits[digitIdx+j]);
+            }
+            result[i] =(byte)Integer.parseInt(b.toString());
+
+        }
+        return result;
+    }
+
     static byte[] decode(byte[] value, boolean desc){
+        return decode(value,0,desc);
+    }
+
+    static byte[] decode(byte[] value, int offset,boolean desc){
         //convert back into character encoding
         StringBuilder sb = new StringBuilder();
         for(int i=0;i<value.length;i++){
-            byte c = value[i];
+            byte c = value[offset+i];
             if(desc)
                 c ^= 0xff;
 

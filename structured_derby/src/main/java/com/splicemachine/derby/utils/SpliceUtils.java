@@ -8,8 +8,8 @@ import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HClientTransactor;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
+import com.splicemachine.si.api.ClientTransactor;
+import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
@@ -220,7 +220,7 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Put createDeletePut(String transactionId, byte[] rowKey) {
-        final HClientTransactor clientTransactor = HTransactorFactory.getClientTransactor();
+        final ClientTransactor<Put, Get, Scan, Mutation, byte[]> clientTransactor = HTransactorFactory.getClientTransactor();
         return clientTransactor.createDeletePut(clientTransactor.transactionIdFromString(transactionId), rowKey);
     }
 
@@ -407,7 +407,7 @@ public class SpliceUtils extends SpliceUtilities {
 				if (destRow.length -1 >= position) {
 					fill(keyValue.getValue(),destRow[Bytes.toInt(keyValue.getQualifier())]);
 				} else {
-					SpliceLogUtils.warn(LOG, "populate - warn %s", keyValue);
+					SpliceLogUtils.warn(LOG, "populate - warn position %d %s", position, keyValue);
 				}
 			}
 		}catch(IOException e){
@@ -547,7 +547,7 @@ public class SpliceUtils extends SpliceUtilities {
 		return transID;
 	}
 
-    protected static HClientTransactor getTransactor() {
+    protected static ClientTransactor<Put, Get, Scan, Mutation, byte[]> getTransactor() {
         return HTransactorFactory.getClientTransactor();
     }
 

@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
@@ -42,11 +43,21 @@ public class DoubleEncodingTest {
         this.data = data;
     }
 
+
     @Test
     public void testCanSerializeAndDeserializeCorrectly() throws Exception {
         for(double datum:data){
             byte[] test = DecimalEncoding.toBytes(datum,false);
             double ret = DecimalEncoding.toDouble(test,false);
+            Assert.assertEquals("Incorrect encoding",datum,ret,Math.pow(10,-12));
+        }
+    }
+
+    @Test
+    public void testCanSerializeAndDeserializeByteBuffersCorrectly() throws Exception {
+        for(double datum:data){
+            byte[] test = DecimalEncoding.toBytes(datum,false);
+            double ret = DecimalEncoding.toDouble(ByteBuffer.wrap(test), false);
             Assert.assertEquals("Incorrect encoding",datum,ret,Math.pow(10,-12));
         }
     }

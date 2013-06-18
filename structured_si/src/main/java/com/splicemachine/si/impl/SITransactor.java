@@ -5,8 +5,6 @@ import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SRowLock;
-import com.splicemachine.si.data.api.STable;
 import com.splicemachine.si.data.api.STableWriter;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -30,14 +28,16 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
-public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue>
-        implements Transactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue> {
+public class SITransactor<Table, OperationWithAttributes, Put extends OperationWithAttributes, Get extends OperationWithAttributes,
+        Scan extends OperationWithAttributes, Mutation extends OperationWithAttributes, Result, KeyValue, Data, Hashable,
+        Delete extends OperationWithAttributes, Lock>
+        implements Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data, Hashable> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
 
     private final TimestampSource timestampSource;
-    private final SDataLib dataLib;
-    private final STableWriter dataWriter;
-    private final DataStore dataStore;
+    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
+    private final STableWriter<Table, Put, Delete, Data, Lock> dataWriter;
+    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Table, Lock> dataStore;
     private final TransactionStore transactionStore;
     private final Clock clock;
     private final int transactionTimeoutMS;
@@ -228,68 +228,68 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
     }
 
     @Override
-    public TransactionId transactionIdFromGet(GetOp operation) {
+    public TransactionId transactionIdFromGet(Get operation) {
         return dataStore.getTransactionIdFromOperation(operation);
     }
 
     @Override
-    public TransactionId transactionIdFromScan(ScanOp operation) {
+    public TransactionId transactionIdFromScan(Scan operation) {
         return dataStore.getTransactionIdFromOperation(operation);
     }
 
     @Override
-    public TransactionId transactionIdFromPut(PutOp operation) {
+    public TransactionId transactionIdFromPut(Put operation) {
         return dataStore.getTransactionIdFromOperation(operation);
     }
 
     // Operation initialization. These are expected to be called "client-side" when operations are created.
 
     @Override
-    public void initializeGet(String transactionId, GetOp get) throws IOException {
+    public void initializeGet(String transactionId, Get get) throws IOException {
         initializeOperation(transactionId, get);
     }
 
     @Override
-    public void initializeGet(String transactionId, GetOp get, boolean includeSIColumn) throws IOException {
+    public void initializeGet(String transactionId, Get get, boolean includeSIColumn) throws IOException {
         initializeOperation(transactionId, get, includeSIColumn, false);
     }
 
     @Override
-    public void initializeScan(String transactionId, ScanOp scan) {
+    public void initializeScan(String transactionId, Scan scan) {
         initializeOperation(transactionId, scan);
     }
 
     @Override
-    public void initializeScan(String transactionId, ScanOp scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart) {
+    public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart) {
         initializeOperation(transactionId, scan, includeSIColumn, includeUncommittedAsOfStart);
     }
 
     @Override
-    public void initializePut(String transactionId, Object put) {
+    public void initializePut(String transactionId, Put put) {
         initializeOperation(transactionId, put);
         dataStore.addPlaceHolderColumnToEmptyPut(put);
     }
 
-    private void initializeOperation(String transactionId, Object operation) {
+    private void initializeOperation(String transactionId, OperationWithAttributes operation) {
         initializeOperation(transactionId, operation, false, false);
     }
 
-    private void initializeOperation(String transactionId, Object operation, boolean includeSIColumn,
+    private void initializeOperation(String transactionId, OperationWithAttributes operation, boolean includeSIColumn,
                                      boolean includeUncommittedAsOfStart) {
         flagForSITreatment(transactionIdFromString(transactionId).getId(), includeSIColumn,
                 includeUncommittedAsOfStart, operation);
     }
 
     @Override
-    public PutOp createDeletePut(TransactionId transactionId, Object rowKey) {
+    public Put createDeletePut(TransactionId transactionId, Data rowKey) {
         return createDeletePutDirect(transactionId.getId(), rowKey);
     }
 
     /**
      * Create a "put" operation that will effectively delete a given row.
      */
-    private PutOp createDeletePutDirect(long transactionId, Object rowKey) {
-        final PutOp deletePut = (PutOp) dataLib.newPut(rowKey);
+    private Put createDeletePutDirect(long transactionId, Data rowKey) {
+        final Put deletePut = (Put) dataLib.newPut(rowKey);
         flagForSITreatment(transactionId, false, false, deletePut);
         dataStore.setTombstoneOnPut(deletePut, transactionId);
         dataStore.setDeletePutAttribute(deletePut);
@@ -297,8 +297,8 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
     }
 
     @Override
-    public boolean isDeletePut(MutationOp put) {
-        final Boolean deleteAttribute = dataStore.getDeletePutAttribute(put);
+    public boolean isDeletePut(Mutation mutation) {
+        final Boolean deleteAttribute = dataStore.getDeletePutAttribute(mutation);
         return (deleteAttribute != null && deleteAttribute);
     }
 
@@ -307,7 +307,7 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
      * later when the operation comes through for processing we will know how to handle it.
      */
     private void flagForSITreatment(long transactionId, boolean includeSIColumn,
-                                    boolean includeUncommittedAsOfStart, Object operation) {
+                                    boolean includeUncommittedAsOfStart, OperationWithAttributes operation) {
         dataStore.setSINeededAttribute(operation, includeSIColumn);
         if (includeUncommittedAsOfStart) {
             dataStore.setIncludeUncommittedAsOfStart(operation);
@@ -319,7 +319,7 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
 
 
     @Override
-    public void preProcessGet(GetOp readOperation) throws IOException {
+    public void preProcessGet(Get readOperation) throws IOException {
         dataLib.setGetTimeRange(readOperation, 0, Long.MAX_VALUE);
         dataLib.setGetMaxVersions(readOperation);
         if (dataStore.isIncludeSIColumn(readOperation)) {
@@ -330,7 +330,7 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
     }
 
     @Override
-    public void preProcessScan(ScanOp readOperation) throws IOException {
+    public void preProcessScan(Scan readOperation) throws IOException {
         dataLib.setScanTimeRange(readOperation, 0, Long.MAX_VALUE);
         dataLib.setScanMaxVersions(readOperation);
         if (dataStore.isIncludeSIColumn(readOperation)) {
@@ -343,16 +343,16 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
     // Process update operations
 
     @Override
-    public boolean processPut(STable table, RollForwardQueue rollForwardQueue, Object put) throws IOException {
+    public boolean processPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
         if (isFlaggedForSITreatment(put)) {
-            processPutDirect(table, rollForwardQueue, (PutOp) put);
+            processPutDirect(table, rollForwardQueue, put);
             return true;
         } else {
             return false;
         }
     }
 
-    private void processPutDirect(STable table, RollForwardQueue rollForwardQueue, PutOp put) throws IOException {
+    private void processPutDirect(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
         final TransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
         final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
         ensureTransactionAllowsWrites(transaction);
@@ -360,16 +360,17 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
     }
 
 
-    private void performPut(STable table, RollForwardQueue rollForwardQueue, PutOp put, ImmutableTransaction transaction) throws IOException {
-        final Object rowKey = dataLib.getPutKey(put);
-        final SRowLock lock = dataWriter.lockRow(table, rowKey);
+    private void performPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put, ImmutableTransaction transaction)
+            throws IOException {
+        final Data rowKey = dataLib.getPutKey(put);
+        final Lock lock = dataWriter.lockRow(table, rowKey);
         Set<Long> dataTransactionsToRollForward;
         // This is the critical section that runs while the row is locked.
         try {
             final Object[] conflictResults = ensureNoWriteConflict(transaction, table, rowKey);
             dataTransactionsToRollForward = (Set<Long>) conflictResults[0];
             Set<Long> conflictingChildren = (Set<Long>) conflictResults[1];
-            final Object newPut = createUltimatePut(transaction, lock, put, table);
+            final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table);
             dataStore.suppressIndexing(newPut);
             dataWriter.write(table, newPut, lock);
             resolveChildConflicts(table, newPut, lock, conflictingChildren);
@@ -382,9 +383,9 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
         }
     }
 
-    private void resolveChildConflicts(STable table, Object put, SRowLock lock, Set<Long> conflictingChildren) throws IOException {
+    private void resolveChildConflicts(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
         if (!conflictingChildren.isEmpty()) {
-            Object delete = dataStore.copyPutToDelete(put, conflictingChildren);
+            Delete delete = dataStore.copyPutToDelete(put, conflictingChildren);
             dataStore.suppressIndexing(delete);
             dataWriter.delete(table, delete, lock);
         }
@@ -394,9 +395,9 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
      * While we hold the lock on the row, check to make sure that no transactions have updated the row since the
      * updating transaction started.
      */
-    private Object[] ensureNoWriteConflict(ImmutableTransaction updateTransaction, STable table, Object rowKey)
+    private Object[] ensureNoWriteConflict(ImmutableTransaction updateTransaction, Table table, Data rowKey)
             throws IOException {
-        final List dataCommitKeyValues = dataStore.getCommitTimestamp(table, rowKey);
+        final List<KeyValue> dataCommitKeyValues = dataStore.getCommitTimestamp(table, rowKey);
         if (dataCommitKeyValues != null) {
             return checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValues);
         }
@@ -406,20 +407,20 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
     /**
      * Look at all of the values in the "commitTimestamp" column to see if there are write collisions.
      */
-    private Object[] checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, List dataCommitKeyValues)
+    private Object[] checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, List<KeyValue> dataCommitKeyValues)
             throws IOException {
         Set<Long> toRollForward = new HashSet<Long>();
         Set<Long> childConflicts = new HashSet<Long>();
-        for (Object dataCommitKeyValue : dataCommitKeyValues) {
+        for (KeyValue dataCommitKeyValue : dataCommitKeyValues) {
             checkCommitTimestampForConflict(updateTransaction, toRollForward, childConflicts, dataCommitKeyValue);
         }
         return new Object[]{toRollForward, childConflicts};
     }
 
-    private void checkCommitTimestampForConflict(ImmutableTransaction updateTransaction, Set<Long> toRollForward, Set<Long> childConflicts, Object dataCommitKeyValue) throws IOException {
+    private void checkCommitTimestampForConflict(ImmutableTransaction updateTransaction, Set<Long> toRollForward, Set<Long> childConflicts, KeyValue dataCommitKeyValue) throws IOException {
         final long dataTransactionId = dataLib.getKeyValueTimestamp(dataCommitKeyValue);
         if (!updateTransaction.sameTransaction(dataTransactionId)) {
-            final Object commitTimestampValue = dataLib.getKeyValueValue(dataCommitKeyValue);
+            final Data commitTimestampValue = dataLib.getKeyValueValue(dataCommitKeyValue);
             if (dataStore.isSINull(commitTimestampValue)) {
                 Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
                 dataTransaction = checkTransactionTimeout(dataTransaction);
@@ -483,14 +484,13 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
      * Create a new operation, with the lock, that has all of the keyValues from the original operation.
      * This will also set the timestamp of the data being updated to reflect the transaction doing the update.
      */
-    Object createUltimatePut(ImmutableTransaction transaction, SRowLock lock, PutOp put, STable table) throws IOException {
-        final Object rowKey = dataLib.getPutKey(put);
-        final Object newPut = dataLib.newPut(rowKey, lock);
-        final long timestamp = transaction.getLongTransactionId();
-        dataStore.copyPutKeyValues(put, true, newPut, timestamp);
-        dataStore.addTransactionIdToPut(newPut, timestamp);
-        if (isDeletePut((MutationOp) put)) {
-            dataStore.setTombstonesOnColumns(table, timestamp, newPut);
+    Put createUltimatePut(long transactionId, Lock lock, Put put, Table table) throws IOException {
+        final Data rowKey = dataLib.getPutKey(put);
+        final Put newPut = dataLib.newPut(rowKey, lock);
+        dataStore.copyPutKeyValues(put, newPut, transactionId);
+        dataStore.addTransactionIdToPutKeyValues(newPut, transactionId);
+        if (isDeletePut((Mutation) put)) {
+            dataStore.setTombstonesOnColumns(table, transactionId, newPut);
         }
         return newPut;
     }
@@ -498,27 +498,29 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
     // Process read operations
 
     @Override
-    public boolean isFilterNeededGet(GetOp operation) {
-        return isFlaggedForSITreatment(operation);
+    public boolean isFilterNeededGet(Get get) {
+        return isFlaggedForSITreatment(get)
+                && !dataStore.isSuppressIndexing(get);
     }
 
     @Override
-    public boolean isFilterNeededScan(ScanOp operation) {
-        return isFlaggedForSITreatment(operation);
+    public boolean isFilterNeededScan(Scan scan) {
+        return isFlaggedForSITreatment(scan)
+                && !dataStore.isSuppressIndexing(scan);
     }
 
     @Override
-    public boolean isGetIncludeSIColumn(GetOp get) {
+    public boolean isGetIncludeSIColumn(Get get) {
         return dataStore.isIncludeSIColumn(get);
     }
 
     @Override
-    public boolean isScanIncludeSIColumn(ScanOp read) {
+    public boolean isScanIncludeSIColumn(Scan read) {
         return dataStore.isIncludeSIColumn(read);
     }
 
     @Override
-    public boolean isScanIncludeUncommittedAsOfStart(ScanOp scan) {
+    public boolean isScanIncludeUncommittedAsOfStart(Scan scan) {
         return dataStore.isScanIncludeUncommittedAsOfStart(scan);
     }
 
@@ -541,13 +543,13 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
     }
 
     @Override
-    public ResultType filterResult(FilterState filterState, ResultType result) throws IOException {
-        final SDataLib dataLib = dataStore.dataLib;
-        final List<Object> filteredCells = new ArrayList<Object>();
+    public Result filterResult(FilterState filterState, Result result) throws IOException {
+        final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib = dataStore.dataLib;
+        final List<KeyValue> filteredCells = new ArrayList<KeyValue>();
         final List<KeyValue> keyValues = dataLib.listResult(result);
         if (keyValues != null) {
-            Object qualifierToSkip = null;
-            Object familyToSkip = null;
+            Data qualifierToSkip = null;
+            Data familyToSkip = null;
 
             for (KeyValue keyValue : keyValues) {
                 if (familyToSkip != null
@@ -575,18 +577,18 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
         if (filteredCells.isEmpty()) {
             return null;
         } else {
-            return (ResultType) dataLib.newResult(dataLib.getResultKey(result), filteredCells);
+            return dataLib.newResult(dataLib.getResultKey(result), filteredCells);
         }
     }
 
     // Roll-forward / compaction
 
     @Override
-    public void rollForward(STable table, long transactionId, List rows) throws IOException {
+    public void rollForward(Table table, long transactionId, List<Data> rows) throws IOException {
         final Transaction transaction = transactionStore.getTransaction(transactionId);
         final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
         if (effectiveStatus.equals(COMMITTED) || effectiveStatus.equals(ROLLED_BACK) || effectiveStatus.equals(ERROR)) {
-            for (Object row : rows) {
+            for (Data row : rows) {
                 try {
                     if (effectiveStatus.equals(COMMITTED)) {
                         dataStore.setCommitTimestamp(table, row, transaction.getLongTransactionId(), transaction.getCommitTimestamp());
@@ -612,7 +614,7 @@ public class SITransactor<PutOp, GetOp, ScanOp, MutationOp, ResultType, KeyValue
     /**
      * Is this operation supposed to be handled by "snapshot isolation".
      */
-    private boolean isFlaggedForSITreatment(Object operation) {
+    private boolean isFlaggedForSITreatment(OperationWithAttributes operation) {
         return dataStore.getSINeededAttribute(operation) != null;
     }
 

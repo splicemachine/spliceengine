@@ -4,7 +4,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.data.hbase.HTransactorAdapter;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
@@ -64,12 +63,10 @@ public class TransactorSetup extends SIConstants {
         transactor = new SITransactor(new SimpleTimestampSource(), dataLib, writer,
                 new DataStore(dataLib, reader, writer, "si-needed", SI_NEEDED_VALUE, ONLY_SI_FAMILY_NEEDED_VALUE,
                         "si-uncommitted", 1, "si-transaction-id", "si-delete-put", SNAPSHOT_ISOLATION_FAMILY,
-                        commitTimestampQualifierString, tombstoneQualifierString,
-                        SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN_STRING,
-                        -1, -2, userColumnsFamilyName),
+                        commitTimestampQualifierString, tombstoneQualifierString, -1, -2, userColumnsFamilyName),
                 transactionStore, storeSetup.getClock(), 1500, listener);
         if (!simple) {
-            listener.setTransactor(new HTransactorAdapter(transactor));
+            listener.setTransactor(transactor);
             hTransactor = listener;
         }
         clientTransactor = transactor;

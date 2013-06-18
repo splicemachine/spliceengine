@@ -1,18 +1,19 @@
-package com.splicemachine.si.api.com.splicemachine.si.api.hbase;
+package com.splicemachine.si.api;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConfiguration;
-import com.splicemachine.si.api.TimestampSource;
+import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.data.hbase.HPoolTableSource;
+import com.splicemachine.si.data.hbase.HRowLock;
 import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
-import com.splicemachine.si.data.hbase.HTransactorAdapter;
+import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
@@ -26,9 +27,12 @@ import com.splicemachine.si.jmx.TransactorStatus;
 import com.splicemachine.si.txn.ZooKeeperTimestampSource;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 
@@ -51,11 +55,11 @@ public class HTransactorFactory extends SIConstants {
         return getTransactorDirect();
     }
 
-    public static HTransactor getTransactor() {
+    public static Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> getTransactor() {
         return getTransactorDirect().getTransactor();
     }
 
-    public static HClientTransactor getClientTransactor() {
+    public static ClientTransactor<Put, Get, Scan, Mutation, byte[]> getClientTransactor() {
         return getTransactorDirect().getTransactor();
     }
 
@@ -102,12 +106,11 @@ public class HTransactorFactory extends SIConstants {
                     "si-transaction-id", "si-delete-put", SNAPSHOT_ISOLATION_FAMILY,
                     SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING,
                     SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING,
-                    SNAPSHOT_ISOLATION_PLACE_HOLDER_COLUMN_STRING,
                     EMPTY_BYTE_ARRAY, SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
                     DEFAULT_FAMILY);
-            final HTransactorAdapter transactor = new HTransactorAdapter(new SITransactor<Object, Get, Scan, Mutation, Result, KeyValue>
+            final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes, Delete, HRowLock>
                     (timestampSource, dataLib, writer, rowStore, transactionStore,
-                            new SystemClock(), TRANSACTION_TIMEOUT, managedTransactor));
+                            new SystemClock(), TRANSACTION_TIMEOUT, managedTransactor);
             managedTransactor.setTransactor(transactor);
             HTransactorFactory.setTransactor(HTransactorFactory.managedTransactor);
         }

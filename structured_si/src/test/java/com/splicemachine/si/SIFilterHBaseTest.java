@@ -1,7 +1,7 @@
 package com.splicemachine.si;
 
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.api.com.splicemachine.si.api.hbase.HTransactorFactory;
+import com.splicemachine.si.api.HTransactorFactory;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
