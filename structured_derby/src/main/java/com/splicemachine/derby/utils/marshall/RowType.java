@@ -25,6 +25,49 @@ public enum RowType implements RowMarshall{
     /**
      * Each unkeyed field is given it's own column
      */
+     DENSE_COLUMNAR {
+        @Override
+        public void encodeRow(ExecRow row,
+                              int[] rowColumns,
+                              Put put,
+                              MultiFieldEncoder rowEncoder) throws StandardException {
+                /*
+                 * rowEncoder is ignored, because we put each row's entry into a column based on
+                 * its row position
+                 */
+            DataValueDescriptor[] fields = row.getRowArray();
+            boolean written = false;
+            for(int rowCol:rowColumns){
+                DataValueDescriptor dvd = fields[rowCol];
+                if(dvd!=null&&!dvd.isNull()){
+                    byte[] data = DerbyBytesUtil.generateBytes(dvd);
+                    put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, Bytes.toBytes(rowCol),data);
+                    written=true;
+                }else if(dvd!=null&&dvd.isNull()){
+                    put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(rowCol),new byte[]{});
+                }
+            }
+            if(!written){
+                //no columns to store, so put one in place
+                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(-1000),new byte[]{});
+            }
+        }
+
+        @Override
+        public void decode(KeyValue value,
+                           ExecRow template,
+                           int[] reversedKeyColumns,
+                           MultiFieldDecoder rowDecoder) throws StandardException {
+            //ignores rowDecoder, which is probably null anyway, and just picks it from the qualifier
+            if(Bytes.compareTo(value.getFamily(), SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)==0)
+                return;
+            int pos = Bytes.toInt(value.getQualifier());
+            if(pos<0) return; //skip negative columns
+
+            byte[] data = value.getValue();
+            DerbyBytesUtil.fromBytes(data,template.getColumn(pos+1));
+        }
+    },
     COLUMNAR {
         @Override
         public void encodeRow(ExecRow row,

@@ -18,6 +18,7 @@ import java.sql.Statement;
  * @author Jeff Cunningham
  *         Date: 6/10/13
  */
+@Ignore
 public class ConstraintConstantOperationTest {
     private static final String CLASS_NAME = ConstraintConstantOperationTest.class.getSimpleName().toUpperCase();
 

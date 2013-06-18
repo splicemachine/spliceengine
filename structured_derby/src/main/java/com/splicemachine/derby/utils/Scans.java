@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.api.ClientTransactor;
 import org.apache.derby.iapi.error.StandardException;

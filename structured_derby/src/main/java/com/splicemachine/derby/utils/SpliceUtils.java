@@ -395,25 +395,37 @@ public class SpliceUtils extends SpliceUtilities {
 			}
 		}
 	}
-    
 
-	public static void populate(List<KeyValue> keyValues, DataValueDescriptor[] destRow) throws StandardException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",keyValues.size(),destRow.length);
-			try {
-			int position;
-			for (KeyValue keyValue: keyValues) {
-				if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
-					continue;
+
+    public static void populate(List<KeyValue> keyValues, DataValueDescriptor[] destRow) throws StandardException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",keyValues.size(),destRow.length);
+        try {
+            int position;
+            boolean[] filledRows = new boolean[destRow.length];
+            for (KeyValue keyValue: keyValues) {
+                if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
+                    continue;
                 else if(Bytes.compareTo(keyValue.getQualifier(), SpliceUtils.TASK_ID_COL)==0)
                     continue; //skip the task column
-				position = Bytes.toInt(keyValue.getQualifier());
-				if (destRow.length -1 >= position) {
-					fill(keyValue.getValue(),destRow[Bytes.toInt(keyValue.getQualifier())]);
-				} else {
-					SpliceLogUtils.warn(LOG, "populate - warn position %d %s", position, keyValue);
-				}
-			}
+                position = Bytes.toInt(keyValue.getQualifier());
+                if (destRow.length -1 >= position) {
+                    int pos = Bytes.toInt(keyValue.getQualifier());
+                    fill(keyValue.getValue(),destRow[pos]);
+                    filledRows[pos]=true;
+                } else {
+                    SpliceLogUtils.warn(LOG, "populate - warn %s", keyValue);
+                }
+            }
+            for(int filledCol=0;filledCol<filledRows.length;filledCol++){
+                boolean filled = filledRows[filledCol];
+                if(!filled){
+                    //we didn't have an entry for this column, so set it to null
+                    DataValueDescriptor field = destRow[filledCol];
+                    if(field!=null)
+                        field.setToNull();
+                }
+            }
 		}catch(IOException e){
             SpliceLogUtils.logAndThrow(LOG,"populate error", Exceptions.parseException(e));
 		}
@@ -424,6 +436,7 @@ public class SpliceUtils extends SpliceUtilities {
     	else {
     		try{
     			int placeHolder = 0;
+                boolean[] filledRows = new boolean[destRow.length];
     			for (KeyValue keyValue : keyValues) {
     				if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
     					continue;
@@ -431,9 +444,20 @@ public class SpliceUtils extends SpliceUtilities {
                         continue; //skip the task column
     				placeHolder = Bytes.toInt(keyValue.getQualifier());
     				if (scanList.isSet(placeHolder)) {
-    					fill(keyValue.getValue(),destRow[bitSetToDestRowMap[placeHolder]]);
+                        int pos = bitSetToDestRowMap[placeHolder];
+    					fill(keyValue.getValue(),destRow[pos]);
+                        filledRows[pos] = true;
     				}
     			}
+                for(int filledCol=0;filledCol<filledRows.length;filledCol++){
+                    boolean filled = filledRows[filledCol];
+                    if(!filled){
+                        //we didn't have an entry for this column, so set it to null
+                        DataValueDescriptor field = destRow[filledCol];
+                        if(field!=null)
+                            field.setToNull();
+                    }
+                }
     		}catch(IOException e){
                 SpliceLogUtils.logAndThrow(LOG,"populate error",Exceptions.parseException(e));
     		}
@@ -445,12 +469,23 @@ public class SpliceUtils extends SpliceUtilities {
         	SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",keyValues.size(),destRow.length);
         try{
     		int placeHolder = 0;
+            boolean[] filledRows = new boolean[destRow.length];
 			for (KeyValue keyValue : keyValues) {
 				if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
 					continue;
 				placeHolder = Bytes.toInt(keyValue.getQualifier());
 				fill(keyValue.getValue(),destRow[placeHolder],serializer);
+                filledRows[placeHolder] = true;
 			}
+            for(int filledCol=0;filledCol<filledRows.length;filledCol++){
+                boolean filled = filledRows[filledCol];
+                if(!filled){
+                    //we didn't have an entry for this column, so set it to null
+                    DataValueDescriptor field = destRow[filledCol];
+                    if(field!=null)
+                        field.setToNull();
+                }
+            }
 	     }catch(IOException ioe) {
             SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
         }

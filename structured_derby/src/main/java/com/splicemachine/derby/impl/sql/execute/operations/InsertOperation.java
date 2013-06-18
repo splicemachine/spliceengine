@@ -113,7 +113,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
             }
             keyType = KeyType.BARE;
         }
-        return RowEncoder.createDoubleWritingEncoder(getExecRowDefinition().nColumns(), keyColumns, null, null, keyType, RowType.COLUMNAR);
+        return RowEncoder.createDoubleWritingEncoder(getExecRowDefinition().nColumns(),keyColumns,null,null,keyType, RowType.DENSE_COLUMNAR);
     }
 
     @Override

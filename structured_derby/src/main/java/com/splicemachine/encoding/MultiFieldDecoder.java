@@ -204,7 +204,8 @@ public class MultiFieldDecoder {
      */
     public ByteBuffer getNextRaw(){
         //seek to the next terminator
-        if(currentOffset>data.length) return null;
+        if(currentOffset>=data.length) return null;
+
         if(currentOffset>=0&&data[currentOffset]==0x00) {
             currentOffset++;
             return null;
@@ -217,6 +218,8 @@ public class MultiFieldDecoder {
     }
 
     public ByteBuffer getNextRawBytes(){
+        if(currentOffset>=data.length) return null;
+
         if(currentOffset>=0&&data[currentOffset]==0x00) {
             currentOffset++;
             return null;
@@ -238,7 +241,7 @@ public class MultiFieldDecoder {
         if(expectedLength<0)
             expectedLength = data.length-currentOffset;
         for(int i=1;i<expectedLength;i++){
-            if(currentOffset+i>data.length){
+            if(currentOffset+i>=data.length){
                 //we're out of bytes, so we must have been the end
                 currentOffset=data.length;
                 return;

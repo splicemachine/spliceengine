@@ -58,7 +58,7 @@ public class RowEncoder {
             keyEncoder.mark();
         }
 
-        if(rowType!=RowType.COLUMNAR){
+        if(rowType!=RowType.COLUMNAR&&rowType!=RowType.DENSE_COLUMNAR){
             rowEncoder = MultiFieldEncoder.create(rowColumns.length);
         }
     }

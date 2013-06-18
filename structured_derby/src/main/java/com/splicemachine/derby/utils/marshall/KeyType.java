@@ -80,7 +80,7 @@ public enum KeyType implements KeyMarshall{
             BARE.encodeKey(row,keyColumns,sortOrder,keyPostfix,keyEncoder);
             //encode the postfix in place
             keyEncoder.encodeNextUnsorted(keyPostfix);
-            //encode random bits at the end of the postfix for uniqueness
+            //encode random bits at the end of the postfix for uniqueness --TODO -sf- make this more compact, and make SuccessFilter deal with it
             keyEncoder.encodeNextUnsorted(SpliceUtils.getUniqueKey());
         }
 

@@ -276,7 +276,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow def = getExecRowDefinition();
-        KeyType keyType = distinct? KeyType.FIXED_PREFIX_UNIQUE_POSTFIX: KeyType.FIXED_PREFIX_AND_POSTFIX;
+        KeyType keyType = distinct? KeyType.FIXED_PREFIX: KeyType.FIXED_PREFIX_UNIQUE_POSTFIX;
         return RowEncoder.create(def.nColumns(), keyColumns, descColumns, DerbyBytesUtil.generateBytes(sequence[0]), keyType, RowType.COLUMNAR);
     }
 
