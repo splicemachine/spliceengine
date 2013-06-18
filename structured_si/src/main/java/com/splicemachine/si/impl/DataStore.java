@@ -40,10 +40,10 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
 
     public DataStore(SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock>
                              dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
-                     Data siNeededValue, Data includeSIColumnValue, String includeUncommittedAsOfStartAttribute,
-                     Data includeUncommittedAsOfStartValue, String transactionIdAttribute, String deletePutAttribute,
-                     String siMetaFamily, Data siCommitQualifier, Data siTombstoneQualifier,
-                     Data siMetaNull, Data siFail, Data userColumnFamily) {
+                     Object siNeededValue, Object includeSIColumnValue, String includeUncommittedAsOfStartAttribute,
+                     Object includeUncommittedAsOfStartValue, String transactionIdAttribute, String deletePutAttribute,
+                     String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier,
+                     Object siMetaNull, Object siFail, Object userColumnFamily) {
         this.dataLib = dataLib;
         this.reader = reader;
         this.writer = writer;
