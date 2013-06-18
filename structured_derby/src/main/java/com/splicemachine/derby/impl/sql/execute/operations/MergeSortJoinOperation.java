@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -36,7 +37,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
 
-public class MergeSortJoinOperation extends JoinOperation {
+public class MergeSortJoinOperation extends JoinOperation implements SinkingOperation {
     private static final long serialVersionUID = 2l;
 	private static Logger LOG = Logger.getLogger(MergeSortJoinOperation.class);
 	protected String emptyRowFunMethodName;
@@ -49,7 +50,6 @@ public class MergeSortJoinOperation extends JoinOperation {
 	protected ExecRow rightTemplate;
 	protected static List<NodeType> nodeTypes; 
 	protected Scan reduceScan;
-    protected boolean isTemp;
 
     private SpliceOperation resultSetToRead;
 
@@ -118,37 +118,38 @@ public class MergeSortJoinOperation extends JoinOperation {
 		out.writeInt(emptyRightRowsReturned);
 	}
 
-	@Override
+    @Override
+    public ExecRow getNextSinkRow() throws StandardException {
+        if (resultSetToRead == null) {
+            switch (joinSide) {
+                case RIGHT:
+                    resultSetToRead = rightResultSet;
+                    break;
+                case LEFT:
+                    resultSetToRead = leftResultSet;
+                    break;
+            }
+        }
+        return resultSetToRead.getNextRowCore();
+    }
+
+    @Override
 	public ExecRow getNextRowCore() throws StandardException {
         return next(false);
     }
 
     protected ExecRow next(boolean outer) throws StandardException {
-        if(isTemp){
-            SpliceLogUtils.trace(LOG, "getNextRowCore");
-            beginTime = getCurrentTimeMillis();
-            if (mergeSortIterator == null)
-                mergeSortIterator = new MergeSortNextRowIterator(outer);
-            if (mergeSortIterator.hasNext()) {
-                ExecRow next = mergeSortIterator.next();
-                nextTime += getElapsedMillis(beginTime);
-                return next;
-            } else {
-                setCurrentRow(null);
-                return null;
-            }
-        }else{
-            if(resultSetToRead==null){
-                switch (joinSide) {
-                    case RIGHT:
-                        resultSetToRead = rightResultSet;
-                        break;
-                    case LEFT:
-                        resultSetToRead = leftResultSet;
-                        break;
-                }
-            }
-            return resultSetToRead.getNextRowCore();
+        SpliceLogUtils.trace(LOG, "getNextRowCore");
+        beginTime = getCurrentTimeMillis();
+        if (mergeSortIterator == null)
+            mergeSortIterator = new MergeSortNextRowIterator(outer);
+        if (mergeSortIterator.hasNext()) {
+            ExecRow next = mergeSortIterator.next();
+            nextTime += getElapsedMillis(beginTime);
+            return next;
+        } else {
+            setCurrentRow(null);
+            return null;
         }
     }
 
@@ -192,7 +193,6 @@ public class MergeSortJoinOperation extends JoinOperation {
                     context.getScan(),leftHasher,leftRow,rightHasher,rightRow,null,rowType);
             serverProvider.open();
         }
-        isTemp =!context.isSink() ||context.getTopOperation()!=this;
 	}
 
     @Override
@@ -236,7 +236,6 @@ public class MergeSortJoinOperation extends JoinOperation {
 		return new SpliceNoPutResultSet(activation,this,provider);
 	}
 
-    @Override
     public OperationSink.Translator getTranslator() throws IOException {
         final Serializer serializer = Serializer.get();
         try {

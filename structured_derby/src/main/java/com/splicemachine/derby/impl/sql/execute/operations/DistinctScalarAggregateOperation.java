@@ -151,6 +151,10 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         return ((SpliceOperation)source).getMapRowProvider(top,template);
     }
 
+    public ExecRow getNextSinkRow() throws StandardException {
+        return aggregate(false);
+    }
+
     @Override
     public ExecRow getNextRowCore() throws StandardException {
         if(finishedResults.size()>0)
@@ -158,7 +162,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         else if(completedExecution)
             return null;
 
-        return aggregate(isTemp);
+        return aggregate(true);
     }
 
     private ExecRow aggregate(boolean isTemp) throws StandardException{

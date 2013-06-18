@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 import com.google.common.base.Strings;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import org.apache.derby.iapi.error.SQLWarningFactory;
 import org.apache.derby.iapi.error.StandardException;
@@ -29,7 +30,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public abstract class GenericAggregateOperation extends SpliceBaseOperation {
+public abstract class GenericAggregateOperation extends SpliceBaseOperation implements SinkingOperation {
 	private static Logger LOG = Logger.getLogger(GenericAggregateOperation.class);
 	protected NoPutResultSet source;
 	protected String rowAllocatorMethodName;
@@ -96,6 +97,9 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 		operations.add((SpliceOperation) source);
 		return operations;
 	}
+
+    public abstract ExecRow getNextSinkRow() throws StandardException;
+    public abstract OperationSink.Translator getTranslator() throws IOException;
 
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException{

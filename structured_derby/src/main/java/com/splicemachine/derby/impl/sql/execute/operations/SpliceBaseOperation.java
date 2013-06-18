@@ -535,11 +535,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		return uniqueSequenceID;
 	}
 
-    @Override
-    public OperationSink.Translator getTranslator() throws IOException {
-        throw new UnsupportedOperationException("Sink not implemented for this node: "+ this.getClass());
-    }
-
     /**
      * Called during the executeShuffle() phase, for the execution of parallel operations.
      *

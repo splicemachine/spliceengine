@@ -44,8 +44,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	protected int rowsInput = 0;
 
 	protected boolean isOpen=false;
-    /*indicates whether or not this operation is looking at the TEMP space*/
-    private boolean isTemp;
 
     public ScalarAggregateOperation () {
 		super();
@@ -117,15 +115,19 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		try {
 			sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(activation));
 			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
-            isTemp = !context.isSink()||context.getTopOperation()!=this;
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
 	}
 
-	@Override
+    @Override
+    public ExecRow getNextSinkRow() throws StandardException {
+        return doAggregation(false);
+    }
+
+    @Override
 	public ExecRow getNextRowCore() throws StandardException {
-		return doAggregation(isTemp);
+		return doAggregation(true);
 	}
 
 	protected ExecRow doAggregation(boolean useScan) throws StandardException{

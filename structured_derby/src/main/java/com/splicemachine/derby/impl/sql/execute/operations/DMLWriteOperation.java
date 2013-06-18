@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -37,7 +38,7 @@ import java.util.Map;
  * @author Scott Fines
  *
  */
-public abstract class DMLWriteOperation extends SpliceBaseOperation {
+public abstract class DMLWriteOperation extends SpliceBaseOperation implements SinkingOperation {
     private static final long serialVersionUID = 2l;
 	private static final Logger LOG = Logger.getLogger(DMLWriteOperation.class);
 	protected NoPutResultSet source;
@@ -200,9 +201,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		return row;
 	}
 
-	@Override
-	public ExecRow getNextRowCore() throws StandardException {
+	public ExecRow getNextSinkRow() throws StandardException {
         return source.getNextRowCore();
+	}
+
+    public abstract OperationSink.Translator getTranslator() throws IOException;
+
+	public ExecRow getNextRowCore() throws StandardException {
+        throw new UnsupportedOperationException("Write Operations do not produce rows.");
 	}
 
     protected FormatableBitSet fromIntArray(int[] values){

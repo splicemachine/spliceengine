@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
@@ -35,7 +36,7 @@ public class OperationSink {
     }
 
     private final TableWriter tableWriter;
-    private final SpliceOperation operation;
+    private final SinkingOperation operation;
     private final byte[] taskId;
     private final byte[] taskIdCol;
 
@@ -44,9 +45,9 @@ public class OperationSink {
 
     private OperationSink(byte[] taskIdCol,byte[] taskId,SpliceOperation operation,TableWriter tableWriter) {
         this.tableWriter = tableWriter;
-        this.operation = operation;
         this.taskId = taskId;
         this.taskIdCol = taskIdCol;
+        this.operation = (SinkingOperation) operation;
     }
 
     public static OperationSink create(SpliceOperation operation, byte[] taskId) throws IOException {
@@ -79,7 +80,8 @@ public class OperationSink {
 //                debugFailIfDesired(writeBuffer);
 
                 long start = System.nanoTime();
-                row = operation.getNextRowCore();
+                //row = operation.getNextRowCore();
+                row = operation.getNextSinkRow();
                 if(row==null) continue;
 
                 stats.readAccumulator().tick(System.nanoTime()-start);

@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -35,7 +36,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
 
-public class HashScanOperation extends ScanOperation {
+public class HashScanOperation extends ScanOperation implements SinkingOperation {
 	private static Logger LOG = Logger.getLogger(HashScanOperation.class);
 	protected Scan mapScan;
 	protected Boolean isKeyed;
@@ -157,7 +158,6 @@ public class HashScanOperation extends ScanOperation {
 		return new ArrayList<SpliceOperation>();
 	}
 
-    @Override
     public OperationSink.Translator getTranslator() throws IOException {
         hasher = new Hasher(getExecRowDefinition().getRowArray(),keyColumns,null,sequence[0]);
         final Serializer serializer = Serializer.get();
@@ -247,7 +247,11 @@ public class HashScanOperation extends ScanOperation {
 	public ExecRow getExecRowDefinition() {
 		return currentRow;
 	}
-	
+
+    public ExecRow getNextSinkRow() throws StandardException {
+        return getNextRowCore();
+    }
+
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		  SpliceLogUtils.trace(LOG, "getNextRowCore");
