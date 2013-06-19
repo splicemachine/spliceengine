@@ -126,7 +126,8 @@ public class MultiFieldDecoder {
         }
 
         double next = Encoding.decodeDouble(data,currentOffset,desc);
-        adjustOffset(9);
+        currentOffset+=9;
+//        adjustOffset(9);
         return next;
     }
 
@@ -203,7 +204,7 @@ public class MultiFieldDecoder {
      *
      * @return a view of the next field's bytes[]
      */
-    public ByteBuffer getNextRaw(){
+    public byte[] getNextRaw(){
         //seek to the next terminator
         if(currentOffset>=data.length) return null;
 
@@ -215,10 +216,13 @@ public class MultiFieldDecoder {
         adjustOffset(-1);
 
         int length = currentOffset-offset-1;
-        return ByteBuffer.wrap(data, offset, length);
+
+        byte[] bytes = new byte[length];
+        System.arraycopy(data,offset,bytes,0,length);
+        return bytes;
     }
 
-    public ByteBuffer getNextRawBytes(){
+    public byte[] getNextRawBytes(){
         if(currentOffset>=data.length) return null;
 
         if(currentOffset>=0&&data[currentOffset]==0x00) {
@@ -228,9 +232,11 @@ public class MultiFieldDecoder {
         int offset = currentOffset>=0?currentOffset:0;
         //read off the length
         int length = Encoding.decodeInt(data,currentOffset,false);
-        adjustOffset(5);
-        adjustOffset(length);
-        return ByteBuffer.wrap(data,offset,offset+length);
+        adjustOffset(length+5);
+
+        byte[] bytes = new byte[length];
+        System.arraycopy(data,offset,bytes,0,length);
+        return bytes;
     }
 
     private void adjustOffset(int expectedLength){
@@ -277,30 +283,10 @@ public class MultiFieldDecoder {
         return value;
     }
 
-    public static void main(String... args) throws Exception{
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(4);
-        encoder.encodeNext("testing");
-        encoder.encodeNext("SYS");
-        encoder.encodeNext(1);
-        encoder.encodeNext("hello");
-
-        byte[] data = encoder.build();
-
-        MultiFieldDecoder decoder = MultiFieldDecoder.create();
-        decoder.set(data);
-        ByteBuffer b = decoder.getNextRaw();
-        System.out.println(Encoding.decodeString(b));
-        b = decoder.getNextRaw();
-        System.out.println(Encoding.decodeString(b));
-        b = decoder.getNextRaw();
-        System.out.println(Encoding.decodeInt(b));
-        b = decoder.getNextRaw();
-        System.out.println(Encoding.decodeString(b));
-    }
-
     public static MultiFieldDecoder wrap(byte[] row) {
         MultiFieldDecoder next = new MultiFieldDecoder();
         next.set(row);
+        next.reset();
         return next;
     }
 

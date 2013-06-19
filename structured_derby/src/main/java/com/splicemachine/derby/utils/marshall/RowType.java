@@ -7,7 +7,6 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
@@ -27,7 +26,7 @@ public enum RowType implements RowMarshall{
      */
      DENSE_COLUMNAR {
         @Override
-        public void encodeRow(ExecRow row,
+        public void encodeRow(DataValueDescriptor[] fields,
                               int[] rowColumns,
                               Put put,
                               MultiFieldEncoder rowEncoder) throws StandardException {
@@ -35,7 +34,6 @@ public enum RowType implements RowMarshall{
                  * rowEncoder is ignored, because we put each row's entry into a column based on
                  * its row position
                  */
-            DataValueDescriptor[] fields = row.getRowArray();
             boolean written = false;
             for(int rowCol:rowColumns){
                 DataValueDescriptor dvd = fields[rowCol];
@@ -55,7 +53,7 @@ public enum RowType implements RowMarshall{
 
         @Override
         public void decode(KeyValue value,
-                           ExecRow template,
+                           DataValueDescriptor[] fields,
                            int[] reversedKeyColumns,
                            MultiFieldDecoder rowDecoder) throws StandardException {
             //ignores rowDecoder, which is probably null anyway, and just picks it from the qualifier
@@ -65,12 +63,38 @@ public enum RowType implements RowMarshall{
             if(pos<0) return; //skip negative columns
 
             byte[] data = value.getValue();
-            DerbyBytesUtil.fromBytes(data,template.getColumn(pos+1));
+            DerbyBytesUtil.fromBytes(data,fields[pos]);
+        }
+    },
+    MAPPED_COLUMNAR {
+        @Override
+        public void encodeRow(DataValueDescriptor[] fields,
+                              int[] rowColumns,
+                              Put put,
+                              MultiFieldEncoder rowEncoder) throws StandardException {
+            COLUMNAR.encodeRow(fields,rowColumns,put,rowEncoder);
+        }
+
+        @Override
+        public void decode(KeyValue value,
+                           DataValueDescriptor[] fields,
+                           int[] reversedKeyColumns,
+                           MultiFieldDecoder rowDecoder) throws StandardException {
+            //ignores rowDecoder, which is probably null anyway, and just picks it from the qualifier
+            if(Bytes.compareTo(value.getFamily(), SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)==0)
+                return;
+            int pos = Bytes.toInt(value.getQualifier());
+            if(pos<0) return; //skip negative columns
+
+            byte[] data = value.getValue();
+            if(reversedKeyColumns!=null&&reversedKeyColumns.length>0)
+                pos = reversedKeyColumns[pos];
+            DerbyBytesUtil.fromBytes(data,fields[pos]);
         }
     },
     COLUMNAR {
         @Override
-        public void encodeRow(ExecRow row,
+        public void encodeRow(DataValueDescriptor[] fields,
                               int[] rowColumns,
                               Put put,
                               MultiFieldEncoder rowEncoder) throws StandardException {
@@ -78,7 +102,6 @@ public enum RowType implements RowMarshall{
                  * rowEncoder is ignored, because we put each row's entry into a column based on
                  * its row position
                  */
-            DataValueDescriptor[] fields = row.getRowArray();
             boolean written = false;
             for(int rowCol:rowColumns){
                 DataValueDescriptor dvd = fields[rowCol];
@@ -96,7 +119,7 @@ public enum RowType implements RowMarshall{
 
         @Override
         public void decode(KeyValue value,
-                           ExecRow template,
+                           DataValueDescriptor[] fields,
                            int[] reversedKeyColumns,
                            MultiFieldDecoder rowDecoder) throws StandardException {
             //ignores rowDecoder, which is probably null anyway, and just picks it from the qualifier
@@ -106,7 +129,7 @@ public enum RowType implements RowMarshall{
             if(pos<0) return; //skip negative columns
 
             byte[] data = value.getValue();
-            DerbyBytesUtil.fromBytes(data,template.getColumn(pos+1));
+            DerbyBytesUtil.fromBytes(data,fields[pos]);
         }
     },
     /**
@@ -115,7 +138,7 @@ public enum RowType implements RowMarshall{
     PACKED {
 
         @Override
-        public void encodeRow(ExecRow row,
+        public void encodeRow(DataValueDescriptor[] fields,
                               int[] rowColumns,
                               Put put,
                               MultiFieldEncoder rowEncoder) throws StandardException {
@@ -123,7 +146,6 @@ public enum RowType implements RowMarshall{
                  * Encode the entire row into a single column in the put
                  * use the column value 0x00 as the column key
                  */
-            DataValueDescriptor [] fields = row.getRowArray();
             for(int rowCol:rowColumns){
                 DerbyBytesUtil.encodeInto(rowEncoder,fields[rowCol],false);
             }
@@ -132,7 +154,7 @@ public enum RowType implements RowMarshall{
 
         @Override
         public void decode(KeyValue value,
-                           ExecRow template,
+                           DataValueDescriptor[] fields,
                            int[] reversedKeyColumns,
                            MultiFieldDecoder rowDecoder) throws StandardException {
             //data is packed in the single value
@@ -144,7 +166,7 @@ public enum RowType implements RowMarshall{
             byte[] data = value.getValue();
             rowDecoder.set(data);
             for(int keyCol:reversedKeyColumns){
-                DerbyBytesUtil.decodeInto(rowDecoder,template.getColumn(keyCol+1));
+                DerbyBytesUtil.decodeInto(rowDecoder,fields[keyCol]);
             }
         }
     },
@@ -153,14 +175,13 @@ public enum RowType implements RowMarshall{
      */
     PACKED_COMPRESSED {
         @Override
-        public void encodeRow(ExecRow row,
+        public void encodeRow(DataValueDescriptor[] fields,
                               int[] rowColumns,
                               Put put, MultiFieldEncoder rowEncoder) throws StandardException {
                 /*
                  * Encode the entire row into a single column in the put
                  * use the column value 0x00 as the column key
                  */
-            DataValueDescriptor [] fields = row.getRowArray();
             for(int rowCol:rowColumns){
                 DerbyBytesUtil.encodeInto(rowEncoder,fields[rowCol],false);
             }
@@ -177,7 +198,7 @@ public enum RowType implements RowMarshall{
 
         @Override
         public void decode(KeyValue value,
-                           ExecRow template,
+                           DataValueDescriptor[] fields,
                            int[] reversedKeyColumns,
                            MultiFieldDecoder rowDecoder) throws StandardException {
             //data is packed in the single value
@@ -190,7 +211,7 @@ public enum RowType implements RowMarshall{
                 byte[] data = Snappy.uncompress(value.getValue());
                 rowDecoder.set(data);
                 for(int keyCol:reversedKeyColumns){
-                    DerbyBytesUtil.decodeInto(rowDecoder,template.getColumn(keyCol+1));
+                    DerbyBytesUtil.decodeInto(rowDecoder, fields[keyCol]);
                 }
             } catch (IOException e) {
                 throw Exceptions.parseException(e);

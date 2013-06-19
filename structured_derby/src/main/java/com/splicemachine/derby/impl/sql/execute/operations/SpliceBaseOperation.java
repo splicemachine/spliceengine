@@ -11,7 +11,10 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -538,7 +541,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
-        throw new UnsupportedOperationException("Sink not implemented for this node: "+ this.getClass());
+        ExecRow row = getExecRowDefinition();
+        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE, RowType.COLUMNAR);
     }
 
 
@@ -549,12 +553,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
      * this should delegate to the operation's source.
      *
      * @param top the top operation to be executed
-     * @param template the template rows to be returned
+     * @param decoder the decoder to use
      * @return a MapRowProvider
      * @throws StandardException if something goes wrong
      */
     @Override
-	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
+	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
 		throw new UnsupportedOperationException("MapRowProviders not implemented for this node: "+ this.getClass());
 	}
 
@@ -565,12 +569,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
      * this should delegate to the operation's source.
      *
      * @param top the top operation to be executed
-     * @param template the template rows to be returned
+     * @param decoder the decoder to use
      * @return a ReduceRowProvider
      * @throws StandardException if something goes wrong
      */
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
         throw new UnsupportedOperationException("ReduceRowProviders not implemented for this node: "+ this.getClass());
     }
 
@@ -599,7 +603,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     protected JobStats doShuffle() throws StandardException {
         long start = System.currentTimeMillis();
-        final RowProvider rowProvider = getMapRowProvider(this, getExecRowDefinition());
+        final RowProvider rowProvider = getMapRowProvider(this, getRowEncoder().getDual(getExecRowDefinition()));
 
         nextTime+= System.currentTimeMillis()-start;
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
@@ -831,7 +835,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         this.childTransactionID = null;
     }
 
-    protected String getTransactionID() {
+    public String getTransactionID() {
         if (childTransactionID != null) {
             return childTransactionID;
         } else if (activation == null) {

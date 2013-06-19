@@ -78,7 +78,7 @@ public class DerbyBytesUtil {
         }
         if(descriptor.isLazy()){
             LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) descriptor;
-            ldvd.initForDeserialization(bytes);
+            ldvd.initForDeserialization(bytes,false);
             return ldvd;
         }
         try {
@@ -462,7 +462,7 @@ public class DerbyBytesUtil {
 
     public static MultiFieldEncoder encodeInto(MultiFieldEncoder encoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
         if(dvd.isLazy()){
-            return encoder.setRawBuffer(((LazyDataValueDescriptor) dvd).getBuffer(desc));
+            return encoder.setRawBytes(((LazyDataValueDescriptor)dvd).getBytes(desc));
         }
         switch(dvd.getTypeFormatId()){
             case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
@@ -534,7 +534,7 @@ public class DerbyBytesUtil {
     public static void decodeInto(MultiFieldDecoder rowDecoder, DataValueDescriptor column,boolean desc) throws StandardException{
         int colFormatId = column.getTypeFormatId();
         if(column.isLazy()){
-            ByteBuffer buffer;
+            byte[] buffer;
             if(colFormatId== StoredFormatIds.SQL_REF_ID
              ||colFormatId == StoredFormatIds.SQL_USERTYPE_ID_V3
              ||colFormatId == StoredFormatIds.SQL_VARBIT_ID

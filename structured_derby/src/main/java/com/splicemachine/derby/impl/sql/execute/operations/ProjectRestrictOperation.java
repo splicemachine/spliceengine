@@ -9,6 +9,10 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -206,20 +210,26 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {
         ExecRow fromResults = getExecRowDefinition();
-        RowProvider provider = getReduceRowProvider(this,fromResults);
+        RowProvider provider = getReduceRowProvider(this,getRowEncoder().getDual(fromResults));
         SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
 		nextTime += getCurrentTimeMillis() - beginTime;
 		return rs;
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return source.getMapRowProvider(top, template);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return source.getMapRowProvider(top, decoder);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return source.getReduceRowProvider(top, template);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return source.getReduceRowProvider(top, decoder);
+    }
+
+    @Override
+    public RowEncoder getRowEncoder() throws StandardException {
+        ExecRow template = getExecRowDefinition();
+        return RowEncoder.create(template.nColumns(),null,null,null, KeyType.BARE, RowType.COLUMNAR);
     }
 
     @Override

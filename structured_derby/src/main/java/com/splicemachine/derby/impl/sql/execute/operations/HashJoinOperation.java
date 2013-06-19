@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -127,22 +128,22 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 		final RowProvider rowProvider;
 		final ExecRow template = getExecRowDefinition();
 		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
-			rowProvider = regionOperation.getReduceRowProvider(this,template);
+			rowProvider = regionOperation.getReduceRowProvider(this,getRowEncoder().getDual(template));
 		} else {
-			rowProvider =regionOperation.getMapRowProvider(this,template);
+			rowProvider =regionOperation.getMapRowProvider(this,getRowEncoder().getDual(template));
 		}
 		return new SpliceNoPutResultSet(activation,this, rowProvider);
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
         //TODO -sf- is this right?
-        return ((SpliceOperation)getRightResultSet()).getMapRowProvider(top, template);
+        return getRightResultSet().getMapRowProvider(top, decoder);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return getLeftOperation().getReduceRowProvider(top,template);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return getLeftOperation().getReduceRowProvider(top,decoder);
     }
 
     @Override

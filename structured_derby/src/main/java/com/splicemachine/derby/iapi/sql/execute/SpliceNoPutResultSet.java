@@ -59,13 +59,6 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 		this.returnsRows = returnsRows;
 	}
 
-	public SpliceNoPutResultSet(Scan scan, String table,
-			Activation activation,
-			SpliceOperation topOperation,
-			ExecRow row) {
-		this(activation,topOperation,buildRowProvider(table,scan,activation,topOperation,row));
-	}
-
 	@Override
 	public boolean returnsRows() {
 		SpliceLogUtils.trace(LOG, "returnsRows");
@@ -404,12 +397,5 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 	public ExecRow getCurrentRow() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getCurrentRow");
 		return execRow;
-	}
-	
-	private static RowProvider buildRowProvider(String table,Scan scan, Activation activation,
-			SpliceOperation topOperation,ExecRow execRow) {
-		byte[] instructions = SpliceUtils.generateInstructions(activation,topOperation);
-		scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,instructions);
-		return new ClientScanProvider(Bytes.toBytes(table),scan,execRow,null);
 	}
 }

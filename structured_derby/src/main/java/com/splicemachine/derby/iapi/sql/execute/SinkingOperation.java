@@ -1,6 +1,7 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
@@ -22,9 +23,7 @@ public interface SinkingOperation {
      */
     ExecRow getNextSinkRow() throws StandardException;
 
-    /**
-     * @return a function converting non-null ExecRow objects into Put objects.
-     */
-    public OperationSink.Translator getTranslator() throws IOException;
+    String getTransactionID();
 
+    RowEncoder getRowEncoder() throws StandardException;
 }

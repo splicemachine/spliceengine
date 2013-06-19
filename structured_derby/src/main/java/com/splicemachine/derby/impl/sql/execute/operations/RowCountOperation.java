@@ -17,6 +17,10 @@ import com.splicemachine.derby.impl.storage.AbstractScanProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
 import com.splicemachine.hbase.BetterHTablePool;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
@@ -230,7 +234,13 @@ public class RowCountOperation extends SpliceBaseOperation{
 
     @Override
     public NoPutResultSet executeScan() throws StandardException {
-        return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,getExecRowDefinition()));
+        return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,getRowEncoder().getDual(getExecRowDefinition())));
+    }
+
+    @Override
+    public RowEncoder getRowEncoder() throws StandardException {
+        ExecRow row = getExecRowDefinition();
+        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE,RowType.COLUMNAR);
     }
 
     @Override
@@ -246,17 +256,19 @@ public class RowCountOperation extends SpliceBaseOperation{
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        RowProvider provider = source.getReduceRowProvider(top, template);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        RowProvider provider = source.getReduceRowProvider(top, decoder);
         long fetchLimit = getFetchLimit();
         long offset = getTotalOffset();
 
         if(offset>0){
             if(provider instanceof AbstractScanProvider){
                 AbstractScanProvider scanProvider = (AbstractScanProvider)provider;
-                provider = new OffsetScanRowProvider(scanProvider.getRowTemplate(),
-                        scanProvider.getFbt(),
-                        scanProvider.toScan(),offset,scanProvider.getTableName());
+                provider = OffsetScanRowProvider.create(scanProvider.getRowTemplate(),
+                        scanProvider.toScan(),
+                        offset,
+                        baseColumnMap,
+                        scanProvider.getTableName());
             }
         }
 
@@ -278,8 +290,8 @@ public class RowCountOperation extends SpliceBaseOperation{
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-       return source.getMapRowProvider(top,template);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+       return source.getMapRowProvider(top,decoder);
     }
 
     @Override
@@ -344,14 +356,25 @@ public class RowCountOperation extends SpliceBaseOperation{
         private byte[] tableName;
         private HTableInterface table;
 
-        private OffsetScanRowProvider(ExecRow rowTemplate,
-                                      FormatableBitSet fbt,
-                                      Scan fullScan, long totalOffset,
+        private OffsetScanRowProvider(RowDecoder rowDecoder,
+                                      Scan fullScan,
+                                      long totalOffset,
                                       byte[] tableName) {
-            super(rowTemplate, fbt);
+            super(rowDecoder);
             this.fullScan = fullScan;
             this.totalOffset = totalOffset;
             this.tableName = tableName;
+        }
+
+        public static OffsetScanRowProvider create(ExecRow rowTemplate,
+                                            Scan fullScan,
+                                            long totalOffset,
+                                            int[] baseColumnMap,
+                                            byte[] tableName){
+            RowDecoder rowDecoder = RowDecoder.create(rowTemplate,
+                    null,null,null, RowType.MAPPED_COLUMNAR,baseColumnMap,false);
+
+            return new OffsetScanRowProvider(rowDecoder,fullScan,totalOffset,tableName);
         }
 
         @Override

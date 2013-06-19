@@ -61,31 +61,6 @@ public class SpliceUtils extends SpliceUtilities {
      * @param dvds
      * @throws StandardException
      */
-    public static void populateDefaultValues(DataValueDescriptor[] dvds) throws StandardException {
-        for(DataValueDescriptor dvd:dvds){
-            if(dvd.isNull()){
-                switch(dvd.getTypeFormatId()){
-                    case StoredFormatIds.SQL_DOUBLE_ID:
-                        dvd.setValue(1d); //set to one to prevent /-by-zero errors
-                        break;
-                    case StoredFormatIds.SQL_SMALLINT_ID:
-                    case StoredFormatIds.SQL_INTEGER_ID:
-                        dvd.setValue(1);
-                        break;
-                    case StoredFormatIds.SQL_BOOLEAN_ID:
-                        dvd.setValue(false);
-                        break;
-                    case StoredFormatIds.SQL_LONGINT_ID:
-                        dvd.setValue(1l);
-                    case StoredFormatIds.SQL_REAL_ID:
-                        dvd.setValue(1f);
-                    default:
-                        //no op, this doesn't have a useful default value
-                }
-            }
-        }
-    }
-
     public static void populateDefaultValues(DataValueDescriptor[] dvds,int defaultValue) throws StandardException{
         for(DataValueDescriptor dvd:dvds){
             if(dvd.isNull()){
@@ -119,10 +94,6 @@ public class SpliceUtils extends SpliceUtilities {
         	return null;
         }
     }
-
-	public static String getTransactionPath() {
-		return zkSpliceTransactionPath;
-	}
 
     public static Get createGet(Mutation mutation, byte[] row) throws IOException {
         return createGet(getTransactionId(mutation), row);
@@ -256,242 +227,6 @@ public class SpliceUtils extends SpliceUtilities {
         }
     }
 
-	public static void populate(KeyValue[] raw, DataValueDescriptor[] destRow) throws StandardException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",raw.length,destRow.length);
-		/**
-		 * We have to use dataMap here instead of using currentResult.getValue() because for some reason columns larger
-		 * than 9 will go missing if you call getValue() --likely its due to the fact that we are serializing ints
-		 * as strings instead of as ints themselves.
-		 */		
-		try{
-            int pos=0;
-            for(KeyValue rawKv:raw){
-                if(pos>destRow.length) return;
-                if(Bytes.compareTo(SpliceConstants.DEFAULT_FAMILY_BYTES,rawKv.getFamily())!=0){
-                   continue;
-                }
-                int qualifier = Bytes.toInt(rawKv.getQualifier());
-                DataValueDescriptor next = destRow[qualifier];
-                fill(rawKv.getValue(),next);
-            }
-		}catch(IOException ioe){
-			SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
-		}
-	}
-
-    public static void populate(Result currentResult, DataValueDescriptor[] destRow,Serializer serializer) throws StandardException {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",currentResult.raw().length,destRow.length);
-        /**
-         * We have to use dataMap here instead of using currentResult.getValue() because for some reason columns larger
-         * than 9 will go missing if you call getValue() --likely its due to the fact that we are serializing ints
-         * as strings instead of as ints themselves.
-         */
-        Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
-        try{
-            for(int i=0;i<destRow.length;i++){
-                byte[] value = dataMap.get(Bytes.toBytes(i));
-                fill(value,destRow[i],serializer);
-            }
-        }catch(IOException ioe){
-            SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
-        }
-    }
-
-    public static void populate(Result currentResult, FormatableBitSet scanColumnList, DataValueDescriptor[] destRow,Serializer serializer) throws StandardException {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG,"populate current Result %s using scanColumnList %s and destRow with size %d",currentResult,scanColumnList,destRow.length);
-        try {
-            if(scanColumnList == null) populate(currentResult,destRow,serializer);
-            else{
-                Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
-                for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
-                    byte[] value = dataMap.get(Bytes.toBytes(i));
-                    fill(value,destRow[i],serializer);
-                }
-            }
-        } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, "Error occurred during populate", e);
-        }
-    }
-
-    public static void populate(Result currentResult, FormatableBitSet scanColumnList, DataValueDescriptor[] destRow) throws StandardException {
-        if (LOG.isTraceEnabled())
-        	SpliceLogUtils.trace(LOG,"populate current Result %s using scanColumnList %s and destRow with size %d",currentResult,scanColumnList,destRow.length);
-        try {
-            if(scanColumnList == null) 
-            	populate(currentResult.raw(),destRow);
-            else{
-                Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
-                for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
-                    byte[] value = dataMap.get(Bytes.toBytes(i));
-                    fill(value,destRow[i]);
-                }
-            }
-        } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, "Error occurred during populate", e);
-        }
-    }
-
-
-
-    public static void populate(List<KeyValue> keyValues, DataValueDescriptor[] destRow,
-                                FormatableBitSet scanList,int[] bitSetToDestRowMap,Serializer serializer) throws StandardException{
-        if(scanList==null||scanList.getNumBitsSet()<=0) populate(keyValues,destRow,serializer);
-        else {
-            try{
-                int placeHolder = 0;
-                for (KeyValue keyValue : keyValues) {
-                    if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
-                        continue;
-                    else if(Bytes.compareTo(keyValue.getQualifier(), SpliceConstants.TASK_ID_COL)==0)
-                        continue; //skip the task column
-                    placeHolder = Bytes.toInt(keyValue.getQualifier());
-                    if (scanList.isSet(placeHolder)) {
-                        fill(keyValue.getValue(),destRow[bitSetToDestRowMap[placeHolder]],serializer);
-                    }
-                }
-            }catch(IOException e){
-                SpliceLogUtils.logAndThrowRuntime(LOG,"Error occurred during populate",e);
-            }
-        }
-    }
-
-    
-    public static void populate(Result currentResult, DataValueDescriptor[] destRow,
-                                FormatableBitSet scanList,int[] bitSetToDestRowMap,Serializer serializer) throws StandardException{
-        if(scanList==null||scanList.getNumBitsSet()<=0) populate(currentResult,destRow,serializer);
-        else{
-            try{
-                Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
-                if (dataMap != null) {
-                    for (int i = scanList.anySetBit(); i != -1; i = scanList.anySetBit(i)) {
-                        byte[] value = dataMap.get(Bytes.toBytes(i));
-                        SpliceLogUtils.trace(LOG, "Attempting to place column[%d] into destRow %s", i, destRow[bitSetToDestRowMap[i]]);
-                        fill(value, destRow[bitSetToDestRowMap[i]], serializer);
-                    }
-                }
-            }catch(IOException e){
-                SpliceLogUtils.logAndThrowRuntime(LOG,"Error occurred during populate",e);
-            }
-        }
-    }
-
-
-
-    public static void populate(Result currentResult, DataValueDescriptor[] destRow,
-															FormatableBitSet scanList,int[] bitSetToDestRowMap) throws StandardException{
-		if(scanList==null||scanList.getNumBitsSet()<=0) populate(currentResult.raw(),destRow);
-		else{
-			try{
-				Map<byte[],byte[]> dataMap = currentResult.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
-				for(int i=scanList.anySetBit();i!=-1;i=scanList.anySetBit(i)){
-					byte[] value = dataMap.get(Bytes.toBytes(i));
-					fill(value, destRow[bitSetToDestRowMap[i]]);
-				}
-			}catch(IOException e){
-				SpliceLogUtils.logAndThrowRuntime(LOG,"Error occurred during populate",e);
-			}
-		}
-	}
-
-
-    public static void populate(List<KeyValue> keyValues, DataValueDescriptor[] destRow) throws StandardException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",keyValues.size(),destRow.length);
-        try {
-            int position;
-            boolean[] filledRows = new boolean[destRow.length];
-            for (KeyValue keyValue: keyValues) {
-                if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
-                    continue;
-                else if(Bytes.compareTo(keyValue.getQualifier(), SpliceUtils.TASK_ID_COL)==0)
-                    continue; //skip the task column
-                position = Bytes.toInt(keyValue.getQualifier());
-                if (destRow.length -1 >= position) {
-                    int pos = Bytes.toInt(keyValue.getQualifier());
-                    fill(keyValue.getValue(),destRow[pos]);
-                    filledRows[pos]=true;
-                } else {
-                    SpliceLogUtils.warn(LOG, "populate - warn %s", keyValue);
-                }
-            }
-            for(int filledCol=0;filledCol<filledRows.length;filledCol++){
-                boolean filled = filledRows[filledCol];
-                if(!filled){
-                    //we didn't have an entry for this column, so set it to null
-                    DataValueDescriptor field = destRow[filledCol];
-                    if(field!=null)
-                        field.setToNull();
-                }
-            }
-		}catch(IOException e){
-            SpliceLogUtils.logAndThrow(LOG,"populate error", Exceptions.parseException(e));
-		}
-	}
-    
-    public static void populate(List<KeyValue> keyValues, DataValueDescriptor[] destRow,FormatableBitSet scanList,int[] bitSetToDestRowMap) throws StandardException{
-    	if(scanList==null||scanList.getNumBitsSet()<=0) populate(keyValues,destRow);
-    	else {
-    		try{
-    			int placeHolder = 0;
-                boolean[] filledRows = new boolean[destRow.length];
-    			for (KeyValue keyValue : keyValues) {
-    				if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
-    					continue;
-                    else if(Bytes.compareTo(keyValue.getQualifier(), SpliceUtils.TASK_ID_COL)==0)
-                        continue; //skip the task column
-    				placeHolder = Bytes.toInt(keyValue.getQualifier());
-    				if (scanList.isSet(placeHolder)) {
-                        int pos = bitSetToDestRowMap[placeHolder];
-    					fill(keyValue.getValue(),destRow[pos]);
-                        filledRows[pos] = true;
-    				}
-    			}
-                for(int filledCol=0;filledCol<filledRows.length;filledCol++){
-                    boolean filled = filledRows[filledCol];
-                    if(!filled){
-                        //we didn't have an entry for this column, so set it to null
-                        DataValueDescriptor field = destRow[filledCol];
-                        if(field!=null)
-                            field.setToNull();
-                    }
-                }
-    		}catch(IOException e){
-                SpliceLogUtils.logAndThrow(LOG,"populate error",Exceptions.parseException(e));
-    		}
-    	}
-}
-
-    public static void populate(List<KeyValue> keyValues, DataValueDescriptor[] destRow,Serializer serializer) throws StandardException {
-        if (LOG.isTraceEnabled())
-        	SpliceLogUtils.trace(LOG, "fully populating current Result with size %d into row of size %d",keyValues.size(),destRow.length);
-        try{
-    		int placeHolder = 0;
-            boolean[] filledRows = new boolean[destRow.length];
-			for (KeyValue keyValue : keyValues) {
-				if (Bytes.compareTo(keyValue.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) // Check for SI family in the case of count(*)
-					continue;
-				placeHolder = Bytes.toInt(keyValue.getQualifier());
-				fill(keyValue.getValue(),destRow[placeHolder],serializer);
-                filledRows[placeHolder] = true;
-			}
-            for(int filledCol=0;filledCol<filledRows.length;filledCol++){
-                boolean filled = filledRows[filledCol];
-                if(!filled){
-                    //we didn't have an entry for this column, so set it to null
-                    DataValueDescriptor field = destRow[filledCol];
-                    if(field!=null)
-                        field.setToNull();
-                }
-            }
-	     }catch(IOException ioe) {
-            SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
-        }
-    }
-
-    
 
 	public static SpliceObserverInstructions getSpliceObserverInstructions(Scan scan) {
 		byte[] instructions = scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS);
@@ -511,20 +246,6 @@ public class SpliceUtils extends SpliceUtilities {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
 		}
 		return null;
-	}
-
-    private static void fill(byte[] value, DataValueDescriptor descriptor, Serializer serializer) throws IOException, StandardException {
-        if(value!=null&&descriptor!=null){
-           serializer.deserialize(value,descriptor);
-        }else if(descriptor!=null)descriptor.setToNull();
-    }
-
-	private static void fill(byte[] value, DataValueDescriptor dvd) throws StandardException, IOException {
-		if(value!=null&&dvd!=null){
-			DerbyBytesUtil.fromBytes(value,dvd);
-		}else if(dvd!=null){
-			dvd.setToNull();
-		}
 	}
 
 	public static boolean update(RowLocation loc, DataValueDescriptor[] row,
@@ -553,15 +274,6 @@ public class SpliceUtils extends SpliceUtilities {
 		return false;
 	}
 	
-	public static void setQueryWaitNode(String uniqueSequenceID, Watcher watcher) {
-		SpliceLogUtils.debug(LOG, "setQueryWaitNode");
-		try {
-			ZkUtils.getData(uniqueSequenceID, watcher, null);
-		} catch (IOException e) {
-			e.printStackTrace(); // TODO JL - FIX
-		}
-	}
-
 	public static String getTransIDString(Transaction trans) {
 		if (trans == null)
 			return null;
@@ -625,13 +337,6 @@ public class SpliceUtils extends SpliceUtilities {
         scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(instructions));
     }
 
-    public static void setThreadContext(LanguageConnectionContext lcc){
-        SpliceLogUtils.trace(LOG,"addThreadContext");
-        ContextService contextService = ContextService.getFactory();
-        ContextManager mgr = contextService.newContextManager();
-        mgr.pushContext(lcc);
-        contextService.setCurrentContextManager(mgr);
-    }
     public static boolean propertyExists(String propertyName) throws StandardException {
     	SpliceLogUtils.trace(LOG, "propertyExists %s",propertyName);
     	RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();

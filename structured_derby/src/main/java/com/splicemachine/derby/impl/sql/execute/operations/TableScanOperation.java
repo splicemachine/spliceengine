@@ -9,6 +9,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -16,6 +20,7 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
@@ -127,19 +132,25 @@ public class TableScanOperation extends ScanOperation {
 	}
 
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow template){
+	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
 		SpliceLogUtils.trace(LOG, "getMapRowProvider");
 		beginTime = System.currentTimeMillis();
 		Scan scan = buildScan();
 		SpliceUtils.setInstructions(scan, activation, top);
-		ClientScanProvider provider = new ClientScanProvider(Bytes.toBytes(tableName),scan,template,null);
+		ClientScanProvider provider = new ClientScanProvider(Bytes.toBytes(tableName),scan,decoder);
 		nextTime += System.currentTimeMillis() - beginTime;
 		return provider;
 	}
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return getMapRowProvider(top, template);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return getMapRowProvider(top, decoder);
+    }
+
+    @Override
+    public RowEncoder getRowEncoder() throws StandardException {
+        ExecRow row = getExecRowDefinition();
+        return RowEncoder.create(row.nColumns(), null, null, null, KeyType.BARE,RowType.COLUMNAR);
     }
 
     @Override
@@ -175,7 +186,11 @@ public class TableScanOperation extends ScanOperation {
 				currentRow = null;
 				currentRowLocation = null;
 			} else {
-				SpliceUtils.populate(keyValues, currentRow.getRowArray(), accessedCols, baseColumnMap);
+                DataValueDescriptor[] fields = currentRow.getRowArray();
+                for(KeyValue kv:keyValues){
+                    RowType.MAPPED_COLUMNAR.decode(kv,fields,baseColumnMap,null);
+                }
+//				SpliceUtils.populate(keyValues, currentRow.getRowArray(), accessedCols, baseColumnMap);
                 if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
                     /*
                      * If indexName !=null, then we are currently scanning an index,

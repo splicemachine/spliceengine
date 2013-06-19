@@ -10,14 +10,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import com.google.common.primitives.Bytes;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.utils.*;
-import com.splicemachine.derby.utils.marshall.KeyMarshall;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
@@ -70,6 +68,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     protected MultiFieldEncoder keyEncoder;
     protected RowProvider rowProvider;
     private Accumulator scanAccumulator = TimingStats.uniformAccumulator();
+
+    private boolean isTemp;
 
     public GroupedAggregateOperation () {
     	super();
@@ -146,7 +146,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                     context.getScan(),
                     SpliceConstants.TEMP_TABLE_BYTES,
                     SpliceConstants.DEFAULT_FAMILY_BYTES,
-                    sourceExecIndexRow,null,
                     scanEncoder.getDual(sourceExecIndexRow));
             rowProvider.open();
             isTemp = !context.isSink() || context.getTopOperation()!=this;
@@ -156,7 +155,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
         try {
             reduceScan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
         } catch (IOException e) {
@@ -165,19 +164,19 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         SuccessFilter filter = new SuccessFilter(failedTasks,false);
         reduceScan.setFilter(filter);
         SpliceUtils.setInstructions(reduceScan, activation, top);
-//        RowEncoder scanEncoder = RowEncoder.create(template.nColumns(),keyColumns,null,keyEncoder.getEncodedBytes(0),KeyType.FIXED_PREFIX,RowType.COLUMNAR);
-        return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
+//        RowEncoder scanEncoder = RowEncoder.create(decoder.nColumns(),keyColumns,null,keyEncoder.getEncodedBytes(0),KeyType.FIXED_PREFIX,RowType.COLUMNAR);
+        return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return getReduceRowProvider(top,template);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return getReduceRowProvider(top,decoder);
     }
 
     @Override
     protected JobStats doShuffle() throws StandardException {
         long start = System.currentTimeMillis();
-        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getExecRowDefinition());
+        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getRowEncoder().getDual(getExecRowDefinition()));
         nextTime+= System.currentTimeMillis()-start;
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
         return rowProvider.shuffleRows(soi);
@@ -187,7 +186,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     public RowEncoder getRowEncoder() throws StandardException {
         return RowEncoder.create(sourceExecIndexRow.nColumns(), keyColumns, null, null, new KeyMarshall() {
             @Override
-            public void encodeKey(ExecRow row,
+            public void encodeKey(DataValueDescriptor[] columns,
                                   int[] keyColumns,
                                   boolean[] sortOrder,
                                   byte[] keyPostfix,
@@ -196,8 +195,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             }
 
             @Override
-            public void decode(ExecRow template, int[] reversedKeyColumns,boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
-                hasher.decode(template, reversedKeyColumns, sortOrder,rowDecoder);
+            public void decode(DataValueDescriptor[] columns, int[] reversedKeyColumns,boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
+                hasher.decode(columns, reversedKeyColumns, sortOrder,rowDecoder);
             }
 
             @Override
@@ -275,7 +274,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 if(!useScan)
                     initializeVectorAggregation(rolledUpRow);
                 keyEncoder.reset();
-                hasher.encodeKey(rolledUpRow, keyColumns, null, null, keyEncoder);
+                hasher.encodeKey(rolledUpRow.getRowArray(), keyColumns, null, null, keyEncoder);
                 ByteBuffer keyBuffer = ByteBuffer.wrap(keyEncoder.build());
 				if(!currentAggregations.merge(keyBuffer, rolledUpRow, merger)){
 					ExecIndexRow row = (ExecIndexRow)rolledUpRow.getClone();
@@ -339,27 +338,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	
 	protected ExecIndexRow getNextRowFromScan() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getting next row from scan");
-		if(rowProvider!=null){
-			if(rowProvider.hasNext())
-				return (ExecIndexRow)rowProvider.next();
-			else return null;
-		}else{
-			List<KeyValue> keyValues = new ArrayList<KeyValue>();
-			try{
-				regionScanner.next(keyValues);
-			}catch(IOException ioe){
-				SpliceLogUtils.logAndThrow(LOG, 
-						StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
-			}
-			Result result = new Result(keyValues); // XXX - TODO FIX JLEACH
-			if(keyValues.isEmpty())return null;
-			
-			else{
-				ExecIndexRow row = (ExecIndexRow)sourceExecIndexRow.getClone();
-				SpliceUtils.populate(result, null, row.getRowArray());
-				return row;
-			}
-		}
+        if(rowProvider.hasNext())
+            return (ExecIndexRow)rowProvider.next();
+        else return null;
 	}
 	
 	private ExecIndexRow getNextRowFromSource() throws StandardException{

@@ -10,6 +10,10 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayUtil;
@@ -463,11 +467,17 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 //    }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) {
-        return new MultiProbeRowProvider(top,template,null,probeValues,Bytes.toBytes(tableName));
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return new MultiProbeRowProvider(top,decoder,probeValues,Bytes.toBytes(tableName));
     }
 
-//    /**
+    @Override
+    public RowEncoder getRowEncoder() throws StandardException {
+        ExecRow row = getExecRowDefinition();
+        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE, RowType.COLUMNAR);
+    }
+
+    //    /**
 //     * @see NoPutResultSet#close
 //     */
 //    public void close() throws StandardException
@@ -537,11 +547,11 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 
         private boolean open = false;
 
-        private MultiProbeRowProvider(SpliceOperation top,ExecRow rowTemplate,
-                                      FormatableBitSet fbt,
+        private MultiProbeRowProvider(SpliceOperation top,
+                                      RowDecoder rowDecoder,
                                       DataValueDescriptor[] probeValues,
                                       byte[] tableName) {
-            super(rowTemplate,fbt);
+            super(rowDecoder);
             this.probeValues = probeValues;
             this.tableName = tableName;
             this.top = top;

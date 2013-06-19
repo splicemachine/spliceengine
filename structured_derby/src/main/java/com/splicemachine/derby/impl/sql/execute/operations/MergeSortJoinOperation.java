@@ -18,10 +18,7 @@ import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.JoinSideExecRow;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.KeyMarshall;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -33,6 +30,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
@@ -163,20 +161,20 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     }
 
     @Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template){
+	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
         if(clientProvider==null){
             if(failedTasks.size()>0){
                 reduceScan.setFilter(new SuccessFilter(failedTasks,false));
             }
             SpliceUtils.setInstructions(reduceScan,activation,top);
-            clientProvider = new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null);
+            clientProvider = new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
         }
         return clientProvider;
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return getReduceRowProvider(top,template);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return getReduceRowProvider(top,decoder);
     }
 
     @Override
@@ -217,10 +215,10 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
         ExecRow template = getExecRowDefinition();
         joinSide = JoinSide.LEFT;
-        RowProvider leftProvider = leftResultSet.getMapRowProvider(this, template);
+        RowProvider leftProvider = leftResultSet.getMapRowProvider(this, getRowEncoder().getDual(template));
 
         joinSide = JoinSide.RIGHT;
-        RowProvider rightProvider = rightResultSet.getMapRowProvider(this, template);
+        RowProvider rightProvider = rightResultSet.getMapRowProvider(this, getRowEncoder().getDual(template));
 
         RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
 
@@ -241,7 +239,10 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		// Get the topmost value, instead of the bottommost, in case it's you
 		SpliceOperation regionOperation = opStack.get(opStack.size()-1); 
 		SpliceLogUtils.trace(LOG,"regionOperation=%s",opStack);
-		RowProvider provider = getReduceRowProvider(this,getExecRowDefinition());
+
+        ExecRow rowDef = getExecRowDefinition();
+        RowEncoder encoder = RowEncoder.create(rowDef.nColumns(),null,null,null,KeyType.BARE,RowType.COLUMNAR);
+		RowProvider provider = getReduceRowProvider(this,encoder.getDual(getExecRowDefinition()));
 //		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)){
 //			provider = regionOperation.getReduceRowProvider(this,getExecRowDefinition());
 //		}else {
@@ -268,9 +269,9 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         final byte[] ordinalColumn = JoinUtils.JOIN_SIDE_COLUMN;
         KeyMarshall keyType = new KeyMarshall() {
             @Override
-            public void encodeKey(ExecRow row, int[] keyColumns,
+            public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns,
                                   boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
-                KeyType.BARE.encodeKey(row,keyColumns,sortOrder,keyPostfix,keyEncoder);
+                KeyType.BARE.encodeKey(columns,keyColumns,sortOrder,keyPostfix,keyEncoder);
                 //add ordinal position
                 keyEncoder.setRawBytes(joinSideBytes);
                 //add the postfix
@@ -280,7 +281,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             }
 
             @Override
-            public void decode(ExecRow template, int[] reversedKeyColumns, boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
+            public void decode(DataValueDescriptor[] columns, int[] reversedKeyColumns, boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
                 /*
                  * Some Join columns have key sets like [0,0], where the same field is encoded multiple
                  * times. We need to only decode the first instance, or else we'll get incorrect answers
@@ -291,7 +292,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                     if(key==-1) continue;
                     if(decodedColumns[key]!=-1){
                         //we can decode this one, as it's not a duplicate
-                        DerbyBytesUtil.decodeInto(rowDecoder,template.getColumn(key+1));
+                        DerbyBytesUtil.decodeInto(rowDecoder,columns[key]);
                         decodedColumns[key] = -1;
                     }else{
                         //skip this one, it's a duplicate of something else

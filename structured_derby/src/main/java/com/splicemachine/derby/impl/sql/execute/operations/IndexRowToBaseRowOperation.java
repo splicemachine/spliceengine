@@ -9,6 +9,10 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -24,6 +28,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericPreparedStatement;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
@@ -81,7 +86,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	private HTableInterface table;
 
 
-	public IndexRowToBaseRowOperation () {
+    public IndexRowToBaseRowOperation () {
 		super();
 	}
 
@@ -177,69 +182,76 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 			resultRow = (ExecRow) generatedMethod.invoke(activation);
 			
 			compactRow = getCompactRow(activation.getLanguageConnectionContext(),resultRow, accessedAllCols, false);
-			
-			if (accessedHeapCols == null) {				
-				rowArray = resultRow.getRowArray();
-			}
-			else {
-				// Figure out how many columns are coming from the heap				
-				final DataValueDescriptor[] resultRowArray = resultRow.getRowArray();
-				final int heapOnlyLen = heapOnlyCols.getLength();
 
-				// Need a separate DataValueDescriptor array in this case
-				rowArray = new DataValueDescriptor[heapOnlyLen];
-				final int minLen = Math.min(resultRowArray.length, heapOnlyLen);
+            if (accessedHeapCols == null) {
+                rowArray = resultRow.getRowArray();
 
-				// Make a copy of the relevant part of rowArray
-				for (int i = 0; i < minLen; ++i) {
-					if (resultRowArray[i] != null && heapOnlyCols.isSet(i)) {
-						rowArray[i] = resultRowArray[i];
-					}
-				}
-				if (indexCols != null) {
-					for (int index = 0; index < indexCols.length; index++) {
-						if (indexCols[index] != -1) {
-							compactRow.setColumn(index + 1,source.getExecRowDefinition().getColumn(indexCols[index] + 1));
-						}
-					}
-				}			
-			}
-			SpliceLogUtils.trace(LOG,"accessedAllCols=%s,accessedHeapCols=%s,heapOnlyCols=%s,accessedCols=%s",accessedAllCols,accessedHeapCols,heapOnlyCols,accessedCols);
+            }
+            else {
+                // Figure out how many columns are coming from the heap
+                final DataValueDescriptor[] resultRowArray = resultRow.getRowArray();
+                final int heapOnlyLen = heapOnlyCols.getLength();
+
+                // Need a separate DataValueDescriptor array in this case
+                rowArray = new DataValueDescriptor[heapOnlyLen];
+                final int minLen = Math.min(resultRowArray.length, heapOnlyLen);
+
+                // Make a copy of the relevant part of rowArray
+                for (int i = 0; i < minLen; ++i) {
+                    if (resultRowArray[i] != null && heapOnlyCols.isSet(i)) {
+                        rowArray[i] = resultRowArray[i];
+                    }
+                }
+                if (indexCols != null) {
+                    for (int index = 0; index < indexCols.length; index++) {
+                        if (indexCols[index] != -1) {
+                            compactRow.setColumn(index + 1,source.getExecRowDefinition().getColumn(indexCols[index] + 1));
+                        }
+                    }
+                }
+            }
+            SpliceLogUtils.trace(LOG,"accessedAllCols=%s,accessedHeapCols=%s,heapOnlyCols=%s,accessedCols=%s",accessedAllCols,accessedHeapCols,heapOnlyCols,accessedCols);
             SpliceLogUtils.trace(LOG,"rowArray=%s,compactRow=%s,resultRow=%s,resultSetNumber=%d",
-                                            Arrays.asList(rowArray),compactRow,resultRow,resultSetNumber);
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
-		}
+                    Arrays.asList(rowArray),compactRow,resultRow,resultSetNumber);
+        } catch (StandardException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
+        }
 
-	}
-	
-	@Override
-	public NoPutResultSet executeScan() throws StandardException {
-		SpliceLogUtils.trace(LOG,"executeScan");
-		final List<SpliceOperation> operationStack = getOperationStack();
-		SpliceLogUtils.trace(LOG,"operationStack=%s",operationStack);
-		SpliceOperation regionOperation = operationStack.get(0);
-		SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-		RowProvider provider;
-		ExecRow template = getExecRowDefinition();
-		if(regionOperation.getNodeTypes().contains(NodeType.REDUCE)&&this!=regionOperation){
-			SpliceLogUtils.trace(LOG,"Scanning temp tables");
-			provider = regionOperation.getReduceRowProvider(this,template);
+    }
+
+    @Override
+    public NoPutResultSet executeScan() throws StandardException {
+        SpliceLogUtils.trace(LOG,"executeScan");
+        final List<SpliceOperation> operationStack = getOperationStack();
+        SpliceLogUtils.trace(LOG,"operationStack=%s",operationStack);
+        SpliceOperation regionOperation = operationStack.get(0);
+        SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
+        RowProvider provider;
+        RowDecoder decoder = getRowEncoder().getDual(getExecRowDefinition());
+        if(regionOperation.getNodeTypes().contains(NodeType.REDUCE)&&this!=regionOperation){
+            SpliceLogUtils.trace(LOG,"Scanning temp tables");
+			provider = regionOperation.getReduceRowProvider(this,decoder);
 		}else {
 			SpliceLogUtils.trace(LOG,"scanning Map table");
-			provider = regionOperation.getMapRowProvider(this,template);
+			provider = regionOperation.getMapRowProvider(this,decoder);
 		}
 		return new SpliceNoPutResultSet(activation,this, provider);
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return source.getMapRowProvider(top, template);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return source.getMapRowProvider(top, decoder);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return source.getReduceRowProvider(top, template);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return source.getReduceRowProvider(top, decoder);
+    }
+
+    @Override
+    public RowEncoder getRowEncoder() throws StandardException {
+        ExecRow template = getExecRowDefinition();
+        return RowEncoder.create(template.nColumns(), null, null, null, KeyType.BARE, RowType.COLUMNAR);
     }
 
     @Override
@@ -308,7 +320,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                         indexName,Arrays.toString(rowArray),accessedHeapCols,heapOnlyCols,Arrays.toString(baseColumnMap));
                 rowExists = result!=null && !result.isEmpty();
                 if(rowExists){
-                    SpliceUtils.populate(result, compactRow.getRowArray(), accessedHeapCols,baseColumnMap);
+                    for(KeyValue kv:result.raw()){
+                        RowType.MAPPED_COLUMNAR.decode(kv,compactRow.getRowArray(),baseColumnMap,null);
+                    }
                 }
             }catch(IOException ioe){
                 SpliceLogUtils.logAndThrowRuntime(LOG,ioe);

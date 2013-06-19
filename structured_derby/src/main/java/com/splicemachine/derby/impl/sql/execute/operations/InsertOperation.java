@@ -64,9 +64,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		heapConglom = ((InsertConstantOperation)constants).getConglomerateId();
 
         if(constants instanceof InsertConstantOperation){
-            int[] pks = ((InsertConstantOperation)constants).getPkColumns();
-            if(pks!=null)
-                pkColumns = fromIntArray(pks);
+            pkCols = ((InsertConstantOperation)constants).getPkColumns();
+            if(pkCols!=null)
+                pkColumns = fromIntArray(pkCols);
         }
 	}
 

@@ -101,7 +101,7 @@ public abstract class AbstractImportTask extends ZkTask {
             }else
                 keyColumns = new int[0];
 
-            RowEncoder encoder = RowEncoder.create(row.nColumns(),keyColumns,null,null,keyType,rowType);
+            RowEncoder encoder = RowEncoder.createDoubleWritingEncoder(row.nColumns(),keyColumns,null,null,keyType,rowType);
 
             Long numImported;
             try{

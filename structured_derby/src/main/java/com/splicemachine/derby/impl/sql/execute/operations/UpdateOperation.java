@@ -188,7 +188,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
                 //convert Result into put under the new row key
                 keyEncoder.reset();
-                keyType.encodeKey(nextRow,keyColumns,keySortOrder,keyPostfix,keyEncoder);
+                keyType.encodeKey(nextRow.getRowArray(),keyColumns,keySortOrder,keyPostfix,keyEncoder);
                 Put put = new Put(keyEncoder.build());
                 SpliceUtils.attachTransaction(put,txnId);
                 NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);

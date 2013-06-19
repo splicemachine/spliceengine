@@ -10,6 +10,9 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowType;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -22,6 +25,7 @@ import org.apache.derby.iapi.store.access.conglomerate.ScanManager;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -35,6 +39,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	protected String transID;
 	protected Scan scan;
 	protected FormatableBitSet scanColumnList;
+    protected RowDecoder rowDecoder;
 	protected DataValueDescriptor[] startKeyValue;
 	protected int startSearchOperator;
 	protected Qualifier[][] qualifier;
@@ -50,7 +55,9 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	protected boolean isKeyed;
 	protected boolean scannerInitialized = false;
 	protected String tableName;
-	public SpliceScan() {
+    private int[] rowColumns;
+
+    public SpliceScan() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("Instantiate Splice Scan for conglomerate ");
 	}
@@ -80,6 +87,12 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		setupScan();
 		attachFilter();
 		tableName = Bytes.toString(SpliceOperationCoprocessor.TEMP_TABLE);
+        this.rowColumns = new int[scanColumnList.size()];
+        int pos=0;
+        for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
+            rowColumns[pos] = i;
+            pos++;
+        }
 //		table = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 	}
 
@@ -106,6 +119,14 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		setupScan();
 		attachFilter();
 		tableName = spliceConglomerate.getConglomerate().getContainerid() + "";
+        if(scanColumnList!=null){
+            this.rowColumns = new int[scanColumnList.size()];
+            int pos=0;
+            for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
+                rowColumns[pos] = i;
+                pos++;
+            }
+        }
 	}
 	
 	public void close() throws StandardException {
@@ -233,7 +254,9 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	public void fetchWithoutQualify(DataValueDescriptor[] destRow) throws StandardException {
         try{
             if(destRow!=null){
-                SpliceUtils.populate(currentResult, scanColumnList, destRow);
+                for(KeyValue kv:currentResult.raw()){
+                    RowType.COLUMNAR.decode(kv,destRow,rowColumns,null);
+                }
 		    	this.currentRow = destRow;
             }
             this.currentRowLocation = new HBaseRowLocation(currentResult.getRow());
@@ -284,7 +307,9 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				fetchedRow = RowUtil.newTemplate(
 						spliceConglomerate.getTransaction().getDataValueFactory(),
 						null, spliceConglomerate.getFormatIds(), spliceConglomerate.getCollationIds());
-				SpliceUtils.populate(currentResult, scanColumnList, fetchedRow);
+                for(KeyValue kv:currentResult.raw()){
+                    RowType.COLUMNAR.decode(kv,fetchedRow,null,null);
+                }
 				hashTable.putRow(false, fetchedRow);
 				this.currentRowLocation = new HBaseRowLocation(currentResult.getRow());
 				rowCount++;
@@ -358,7 +383,10 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						if (i == 0)
 							template = RowUtil.newRowFromTemplate(row_array[i]);
 						row_array[i] = RowUtil.newRowFromTemplate(template);
-						SpliceUtils.populate(results[i], scanColumnList, row_array[i]);
+                        for(KeyValue kv:results[i].raw()){
+                            RowType.COLUMNAR.decode(kv,row_array[i],null,null);
+                        }
+//						SpliceUtils.populate(results[i], scanColumnList, row_array[i]);
 					}
 				}
 				this.currentRowLocation = new HBaseRowLocation(results[results.length-1].getRow());

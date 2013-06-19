@@ -11,6 +11,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -130,7 +131,7 @@ public class AnyOperation extends SpliceBaseOperation {
 
     @Override
     public NoPutResultSet executeScan() throws StandardException {
-        RowProvider provider = getReduceRowProvider(source,source.getExecRowDefinition());
+        RowProvider provider = getReduceRowProvider(source,getRowEncoder().getDual(getExecRowDefinition()));
         return new SpliceNoPutResultSet(activation,this,provider);
     }
 
@@ -146,13 +147,13 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return source.getMapRowProvider(top,template);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return source.getMapRowProvider(top,decoder);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return new RowProviders.DelegatingRowProvider(source.getReduceRowProvider(top,template)) {
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return new RowProviders.DelegatingRowProvider(source.getReduceRowProvider(top,decoder)) {
             @Override
             public boolean hasNext() throws StandardException {
                 // AnyOperation should never return null; it signals end-of-stream with a special empty ExecRow (see next())

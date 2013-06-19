@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.utils.marshall.RowType;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -13,6 +14,7 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.store.raw.data.SpaceInformation;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
@@ -147,7 +149,9 @@ public abstract class SpliceController implements ConglomerateController {
 			Get get = SpliceUtils.createGet(loc, destRow, validColumns, transID);
 			Result result = htable.get(get);
             if(result==null||result.isEmpty()) return false;
-			SpliceUtils.populate(result, validColumns, destRow);	
+            for(KeyValue kv:result.raw()){
+                RowType.COLUMNAR.decode(kv,destRow,null,null);
+            }
 			return true;
 		} catch (Exception e) {
 			throw new RuntimeException(e.getMessage(), e);

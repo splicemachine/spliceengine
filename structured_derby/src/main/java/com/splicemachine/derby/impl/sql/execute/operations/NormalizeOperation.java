@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
@@ -91,8 +92,8 @@ public class NormalizeOperation extends SpliceBaseOperation {
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return ((SpliceOperation)source).getMapRowProvider(top, template);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top, decoder);
     }
 
     private int computeStartColumn(boolean forUpdate,

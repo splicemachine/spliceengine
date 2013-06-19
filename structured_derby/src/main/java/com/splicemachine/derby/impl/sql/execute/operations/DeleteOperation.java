@@ -16,6 +16,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.log4j.Logger;
@@ -58,13 +59,13 @@ public class DeleteOperation extends DMLWriteOperation {
     public RowEncoder getRowEncoder() throws StandardException {
         KeyMarshall marshall = new KeyMarshall() {
             @Override
-            public void encodeKey(ExecRow row, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
-                RowLocation location = (RowLocation)row.getColumn(row.nColumns()).getObject();
+            public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
+                RowLocation location = (RowLocation)columns[columns.length-1].getObject();
                 keyEncoder.setRawBytes(location.getBytes());
             }
 
             @Override
-            public void decode(ExecRow template, int[] reversedKeyColumns, boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
+            public void decode(DataValueDescriptor[] columns, int[] reversedKeyColumns, boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
                 //no-op
             }
 

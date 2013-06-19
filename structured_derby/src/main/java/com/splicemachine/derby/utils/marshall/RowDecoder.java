@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils.marshall;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 
 /**
@@ -25,6 +26,16 @@ public class RowDecoder {
     private MultiFieldDecoder rowDecoder;
 
     private final ExecRow template;
+
+    public static RowDecoder create(ExecRow template,
+                                    KeyMarshall keyType,
+                                    int[] keyColumns,
+                                    boolean[] sortOrder,
+                                    RowMarshall rowType,
+                                    int[] rowColumns,
+                                    boolean clone) {
+        return new RowDecoder(template,keyType, keyColumns, sortOrder,rowType,rowColumns,clone);
+    }
 
     RowDecoder(ExecRow template,
                        KeyMarshall keyType,
@@ -56,6 +67,7 @@ public class RowDecoder {
     public ExecRow decode(Iterable<? extends KeyValue> keyValues) throws StandardException {
         ExecRow row = clone?template.getClone(): template;
         boolean rowSet = false;
+        DataValueDescriptor[] fields = row.getRowArray();
         for(KeyValue value: keyValues){
             if(!rowSet){
                 if(keyDecoder==null)
@@ -65,15 +77,16 @@ public class RowDecoder {
                     rowSet=true;
                 }
             }
-            rowType.decode(value,row,reversedKeyColumns,rowDecoder);
+            rowType.decode(value,fields,reversedKeyColumns,rowDecoder);
         }
 
-        keyType.decode(row, reversedKeyColumns, sortOrder,keyDecoder);
+        keyType.decode(fields, reversedKeyColumns, sortOrder,keyDecoder);
         return row;
     }
 
     public ExecRow decode(KeyValue[] keyValues) throws StandardException{
-        boolean rowSet = false;
+        boolean rowSet = keyType == null; //if keyType!=null, we want to set on the keyDecoder, otherwise don't bother
+        DataValueDescriptor []fields = template.getRowArray();
         for(KeyValue value: keyValues){
             if(!rowSet){
                 if(keyDecoder==null)
@@ -83,10 +96,11 @@ public class RowDecoder {
                     rowSet=true;
                 }
             }
-            rowType.decode(value,template,reversedRowColumns,rowDecoder);
+            rowType.decode(value,fields,reversedRowColumns,rowDecoder);
         }
 
-        keyType.decode(template, reversedKeyColumns,sortOrder, keyDecoder);
+        if(keyType!=null)
+            keyType.decode(fields, reversedKeyColumns,sortOrder, keyDecoder);
         return template;
     }
 
@@ -100,5 +114,9 @@ public class RowDecoder {
             keyDecoder.reset();
         if(rowDecoder!=null)
             rowDecoder.reset();
+    }
+
+    public ExecRow getTemplate() {
+        return template;
     }
 }

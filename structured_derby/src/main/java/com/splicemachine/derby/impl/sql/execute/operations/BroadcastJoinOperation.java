@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -136,13 +137,13 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return leftResultSet.getReduceRowProvider(top, template);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return leftResultSet.getReduceRowProvider(top, decoder);
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return leftResultSet.getMapRowProvider(top, template);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return leftResultSet.getMapRowProvider(top, decoder);
     }
 
 
@@ -168,10 +169,11 @@ public class BroadcastJoinOperation extends JoinOperation {
         SpliceOperation regionOperation = opStack.get(opStack.size() - 1);
         SpliceLogUtils.trace(LOG, "regionOperation=%s", opStack);
         RowProvider provider;
+        RowDecoder decoder = getRowEncoder().getDual(getExecRowDefinition());
         if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)) {
-            provider = regionOperation.getReduceRowProvider(this, getExecRowDefinition());
+            provider = regionOperation.getReduceRowProvider(this, decoder);
         } else {
-            provider = regionOperation.getMapRowProvider(this, getExecRowDefinition());
+            provider = regionOperation.getMapRowProvider(this, decoder);
         }
         return new SpliceNoPutResultSet(activation, this, provider);
     }
@@ -204,7 +206,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         public BroadcastNextRowIterator(ExecRow leftRow) throws StandardException {
             this.leftRow = leftRow;
             keyEncoder.reset();
-            leftKeyEncoder.encodeKey(leftRow,leftHashKeys,null,null,keyEncoder);
+            leftKeyEncoder.encodeKey(leftRow.getRowArray(),leftHashKeys,null,null,keyEncoder);
             List<ExecRow> rows = rightSideMap.get(ByteBuffer.wrap(keyEncoder.build()));
             if (rows != null) {
                 if (!notExistsRightSide) {
@@ -273,7 +275,7 @@ public class BroadcastJoinOperation extends JoinOperation {
 
         while ((rightRow = resultSet.getNextRowCore()) != null) {
             keyEncoder.reset();
-            hasher.encodeKey(rightRow,rightHashKeys,null,null,keyEncoder);
+            hasher.encodeKey(rightRow.getRowArray(),rightHashKeys,null,null,keyEncoder);
             hashKey = ByteBuffer.wrap(keyEncoder.build());
             if ((rows = cache.get(hashKey)) != null) {
                 // Only add additional row for same hash if we need it

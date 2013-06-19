@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -131,10 +132,10 @@ public class UnionOperation extends SpliceBaseOperation {
         }
 
         currentSource = Source.LEFT;
-        RowProvider leftProvider =firstResultSet.getMapRowProvider(this,firstResultSet.getExecRowDefinition());
+        RowProvider leftProvider =firstResultSet.getMapRowProvider(this,firstResultSet.getRowEncoder().getDual(getExecRowDefinition()));
 
         currentSource = Source.RIGHT;
-        RowProvider rightProvider = secondResultSet.getMapRowProvider(this,secondResultSet.getExecRowDefinition());
+        RowProvider rightProvider = secondResultSet.getMapRowProvider(this,secondResultSet.getRowEncoder().getDual(getExecRowDefinition()));
 
         return new SpliceNoPutResultSet(activation,this,RowProviders.combine(leftProvider, rightProvider));
     }
@@ -225,7 +226,7 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
         if(!isScan){
             top.init(SpliceOperationContext.newContext(activation));
             return RowProviders.sourceProvider(top,LOG);
@@ -237,16 +238,16 @@ public class UnionOperation extends SpliceBaseOperation {
              */
             readBoth=false;
             currentSource = Source.LEFT;
-            RowProvider firstProvider = firstResultSet.getMapRowProvider(top,template);
+            RowProvider firstProvider = firstResultSet.getMapRowProvider(top,decoder);
             currentSource = Source.RIGHT;
-            RowProvider secondProvider = secondResultSet.getMapRowProvider(top,template);
+            RowProvider secondProvider = secondResultSet.getMapRowProvider(top,decoder);
 
             return RowProviders.combine(firstProvider, secondProvider);
         }
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
         if(!isScan){
             top.init(SpliceOperationContext.newContext(activation));
             return RowProviders.sourceProvider(top,LOG);
@@ -258,9 +259,9 @@ public class UnionOperation extends SpliceBaseOperation {
              */
             readBoth=false;
             currentSource = Source.LEFT;
-            RowProvider firstProvider = firstResultSet.getReduceRowProvider(top, template);
+            RowProvider firstProvider = firstResultSet.getReduceRowProvider(top, decoder);
             currentSource = Source.RIGHT;
-            RowProvider secondProvider = secondResultSet.getReduceRowProvider(top, template);
+            RowProvider secondProvider = secondResultSet.getReduceRowProvider(top, decoder);
 
             return RowProviders.combine(firstProvider, secondProvider);
         }

@@ -138,7 +138,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder rowDecoder) throws StandardException {
         try{
             reduceScan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
             //make sure that we filter out failed tasks
@@ -148,12 +148,12 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             throw Exceptions.parseException(e);
         }
         SpliceUtils.setInstructions(reduceScan,activation,top);
-        return new ProvidesDefaultClientScanProvider(SpliceConstants.TEMP_TABLE_BYTES,reduceScan,template,null);
+        return new ProvidesDefaultClientScanProvider(SpliceConstants.TEMP_TABLE_BYTES,reduceScan,rowDecoder);
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return ((SpliceOperation)source).getMapRowProvider(top,template);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top,rowDecoder);
     }
 
     public ExecRow getNextSinkRow() throws StandardException {

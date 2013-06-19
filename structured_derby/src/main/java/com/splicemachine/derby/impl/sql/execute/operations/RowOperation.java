@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -191,19 +192,19 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeScan");
-		return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getExecRowDefinition()));
+		return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getRowEncoder().getDual(getExecRowDefinition())));
 	}
 	
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow rowTemplate) throws StandardException{
+	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder rowDecoder) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getMapRowProvider,top=%s",top);
 		top.init(SpliceOperationContext.newContext(activation));
 		return RowProviders.sourceProvider(top, LOG);
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow rowTemplate) throws StandardException {
-        return getMapRowProvider(top,rowTemplate);
+	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder) throws StandardException {
+        return getMapRowProvider(top,rowDecoder);
 	}
 
 	@Override

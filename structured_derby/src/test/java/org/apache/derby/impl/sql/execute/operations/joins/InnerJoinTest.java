@@ -503,10 +503,10 @@ public class InnerJoinTest extends SpliceUnitTest {
 		int j = 0;
 		while (rs.next()) {
 			j++;
-			Assert.assertNotNull(rs.getString(1));
+			Assert.assertNotNull("cc.si is null!",rs.getString(1));
 			if (!rs.getString(1).equals("9")) {
-				Assert.assertNotNull(rs.getString(2));
-				Assert.assertEquals(rs.getString(1),rs.getString(2));
+				Assert.assertNotNull("dd.si is null!",rs.getString(2));
+				Assert.assertEquals("cc.si !=dd.si",rs.getString(1),rs.getString(2));
 			} else {
 				Assert.assertNull(rs.getString(2));
 			}

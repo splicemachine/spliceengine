@@ -98,8 +98,6 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 		return operations;
 	}
 
-    public abstract ExecRow getNextSinkRow() throws StandardException;
-    public abstract OperationSink.Translator getTranslator() throws IOException;
 
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException{

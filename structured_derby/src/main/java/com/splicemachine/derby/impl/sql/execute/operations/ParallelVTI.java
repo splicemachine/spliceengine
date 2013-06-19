@@ -4,6 +4,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -363,14 +364,12 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 
 	/*Actual SpliceBaseOperations to be implemented*/
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,
-			ExecRow outputRowFormat) {
+	public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,
-			ExecRow outputRowFormat) {
+	public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) {
 		throw new UnsupportedOperationException();
 	}
 

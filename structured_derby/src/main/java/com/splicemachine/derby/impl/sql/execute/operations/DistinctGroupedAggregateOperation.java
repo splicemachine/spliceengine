@@ -5,6 +5,7 @@ import com.splicemachine.derby.utils.DerbyLogUtils;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -32,8 +33,9 @@ import java.util.List;
 public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 {
 	private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperation.class);
-	
-	public DistinctGroupedAggregateOperation() {
+    private RowDecoder rowDecoder;
+
+    public DistinctGroupedAggregateOperation() {
 		super();
 	}
 
@@ -114,12 +116,15 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 				SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
 			}
 			
-			Result result = new Result(keyValues);
+//			Result result = new Result(keyValues);
 			if (keyValues.isEmpty())
 				return null;
 			else{
-				inputRow = (ExecIndexRow)sourceExecIndexRow.getClone();
-				SpliceUtils.populate(result, null, inputRow.getRowArray());
+                if(rowDecoder==null)
+                    rowDecoder = getRowEncoder().getDual(sourceExecIndexRow,true);
+                inputRow = (ExecIndexRow)rowDecoder.decode(keyValues);
+
+//				SpliceUtils.populate(result, null, inputRow.getRowArray());
 				SpliceLogUtils.trace(LOG,"inputRow=%s",inputRow);
 				
 				if(inputRow!=null)

@@ -13,34 +13,6 @@ import java.util.Arrays;
  */
 public class MultiFieldDecoderTest {
     @Test
-    public void testCanDecodeByteBufferCorrectly() throws Exception {
-        String value = "testing";
-        MultiFieldDecoder decoder = MultiFieldDecoder.create();
-        decoder.set(Encoding.encode(value));
-
-        ByteBuffer buffer = decoder.getNextRaw();
-        Assert.assertEquals(value,Encoding.decodeString(buffer));
-    }
-
-    @Test
-    public void testCanDecodeNullEntryByteBuffer() throws Exception {
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(3);
-        encoder.encodeNext("test");
-        encoder.setRawBytes(new byte[]{});
-        encoder.encodeNext("test2");
-
-        MultiFieldDecoder decoder = MultiFieldDecoder.create();
-        decoder.set(encoder.build());
-        String val = decoder.decodeNextString();
-        ByteBuffer buffer = decoder.getNextRaw();
-        String val2 = decoder.decodeNextString();
-
-        Assert.assertEquals("test",val);
-        Assert.assertNull(buffer);
-        Assert.assertEquals("test2",val2);
-    }
-
-    @Test
     public void testCanDecodeNullEntry() throws Exception {
         MultiFieldEncoder encoder = MultiFieldEncoder.create(3);
         encoder.encodeNext("test");
@@ -69,5 +41,22 @@ public class MultiFieldDecoderTest {
         Assert.assertEquals("hello",decoder.decodeNextString());
         Assert.assertEquals(BigDecimal.valueOf(25),decoder.decodeNextBigDecimal());
         Assert.assertEquals("goodbye",decoder.decodeNextString());
+    }
+
+    @Test
+    public void testCanDecodeSpecialDoubleInMiddleOfTwoStrings() throws Exception {
+        double v = 5.5d;
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(3);
+        encoder.encodeNext("hello").encodeNext(v).encodeNext("goodbye");
+        byte[] build = encoder.build();
+
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(build);
+        String hello = decoder.decodeNextString();
+        double v1 = decoder.decodeNextDouble();
+        String goodbye = decoder.decodeNextString();
+
+        Assert.assertEquals("hello",hello);
+        Assert.assertEquals(v,v1,Math.pow(10,-6));
+        Assert.assertEquals("goodbye",goodbye);
     }
 }

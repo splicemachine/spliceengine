@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -99,19 +100,19 @@ public class NestedLoopJoinOperation extends JoinOperation {
 //		} else {
 //			provider = regionOperation.getMapRowProvider(this,getExecRowDefinition());
 //		}
-		return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this,getExecRowDefinition()));
+		return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this,getRowEncoder().getDual(getExecRowDefinition())));
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder) throws StandardException {
         //push the computation to the left side of the join
         //TODO -sf- push this to the largest table in the join (or make the largest table always be the left)
-        return leftResultSet.getMapRowProvider(top, template);
+        return leftResultSet.getMapRowProvider(top, rowDecoder);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return leftResultSet.getReduceRowProvider(top, template);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder rowDecoder) throws StandardException {
+        return leftResultSet.getReduceRowProvider(top, rowDecoder);
     }
 
     @Override

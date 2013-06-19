@@ -6,6 +6,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.storage.RowProviders;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -173,7 +175,7 @@ public class OnceOperation extends SpliceBaseOperation {
 		SpliceLogUtils.trace(LOG, "operationStack=%s",operationStack);
 		SpliceOperation regionOperation = operationStack.get(0);
 		SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-		RowProvider provider = getReduceRowProvider(this, getExecRowDefinition());
+		RowProvider provider = getReduceRowProvider(this, getRowEncoder().getDual(getExecRowDefinition()));
 		return new SpliceNoPutResultSet(activation,this, provider);
 	}
 
@@ -193,15 +195,15 @@ public class OnceOperation extends SpliceBaseOperation {
     }
 
     @Override
-	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow rowTemplate) throws StandardException{
+	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder rowDecoder) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getMapRowProvider");
-        return source.getMapRowProvider(top,rowTemplate);
+        return source.getMapRowProvider(top,rowDecoder);
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow rowTemplate) throws StandardException{
+	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getReduceRowProvider");
-        return new OnceRowProvider(source.getReduceRowProvider(top,rowTemplate));
+        return new OnceRowProvider(source.getReduceRowProvider(top,rowDecoder));
 	}
 
     @Override

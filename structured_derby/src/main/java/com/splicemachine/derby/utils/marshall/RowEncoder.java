@@ -58,7 +58,9 @@ public class RowEncoder {
             keyEncoder.mark();
         }
 
-        if(rowType!=RowType.COLUMNAR&&rowType!=RowType.DENSE_COLUMNAR){
+        if(rowType!=RowType.COLUMNAR
+                &&rowType!=RowType.DENSE_COLUMNAR
+            &&rowType!=RowType.MAPPED_COLUMNAR){
             rowEncoder = MultiFieldEncoder.create(rowColumns.length);
         }
     }
@@ -114,7 +116,7 @@ public class RowEncoder {
            protected Put doPut(ExecRow row) throws StandardException {
                //construct the row key
                keyEncoder.reset();
-               keyType.encodeKey(row, keyColumns, keySortOrder, keyPostfix, keyEncoder);
+               keyType.encodeKey(row.getRowArray(), keyColumns, keySortOrder, keyPostfix, keyEncoder);
 
                return SpliceUtils.createDeletePut(txnId,keyEncoder.build());
            }
@@ -136,13 +138,13 @@ public class RowEncoder {
     protected Put doPut(ExecRow row) throws StandardException{
         //construct the row key
         keyEncoder.reset();
-        keyType.encodeKey(row,keyColumns,keySortOrder,keyPostfix,keyEncoder);
+        keyType.encodeKey(row.getRowArray(),keyColumns,keySortOrder,keyPostfix,keyEncoder);
         Put put = new Put(keyEncoder.build());
 
         if(rowEncoder!=null)
             rowEncoder.reset();
 
-        rowType.encodeRow(row,rowColumns,put,rowEncoder);
+        rowType.encodeRow(row.getRowArray(),rowColumns,put,rowEncoder);
 
         return put;
     }

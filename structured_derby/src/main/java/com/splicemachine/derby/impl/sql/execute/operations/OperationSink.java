@@ -73,6 +73,7 @@ public class OperationSink {
         try{
             RowEncoder encoder = operation.getRowEncoder();
             encoder.setPostfix(postfix);
+            String txnId = operation.getTransactionID();
 
             writeBuffer = tableWriter.writeBuffer(destinationTable);
 

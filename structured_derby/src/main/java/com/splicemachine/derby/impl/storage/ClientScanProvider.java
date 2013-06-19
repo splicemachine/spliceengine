@@ -33,15 +33,8 @@ public class ClientScanProvider extends AbstractScanProvider {
     private ResultScanner scanner;
 
 
-	public ClientScanProvider( byte[] tableName, Scan scan,ExecRow rowTemplate,FormatableBitSet fbt,RowDecoder decoder) {
-		super(rowTemplate, fbt,decoder);
-		SpliceLogUtils.trace(LOG, "instantiated");
-		this.tableName = tableName;
-		this.scan = scan;
-	}
-
-    public ClientScanProvider( byte[] tableName, Scan scan,ExecRow rowTemplate,FormatableBitSet fbt) {
-		super(rowTemplate, fbt);
+	public ClientScanProvider( byte[] tableName, Scan scan,RowDecoder decoder) {
+		super(decoder);
 		SpliceLogUtils.trace(LOG, "instantiated");
 		this.tableName = tableName;
 		this.scan = scan;

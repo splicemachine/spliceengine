@@ -4,6 +4,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
 
@@ -19,13 +20,13 @@ interface RowMarshall {
      * @param rowEncoder {@code null} if the row type does not use multi field encodings
      * @throws org.apache.derby.iapi.error.StandardException
      */
-    public void encodeRow(ExecRow row,
+    public void encodeRow(DataValueDescriptor[] row,
                           int[] rowColumns,
                           Put put,
                           MultiFieldEncoder rowEncoder) throws StandardException;
 
     void decode(KeyValue value,
-                ExecRow template,
+                DataValueDescriptor[] fields,
                 int[] reversedKeyColumns,
                 MultiFieldDecoder rowDecoder) throws StandardException;
 }

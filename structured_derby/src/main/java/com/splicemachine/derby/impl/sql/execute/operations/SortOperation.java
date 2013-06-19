@@ -2,7 +2,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.google.common.primitives.Bytes;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -11,13 +10,15 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.derby.utils.marshall.RowType;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -29,17 +30,17 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
 
 public class SortOperation extends SpliceBaseOperation implements SinkingOperation {
     private static final long serialVersionUID = 2l;
@@ -59,6 +60,8 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     static {
         nodeTypes = Arrays.asList(NodeType.REDUCE, NodeType.SCAN);
     }
+
+    private RowDecoder rowDecoder;
 
     /*
      * Used for serialization. DO NOT USE
@@ -174,14 +177,11 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             SpliceLogUtils.logAndThrow(LOG,
                     StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION, ioe));
         }
-        Result result = new Result(keyValues); // XXX - TODO FIX JLEACH
-        if (keyValues.isEmpty()) {
-            return null;
-        } else {
-            ExecRow row = getExecRowDefinition().getClone();
-            SpliceUtils.populate(result, null, row.getRowArray());
-            return row;
-        }
+        if(keyValues.isEmpty()) return null;
+
+        if(rowDecoder==null)
+            rowDecoder = getRowEncoder().getDual(getExecRowDefinition(),true);
+        return rowDecoder.decode(keyValues);
     }
 
     @Override
@@ -210,7 +210,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
+	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
         try {
             reduceScan = Scans.buildPrefixRangeScan(sequence[0], SpliceUtils.NA_TRANSACTION_ID);
             if (failedTasks.size() > 0 && !distinct) {
@@ -220,19 +220,19 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-//		SpliceUtils.setInstructions(reduceScan,getActivation(),top);
-		return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null,getRowEncoder().getDual(template));
+        if(top!=this)
+            SpliceUtils.setInstructions(reduceScan,getActivation(),top);
+		return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
 	}
 
 
-
-    @Override
-    public NoPutResultSet executeScan() throws StandardException {
-        RowProvider provider = getReduceRowProvider(this, getExecRowDefinition());
-        SpliceNoPutResultSet rs = new SpliceNoPutResultSet(activation, this, provider);
-        nextTime += getCurrentTimeMillis() - beginTime;
-        return rs;
-    }
+	@Override
+	public NoPutResultSet executeScan() throws StandardException {
+        RowProvider provider = getReduceRowProvider(this,getRowEncoder().getDual(getExecRowDefinition()));
+		SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this,provider);
+		nextTime += getCurrentTimeMillis() - beginTime;
+		return rs;
+	}
 
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
@@ -242,14 +242,14 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return getReduceRowProvider(top, template);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder) throws StandardException {
+        return getReduceRowProvider(top,rowDecoder);
     }
 
     @Override
     protected JobStats doShuffle() throws StandardException {
         long start = System.currentTimeMillis();
-        final RowProvider rowProvider = ((SpliceOperation) source).getMapRowProvider(this, getExecRowDefinition());
+        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getRowEncoder().getDual(getExecRowDefinition()));
 
         nextTime += System.currentTimeMillis() - start;
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this);

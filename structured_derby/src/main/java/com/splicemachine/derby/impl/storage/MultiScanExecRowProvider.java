@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -24,12 +25,12 @@ public abstract class MultiScanExecRowProvider extends MultiScanRowProvider{
     protected ExecRow currentRow;
     protected RowLocation currentRowLocation;
 
-    protected FormatableBitSet fbt;
     protected int called=0;
 
-    protected MultiScanExecRowProvider(ExecRow currentRow, FormatableBitSet fbt) {
-        this.currentRow = currentRow;
-        this.fbt = fbt;
+    protected RowDecoder decoder;
+
+    protected MultiScanExecRowProvider(RowDecoder decoder) {
+        this.decoder = decoder;
     }
 
     @Override
@@ -47,7 +48,8 @@ public abstract class MultiScanExecRowProvider extends MultiScanRowProvider{
         try{
             Result result = getResult();
             if(result!=null && !result.isEmpty()){
-                SpliceUtils.populate(result,fbt,currentRow.getRowArray());
+                currentRow = decoder.decode(result.raw());
+//                SpliceUtils.populate(result,fbt,currentRow.getRowArray());
                 currentRowLocation = new HBaseRowLocation(result.getRow());
                 populated=true;
                 return true;

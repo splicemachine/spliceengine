@@ -16,4 +16,9 @@ public class DecimalDVDSerializer implements DVDSerializer {
     public byte[] serialize(DataValueDescriptor obj) throws Exception {
         return Encoding.encode( (BigDecimal) obj.getObject());
     }
+
+    @Override
+    public void deserialize(byte[] bytes, DataValueDescriptor ldvd, boolean desc) throws Exception {
+        ldvd.setBigDecimal(Encoding.decodeBigDecimal(bytes,desc));
+    }
 }

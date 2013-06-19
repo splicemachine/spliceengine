@@ -14,19 +14,12 @@ import org.apache.hadoop.hbase.client.Scan;
  */
 public class ProvidesDefaultClientScanProvider extends ClientScanProvider{
     private boolean defaultReturned = false;
-    public ProvidesDefaultClientScanProvider(byte[] tableName,
-                                             Scan scan,
-                                             ExecRow rowTemplate,
-                                             FormatableBitSet fbt) {
-        super(tableName, scan, rowTemplate, fbt);
-    }
+
 
     public ProvidesDefaultClientScanProvider(byte[] tableName,
                                              Scan scan,
-                                             ExecRow rowTemplate,
-                                             FormatableBitSet fbt,
                                              RowDecoder decoder) {
-        super(tableName, scan, rowTemplate, fbt,decoder);
+        super(tableName, scan,decoder);
     }
 
     @Override
@@ -36,6 +29,7 @@ public class ProvidesDefaultClientScanProvider extends ClientScanProvider{
             defaultReturned =true;
             return hasNext;
         }else if(!defaultReturned){
+            currentRow = decoder.getTemplate();
             defaultReturned = true;
             populated = true;
             return true;

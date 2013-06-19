@@ -4,6 +4,8 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import java.io.IOException;
 import java.util.List;
+
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -36,13 +38,13 @@ public interface SpliceOperation extends NoPutResultSet {
 	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
 	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
 	 */
-	public RowProvider getMapRowProvider(SpliceOperation top,ExecRow outputRowFormat) throws StandardException;
+	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException;
 	
 	/**
 	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
 	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
 	 */
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow outputRowFormat) throws StandardException;
+	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException;
 
     /**
      * Encoder for writing ExecRows into HBase (temp table or other location).

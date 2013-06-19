@@ -21,6 +21,7 @@ import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
@@ -48,6 +49,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	protected int rowsInput = 0;
 
 	protected boolean isOpen=false;
+
+    private RowDecoder scanDecoder;
 
     public ScalarAggregateOperation () {
 		super();
@@ -94,7 +97,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,ExecRow template) throws StandardException {
+	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder) throws StandardException {
         try {
             reduceScan = Scans.buildPrefixRangeScan(sequence[0], SpliceUtils.NA_TRANSACTION_ID);
             //make sure that we filter out failed tasks
@@ -104,13 +107,12 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             throw Exceptions.parseException(e);
         }
         SpliceUtils.setInstructions(reduceScan,activation,top);
-        RowDecoder decoder = getRowEncoder().getDual(template);
-        return new ProvidesDefaultClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,template,null,decoder);
+        return new ProvidesDefaultClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,rowDecoder);
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return ((SpliceOperation)source).getMapRowProvider(top,template);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top,rowDecoder);
     }
 
     @Override
@@ -173,6 +175,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 	
 	protected ExecIndexRow getNextRowFromScan(boolean doClone) throws StandardException {
+        if(scanDecoder==null)
+            scanDecoder = getRowEncoder().getDual(sourceExecIndexRow,true);
 		List<KeyValue> keyValues = new ArrayList<KeyValue>();
 		try{
 			regionScanner.next(keyValues);
@@ -182,9 +186,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		if(keyValues.isEmpty())
 			return null;
 		else{
-			ExecIndexRow row = (ExecIndexRow)sourceExecIndexRow.getClone();
-			SpliceUtils.populate(keyValues,row.getRowArray());
-			return row;
+            return (ExecIndexRow)scanDecoder.decode(keyValues);
 		}
 	}
 	

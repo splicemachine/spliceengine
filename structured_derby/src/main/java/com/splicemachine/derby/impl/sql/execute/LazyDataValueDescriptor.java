@@ -35,7 +35,7 @@ import java.util.Calendar;
  * rationale.
  */
 public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
-    private static final long serialVersionUID = 2l;
+    private static final long serialVersionUID = 3l;
     private static Logger LOG = Logger.getLogger(LazyDataValueDescriptor.class);
 
     //Same as the dvd used in the subclasses, another reference is kept here
@@ -45,7 +45,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     /*
      * One or the other is always non-null, but not both
      */
-    protected ByteBuffer dvdBuffer;
+    protected byte[] dvdBytes;
 
     protected DVDSerializer dvdSerializer;
     protected boolean deserialized;
@@ -86,22 +86,17 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         updateNullFlag();
     }
 
-    public void initForDeserialization(ByteBuffer buffer){
-        initForDeserialization(buffer,false);
-    }
-
-    public void initForDeserialization(ByteBuffer buffer,boolean desc){
-        this.dvdBuffer = buffer;
+    public void initForDeserialization(byte[] bytes,boolean desc){
+        this.dvdBytes = bytes;
+        descendingOrder = desc;
         dvd.setToNull();
         deserialized = false;
-        isNull = buffer==null || buffer.remaining()==0;
+        isNull = bytes==null || bytes.length==0;
         descendingOrder = desc;
-        if(dvdBuffer!=null)
-            dvdBuffer.mark(); //mark so that we can reset it as needed
     }
 
     public boolean isSerialized(){
-        return dvdBuffer!=null;
+        return dvdBytes!=null;
     }
 
     public boolean isDeserialized(){
@@ -111,8 +106,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     protected void forceDeserialization()  {
         if( !isDeserialized() && isSerialized()){
             try{
-                dvdBuffer.reset();
-                dvdSerializer.deserialize(dvdBuffer,dvd,descendingOrder);
+                dvdSerializer.deserialize(dvdBytes,dvd,descendingOrder);
                 deserialized=true;
             }catch(Exception e){
                 SpliceLogUtils.error(LOG, "Error lazily deserializing bytes", e);
@@ -123,16 +117,12 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     protected void forceSerialization(){
         if(!isSerialized()){
             try{
-                dvdBuffer = ByteBuffer.wrap(dvdSerializer.serialize(dvd));
-                dvdBuffer.mark();
+                dvdBytes = dvdSerializer.serialize(dvd);
                 descendingOrder=false;
             }catch(Exception e){
                 SpliceLogUtils.error(LOG, "Error serializing DataValueDescriptor to bytes", e);
             }
         }
-        //always reset the buffer even if you've been serialized before
-        if(dvdBuffer!=null)
-            dvdBuffer.reset();
     }
 
     protected void resetForSerialization(){
@@ -210,10 +200,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     @Override
     public byte[] getBytes() throws StandardException {
         forceSerialization();
-        dvdBuffer.reset();
-        byte[] bytes = new byte[dvdBuffer.remaining()];
-        dvdBuffer.get(bytes);
-        return bytes;
+        return dvdBytes;
     }
 
     @Override
@@ -687,9 +674,6 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
             externalDVD = (DataValueDescriptor) createClassInstance(in.readUTF());
             externalDVD.setToNull();
         }
-        dvdBuffer.flip();
-        dvdBuffer.mark();
-
         readDvdBytes(in);
 
         DVDSerializer serializer = (DVDSerializer) createClassInstance(in.readUTF());
@@ -730,8 +714,8 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
             if(otherDVD.isLazy()){
                 LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) otherDVD;
 
-                if(dvdBuffer!=null && ldvd.dvdBuffer!=null){
-                    return dvdBuffer.equals(ldvd.dvdBuffer);
+                if(dvdBytes!=null && ldvd.dvdBytes!=null){
+                    return dvdBytes.equals(ldvd.dvdBytes);
                 } else {
                     result = dvd.equals(ldvd.dvd);
                 }
@@ -748,52 +732,16 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         return dvdSerializer;
     }
 
-    public ByteBuffer getBuffer() throws StandardException {
-        return getBuffer(false);
-    }
-
-    public ByteBuffer getBuffer(boolean desc) throws StandardException {
-        if(isNull) return null;
-
-        if(!isSerialized() && isDeserialized()){
-            //need to serialize it, so just serialize it into the correct order
-            try {
-                dvdBuffer = dvdSerializer.serialize(dvd,desc);
-                dvdBuffer.mark();
-                return dvdBuffer;
-            } catch (Exception e) {
-                throw Exceptions.parseException(e);
-            }
-        }
-        //we've already deserialized, check the ordering
-        dvdBuffer.reset();
+    public byte[] getBytes(boolean desc) throws StandardException{
+        byte[] bytes = getBytes();
+        byte[] retBytes = new byte[bytes.length];
+        System.arraycopy(bytes,0,retBytes,0,bytes.length);
         if(desc){
-            if(descendingOrder) {
-                return dvdBuffer;
-            }else{
-                //have to re-order the data
-                byte[] bits = new byte[dvdBuffer.remaining()];
-                dvdBuffer.get(bits);
-
-                for(int i=0;i<bits.length;i++){
-                    bits[i] = (byte)(bits[i]^0xff);
-                }
-                return ByteBuffer.wrap(bits);
-            }
-        }else{
-            if(descendingOrder){
-                //have to re-order the data
-                byte[] bits = new byte[dvdBuffer.remaining()];
-                dvdBuffer.get(bits);
-
-                for(int i=0;i<bits.length;i++){
-                    bits[i] = (byte)(bits[i]^0xff);
-                }
-                return ByteBuffer.wrap(bits);
-            }else{
-                return dvdBuffer;
+            for(int i=0;i<retBytes.length;i++){
+                retBytes[i] ^=0xff;
             }
         }
+        return retBytes;
     }
 }
 

@@ -9,6 +9,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -57,6 +58,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 	private boolean isScan = true;
 
     protected FormatableBitSet pkColumns;
+    protected int[] pkCols;
 	
 	public DMLWriteOperation(){
 		super();
@@ -165,13 +167,13 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return ((SpliceOperation)source).getMapRowProvider(top, template);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top, decoder);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, ExecRow template) throws StandardException {
-        return ((SpliceOperation)source).getReduceRowProvider(top, template);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+        return ((SpliceOperation)source).getReduceRowProvider(top, decoder);
     }
 
     @Override
@@ -204,8 +206,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 	public ExecRow getNextSinkRow() throws StandardException {
         return source.getNextRowCore();
 	}
-
-    public abstract OperationSink.Translator getTranslator() throws IOException;
 
 	public ExecRow getNextRowCore() throws StandardException {
         throw new UnsupportedOperationException("Write Operations do not produce rows.");

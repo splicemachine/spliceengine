@@ -4,12 +4,14 @@ package com.splicemachine.derby.impl.store.access.btree;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Puts;
+import com.splicemachine.derby.utils.marshall.RowType;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
@@ -83,7 +85,10 @@ public class IndexController  extends SpliceController  {
 				DataValueDescriptor[] oldValues = openSpliceConglomerate.cloneRowTemplate();
 				Get get = SpliceUtils.createGet(loc, oldValues, null, transID);
 				Result result = htable.get(get);
-				SpliceUtils.populate(result, null, oldValues);	
+                for(KeyValue kv:result.raw()){
+                    RowType.COLUMNAR.decode(kv,oldValues,null,null);
+                }
+//				SpliceUtils.populate(result, null, oldValues);
 				for (int i =0;i<row.length;i++) {
 					if (validColumns.isSet(i))
 						oldValues[i] = row[i];

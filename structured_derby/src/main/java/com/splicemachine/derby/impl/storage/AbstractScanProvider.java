@@ -33,21 +33,10 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
     protected RowDecoder decoder;
 
 
-    protected AbstractScanProvider(ExecRow rowTemplate,FormatableBitSet fbt,RowDecoder decoder){
+    protected AbstractScanProvider(RowDecoder decoder){
         SpliceLogUtils.trace(LOG, "instantiated");
-        this.currentRow = rowTemplate;
-        this.fbt = fbt;
         this.decoder = decoder;
     }
-
-    protected AbstractScanProvider(ExecRow rowTemplate,FormatableBitSet fbt){
-    	SpliceLogUtils.trace(LOG, "instantiated");
-        this.currentRow = rowTemplate;
-        this.fbt = fbt;
-        this.decoder = null; //TODO -sf- remove when time comes
-    }
-
-
 
     @Override
     public RowLocation getCurrentRowLocation() {
@@ -67,11 +56,7 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
         SpliceLogUtils.trace(LOG, "hasNext");
         Result result = getResult();
         if(result!=null && !result.isEmpty()){
-            if(decoder!=null)
-                currentRow = decoder.decode(result.raw());
-            else
-                SpliceUtils.populate(result, fbt, currentRow.getRowArray());
-
+            currentRow = decoder.decode(result.raw());
             SpliceLogUtils.trace(LOG, "after populate, currentRow=%s", currentRow);
             currentRowLocation = new HBaseRowLocation(result.getRow());
             populated = true;
@@ -83,12 +68,8 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 
 	protected abstract Result getResult() throws StandardException;
 
-    public FormatableBitSet getFbt(){
-        return fbt;
-    }
-
     public ExecRow getRowTemplate(){
-        return currentRow;
+        return decoder.getTemplate();
     }
 
 	@Override

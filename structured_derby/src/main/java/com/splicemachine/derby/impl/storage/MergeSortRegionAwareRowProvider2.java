@@ -54,7 +54,7 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
     }
 
     @Override
-    public void open() {
+    public void open() throws StandardException {
         scanner.open();
     }
 
