@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Properties;
 import com.google.common.primitives.Bytes;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.job.JobStats;
@@ -44,7 +45,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 import javax.annotation.Nonnull;
 
-public class GroupedAggregateOperation extends GenericAggregateOperation {	
+public class GroupedAggregateOperation extends GenericAggregateOperation {
 	private static Logger LOG = Logger.getLogger(GroupedAggregateOperation.class);
 	protected boolean isInSortedOrder;
 	protected boolean isRollup;
@@ -63,8 +64,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     protected byte[][] keySet;
     protected RowProvider rowProvider;
     private Accumulator scanAccumulator = TimingStats.uniformAccumulator();
-    /*used to determine whether or not to fetch from a scan*/
-    private boolean isTemp;
 
     public GroupedAggregateOperation () {
     	super();
@@ -131,9 +130,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		if(numDistinctAggs>0)
 			distinctValues = (HashSet<String>[][])new HashSet[resultRows.length][aggregates.length];
 
-        if (regionScanner == null) {
-            isTemp = true;
-        } else {
+        if (regionScanner != null) {
             Hasher hasher = new Hasher(sourceExecIndexRow.getRowArray(), keyColumns, null, sequence[0]);
             rowProvider = new SimpleRegionAwareRowProvider(SpliceUtils.NA_TRANSACTION_ID,
                     context.getRegion(),
@@ -143,7 +140,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                     hasher,
                     sourceExecIndexRow, null);
             rowProvider.open();
-            isTemp = !context.isSink() || context.getTopOperation() != this;
         }
         numGCols = order.length - numDistinctAggs;
         hasher = new Hasher(getExecRowDefinition().getRowArray(), keyColumns, null, sequence[0]);
@@ -203,10 +199,14 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		
 	}
 
+    public ExecRow getNextSinkRow() throws StandardException {
+        return doAggregation(false, scanAccumulator);
+    }
+
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getNextRowCore");
-		return doAggregation(isTemp,scanAccumulator);
+        return doAggregation(true,scanAccumulator);
 	}
 	
 	private final HashBuffer.Merger<ByteBuffer,ExecIndexRow> merger = new HashBuffer.Merger<ByteBuffer,ExecIndexRow>() {

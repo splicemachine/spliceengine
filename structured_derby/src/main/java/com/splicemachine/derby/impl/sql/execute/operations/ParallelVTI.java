@@ -88,7 +88,6 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 		
 	}
 
-    @Override
     public OperationSink.Translator getTranslator() throws IOException {
         throw new UnsupportedOperationException("getTranslator is not supported on node "+this.getClass());
     }
@@ -113,7 +112,11 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 		throw new UnsupportedOperationException();
 	}
 
-	@Override
+	public ExecRow getNextSinkRow() throws StandardException {
+		throw new UnsupportedOperationException();
+	}
+
+    @Override
 	public ExecRow getNextRowCore() throws StandardException {
 		throw new UnsupportedOperationException();
 	}

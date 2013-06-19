@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
@@ -35,27 +36,27 @@ public class OperationSink {
     }
 
     private final TableWriter tableWriter;
-    private final SpliceOperation operation;
+    private final SinkingOperation operation;
     private final byte[] taskId;
     private final byte[] taskIdCol;
 
     private long rowCount = 0;
     private byte[] postfix;
 
-    private OperationSink(byte[] taskIdCol,byte[] taskId,SpliceOperation operation,TableWriter tableWriter) {
+    private OperationSink(byte[] taskIdCol,byte[] taskId,SinkingOperation operation,TableWriter tableWriter) {
         this.tableWriter = tableWriter;
-        this.operation = operation;
         this.taskId = taskId;
         this.taskIdCol = taskIdCol;
+        this.operation = operation;
     }
 
-    public static OperationSink create(SpliceOperation operation, byte[] taskId) throws IOException {
+    public static OperationSink create(SinkingOperation operation, byte[] taskId) throws IOException {
         //TODO -sf- move this to a static initializer somewhere
 
         return new OperationSink(SpliceConstants.TASK_ID_COL,taskId,operation,SpliceDriver.driver().getTableWriter());
     }
 
-    public static OperationSink create(SpliceOperation operation,
+    public static OperationSink create(SinkingOperation operation,
                                        TableWriter writer,byte[] taskId) throws IOException {
         //TODO -sf- move this to a static initializer somewhere
 
@@ -79,7 +80,8 @@ public class OperationSink {
 //                debugFailIfDesired(writeBuffer);
 
                 long start = System.nanoTime();
-                row = operation.getNextRowCore();
+                //row = operation.getNextRowCore();
+                row = operation.getNextSinkRow();
                 if(row==null) continue;
 
                 stats.readAccumulator().tick(System.nanoTime()-start);

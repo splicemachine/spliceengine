@@ -3,14 +3,22 @@ package com.splicemachine.derby.impl.job.scheduler;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.constants.bytes.HashableBytes;
-import com.splicemachine.derby.impl.job.coprocessor.*;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerProtocol;
+import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.ByteDataInput;
-import com.splicemachine.job.*;
-import com.splicemachine.si.api.Transactor;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobScheduler;
+import com.splicemachine.job.JobSchedulerManagement;
+import com.splicemachine.job.JobStats;
+import com.splicemachine.job.Status;
+import com.splicemachine.job.TaskFuture;
+import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
@@ -19,15 +27,9 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
@@ -40,8 +42,17 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -348,9 +359,9 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
             //rollback child transaction
             if(taskStatus.getTransactionId()!=null){
                 try {
-                    Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = HTransactorFactory.getTransactor();
+                    final TransactorControl transactor = HTransactorFactory.getTransactorControl();
                     TransactionId txnId = transactor.transactionIdFromString(taskStatus.getTransactionId());
-                    HTransactorFactory.getTransactor().rollback(txnId);
+                    transactor.rollback(txnId);
                 } catch (IOException e) {
                     Exception error = new DoNotRetryIOException("Unable to roll back child transaction",e);
                     taskStatus.setError(error);
@@ -577,9 +588,9 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                         case COMPLETED:
                             try {
                                 if (changedFuture.getTransactionId() != null) {
-                                    Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = HTransactorFactory.getTransactor();
+                                    final TransactorControl transactor = HTransactorFactory.getTransactorControl();
                                     TransactionId txnId = transactor.transactionIdFromString(changedFuture.getTransactionId());
-                                    HTransactorFactory.getTransactor().commit(txnId);
+                                    transactor.commit(txnId);
                                 }
                             } catch (IOException e) {
                                 failedTasks.add(changedFuture);

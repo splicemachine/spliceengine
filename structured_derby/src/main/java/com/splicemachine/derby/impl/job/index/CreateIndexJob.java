@@ -56,7 +56,7 @@ public class CreateIndexJob implements CoprocessorJob{
 
     @Override
     public TransactionId getParentTransaction() {
-        return HTransactorFactory.getTransactor().transactionIdFromString(transactionId);
+        return HTransactorFactory.getTransactorControl().transactionIdFromString(transactionId);
     }
 
     @Override

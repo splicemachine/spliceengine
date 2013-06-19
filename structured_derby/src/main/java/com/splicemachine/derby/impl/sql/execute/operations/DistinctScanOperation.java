@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -37,7 +38,7 @@ import java.util.List;
  * @author Scott Fines
  * Created on: 5/23/13
  */
-public class DistinctScanOperation extends ScanOperation{
+public class DistinctScanOperation extends ScanOperation implements SinkingOperation{
     private static final long serialVersionUID = 3l;
     private static final List<NodeType> nodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SCAN);
 
@@ -152,39 +153,41 @@ public class DistinctScanOperation extends ScanOperation{
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
-    	if (completed) {
-    		if(currentRows!=null &&currentRows.size()>0) {
-    			ByteBuffer key = currentRows.keySet().iterator().next();
-    			return makeCurrent(key.array(),currentRows.remove(key));
-    		}
-    		else 
-    			return null;
-    	}
-        try{
-            do{
+    public ExecRow getNextSinkRow() throws StandardException {
+        try {
+            do {
                 values.clear();
                 regionScanner.next(values);
-                if(values.isEmpty()) continue;
-                SpliceUtils.populate(values,currentRow.getRowArray(),accessedCols,baseColumnMap,serializer);
+                if (values.isEmpty()) continue;
+                SpliceUtils.populate(values, currentRow.getRowArray(), accessedCols, baseColumnMap, serializer);
                 ExecRow row = currentRow.getClone();
-                currentByteArray = hasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray()); 
+                currentByteArray = hasher.generateSortedHashKeyWithoutUniqueKey(row.getRowArray());
                 if (!currentRows.merge(ByteBuffer.wrap(currentByteArray), row, merger)) {
-                    ExecRow finalized = currentRows.add(ByteBuffer.wrap(currentByteArray),row);
-                    if(finalized!=null&&finalized!=row){
+                    ExecRow finalized = currentRows.add(ByteBuffer.wrap(currentByteArray), row);
+                    if (finalized != null && finalized != row) {
                         return finalized;
                     }
                 }
-            }while(!values.isEmpty());
+            } while (!values.isEmpty());
 
             completed = true;
-            if(currentRows.size()>0) {
-    			ByteBuffer key = currentRows.keySet().iterator().next();
-    			return makeCurrent(key.array(),currentRows.remove(key));
-    		} else
+            if (currentRows.size() > 0) {
+                ByteBuffer key = currentRows.keySet().iterator().next();
+                return makeCurrent(key.array(), currentRows.remove(key));
+            } else
                 return null;
-        } catch (IOException e) {
+         } catch (IOException e) {
             throw Exceptions.parseException(e);
+        }
+    }
+
+    @Override
+    public ExecRow getNextRowCore() throws StandardException {
+        if (currentRows != null && currentRows.size() > 0) {
+            ByteBuffer key = currentRows.keySet().iterator().next();
+            return makeCurrent(key.array(), currentRows.remove(key));
+        } else {
+            return null;
         }
     }
 

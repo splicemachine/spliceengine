@@ -2,31 +2,41 @@ package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.HashableBytes;
-import com.splicemachine.derby.impl.sql.execute.constraint.*;
+import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
+import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
+import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;
+import com.splicemachine.derby.impl.sql.execute.constraint.ForeignKey;
+import com.splicemachine.derby.impl.sql.execute.constraint.PrimaryKey;
+import com.splicemachine.derby.impl.sql.execute.constraint.UniqueConstraint;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptorList;
+import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptor;
+import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptorList;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
+import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
+import org.apache.derby.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
@@ -321,14 +331,13 @@ public class IndexSet {
             throw new IndexNotSetUpException("Unable to initialize index management for table "+ conglomId+" within a sufficient period." +
                     " Please wait a bit and try again");
         }
-        boolean success = false;
-        Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = null;
+        TransactorControl transactor = null;
         TransactionId txnID = null;
         SpliceTransactionResourceImpl impl = null;
         try {
             try{
                 impl = new SpliceTransactionResourceImpl();
-                transactor = HTransactorFactory.getTransactor(); // TODO Place Holder - Transaction Must Flow...
+                transactor = HTransactorFactory.getTransactorControl(); // TODO Place Holder - Transaction Must Flow...
                 txnID = transactor.beginTransaction(false, true, false);
                 impl.marshallTransaction(txnID.getTransactionIdString());
                 DataDictionary dataDictionary = impl.getLcc().getDataDictionary();
@@ -343,7 +352,6 @@ public class IndexSet {
                     startDirect(dataDictionary, td);
                 }
                 transactor.commit(txnID);
-                success = true;
             }catch(StandardException se){
                 SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ conglomId+", aborting",se);
                 state.set(State.FAILED_SETUP);

@@ -1,10 +1,8 @@
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -20,12 +18,6 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.store.raw.log.LogInstant;
 import org.apache.derby.iapi.store.raw.xact.TransactionId;
 import org.apache.derby.iapi.types.J2SEDataValueFactory;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import java.util.Properties;
@@ -58,9 +50,9 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 
 	public Transaction marshalTransaction(HBaseStore hbaseStore, ContextManager contextMgr, String transName, String transactionID) throws StandardException {
 		try {
-           Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = HTransactorFactory.getTransactor();
-           Transaction trans = new SpliceTransaction(new SpliceLockSpace(),dataValueFactory,transactor,transName, transactor.transactionIdFromString(transactionID));
-           return trans;
+            final TransactorControl transactor = HTransactorFactory.getTransactorControl();
+            Transaction trans = new SpliceTransaction(new SpliceLockSpace(),dataValueFactory,transactor,transName, transactor.transactionIdFromString(transactionID));
+            return trans;
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG,"marshallTransaction failure", Exceptions.parseException(e));
             return null; // can't happen
@@ -142,7 +134,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
                                                      ContextManager contextMgr, SpliceLockFactory lockFactory, J2SEDataValueFactory dataValueFactory,
                                                      boolean readOnly, String transName, boolean abortAll, String contextName, boolean nested, boolean dependent, String parentTransactionID) {
         try {
-            Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = HTransactorFactory.getTransactor();
+            final TransactorControl transactor = HTransactorFactory.getTransactorControl();
 			SpliceTransaction trans = new SpliceTransaction(new SpliceLockSpace(), dataValueFactory, transactor, transName); 
 			trans.setTransactionName(transName);
 			

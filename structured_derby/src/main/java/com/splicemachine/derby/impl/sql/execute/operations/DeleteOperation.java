@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.utils.Exceptions;
@@ -23,7 +24,7 @@ import java.util.List;
  * @author jessiezhang
  *
  */
-public class DeleteOperation extends DMLWriteOperation{
+public class DeleteOperation extends DMLWriteOperation {
 	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
 	protected  boolean cascadeDelete;
 

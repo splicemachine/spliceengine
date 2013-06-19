@@ -5,6 +5,7 @@ import com.google.common.base.Strings;
 import com.google.common.primitives.Bytes;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -39,7 +40,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
 
-public class SortOperation extends SpliceBaseOperation {
+public class SortOperation extends SpliceBaseOperation implements SinkingOperation {
     private static final long serialVersionUID = 2l;
     private static Logger LOG = Logger.getLogger(SortOperation.class);
     private static final List<NodeType> nodeTypes;
@@ -51,7 +52,6 @@ public class SortOperation extends SpliceBaseOperation {
     private ExecRow sortResult;
     private int numColumns;
     private Scan reduceScan;
-    private boolean readingFromTemp;
     private ExecRow execRowDefinition = null;
     private Properties sortProperties = new Properties();
 
@@ -146,21 +146,23 @@ public class SortOperation extends SpliceBaseOperation {
             keyColumns[i] = order[i].getColumnId();
             descColumns[keyColumns[i]] = order[i].getIsAscending();
         }
-        readingFromTemp = context.getTopOperation() != null &&
-                (!context.isSink() || context.getTopOperation() != this);
+    }
+
+    public ExecRow getNextSinkRow() throws StandardException {
+        ExecRow sinkRow = source.getNextRowCore();
+        if (sinkRow != null){
+            setCurrentRow(sinkRow);
+        }
+        return sinkRow;
     }
 
     @Override
     public ExecRow getNextRowCore() throws StandardException {
         SpliceLogUtils.trace(LOG, "getNextRowCore");
-        sortResult = readingFromTemp ? getNextRowFromScan() : getNextRowFromSource();
+        sortResult = getNextRowFromScan();
         if (sortResult != null)
             setCurrentRow(sortResult);
         return sortResult;
-    }
-
-    private ExecRow getNextRowFromSource() throws StandardException {
-        return source.getNextRowCore();
     }
 
     private ExecRow getNextRowFromScan() throws StandardException {
@@ -230,7 +232,6 @@ public class SortOperation extends SpliceBaseOperation {
         return rs;
     }
 
-    @Override
     public OperationSink.Translator getTranslator() throws IOException {
         try {
             final Hasher hasher = new Hasher(getExecRowDefinition().getRowArray(), keyColumns, descColumns, sequence[0]);

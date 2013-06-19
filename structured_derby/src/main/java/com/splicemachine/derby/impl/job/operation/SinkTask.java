@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.job.operation;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
@@ -85,7 +86,7 @@ public class SinkTask extends ZkTask {
             SpliceOperation op = instructions.getTopOperation();
             op.init(opContext);
 
-            OperationSink opSink = OperationSink.create(op, Bytes.toBytes(getTaskId()));
+            OperationSink opSink = OperationSink.create((SinkingOperation) op, Bytes.toBytes(getTaskId()));
 
             TaskStats stats;
             if(op instanceof DMLWriteOperation)

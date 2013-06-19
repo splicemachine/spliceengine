@@ -55,11 +55,15 @@ public class HTransactorFactory extends SIConstants {
         return getTransactorDirect();
     }
 
-    public static Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> getTransactor() {
+    public static TransactorControl getTransactorControl() {
         return getTransactorDirect().getTransactor();
     }
 
     public static ClientTransactor<Put, Get, Scan, Mutation, byte[]> getClientTransactor() {
+        return getTransactorDirect().getTransactor();
+    }
+
+    public static Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> getTransactor() {
         return getTransactorDirect().getTransactor();
     }
 
