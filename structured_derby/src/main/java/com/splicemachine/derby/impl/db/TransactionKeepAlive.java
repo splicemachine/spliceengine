@@ -1,21 +1,12 @@
 package com.splicemachine.derby.impl.db;
 
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -64,7 +55,7 @@ public class TransactionKeepAlive {
                 final ContextManager contextManager = (ContextManager) o;
                 final String transactionId = SpliceObserverInstructions.getTransactionId(contextManager);
                 if (transactionId != null && !keptAlive.contains(transactionId)) {
-                    final Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = HTransactorFactory.getTransactor();
+                    final TransactorControl transactor = HTransactorFactory.getTransactorControl();
                     try {
                     	SpliceLogUtils.trace(LOG,"keeping alive %s",transactionId);
                         transactor.keepAlive(transactor.transactionIdFromString(transactionId));

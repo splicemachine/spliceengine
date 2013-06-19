@@ -53,8 +53,7 @@ public class FileImportJob extends ImportJob{
             end = endRow;
         }
 
-        TransactionId parentTxn = HTransactorFactory.getClientTransactor().transactionIdFromString(context.getTransactionId());
         return Collections.singletonMap(new FileImportTask(getJobId(),context,
-                SpliceConstants.importTaskPriority,parentTxn.getTransactionIdString()),Pair.newPair(start, end));
+                SpliceConstants.importTaskPriority,context.getTransactionId()),Pair.newPair(start, end));
     }
 }

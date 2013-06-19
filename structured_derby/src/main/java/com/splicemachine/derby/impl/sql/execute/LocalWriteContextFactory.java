@@ -1,14 +1,23 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.HashableBytes;
-import com.splicemachine.derby.impl.sql.execute.constraint.*;
-import com.splicemachine.derby.impl.sql.execute.index.*;
+import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
+import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintHandler;
+import com.splicemachine.derby.impl.sql.execute.constraint.PrimaryKey;
+import com.splicemachine.derby.impl.sql.execute.constraint.UniqueConstraint;
+import com.splicemachine.derby.impl.sql.execute.index.IndexDeleteWriteHandler;
+import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
+import com.splicemachine.derby.impl.sql.execute.index.IndexUpsertWriteHandler;
+import com.splicemachine.derby.impl.sql.execute.index.UniqueIndexDeleteWriteHandler;
+import com.splicemachine.derby.impl.sql.execute.index.UniqueIndexUpsertWriteHandler;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.hbase.batch.*;
-import com.splicemachine.si.api.Transactor;
+import com.splicemachine.hbase.batch.PipelineWriteContext;
+import com.splicemachine.hbase.batch.RegionWriteHandler;
+import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.batch.WriteContextFactory;
+import com.splicemachine.hbase.batch.WriteHandler;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResettableCountDownLatch;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -16,14 +25,14 @@ import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.sql.dictionary.*;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptorList;
+import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptor;
+import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptorList;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -210,7 +219,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             throw new IndexNotSetUpException("Unable to initialize index management for table "+ congomId
                     +" within a sufficient time frame. Please wait a bit and try again");
         }
-        Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = null;
+        TransactorControl transactor = null;
         TransactionId txnId = null;
         boolean success = false;
         ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
@@ -218,7 +227,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         try {
             try{
                 transactionResource = new SpliceTransactionResourceImpl();
-                transactor = HTransactorFactory.getTransactor();
+                transactor = HTransactorFactory.getTransactorControl();
                 txnId = transactor.beginTransaction(false,true,true);
                 transactionResource.marshallTransaction(txnId.getTransactionIdString());
 

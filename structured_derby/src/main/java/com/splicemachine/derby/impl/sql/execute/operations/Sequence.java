@@ -2,24 +2,24 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.gotometrics.orderly.LongRowKey;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResourcePool;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
+import org.apache.derby.iapi.sql.dictionary.ColumnDescriptorList;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -219,7 +219,7 @@ public class Sequence {
             try{
                 stri = new SpliceTransactionResourceImpl();
 //                //get a read-only child transaction
-                Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = HTransactorFactory.getTransactor();
+                final TransactorControl transactor = HTransactorFactory.getTransactorControl();
                 TransactionId parent = transactor.transactionIdFromString(txnId);
                 TransactionId child = transactor.beginChildTransaction(parent,false,false);
                 try{

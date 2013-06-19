@@ -1,29 +1,25 @@
 package com.splicemachine.derby.impl.job;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.ByteDataOutput;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
-import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.*;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
 
 import java.io.Externalizable;
@@ -108,7 +104,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
         try {
             //create a child transaction
             if(parentTxnId!=null){
-                Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor = HTransactorFactory.getTransactor();
+                TransactorControl transactor = HTransactorFactory.getTransactorControl();
                 TransactionId parent = transactor.transactionIdFromString(parentTxnId);
                 try {
                     TransactionId childTxnId  = transactor.beginChildTransaction(parent, !readOnly, !readOnly);

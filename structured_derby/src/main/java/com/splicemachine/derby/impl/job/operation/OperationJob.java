@@ -63,7 +63,7 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
 
     @Override
     public TransactionId getParentTransaction() {
-        return HTransactorFactory.getClientTransactor().transactionIdFromString(instructions.getTransactionId());
+        return HTransactorFactory.getTransactorControl().transactionIdFromString(instructions.getTransactionId());
     }
 
     @Override
