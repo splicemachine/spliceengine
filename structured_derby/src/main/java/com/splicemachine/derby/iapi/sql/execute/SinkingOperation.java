@@ -13,18 +13,16 @@ import java.io.IOException;
 
 /**
  * Interface for SpliceOperations that need to sink rows from their children
- * before
+ * before computing result rows.
  */
 public interface SinkingOperation {
 
-    /*
-     * Get next row to sink to another table, as opposed to the computed relational row
+    /**
+     * Get next ExecRow to sink to an intermediate table as prep for computing result rows
      */
     ExecRow getNextSinkRow() throws StandardException;
 
     /**
-     * Only needs to be implemented by parallel-type tasks (e.g. tasks which also implement sink()).
-     *
      * @return a function converting non-null ExecRow objects into Put objects.
      */
     public OperationSink.Translator getTranslator() throws IOException;
