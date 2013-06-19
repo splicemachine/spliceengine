@@ -101,9 +101,9 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
         if (allowWrites || readCommitted != null || readUncommitted != null) {
             final TransactionParams params = new TransactionParams(parent, dependent, allowWrites, readUncommitted, readCommitted);
             final long timestamp = assignTransactionId();
-            final long beginTimestamp = getBeginTimestamp(timestamp, params.parent.getId());
+            final long beginTimestamp = generateBeginTimestamp(timestamp, params.parent.getId());
             transactionStore.recordNewTransaction(timestamp, params, ACTIVE, beginTimestamp, 0L);
-            transactionStore.addChildToTransaction(params.parent.getId(), timestamp);
+            transactionStore.recordTransactionChild(params.parent.getId(), timestamp);
             listener.beginTransaction(!parent.isRootTransaction());
             return new TransactionId(timestamp);
         } else {
@@ -120,19 +120,19 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
      *
      * @return the new transaction ID.
      */
-    private long getBeginTimestamp(long transactionId, long parentId) throws IOException {
+    private long generateBeginTimestamp(long transactionId, long parentId) throws IOException {
         if (parentId == Transaction.ROOT_ID) {
             return transactionId;
         } else {
-            return transactionStore.getTimestamp(parentId);
+            return transactionStore.generateTimestamp(parentId);
         }
     }
 
-    private long getCommitTimestamp(long parentId) throws IOException {
+    private long generateCommitTimestamp(long parentId) throws IOException {
         if (parentId == Transaction.ROOT_ID) {
             return timestampSource.nextTimestamp();
         } else {
-            return transactionStore.getTimestamp(parentId);
+            return transactionStore.generateTimestamp(parentId);
         }
     }
 
@@ -155,7 +155,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
     @Override
     public void keepAlive(TransactionId transactionId) throws IOException {
         if (!isIndependentReadOnly(transactionId)) {
-            transactionStore.recordKeepAlive(transactionId.getId());
+            transactionStore.recordTransactionKeepAlive(transactionId.getId());
         }
     }
 
@@ -179,8 +179,8 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
         }
         Tracer.traceCommitting(transaction.getLongTransactionId());
         final Long globalCommitTimestamp = getGlobalCommitTimestamp(transaction);
-        final long commitTimestamp = getCommitTimestamp(transaction.getParent().getLongTransactionId());
-        if (!transactionStore.recordTransactionEnd(transactionId, commitTimestamp, globalCommitTimestamp, COMMITTING, COMMITTED)) {
+        final long commitTimestamp = generateCommitTimestamp(transaction.getParent().getLongTransactionId());
+        if (!transactionStore.recordTransactionCommit(transactionId, commitTimestamp, globalCommitTimestamp, COMMITTING, COMMITTED)) {
             throw new DoNotRetryIOException("commit failed");
         }
     }
