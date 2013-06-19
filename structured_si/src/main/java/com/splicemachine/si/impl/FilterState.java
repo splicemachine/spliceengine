@@ -235,7 +235,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
                         || effectiveStatus.equals(TransactionStatus.ERROR)
                         || effectiveStatus.equals(TransactionStatus.ROLLED_BACK))) {
             // TODO: revisit this in light of nested independent transactions
-            dataStore.recordRollForward(rollForwardQueue, transaction, keyValue.row());
+            dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), keyValue.row());
         }
     }
 

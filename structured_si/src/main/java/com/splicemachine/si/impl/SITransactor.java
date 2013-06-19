@@ -44,18 +44,24 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
 
     private final TransactorListener listener;
 
-    private final TransactionSource transactionSource;
+    private final TransactionSource relativeTransactionSource;
+    private TransactionSource transactionSource;
 
     public SITransactor(TimestampSource timestampSource, SDataLib dataLib, STableWriter dataWriter, DataStore dataStore,
                         final TransactionStore transactionStore, Clock clock, int transactionTimeoutMS,
                         TransactorListener listener) {
+        relativeTransactionSource = new TransactionSource() {
+            @Override
+            public Transaction getTransaction(long timestamp) throws IOException {
+                return transactionStore.getTransaction(timestamp);
+            }
+        };
         transactionSource = new TransactionSource() {
             @Override
             public Transaction getTransaction(long timestamp) throws IOException {
                 return transactionStore.getTransaction(timestamp);
             }
         };
-
         this.timestampSource = timestampSource;
         this.dataLib = dataLib;
         this.dataWriter = dataWriter;
@@ -344,43 +350,53 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
 
     @Override
     public boolean processPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
+        return processPutWithSICheck(table, rollForwardQueue, put);
+    }
+
+    private boolean processPutWithSICheck(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
         if (isFlaggedForSITreatment(put)) {
-            processPutDirect(table, rollForwardQueue, put);
+            processPutWithWritableCheck(table, rollForwardQueue, put);
             return true;
         } else {
             return false;
         }
     }
 
-    private void processPutDirect(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
+    private void processPutWithWritableCheck(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
         final TransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
         final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
         ensureTransactionAllowsWrites(transaction);
-        performPut(table, rollForwardQueue, put, transaction);
+        processPutWithConflictCheckAndRollforward(table, rollForwardQueue, put, transaction);
     }
 
 
-    private void performPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put, ImmutableTransaction transaction)
+    private void processPutWithConflictCheckAndRollforward(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put, ImmutableTransaction transaction)
             throws IOException {
+        final long transactionId = transaction.getLongTransactionId();
         final Data rowKey = dataLib.getPutKey(put);
+        final Set<Long> dataTransactionsToRollForward;
+
         final Lock lock = dataWriter.lockRow(table, rowKey);
-        Set<Long> dataTransactionsToRollForward;
         // This is the critical section that runs while the row is locked.
         try {
             final Object[] conflictResults = ensureNoWriteConflict(transaction, table, rowKey);
             dataTransactionsToRollForward = (Set<Long>) conflictResults[0];
-            Set<Long> conflictingChildren = (Set<Long>) conflictResults[1];
-            final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table);
-            dataStore.suppressIndexing(newPut);
-            dataWriter.write(table, newPut, lock);
-            resolveChildConflicts(table, newPut, lock, conflictingChildren);
+            final Set<Long> conflictingChildren = (Set<Long>) conflictResults[1];
+            processPutDirect(table, put, transactionId, lock);
+            resolveChildConflicts(table, put, lock, conflictingChildren);
         } finally {
             dataWriter.unLockRow(table, lock);
         }
-        dataStore.recordRollForward(rollForwardQueue, transaction, rowKey);
-        for (Long id : dataTransactionsToRollForward) {
-            dataStore.recordRollForward(rollForwardQueue, id, rowKey);
+        dataStore.recordRollForward(rollForwardQueue, transactionId, rowKey);
+        for (Long transactionIdToRollForward : dataTransactionsToRollForward) {
+            dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey);
         }
+    }
+
+    private void processPutDirect(Table table, Put put, long transactionId, Lock lock) throws IOException {
+        final Put newPut = createUltimatePut(transactionId, lock, put, table);
+        dataStore.suppressIndexing(newPut);
+        dataWriter.write(table, newPut, lock);
     }
 
     private void resolveChildConflicts(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
@@ -397,7 +413,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
      */
     private Object[] ensureNoWriteConflict(ImmutableTransaction updateTransaction, Table table, Data rowKey)
             throws IOException {
-        final List<KeyValue> dataCommitKeyValues = dataStore.getCommitTimestamp(table, rowKey);
+        final List<KeyValue> dataCommitKeyValues = dataStore.getCommitTimestamps(table, rowKey);
         if (dataCommitKeyValues != null) {
             return checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValues);
         }
@@ -409,75 +425,106 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
      */
     private Object[] checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, List<KeyValue> dataCommitKeyValues)
             throws IOException {
-        Set<Long> toRollForward = new HashSet<Long>();
-        Set<Long> childConflicts = new HashSet<Long>();
+        final Set<Long> toRollForward = new HashSet<Long>();
+        final Set<Long> childConflicts = new HashSet<Long>();
         for (KeyValue dataCommitKeyValue : dataCommitKeyValues) {
             checkCommitTimestampForConflict(updateTransaction, toRollForward, childConflicts, dataCommitKeyValue);
         }
         return new Object[]{toRollForward, childConflicts};
     }
 
-    private void checkCommitTimestampForConflict(ImmutableTransaction updateTransaction, Set<Long> toRollForward, Set<Long> childConflicts, KeyValue dataCommitKeyValue) throws IOException {
+    private void checkCommitTimestampForConflict(ImmutableTransaction updateTransaction, Set<Long> toRollForward,
+                                                 Set<Long> childConflicts, KeyValue dataCommitKeyValue)
+            throws IOException {
         final long dataTransactionId = dataLib.getKeyValueTimestamp(dataCommitKeyValue);
         if (!updateTransaction.sameTransaction(dataTransactionId)) {
             final Data commitTimestampValue = dataLib.getKeyValueValue(dataCommitKeyValue);
             if (dataStore.isSINull(commitTimestampValue)) {
-                Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
-                dataTransaction = checkTransactionTimeout(dataTransaction);
-                final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction);
-                if (conflictType.equals(ConflictType.CHILD)) {
-                    childConflicts.add(dataTransactionId);
+                // Unknown transaction status
+                final Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
+                if (!dataTransaction.isEffectivelyActive()) {
+                    // Transaction is now in a final state so asynchronously update the data row with the status
+                    toRollForward.add(dataTransactionId);
                 }
-                toRollForward.add(dataTransactionId);
+                final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction, relativeTransactionSource);
+                switch (conflictType) {
+                    case CHILD:
+                        childConflicts.add(dataTransactionId);
+                        break;
+                    case SIBLING:
+                        if (doubleCheckConflict(updateTransaction, dataTransaction)) {
+                            throw failOnWriteConflict(updateTransaction);
+                        }
+                        break;
+                }
             } else if (dataStore.isSIFail(commitTimestampValue)) {
+                // Can't conflict with failed transaction.
             } else {
+                // Committed transaction
                 final long dataCommitTimestamp = (Long) dataLib.decode(commitTimestampValue, Long.class);
                 if (dataCommitTimestamp > updateTransaction.getBeginTimestamp()) {
-                    failOnWriteConflict(updateTransaction);
+                    throw failOnWriteConflict(updateTransaction);
                 }
             }
         }
     }
 
     /**
-     * Look at the last keepAlive timestamp on the transaction, if it is too long in the past then "fail" the
-     * transaction. Returns a possibly updated transaction that reflects the call to "fail".
+     * @param updateTransaction
+     * @param dataTransaction
+     * @return true if there is a conflict
+     * @throws IOException
      */
-    private Transaction checkTransactionTimeout(Transaction dataTransaction) throws IOException {
-        if ((clock.getTime() - dataTransaction.keepAlive) > transactionTimeoutMS) {
+    private boolean doubleCheckConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction) throws IOException {
+        // If the transaction has timed out then it might be possible to make it fail and proceed without conflict.
+        if (checkTransactionTimeout(dataTransaction)) {
+            // Double check for conflict if there was a transaction timeout
+            final Transaction dataTransaction2 = transactionStore.getTransaction(dataTransaction.getLongTransactionId());
+            final ConflictType conflictType2 = checkTransactionConflict(updateTransaction, dataTransaction2, transactionSource);
+            if (conflictType2.equals(ConflictType.NONE)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Look at the last keepAlive timestamp on the transaction, if it is too long in the past then "fail" the
+     * transaction. Returns true if a timeout was generated.
+     */
+    private boolean checkTransactionTimeout(Transaction dataTransaction) throws IOException {
+        if (!dataTransaction.isRootTransaction()
+                && dataTransaction.isEffectivelyActive()
+                && ((clock.getTime() - dataTransaction.keepAlive) > transactionTimeoutMS)) {
             fail(dataTransaction.getTransactionId());
-            return transactionStore.getTransaction(dataTransaction.getLongTransactionId());
+            checkTransactionTimeout(dataTransaction.getParent());
+            return true;
+        } else if (dataTransaction.isRootTransaction()) {
+            return false;
         } else {
-            return dataTransaction;
+            return checkTransactionTimeout(dataTransaction.getParent());
         }
     }
 
     /**
      * Determine if the dataTransaction conflicts with the updateTransaction.
      */
-    private ConflictType checkTransactionConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction)
+    private ConflictType checkTransactionConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction,
+                                                  TransactionSource source)
             throws IOException {
-        if (!updateTransaction.sameTransaction(dataTransaction)) {
-            Transaction t1 = transactionStore.getTransaction(updateTransaction.getLongTransactionId());
-            final ConflictType conflict = t1.isConflict(dataTransaction, transactionSource);
-            switch (conflict) {
-                case NONE:
-                    break;
-                case SIBLING:
-                    failOnWriteConflict(updateTransaction);
-                    break;
-            }
-            return conflict;
+        if (updateTransaction.sameTransaction(dataTransaction)) {
+            return ConflictType.NONE;
+        } else {
+            return updateTransaction.isConflict(dataTransaction, source);
         }
-        return ConflictType.NONE;
     }
 
     /**
      * A write conflict was discovered, throw an exception and kill the offending transaction.
      */
-    private void failOnWriteConflict(ImmutableTransaction transaction) throws IOException {
+    private WriteConflict failOnWriteConflict(ImmutableTransaction transaction) throws IOException {
         fail(transaction.getTransactionId());
-        throw new WriteConflict("write/write conflict");
+        return new WriteConflict("write/write conflict");
     }
 
     /**

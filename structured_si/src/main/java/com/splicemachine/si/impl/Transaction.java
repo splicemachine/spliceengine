@@ -154,4 +154,5 @@ public class Transaction extends ImmutableTransaction {
     public boolean needsGlobalCommitTimestamp() {
         return behavior.needsGlobalCommitTimestamp();
     }
+
 }

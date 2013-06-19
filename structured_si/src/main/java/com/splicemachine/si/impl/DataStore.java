@@ -131,7 +131,7 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
         return delete;
     }
 
-    List<KeyValue> getCommitTimestamp(IHTable table, Data rowKey) throws IOException {
+    List<KeyValue> getCommitTimestamps(IHTable table, Data rowKey) throws IOException {
         final List<List<Data>> columns = Arrays.asList(Arrays.asList(siFamily, commitTimestampQualifier));
         Get get = dataLib.newGet(rowKey, null, columns, null);
         suppressIndexing(get);
@@ -160,10 +160,6 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
 
     public boolean isSIFail(Data value) {
         return dataLib.valuesEqual(value, siFail);
-    }
-
-    public void recordRollForward(RollForwardQueue<Data, Hashable> rollForwardQueue, ImmutableTransaction transaction, Data row) {
-        recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), row);
     }
 
     public void recordRollForward(RollForwardQueue<Data, Hashable> rollForwardQueue, long transactionId, Data row) {
