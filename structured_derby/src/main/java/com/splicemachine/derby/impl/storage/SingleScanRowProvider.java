@@ -4,6 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -49,7 +50,7 @@ public abstract class SingleScanRowProvider  implements RowProvider {
             SpliceOperation op = instructions.getTopOperation();
             op.init(SpliceOperationContext.newContext(op.getActivation()));
             try{
-                OperationSink opSink = OperationSink.create(op,null);
+                OperationSink opSink = OperationSink.create((SinkingOperation) op,null);
                 if(op instanceof DMLWriteOperation)
                     return new LocalTaskJobStats(opSink.sink(((DMLWriteOperation)op).getDestinationTable()));
                 else

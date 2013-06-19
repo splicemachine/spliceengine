@@ -43,20 +43,20 @@ public class OperationSink {
     private long rowCount = 0;
     private byte[] postfix;
 
-    private OperationSink(byte[] taskIdCol,byte[] taskId,SpliceOperation operation,TableWriter tableWriter) {
+    private OperationSink(byte[] taskIdCol,byte[] taskId,SinkingOperation operation,TableWriter tableWriter) {
         this.tableWriter = tableWriter;
         this.taskId = taskId;
         this.taskIdCol = taskIdCol;
-        this.operation = (SinkingOperation) operation;
+        this.operation = operation;
     }
 
-    public static OperationSink create(SpliceOperation operation, byte[] taskId) throws IOException {
+    public static OperationSink create(SinkingOperation operation, byte[] taskId) throws IOException {
         //TODO -sf- move this to a static initializer somewhere
 
         return new OperationSink(SpliceConstants.TASK_ID_COL,taskId,operation,SpliceDriver.driver().getTableWriter());
     }
 
-    public static OperationSink create(SpliceOperation operation,
+    public static OperationSink create(SinkingOperation operation,
                                        TableWriter writer,byte[] taskId) throws IOException {
         //TODO -sf- move this to a static initializer somewhere
 
