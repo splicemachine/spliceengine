@@ -57,7 +57,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     private List<KeyValue> values;
     private boolean completed = false;
     private Serializer serializer = Serializer.get();
-    protected KeyType hasher;
+    protected KeyMarshall hasher;
     protected byte[] currentByteArray;
     protected MultiFieldEncoder keyEncoder;
 	private HashBuffer<ByteBuffer,ExecRow> currentRows = new HashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize); 
@@ -170,7 +170,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                 if(values.isEmpty()) continue;
                 DataValueDescriptor[] rowArray = currentRow.getRowArray();
                 for(KeyValue kv:values){
-                    RowType.MAPPED_COLUMNAR.decode(kv, rowArray, baseColumnMap, null);
+                    ((RowMarshall)RowType.MAPPED_COLUMNAR).decode(kv, rowArray, baseColumnMap, null);
                 }
 //                SpliceUtils.populate(values,currentRow.getRowArray(),accessedCols,baseColumnMap,serializer);
                 ExecRow row = currentRow.getClone();

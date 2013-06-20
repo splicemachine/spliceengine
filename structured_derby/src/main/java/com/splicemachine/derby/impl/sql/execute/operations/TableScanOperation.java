@@ -9,10 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -150,7 +147,7 @@ public class TableScanOperation extends ScanOperation {
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow row = getExecRowDefinition();
-        return RowEncoder.create(row.nColumns(), null, null, null, KeyType.BARE,RowType.COLUMNAR);
+        return RowEncoder.create(row.nColumns(), null, null, null, KeyType.BARE, RowType.COLUMNAR);
     }
 
     @Override
@@ -188,7 +185,7 @@ public class TableScanOperation extends ScanOperation {
 			} else {
                 DataValueDescriptor[] fields = currentRow.getRowArray();
                 for(KeyValue kv:keyValues){
-                    RowType.MAPPED_COLUMNAR.decode(kv,fields,baseColumnMap,null);
+                    ((RowMarshall)RowType.MAPPED_COLUMNAR).decode(kv,fields,baseColumnMap,null);
                 }
 //				SpliceUtils.populate(keyValues, currentRow.getRowArray(), accessedCols, baseColumnMap);
                 if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
