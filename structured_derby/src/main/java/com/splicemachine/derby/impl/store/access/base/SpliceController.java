@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.utils.marshall.RowMarshall;
 import com.splicemachine.derby.utils.marshall.RowType;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -150,7 +151,7 @@ public abstract class SpliceController implements ConglomerateController {
 			Result result = htable.get(get);
             if(result==null||result.isEmpty()) return false;
             for(KeyValue kv:result.raw()){
-                RowType.COLUMNAR.decode(kv,destRow,null,null);
+                ((RowMarshall)RowType.COLUMNAR).decode(kv,destRow,null,null);
             }
 			return true;
 		} catch (Exception e) {

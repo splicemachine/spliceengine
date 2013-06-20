@@ -271,7 +271,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             @Override
             public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns,
                                   boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
-                KeyType.BARE.encodeKey(columns,keyColumns,sortOrder,keyPostfix,keyEncoder);
+                ((KeyMarshall)KeyType.BARE).encodeKey(columns,keyColumns,sortOrder,keyPostfix,keyEncoder);
                 //add ordinal position
                 keyEncoder.setRawBytes(joinSideBytes);
                 //add the postfix
@@ -303,7 +303,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
             @Override
             public int getFieldCount(int[] keyColumns) {
-                return KeyType.FIXED_PREFIX_UNIQUE_POSTFIX.getFieldCount(keyColumns)+1;
+                return ((KeyMarshall)KeyType.FIXED_PREFIX_UNIQUE_POSTFIX).getFieldCount(keyColumns)+1;
             }
         };
         RowType rowType = RowType.COLUMNAR;

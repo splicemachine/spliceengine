@@ -63,7 +63,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	private HashSet<String>[][] distinctValues;
 	private boolean completedExecution = false;
 	private int numGCols;
-    protected KeyType hasher;
+    protected KeyMarshall hasher;
     protected byte[] currentKey;
     protected MultiFieldEncoder keyEncoder;
     protected RowProvider rowProvider;
@@ -195,8 +195,11 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             }
 
             @Override
-            public void decode(DataValueDescriptor[] columns, int[] reversedKeyColumns,boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
-                hasher.decode(columns, reversedKeyColumns, sortOrder,rowDecoder);
+            public void decode(DataValueDescriptor[] columns,
+                               int[] reversedKeyColumns,
+                               boolean[] sortOrder,
+                               MultiFieldDecoder rowDecoder) throws StandardException {
+                hasher.decode(columns, reversedKeyColumns, sortOrder, rowDecoder);
             }
 
             @Override
@@ -274,7 +277,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 if(!useScan)
                     initializeVectorAggregation(rolledUpRow);
                 keyEncoder.reset();
-                hasher.encodeKey(rolledUpRow.getRowArray(), keyColumns, null, null, keyEncoder);
+                ((KeyMarshall)hasher).encodeKey(rolledUpRow.getRowArray(), keyColumns, null, null, keyEncoder);
                 ByteBuffer keyBuffer = ByteBuffer.wrap(keyEncoder.build());
 				if(!currentAggregations.merge(keyBuffer, rolledUpRow, merger)){
 					ExecIndexRow row = (ExecIndexRow)rolledUpRow.getClone();

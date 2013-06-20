@@ -12,7 +12,7 @@ import org.apache.hadoop.hbase.client.Put;
  * @author Scott Fines
  *         Created on: 6/12/13
  */
-interface RowMarshall {
+public interface RowMarshall {
     /**
      * @param row the row to encode
      * @param rowColumns the columns to parse
