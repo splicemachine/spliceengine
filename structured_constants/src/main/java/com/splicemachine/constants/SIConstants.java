@@ -16,7 +16,6 @@ public class SIConstants extends SpliceConstants {
 
     public static final String SNAPSHOT_ISOLATION_FAMILY = "S";
     public static final byte[] SNAPSHOT_ISOLATION_FAMILY_BYTES = SNAPSHOT_ISOLATION_FAMILY.getBytes();
-    public static final String SNAPSHOT_ISOLATION_CHILDREN_FAMILY = "C";
     public static final int TRANSACTION_ID_COLUMN = 14;
     public static final int TRANSACTION_START_TIMESTAMP_COLUMN = 0;
     public static final int TRANSACTION_PARENT_COLUMN = 1;

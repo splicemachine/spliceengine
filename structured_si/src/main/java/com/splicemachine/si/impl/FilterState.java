@@ -24,7 +24,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
      * The transactions that have been loaded as part of running this filter.
      */
     final Cache<Long, Transaction> transactionCache;
-    final Cache<Long, Object[]> visibleCache;
+    final Cache<Long, VisibleResult> visibleCache;
 
     private final ImmutableTransaction myTransaction;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
@@ -170,10 +170,10 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         if (dataStore.isSINull(keyValue.value())) {
             transaction = handleUnknownTransactionStatus();
         } else if (dataStore.isSIFail(keyValue.value())) {
-            transaction = transactionStore.makeFailedTransaction(keyValue.timestamp());
+            transaction = transactionStore.makeStubFailedTransaction(keyValue.timestamp());
             transactionCache.put(keyValue.timestamp(), transaction);
         } else {
-            transaction = transactionStore.makeCommittedTransaction(keyValue.timestamp(), (Long) dataLib.decode(keyValue.value(), Long.class));
+            transaction = transactionStore.makeStubCommittedTransaction(keyValue.timestamp(), (Long) dataLib.decode(keyValue.value(), Long.class));
             transactionCache.put(keyValue.timestamp(), transaction);
         }
         return transaction;
@@ -183,7 +183,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         Transaction transaction = transactionCache.getIfPresent(timestamp);
         if (transaction == null) {
             if (!myTransaction.getEffectiveReadCommitted() && !myTransaction.getEffectiveReadUncommitted()
-                    && !myTransaction.isDescendant(transactionStore.getImmutableTransaction(timestamp))) {
+                    && !myTransaction.isAncestorOf(transactionStore.getImmutableTransaction(timestamp))) {
                 transaction = transactionStore.getTransactionAsOf(timestamp, myTransaction.getLongTransactionId());
             } else {
                 transaction = transactionStore.getTransaction(timestamp);
@@ -202,10 +202,8 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         final Transaction cachedTransaction = rowState.transactionCache.get(keyValue.timestamp());
         if (cachedTransaction == null) {
             final Transaction dataTransaction = getTransactionFromFilterCache(keyValue.timestamp());
-            final Object[] visibleResult = checkVisibility(dataTransaction);
-            final TransactionStatus dataStatus = (TransactionStatus) visibleResult[1];
-            if (dataStatus.equals(TransactionStatus.COMMITTED) || dataStatus.equals(TransactionStatus.ROLLED_BACK)
-                    || dataStatus.equals(TransactionStatus.ERROR)) {
+            final VisibleResult visibleResult = checkVisibility(dataTransaction);
+            if (visibleResult.effectiveStatus.isFinished()) {
                 rollForward(dataTransaction);
             }
             return dataTransaction;
@@ -214,11 +212,11 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         }
     }
 
-    private Object[] checkVisibility(Transaction dataTransaction) throws IOException {
+    private VisibleResult checkVisibility(Transaction dataTransaction) throws IOException {
         final long timestamp = dataTransaction.getLongTransactionId();
-        Object[] result = visibleCache.getIfPresent(timestamp);
+        VisibleResult result = visibleCache.getIfPresent(timestamp);
         if (result == null) {
-            result = myTransaction.isVisible(dataTransaction, transactionSource);
+            result = myTransaction.canSee(dataTransaction, transactionSource);
             visibleCache.put(timestamp, result);
         }
         return result;
@@ -229,11 +227,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
      * transaction up in the transaction table again the next time this row is read.
      */
     private void rollForward(Transaction transaction) throws IOException {
-        final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
-        if (rollForwardQueue != null &&
-                (effectiveStatus.equals(TransactionStatus.COMMITTED)
-                        || effectiveStatus.equals(TransactionStatus.ERROR)
-                        || effectiveStatus.equals(TransactionStatus.ROLLED_BACK))) {
+        if (rollForwardQueue != null && transaction.getEffectiveStatus().isFinished()) {
             // TODO: revisit this in light of nested independent transactions
             dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), keyValue.row());
         }
@@ -288,8 +282,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     }
 
     private boolean isUncommittedAsOfStart() throws IOException {
-        final Transaction transaction = loadTransaction();
-        return myTransaction.isUncommittedAsOfStart(transaction, transactionSource);
+        return myTransaction.startedWhileOtherActive(loadTransaction(), transactionSource);
     }
 
     /**
@@ -313,9 +306,8 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     private boolean tombstoneAfterData() throws IOException {
         for (long tombstone : rowState.tombstoneTimestamps) {
             final Transaction tombstoneTransaction = rowState.transactionCache.get(tombstone);
-            final Object[] visibleResult = checkVisibility(tombstoneTransaction);
-            final boolean visible = (Boolean) visibleResult[0];
-            if (visible && (keyValue.timestamp() < tombstone
+            final VisibleResult visibleResult = checkVisibility(tombstoneTransaction);
+            if (visibleResult.visible && (keyValue.timestamp() < tombstone
                     || (keyValue.timestamp() == tombstone && dataStore.isSINull(keyValue.value())))) {
                 return true;
             }
@@ -332,7 +324,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
             return true;
         } else {
             final Transaction transaction = loadTransaction();
-            return (Boolean) checkVisibility(transaction)[0];
+            return checkVisibility(transaction).visible;
         }
     }
 

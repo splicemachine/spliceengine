@@ -8,7 +8,6 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.impl.FilterState;
-import com.splicemachine.si.impl.Hasher;
 import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
@@ -1458,11 +1457,11 @@ public class SITransactorTest extends SIConstants {
         transactor.commit(t2);
         final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2);
         Assert.assertEquals("committing a dependent child sets a local commit timestamp", 2L, (long) transactionStatusA.getCommitTimestampDirect());
-        Assert.assertNull(transactionStatusA.getCommitTimestamp());
+        Assert.assertNull(transactionStatusA.getEffectiveCommitTimestamp());
         transactor.commit(t1);
         final Transaction transactionStatusB = transactorSetup.transactionStore.getTransaction(t2);
         Assert.assertEquals("committing parent of dependent transaction should not change the commit time of the child", 2L, (long) transactionStatusB.getCommitTimestampDirect());
-        Assert.assertNotNull(transactionStatusB.getCommitTimestamp());
+        Assert.assertNotNull(transactionStatusB.getEffectiveCommitTimestamp());
     }
 
     @Test
@@ -3002,7 +3001,7 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("committing parent of independent transaction should not change the commit time of the child",
                 transactionStatusA.getCommitTimestampDirect(), transactionStatusB.getCommitTimestampDirect());
         Assert.assertEquals("committing parent of independent transaction should not change the global commit time of the child",
-                transactionStatusA.getCommitTimestamp(), transactionStatusB.getCommitTimestamp());
+                transactionStatusA.getEffectiveCommitTimestamp(), transactionStatusB.getEffectiveCommitTimestamp());
     }
 
     @Test

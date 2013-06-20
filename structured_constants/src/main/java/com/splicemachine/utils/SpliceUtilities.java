@@ -68,15 +68,6 @@ public class SpliceUtilities extends SIConstants {
             columnDescriptor.setTimeToLive(DEFAULT_TTL);
             desc.addFamily(columnDescriptor);
 
-            HColumnDescriptor snapshot = new HColumnDescriptor(SNAPSHOT_ISOLATION_CHILDREN_FAMILY);
-            snapshot.setMaxVersions(Integer.MAX_VALUE);
-            snapshot.setCompressionType(Compression.Algorithm.valueOf(compression.toUpperCase()));
-            snapshot.setInMemory(DEFAULT_IN_MEMORY);
-            snapshot.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
-            snapshot.setBloomFilterType(StoreFile.BloomType.valueOf(DEFAULT_BLOOMFILTER.toUpperCase()));
-            snapshot.setTimeToLive(DEFAULT_TTL);
-            desc.addFamily(snapshot);
-
             return desc;
 	}
 	

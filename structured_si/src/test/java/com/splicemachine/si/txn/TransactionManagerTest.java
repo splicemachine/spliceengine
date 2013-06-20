@@ -38,8 +38,8 @@ public class TransactionManagerTest {
         TransactionId transactionId = transactor.beginTransaction();
         Assert.assertNotNull(transactionId);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertTrue(transaction.getBeginTimestampDirect() >= 0);
-        Assert.assertTrue(transaction.isEffectivelyActive());
+        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
+        Assert.assertTrue(transaction.getEffectiveStatus().isActive());
     }
 
     @Test
@@ -47,9 +47,9 @@ public class TransactionManagerTest {
         TransactionId transactionId = transactor.beginTransaction();
         transactor.commit(transactionId);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertTrue(transaction.getBeginTimestampDirect() >= 0);
-        Assert.assertTrue(transaction.isCommitted());
-        Assert.assertTrue(transaction.getBeginTimestampDirect() < transaction.getCommitTimestamp());
+        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
+        Assert.assertTrue(transaction.commitTimestamp != null);
+        Assert.assertTrue(transaction.getBeginTimestamp() < transaction.getEffectiveCommitTimestamp());
     }
 
     @Test
@@ -57,9 +57,9 @@ public class TransactionManagerTest {
         TransactionId transactionId = transactor.beginTransaction();
         transactor.rollback(transactionId);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertTrue(transaction.getBeginTimestampDirect() >= 0);
-        Assert.assertTrue(transaction.getStatus().equals(TransactionStatus.ROLLED_BACK));
-        Assert.assertNull(transaction.getCommitTimestamp());
+        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
+        Assert.assertTrue(transaction.status.equals(TransactionStatus.ROLLED_BACK));
+        Assert.assertNull(transaction.getEffectiveCommitTimestamp());
     }
 
 }

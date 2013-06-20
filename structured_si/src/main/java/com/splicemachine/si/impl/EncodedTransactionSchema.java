@@ -1,9 +1,11 @@
 package com.splicemachine.si.impl;
 
+/**
+ * Same as TransactionSchema except the fields are in their encoded form.
+ */
 public class EncodedTransactionSchema<Data> {
     final String tableName;
     final Data siFamily;
-    final Data siChildrenFamily;
     final Data siNull;
 
     final Data idQualifier;
@@ -19,14 +21,13 @@ public class EncodedTransactionSchema<Data> {
     final Data keepAliveQualifier;
     final Data counterQualifier;
 
-    public EncodedTransactionSchema(String tableName, Data siFamily, Data siChildrenFamily, Data siNull,
-                                    Data idQualifier, Data startQualifier, Data parentQualifier, Data dependentQualifier,
-                                    Data allowWritesQualifier, Data readUncommittedQualifier, Data readCommittedQualifier,
-                                    Data keepAliveQualifier, Data statusQualifier, Data commitQualifier,
-                                    Data globalCommitQualifier, Data counterQualifier) {
+    public EncodedTransactionSchema(String tableName, Data siFamily, Data siNull, Data idQualifier, Data startQualifier,
+                                    Data parentQualifier, Data dependentQualifier, Data allowWritesQualifier,
+                                    Data readUncommittedQualifier, Data readCommittedQualifier, Data keepAliveQualifier,
+                                    Data statusQualifier, Data commitQualifier, Data globalCommitQualifier,
+                                    Data counterQualifier) {
         this.tableName = tableName;
         this.siFamily = siFamily;
-        this.siChildrenFamily = siChildrenFamily;
         this.siNull = siNull;
 
         this.idQualifier = idQualifier;

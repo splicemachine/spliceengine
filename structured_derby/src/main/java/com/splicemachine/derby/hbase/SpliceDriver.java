@@ -330,7 +330,6 @@ public class SpliceDriver extends SIConstants {
                         Integer.MAX_VALUE,
                         DEFAULT_BLOOMFILTER));
                 desc.addFamily(new HColumnDescriptor(DEFAULT_FAMILY));
-                desc.addFamily(new HColumnDescriptor(SNAPSHOT_ISOLATION_CHILDREN_FAMILY));
                 admin.createTable(desc);
             }
             return true;

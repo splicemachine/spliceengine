@@ -11,10 +11,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Library of functions used by the SI module when accessing the transaction table. Encapsulates low-level data access
@@ -109,15 +106,6 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
             return writePut(buildStatusUpdatePut(startTransactionTimestamp, newStatus), encodeStatus(expectedStatus));
         } finally {
             Tracer.traceStatus(startTransactionTimestamp, newStatus, false);
-        }
-    }
-
-    public void recordTransactionChild(long transactionId, long childTransactionId) throws IOException {
-        if (transactionId != Transaction.ROOT_ID) {
-            Put put = buildBasePut(transactionId);
-            dataLib.addKeyValueToPut(put, encodedSchema.siChildrenFamily,
-                    dataLib.encode(String.valueOf(childTransactionId)), null, dataLib.encode(true));
-            writePut(put);
         }
     }
 
@@ -297,7 +285,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
             return loadTransactionDirect(transactionId);
         } else {
             Transaction transaction = loadTransactionDirect(transactionId);
-            if (transaction.isCommitting()) {
+            if (transaction.status.isCommitting()) {
                 // It is important to avoid exposing the application to transactions that are in the intermediate
                 // COMMITTING state. So wait here for the commit to complete.
                 try {
@@ -307,7 +295,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
                     // Ignore this
                 }
                 transaction = loadTransactionDirect(transactionId);
-                if (transaction.isCommitting()) {
+                if (transaction.status.isCommitting()) {
                     throw new DoNotRetryIOException("Transaction is committing: " + transactionId);
                 }
             }
@@ -325,7 +313,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
      */
     private Transaction loadTransactionDirect(long transactionId) throws IOException {
         if (transactionId == Transaction.ROOT_ID) {
-            return Transaction.getRootTransaction();
+            return Transaction.rootTransaction;
         }
         Data tupleKey = dataLib.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
         Table transactionTable = reader.open(transactionSchema.tableName);
@@ -345,7 +333,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
     }
 
     private void cacheCompletedTransactions(long transactionId, Transaction result) {
-        if (!result.isEffectivelyActive()) {
+        if (result.getEffectiveStatus().isFinished()) {
             // If a transaction has reached a terminal status, then we can cache it for future reference.
             completedTransactionCache.put(transactionId, result);
             //LOG.warn("cache PUT " + transactionId.getTransactionIdString());
@@ -369,7 +357,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         // TODO: create optimized versions of this code block that only load the data required by the caller, or make the loading lazy
         final Boolean dependent = decodeBoolean(resultTuple, encodedSchema.dependentQualifier);
         final TransactionBehavior transactionBehavior = dependent ?
-                DefaultTransactionBehavior.instance :
+                StubTransactionBehavior.instance :
                 IndependentTransactionBehavior.instance;
 
         return new Transaction(transactionBehavior, transactionId,
@@ -377,7 +365,6 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
                 decodeKeepAlive(resultTuple),
                 decodeParent(resultTuple),
                 dependent,
-                decodeChildren(resultTuple),
                 decodeBoolean(resultTuple, encodedSchema.allowWritesQualifier),
                 decodeBoolean(resultTuple, encodedSchema.readUncommittedQualifier),
                 decodeBoolean(resultTuple, encodedSchema.readCommittedQualifier),
@@ -391,15 +378,6 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         final List<KeyValue> keepAliveValues = dataLib.getResultColumn(resultTuple, encodedSchema.siFamily, encodedSchema.keepAliveQualifier);
         final KeyValue keepAliveValue = keepAliveValues.get(0);
         return dataLib.getKeyValueTimestamp(keepAliveValue);
-    }
-
-    private Set<Long> decodeChildren(Result resultTuple) {
-        final Map<Data, Data> childrenMap = dataLib.getResultFamilyMap(resultTuple, encodedSchema.siChildrenFamily);
-        final Set<Long> children = new HashSet<Long>();
-        for (Data child : childrenMap.keySet()) {
-            children.add(Long.valueOf((String) dataLib.decode(child, String.class)));
-        }
-        return children;
     }
 
     private Transaction decodeParent(Result resultTuple) throws IOException {
@@ -472,24 +450,24 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
     // Pseudo Transaction constructors for transactions that are known to have committed or failed. These return "stub"
     // transaction records that can only be relied on to have correct begin/end timestamps and status.
 
-    public Transaction makeCommittedTransaction(final long timestamp, final long globalCommitTimestamp) {
+    public Transaction makeStubCommittedTransaction(final long timestamp, final long globalCommitTimestamp) {
         // avoid using the cache get() that takes a loader to avoid the object creation cost of the anonymous inner class
         Transaction result = stubCommittedTransactionCache.getIfPresent(timestamp);
         if (result == null) {
-            result = new Transaction(DefaultTransactionBehavior.instance, timestamp,
-                    timestamp, 0, Transaction.getRootTransaction(), true, null, false, false, false,
+            result = new Transaction(StubTransactionBehavior.instance, timestamp,
+                    timestamp, 0, Transaction.rootTransaction, true, false, false, false,
                     TransactionStatus.COMMITTED, globalCommitTimestamp, null, null);
             stubCommittedTransactionCache.put(timestamp, result);
         }
         return result;
     }
 
-    public Transaction makeFailedTransaction(final long timestamp) {
+    public Transaction makeStubFailedTransaction(final long timestamp) {
         // avoid using the cache get() that takes a loader to avoid the object creation cost of the anonymous inner class
         Transaction result = stubFailedTransactionCache.getIfPresent(timestamp);
         if (result == null) {
-            result = new Transaction(DefaultTransactionBehavior.instance, timestamp,
-                    timestamp, 0, Transaction.getRootTransaction(), true, null, false, false, false,
+            result = new Transaction(StubTransactionBehavior.instance, timestamp,
+                    timestamp, 0, Transaction.rootTransaction, true, false, false, false,
                     TransactionStatus.ERROR, null, null, null);
             stubFailedTransactionCache.put(timestamp, result);
         }

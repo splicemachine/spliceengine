@@ -40,7 +40,7 @@ public class TransactionId {
     }
 
     boolean isRootTransaction() {
-        return getId() == Transaction.getRootTransaction().getTransactionId().getId();
+        return getId() == Transaction.rootTransaction.getTransactionId().getId();
     }
 
     @Override

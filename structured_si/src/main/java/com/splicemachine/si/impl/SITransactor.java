@@ -44,18 +44,11 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
 
     private final TransactorListener listener;
 
-    private final TransactionSource relativeTransactionSource;
-    private TransactionSource transactionSource;
+    private final TransactionSource transactionSource;
 
     public SITransactor(TimestampSource timestampSource, SDataLib dataLib, STableWriter dataWriter, DataStore dataStore,
                         final TransactionStore transactionStore, Clock clock, int transactionTimeoutMS,
                         TransactorListener listener) {
-        relativeTransactionSource = new TransactionSource() {
-            @Override
-            public Transaction getTransaction(long timestamp) throws IOException {
-                return transactionStore.getTransaction(timestamp);
-            }
-        };
         transactionSource = new TransactionSource() {
             @Override
             public Transaction getTransaction(long timestamp) throws IOException {
@@ -87,7 +80,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
     @Override
     public TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted)
             throws IOException {
-        return beginChildTransaction(Transaction.getRootTransaction().getTransactionId(), true, allowWrites, readUncommitted,
+        return beginChildTransaction(Transaction.rootTransaction.getTransactionId(), true, allowWrites, readUncommitted,
                 readCommitted);
     }
 
@@ -109,7 +102,6 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
             final long timestamp = assignTransactionId();
             final long beginTimestamp = generateBeginTimestamp(timestamp, params.parent.getId());
             transactionStore.recordNewTransaction(timestamp, params, ACTIVE, beginTimestamp, 0L);
-            transactionStore.recordTransactionChild(params.parent.getId(), timestamp);
             listener.beginTransaction(!parent.isRootTransaction());
             return new TransactionId(timestamp);
         } else {
@@ -203,7 +195,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
         Transaction transaction = transactionStore.getTransaction(transactionId);
         // currently the application above us tries to rollback already committed transactions.
         // This is poor form, but if it happens just silently ignore it.
-        if (transaction.getStatus().equals(ACTIVE)) {
+        if (transaction.status.isActive()) {
             if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ROLLED_BACK)) {
                 throw new IOException("rollback failed");
             }
@@ -442,11 +434,11 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
             if (dataStore.isSINull(commitTimestampValue)) {
                 // Unknown transaction status
                 final Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
-                if (!dataTransaction.isEffectivelyActive()) {
+                if (dataTransaction.getEffectiveStatus().isFinished()) {
                     // Transaction is now in a final state so asynchronously update the data row with the status
                     toRollForward.add(dataTransactionId);
                 }
-                final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction, relativeTransactionSource);
+                final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction);
                 switch (conflictType) {
                     case CHILD:
                         childConflicts.add(dataTransactionId);
@@ -462,7 +454,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
             } else {
                 // Committed transaction
                 final long dataCommitTimestamp = (Long) dataLib.decode(commitTimestampValue, Long.class);
-                if (dataCommitTimestamp > updateTransaction.getBeginTimestamp()) {
+                if (dataCommitTimestamp > updateTransaction.getEffectiveBeginTimestamp()) {
                     throw failOnWriteConflict(updateTransaction);
                 }
             }
@@ -480,7 +472,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
         if (checkTransactionTimeout(dataTransaction)) {
             // Double check for conflict if there was a transaction timeout
             final Transaction dataTransaction2 = transactionStore.getTransaction(dataTransaction.getLongTransactionId());
-            final ConflictType conflictType2 = checkTransactionConflict(updateTransaction, dataTransaction2, transactionSource);
+            final ConflictType conflictType2 = checkTransactionConflict(updateTransaction, dataTransaction2);
             if (conflictType2.equals(ConflictType.NONE)) {
                 return false;
             }
@@ -494,7 +486,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
      */
     private boolean checkTransactionTimeout(Transaction dataTransaction) throws IOException {
         if (!dataTransaction.isRootTransaction()
-                && dataTransaction.isEffectivelyActive()
+                && dataTransaction.getEffectiveStatus().isActive()
                 && ((clock.getTime() - dataTransaction.keepAlive) > transactionTimeoutMS)) {
             fail(dataTransaction.getTransactionId());
             checkTransactionTimeout(dataTransaction.getParent());
@@ -509,13 +501,12 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
     /**
      * Determine if the dataTransaction conflicts with the updateTransaction.
      */
-    private ConflictType checkTransactionConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction,
-                                                  TransactionSource source)
+    private ConflictType checkTransactionConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction)
             throws IOException {
         if (updateTransaction.sameTransaction(dataTransaction)) {
             return ConflictType.NONE;
         } else {
-            return updateTransaction.isConflict(dataTransaction, source);
+            return updateTransaction.isInConflictWith(dataTransaction, transactionSource);
         }
     }
 
@@ -633,12 +624,11 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
     @Override
     public void rollForward(Table table, long transactionId, List<Data> rows) throws IOException {
         final Transaction transaction = transactionStore.getTransaction(transactionId);
-        final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
-        if (effectiveStatus.equals(COMMITTED) || effectiveStatus.equals(ROLLED_BACK) || effectiveStatus.equals(ERROR)) {
+        if (transaction.getEffectiveStatus().isFinished()) {
             for (Data row : rows) {
                 try {
-                    if (effectiveStatus.equals(COMMITTED)) {
-                        dataStore.setCommitTimestamp(table, row, transaction.getLongTransactionId(), transaction.getCommitTimestamp());
+                    if (transaction.getEffectiveStatus().isCommitted()) {
+                        dataStore.setCommitTimestamp(table, row, transaction.getLongTransactionId(), transaction.getEffectiveCommitTimestamp());
                     } else {
                         dataStore.setCommitTimestampToFail(table, row, transaction.getLongTransactionId());
                     }
@@ -669,7 +659,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
      * Throw an exception if the transaction is not active.
      */
     private void ensureTransactionActive(Transaction transaction) throws IOException {
-        if (!transaction.getStatus().equals(ACTIVE)) {
+        if (transaction.status.isFinished()) {
             throw new DoNotRetryIOException("transaction is not ACTIVE: " +
                     transaction.getTransactionId().getTransactionIdString());
         }

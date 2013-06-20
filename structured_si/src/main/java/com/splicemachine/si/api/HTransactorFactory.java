@@ -86,7 +86,6 @@ public class HTransactorFactory extends SIConstants {
             final STableWriter writer = new HTableWriter();
             final TransactionSchema transactionSchema = new TransactionSchema(TRANSACTION_TABLE,
                     DEFAULT_FAMILY,
-                    SNAPSHOT_ISOLATION_CHILDREN_FAMILY,
                     EMPTY_BYTE_ARRAY,
                     TRANSACTION_ID_COLUMN,
                     TRANSACTION_START_TIMESTAMP_COLUMN,

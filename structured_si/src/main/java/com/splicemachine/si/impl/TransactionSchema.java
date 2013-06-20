@@ -8,7 +8,6 @@ import com.splicemachine.si.data.api.SDataLib;
 public class TransactionSchema {
     final String tableName;
     final Object siFamily;
-    final Object siChildrenFamily;
     final Object siNull;
 
     final Object idQualifier;
@@ -24,16 +23,14 @@ public class TransactionSchema {
     final Object keepAliveQualifier;
     final Object counterQualifier;
 
-    public TransactionSchema(String tableName, Object siFamily, Object siChildrenFamily, Object siNull,
-                             Object idQualifier, Object startQualifier, Object parentQualifier, Object dependentQualifier,
-                             Object allowWritesQualifier, Object readUncommittedQualifier, Object readCommittedQualifier,
-                             Object keepAliveQualifier, Object statusQualifier, Object commitQualifier,
-                             Object globalCommitQualifier, Object counterQualifier) {
+    public TransactionSchema(String tableName, Object siFamily, Object siNull, Object idQualifier, Object startQualifier,
+                             Object parentQualifier, Object dependentQualifier, Object allowWritesQualifier,
+                             Object readUncommittedQualifier, Object readCommittedQualifier, Object keepAliveQualifier,
+                             Object statusQualifier, Object commitQualifier, Object globalCommitQualifier,
+                             Object counterQualifier) {
         this.tableName = tableName;
         this.siFamily = siFamily;
-        this.siChildrenFamily = siChildrenFamily;
         this.siNull = siNull;
-
         this.idQualifier = idQualifier;
         this.startQualifier = startQualifier;
         this.parentQualifier = parentQualifier;
@@ -51,7 +48,6 @@ public class TransactionSchema {
     public EncodedTransactionSchema encodedSchema(SDataLib SDataLib) {
         return new EncodedTransactionSchema(tableName,
                 SDataLib.encode(siFamily),
-                SDataLib.encode(siChildrenFamily),
                 SDataLib.encode(siNull),
                 SDataLib.encode(idQualifier),
                 SDataLib.encode(startQualifier),
