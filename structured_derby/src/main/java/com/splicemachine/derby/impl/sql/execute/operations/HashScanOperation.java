@@ -12,6 +12,7 @@ import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowMarshall;
 import com.splicemachine.derby.utils.marshall.RowType;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -233,7 +234,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 
                   DataValueDescriptor[] rowArray = currentRow.getRowArray();
                   for(KeyValue kv:keyValues){
-                      RowType.MAPPED_COLUMNAR.decode(kv,rowArray,baseColumnMap,null);
+                      ((RowMarshall)RowType.MAPPED_COLUMNAR).decode(kv, rowArray, baseColumnMap, null);
                   }
                   SpliceLogUtils.trace(LOG, "getNextRowCore retrieved derby row %s", currentRow);
                   this.setCurrentRow(currentRow);
