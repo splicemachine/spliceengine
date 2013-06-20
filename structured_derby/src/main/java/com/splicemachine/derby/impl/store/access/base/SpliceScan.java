@@ -11,7 +11,7 @@ import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowMarshall;
 import com.splicemachine.derby.utils.marshall.RowType;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -255,7 +255,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
         try{
             if(destRow!=null){
                 for(KeyValue kv:currentResult.raw()){
-                    RowType.COLUMNAR.decode(kv,destRow,rowColumns,null);
+                    ((RowMarshall)RowType.COLUMNAR).decode(kv,destRow,rowColumns,null);
                 }
 		    	this.currentRow = destRow;
             }
@@ -308,7 +308,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						spliceConglomerate.getTransaction().getDataValueFactory(),
 						null, spliceConglomerate.getFormatIds(), spliceConglomerate.getCollationIds());
                 for(KeyValue kv:currentResult.raw()){
-                    RowType.COLUMNAR.decode(kv,fetchedRow,null,null);
+                    ((RowMarshall)RowType.COLUMNAR).decode(kv,fetchedRow,null,null);
                 }
 				hashTable.putRow(false, fetchedRow);
 				this.currentRowLocation = new HBaseRowLocation(currentResult.getRow());
@@ -384,7 +384,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 							template = RowUtil.newRowFromTemplate(row_array[i]);
 						row_array[i] = RowUtil.newRowFromTemplate(template);
                         for(KeyValue kv:results[i].raw()){
-                            RowType.COLUMNAR.decode(kv,row_array[i],null,null);
+                            ((RowMarshall)RowType.COLUMNAR).decode(kv,row_array[i],null,null);
                         }
 //						SpliceUtils.populate(results[i], scanColumnList, row_array[i]);
 					}
