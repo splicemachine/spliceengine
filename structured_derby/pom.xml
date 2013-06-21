@@ -3,8 +3,10 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>Splice_Machine</artifactId>
+<!--	<artifactId>structured_derby</artifactId> -->
 	<packaging>jar</packaging>
 	<name>Splice_Machine</name>
+<!--	<name>structured_derby</name> -->
 	<description>Derby Structure</description>
 	<parent>
 		<artifactId>structured_hbase</artifactId>
