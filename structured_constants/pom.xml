@@ -15,6 +15,13 @@
 			<artifactId>junit</artifactId>
 			<version>${junit.version}</version>
 		</dependency>
+
+        <dependency>
+            <groupId>com.gotometrics.orderly</groupId>
+            <artifactId>orderly</artifactId>
+            <version>0.11</version>
+            <scope>test</scope>
+        </dependency>
 	</dependencies>
 	<build>
         <resources>
