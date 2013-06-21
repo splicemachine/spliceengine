@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.si.api.ParentTransactionManager;
 import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -325,12 +324,6 @@ public class SpliceTransaction implements Transaction {
 
     private TransactionId generateTransactionId(boolean nested, boolean dependent, String parentTransactionID, boolean allowWrites) throws IOException {
         TransactionId result;
-        final String parentPerThreadLocal = ParentTransactionManager.getParentTransactionId();
-        if (!nested && parentPerThreadLocal != null) {
-            parentTransactionID = parentPerThreadLocal;
-            nested = true;
-            dependent = true;
-        }
         if (nested) {
             final TransactionId parentTransaction = transactor.transactionIdFromString(parentTransactionID);
             if (dependent) {
