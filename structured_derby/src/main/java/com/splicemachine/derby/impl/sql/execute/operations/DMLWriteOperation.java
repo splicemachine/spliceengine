@@ -186,17 +186,23 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
             TaskStats stats = taskStats.get(taskId);
             rowsModified+=stats.getWriteStats().getTotalRecords();
         }
-        modifiedProvider.rowsModified+=rowsModified;
+        modifiedProvider.addRowsModified(rowsModified);
         return jobStats;
     }
 
     @Override
-	public void open() throws StandardException {
-		SpliceLogUtils.trace(LOG,"Open");
-		super.open();
-	}
+    public void open() throws StandardException {
+        SpliceLogUtils.trace(LOG,"Open");
+        super.open();
+    }
 
-	@Override
+    @Override
+    public void close() throws StandardException {
+        modifiedProvider.close();
+        super.close();
+    }
+
+    @Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		ExecRow row = ((SpliceOperation)source).getExecRowDefinition();
 		SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
@@ -233,6 +239,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
             this.rowsModified = rowsModified;
         }
 
+        public void addRowsModified(long rowsModified){
+            this.rowsModified += rowsModified;
+        }
+
 		@Override
 		public void open()  {
 			SpliceLogUtils.trace(LOG, "open");
@@ -251,7 +261,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                 try {
                     OperationSink opSink = OperationSink.create(DMLWriteOperation.this, null);
                     TaskStats stats = opSink.sink(getDestinationTable());
-                    rowsModified = (int) stats.getReadStats().getTotalRecords();
+                    modifiedProvider.setRowsModified(stats.getReadStats().getTotalRecords());
                 } catch (IOException ioe) {
                     if(Exceptions.shouldLogStackTrace(ioe)){
                         SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
@@ -266,14 +276,15 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		@Override
 		public void close() {
 			SpliceLogUtils.trace(LOG, "close in modifiedProvider for Delete/Insert/Update");
-			if (!isOpen)
+            if (!isOpen)
 				return;
 			if (isTopResultSet && activation.getLanguageConnectionContext().getRunTimeStatisticsMode() &&
                     !activation.getLanguageConnectionContext().getStatementContext().getStatementWasInvalidated())
 				endExecutionTime = getCurrentTimeMillis();
-			try {
+
+            this.rowsModified = 0;
+            try {
 				source.close();
-				isOpen = false;
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
