@@ -8,6 +8,7 @@ import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -98,11 +99,11 @@ public class SpliceUtils extends SpliceUtilities {
 			Get get = createGet(transID, loc.getBytes());
 			if(validColumns!=null){
 				for(int i= validColumns.anySetBit();i!=-1;i = validColumns.anySetBit(i)){
-					get.addColumn(DEFAULT_FAMILY_BYTES,Bytes.toBytes(i));
+					get.addColumn(DEFAULT_FAMILY_BYTES, Encoding.encode(i));
 				}
 			}else{
 				for(int i=0;i<destRow.length;i++){
-					get.addColumn(DEFAULT_FAMILY_BYTES,Bytes.toBytes(i));
+					get.addColumn(DEFAULT_FAMILY_BYTES, Encoding.encode(i));
 				}
 			}
 

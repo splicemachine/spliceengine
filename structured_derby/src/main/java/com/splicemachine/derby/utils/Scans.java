@@ -7,6 +7,7 @@ import java.util.List;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.ClientTransactor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -270,7 +271,7 @@ public class Scans extends SpliceUtils {
 					byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
 					if(bytes.length>0){
 						masterList.addFilter(new SingleColumnValueFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
-								Bytes.toBytes(pos),
+								Encoding.encode(pos),
 								getCompareOp(compareOp,false),
 								bytes));
 					}
@@ -314,12 +315,12 @@ public class Scans extends SpliceUtils {
 					CompareFilter.CompareOp compareOp = qualifier.negateCompareResult()?
 							CompareFilter.CompareOp.NOT_EQUAL: CompareFilter.CompareOp.EQUAL;
 					list.addFilter(new ColumnNullableFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
-							Bytes.toBytes(qualifier.getColumnId()),
+							Encoding.encode(qualifier.getColumnId()),
 							compareOp));
 				}else{
                     byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
                     SingleColumnValueFilter filter = new SingleColumnValueFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
-							Bytes.toBytes(qualifier.getColumnId()),
+							Encoding.encode(qualifier.getColumnId()),
 							getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),
                             bytes);
 					filter.setFilterIfMissing(true);
@@ -412,7 +413,7 @@ public class Scans extends SpliceUtils {
 			} else {
 			
 				for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
-					scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(i));
+					scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, Encoding.encode(i));
 				}
 			} 
 		}

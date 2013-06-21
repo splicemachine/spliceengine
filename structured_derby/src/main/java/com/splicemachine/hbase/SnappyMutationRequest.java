@@ -78,23 +78,23 @@ public class SnappyMutationRequest  extends MutationRequest {
         }
     }
 
-    public static void main(String... args) throws Exception{
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        SnappyOutputStream sos = new SnappyOutputStream(baos);
-        ObjectOutputStream oos = new ObjectOutputStream(sos);
-        MutationRequest request = new UncompressedMutationRequest(Bytes.toBytes("regionStart"));
-        Put put = new Put(Bytes.toBytes("testRowKey"));
-        put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(1),Bytes.toBytes("hello"));
-        request.addMutation(put);
-
-        oos.writeObject(request);
-        oos.flush();
-
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        SnappyInputStream sis = new SnappyInputStream(bais);
-        ObjectInputStream ois = new ObjectInputStream(sis);
-
-        MutationRequest newReq = (MutationRequest)ois.readObject();
-        System.out.println(newReq);
-    }
+//    public static void main(String... args) throws Exception{
+//        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//        SnappyOutputStream sos = new SnappyOutputStream(baos);
+//        ObjectOutputStream oos = new ObjectOutputStream(sos);
+//        MutationRequest request = new UncompressedMutationRequest(Bytes.toBytes("regionStart"));
+//        Put put = new Put(Bytes.toBytes("testRowKey"));
+//        put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(1),Bytes.toBytes("hello"));
+//        request.addMutation(put);
+//
+//        oos.writeObject(request);
+//        oos.flush();
+//
+//        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+//        SnappyInputStream sis = new SnappyInputStream(bais);
+//        ObjectInputStream ois = new ObjectInputStream(sis);
+//
+//        MutationRequest newReq = (MutationRequest)ois.readObject();
+//        System.out.println(newReq);
+//    }
 }

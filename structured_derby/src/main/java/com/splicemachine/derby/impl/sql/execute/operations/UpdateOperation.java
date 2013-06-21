@@ -7,6 +7,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -193,7 +194,7 @@ public class UpdateOperation extends DMLWriteOperation{
                 SpliceUtils.attachTransaction(put,txnId);
                 NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
                 for(byte[] qualifier:familyMap.keySet()){
-                    int position = Bytes.toInt(qualifier);
+                    int position = Encoding.decodeInt(qualifier);
                     if(finalHeapList.isSet(position + 1)){
                         //put the new value into the position instead of the old one
                         DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[position+1]];

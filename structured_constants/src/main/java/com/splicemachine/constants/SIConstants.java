@@ -1,5 +1,6 @@
 package com.splicemachine.constants;
 
+import com.splicemachine.encoding.Encoding;
 import org.apache.hadoop.hbase.util.Bytes;
 
 /**
@@ -29,25 +30,25 @@ public class SIConstants extends SpliceConstants {
     public static final int TRANSACTION_KEEP_ALIVE_COLUMN = 8;
     public static final int TRANSACTION_COUNTER_COLUMN = 15;
 
-    public static final byte[] TRANSACTION_ID_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_ID_COLUMN);
-    public static final byte[] TRANSACTION_START_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_START_TIMESTAMP_COLUMN);
-    public static final byte[] TRANSACTION_PARENT_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_PARENT_COLUMN);
-    public static final byte[] TRANSACTION_DEPENDENT_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_DEPENDENT_COLUMN);
-    public static final byte[] TRANSACTION_ALLOW_WRITES_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_ALLOW_WRITES_COLUMN);
-    public static final byte[] TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_READ_UNCOMMITTED_COLUMN);
-    public static final byte[] TRANSACTION_READ_COMMITTED_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_READ_COMMITTED_COLUMN);
-    public static final byte[] TRANSACTION_STATUS_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_STATUS_COLUMN);
-    public static final byte[] TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_COMMIT_TIMESTAMP_COLUMN);
-    public static final byte[] TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN);
-    public static final byte[] TRANSACTION_KEEP_ALIVE_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_KEEP_ALIVE_COLUMN);
-    public static final byte[] TRANSACTION_COUNTER_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_COUNTER_COLUMN);
+    public static final byte[] TRANSACTION_ID_COLUMN_BYTES = Encoding.encode(TRANSACTION_ID_COLUMN);
+    public static final byte[] TRANSACTION_START_TIMESTAMP_COLUMN_BYTES = Encoding.encode(TRANSACTION_START_TIMESTAMP_COLUMN);
+    public static final byte[] TRANSACTION_PARENT_COLUMN_BYTES = Encoding.encode(TRANSACTION_PARENT_COLUMN);
+    public static final byte[] TRANSACTION_DEPENDENT_COLUMN_BYTES = Encoding.encode(TRANSACTION_DEPENDENT_COLUMN);
+    public static final byte[] TRANSACTION_ALLOW_WRITES_COLUMN_BYTES = Encoding.encode(TRANSACTION_ALLOW_WRITES_COLUMN);
+    public static final byte[] TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES = Encoding.encode(TRANSACTION_READ_UNCOMMITTED_COLUMN);
+    public static final byte[] TRANSACTION_READ_COMMITTED_COLUMN_BYTES = Encoding.encode(TRANSACTION_READ_COMMITTED_COLUMN);
+    public static final byte[] TRANSACTION_STATUS_COLUMN_BYTES = Encoding.encode(TRANSACTION_STATUS_COLUMN);
+    public static final byte[] TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES = Encoding.encode(TRANSACTION_COMMIT_TIMESTAMP_COLUMN);
+    public static final byte[] TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN_BYTES = Encoding.encode(TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN);
+    public static final byte[] TRANSACTION_KEEP_ALIVE_COLUMN_BYTES = Encoding.encode(TRANSACTION_KEEP_ALIVE_COLUMN);
+    public static final byte[] TRANSACTION_COUNTER_COLUMN_BYTES = Encoding.encode(TRANSACTION_COUNTER_COLUMN);
 
     public static final byte[] TRANSACTION_FAMILY_BYTES = SpliceConstants.DEFAULT_FAMILY.getBytes();
     public static final int SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN = 0;
     public static final int SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN = 1;
     public static final String SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING = SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN + "";
     public static final String SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING = SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN + "";
-    public static final byte[] SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN);
+    public static final byte[] SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES = Encoding.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN);
 
     public static final short SI_NEEDED_VALUE = (short) 0;
     public static final short ONLY_SI_FAMILY_NEEDED_VALUE = (short) 1;

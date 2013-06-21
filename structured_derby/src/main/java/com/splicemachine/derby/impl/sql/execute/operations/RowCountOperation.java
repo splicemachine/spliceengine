@@ -55,11 +55,8 @@ public class RowCountOperation extends SpliceBaseOperation{
     private static final long serialVersionUID = 1l;
     private static final Logger LOG = Logger.getLogger(RowCountOperation.class);
     private static final List<NodeType> nodeTypes = Arrays.asList(NodeType.SCAN);
-    private static final byte[] OFFSET_RESULTS_COL;
 
-    static {
-       OFFSET_RESULTS_COL = Encoding.encode(-1000);
-    }
+    private static final byte[] OFFSET_RESULTS_COL = Encoding.encode(-1000);
 
     private String offsetMethodName;
     private String fetchFirstMethodName;
@@ -183,7 +180,7 @@ public class RowCountOperation extends SpliceBaseOperation{
                 for(Filter filter:filters.getFilters()){
                     if(filter instanceof OffsetFilter){
                         long rowsSkipped = ((OffsetFilter)filter).numSkipped;
-                        spliceScanner.addAdditionalColumnToReturn(OFFSET_RESULTS_COL,Bytes.toBytes(rowsSkipped));
+                        spliceScanner.addAdditionalColumnToReturn(OFFSET_RESULTS_COL, Bytes.toBytes(rowsSkipped));
                         break;
                     }
                 }

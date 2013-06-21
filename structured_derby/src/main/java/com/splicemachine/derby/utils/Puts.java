@@ -2,6 +2,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.encoding.Encoding;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -124,7 +125,7 @@ public class Puts {
 
         try {
             byte[] data = serializer.serialize(descriptor);
-            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(columnNum),data);
+            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, Encoding.encode(columnNum),data);
         } catch (StandardException e) {
             throw new IOException(e);
         }

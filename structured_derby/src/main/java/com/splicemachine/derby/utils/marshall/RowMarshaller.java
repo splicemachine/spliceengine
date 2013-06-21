@@ -5,6 +5,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
@@ -23,11 +24,11 @@ import java.util.List;
  */
 public class RowMarshaller {
     public static final byte[] PACKED_COLUMN_KEY = new byte[]{0x00};
-    private static final byte[] EMPTY_ROW_COLUMN = Bytes.toBytes(-1000);
+    private static final byte[] EMPTY_ROW_COLUMN = Encoding.encode(-101);
 
     private static KeyValue columnarConvert(DataValueDescriptor dvd, byte[] rowKey, int pos) throws StandardException {
         if(dvd!=null&&!dvd.isNull()){
-            byte[] qual = Bytes.toBytes(pos);
+            byte[] qual =Encoding.encode(pos);
             return new KeyValue(rowKey,SpliceConstants.DEFAULT_FAMILY_BYTES,qual, DerbyBytesUtil.generateBytes(dvd));
         }
         return null;
@@ -79,7 +80,7 @@ public class RowMarshaller {
         private KeyValue convert(DataValueDescriptor dvd, byte[] rowKey, int pos) throws StandardException{
             KeyValue kv = columnarConvert(dvd, rowKey, pos);
             if(kv==null&&dvd!=null)
-                kv = new KeyValue(rowKey,SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(pos),new byte[]{});
+                kv = new KeyValue(rowKey,SpliceConstants.DEFAULT_FAMILY_BYTES,Encoding.encode(pos),new byte[]{});
             return kv;
         }
 
@@ -117,7 +118,7 @@ public class RowMarshaller {
             //ignores rowDecoder, which is probably null anyway, and just picks it from the qualifier
             if(Bytes.compareTo(value.getFamily(), SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)==0)
                 return;
-            int pos = Bytes.toInt(value.getQualifier());
+            int pos = Encoding.decodeInt(value.getQualifier());
             if(pos<0) return; //skip negative columns
 
             byte[] data = value.getValue();
@@ -185,7 +186,7 @@ public class RowMarshaller {
             //ignores rowDecoder, which is probably null anyway, and just picks it from the qualifier
             if(Bytes.compareTo(value.getFamily(), SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)==0)
                 return;
-            int pos = Bytes.toInt(value.getQualifier());
+            int pos = Encoding.decodeInt(value.getQualifier());
             if(pos<0) return; //skip negative columns
 
             byte[] data = value.getValue();

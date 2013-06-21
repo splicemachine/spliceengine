@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.encoding.Encoding;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -10,7 +11,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class JoinUtils {
 	private static Logger LOG = Logger.getLogger(JoinUtils.class);
 	public static enum JoinSide {RIGHT,LEFT};
-	public static final byte[] JOIN_SIDE_COLUMN = Bytes.toBytes(-1);
+	public static final byte[] JOIN_SIDE_COLUMN = Encoding.encode(-1);
 	
 	public static ExecRow getMergedRow(ExecRow leftRow, ExecRow rightRow, boolean wasRightOuterJoin,int rightNumCols, int leftNumCols, ExecRow mergedRow) {
 //		SpliceLogUtils.trace(LOG, "getMergedRow with leftRow %s,right row %s, rightOuterJoin?%b" , leftRow , rightRow,wasRightOuterJoin);

@@ -9,6 +9,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -74,7 +75,7 @@ public class IndexManager {
 
         mainColPos = new byte[baseColumnMap.length][];
         for(int i=0;i<baseColumnMap.length;i++){
-            mainColPos[i] = Bytes.toBytes(baseColumnMap[i]-1);
+            mainColPos[i] = Encoding.encode(baseColumnMap[i] - 1);
         }
     }
 
@@ -175,11 +176,11 @@ public class IndexManager {
             }
             Put indexPut = SpliceUtils.createPut(finalIndexRow, transactionId);
             for(int dataPos=0;dataPos<indexRowData.length;dataPos++){
-                byte[] putPos = Bytes.toBytes(dataPos);
+                byte[] putPos = Encoding.encode(dataPos);
                 indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
             }
 
-            indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(rowData.size()),mainRow);
+            indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Encoding.encode(rowData.size()),mainRow);
             indexPuts.add(indexPut);
         }
 
@@ -317,12 +318,12 @@ public class IndexManager {
 
         Put indexPut = SpliceUtils.createPut(indexRowKey, mainPut);
         for(int i=0;i<indexColsToMainColMap.length;i++){
-            byte[] indexPos = Bytes.toBytes(i);
+            byte[] indexPos = Encoding.encode(i);
             indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,indexPos,rowKeyBuilder[i]);
         }
 
         //add the put rowKey as the row location at the end of the row
-        byte[] locPos = Bytes.toBytes(indexColsToMainColMap.length);
+        byte[] locPos = Encoding.encode(indexColsToMainColMap.length);
 
         indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,locPos,put.getRow());
 

@@ -4,6 +4,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.batch.WriteContext;
 import org.apache.hadoop.hbase.client.Get;
@@ -62,11 +63,11 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         try {
             Put indexPut = SpliceUtils.createPut(indexRowKey, put);
             for(int i=0;i<indexColsToMainColMap.length;i++){
-                byte[] indexPos = Bytes.toBytes(i);
+                byte[] indexPos = Encoding.encode(i);
                 indexPut.add(DEFAULT_FAMILY_BYTES,indexPos,rowKeyBuilder[i]);
             }
 
-            byte[] locPos = Bytes.toBytes(indexColsToMainColMap.length);
+            byte[] locPos = Encoding.encode(indexColsToMainColMap.length);
             indexPut.add(DEFAULT_FAMILY_BYTES, locPos, put.getRow());
 
             indexToMainMutationMap.put(indexPut,put);

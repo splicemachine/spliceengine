@@ -47,7 +47,7 @@ public class Sequence {
     private final long incrementSteps;
     private final Lock updateLock = new ReentrantLock();
 
-    private static final byte[] autoIncrementValueQualifier = Bytes.toBytes(7);
+    private static final byte[] autoIncrementValueQualifier = Encoding.encode(7);
 
     public Sequence(HTableInterface sysColumns,
                     long blockAllocationSize,byte[] sysColumnsRow,

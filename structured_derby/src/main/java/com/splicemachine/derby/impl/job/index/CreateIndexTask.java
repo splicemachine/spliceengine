@@ -8,6 +8,7 @@ import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.MutationRequest;
 import com.splicemachine.hbase.MutationResponse;
@@ -108,7 +109,7 @@ public class CreateIndexTask extends ZkTask {
         regionScan.setStopRow(region.getEndKey());
 
         for(int mainTablePos:indexColsToBaseColMap){
-            regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(mainTablePos-1));
+            regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, Encoding.encode(mainTablePos - 1));
         }
 
         try{
@@ -186,7 +187,7 @@ public class CreateIndexTask extends ZkTask {
             byte[][] indexRowData = getDataArray();
             int rowSize=0;
             for(KeyValue kv:rowData){
-                int colPos = Bytes.toInt(kv.getQualifier());
+                int colPos = Encoding.decodeInt(kv.getQualifier());
                 for(int indexPos=0;indexPos<indexColsToMainColMap.length;indexPos++){
                     if(colPos == indexColsToMainColMap[indexPos]){
                         byte[] val = kv.getValue();
@@ -210,12 +211,12 @@ public class CreateIndexTask extends ZkTask {
             }
             Put indexPut = SpliceUtils.createPut(finalIndexRow, transactionId);
             for(int dataPos=0;dataPos<indexRowData.length;dataPos++){
-                byte[] putPos = Bytes.toBytes(dataPos);
+                byte[] putPos = Encoding.encode(dataPos);
                 indexPut.add(DEFAULT_FAMILY_BYTES,putPos,indexRowData[dataPos]);
             }
 
             indexPut.add(DEFAULT_FAMILY_BYTES,
-            		Bytes.toBytes(rowData.size()),mainRow);
+            		Encoding.encode(rowData.size()),mainRow);
             indexPuts.add(indexPut);
         }
 

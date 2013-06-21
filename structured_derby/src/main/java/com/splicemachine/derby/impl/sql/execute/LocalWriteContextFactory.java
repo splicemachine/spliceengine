@@ -11,6 +11,7 @@ import com.splicemachine.derby.impl.sql.execute.index.IndexUpsertWriteHandler;
 import com.splicemachine.derby.impl.sql.execute.index.UniqueIndexDeleteWriteHandler;
 import com.splicemachine.derby.impl.sql.execute.index.UniqueIndexUpsertWriteHandler;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.batch.PipelineWriteContext;
 import com.splicemachine.hbase.batch.RegionWriteHandler;
 import com.splicemachine.hbase.batch.WriteContext;
@@ -394,7 +395,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
             mainColPos = new byte[baseIndexedColumns.length][];
             for(int i=0;i<baseIndexedColumns.length;i++){
-                mainColPos[i] = Bytes.toBytes(baseIndexedColumns[i]-1);
+                mainColPos[i] = Encoding.encode(baseIndexedColumns[i] - 1);
             }
         }
 
