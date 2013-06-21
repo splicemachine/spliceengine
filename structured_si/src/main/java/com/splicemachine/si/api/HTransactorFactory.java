@@ -38,6 +38,11 @@ import org.apache.hadoop.hbase.client.Scan;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Used to construct a transactor object that is bound to the HBase types and that provides SI functionality. This is
+ * the main entry point for applications using SI. Keeps track of a global, static instance that is shared by all callers.
+ * Also defines the various configuration options and plugins for the transactor instance.
+ */
 public class HTransactorFactory extends SIConstants {
     private final static Cache<Long, ImmutableTransaction> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
     private final static Cache<Long, ActiveTransactionCacheEntry> activeCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();

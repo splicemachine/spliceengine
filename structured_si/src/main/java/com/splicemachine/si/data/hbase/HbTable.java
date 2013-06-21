@@ -12,6 +12,9 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * Wrapper that makes an HBase table comply with an interface that allows regions and tables to be used in a uniform manner.
+ */
 public class HbTable implements IHTable {
     final HTableInterface table;
 

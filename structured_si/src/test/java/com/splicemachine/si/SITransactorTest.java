@@ -2515,8 +2515,7 @@ public class SITransactorTest extends SIConstants {
 
         if (useSimple) {
             final LStore store = (LStore) storeSetup.getStore();
-            final SICompactionState compactionState = transactor.newCompactionState();
-            store.compact(compactionState, storeSetup.getPersonTableName());
+            store.compact(transactor, storeSetup.getPersonTableName());
         } else {
             admin.majorCompact(storeSetup.getPersonTableName());
             Assert.assertTrue(latch.await(2, TimeUnit.SECONDS));

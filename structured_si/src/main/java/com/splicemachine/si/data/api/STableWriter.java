@@ -4,7 +4,8 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Means of writing to Tables. To be used in conjunction with STableReader.
+ * Means of writing to Tables. To be used in conjunction with STableReader and SDataLib. This is an abstraction over the
+ * HBase write operations.
  */
 public interface STableWriter<Table, Put, Delete, Data, Lock> {
     void write(Table Table, Put put) throws IOException;

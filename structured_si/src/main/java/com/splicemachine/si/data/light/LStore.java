@@ -1,6 +1,7 @@
 package com.splicemachine.si.data.light;
 
 import com.splicemachine.si.api.Clock;
+import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.SICompactionState;
@@ -333,12 +334,13 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet>,
         }
     }
 
-    public void compact(SICompactionState compactionState, String tableName) throws IOException {
+    public void compact(Transactor transactor, String tableName) throws IOException {
         final List<LTuple> rows = relations.get(tableName);
         final List<LTuple> newRows = new ArrayList<LTuple>(rows.size());
+        final SICompactionState compactionState = transactor.newCompactionState();
         for (LTuple row : rows) {
             final ArrayList<LKeyValue> mutatedValues = new ArrayList<LKeyValue>();
-            compactionState.mutate(row.values, mutatedValues);
+            transactor.compact(compactionState, row.values, mutatedValues);
             LTuple newRow = new LTuple(row.key, mutatedValues, row.attributes);
             newRows.add(newRow);
         }

@@ -646,7 +646,11 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
         return new SICompactionState(dataLib, dataStore, transactionStore);
     }
 
-    // Helpers
+    @Override
+    public void compact(SICompactionState compactionState, List<KeyValue> rawList, List<KeyValue> results) throws IOException {
+        compactionState.mutate(rawList, results);
+    }
+// Helpers
 
     /**
      * Is this operation supposed to be handled by "snapshot isolation".

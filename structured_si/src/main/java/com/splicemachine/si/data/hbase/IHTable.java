@@ -10,6 +10,9 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * Abstraction that makes HBase tables and regions have a uniform interface.
+ */
 public interface IHTable {
     void close() throws IOException;
     Result get(Get get) throws IOException;
