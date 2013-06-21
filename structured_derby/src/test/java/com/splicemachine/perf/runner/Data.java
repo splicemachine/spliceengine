@@ -50,14 +50,16 @@ public class Data {
 
     public void createIndices() throws Exception {
         SpliceLogUtils.info(LOG,"Creating indices");
-        Connection conn = connectionPool.acquire();
-        try{
-            for(Index index:indices){
-                index.create(conn);
+        if(indices!=null){
+            Connection conn = connectionPool.acquire();
+            try{
+                for(Index index:indices){
+                    index.create(conn);
+                }
+                conn.commit();
+            }finally{
+                conn.close();
             }
-            conn.commit();
-        }finally{
-            conn.close();
         }
     }
 

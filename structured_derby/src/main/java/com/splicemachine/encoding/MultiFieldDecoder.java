@@ -23,7 +23,7 @@ public class MultiFieldDecoder {
 
     public MultiFieldDecoder set(byte[] newData){
         this.data = newData;
-        currentOffset = -1;
+        currentOffset = 0;
         return this;
     }
 
@@ -292,7 +292,7 @@ public class MultiFieldDecoder {
 
     public void skip() {
         //read out raw bytes, and throw them away
-        if(currentOffset>=0&&currentOffset==0x00){
+        if(currentOffset>=0&&data[currentOffset]==0x00){
             currentOffset++;
             return;
         }

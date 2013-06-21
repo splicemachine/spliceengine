@@ -16,10 +16,7 @@ import com.splicemachine.derby.impl.storage.AbstractScanProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.BetterHTablePool;
 import com.splicemachine.job.JobStats;
@@ -235,7 +232,7 @@ public class RowCountOperation extends SpliceBaseOperation{
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow row = getExecRowDefinition();
-        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE,RowType.COLUMNAR);
+        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE,RowMarshaller.columnar());
     }
 
     @Override
@@ -367,7 +364,7 @@ public class RowCountOperation extends SpliceBaseOperation{
                                             int[] baseColumnMap,
                                             byte[] tableName){
             RowDecoder rowDecoder = RowDecoder.create(rowTemplate,
-                    null,null,null, RowType.MAPPED_COLUMNAR,baseColumnMap,false);
+                    null,null,null, RowMarshaller.mappedColumnar(),baseColumnMap,false);
 
             return new OffsetScanRowProvider(rowDecoder,fullScan,totalOffset,tableName);
         }

@@ -7,14 +7,11 @@ import com.splicemachine.derby.impl.sql.execute.ParallelScan;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowMarshall;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.BackingStoreHashtable;
@@ -255,7 +252,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
         try{
             if(destRow!=null){
                 for(KeyValue kv:currentResult.raw()){
-                    ((RowMarshall)RowType.COLUMNAR).decode(kv,destRow,rowColumns,null);
+                    RowMarshaller.columnar().decode(kv, destRow, rowColumns, null);
                 }
 		    	this.currentRow = destRow;
             }
@@ -308,7 +305,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						spliceConglomerate.getTransaction().getDataValueFactory(),
 						null, spliceConglomerate.getFormatIds(), spliceConglomerate.getCollationIds());
                 for(KeyValue kv:currentResult.raw()){
-                    ((RowMarshall)RowType.COLUMNAR).decode(kv,fetchedRow,null,null);
+                    RowMarshaller.columnar().decode(kv, fetchedRow, null, null);
                 }
 				hashTable.putRow(false, fetchedRow);
 				this.currentRowLocation = new HBaseRowLocation(currentResult.getRow());
@@ -384,7 +381,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 							template = RowUtil.newRowFromTemplate(row_array[i]);
 						row_array[i] = RowUtil.newRowFromTemplate(template);
                         for(KeyValue kv:results[i].raw()){
-                            ((RowMarshall)RowType.COLUMNAR).decode(kv,row_array[i],null,null);
+                            RowMarshaller.columnar().decode(kv, row_array[i], null, null);
                         }
 //						SpliceUtils.populate(results[i], scanColumnList, row_array[i]);
 					}
@@ -392,8 +389,9 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				this.currentRowLocation = new HBaseRowLocation(results[results.length-1].getRow());
 				this.currentRow = row_array[results.length-1];
 				this.currentResult = results[results.length -1];
+                return results.length;
 			}
-			return results.length;
+            return 0;
 		} catch (Exception e) {
 			LOG.error(e.getMessage(), e);
 			throw StandardException.newException("Error during fetchNextGroup " + e);
@@ -403,7 +401,12 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	public boolean replace(DataValueDescriptor[] row, FormatableBitSet validColumns) throws StandardException {
 		SpliceLogUtils.trace(LOG, "replace values for these valid Columns %s",validColumns);
 		try {
-			table.put(Puts.buildInsert(currentRowLocation.getBytes(), row, validColumns, transID));
+            int[] validCols = SpliceUtils.bitSetToMap(validColumns);
+            Put put = SpliceUtils.createPut(currentRowLocation.getBytes(),transID);
+            RowMarshaller.columnar().encodeRow(row, validCols, put, null);
+            table.put(put);
+
+//			table.put(Puts.buildInsert(currentRowLocation.getBytes(), row, validColumns, transID));
 			return true;
 		} catch (Exception e) {
 			throw StandardException.newException("Error during replace " + e);

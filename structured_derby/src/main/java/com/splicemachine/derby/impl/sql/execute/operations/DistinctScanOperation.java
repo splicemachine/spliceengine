@@ -170,7 +170,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                 if(values.isEmpty()) continue;
                 DataValueDescriptor[] rowArray = currentRow.getRowArray();
                 for(KeyValue kv:values){
-                    ((RowMarshall)RowType.MAPPED_COLUMNAR).decode(kv, rowArray, baseColumnMap, null);
+                    RowMarshaller.mappedColumnar().decode(kv, rowArray, baseColumnMap, null);
                 }
 //                SpliceUtils.populate(values,currentRow.getRowArray(),accessedCols,baseColumnMap,serializer);
                 ExecRow row = currentRow.getClone();
@@ -269,7 +269,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
             public int getFieldCount(int[] keyColumns) {
                 return 1;
             }
-        }, RowType.COLUMNAR);
+        }, RowMarshaller.columnar());
     }
 
     @Override

@@ -81,112 +81,39 @@ public class Puts {
 	 * @return a Put representing the row to insert
 	 * @throws IOException if {@code row} or {@code extraColumns} cannot be serialized.
 	 */
-	public static Put buildInsert(DataValueDescriptor[] row, String transactionID,
-																DataValueDescriptor...extraColumns) throws IOException{
-		return buildInsert(SpliceUtils.getUniqueKey(),row,null,transactionID,Serializer.get(),extraColumns);
-	}
+//	public static Put buildInsert(DataValueDescriptor[] row, String transactionID,
+//																DataValueDescriptor...extraColumns) throws IOException{
+//		return buildInsert(SpliceUtils.getUniqueKey(),row,null,transactionID,Serializer.get(),extraColumns);
+//	}
 
-    /**
-     * Constructs a transaction-aware insert for pushing data into HBase correctly, when no specific row
-     * key is required.
-     *
-     * This is useful for when it is necessary to insert a row into HBase, but not particular row key format is
-     * needed. In this case, this method will generate a random row key, and insert the row under that row key.
-     *
-     * @param row the row data to store
-     * @param transactionID the id for the associated transaction
-     * @param extraColumns any additional metadata which needs to be tagged to this row.
-     * @return a Put representing the row to insert
-     * @throws IOException if {@code row} or {@code extraColumns} cannot be serialized.
-     */
-    public static Put buildInsert(DataValueDescriptor[] row, String transactionID, Serializer serializer,
-                                  DataValueDescriptor...extraColumns) throws IOException{
-        return buildInsert(SpliceUtils.getUniqueKey(), row, null, transactionID, serializer, extraColumns);
-    }
 
-	/**
-	 * Constructs a transaction-aware insert for pushing data into HBase correctly.
-	 *
-	 * This method will build an HBase row using the specified row key, and with columns constructed from the
-	 * specified DataValueDescriptor entities (using the {@code validColumns} bitset to determine which columns should
-	 * be inserted at any specific time.
-	 *
-	 * In addition, this method supports the adding of <em>additional columns</em>, which are not necessarily part
-	 * of the row data itself, but can be used for tagging additional metadata to the row (e.g. whether the
-	 * row represents the left or the right side of a join).
-	 *
-	 * @param rowKey the row key to use for this row
-	 * @param row the data to store
-	 * @param validColumns a bitset marking which columns to insert from the row
-	 * @param transactionID the id of the associated transaction
-	 * @param extraColumns any additionaly metadata that needs to be tagged to this row.
-	 * @return a Put representing the row to insert.
-	 * @throws IOException if unable to serialize any of {@code row} or {@code extraColumns} into a byte[]
-	 */
-	public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row, FormatableBitSet validColumns,
-                                  String transactionID, DataValueDescriptor...extraColumns) throws IOException{
-        return buildInsert(rowKey, row, validColumns, transactionID, Serializer.get(), extraColumns);
-	}
-
-    public static Put buildTempTableInsert(byte[] rowKey, DataValueDescriptor[] row,
-                                           FormatableBitSet validColumns, Serializer serializer) throws IOException {
-        return buildInsert(rowKey,row,validColumns,SpliceUtils.NA_TRANSACTION_ID,serializer);
-    }
-
-    public static Put buildInsertWithSerializer(byte[] rowKey, DataValueDescriptor[] row,
-                                                FormatableBitSet validColumns, String transactionId, Serializer serializer) throws IOException {
-        return buildInsert(rowKey,row,validColumns,transactionId,serializer);
-    }
-
-    public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row, FormatableBitSet validColumns,
-                                  String transactionID, Serializer serializer, DataValueDescriptor...extraColumns)
-            throws IOException{
-        Put put = SpliceUtils.createPut(rowKey, transactionID);
-
-        if (validColumns!=null) {
-            for(int i=validColumns.anySetBit(); i!=-1; i=validColumns.anySetBit(i)){
-                addColumn(put,row[i],i,serializer);
-            }
-        } else {
-           for(int i=0; i<row.length; i++){
-               addColumn(put,row[i],i,serializer);
-           }
-        }
-
-        for (int pos=0; pos<extraColumns.length; pos++){
-            addColumn(put, extraColumns[pos], -(pos+1), serializer);
-        }
-
-        SpliceUtils.handleNullsInUpdate(put, row, validColumns);
-
-        if(put.size()==0) {
-            // Ignore this case. It will be handled by SI since SI will always add the SI column to the put.
-        }
-
-        return put;
-    }
-
-    /**
-     * Constructs a transaction-aware insert for direct HBase actions.
-     *
-     * This is a convenience wrapper method around
-     * {@code buildUpdate(org.apache.derby.iapi.types.RowLocation,
-     * 										 org.apache.derby.iapi.types.DataValueDescriptor[],
-     * 										 org.apache.derby.iapi.services.io.FormatableBitSet, byte[])}
-     * for when no bitset is available, or the entire row is desired.
-     *
-     * @param rowKey the row key to use for this row
-     * @param row the data to store
-     * @param transactionID the id of the associated transaction
-     * @param extraColumns additional metadata to be tagged to this row.
-     * @return a Put representing the row to insert
-     * @throws IOException if unable to serializer any of {@code row} into a byte[]
-     */
-    public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row,
-                                  String transactionID,Serializer serializer,DataValueDescriptor... extraColumns) throws IOException{
-        return buildInsert(rowKey, row, null, transactionID, serializer, extraColumns);
-    }
-
+//    public static Put buildInsert(byte[] rowKey, DataValueDescriptor[] row, FormatableBitSet validColumns,
+//                                  String transactionID, Serializer serializer, DataValueDescriptor...extraColumns)
+//            throws IOException{
+//        Put put = SpliceUtils.createPut(rowKey, transactionID);
+//
+//        if (validColumns!=null) {
+//            for(int i=validColumns.anySetBit(); i!=-1; i=validColumns.anySetBit(i)){
+//                addColumn(put,row[i],i,serializer);
+//            }
+//        } else {
+//           for(int i=0; i<row.length; i++){
+//               addColumn(put,row[i],i,serializer);
+//           }
+//        }
+//
+//        for (int pos=0; pos<extraColumns.length; pos++){
+//            addColumn(put, extraColumns[pos], -(pos+1), serializer);
+//        }
+//
+//        SpliceUtils.handleNullsInUpdate(put, row, validColumns);
+//
+//        if(put.size()==0) {
+//            // Ignore this case. It will be handled by SI since SI will always add the SI column to the put.
+//        }
+//
+//        return put;
+//    }
 
 	/* ****************************************************************************************************/
 	/*private helper methods*/

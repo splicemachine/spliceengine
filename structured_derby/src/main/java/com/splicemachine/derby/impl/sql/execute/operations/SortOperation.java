@@ -15,10 +15,7 @@ import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -238,7 +235,10 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow def = getExecRowDefinition();
         KeyType keyType = distinct? KeyType.FIXED_PREFIX: KeyType.FIXED_PREFIX_UNIQUE_POSTFIX;
-        return RowEncoder.create(def.nColumns(), keyColumns, descColumns, DerbyBytesUtil.generateBytes(sequence[0]), keyType, RowType.COLUMNAR);
+        return RowEncoder.create(def.nColumns(), keyColumns,
+                descColumns,
+                DerbyBytesUtil.generateBytes(sequence[0]),
+                keyType, RowMarshaller.columnar());
     }
 
     @Override

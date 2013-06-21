@@ -58,7 +58,7 @@ public class RowDecoder {
             keyDecoder = MultiFieldDecoder.create();
         }
 
-        if(rowType!=RowType.COLUMNAR){
+        if(!rowType.isColumnar()){
             //our data is in a single column
             rowDecoder = MultiFieldDecoder.create();
         }

@@ -6,40 +6,29 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.List;
-import java.util.Map;
+
+import java.io.*;
 
 /**
  * Utility methods
@@ -264,7 +253,8 @@ public class SpliceUtils extends SpliceUtilities {
 				return false;
 			}
 
-			Put put = Puts.buildInsert(loc.getBytes(),row,validColumns,transID);
+            Put put = createPut(loc.getBytes(),transID);
+            RowMarshaller.columnar().encodeRow(row, bitSetToMap(validColumns), put, null);
 			//FIXME: checkAndPut can only do one column at a time, too expensive
 			htable.put(put);
 			return true;
@@ -367,5 +357,15 @@ public class SpliceUtils extends SpliceUtilities {
             } catch (Exception e) {
                 SpliceLogUtils.logAndThrow(LOG,"addProperty Exception",Exceptions.parseException(e));
             }
+    }
+
+    public static int[] bitSetToMap(FormatableBitSet bitSet){
+        if(bitSet==null) return null;
+        int[] validCols = new int[bitSet.getNumBitsSet()];
+        int pos=0;
+        for(int i=bitSet.anySetBit();i!=-1;i=bitSet.anySetBit(i)){
+            validCols[pos] = i;
+        }
+        return validCols;
     }
 }

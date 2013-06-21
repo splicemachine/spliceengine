@@ -126,7 +126,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         if(regionScanner==null){
             isTemp = true;
         }else{
-            RowEncoder scanEncoder = RowEncoder.create(sourceExecIndexRow.nColumns(),keyColumns,null,keyEncoder.getEncodedBytes(0),KeyType.FIXED_PREFIX,RowType.COLUMNAR);
+            RowEncoder scanEncoder = RowEncoder.create(sourceExecIndexRow.nColumns(),keyColumns,null,
+                    keyEncoder.getEncodedBytes(0),
+                    KeyType.FIXED_PREFIX,
+                    RowMarshaller.columnar());
             rowProvider = new SimpleRegionAwareRowProvider(
                     SpliceUtils.NA_TRANSACTION_ID,
                     context.getRegion(),
@@ -151,7 +154,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         SuccessFilter filter = new SuccessFilter(failedTasks,false);
         reduceScan.setFilter(filter);
         SpliceUtils.setInstructions(reduceScan, activation, top);
-//        RowEncoder scanEncoder = RowEncoder.create(decoder.nColumns(),keyColumns,null,keyEncoder.getEncodedBytes(0),KeyType.FIXED_PREFIX,RowType.COLUMNAR);
         return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
     }
 
@@ -193,7 +195,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             public int getFieldCount(int[] keyColumns) {
                 return 1;
             }
-        }, RowType.COLUMNAR);
+        }, RowMarshaller.columnar());
     }
 
     @Override

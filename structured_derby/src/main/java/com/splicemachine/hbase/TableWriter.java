@@ -724,7 +724,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         @Override
         public Set<HRegionInfo> load(final Integer key) throws Exception {
             SpliceLogUtils.trace(CACHE_LOG,"Loading regions for key %d",key);
-            final Set<HRegionInfo> regionInfos = new CopyOnWriteArraySet<HRegionInfo>();
+            final Set<HRegionInfo> regionInfos = new ConcurrentSkipListSet<HRegionInfo>();
             final MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
                 @Override
                 public boolean processRow(Result rowResult) throws IOException {

@@ -3,9 +3,7 @@ package com.splicemachine.derby.impl.load;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
@@ -88,7 +86,7 @@ public abstract class AbstractImportTask extends ZkTask {
             CallBuffer<Mutation> writeBuffer = getCallBuffer();
 
             KeyType keyType = pkCols==null?KeyType.SALTED: KeyType.BARE;
-            RowType rowType = RowType.DENSE_COLUMNAR;
+            RowMarshall rowType = RowMarshaller.denseColumnar();
 
             int[] keyColumns;
             int pos =0;

@@ -6,10 +6,7 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.*;
-import com.splicemachine.derby.utils.marshall.KeyMarshall;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -125,7 +122,10 @@ public class UpdateOperation extends DMLWriteOperation{
         }
         final FormatableBitSet finalHeapList = heapList;
 
-        return new UpdateRowEncoder(finalPkColumns,null,null,null, KeyType.BARE,RowType.COLUMNAR,modifiedPks,finalHeapList,colPositionMap);
+        return new UpdateRowEncoder(finalPkColumns,null,null,null,
+                KeyType.BARE,
+                RowMarshaller.columnar(),
+                modifiedPks,finalHeapList,colPositionMap);
     }
 
     @Override
@@ -145,7 +145,7 @@ public class UpdateOperation extends DMLWriteOperation{
                                    int[] rowColumns,
                                    byte[] keyPrefix,
                                    KeyMarshall keyType,
-                                   RowType rowType,
+                                   RowMarshall rowType,
                                    boolean modifiedPks,
                                    FormatableBitSet finalHeapList,
                                    int[] colPositionMap) {

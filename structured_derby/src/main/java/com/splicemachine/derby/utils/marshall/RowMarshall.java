@@ -8,6 +8,8 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
 
+import java.util.List;
+
 /**
  * @author Scott Fines
  *         Created on: 6/12/13
@@ -25,8 +27,16 @@ public interface RowMarshall {
                           Put put,
                           MultiFieldEncoder rowEncoder) throws StandardException;
 
+    public void encodeKeyValues(DataValueDescriptor[] row,
+                                byte[] rowKey,
+                                int[] rowColumns,
+                                MultiFieldEncoder rowEncoder,
+                                List<KeyValue> kvResults) throws StandardException;
+
     void decode(KeyValue value,
                 DataValueDescriptor[] fields,
                 int[] reversedKeyColumns,
                 MultiFieldDecoder rowDecoder) throws StandardException;
+
+    boolean isColumnar();
 }

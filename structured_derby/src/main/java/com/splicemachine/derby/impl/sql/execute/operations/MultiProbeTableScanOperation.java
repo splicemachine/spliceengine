@@ -10,10 +10,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayUtil;
@@ -474,7 +471,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow row = getExecRowDefinition();
-        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE, RowType.COLUMNAR);
+        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE, RowMarshaller.columnar());
     }
 
     //    /**

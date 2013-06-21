@@ -7,13 +7,14 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowMarshall;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -29,15 +30,17 @@ import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
 public class HashScanOperation extends ScanOperation implements SinkingOperation {
 	private static Logger LOG = Logger.getLogger(HashScanOperation.class);
@@ -234,7 +237,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 
                   DataValueDescriptor[] rowArray = currentRow.getRowArray();
                   for(KeyValue kv:keyValues){
-                      ((RowMarshall)RowType.MAPPED_COLUMNAR).decode(kv, rowArray, baseColumnMap, null);
+                      RowMarshaller.mappedColumnar().decode(kv, rowArray, baseColumnMap, null);
                   }
                   SpliceLogUtils.trace(LOG, "getNextRowCore retrieved derby row %s", currentRow);
                   this.setCurrentRow(currentRow);

@@ -10,10 +10,7 @@ import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
 import com.splicemachine.derby.utils.*;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -250,7 +247,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     public RowEncoder getRowEncoder() throws StandardException {
         return RowEncoder.create(sourceExecIndexRow.nColumns(),
                 keyColumns,null,
-                DerbyBytesUtil.generateBytes(sequence[0]), KeyType.FIXED_PREFIX_UNIQUE_POSTFIX, RowType.COLUMNAR);
+                DerbyBytesUtil.generateBytes(sequence[0]),
+                KeyType.FIXED_PREFIX_UNIQUE_POSTFIX,
+                RowMarshaller.columnar());
     }
 
     @Override

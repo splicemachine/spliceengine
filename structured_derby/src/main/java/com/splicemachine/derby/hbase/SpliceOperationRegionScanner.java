@@ -5,32 +5,35 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimeUtils;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.utils.SpliceLogUtils;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class SpliceOperationRegionScanner implements RegionScanner {
     private static Logger LOG = Logger.getLogger(SpliceOperationRegionScanner.class);
@@ -103,20 +106,21 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	            stats.readAccumulator().tick(System.nanoTime()-start);
 	            start = System.nanoTime();
                 //TODO -sf- can we do this better?
-	            Put put = Puts.buildInsert(nextRow.getRowArray(), SpliceUtils.NA_TRANSACTION_ID,serializer);
+                DataValueDescriptor[] rowArray = nextRow.getRowArray();
+                RowLocation location = topOperation.getCurrentRowLocation();
+                byte[] row = location!=null? location.getBytes():SpliceUtils.getUniqueKey();
+                RowMarshaller.denseColumnar().encodeKeyValues(rowArray,row,null,null,results);
 
                 //add any additional columns which were specified during the run
                 Iterator<Pair<byte[],byte[]>> addColIter = additionalColumns.iterator();
                 while(addColIter.hasNext()){
+
                     Pair<byte[],byte[]> additionalCol = addColIter.next();
-                    put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,additionalCol.getFirst(),additionalCol.getSecond());
+                    byte[] qual = additionalCol.getFirst();
+                    byte[] value = additionalCol.getSecond();
+                    results.add(new KeyValue(row,SpliceUtils.DEFAULT_FAMILY_BYTES,qual,value));
                     addColIter.remove();
                 }
-
-	            Map<byte[],List<KeyValue>> family = put.getFamilyMap();
-	            for(byte[] bytes: family.keySet()){
-	                results.addAll(family.get(bytes));
-	            }
 
 	            SpliceLogUtils.trace(LOG,"next returns results: %s",nextRow);
 	            stats.writeAccumulator().tick(System.nanoTime()-start);
@@ -137,8 +141,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                     }
                 }
             }
-            return true;
-		}catch(Exception e){
+            return !results.isEmpty();
+        }catch(Exception e){
             SpliceLogUtils.logAndThrow(LOG,"Unable to get next row",Exceptions.getIOException(e));
             return false; //won't happen since logAndThrow will throw an exception
         }

@@ -3,15 +3,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -20,14 +18,9 @@ import org.apache.derby.iapi.sql.execute.HasIncrement;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * 
@@ -84,7 +77,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
             }
             keyType = KeyType.BARE;
         }
-        return RowEncoder.createDoubleWritingEncoder(getExecRowDefinition().nColumns(),keyColumns,null,null,keyType, RowType.DENSE_COLUMNAR);
+        return RowEncoder.createDoubleWritingEncoder(
+                getExecRowDefinition().nColumns(),
+                keyColumns,null,null,keyType, RowMarshaller.denseColumnar());
     }
 
     @Override

@@ -11,10 +11,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -282,48 +279,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		/* If this is the top ResultSet then we must  close all of the open subqueries for the
 		 * entire query.
 		 */
-		if (isTopResultSet)
-		{
-			/*
-			** If run time statistics tracing is turned on, then now is the
-			** time to dump out the information.
-			*/
-			LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-			
-                // only if statistics is switched on, collect & derive them
-				//TODO: need to get statement context, clearly cannot get from the lcc 
-                //if (statisticsTimingOn && !lcc.getStatementContext().getStatementWasInvalidated())
-                if (statisticsTimingOn)
-				{   
-                    endExecutionTime = getCurrentTimeMillis();
 
-                    // get the ResultSetStatisticsFactory, which gathers RuntimeStatistics
-                    ExecutionFactory ef = lcc.getLanguageConnectionFactory().getExecutionFactory();
-                    ResultSetStatisticsFactory rssf = ef.getResultSetStatisticsFactory();
-  
-                    // get the RuntimeStatisticsImpl object which is the wrapper for all 
-                    // gathered statistics about all the different resultsets
-                    RunTimeStatistics rsImpl = rssf.getRunTimeStatistics(activation, this, subqueryTrackingArray); 
-                    SpliceLogUtils.trace(LOG, "top resultset, RunTimeStatistics=%s,EndExecutionTimestamp=%s",rsImpl,rsImpl.getEndExecutionTimestamp());
-                    // save the RTW (wrapper)object in the lcc
-                    lcc.setRunTimeStatisticsObject(rsImpl);
-                    
-                    // now explain gathered statistics, using an appropriate visitor
-                    XPLAINVisitor visitor = ef.getXPLAINFactory().getXPLAINVisitor();
-                    visitor.doXPLAIN(rsImpl,activation);
-  				}
-
-			int staLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
-
-			for (int index = 0; index < staLength; index++)
-			{
-				if (subqueryTrackingArray[index] == null || subqueryTrackingArray[index].isClosed())
-					continue;
-				subqueryTrackingArray[index].close();
-			}
-		}
-
-		isOpen = false;
+        isOpen = false;
 
 	}
 	
@@ -542,7 +499,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow row = getExecRowDefinition();
-        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE, RowType.COLUMNAR);
+        return RowEncoder.create(row.nColumns(),
+                null,null,null,
+                KeyType.BARE, RowMarshaller.columnar());
     }
 
 
@@ -843,5 +802,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         } else {
             return (getTrans() == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
         }
+    }
+
+    @Override
+    public RowLocation getCurrentRowLocation() {
+        return currentRowLocation;
     }
 }

@@ -175,7 +175,6 @@ public class SpliceConstants {
 
     //TEMP Table task column--used for filtering out failed tasks from the temp
     //table
-    public static final byte[] TASK_ID_COL = Bytes.toBytes(-1000);
 
 	// Splice Default Table Definitions
 	public static final int DEFAULT_VERSIONS = HColumnDescriptor.DEFAULT_VERSIONS;

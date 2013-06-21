@@ -9,10 +9,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.base.Strings;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.utils.marshall.*;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -251,7 +248,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow template = getExecRowDefinition();
-        return RowEncoder.create(template.nColumns(), null, null, null, KeyType.BARE, RowType.COLUMNAR);
+        return RowEncoder.create(template.nColumns(),
+                null, null, null,
+                KeyType.BARE, RowMarshaller.columnar());
     }
 
     @Override
@@ -321,7 +320,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                 rowExists = result!=null && !result.isEmpty();
                 if(rowExists){
                     for(KeyValue kv:result.raw()){
-                        RowType.MAPPED_COLUMNAR.decode(kv,compactRow.getRowArray(),baseColumnMap,null);
+                        RowMarshaller.mappedColumnar().decode(kv, compactRow.getRowArray(), baseColumnMap, null);
                     }
                 }
             }catch(IOException ioe){

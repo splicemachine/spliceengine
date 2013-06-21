@@ -58,9 +58,7 @@ public class RowEncoder {
             keyEncoder.mark();
         }
 
-        if(rowType!=RowType.COLUMNAR
-                &&rowType!=RowType.DENSE_COLUMNAR
-            &&rowType!=RowType.MAPPED_COLUMNAR){
+        if(!rowType.isColumnar()){
             rowEncoder = MultiFieldEncoder.create(rowColumns.length);
         }
     }
@@ -111,7 +109,7 @@ public class RowEncoder {
 
     public static RowEncoder createDeleteEncoder(final String txnId,KeyMarshall keyMarshall){
 
-       return new RowEncoder(new int[0],null,new int[]{},null,keyMarshall,RowType.COLUMNAR){
+       return new RowEncoder(new int[0],null,new int[]{},null,keyMarshall,RowMarshaller.columnar()){
            @Override
            protected Put doPut(ExecRow row) throws StandardException {
                //construct the row key

@@ -446,4 +446,9 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
     public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public RowLocation getCurrentRowLocation() {
+        throw new UnsupportedOperationException();
+    }
 }

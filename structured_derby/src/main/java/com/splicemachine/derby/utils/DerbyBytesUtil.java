@@ -142,6 +142,9 @@ public class DerbyBytesUtil {
          /*
          * Don't bother to re-serialize HBaseRowLocations, they're already just bytes.
          */
+        if(dvd==null||dvd.isNull()){
+            return new byte[0];
+        }
         if(dvd.getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID
                 || dvd.isLazy()){
             return dvd.getBytes();

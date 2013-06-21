@@ -39,29 +39,27 @@ public class OperationSink {
     private final TableWriter tableWriter;
     private final SinkingOperation operation;
     private final byte[] taskId;
-    private final byte[] taskIdCol;
 
     private long rowCount = 0;
     private byte[] postfix;
 
-    private OperationSink(byte[] taskIdCol,byte[] taskId,SinkingOperation operation,TableWriter tableWriter) {
+    private OperationSink(byte[] taskId,SinkingOperation operation,TableWriter tableWriter) {
         this.tableWriter = tableWriter;
         this.taskId = taskId;
-        this.taskIdCol = taskIdCol;
         this.operation = operation;
     }
 
     public static OperationSink create(SinkingOperation operation, byte[] taskId) throws IOException {
         //TODO -sf- move this to a static initializer somewhere
 
-        return new OperationSink(SpliceConstants.TASK_ID_COL,taskId,operation,SpliceDriver.driver().getTableWriter());
+        return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter());
     }
 
     public static OperationSink create(SinkingOperation operation,
                                        TableWriter writer,byte[] taskId) throws IOException {
         //TODO -sf- move this to a static initializer somewhere
 
-        return new OperationSink(SpliceConstants.TASK_ID_COL,taskId,operation,writer);
+        return new OperationSink(taskId,operation,writer);
     }
 
     public TaskStats sink(byte[] destinationTable) throws IOException {

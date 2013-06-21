@@ -1,10 +1,11 @@
 
 package com.splicemachine.derby.impl.store.access.btree;
 
-import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.base.SpliceController;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -17,13 +18,6 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
-import com.splicemachine.derby.impl.store.access.base.SpliceController;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.SpliceUtils;
-
-import java.io.IOException;
 
 
 public class IndexController  extends SpliceController  {
@@ -45,7 +39,9 @@ public class IndexController  extends SpliceController  {
 		try {
 			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
-			htable.put(Puts.buildInsert(rowKey, row, transID,Serializer.get()));
+            Put put = SpliceUtils.createPut(rowKey,transID);
+            RowMarshaller.denseColumnar().encodeRow(row, null, put, null);
+			htable.put(put);
 			return 0;
 		} catch (Exception e) {
 			LOG.error(e.getMessage(),e);
@@ -62,7 +58,10 @@ public class IndexController  extends SpliceController  {
 		try {
 			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
-			Put put = Puts.buildInsert(rowKey,row,transID,Serializer.get());
+
+            Put put = SpliceUtils.createPut(rowKey,transID);
+            RowMarshaller.denseColumnar().encodeRow(row, null, put, null);
+
 			destRowLocation.setValue(put.getRow());
 			htable.put(put);
 		} catch (Exception e) {
@@ -79,21 +78,26 @@ public class IndexController  extends SpliceController  {
 		try {
 			boolean[] sortOrder = ((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			if (openSpliceConglomerate.cloneRowTemplate().length == row.length && validColumns == null) {
-				htable.put(Puts.buildInsert(DerbyBytesUtil.generateIndexKey(row,sortOrder),row,validColumns,transID));
-//				htable.put(SpliceUtils.insert(row, validColumns,DerbyBytesUtil.generateIndexKey(row,sortOrder), transID));
+                Put put = SpliceUtils.createPut(DerbyBytesUtil.generateIndexKey(row,sortOrder),transID);
+                RowMarshaller.columnar().encodeRow(row, SpliceUtils.bitSetToMap(validColumns), put, null);
+                htable.put(put);
 			} else {
 				DataValueDescriptor[] oldValues = openSpliceConglomerate.cloneRowTemplate();
 				Get get = SpliceUtils.createGet(loc, oldValues, null, transID);
 				Result result = htable.get(get);
                 for(KeyValue kv:result.raw()){
-                    RowType.COLUMNAR.decode(kv,oldValues,null,null);
+                    RowMarshaller.columnar().decode(kv, oldValues, null, null);
                 }
-//				SpliceUtils.populate(result, null, oldValues);
-				for (int i =0;i<row.length;i++) {
-					if (validColumns.isSet(i))
-						oldValues[i] = row[i];
-				}
-				htable.put(Puts.buildInsert(DerbyBytesUtil.generateIndexKey(row,sortOrder),row,validColumns, transID));
+                int[] validCols = new int[validColumns.getNumBitsSet()];
+                int pos=0;
+                for(int i=validColumns.anySetBit();i!=-1;i=validColumns.anySetBit(i)){
+                    oldValues[i] = row[i];
+                    validCols[pos] = i;
+                }
+                byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,sortOrder);
+                Put put = SpliceUtils.createPut(rowKey,transID);
+                RowMarshaller.columnar().encodeRow(row, validCols, put, null);
+                htable.put(put);
 			}
 			super.delete(loc);
 			return true;			

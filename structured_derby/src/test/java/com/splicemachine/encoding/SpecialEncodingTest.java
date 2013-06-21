@@ -1,5 +1,6 @@
 package com.splicemachine.encoding;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -16,6 +17,13 @@ public class SpecialEncodingTest {
     public void testDecodeSYS() throws Exception {
         byte[] testBytes = StringEncoding.toBytes("SYS",false);
         System.out.println(Arrays.toString(testBytes));
+    }
 
+    @Test
+    public void testEncodeDecodeIntegerZero() throws Exception {
+        byte[] test = ScalarEncoding.toBytes(0,false);
+        int retVal = ScalarEncoding.getInt(test,false);
+
+        Assert.assertEquals(0,retVal);
     }
 }
