@@ -18,6 +18,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Implementation of SDataLib that is specific to the HBase operation and result types.
+ */
 public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, HRowLock> {
 
     @Override

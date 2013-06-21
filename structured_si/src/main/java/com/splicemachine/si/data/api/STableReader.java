@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 /**
- * Means of opening tables and reading data from them.
+ * Means of opening tables and reading data from them. This is an abstraction over the execution of HBase read operations.
  */
 public interface STableReader<Table, Result, Get, Scan> {
     Table open(String tableName) throws IOException;

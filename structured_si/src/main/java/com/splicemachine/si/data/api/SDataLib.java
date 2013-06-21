@@ -3,6 +3,10 @@ package com.splicemachine.si.data.api;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Defines an abstraction over the construction and manipulate of HBase operations. Having this abstraction allows an
+ * alternate lightweight store to be used instead of HBase (e.g. for rapid testing).
+ */
 public interface SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> {
     Data newRowKey(Object[] args);
 

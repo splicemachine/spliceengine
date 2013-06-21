@@ -11,6 +11,9 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * Wrapper that makes an HBase region comply with a standard interface that abstracts across regions and tables.
+ */
 public class HbRegion implements IHTable {
     final HRegion region;
 

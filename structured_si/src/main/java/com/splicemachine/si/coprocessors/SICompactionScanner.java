@@ -21,11 +21,13 @@ import java.util.List;
  * SICompactionState.
  */
 public class SICompactionScanner implements InternalScanner {
-    private final SICompactionState compactionState;
+    private final Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer> transactor;
+    private final  SICompactionState compactionState;
     private final InternalScanner delegate;
 
     public SICompactionScanner(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer> transactor,
                                InternalScanner scanner) {
+        this.transactor = transactor;
         this.compactionState = transactor.newCompactionState();
         this.delegate = scanner;
     }
@@ -56,7 +58,7 @@ public class SICompactionScanner implements InternalScanner {
     private boolean nextDirect(List<KeyValue> results, int limit) throws IOException {
         List<KeyValue> rawList = new ArrayList<KeyValue>((limit == -1) ? 0 : limit);
         final boolean more = (limit == -1) ? delegate.next(rawList) : delegate.next(rawList, limit);
-        compactionState.mutate(rawList, results);
+        transactor.compact(compactionState, rawList, results);
         return more;
     }
 
