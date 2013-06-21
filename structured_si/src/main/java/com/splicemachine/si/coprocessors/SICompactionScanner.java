@@ -1,6 +1,5 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.SICompactionState;
@@ -13,6 +12,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +24,7 @@ public class SICompactionScanner implements InternalScanner {
     private final SICompactionState compactionState;
     private final InternalScanner delegate;
 
-    public SICompactionScanner(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> transactor,
+    public SICompactionScanner(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer> transactor,
                                InternalScanner scanner) {
         this.compactionState = transactor.newCompactionState();
         this.delegate = scanner;

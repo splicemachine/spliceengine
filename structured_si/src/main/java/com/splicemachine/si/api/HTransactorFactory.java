@@ -4,7 +4,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConfiguration;
-import com.splicemachine.constants.bytes.HashableBytes;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -36,6 +35,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
 public class HTransactorFactory extends SIConstants {
@@ -63,7 +63,7 @@ public class HTransactorFactory extends SIConstants {
         return getTransactorDirect().getTransactor();
     }
 
-    public static Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes> getTransactor() {
+    public static Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer> getTransactor() {
         return getTransactorDirect().getTransactor();
     }
 
@@ -111,7 +111,7 @@ public class HTransactorFactory extends SIConstants {
                     SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING,
                     EMPTY_BYTE_ARRAY, SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
                     DEFAULT_FAMILY);
-            final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Put, Get, Scan, Mutation, Result, KeyValue, byte[], HashableBytes, Delete, HRowLock>
+            final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, Delete, HRowLock>
                     (timestampSource, dataLib, writer, rowStore, transactionStore,
                             new SystemClock(), TRANSACTION_TIMEOUT, managedTransactor);
             managedTransactor.setTransactor(transactor);
