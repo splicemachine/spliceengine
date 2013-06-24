@@ -113,4 +113,8 @@ public class MutationResult implements Externalizable{
         this.code = code;
         this.constraintContext = constraintContext;
     }
+
+    public boolean isRetryable(){
+        return errorMsg.contains("NotServingRegion") || errorMsg.contains("WrongRegion");
+    }
 }

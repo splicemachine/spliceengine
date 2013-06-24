@@ -140,7 +140,7 @@ public class CreateIndexTask extends ZkTask {
                         @Override
                         public Response partialFailure(MutationRequest request, MutationResponse response) throws Exception {
                             for(MutationResult result : response.getFailedRows().values()){
-                                if(result.getErrorMsg().contains("NotServingRegion") || result.getErrorMsg().contains("WrongRegion"))
+                                if(result.isRetryable())
                                     return Response.RETRY;
                             }
                             return  Response.THROW_ERROR;

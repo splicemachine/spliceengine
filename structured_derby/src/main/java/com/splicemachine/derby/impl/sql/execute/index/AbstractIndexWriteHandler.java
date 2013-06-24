@@ -128,8 +128,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
                 boolean canRetry=true;
                 for(Integer row:failedRows.keySet()){
                     MutationResult result = failedRows.get(row);
-                    if(!result.getErrorMsg().contains("NotServingRegion")&&
-                            !result.getErrorMsg().contains("WrongRegion")){
+                    if(!result.isRetryable()){
                         canRetry=false;
                         break;
                     }

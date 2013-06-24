@@ -433,8 +433,9 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         @Override
         public Response partialFailure(MutationRequest request,MutationResponse response) throws Exception {
             for(MutationResult error : response.getFailedRows().values()){
-                if(!error.getErrorMsg().contains("NotServingRegion")&&!error.getErrorMsg().contains("WrongRegion"))
+                if(!error.isRetryable()){
                     return Response.THROW_ERROR;
+                }
             }
             return Response.RETRY;
         }
