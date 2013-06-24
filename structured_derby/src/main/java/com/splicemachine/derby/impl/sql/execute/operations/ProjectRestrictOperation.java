@@ -173,29 +173,28 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	
 	private ExecRow doProjection(ExecRow sourceRow) throws StandardException { 
 		ExecRow result;
-			if (projection != null) {
-				result = (ExecRow) projection.invoke(activation);
-			}
-			else {
-				result = mappedResultRow;
-			}				
-			// Copy any mapped columns from the source
-			for (int index = 0; index < projectMapping.length; index++) {
-				if (projectMapping[index] != -1) {
-					DataValueDescriptor dvd = sourceRow.getColumn(projectMapping[index]);
-					// See if the column has been marked for cloning.
-					// If the value isn't a stream, don't bother cloning it.
-					if (cloneMap[index] && dvd.hasStream()) {
-						dvd = dvd.cloneValue(false);
-					}
-					result.setColumn(index + 1, dvd);
-				}
-			}
+        if (projection != null) {
+            result = (ExecRow) projection.invoke(activation);
+        } else {
+            result = mappedResultRow;
+        }
+        // Copy any mapped columns from the source
+        for (int index = 0; index < projectMapping.length; index++) {
+            if (projectMapping[index] != -1) {
+                DataValueDescriptor dvd = sourceRow.getColumn(projectMapping[index]);
+                // See if the column has been marked for cloning.
+                // If the value isn't a stream, don't bother cloning it.
+                if (cloneMap[index] && dvd.hasStream()) {
+                    dvd = dvd.cloneValue(false);
+                }
+                result.setColumn(index + 1, dvd);
+            }
+        }
 
-			/* We need to reSet the current row after doing the projection */
-			setCurrentRow(result);
-			/* Remember the result if reusing it */
-			return result;
+	    /* We need to reSet the current row after doing the projection */
+        setCurrentRow(result);
+        /* Remember the result if reusing it */
+        return result;
 	}
 	
 	@Override
