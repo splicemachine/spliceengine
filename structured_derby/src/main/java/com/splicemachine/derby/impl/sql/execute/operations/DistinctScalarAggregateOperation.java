@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -146,6 +147,13 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         }
         SpliceUtils.setInstructions(reduceScan,activation,top);
         return new ProvidesDefaultClientScanProvider(SpliceConstants.TEMP_TABLE_BYTES,reduceScan,rowDecoder);
+    }
+
+    @Override
+    public void close() throws StandardException {
+        super.close();
+        if(reduceScan!=null)
+            SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
     }
 
     @Override

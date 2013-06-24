@@ -42,11 +42,7 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -207,7 +203,11 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         @Override
         public int compareTo(RegionTaskWatcher o) {
             if(o==null) return 1;
-            return Bytes.compareTo(startRow, o.startRow);
+            int compare = Bytes.compareTo(startRow, o.startRow);
+            if(compare!=0) return compare;
+
+            //add this in to order tasks which go to the same node in some way
+            return o.taskFutureContext.getTaskNode().compareTo(taskFutureContext.getTaskNode());
         }
 
         @Override
@@ -353,7 +353,10 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                 throw ee;
             }
 
-            RegionTaskWatcher nextTask = watcher.tasksToWatch.higher(this);
+            RegionTaskWatcher nextTask = this;
+            do{
+                nextTask = watcher.tasksToWatch.higher(nextTask);
+            }while(nextTask!=null && Bytes.compareTo(nextTask.startRow,startRow)==0); //skip past all tasks that are in the same position as me
 
             watcher.tasksToWatch.remove(this);
             //rollback child transaction

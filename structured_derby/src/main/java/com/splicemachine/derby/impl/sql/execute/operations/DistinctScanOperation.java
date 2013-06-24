@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
@@ -29,6 +30,8 @@ import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.datanucleus.sco.backed.Map;
+
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -46,6 +49,7 @@ import java.util.List;
 public class DistinctScanOperation extends ScanOperation implements SinkingOperation{
     private static final long serialVersionUID = 3l;
     private static final List<NodeType> nodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SCAN);
+    private Scan reduceScan;
 
     public DistinctScanOperation() {
     }
@@ -180,9 +184,9 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                 currentByteArray = keyEncoder.build();
                 ByteBuffer buffer = ByteBuffer.wrap(currentByteArray);
                 if (!currentRows.merge(buffer, row, merger)) {
-                    ExecRow finalized = currentRows.add(buffer,row);
+                    Map.Entry<ByteBuffer,ExecRow> finalized = currentRows.add(buffer,row);
                     if(finalized!=null&&finalized!=row){
-                        return finalized;
+                        return makeCurrent(finalized.getKey().array(),finalized.getValue());
                     }
                 }
             } while (!values.isEmpty());
@@ -221,11 +225,18 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
         try{
-            Scan scan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
-            return new ClientScanProvider(SpliceConstants.TEMP_TABLE_BYTES,scan,decoder);
+            reduceScan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
+            return new ClientScanProvider(SpliceConstants.TEMP_TABLE_BYTES,reduceScan,decoder);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
+    }
+
+    @Override
+    public void close() throws StandardException {
+        super.close();
+        if(reduceScan!=null)
+            SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
     }
 
     @Override

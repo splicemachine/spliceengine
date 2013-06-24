@@ -2,6 +2,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -280,6 +281,8 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         SpliceLogUtils.trace(LOG, "close in Sort");
         beginTime = getCurrentTimeMillis();
         if (isOpen) {
+            if(reduceScan!=null)
+                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
             clearCurrentRow();
 
             sortResult = null;

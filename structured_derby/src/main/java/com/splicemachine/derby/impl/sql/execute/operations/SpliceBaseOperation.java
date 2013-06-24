@@ -280,6 +280,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		 * entire query.
 		 */
 
+
         isOpen = false;
 
 	}

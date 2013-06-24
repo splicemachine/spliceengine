@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.datanucleus.sco.backed.Map;
 
 public class HashBuffer<K,T extends ExecRow> extends LinkedHashMap<K,T>{
 	private static final long serialVersionUID = -191068765821075562L;
@@ -25,11 +26,11 @@ public class HashBuffer<K,T extends ExecRow> extends LinkedHashMap<K,T>{
 		return evicted;
 	}
 	
-	public T add(K key, T element){
+	public Entry<K,T> add(K key, T element){
 		put(key,element);
 		if (evicted)
-			return eldestEntry.getValue();
-		return element;
+			return eldestEntry;
+		return null;
 	}
 	
 	public boolean merge(K key, T element, Merger<K,T> merger){

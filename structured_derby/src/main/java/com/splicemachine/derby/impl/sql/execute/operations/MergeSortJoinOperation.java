@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -60,7 +61,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     private SpliceOperation resultSetToRead;
 
-    protected enum JoinSide {RIGHT,LEFT};
+    protected enum JoinSide {RIGHT,LEFT}
 	protected JoinSide joinSide;
 	protected RowProvider clientProvider;
 	protected MergeSortRegionAwareRowProvider2 serverProvider;
@@ -200,9 +201,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                     SpliceConstants.TEMP_TABLE_BYTES,
                                 getRowEncoder(leftNumCols,leftHashKeys).getDual(leftResultSet.getExecRowDefinition()),
                                 getRowEncoder(rightNumCols,rightHashKeys).getDual(rightResultSet.getExecRowDefinition()));
-//            serverProvider = new MergeSortRegionAwareRowProvider(getTransactionID(), context.getRegion(),
-//                    SpliceConstants.TEMP_TABLE_BYTES,SpliceConstants.DEFAULT_FAMILY_BYTES,
-//                    context.getScan(),leftHasher,leftRow,rightHasher,rightRow,null,rowType);
             serverProvider.open();
         }
 	}
@@ -243,11 +241,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         ExecRow rowDef = getExecRowDefinition();
         RowEncoder encoder = RowEncoder.create(rowDef.nColumns(),null,null,null,KeyType.BARE,RowMarshaller.columnar());
 		RowProvider provider = getReduceRowProvider(this,encoder.getDual(getExecRowDefinition()));
-//		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)){
-//			provider = regionOperation.getReduceRowProvider(this,getExecRowDefinition());
-//		}else {
-//			provider = regionOperation.getMapRowProvider(this,getExecRowDefinition());
-//		}
 		return new SpliceNoPutResultSet(activation,this,provider);
 	}
 
@@ -487,7 +480,10 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
 		if ( isOpen )
 		{
-			clearCurrentRow();
+            //delete from the temp space
+            if(reduceScan!=null)
+                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
+            clearCurrentRow();
 			super.close();
 		}
 

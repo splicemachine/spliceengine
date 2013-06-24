@@ -72,6 +72,8 @@ public class TempCleaner {
      * @param finish the finish row to be deleted
      */
     public void deleteRange(String uid, byte[] start, byte[] finish) throws StandardException {
+        if(LOG.isTraceEnabled())
+            LOG.trace("cleaning temp space for task "+ uid);
         final TempCleanJob job = new TempCleanJob(uid,start,finish,taskPriority);
         cleanWatcher.submit(new Callable<Void>() {
             @Override
@@ -83,6 +85,13 @@ public class TempCleaner {
                     future.cleanup();
                 }
 
+                /*
+                 * If a region is entirely contained within the start and finish keys, then
+                 * it can be removed. Unfortunately, HBASE-7403 (https://issues.apache.org/jira/browse/HBASE-7403)
+                 * indicates that this is not a feature which is available until 0.95 at least (which is
+                 * not available for Cloudera 4.2.1). When that feature becomes standard, then we
+                 * can merge regions here as well.
+                 */
                 return null;
             }
         });

@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Properties;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.utils.*;
@@ -35,6 +36,7 @@ import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
 import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.datanucleus.sco.backed.Map;
 
 public class GroupedAggregateOperation extends GenericAggregateOperation {
 	private static Logger LOG = Logger.getLogger(GroupedAggregateOperation.class);
@@ -234,7 +236,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		if (completedExecution) {
 			if (currentAggregations.size()>0) {
 				ByteBuffer key = currentAggregations.keySet().iterator().next();
-				return makeCurrent(key.array(),currentAggregations.remove(key));
+				return makeCurrent(key,currentAggregations.remove(key));
 			}
 			else 
 				return null; // Done
@@ -270,9 +272,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 ByteBuffer keyBuffer = ByteBuffer.wrap(keyEncoder.build());
 				if(!currentAggregations.merge(keyBuffer, rolledUpRow, merger)){
 					ExecIndexRow row = (ExecIndexRow)rolledUpRow.getClone();
-					ExecIndexRow finalized = currentAggregations.add(keyBuffer,row);
+                    Map.Entry<ByteBuffer,ExecIndexRow> finalized = currentAggregations.add(keyBuffer,row);
 					if(finalized!=null&&finalized !=row){
-						return makeCurrent(currentKey,finishAggregation(finalized));
+						return makeCurrent(finalized.getKey(),finishAggregation(finalized.getValue()));
 					}
 				}
             }
@@ -352,15 +354,15 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		currentAggregations = currentAggregations.finishAggregates(aggregateFinisher);
 		if(currentAggregations.size()>0) {
 			ByteBuffer key = currentAggregations.keySet().iterator().next();
-			return makeCurrent(key.array(),currentAggregations.remove(key));
+			return makeCurrent(key,currentAggregations.remove(key));
 		}
 		else 
 			return null;
 	}
 	
-	private <T extends ExecRow> ExecRow makeCurrent(byte[] key, T row) throws StandardException{
+	private <T extends ExecRow> ExecRow makeCurrent(ByteBuffer key, T row) throws StandardException{
 		setCurrentRow(row);
-        currentKey = key;
+        currentKey = key.array();
 		return row;
 	}
 
@@ -401,6 +403,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		beginTime = getCurrentTimeMillis();
 		if ( isOpen )
 	    {
+            if(reduceScan!=null)
+                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
 			// we don't want to keep around a pointer to the
 			// row ... so it can be thrown away.
 			// REVISIT: does this need to be in a finally

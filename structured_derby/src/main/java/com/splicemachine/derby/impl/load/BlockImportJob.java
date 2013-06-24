@@ -46,7 +46,6 @@ public class BlockImportJob extends FileImportJob{
 
         //get the total number of region servers we have to work with
         HBaseAdmin admin = new HBaseAdmin(SpliceUtils.config);
-        int allRegionSize = admin.getClusterStatus().getServersSize();
 
         byte[] tableBytes = Bytes.toBytes(context.getTableName());
         List<HRegionLocation> regions = getRegionLocations(admin,tableBytes);

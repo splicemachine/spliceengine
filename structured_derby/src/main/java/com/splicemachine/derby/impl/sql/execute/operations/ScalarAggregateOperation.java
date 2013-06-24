@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.primitives.Bytes;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -123,6 +124,13 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
 	}
+
+    @Override
+    public void close() throws StandardException {
+        super.close();
+        if(reduceScan!=null)
+            SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
+    }
 
     @Override
     public ExecRow getNextSinkRow() throws StandardException {
