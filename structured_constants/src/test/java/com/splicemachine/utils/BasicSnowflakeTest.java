@@ -3,6 +3,7 @@ package com.splicemachine.utils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Scott Fines
  * Created on: 6/21/13
  */
+@Ignore
 public class BasicSnowflakeTest {
 
     @Test
