@@ -27,7 +27,7 @@ public class PrimaryKeyTest extends SpliceUnitTest {
 	public static final String CLASS_NAME = PrimaryKeyTest.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME = "A";
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(name varchar(50),val int, PRIMARY KEY(name))");
+	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(name varchar(50),val int, CONSTRAINT FOO PRIMARY KEY(name))");
 	protected static String INSERT = String.format("insert into %s.%s (name, val) values (?,?)",CLASS_NAME, TABLE_NAME);
 	protected static String SELECT_BY_NAME = String.format("select * from %s.%s where name = ?",CLASS_NAME, TABLE_NAME);
 	protected static String SELECT_NAME_BY_NAME = String.format("select name from %s.%s where name = ?",CLASS_NAME, TABLE_NAME);	
@@ -77,6 +77,9 @@ public class PrimaryKeyTest extends SpliceUnitTest {
             ps.executeUpdate();
             Assert.fail("Did not throw an exception on duplicate records on primary key");
         } catch (SQLException e) {
+
+            Assert.assertTrue(e.getMessage().contains("identified by 'FOO' defined on '" + TABLE_NAME + "'"));
+
             PreparedStatement validator = methodWatcher.prepareStatement(SELECT_BY_NAME);
             validator.setString(1,"sfines");
             ResultSet rs = validator.executeQuery();

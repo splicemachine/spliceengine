@@ -21,7 +21,7 @@ public class MutationResponse implements Externalizable{
     private static final Logger LOG = Logger.getLogger(MutationResponse.class);
 
     private List<Integer> notRunRows;
-    private Map<Integer,String> failedRows;
+    private Map<Integer,MutationResult> failedRows;
 
     public MutationResponse() {
         notRunRows = Lists.newArrayListWithExpectedSize(0);
@@ -36,11 +36,11 @@ public class MutationResponse implements Externalizable{
         this.notRunRows = notRunRows;
     }
 
-    public Map<Integer, String> getFailedRows() {
+    public Map<Integer, MutationResult> getFailedRows() {
         return failedRows;
     }
 
-    public void setFailedRows(Map<Integer, String> failedRows) {
+    public void setFailedRows(Map<Integer, MutationResult> failedRows) {
         this.failedRows = failedRows;
     }
 
@@ -54,10 +54,11 @@ public class MutationResponse implements Externalizable{
         out.writeInt(failedRows.size());
         for(Integer row:failedRows.keySet()){
             out.writeInt(row);
-            String error = failedRows.get(row);
-            out.writeBoolean(error!=null);
-            if(error!=null)
-                out.writeUTF(error);
+            MutationResult result = failedRows.get(row);
+            out.writeBoolean(result != null);
+            if(result != null){
+                out.writeObject(result);
+            }
         }
     }
 
@@ -74,9 +75,10 @@ public class MutationResponse implements Externalizable{
         for(int i=0;i<failedSize;i++){
             int rowNum = in.readInt();
             if(in.readBoolean()){
-                failedRows.put(rowNum,in.readUTF());
-            }else
-                failedRows.put(rowNum,"UnknownException");
+                failedRows.put(rowNum, (MutationResult) in.readObject());
+            }else{
+                failedRows.put(rowNum, new MutationResult(MutationResult.Code.FAILED, "UnknownException"));
+            }
         }
     }
 
@@ -89,10 +91,10 @@ public class MutationResponse implements Externalizable{
             case FOREIGN_KEY_VIOLATION:
             case CHECK_VIOLATION:
             case WRITE_CONFLICT:
-                failedRows.put(pos,result.getCode().name());
+                failedRows.put(pos,result);
                 break;
             case FAILED:
-                failedRows.put(pos,result.getErrorMsg());
+                failedRows.put(pos,result);
                 break;
             case NOT_RUN:
                 notRunRows.add(pos);

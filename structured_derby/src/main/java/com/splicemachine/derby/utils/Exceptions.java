@@ -7,6 +7,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import com.splicemachine.derby.error.SpliceDoNotRetryIOException;
 import com.splicemachine.derby.error.SpliceStandardException;
+import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
@@ -43,10 +44,9 @@ public class Exceptions {
         Throwable rootCause = Throwables.getRootCause(e);
         if(rootCause instanceof StandardException) return (StandardException)rootCause;
 
-        if(rootCause instanceof ConstraintViolation.PrimaryKeyViolation){
-            return StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT);
-        }else if (rootCause instanceof ConstraintViolation.UniqueConstraintViolation){
-            return StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT);
+        if(rootCause instanceof ConstraintViolation.PrimaryKeyViolation
+                || rootCause instanceof ConstraintViolation.UniqueConstraintViolation){
+            return createStandardExceptionForConstraintError(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT, (ConstraintViolation.ConstraintViolationException) e);
         }else if(rootCause instanceof LangFormatException){
             LangFormatException lfe = (LangFormatException)rootCause;
             return StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION,lfe.getMessage());
@@ -84,6 +84,20 @@ public class Exceptions {
         return StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,rootCause);
     }
 
+    public static StandardException createStandardExceptionForConstraintError(String errorCode, ConstraintViolation.ConstraintViolationException e){
+
+        ConstraintContext cc = e.getConstraintContext();
+        StandardException newException = null;
+
+        if(cc != null){
+            newException = StandardException.newException(errorCode, cc.getConstraintName(), cc.getTableName());
+        }else{
+            newException = StandardException.newException(errorCode);
+        }
+
+        return newException;
+    }
+
     public static IOException getIOException(StandardException se){
         return new SpliceDoNotRetryIOException(se.getClass().getCanonicalName()+gson.toJson(se));
     }
@@ -111,16 +125,19 @@ public class Exceptions {
         return true;
     }
 
-    public static Throwable fromString(String s) {
-        MutationResult.Code writeErrorCode = MutationResult.Code.parse(s);
+    public static Throwable fromString(MutationResult result) {
+//        MutationResult.Code writeErrorCode = MutationResult.Code.parse(s);
+
+        MutationResult.Code writeErrorCode = result.getCode();
+
         if(writeErrorCode!=null){
             if(writeErrorCode== MutationResult.Code.WRITE_CONFLICT)
-                return new WriteConflict(s);
+                return new WriteConflict(result.getErrorMsg());
             else if(writeErrorCode==MutationResult.Code.FAILED)
-                return new DoNotRetryIOException(s);
-            else return Constraints.constraintViolation(writeErrorCode);
+                return new DoNotRetryIOException(result.getErrorMsg());
+            else return Constraints.constraintViolation(writeErrorCode, result.getConstraintContext());
         }
-        return new DoNotRetryIOException(s);
+        return new DoNotRetryIOException(result.getErrorMsg());
     }
 
     public static class LangFormatException extends DoNotRetryIOException{

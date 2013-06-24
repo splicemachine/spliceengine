@@ -42,7 +42,7 @@ public class RegionWriteHandler implements WriteHandler {
         	mutations.add(new Pair<Mutation,Integer> (mutation,null));
         } 
         else {
-        	ctx.failed(mutation, "WrongRegion");
+        	ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, "WrongRegion"));
         }
     }
 
@@ -108,7 +108,7 @@ public class RegionWriteHandler implements WriteHandler {
     }
 
     private void doWrite(WriteContext ctx, Pair<Mutation, Integer>[] toProcess) throws IOException {
-        boolean failed;OperationStatus[] status = region.batchMutate(toProcess);
+        OperationStatus[] status = region.batchMutate(toProcess);
 
         for(int i=0;i<status.length;i++){
             OperationStatus stat = status[i];
@@ -119,8 +119,7 @@ public class RegionWriteHandler implements WriteHandler {
                     break;
                 case BAD_FAMILY:
                 case FAILURE:
-                    ctx.failed(mutation, stat.getExceptionMsg());
-                    failed=true;
+                    ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, stat.getExceptionMsg()));
                 default:
                     ctx.success(mutation);
                     break;

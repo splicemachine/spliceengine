@@ -94,9 +94,9 @@ public class SITableWriterHBaseTest {
 
                     @Override
                     public Response partialFailure(MutationRequest request,MutationResponse response) throws Exception {
-                        Collection<String> errors = response.getFailedRows().values();
-                        for(String error:errors){
-                            if(!error.contains("NotServingRegion")&&!error.contains("WrongRegion"))
+                        Collection<MutationResult> errors = response.getFailedRows().values();
+                        for(MutationResult error : errors){
+                            if(!error.getErrorMsg().contains("NotServingRegion")&&!error.getErrorMsg().contains("WrongRegion"))
                                 return Response.THROW_ERROR;
                         }
                         return Response.RETRY;

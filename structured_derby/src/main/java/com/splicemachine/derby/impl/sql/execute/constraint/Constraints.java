@@ -35,6 +35,11 @@ public class Constraints {
         public boolean validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
             return true;
         }
+
+        @Override
+        public ConstraintContext getConstraintContext() {
+            return null;
+        }
     };
 
 
@@ -60,16 +65,16 @@ public class Constraints {
         }
     }
 
-    public static Exception constraintViolation(MutationResult.Code writeErrorCode) {
+    public static Exception constraintViolation(MutationResult.Code writeErrorCode, ConstraintContext constraintContext) {
         switch (writeErrorCode) {
             case PRIMARY_KEY_VIOLATION:
-                return ConstraintViolation.create(Constraint.Type.PRIMARY_KEY);
+                return ConstraintViolation.create(Constraint.Type.PRIMARY_KEY, constraintContext);
             case UNIQUE_VIOLATION:
-                return ConstraintViolation.create(Constraint.Type.UNIQUE);
+                return ConstraintViolation.create(Constraint.Type.UNIQUE, constraintContext);
             case FOREIGN_KEY_VIOLATION:
-                return ConstraintViolation.create(Constraint.Type.FOREIGN_KEY);
+                return ConstraintViolation.create(Constraint.Type.FOREIGN_KEY, constraintContext);
             case CHECK_VIOLATION:
-                return ConstraintViolation.create(Constraint.Type.CHECK);
+                return ConstraintViolation.create(Constraint.Type.CHECK, constraintContext);
         }
         return null;
     }

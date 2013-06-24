@@ -94,4 +94,9 @@ public class ForeignKey implements Constraint{
     public boolean validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
+
+    @Override
+    public ConstraintContext getConstraintContext() {
+        return null;
+    }
 }

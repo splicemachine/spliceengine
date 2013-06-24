@@ -1,5 +1,7 @@
 package com.splicemachine.hbase;
 
+import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -25,11 +27,27 @@ public class MutationResult implements Externalizable{
         return code;
     }
 
+    public ConstraintContext getConstraintContext(){
+        return constraintContext;
+    }
+
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeUTF(code.name());
         if(code == Code.FAILED){
             out.writeUTF(errorMsg);
+        }
+
+        out.writeBoolean(errorMsg != null);
+
+        if(errorMsg != null){
+            out.writeUTF(errorMsg);
+        }
+
+        out.writeBoolean(constraintContext != null);
+
+        if(constraintContext != null){
+            out.writeObject(constraintContext);
         }
     }
 
@@ -38,6 +56,14 @@ public class MutationResult implements Externalizable{
         code = Code.valueOf(in.readUTF());
         if(code == Code.FAILED)
             errorMsg = in.readUTF();
+
+        if(in.readBoolean()){
+            errorMsg = in.readUTF();
+        }
+
+        if(in.readBoolean()){
+            this.constraintContext = (ConstraintContext) in.readObject();
+        }
     }
 
     public String getErrorMsg() {
@@ -64,16 +90,27 @@ public class MutationResult implements Externalizable{
     }
     private String errorMsg;
     private Code code;
+    private ConstraintContext constraintContext;
 
     @Deprecated
     public MutationResult(){  }
 
     public MutationResult(Code code) {
-        this(code,null);
+        this(code,null, null);
+    }
+
+    public MutationResult(Code code, ConstraintContext constraintContext) {
+        this(code, code.toString(), constraintContext);
     }
 
     public MutationResult(Code code,String errorMsg) {
         this.errorMsg = errorMsg;
         this.code = code;
+    }
+
+    public MutationResult(Code code,String errorMsg, ConstraintContext constraintContext) {
+        this.errorMsg = errorMsg;
+        this.code = code;
+        this.constraintContext = constraintContext;
     }
 }

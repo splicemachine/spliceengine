@@ -42,26 +42,44 @@ public class ConstraintViolation extends DoNotRetryIOException{
                 "Index management for table "+ tableName+ " has been shutdown");
     }
 
-    public static DoNotRetryIOException create(Constraint.Type type) {
+    public static DoNotRetryIOException create(Constraint.Type type, ConstraintContext constraintContext) {
         switch (type) {
             case PRIMARY_KEY:
-                return new PrimaryKeyViolation("Duplicate Primary Key");
+                return new PrimaryKeyViolation("Duplicate Primary Key", constraintContext);
             case UNIQUE:
-                return new UniqueConstraintViolation("Violated Unique Constraint");
+                return new UniqueConstraintViolation("Violated Unique Constraint", constraintContext);
             case NOT_NULL:
-                return new NotNullConstraintViolation("Non Null Constraint Violated");
+                return new NotNullConstraintViolation("Non Null Constraint Violated", constraintContext);
             default:
                 return null; //TODO -sf- implement foreign and check constraints
         }
     }
 
-    public static class PrimaryKeyViolation extends DoNotRetryIOException{
+    public static class ConstraintViolationException extends DoNotRetryIOException {
+
+        private ConstraintContext constraintContext = null;
+
+        public ConstraintViolationException() { super(); }
+        public ConstraintViolationException(String message) { super(message); }
+        public ConstraintViolationException(String message, ConstraintContext constraintContext) {
+            super(message);
+            this.constraintContext = constraintContext;
+        }
+        public ConstraintViolationException(String message, Throwable cause) { super(message, cause);}
+
+        public ConstraintContext getConstraintContext(){
+            return constraintContext;
+        }
+    }
+
+    public static class PrimaryKeyViolation extends ConstraintViolationException{
         /**
          * Used for serialization, DO NOT USE
          */
         @Deprecated
         public PrimaryKeyViolation() { super(); }
         public PrimaryKeyViolation(String message) { super(message); }
+        public PrimaryKeyViolation(String message, ConstraintContext constraintContext) { super(message, constraintContext); }
         public PrimaryKeyViolation(String message, Throwable cause) { super(message, cause);}
 
         @Override
@@ -70,13 +88,14 @@ public class ConstraintViolation extends DoNotRetryIOException{
         }
     }
 
-    public static class UniqueConstraintViolation extends DoNotRetryIOException{
+    public static class UniqueConstraintViolation extends ConstraintViolationException{
         /**
          * Used for serialization, DO NOT USE
          */
         @Deprecated
         public UniqueConstraintViolation() {super(); }
         public UniqueConstraintViolation(String message) { super(message); }
+        public UniqueConstraintViolation(String message, ConstraintContext constraintContext) { super(message, constraintContext); }
         public UniqueConstraintViolation(String message, Throwable cause) { super(message, cause); }
 
         @Override
@@ -86,10 +105,11 @@ public class ConstraintViolation extends DoNotRetryIOException{
         }
     }
 
-    public static class NotNullConstraintViolation extends DoNotRetryIOException{
+    public static class NotNullConstraintViolation extends ConstraintViolationException{
         @Deprecated
         public NotNullConstraintViolation() { }
         public NotNullConstraintViolation(String message) { super(message); }
+        public NotNullConstraintViolation(String message, ConstraintContext cc) { super(message, cc); }
         public NotNullConstraintViolation(String message, Throwable cause) { super(message, cause); }
 
         @Override

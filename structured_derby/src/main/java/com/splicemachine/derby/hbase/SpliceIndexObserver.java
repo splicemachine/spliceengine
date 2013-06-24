@@ -127,13 +127,13 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             case FAILED:
                 throw new IOException(mutationResult.getErrorMsg());
             case PRIMARY_KEY_VIOLATION:
-                throw ConstraintViolation.create(Constraint.Type.PRIMARY_KEY);
+                throw ConstraintViolation.create(Constraint.Type.PRIMARY_KEY, mutationResult.getConstraintContext());
             case UNIQUE_VIOLATION:
-                throw ConstraintViolation.create(Constraint.Type.UNIQUE);
+                throw ConstraintViolation.create(Constraint.Type.UNIQUE, mutationResult.getConstraintContext());
             case FOREIGN_KEY_VIOLATION:
-                throw ConstraintViolation.create(Constraint.Type.FOREIGN_KEY);
+                throw ConstraintViolation.create(Constraint.Type.FOREIGN_KEY, mutationResult.getConstraintContext());
             case CHECK_VIOLATION:
-                throw ConstraintViolation.create(Constraint.Type.CHECK);
+                throw ConstraintViolation.create(Constraint.Type.CHECK, mutationResult.getConstraintContext());
             case WRITE_CONFLICT:
                 throw new WriteConflict(mutationResult.getErrorMsg());
 		case NOT_RUN:

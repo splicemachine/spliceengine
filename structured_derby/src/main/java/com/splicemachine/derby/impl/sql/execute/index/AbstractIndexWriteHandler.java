@@ -80,7 +80,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
             if(e instanceof WriteFailedException){
                 WriteFailedException wfe = (WriteFailedException)e;
                 for(Mutation originalMutation:indexToMainMutationMap.values()){
-                    ctx.failed(originalMutation,wfe.getMessage());
+                    ctx.failed(originalMutation, new MutationResult(MutationResult.Code.FAILED, wfe.getMessage()));
                 }
             }
             else throw new IOException(e); //something unexpected went bad, need to propagate
@@ -124,11 +124,12 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
             @Override
             public Response partialFailure(MutationRequest request,MutationResponse response) throws Exception {
-                Map<Integer,String> failedRows = response.getFailedRows();
+                Map<Integer,MutationResult> failedRows = response.getFailedRows();
                 boolean canRetry=true;
                 for(Integer row:failedRows.keySet()){
-                    if(!failedRows.get(row).contains("NotServingRegion")&&
-                            !failedRows.get(row).contains("WrongRegion")){
+                    MutationResult result = failedRows.get(row);
+                    if(!result.getErrorMsg().contains("NotServingRegion")&&
+                            !result.getErrorMsg().contains("WrongRegion")){
                         canRetry=false;
                         break;
                     }

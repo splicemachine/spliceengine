@@ -11,7 +11,9 @@ import org.apache.log4j.Logger;
 public class PrimaryKey extends UniqueConstraint {
     private static final Logger logger = Logger.getLogger(PrimaryKey.class);
 
-    public PrimaryKey(){}
+    public PrimaryKey(ConstraintContext cc){
+        super(cc);
+    }
 
     @Override
     public Type getType() {

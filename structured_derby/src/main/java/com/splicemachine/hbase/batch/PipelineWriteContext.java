@@ -44,8 +44,8 @@ public class PipelineWriteContext implements WriteContext{
         }
 
         @Override
-        public void failed(Mutation put, String exceptionMsg) {
-            PipelineWriteContext.this.failed(put,exceptionMsg);
+        public void failed(Mutation put, MutationResult mutationResult) {
+            PipelineWriteContext.this.failed(put,mutationResult);
         }
 
         @Override
@@ -119,8 +119,8 @@ public class PipelineWriteContext implements WriteContext{
     }
 
     @Override
-    public void failed(Mutation put, String exceptionMsg) {
-        resultsMap.put(put,new MutationResult(MutationResult.Code.FAILED,exceptionMsg));
+    public void failed(Mutation put, MutationResult mutationResult) {
+        resultsMap.put(put, mutationResult);
     }
 
     @Override

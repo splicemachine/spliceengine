@@ -12,6 +12,7 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.MutationRequest;
 import com.splicemachine.hbase.MutationResponse;
+import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.batch.WriteContextFactory;
 import com.splicemachine.utils.SpliceZooKeeperManager;
@@ -138,8 +139,8 @@ public class CreateIndexTask extends ZkTask {
 
                         @Override
                         public Response partialFailure(MutationRequest request, MutationResponse response) throws Exception {
-                            for(String failureMessage:response.getFailedRows().values()){
-                                if(failureMessage.contains("NotServingRegion")||failureMessage.contains("WrongRegion"))
+                            for(MutationResult result : response.getFailedRows().values()){
+                                if(result.getErrorMsg().contains("NotServingRegion") || result.getErrorMsg().contains("WrongRegion"))
                                     return Response.RETRY;
                             }
                             return  Response.THROW_ERROR;

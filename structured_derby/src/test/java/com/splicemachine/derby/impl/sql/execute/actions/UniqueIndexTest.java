@@ -50,7 +50,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,CLASS_NAME,"(name varchar(40), val int)");
-    protected static SpliceTableWatcher uniqueTableWatcher = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME,"(name varchar(40), val int, unique(val))");
+    protected static SpliceTableWatcher uniqueTableWatcher = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME,"(name varchar(40), val int, constraint FOO unique(val))");
 
     @Override
     public String getSchemaName() {
@@ -327,6 +327,7 @@ public class UniqueIndexTest extends SpliceUnitTest {
             methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_8),name,value));
         }catch(SQLException se){
             Assert.assertEquals("Incorrect SQL State returned", SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,se.getSQLState());
+            Assert.assertTrue(se.getMessage().contains("identified by 'FOO' defined on 'H'"));
             throw se;
         }
         Assert.assertTrue("Did not report a duplicate key violation!",false);

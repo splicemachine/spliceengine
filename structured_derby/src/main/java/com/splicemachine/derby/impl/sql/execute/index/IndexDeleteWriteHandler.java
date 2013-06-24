@@ -57,7 +57,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
                 } catch (Throwable throwable) {
                     //noinspection ThrowableResultOfMethodCallIgnored
                     Throwable t = Throwables.getRootCause(throwable);
-                    ctx.failed(delete, t.getClass().getSimpleName() + ":" + t.getMessage());
+                    ctx.failed(delete, new MutationResult(MutationResult.Code.FAILED, t.getClass().getSimpleName() + ":" + t.getMessage()));
                     failed=true;
                 }
             }
@@ -93,10 +93,10 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
         } catch (IOException e) {
             failed=true;
-            ctx.failed(mutation,e.getClass().getSimpleName()+":"+e.getMessage());
+            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
         } catch (Exception e) {
             failed=true;
-            ctx.failed(mutation,e.getClass().getSimpleName()+":"+e.getMessage());
+            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
         }
     }
 

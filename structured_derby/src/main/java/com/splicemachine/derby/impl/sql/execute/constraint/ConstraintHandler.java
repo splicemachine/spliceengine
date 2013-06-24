@@ -28,11 +28,11 @@ public class ConstraintHandler implements WriteHandler {
             if(!localConstraint.validate(mutation,ctx.getCoprocessorEnvironment())){
                 failed = true;
                 ctx.result(mutation,
-                        new MutationResult(Constraints.convertType(localConstraint.getType())));
+                        new MutationResult(Constraints.convertType(localConstraint.getType()), localConstraint.getConstraintContext()));
             }else
                 ctx.sendUpstream(mutation);
         } catch (IOException e) {
-            ctx.failed(mutation,e.getClass().getSimpleName()+":"+e.getMessage());
+            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
         }
     }
 

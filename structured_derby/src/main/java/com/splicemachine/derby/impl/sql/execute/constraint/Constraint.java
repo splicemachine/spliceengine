@@ -75,5 +75,7 @@ public interface Constraint {
     boolean validate(Collection<Mutation> mutations,
                      RegionCoprocessorEnvironment rce) throws IOException;
 
+    ConstraintContext getConstraintContext();
+
 }
 

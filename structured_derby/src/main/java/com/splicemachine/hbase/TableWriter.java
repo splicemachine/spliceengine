@@ -432,8 +432,8 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
 
         @Override
         public Response partialFailure(MutationRequest request,MutationResponse response) throws Exception {
-            for(String error:response.getFailedRows().values()){
-                if(!error.contains("NotServingRegion")&&!error.contains("WrongRegion"))
+            for(MutationResult error : response.getFailedRows().values()){
+                if(!error.getErrorMsg().contains("NotServingRegion")&&!error.getErrorMsg().contains("WrongRegion"))
                     return Response.THROW_ERROR;
             }
             return Response.RETRY;
@@ -816,7 +816,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
             try{
                 MutationResponse response = instance.batchMutate(mutationRequest);
                 //deal with rows which failed due to a NotServingRegionException or WrongRegionException
-                Map<Integer,String> failedRows = response.getFailedRows();
+                Map<Integer,MutationResult> failedRows = response.getFailedRows();
                 if(failedRows!=null&&failedRows.size()>0){
                     SpliceLogUtils.debug(LOG,"Received a partial failure response %s",response);
                     FlushWatcher.Response  partialRetry = flushWatcher.partialFailure(mutationRequest,response);
@@ -851,7 +851,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         }
 
         private Exception parseIntoException(MutationResponse response) {
-            Map<Integer,String> failedRows = response.getFailedRows();
+            Map<Integer,MutationResult> failedRows = response.getFailedRows();
             List<Throwable> errors = Lists.newArrayList();
             for(Integer failedRow:failedRows.keySet()){
                 errors.add(Exceptions.fromString(failedRows.get(failedRow)));
@@ -861,13 +861,21 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
 
         private void doPartialRetry(int tries, MutationRequest mutationRequest, MutationResponse response)  throws Exception {
             List<Integer> notRunRows = response.getNotRunRows();
-            Map<Integer,String> failedRows = response.getFailedRows();
+            Map<Integer,MutationResult> failedRows = response.getFailedRows();
             List<Integer> rowsToRetry = Lists.newArrayListWithExpectedSize(notRunRows.size() + failedRows.size());
             rowsToRetry.addAll(notRunRows);
             rowsToRetry.addAll(failedRows.keySet());
 
             //add to error list
-            retryExceptions.add(new WriteFailedException(failedRows.values()));
+
+            Collection<MutationResult> mutationResults = failedRows.values();
+            List<String> errorMsgs = new LinkedList<String>();
+
+            for(MutationResult result : mutationResults){
+                errorMsgs.add(result.getErrorMsg());
+            }
+
+            retryExceptions.add(new WriteFailedException(errorMsgs));
 
             List<Mutation> allMutations = mutationRequest.getMutations();
             List<Mutation> failedMutations = Lists.newArrayListWithCapacity(rowsToRetry.size());

@@ -6,6 +6,7 @@ import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -75,10 +76,10 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             ctx.sendUpstream(mutation);
         } catch (IOException e) {
             failed=true;
-            ctx.failed(mutation,e.getClass().getSimpleName()+":"+e.getMessage());
+            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
         } catch (Exception e) {
             failed=true;
-            ctx.failed(mutation,e.getClass().getSimpleName()+":"+e.getMessage());
+            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
         }
 
     }
@@ -145,10 +146,10 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             return newPut;
         } catch (IOException e) {
             failed=true;
-            ctx.failed(mutation,e.getClass().getSimpleName()+":"+e.getMessage());
+            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
         } catch (Exception e) {
             failed=true;
-            ctx.failed(mutation,e.getClass().getSimpleName()+":"+e.getMessage());
+            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
         }
         //if we get an exception, then return null so we don't try and insert anything
         return null;

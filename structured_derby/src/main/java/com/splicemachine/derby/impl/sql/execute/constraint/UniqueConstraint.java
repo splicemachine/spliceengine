@@ -28,6 +28,13 @@ import java.util.Collection;
  */
 public class UniqueConstraint implements Constraint {
     private static final Logger logger = Logger.getLogger(UniqueConstraint.class);
+
+    private final ConstraintContext constraintContext;
+
+    public UniqueConstraint(ConstraintContext constraintContext){
+        this.constraintContext = constraintContext;
+    }
+
     private static final Predicate<? super Mutation> stripDeletes = new Predicate<Mutation>() {
         @Override
         public boolean apply(@Nullable Mutation input) {
@@ -86,8 +93,13 @@ public class UniqueConstraint implements Constraint {
         return true;
     }
 
-    public static Constraint create() {
-        return new UniqueConstraint();
+    @Override
+    public ConstraintContext getConstraintContext() {
+        return constraintContext;
+    }
+
+    public static Constraint create(ConstraintContext cc) {
+        return new UniqueConstraint(cc);
     }
 
 }

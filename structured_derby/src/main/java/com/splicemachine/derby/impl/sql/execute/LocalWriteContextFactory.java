@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
+import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintHandler;
 import com.splicemachine.derby.impl.sql.execute.constraint.PrimaryKey;
 import com.splicemachine.derby.impl.sql.execute.constraint.UniqueConstraint;
@@ -292,7 +293,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                     constraintFactories.add(buildPrimaryKey(cDescriptor));
                     break;
                 case DataDictionary.UNIQUE_CONSTRAINT:
-                    buildUniqueConstraint();
+                    buildUniqueConstraint(cDescriptor);
                     break;
                 default:
                     LOG.warn("Unknown Constraint on table "+ congomId+": type = "+ cDescriptor.getConstraintType());
@@ -306,7 +307,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             if (conglomDesc.isIndex()) {
                 if (conglomDesc.getConglomerateNumber() == congomId) {
                     //we are an index, so just map a constraint rather than an attached index
-                    addIndexConstraint(conglomDesc);
+                    addIndexConstraint(td, conglomDesc);
                     indexFactories.clear();
                     break;
                 } else {
@@ -316,11 +317,11 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         }
     }
 
-    private void buildUniqueConstraint() throws StandardException {
-        constraintFactories.add(new ConstraintFactory(UniqueConstraint.create()));
+    private void buildUniqueConstraint(ConstraintDescriptor cd) throws StandardException {
+        constraintFactories.add(new ConstraintFactory(UniqueConstraint.create(new ConstraintContext(cd))));
     }
 
-    private void addIndexConstraint(ConglomerateDescriptor conglomDesc) {
+    private void addIndexConstraint(TableDescriptor td, ConglomerateDescriptor conglomDesc) {
         IndexDescriptor indexDescriptor = conglomDesc.getIndexDescriptor().getIndexDescriptor();
         if(indexDescriptor.isUnique()){
             //make sure it's not already in the constraintFactories
@@ -329,7 +330,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                    return; //we've found a local unique constraint, don't need to add it more than once
                }
             }
-            constraintFactories.add(new ConstraintFactory(UniqueConstraint.create()));
+            constraintFactories.add(new ConstraintFactory(UniqueConstraint.create(new ConstraintContext(td, conglomDesc))));
         }
     }
 
@@ -357,7 +358,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     private ConstraintFactory buildPrimaryKey(ConstraintDescriptor cDescriptor) {
-        return new ConstraintFactory(new PrimaryKey());
+        return new ConstraintFactory(new PrimaryKey(new ConstraintContext(cDescriptor)));
     }
 
     private static class ConstraintFactory{

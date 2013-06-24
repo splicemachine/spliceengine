@@ -191,7 +191,7 @@ public class BlockImportTask extends AbstractImportTask{
                                 if(errorCd.contains("NotServingRegionException")){
                                     remoteBuffer.add(mutation);
                                 }else{
-                                    Throwable e = Exceptions.fromString(result.getErrorMsg());
+                                    Throwable e = Exceptions.fromString(result);
                                     throw Exceptions.getIOException(e);
                                 }
                                 break;
@@ -206,13 +206,13 @@ public class BlockImportTask extends AbstractImportTask{
                                 remoteBuffer.add(mutation);
                                 break;
                             case PRIMARY_KEY_VIOLATION:
-                                throw Constraints.constraintViolation(MutationResult.Code.PRIMARY_KEY_VIOLATION);
+                                throw Constraints.constraintViolation(MutationResult.Code.PRIMARY_KEY_VIOLATION, result.getConstraintContext());
                             case UNIQUE_VIOLATION:
-                                throw Constraints.constraintViolation(MutationResult.Code.UNIQUE_VIOLATION);
+                                throw Constraints.constraintViolation(MutationResult.Code.UNIQUE_VIOLATION, result.getConstraintContext());
                             case FOREIGN_KEY_VIOLATION:
-                                throw Constraints.constraintViolation(MutationResult.Code.FOREIGN_KEY_VIOLATION);
+                                throw Constraints.constraintViolation(MutationResult.Code.FOREIGN_KEY_VIOLATION, result.getConstraintContext());
                             case CHECK_VIOLATION:
-                                throw Constraints.constraintViolation(MutationResult.Code.CHECK_VIOLATION);
+                                throw Constraints.constraintViolation(MutationResult.Code.CHECK_VIOLATION, result.getConstraintContext());
                             case WRITE_CONFLICT:
                                 throw new WriteConflict(result.getErrorMsg());
                         }

@@ -21,7 +21,7 @@ public interface WriteContext {
 
     void sendUpstream(Mutation mutation);
 
-    void failed(Mutation put, String exceptionMsg);
+    void failed(Mutation put, MutationResult mutationResult);
 
     void success(Mutation put);
 

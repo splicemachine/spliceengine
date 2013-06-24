@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.index;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
+import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;
 import com.splicemachine.derby.impl.sql.execute.constraint.ForeignKey;
@@ -263,12 +264,12 @@ public class IndexSet {
         if(mutation.getAttribute(INDEX_UPDATED)!=null) return;
         //validate local constraints
         if(localConstraint!=null&&!localConstraint.validate(mutation,environment))
-            throw ConstraintViolation.create(localConstraint.getType());
+            throw ConstraintViolation.create(localConstraint.getType(), localConstraint.getConstraintContext());
 
         //validate fkConstraints
         for(Constraint fkConstraint:fkConstraints){
             if(!fkConstraint.validate(mutation,environment))
-                throw ConstraintViolation.create(fkConstraint.getType());
+                throw ConstraintViolation.create(fkConstraint.getType(), localConstraint.getConstraintContext());
         }
     }
 
@@ -276,12 +277,12 @@ public class IndexSet {
 
         //validate local constraints
         if(localConstraint!=null&&!localConstraint.validate(mutations,environment))
-            throw ConstraintViolation.create(localConstraint.getType());
+            throw ConstraintViolation.create(localConstraint.getType(), localConstraint.getConstraintContext());
 
         //validate fkConstraints
         for(Constraint fkConstraint:fkConstraints){
             if(!fkConstraint.validate(mutations,environment))
-                throw ConstraintViolation.create(fkConstraint.getType());
+                throw ConstraintViolation.create(fkConstraint.getType(), localConstraint.getConstraintContext());
         }
     }
 
@@ -413,7 +414,7 @@ public class IndexSet {
             if(conglomDesc.isIndex()){
                 if(conglomDesc.getConglomerateNumber()==conglomId){
                     //we are an index, so just map a constraint, rather than an IndexManager
-                    localConstraint = buildIndexConstraint(conglomDesc);
+                    localConstraint = buildIndexConstraint(td, conglomDesc);
                     attachedIndices.clear(); //there are no attached indices on the index htable itself
                     foreignKeys.clear(); //there are no foreign keys to deal with on the index htable itself
                     break;
@@ -467,15 +468,15 @@ public class IndexSet {
      * Build a primary Key constraint
      */
     private PrimaryKey buildPrimaryKey(ConstraintDescriptor columnDescriptor) throws StandardException{
-        return new PrimaryKey();
+        return new PrimaryKey(new ConstraintContext(columnDescriptor));
     }
 
     /*
      * Build an index constraint (Unique, Non-null, etc)
      */
-    private Constraint buildIndexConstraint(ConglomerateDescriptor conglomerateDescriptor) throws StandardException{
+    private Constraint buildIndexConstraint(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor) throws StandardException{
         IndexDescriptor indexDescriptor = conglomerateDescriptor.getIndexDescriptor().getIndexDescriptor();
-        if(indexDescriptor.isUnique()) return UniqueConstraint.create();
+        if(indexDescriptor.isUnique()) return new UniqueConstraint(new ConstraintContext(td, conglomerateDescriptor));
         //TODO -sf- get other types of indexing constraints, like NOT NULL etc. here
         return Constraints.noConstraint();
     }
