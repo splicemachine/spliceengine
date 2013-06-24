@@ -1,23 +1,13 @@
 package com.splicemachine.encoding;
 
-import com.gotometrics.orderly.BigDecimalRowKey;
-import com.gotometrics.orderly.RowKey;
-import com.splicemachine.derby.stats.Accumulator;
-import com.splicemachine.derby.stats.Stats;
-import com.splicemachine.derby.stats.TimingStats;
-import org.apache.hadoop.hbase.util.Pair;
-
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.Random;
 
 /**
  * @author Scott Fines
  *         Created on: 6/7/13
  */
+@Deprecated
 public class DecimalEncodingMicroBenchmark {
-
+/*
     private static final int numSerializations = 100000000;
     private static final int maxBitsPerBigInteger = 100;
 
@@ -168,4 +158,5 @@ public class DecimalEncodingMicroBenchmark {
 
         return new BigInteger(new String(values));
     }
+    */
 }

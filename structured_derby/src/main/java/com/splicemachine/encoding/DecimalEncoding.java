@@ -1,12 +1,9 @@
 package com.splicemachine.encoding;
 
-import com.gotometrics.orderly.DoubleRowKey;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 /**
  * @author Scott Fines

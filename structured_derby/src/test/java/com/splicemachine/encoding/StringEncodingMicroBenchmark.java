@@ -1,20 +1,19 @@
 package com.splicemachine.encoding;
 
-import com.gotometrics.orderly.StringRowKey;
 import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.Stats;
 import com.splicemachine.derby.stats.TimingStats;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Ignore;
-
 import java.util.Random;
 
 /**
  * @author Scott Fines
  * Created on: 6/7/13
  */
-@Ignore
+@Deprecated
 public class StringEncodingMicroBenchmark {
+	/*
     private static int numSerializations = 1000000;
 
     private static final String chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?;:,.~'\"[]{}\\|/";
@@ -122,4 +121,5 @@ public class StringEncodingMicroBenchmark {
         }
         return new String(data);
     }
+    */
 }

@@ -1,10 +1,7 @@
 package com.splicemachine.encoding;
 
 import com.google.common.primitives.UnsignedBytes;
-import com.gotometrics.orderly.VariableLengthByteArrayRowKey;
-
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 /**
  * Utility class for encoding byte arrays to a combinable format.
@@ -132,16 +129,6 @@ final class ByteEncoding {
 
         }
         return result;
-    }
-
-    public static void main(String... args) throws Exception{
-        byte[] test = new byte[]{5};
-        byte[] myEncoding = encode(test,false);
-        System.out.println(Arrays.toString(myEncoding));
-
-        byte[] theirEncoding = new VariableLengthByteArrayRowKey().serialize(test);
-        System.out.println(Arrays.toString(theirEncoding));
-        System.out.println(Arrays.toString(decode(myEncoding,false)));
     }
 
 }

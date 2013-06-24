@@ -1,13 +1,10 @@
 package com.splicemachine.encoding;
 
-import com.gotometrics.orderly.LongRowKey;
-import com.gotometrics.orderly.RowKey;
 import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.Stats;
 import com.splicemachine.derby.stats.TimingStats;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Ignore;
-
 import java.io.IOException;
 import java.util.Random;
 
@@ -15,8 +12,9 @@ import java.util.Random;
  * @author Scott Fines
  *         Created on: 6/6/13
  */
-@Ignore
+@Deprecated
 public class IntegerEncodingMicroBenchmark {
+	/*
     private static final int numSerializations = 1000000;
 
     public static void main(String...args) throws IOException {
@@ -110,4 +108,5 @@ public class IntegerEncodingMicroBenchmark {
         System.out.println(deFinish);
         return Pair.newPair(finish,deFinish);
     }
+    */
 }

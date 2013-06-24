@@ -1,6 +1,5 @@
 package com.splicemachine.derby.utils.test;
 
-import com.gotometrics.orderly.StringRowKey;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
@@ -20,7 +19,6 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -302,13 +300,6 @@ public class DerbyBytesUtilTest {
 		Assert.assertTrue(Bytes.compareTo(beginKey, baseline) == 0);
 		Assert.assertTrue(Bytes.compareTo(beginKey, endKey) < 0);
 	}
-
-    @Test
-    public void testCompareSequenceIds() throws Exception {
-        byte[] begin = DerbyBytesUtil.generateBeginKeyForTemp(dvf.getVarcharDataValue("14168@Scott-Finess-MacBook-Pro.local0000000201"));
-        byte[] end = BytesUtil.copyAndIncrement(begin);
-        System.out.printf("%s%n",new StringRowKey().deserialize(end));
-    }
 
 	public DataValueDescriptor[] generateDataValueDescriptors(Object... objects)
 			throws StandardException {

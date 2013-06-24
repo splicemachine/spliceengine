@@ -1,13 +1,11 @@
 package com.splicemachine.encoding;
 
 import com.google.common.collect.Lists;
-import com.gotometrics.orderly.LongRowKey;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -50,17 +48,6 @@ public class IntegerEncoderTest {
             byte[] serialized = ScalarEncoding.toBytes(datum, false);
             long deserialized = ScalarEncoding.getInt(serialized, false);
             Assert.assertEquals("Incorrect deserialization of value "+ datum, datum,deserialized);
-        }
-    }
-
-    @Test
-    public void testMatchesOrderly() throws Exception{
-        //test that our output matches that of Orderly
-        LongRowKey rowKey = new LongRowKey();
-        for(int datum:data){
-            byte[] ours = ScalarEncoding.toBytes(datum, false);
-            byte[] correct = rowKey.serialize((long)datum);
-            Assert.assertArrayEquals("Does not match orderly! Data point: "+ datum,correct,ours);
         }
     }
 

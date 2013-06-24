@@ -1,18 +1,11 @@
 package com.splicemachine.derby.utils;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import com.google.common.io.Closeables;
-//import com.gotometrics.orderly.*;
-import com.gotometrics.orderly.*;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -23,7 +16,6 @@ import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.constants.bytes.BytesUtil;
@@ -209,63 +201,6 @@ public class DerbyBytesUtil {
 	public static byte[] generateIncrementedScanKey(DataValueDescriptor[] descriptors, boolean[] sortOrder) throws IOException, StandardException {
         MultiFieldEncoder encoder = MultiFieldEncoder.create(descriptors.length);
         return generateIncrementedScan(descriptors,encoder,sortOrder);
-//		StructBuilder builder = new StructBuilder();
-//		Object[] values = new Object[descriptors.length];
-//		for (int i=0;i<descriptors.length;i++) {
-//			RowKey rowKey = getRowKey(descriptors[i]);
-//			if (sortOrder != null && !sortOrder[i])
-//				rowKey.setOrder(Order.DESCENDING);
-//			builder.add(rowKey);
-//			if (i == descriptors.length - 1) {
-//				descriptors[i].getObject();
-//				if (rowKey.getSerializedClass() == byte[].class) {
-//					byte[] test = (byte[])descriptors[i].cloneValue(true).getObject();
-//					byte[] newArray = new byte[test.length];
-//					System.arraycopy(test, 0, newArray, 0, test.length);
-//					BytesUtil.incrementAtIndex(newArray, newArray.length - 1);
-//					values[i] = newArray;
-//				}
-//				else if(rowKey.getSerializedClass() == Double.class) {
-//					Double test = (Double)descriptors[i].cloneValue(true).getObject();
-//					test = test + Double.longBitsToDouble(0x1L);
-//					values[i] = test;
-//				}
-//				else if (rowKey.getSerializedClass() == Long.class) {
-//					Long test = (Long)descriptors[i].cloneValue(true).getObject();
-//					test = test + 1l;
-//					values[i] = test;
-//				}
-//				else if (rowKey.getSerializedClass() == Integer.class) {
-//					Integer test = (Integer)descriptors[i].cloneValue(true).getObject();
-//					test = test + 1;
-//					values[i] = test;
-//				}
-//				else if (rowKey.getSerializedClass() == Float.class) {
-//					Float test = (Float)descriptors[i].cloneValue(true).getObject();
-//					test = test + Float.MIN_VALUE;
-//					values[i] = test;
-//				}
-//				else if (rowKey.getSerializedClass() == String.class) {
-//					String test = (String)descriptors[i].cloneValue(true).getObject();
-//					byte[] testByteArray = Bytes.toBytes(test);
-//                    BytesUtil.incrementAtIndex(testByteArray, testByteArray.length - 1);
-//					values[i] = Bytes.toString(testByteArray);
-//				}
-//				else if (rowKey.getSerializedClass() == BigDecimal.class) {
-//					BigDecimal test = (BigDecimal)descriptors[i].cloneValue(true).getObject();
-//					test = test.add(new BigDecimal(Double.MIN_VALUE)); // hack
-//					values[i] = test;
-//				}
-//				else {
-//					throw new RuntimeException("Row Key Type not Supported " + rowKey.getSerializedClass());
-//				}
-//
-//			} else {
-//				values[i] = descriptors[i].getObject();
-//			}
-//
-//		}
-//		return builder.toRowKey().serialize(values);
 	}
 
     public static byte[] generateBeginKeyForTemp(DataValueDescriptor uniqueString) throws StandardException {
@@ -288,52 +223,6 @@ public class DerbyBytesUtil {
             dvds[pos] = qualifiers[0][pos].getOrderable();
         }
         return generateIncrementedScan(dvds, encoder,null);
-//		StructBuilder builder = new StructBuilder();
-//		Object[] values = new Object[qualifiers[0].length+1];
-//		RowKey rowKey;
-//		rowKey = getRowKey(uniqueString);
-//		builder.add(rowKey);
-//		values[0] = uniqueString.getString();
-//		for(int i = 0;i<qualifiers[0].length;i++) { //Qualifier q: qualifiers[0]){
-//			Qualifier q = qualifiers[0][i];
-//			rowKey = getRowKey(q.getOrderable());
-//			builder.add(rowKey);
-//			if(i == qualifiers[0].length-1){
-////				if(rowKey.getSerializedClass() == byte[].class) {
-////					byte[] test = (byte[])q.getOrderable().getObject();
-////					byte[] copy = new byte[test.length];
-////					System.arraycopy(test,0,copy,0,test.length);
-////					BytesUtil.incrementAtIndex(copy,copy.length-1);
-////					values[i+1] = copy;
-//				}else if(rowKey.getSerializedClass() == Double.class){
-//					Double t = (Double)q.getOrderable().getObject();
-//					t = t + Double.longBitsToDouble(0x1L);
-//					values[i+1] = t;
-//				}else if(rowKey.getSerializedClass() == Long.class){
-//					Long t = (Long)q.getOrderable().getObject();
-//					t = t+1l;
-//					values[i+1] = t;
-//				}else if(rowKey.getSerializedClass() == Integer.class){
-//					values[i+1] = (Integer)q.getOrderable().getObject()+1;
-//				}else if(rowKey.getSerializedClass() == Float.class){
-//					values[i+1] = (Float)q.getOrderable().getObject()+Float.MIN_VALUE;
-////				}else if (rowKey.getSerializedClass()==String.class){
-////					String t = (String)q.getOrderable().getObject();
-////					byte[] bytes = Bytes.toBytes(t);
-////					BytesUtil.incrementAtIndex(bytes,bytes.length-1);
-////					values[i+1] = Bytes.toString(bytes);
-//////				}else if (rowKey.getSerializedClass()==BigDecimal.class){
-////					values[i+1] = ((BigDecimal)q.getOrderable().getObject()).add(new BigDecimal(Double.MIN_VALUE));
-//				}else
-//					throw new RuntimeException("Unable to parse key class "+rowKey.getSerializedClass());
-//			}else {
-//				if (LOG.isTraceEnabled())
-//					LOG.trace("Created Value: " + q.getOrderable().getTraceString());
-//				values[i+1] = q.getOrderable().getObject();
-//			}
-//		}
-//
-//		return builder.toRowKey().serialize(values);
 	}
 
     private static byte[] generateIncrementedScan(DataValueDescriptor[] dvds, MultiFieldEncoder encoder,boolean[] sortOrder) throws StandardException, IOException {
@@ -433,21 +322,6 @@ public class DerbyBytesUtil {
             encodeInto(encoder,qualifiers[0][i].getOrderable(),false);
         }
         return encoder.build();
-//		StructBuilder builder = new StructBuilder();
-//		Object[] values = new Object[qualifiers[0].length+1];
-//		RowKey rowKey;
-//		rowKey = getRowKey(uniqueString);
-//		builder.add(rowKey);
-//		values[0] = uniqueString.getString();
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "generateSortedHashScan#uniqueString " + values[0]);
-//		for (int i=0;i<qualifiers[0].length;i++) {
-//			rowKey = getRowKey(qualifiers[0][i].getOrderable());
-//			builder.add(rowKey);
-//			values[i+1] = qualifiers[0][i].getOrderable().getObject();
-//			SpliceLogUtils.trace(LOG, "generateSortedHashScan#iteration value %s",values[i+1]);
-//		}
-//		return builder.toRowKey().serialize(values);
 	}
 	
 	public static byte[] generateIndexKey(DataValueDescriptor[] descriptors, boolean[] sortOrder) throws IOException, StandardException {
@@ -613,58 +487,4 @@ public class DerbyBytesUtil {
                 throw new RuntimeException("Attempt to serialize an unimplemented serializable object " + column.getClass());
         }
     }
-
-    /**
-     * String RowKey which trims off extraneous whitespace and empty characters before serializing.
-     */
-    public static class NullRemovingRowKey extends UTF8RowKey {
-
-        private static final char NULL_CHAR = '\u0000';
-
-			@Override public Class<?> getSerializedClass() { return String.class; }
-
-			@Override
-			public int getSerializedLength(Object o) throws IOException {
-				return super.getSerializedLength(toUTF8(o));
-			}
-
-            private String stripChar(String s, char c){
-                StringBuilder strBuilder = new StringBuilder(s.length());
-
-                for(char stringChar : s.toCharArray()){
-                    if( stringChar != c){
-                        strBuilder.append(stringChar);
-                    }
-                }
-
-                return strBuilder.toString();
-            }
-
-			private Object toUTF8(Object o) {
-				if(o==null|| o instanceof byte[]) return o;
-
-                String objectString = o.toString();
-
-                String replacedString;
-
-                if( objectString.indexOf(NULL_CHAR) != -1){
-                    replacedString = stripChar(objectString, NULL_CHAR);
-                } else {
-                    replacedString = objectString;
-                }
-
-                return Bytes.toBytes(replacedString);
-			}
-
-			@Override
-			public void serialize(Object o, ImmutableBytesWritable w) throws IOException {
-				super.serialize(toUTF8(o),w);
-			}
-
-			@Override
-			public Object deserialize(ImmutableBytesWritable w) throws IOException {
-				byte[] b = (byte[])super.deserialize(w);
-				return b ==null? b :  Bytes.toString(b);
-			}
-		}
 }
