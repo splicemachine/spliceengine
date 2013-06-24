@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.gotometrics.orderly.LongRowKey;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
@@ -19,7 +19,6 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -41,17 +40,12 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Sequence {
     private final AtomicLong remaining = new AtomicLong(0l);
     private final AtomicLong currPosition = new AtomicLong(0l);
-
     private final HTableInterface sysColumns;
     private final long blockAllocationSize;
     private final byte[] sysColumnsRow;
-
     private final long startingValue;
     private final long incrementSteps;
-
     private final Lock updateLock = new ReentrantLock();
-    //NOT THREAD-SAFE. Only use from inside updateLock!
-    private final LongRowKey longRowKey = new LongRowKey();
 
     private static final byte[] autoIncrementValueQualifier = Bytes.toBytes(7);
 
@@ -110,7 +104,7 @@ public class Sequence {
                     currentBytes = null;
                 }else{
                     currentBytes = result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES,autoIncrementValueQualifier);
-                    current = (Long)longRowKey.deserialize(currentBytes);
+                    current = Encoding.decodeLong(currentBytes);
                 }
 
                 //set the current position of the counter
@@ -119,8 +113,7 @@ public class Sequence {
                 //attempt to increment it atomically
                 long next = current+blockAllocationSize;
                 Put put = new Put(sysColumnsRow);
-                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,autoIncrementValueQualifier,longRowKey.serialize(next));
-
+                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,autoIncrementValueQualifier,Encoding.encode(next));
                 success = sysColumns.checkAndPut(sysColumnsRow,
                         SpliceConstants.DEFAULT_FAMILY_BYTES,
                         autoIncrementValueQualifier,currentBytes,put);
