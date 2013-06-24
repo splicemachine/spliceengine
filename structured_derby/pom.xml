@@ -2,12 +2,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-<!--	<artifactId>Splice_Machine</artifactId> -->
-	<artifactId>structured_derby</artifactId>
+	<artifactId>splice_machine</artifactId>
 	<packaging>jar</packaging>
-<!--	<name>Splice_Machine</name> -->
-	<name>structured_derby</name>
-	<description>Derby Structure</description>
+	<name>splice_machine</name>
+	<description>Splice Machine</description>
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
@@ -60,13 +58,6 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_si</artifactId>
-			<version>1.0.1-SNAPSHOT</version>
-			<type>jar</type>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.splicemachine</groupId>
-			<artifactId>structured_orderly</artifactId>
 			<version>1.0.1-SNAPSHOT</version>
 			<type>jar</type>
 			<scope>compile</scope>
@@ -163,11 +154,6 @@
 					<dependency>
 						<groupId>com.splicemachine</groupId>
 						<artifactId>structured_si</artifactId>
-						<version>1.0.1-SNAPSHOT</version>
-					</dependency>
-					<dependency>
-						<groupId>com.splicemachine</groupId>
-						<artifactId>structured_orderly</artifactId>
 						<version>1.0.1-SNAPSHOT</version>
 					</dependency>
 
