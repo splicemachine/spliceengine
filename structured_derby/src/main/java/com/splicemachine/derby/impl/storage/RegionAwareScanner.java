@@ -187,8 +187,6 @@ public class RegionAwareScanner implements Closeable {
         }if(remoteFinish!=null){
             Scan lookAheadScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
             lookAheadScan.setFilter(scan.getFilter());
-            System.out.println("has remote finish? " + table.getTableDescriptor().getNameAsString());
-            System.out.println("has remote finish? " + lookAheadScan);
             lookAheadScanner = table.getScanner(lookAheadScan);
         }
     }

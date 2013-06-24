@@ -2732,7 +2732,6 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
         // for it. We might change this behaviour later, by linking
         // timeout to its parent statement's timeout settings.
 		ResultSet rs = ps.executeSubStatement(lcc, true, 0L);
-	   	System.out.println("HereYYY");
 		rs.close();
 	}
 
