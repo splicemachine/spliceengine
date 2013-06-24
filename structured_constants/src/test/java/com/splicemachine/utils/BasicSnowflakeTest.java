@@ -1,0 +1,105 @@
+package com.splicemachine.utils;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * @author Scott Fines
+ * Created on: 6/21/13
+ */
+public class BasicSnowflakeTest {
+
+    @Test
+    public void testcanCreateAUUID() throws Exception {
+        Snowflake snowflake = new Snowflake((short)(1<<6));
+        long uuid = snowflake.nextUUID();
+        Assert.assertTrue(uuid != 0); //uuids should never == 0 unless the tiemstamp is all kinds of off.
+    }
+
+    @Test
+    public void testNoDuplicateUUIDsInASingleThread() throws Exception {
+        Set<Long> uuidSet = Sets.newHashSet();
+        Snowflake snowflake = new Snowflake((short)(1<<7));
+        for(int i=0;i<1000;i++){
+            long uuid = snowflake.nextUUID();
+            Assert.assertFalse("duplicate uuid found!",uuidSet.contains(uuid));
+            uuidSet.add(uuid);
+        }
+    }
+
+    @Test
+    public void testNoDuplicatesManyThreadsSameSnowflake() throws Exception {
+        int numThreads=10;
+        final int numIterations = 1000;
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        final ConcurrentMap<Long,Boolean> existing = new ConcurrentHashMap<Long, Boolean>();
+        List<Future<Boolean>> futures = Lists.newArrayListWithCapacity(numThreads);
+        final CyclicBarrier startBarrier = new CyclicBarrier(numThreads+1);
+        final Snowflake snowflake = new Snowflake((short)(1<<8));
+        for(int i=0;i<numThreads;i++){
+            futures.add(executor.submit(new Callable<Boolean>() {
+                @Override
+                public Boolean call() throws Exception {
+                    startBarrier.await(); //wait for everyone to force contention
+                    for(int i=0;i<numIterations;i++){
+                        long uuid = snowflake.nextUUID();
+                        if(existing.putIfAbsent(uuid,true)!=null){
+                           return false;  //uh-oh, duplicates!
+                        }
+                    }
+                    return true;
+                }
+            }));
+        }
+
+        startBarrier.await(); //tell everyone to start
+        for(Future<Boolean> future:futures){
+            Assert.assertTrue("Duplicate entry found!",future.get());
+        }
+        //make sure that the correct number of uuids were generated
+        Assert.assertEquals("Incorrect number of uuids generated!",numThreads*numIterations,existing.size());
+    }
+
+    @Test
+    public void testNoDuplicatesManyThreads() throws Exception {
+        int numThreads=10;
+        final int numIterations = 1000;
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        final ConcurrentMap<Long,Boolean> existing = new ConcurrentHashMap<Long, Boolean>();
+        List<Future<Boolean>> futures = Lists.newArrayListWithCapacity(numThreads);
+        final CyclicBarrier startBarrier = new CyclicBarrier(numThreads+1);
+
+        final AtomicInteger counter = new AtomicInteger(0);
+        for(int i=0;i<numThreads;i++){
+            futures.add(executor.submit(new Callable<Boolean>() {
+                @Override
+                public Boolean call() throws Exception {
+                    short nextMachineId = (short)(counter.incrementAndGet());
+                    Snowflake snowflake = new Snowflake(nextMachineId);
+                    startBarrier.await(); //wait for everyone to force contention
+                    for(int i=0;i<numIterations;i++){
+                        long uuid = snowflake.nextUUID();
+                        if(existing.putIfAbsent(uuid,true)!=null){
+                            return false;  //uh-oh, duplicates!
+                        }
+                    }
+                    return true;
+                }
+            }));
+        }
+
+        startBarrier.await(); //tell everyone to start
+        for(Future<Boolean> future:futures){
+            Assert.assertTrue("Duplicate entry found!",future.get());
+        }
+        //make sure that the correct number of uuids were generated
+        Assert.assertEquals("Incorrect number of uuids generated!",numThreads*numIterations,existing.size());
+    }
+}
