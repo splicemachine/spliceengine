@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import com.gotometrics.orderly.IntegerRowKey;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -21,6 +20,7 @@ import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.derby.utils.marshall.RowType;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.BetterHTablePool;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
@@ -58,15 +58,10 @@ public class RowCountOperation extends SpliceBaseOperation{
     private static final long serialVersionUID = 1l;
     private static final Logger LOG = Logger.getLogger(RowCountOperation.class);
     private static final List<NodeType> nodeTypes = Arrays.asList(NodeType.SCAN);
-
     private static final byte[] OFFSET_RESULTS_COL;
 
     static {
-        try {
-            OFFSET_RESULTS_COL = new IntegerRowKey().serialize(-1000);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+       OFFSET_RESULTS_COL = Encoding.encode(-1000);
     }
 
     private String offsetMethodName;
