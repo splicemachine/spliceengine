@@ -28,35 +28,37 @@ public class TableScanOperationTest extends SpliceUnitTest {
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float,sf decimal(5))");
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME2,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd1 int, sd2 smallint, sd3 bigint, se1 float, se2 double, se3 decimal(4,2), se4 REAL)");
+    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("NT",spliceSchemaWatcher.schemaName,("(chartype123a character(3),chartype123b character(3),numeric123_1 numeric(5),numeric123_2 numeric(5))"));
 
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher)
-        .around(spliceTableWatcher2)
-		.around(new SpliceDataWatcher(){
-			@Override
-			protected void starting(Description description) {
-				try {
-				PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (si, sa, sc,sd,se,sf) values (?,?,?,?,?,?)",CLASS_NAME, TABLE_NAME));
-				for (int i =0; i< 10; i++) {
-					ps.setString(1, "" + i);
-					ps.setString(2, "i");
-					ps.setString(3, "" + i*10);
-					ps.setInt(4, i);
-					ps.setFloat(5,10.0f*i);
-                    ps.setBigDecimal(6, i % 2 == 0 ? BigDecimal.valueOf(i).negate() : BigDecimal.valueOf(i)); //make sure we have some negative values
-					ps.executeUpdate();
-				}
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-				finally {
-					spliceClassWatcher.closeAll();
-				}
-			}
-			
-		}).around(new SpliceDataWatcher(){
+	@ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher)
+            .around(spliceTableWatcher)
+            .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3)
+            .around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (si, sa, sc,sd,se,sf) values (?,?,?,?,?,?)",CLASS_NAME, TABLE_NAME));
+                        for (int i =0; i< 10; i++) {
+                            ps.setString(1, "" + i);
+                            ps.setString(2, "i");
+                            ps.setString(3, "" + i*10);
+                            ps.setInt(4, i);
+                            ps.setFloat(5,10.0f*i);
+                            ps.setBigDecimal(6, i % 2 == 0 ? BigDecimal.valueOf(i).negate() : BigDecimal.valueOf(i)); //make sure we have some negative values
+                            ps.executeUpdate();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    finally {
+                        spliceClassWatcher.closeAll();
+                    }
+                }
+
+            }).around(new SpliceDataWatcher(){
                 @Override
                 protected void starting(Description description) {
                     try {
@@ -75,6 +77,13 @@ public class TableScanOperationTest extends SpliceUnitTest {
                             ps.setFloat(10,10.0f*i);
                             ps.executeUpdate();
                         }
+
+                        ps = spliceClassWatcher.prepareStatement("insert into "+ spliceTableWatcher3+" values (?,?,?,?)");
+                        ps.setString(1,"II");
+                        ps.setString(2,"KK");
+                        ps.setBigDecimal(3, new BigDecimal("9.0"));
+                        ps.setBigDecimal(4,BigDecimal.ZERO);
+                        ps.execute();
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -87,7 +96,23 @@ public class TableScanOperationTest extends SpliceUnitTest {
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-	@Test
+    @Test
+    public void testZeroFilledColumnsAreNotNull() throws Exception {
+        //regression test for Bug 562
+        ResultSet rs = methodWatcher.executeQuery("select * from "+spliceTableWatcher3);
+        int count =0;
+        while(rs.next()){
+            Assert.assertEquals("II",rs.getString(1).trim());
+            Assert.assertEquals("KK",rs.getString(2).trim());
+            Assert.assertTrue(new BigDecimal("9.0").compareTo(rs.getBigDecimal(3))==0);
+            Assert.assertTrue(BigDecimal.ZERO.compareTo(rs.getBigDecimal(4))==0);
+            count++;
+        }
+
+        Assert.assertEquals(1,count);
+    }
+
+    @Test
 	public void testSimpleTableScan() throws Exception {			
 			ResultSet rs = methodWatcher.executeQuery(format("select * from %s",this.getTableReference(TABLE_NAME)));
 			int i = 0;
