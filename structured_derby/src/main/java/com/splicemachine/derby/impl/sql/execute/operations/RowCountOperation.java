@@ -176,12 +176,15 @@ public class RowCountOperation extends SpliceBaseOperation{
                 rowsSeen++;
             }else{
                 //we are out--find out how many we filtered
-                FilterList filters = (FilterList)regionScan.getFilter();
-                for(Filter filter:filters.getFilters()){
-                    if(filter instanceof OffsetFilter){
-                        long rowsSkipped = ((OffsetFilter)filter).numSkipped;
-                        spliceScanner.addAdditionalColumnToReturn(OFFSET_RESULTS_COL, Bytes.toBytes(rowsSkipped));
-                        break;
+                Filter regionFilter = regionScan.getFilter();
+                if(regionFilter instanceof FilterList){
+                    FilterList filters = (FilterList)regionFilter;
+                    for(Filter filter:filters.getFilters()){
+                        if(filter instanceof OffsetFilter){
+                            long rowsSkipped = ((OffsetFilter)filter).numSkipped;
+                            spliceScanner.addAdditionalColumnToReturn(OFFSET_RESULTS_COL, Bytes.toBytes(rowsSkipped));
+                            break;
+                        }
                     }
                 }
             }
