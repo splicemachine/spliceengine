@@ -68,6 +68,22 @@ public class TestUtils {
         return results;
     }
 
+    public static List<Object[]> resultSetToArrays(ResultSet rs) throws SQLException {
+        List<Object[]> results = new ArrayList<Object[]>();
+        BasicRowProcessor brp = new BasicRowProcessor();
+
+        while (rs.next()){
+            results.add(brp.toArray(rs));
+        }
+
+        return results;
+    }
+
+    /* Make an Object array from args */
+    public static Object[] o(Object... o){
+        return o;
+    }
+
     public static List<Map> tableLookupByNumber(SpliceWatcher spliceWatcher) throws Exception{
         ResultSet rs = spliceWatcher.executeQuery("select t1.tableid, t2.tablename, t1.CONGLOMERATENUMBER " +
                 "                                  from sys.sysconglomerates t1, sys.systables t2  " +

@@ -24,6 +24,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
 
+import static com.splicemachine.homeless.TestUtils.o;
+
 
 public class InnerJoinTest extends SpliceUnitTest {
 
@@ -694,5 +696,50 @@ public class InnerJoinTest extends SpliceUnitTest {
                                                     "(select works.empnum from works where staff.empnum = works.empnum)");
         List results = TestUtils.resultSetToMaps(rs);
         Assert.assertEquals(1, results.size());
+    }
+
+    @Test
+    public void testSimpleSelfJoin() throws Exception {
+        List<Object[]> expected = Arrays.asList(
+                // Single "Akron" row
+                o("E5", "E5"),
+                // "Deale" rows
+                o("E1", "E1"),  o("E1", "E4"), o("E4", "E1"), o("E4", "E4"),
+                // "Vienna" rows
+                o("E2", "E2"), o("E2", "E3"), o("E3", "E2"), o("E3", "E3"));
+        ResultSet rs = methodWatcher.executeQuery("select a.empnum, b.empnum from staff a inner join staff b on a.city = b.city order by a.city, a.empnum, b.empnum");
+        List results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+    }
+
+    @Test
+    public void testSelfJoinWithConstantProjection() throws Exception {
+        List<Object[]> expected = Arrays.asList(
+                o(1,2,"a"), o(1,3,"a"), o(1,4,"a"), o(1,6,"a"), o(1,8,"a"),
+                o(2,3,"a"), o(2,4,"a"), o(2,6,"a"), o(2,8,"a"),
+                o(3,4,"a"), o(3,6,"a"), o(3,8,"a"),
+                o(4,6,"a"), o(4,8,"a"),
+                o(6,8,"a"));
+
+        ResultSet rs = methodWatcher.executeQuery("select a.numkey, b.numkey, 'a' from upuniq a inner join upuniq b on a.numkey < b.numkey order by a.numkey, b.numkey");
+        List results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+    }
+
+    @Test
+    @Ignore("Bugzilla 597")
+    public void testSelfJoinWithLessThanSelection() throws Exception {
+        List<Object[]> expected = Arrays.asList(
+                o("E1", "E4", "Alice", "Don"),
+                o("E2", "E3", "Betty", "Carmen"));
+
+        ResultSet rs = methodWatcher.executeQuery("select a.empnum, b.empnum, a.empname, b.empname from staff a join staff b on a.city = b.city where a.empnum < b.empnum " +
+                "order by a.empnum");
+        List results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
     }
 }
