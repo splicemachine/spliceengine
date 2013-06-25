@@ -644,15 +644,10 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
 
+        out.writeInt(typeFormatId);
         out.writeBoolean(dvd != null);
-
-        if(dvd != null){
-            out.writeUTF(dvd.getClass().getCanonicalName());
-        }
-
         writeDvdBytes(out);
 
-        out.writeUTF(dvdSerializer.getClass().getCanonicalName());
     }
 
     protected void readDvdBytes(ObjectInput in) throws IOException, ClassNotFoundException {
@@ -670,15 +665,27 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
         DataValueDescriptor externalDVD = null;
 
+        int typeId = in.readInt();
+
         if(in.readBoolean()){
-            externalDVD = (DataValueDescriptor) createClassInstance(in.readUTF());
-            externalDVD.setToNull();
+            externalDVD = createNullDVD(typeId);
         }
         readDvdBytes(in);
 
-        DVDSerializer serializer = (DVDSerializer) createClassInstance(in.readUTF());
+        init(externalDVD, LazyDataValueFactory.getDVDSerializer(typeId));
+    }
 
-        init(externalDVD, serializer);
+    protected DataValueDescriptor createNullDVD(int typeId) throws IOException {
+
+        DataValueDescriptor externalDVD;
+
+        try{
+            externalDVD = LazyDataValueFactory.getLazyNull(typeId);
+        }catch(StandardException e){
+            throw new IOException("Error creating Null DataValueDescriptor", e);
+        }
+
+        return externalDVD;
     }
 
     protected Object createClassInstance(String className) throws IOException {
