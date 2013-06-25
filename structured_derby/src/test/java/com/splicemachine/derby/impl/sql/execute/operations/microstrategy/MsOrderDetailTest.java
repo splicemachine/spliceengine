@@ -49,7 +49,7 @@ public class MsOrderDetailTest extends SpliceUnitTest {
         String userDir = System.getProperty("user.dir");
         if(!userDir.endsWith("structured_derby"))
             userDir = userDir+"/structured_derby/";
-        PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,null)");
+        PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,null,null,null)");
         ps.setString(1,CLASS_NAME);
         ps.setString(2,TABLE_NAME);        
         ps.setString(3,userDir+"/src/test/resources/order_detail_small.csv");

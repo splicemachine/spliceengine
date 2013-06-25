@@ -77,7 +77,7 @@ public class HdfsImportTest extends SpliceUnitTest {
     }
 
     private void testImport(String schemaName, String tableName,String location,String colList) throws Exception {
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s','%s',null, '%s',',',null,null)",schemaName,tableName,colList,location));
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s','%s',null, '%s',',',null,null,null,null)",schemaName,tableName,colList,location));
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",schemaName,tableName));
         List<String> results = Lists.newArrayList();
@@ -100,7 +100,7 @@ public class HdfsImportTest extends SpliceUnitTest {
 		String csvLocation = getResourceDirectory()+"hello_there.csv";
 		PreparedStatement ps =
                 methodWatcher.prepareStatement(
-                        format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s', null, null, '%s', ',', null, null)",
+                        format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s', null, null, '%s', ',', null, null,null,null)",
                                 spliceSchemaWatcher.schemaName,TABLE_5,csvLocation));
 		ps.execute();
 		ResultSet rs = methodWatcher.executeQuery(format("select i, j from %s.%s",spliceSchemaWatcher.schemaName,TABLE_5));
@@ -128,7 +128,7 @@ public class HdfsImportTest extends SpliceUnitTest {
 	@Test
 	public void testImportFromSQL() throws Exception{
 		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-				",',',null,null)",spliceSchemaWatcher.schemaName,TABLE_3));
+				",',',null,null,null,null)",spliceSchemaWatcher.schemaName,TABLE_3));
         ps.setString(1,getResourceDirectory()+"order_detail_small.csv");
 		ps.execute();
 
@@ -166,7 +166,7 @@ public class HdfsImportTest extends SpliceUnitTest {
 	@Test
 	public void testImportISODateFormat() throws Exception{
 		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-				",',','\"','yyyy-MM-dd''T''hh:mm:ss.SSS')",spliceSchemaWatcher.schemaName,TABLE_9));
+				",',','\"','yyyy-MM-dd''T''hh:mm:ss.SSS',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
         ps.setString(1,getResourceDirectory()+"iso_order_date.csv");
 		ps.execute();
 
@@ -184,7 +184,7 @@ public class HdfsImportTest extends SpliceUnitTest {
 	@Test
 	public void testImportNullFields() throws Exception{
 		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-				",',','\"',null)",spliceSchemaWatcher.schemaName,TABLE_10));
+				",',','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_10));
         ps.setString(1,getResourceDirectory()+"null_field.csv");
 		ps.execute();
 
@@ -215,7 +215,7 @@ public class HdfsImportTest extends SpliceUnitTest {
     public void testImportWithExtraTabDelimited() throws Exception{
         String location = getResourceDirectory()+"lu_cust_city.txt";
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
-                "'%s',',',null,null)", spliceSchemaWatcher.schemaName, TABLE_4,location));
+                "'%s',',',null,null,null,null)", spliceSchemaWatcher.schemaName, TABLE_4,location));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s",this.getTableReference(TABLE_4)));
@@ -233,7 +233,7 @@ public class HdfsImportTest extends SpliceUnitTest {
     public void testImportTabDelimited() throws Exception{
         String location = getResourceDirectory()+"lu_cust_city_tab.txt";
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
-                "'%s','\t',null,null)",spliceSchemaWatcher.schemaName,TABLE_8,location));
+                "'%s','\t',null,null,null,null)",spliceSchemaWatcher.schemaName,TABLE_8,location));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,TABLE_8));

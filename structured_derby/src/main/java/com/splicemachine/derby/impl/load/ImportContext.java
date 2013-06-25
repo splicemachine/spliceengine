@@ -59,6 +59,9 @@ public class ImportContext implements Externalizable{
 	 * there are no timestamps in the file to be imported.
 	 */
 	private String timestampFormat;
+    private String dateFormat;
+    private String timeFormat;
+
     private FormatableBitSet pkCols;
 
     private long byteOffset;
@@ -75,6 +78,8 @@ public class ImportContext implements Externalizable{
                           FormatableBitSet activeCols,
                           FormatableBitSet pkCols,
                           String timestampFormat,
+                          String timeFormat,
+                          String dateFormat,
                           long byteOffset,
                           int bytesToRead){
         this.transactionId = transactionId;
@@ -85,6 +90,8 @@ public class ImportContext implements Externalizable{
 		this.tableId = destTableId;
 		this.activeCols = activeCols;
 		this.timestampFormat = timestampFormat;
+        this.timeFormat = timeFormat;
+        this.dateFormat = dateFormat;
         this.pkCols = pkCols;
         this.byteOffset = byteOffset;
         this.bytesToRead = bytesToRead;
@@ -203,6 +210,14 @@ public class ImportContext implements Externalizable{
         return transactionId;
     }
 
+    public String getDateFormat() {
+        return dateFormat;
+    }
+
+    public String getTimeFormat() {
+        return timeFormat;
+    }
+
     public static class Builder{
 		private Path filePath;
 		private Long tableId;
@@ -216,6 +231,9 @@ public class ImportContext implements Externalizable{
         private String transactionId;
         private long byteOffset;
         private int bytesToRead;
+
+        private String timeFormat;
+        private String dateFormat;
 
         public Builder path(Path filePath) {
 			this.filePath = filePath;
@@ -262,6 +280,16 @@ public class ImportContext implements Externalizable{
 			this.timestampFormat = timestampFormat;
 			return this;
 		}
+
+        public Builder timeFormat(String timeFormat){
+            this.timeFormat = timeFormat;
+            return this;
+        }
+
+        public Builder dateFormat(String dateFormat){
+            this.dateFormat = dateFormat;
+            return this;
+        }
 
         public Builder primaryKeys(FormatableBitSet pkCols) {
             this.pkCols = pkCols;
@@ -319,7 +347,7 @@ public class ImportContext implements Externalizable{
             return new ImportContext(transactionId, filePath,tableId,
                     columnDelimiter,stripString,
                     colTypes,activeCols,pkCols,
-                    timestampFormat, byteOffset, bytesToRead);
+                    timestampFormat,dateFormat,timeFormat, byteOffset, bytesToRead);
         }
     }
 }

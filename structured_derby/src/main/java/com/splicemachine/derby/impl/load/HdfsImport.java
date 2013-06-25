@@ -81,7 +81,9 @@ public class HdfsImport extends ParallelVTI {
                                          String insertColumnList, String columnIndexes,
                                          String fileName, String columnDelimiter,
                                          String characterDelimiter,
-                                         String timestampFormat) throws SQLException {
+                                         String timestampFormat,
+                                         String dateFormat,
+                                         String timeFormat) throws SQLException {
     	Connection conn = getDefaultConn();
         try {
             LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
@@ -89,7 +91,7 @@ public class HdfsImport extends ParallelVTI {
             try {
                 importData(transactionId, conn, schemaName, tableName,
                         insertColumnList, fileName, columnDelimiter,
-                        characterDelimiter, timestampFormat);
+                        characterDelimiter, timestampFormat,dateFormat,timeFormat);
             } catch (SQLException se) {
                 try {
                     conn.rollback();
@@ -146,7 +148,8 @@ public class HdfsImport extends ParallelVTI {
 	public static ResultSet importData(String transactionId, Connection connection,
 								String schemaName,String tableName,
 								String insertColumnList,String inputFileName,
-								String delimiter,String charDelimiter,String timestampFormat) throws SQLException{
+								String delimiter,String charDelimiter,String timestampFormat,
+                                String dateFormat,String timeFormat) throws SQLException{
 		if(connection ==null)
 			throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.CONNECTION_NULL));
 		if(tableName==null)
@@ -158,6 +161,8 @@ public class HdfsImport extends ParallelVTI {
                     .stripCharacters(charDelimiter)
                     .colDelimiter(delimiter)
                     .timestampFormat(timestampFormat)
+                    .dateFormat(dateFormat)
+                    .timeFormat(timeFormat)
                     .transactionId(transactionId);
 
 

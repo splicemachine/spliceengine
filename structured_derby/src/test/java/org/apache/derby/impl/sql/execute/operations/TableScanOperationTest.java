@@ -1,5 +1,6 @@
 package org.apache.derby.impl.sql.execute.operations;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
@@ -25,7 +26,7 @@ public class TableScanOperationTest extends SpliceUnitTest {
 	public static final String TABLE_NAME = "A";
 	public static final String TABLE_NAME2 = "AB";
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float)");
+	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float,sf decimal(5))");
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME2,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd1 int, sd2 smallint, sd3 bigint, se1 float, se2 double, se3 decimal(4,2), se4 REAL)");
 
 	@ClassRule 
@@ -37,13 +38,14 @@ public class TableScanOperationTest extends SpliceUnitTest {
 			@Override
 			protected void starting(Description description) {
 				try {
-				PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (si, sa, sc,sd,se) values (?,?,?,?,?)",CLASS_NAME, TABLE_NAME));
+				PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (si, sa, sc,sd,se,sf) values (?,?,?,?,?,?)",CLASS_NAME, TABLE_NAME));
 				for (int i =0; i< 10; i++) {
 					ps.setString(1, "" + i);
 					ps.setString(2, "i");
 					ps.setString(3, "" + i*10);
 					ps.setInt(4, i);
 					ps.setFloat(5,10.0f*i);
+                    ps.setBigDecimal(6, i % 2 == 0 ? BigDecimal.valueOf(i).negate() : BigDecimal.valueOf(i)); //make sure we have some negative values
 					ps.executeUpdate();
 				}
 				} catch (Exception e) {
@@ -93,12 +95,14 @@ public class TableScanOperationTest extends SpliceUnitTest {
 				i++;
 				Assert.assertNotNull(rs.getString(1));
 				Assert.assertNotNull(rs.getString(2));				
-				Assert.assertNotNull(rs.getString(3));				
+				Assert.assertNotNull(rs.getString(3));
+                Assert.assertNotNull(rs.getBigDecimal(6));
 			}	
 			Assert.assertEquals(10, i);
 	}
 
-	@Test
+
+    @Test
 	public void testScanForNullEntries() throws Exception{
 		ResultSet rs = methodWatcher.executeQuery(format("select si from %s where si is null",this.getTableReference(TABLE_NAME)));
 		boolean hasRows = false;

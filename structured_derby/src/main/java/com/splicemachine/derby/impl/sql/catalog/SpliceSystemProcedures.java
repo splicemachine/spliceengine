@@ -45,7 +45,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("fileName",32672)
                             .varchar("columnDelimiter",5)
                             .charType("characterDelimiter",1)
-                            .varchar("timestampFormat",32672).build();
+                            .varchar("timestampFormat",32672)
+                            .varchar("dateFormat",32672)
+                            .varchar("timeFormat",32672).build();
                     procedures.set(i,newImport);
 
 				    /*

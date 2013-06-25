@@ -10,9 +10,7 @@ import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.DateTimeDataValue;
+import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.fs.FileSystem;
@@ -37,7 +35,9 @@ public abstract class AbstractImportTask extends ZkTask {
     private static final long serialVersionUID = 1l;
     protected ImportContext importContext;
     protected FileSystem fileSystem;
-    private DateFormat dateParser;
+    private DateFormat dateFormat;
+    private DateFormat timestampFormat;
+    private DateFormat timeFormat;
 
     public AbstractImportTask() { }
 
@@ -158,17 +158,38 @@ public abstract class AbstractImportTask extends ZkTask {
             elem=null;
         DataValueDescriptor dvd = row.getColumn(pos+1);
         if(elem!=null && dvd instanceof DateTimeDataValue){
-            if(dateParser==null){
-                String timestampFormat = importContext.getTimestampFormat();
-                if(timestampFormat==null)
-                    timestampFormat = "yyyy-mm-dd hh:mm:ss";
-                dateParser = new SimpleDateFormat(timestampFormat);
+            DateFormat format = null;
+            if(dvd instanceof SQLTimestamp){
+                if(timestampFormat==null){
+                    String tsFormat = importContext.getTimestampFormat();
+                    if(tsFormat ==null)
+                        tsFormat = "yyyy-mm-dd hh:mm:ss"; //iso format
+                    timestampFormat = new SimpleDateFormat(tsFormat);
+                }
+                format = timestampFormat;
+            }else if(dvd instanceof SQLDate){
+                if(dateFormat==null){
+                    String dFormat = importContext.getDateFormat();
+                    if(dFormat==null)
+                        dFormat = "yyyy-mm-dd";
+                    dateFormat = new SimpleDateFormat(dFormat);
+                }
+                format = dateFormat;
+            }else if(dvd instanceof SQLTime){
+                if(timeFormat==null){
+                    String tFormat = importContext.getTimeFormat();
+                    if(tFormat==null)
+                        tFormat = "hh:mm:ss";
+                    timeFormat = new SimpleDateFormat(tFormat);
+                }
+                format = timeFormat;
+            }else{
+                throw Exceptions.parseException(new IllegalStateException("Unable to determine date format for type "+ dvd.getClass()));
             }
             try{
-                Date parsed = dateParser.parse(elem);
-                Timestamp ts = new Timestamp(parsed.getTime());
-                dvd.setValue(ts);
-            } catch (ParseException e) {
+                Date value = format.parse(elem);
+                dvd.setValue(new Timestamp(value.getTime()));
+            }catch (ParseException p){
                 throw StandardException.newException(SQLState.LANG_DATE_SYNTAX_EXCEPTION);
             }
         }else
