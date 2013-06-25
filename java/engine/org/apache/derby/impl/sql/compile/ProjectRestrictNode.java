@@ -1459,16 +1459,6 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
    		// }
    		// static Method exprN = method pointer to exprN;
 
-       if(childResult instanceof JoinNode){
-
-           CollectNodesVisitor colRefVisitor = new CollectNodesVisitor(ColumnReference.class);
-           resultColumns.accept(colRefVisitor);
-
-           Vector colRefs = colRefVisitor.getList();
-
-           ColumnMappingUtils.updateColumnMappings(childResult.getResultColumns(), colRefs.iterator());
-       }
-
 
 
 		// Map the result columns to the source columns
@@ -1508,6 +1498,15 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
 		}
 
 
+       if(childResult instanceof JoinNode){
+
+           CollectNodesVisitor colRefVisitor = new CollectNodesVisitor(ColumnReference.class);
+           resultColumns.accept(colRefVisitor);
+
+           Vector colRefs = colRefVisitor.getList();
+
+           ColumnMappingUtils.updateColumnMappings(childResult.getResultColumns(), colRefs.iterator());
+       }
 
 		/* Generate the ProjectRestrictSet:
 		 *	arg1: childExpress - Expression for childResultSet

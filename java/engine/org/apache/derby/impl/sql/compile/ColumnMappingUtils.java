@@ -11,7 +11,7 @@ public class ColumnMappingUtils {
      * @param colsToUpdateFrom
      * @param colRefsToUpdate
      */
-    public static void updateColumnMappings(ResultColumnList colsToUpdateFrom, Iterator colRefsToUpdate){
+    public static void updateColumnMappings(ResultColumnList colsToUpdateFrom, Iterator colRefsToUpdate) {
 
         while(colRefsToUpdate.hasNext()){
 
@@ -19,6 +19,7 @@ public class ColumnMappingUtils {
             ResultColumn rcToUpdate = colRef.getSource();
 
             if(rcToUpdate != null){
+                // TODO: handle column name collision
                 ResultColumn updateFromRC = colsToUpdateFrom.getResultColumn(rcToUpdate.getName());
                 rcToUpdate.setResultSetNumber(updateFromRC.getResultSetNumber());
                 rcToUpdate.setVirtualColumnId(updateFromRC.getVirtualColumnId());
