@@ -3,6 +3,7 @@ package com.splicemachine.encoding;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 
 /**
@@ -26,4 +27,15 @@ public class SpecialEncodingTest {
 
         Assert.assertEquals(0,retVal);
     }
+
+    @Test
+    public void testEncodeNegativeBigDecimal() throws Exception {
+        BigDecimal value = new BigDecimal("-4440.3232");
+        byte[] test = DecimalEncoding.toBytes(value,false);
+        BigDecimal ret = DecimalEncoding.toBigDecimal(test,false);
+        Assert.assertTrue(value.subtract(ret).compareTo(BigDecimal.valueOf(Math.pow(10,-6)))<0);
+
+    }
+
+
 }

@@ -113,6 +113,7 @@ final class DecimalEncoding {
             data[0] = (byte)((b<<Byte.SIZE-2) &0xff);
             return data;
         }
+
         int precision = value.precision();
         long exp = precision-value.scale()-1l; //scale <0, so this is precision+scale-1
         /*
@@ -137,7 +138,7 @@ final class DecimalEncoding {
         data = new byte[expLength + length];
         System.arraycopy(expBytes,0,data,0,expBytes.length);
 
-        String sigString = i.toString();
+        String sigString = i.abs().toString(); //strip negatives off if necessary
 
         char[] sigChars = sigString.toCharArray();
         for(int pos=0;pos<length;pos++){
@@ -223,10 +224,14 @@ final class DecimalEncoding {
         int offset = (int)(expOffset[1]);
 
         int length=((dataLength-offset)*2);
-        if(dataOffset+length>data.length){
-            if((data[data.length-1]&0xf) ==0)
-                length-=1;
-        }else if((data[dataOffset+length-1] & 0xf) ==0)
+        byte last;
+        if(dataOffset+length>=data.length)
+            last = data[data.length-1];
+        else
+            last = data[dataOffset+length-1];
+        if(desc)
+            last ^= 0xff;
+        if((last &0xf) ==0)
             length-=1;
 
         //deserialize the digits

@@ -51,6 +51,12 @@ public class RandomizedDecimalEncodingTest {
             BigDecimal ret = DecimalEncoding.toBigDecimal(data,false);
 
             Assert.assertTrue(decimal.compareTo(ret)==0);
+
+            //decode the negative version too, just to make sure
+            byte[] negData = DecimalEncoding.toBytes(decimal.negate(),false);
+            ret  = DecimalEncoding.toBigDecimal(negData,false);
+
+            Assert.assertTrue(decimal.negate().compareTo(ret)==0);
         }
     }
 
@@ -61,6 +67,8 @@ public class RandomizedDecimalEncodingTest {
             BigDecimal ret = DecimalEncoding.toBigDecimal(ByteBuffer.wrap(data), false);
 
             Assert.assertTrue("Incorrect serialization of value " + decimal,ret.compareTo(decimal)==0);
+
+
         }
     }
 
@@ -91,5 +99,40 @@ public class RandomizedDecimalEncodingTest {
             }
         }
 
+    }
+
+    @Test
+    public void testCanDecodeWhenManuallyConverted() throws Exception {
+        /*
+         * Some bits of code will manually convert from ascending to descending and back, this
+         * makes sure that BigDecimals work correctly in that situation
+         */
+
+        for(BigDecimal testNum:data){
+            byte[] bigDecBytes = Encoding.encode(testNum, false);
+
+            BigDecimal result = Encoding.decodeBigDecimal(convertToDescending(bigDecBytes), true);
+
+            Assert.assertTrue(result.compareTo(testNum)==0);
+
+            //check the negation as well
+            BigDecimal t = testNum.negate();
+            bigDecBytes = Encoding.encode(t, false);
+
+            result = Encoding.decodeBigDecimal(convertToDescending(bigDecBytes), true);
+
+            Assert.assertTrue(result.compareTo(t)==0);
+        }
+
+    }
+
+    private byte[] convertToDescending(byte[] bytes){
+        byte[] retBytes = new byte[bytes.length];
+        System.arraycopy(bytes,0,retBytes,0,bytes.length);
+        for(int i=0;i<retBytes.length;i++){
+            retBytes[i] ^=0xff;
+        }
+
+        return retBytes;
     }
 }
