@@ -73,8 +73,7 @@ public class FunctionTest extends SpliceUnitTest {
      * 
      * @throws SQLException
      */
-    @Test
-    @Ignore("Protocol Error - Need to figure out - JL")
+    @Test(expected=SQLException.class)
     public void testAcosFunction() throws Exception{
         ResultSet funcRs = methodWatcher.executeQuery("select acos(data) from" + this.getPaddedTableReference("A"));
         int rows = 0;
