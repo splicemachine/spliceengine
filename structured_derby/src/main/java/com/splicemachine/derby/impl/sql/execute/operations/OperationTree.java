@@ -1,10 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
@@ -77,20 +73,48 @@ public class OperationTree implements IOperationTree {
 		SpliceLogUtils.trace(LOG, "execute with operationTree with %d execution stacks",operationTree.keySet().size());
 		SpliceOperation operation = null;
 		while (operationTree.keySet().size() > 0) {
-			for (SpliceOperation op: operationTree.keySet())
-				if (operationTree.get(op).size() == 0) {
-					SpliceLogUtils.trace(LOG, "Executing Set of Operations with executing step %s",op);
-					if (op.getNodeTypes().contains(NodeType.REDUCE)){
-						op.executeShuffle();
-						//if we are also a scan, AND we are the last operationTree to execute, then create the scan
-						if(op.getNodeTypes().contains(NodeType.SCAN)&&operationTree.keySet().size()==1)
-							output = op.executeScan();
-					}else
-						output = op.executeScan();
-					operation = op;
-					operationFinished(op.getUniqueSequenceID());
-				}			
-		}	
+            Iterator<Map.Entry<SpliceOperation, List<SpliceOperation>>> treeIterator = operationTree.entrySet().iterator();
+            while(treeIterator.hasNext()){
+                Map.Entry<SpliceOperation,List<SpliceOperation>> ops = treeIterator.next();
+                SpliceOperation op = ops.getKey();
+                if(op.getNodeTypes().contains(NodeType.REDUCE)){
+                    op.executeShuffle();
+                    if(op.getNodeTypes().contains(NodeType.SCAN)&&!treeIterator.hasNext())
+                        output = op.executeScan();
+                }else
+                    output = op.executeScan();
+
+                operation = op;
+                List<SpliceOperation> waitOperations = ops.getValue();
+
+                //remove the operation from operationTree
+                treeIterator.remove();
+
+                Iterator<SpliceOperation> waitOps = waitOperations.iterator();
+                String uniqueSequenceId = op.getUniqueSequenceID();
+                while(waitOps.hasNext()){
+                    SpliceOperation wait = waitOps.next();
+                    if(wait.getUniqueSequenceID().equals(uniqueSequenceId)){
+                        waitOperations.remove(wait);
+                        break;
+                    }
+                }
+
+            }
+//			for (SpliceOperation op: operationTree.keySet())
+//				if (operationTree.get(op).size() == 0) {
+//					SpliceLogUtils.trace(LOG, "Executing Set of Operations with executing step %s",op);
+//					if (op.getNodeTypes().contains(NodeType.REDUCE)){
+//						op.executeShuffle();
+//						//if we are also a scan, AND we are the last operationTree to execute, then create the scan
+//						if(op.getNodeTypes().contains(NodeType.SCAN)&&operationTree.keySet().size()==1)
+//							output = op.executeScan();
+//					}else
+//						output = op.executeScan();
+//					operation = op;
+//					operationFinished(op.getUniqueSequenceID());
+//				}
+		}
 		SpliceLogUtils.trace(LOG,"Execution Tree Finalized: %s with object %s", operation,output); 
 		return output;
 	}

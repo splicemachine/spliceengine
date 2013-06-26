@@ -160,30 +160,46 @@ public class UnionOperation extends SpliceBaseOperation {
 
         if(currentSource==null){
             boolean isScan = false;
-            for(SpliceOperation subOps:firstResultSet.getSubOperations()){
-                if(subOps instanceof ScanOperation){
-                    isScan = true;
-                    break;
-                }
-            }
-            if(firstResultSet instanceof ScanOperation)
-                isScan=true;
+            isScan = checkScan(firstResultSet);
             if(!isScan){
-                for(SpliceOperation subOps:secondResultSet.getSubOperations()){
-                    if(subOps instanceof ScanOperation){
-                        isScan = true;
-                        break;
-                    }
-                }
+                isScan = checkScan(secondResultSet);
             }
-            if(secondResultSet instanceof ScanOperation)
-                isScan=true;
+//            for(SpliceOperation subOps:firstResultSet.getSubOperations()){
+//                if(subOps instanceof ScanOperation){
+//                    isScan = true;
+//                    break;
+//                }
+//            }
+//            if(firstResultSet instanceof ScanOperation)
+//                isScan=true;
+//            if(!isScan){
+//                for(SpliceOperation subOps:secondResultSet.getSubOperations()){
+//                    if(subOps instanceof ScanOperation){
+//                        isScan = true;
+//                        break;
+//                    }
+//                }
+//            }
+//            if(secondResultSet instanceof ScanOperation)
+//                isScan=true;
             this.isScan = isScan;
             if(!isScan){
                 currentSource = Source.BOTH;
                 readBoth = true;
             }else
                 currentSource = Source.LEFT;
+        }
+    }
+
+    private boolean checkScan(SpliceOperation operation){
+        if(operation instanceof ScanOperation)
+             return true;
+        else{
+            boolean isScan = false;
+            for(SpliceOperation op:operation.getSubOperations()){
+                isScan = checkScan(op);
+            }
+            return isScan;
         }
     }
 
