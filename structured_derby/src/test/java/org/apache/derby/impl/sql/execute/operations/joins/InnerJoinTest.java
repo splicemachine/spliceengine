@@ -188,6 +188,16 @@ public class InnerJoinTest extends SpliceUnitTest {
     }
 
     @Test
+    public void testNestedLoopLeftOuterJoin() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select t1.EMPNAME, t1.CITY, t2.PTYPE from STAFF t1 left outer join PROJ t2 --DERBY-PROPERTIES joinStrategy=NESTEDLOOP \n" +
+                " on t1.CITY = t2.CITY");
+
+        List<Map> results = TestUtils.resultSetToMaps(rs);
+        Assert.assertEquals(11, results.size());
+
+    }
+
+    @Test
      public void testThreeTableJoin() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select t1.orl_order_id, t2.cst_id, t3.itm_id " +
                 "from order_line t1, customer t2, item t3 " +

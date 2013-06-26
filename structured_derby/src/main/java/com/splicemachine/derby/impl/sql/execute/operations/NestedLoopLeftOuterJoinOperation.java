@@ -22,7 +22,6 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 	protected boolean wasRightOuterJoin;
 	protected GeneratedMethod emptyRowFun;
 	protected Qualifier[][] qualifierProbe;
-	protected NestedLoopLeftIterator nestedLoopLeftIterator;
 	public int emptyRightRowsReturned = 0;
 	
 	public NestedLoopLeftOuterJoinOperation() {
@@ -138,7 +137,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
         private boolean seenRow = false;
 
         NestedLoopLeftOuterIterator(ExecRow leftRow, boolean hash) throws StandardException {
-            super(leftRow, hash);
+            super(leftRow, hash, true);
         }
 
         @Override
@@ -160,81 +159,4 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
             return rightRow;
         }
     }
-
-	protected class NestedLoopLeftIterator implements Iterator<ExecRow> {
-		protected ExecRow leftRow;
-		protected NoPutResultSet probeResultSet;
-		protected boolean seenRow;
-		NestedLoopLeftIterator(ExecRow leftRow, boolean hash) throws StandardException {
-			SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
-			this.leftRow = leftRow;
-			if (hash)
-				probeResultSet = ((SpliceOperation) getRightResultSet()).executeProbeScan();
-			else
-				probeResultSet = ((SpliceOperation) getRightResultSet()).executeScan();				
-			probeResultSet.openCore();
-		}
-		
-		@Override
-		public boolean hasNext() {
-			SpliceLogUtils.trace(LOG, "hasNext called");
-			try {
-				ExecRow rightRow;
-				probeResultSet.clearCurrentRow();
-				if ( (rightRow = probeResultSet.getNextRowCore()) != null) {
-					probeResultSet.setCurrentRow(rightRow);
-					rowsSeenRight++;
-					SpliceLogUtils.trace(LOG, "right has result %s",rightRow);
-					mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
-				} else {
-					if (seenRow) {
-						SpliceLogUtils.trace(LOG, "already has seen row and no right result");
-						probeResultSet.setCurrentRow(null);
-						emptyRightRowsReturned++;
-						close();
-						return false;
-					}
-					rightRow = (ExecRow) emptyRowFun.invoke(activation);
-					mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
-				}						
-				if (restriction != null) {
-					DataValueDescriptor restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
-					if ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean()) {
-						SpliceLogUtils.trace(LOG, "restricted row %s",mergedRow);
-						hasNext();
-					}
-				}
-			} catch (StandardException e) {
-				SpliceLogUtils.logAndThrowRuntime(LOG, "hasNext Failed", e);
-				try {
-					close();
-				} catch (StandardException e1) {
-					SpliceLogUtils.logAndThrowRuntime(LOG, "close Failed", e1);
-				}
-				return false;
-			}
-			seenRow = true;
-			return true;
-		}
-
-		@Override
-		public ExecRow next() {
-			SpliceLogUtils.trace(LOG, "next row=%s",mergedRow);
-			return mergedRow;
-		}
-
-		@Override
-		public void remove() {
-			SpliceLogUtils.trace(LOG, "remove");
-		}
-		public void close() throws StandardException {
-			SpliceLogUtils.trace(LOG, "close in NestedLoopLeftuterJoin");
-			if (!isOpen)
-				return;
-			SpliceLogUtils.trace(LOG, "close, closing probe result set");
-			probeResultSet.close();
-			isOpen = false;
-		}
-	}
-
 }

@@ -128,43 +128,47 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
-//		SpliceLogUtils.trace(LOG, "getNextRowCore");
-		beginTime = getCurrentTimeMillis();
-		if (nestedLoopIterator == null) {
-			if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
-				mergedRow = null;
-				setCurrentRow(mergedRow);
-				return mergedRow;
-			} else {
-                leftResultSet.setCurrentRow(leftRow);
-				rowsSeenLeft++;
-				nestedLoopIterator = new NestedLoopIterator(leftRow,isHash);
-				return getNextRowCore();
-			}
-		}
-		if(!nestedLoopIterator.hasNext()){
-			nestedLoopIterator.close();
-
-			if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
-				mergedRow = null;
-				setCurrentRow(mergedRow);
-				return mergedRow;
-			} else {
-				rowsSeenLeft++;
-				nestedLoopIterator = new NestedLoopIterator(leftRow,isHash);
-				return getNextRowCore();
-			}
-		}
-
-		SpliceLogUtils.trace(LOG, "getNextRowCore loop iterate next ");
-		ExecRow next = nestedLoopIterator.next();
-		SpliceLogUtils.trace(LOG,"getNextRowCore returning %s",next);
-		setCurrentRow(next);
-		nextTime += getElapsedMillis(beginTime);
-		rowsReturned++;
-//		mergedRow=null;
-		return next;
+        return next(false);
 	}
+
+    protected ExecRow next(boolean outerJoin) throws StandardException {
+        //		SpliceLogUtils.trace(LOG, "getNextRowCore");
+        beginTime = getCurrentTimeMillis();
+        if (nestedLoopIterator == null) {
+            if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
+                mergedRow = null;
+                setCurrentRow(mergedRow);
+                return mergedRow;
+            } else {
+                leftResultSet.setCurrentRow(leftRow);
+                rowsSeenLeft++;
+                nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin);
+                return getNextRowCore();
+            }
+        }
+        if(!nestedLoopIterator.hasNext()){
+            nestedLoopIterator.close();
+
+            if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
+                mergedRow = null;
+                setCurrentRow(mergedRow);
+                return mergedRow;
+            } else {
+                rowsSeenLeft++;
+                nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin);
+                return getNextRowCore();
+            }
+        }
+
+        SpliceLogUtils.trace(LOG, "getNextRowCore loop iterate next ");
+        ExecRow next = nestedLoopIterator.next();
+        SpliceLogUtils.trace(LOG,"getNextRowCore returning %s",next);
+        setCurrentRow(next);
+        nextTime += getElapsedMillis(beginTime);
+        rowsReturned++;
+//		mergedRow=null;
+        return next;
+    }
 	
 	@Override
 	public void	close() throws StandardException
@@ -186,8 +190,9 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		protected NoPutResultSet probeResultSet;
 		private boolean populated;
         private boolean returnedRight=false;
+        private boolean outerJoin = false;
 
-		NestedLoopIterator(ExecRow leftRow, boolean hash) throws StandardException {
+		NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin) throws StandardException {
 			SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
 			this.leftRow = leftRow;
 			if (hash) {
@@ -200,6 +205,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 			}
 			probeResultSet.openCore();
 			populated=false;
+            this.outerJoin = outerJoin;
 		}
 		
 		@Override
@@ -212,8 +218,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
                 /*
                  * notExistsRightSide indicates that we need to reverse the logic of the join.
                  */
-                if(notExistsRightSide){
-                    if(rightRow ==null){
+                if(notExistsRightSide || outerJoin){
+                    if(rightRow == null){
                         rightRow = getEmptyRightRow();
                     }
                     returnedRight = (rightRow!=null);
