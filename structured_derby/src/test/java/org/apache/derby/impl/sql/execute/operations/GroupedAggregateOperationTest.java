@@ -97,21 +97,5 @@ public class GroupedAggregateOperationTest extends SpliceUnitTest {
         }
         Assert.assertEquals("Should return only rows for the group by columns",5, i);	
     }
-
-    
-    /*
-     * 
-     * create table omslog (swh_date date, i integer, j integer);
-insert into omslog values (date('2012-01-01'),1,1);
-insert into omslog values (date('2012-02-01'),1,1);
-insert into omslog values (date('2012-03-01'),1,1);
-insert into omslog values (date('2012-03-01'),2,2);
-insert into omslog values (date('2012-03-01'),3,3);
-insert into omslog values (date('2012-04-01'),3,3);
-insert into omslog values (date('2012-05-01'),3,3);
-
-select distinct month(swh_date), count(distinct(i)), count(distinct(j)) from omslog group
-by month(swh_date) order by month(swh_date);
-     */
     
 }
