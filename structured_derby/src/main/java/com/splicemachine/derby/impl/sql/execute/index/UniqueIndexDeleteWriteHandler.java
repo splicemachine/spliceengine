@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.batch.WriteContext;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -39,7 +40,7 @@ public class UniqueIndexDeleteWriteHandler extends IndexDeleteWriteHandler{
     }
 
     @Override
-    protected byte[][] getDataArray() {
-        return new byte[indexColsToMainColMap.length][];
+    protected MultiFieldEncoder getEncoder() {
+        return MultiFieldEncoder.create(indexColsToMainColMap.length);
     }
 }

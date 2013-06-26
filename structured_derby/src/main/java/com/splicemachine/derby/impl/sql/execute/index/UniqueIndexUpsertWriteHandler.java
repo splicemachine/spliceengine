@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.batch.WriteContext;
+import org.apache.hadoop.hbase.client.Mutation;
 
 /**
  * @author Scott Fines
@@ -13,13 +15,19 @@ public class UniqueIndexUpsertWriteHandler extends IndexUpsertWriteHandler{
         super(indexColsToMainColMap, mainColPos, indexConglomBytes);
     }
 
+
     @Override
-    protected byte[][] getDataArray() {
-        return new byte[indexColsToMainColMap.length][];
+    protected MultiFieldEncoder getEncoder() {
+        return MultiFieldEncoder.create(indexColsToMainColMap.length);
     }
 
     @Override
-    protected byte[] getIndexRowKey(byte[][] rowKeyBuilder, int size) {
-        return BytesUtil.concatenate(rowKeyBuilder,size);
+    protected byte[] getIndexRowKey(MultiFieldEncoder encoder) {
+        return encoder.build();
+    }
+
+    @Override
+    protected void doDelete(WriteContext ctx,Mutation delete) throws Exception {
+        indexBuffer.add(delete);
     }
 }

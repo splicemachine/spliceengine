@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
@@ -21,6 +22,8 @@ import java.util.NavigableMap;
 public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     private final List<Mutation> deletes = Lists.newArrayListWithExpectedSize(0);
+    private MultiFieldEncoder encoder;
+
     public IndexDeleteWriteHandler(int[] indexColsToMainColMap,
                                    byte[][] mainColPos,
                                    byte[] indexConglomBytes){
@@ -101,16 +104,16 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
     }
 
     private byte[] getDeleteKey(NavigableMap<byte[], byte[]> familyMap) {
-        byte[][] rowKeyBuilder = getDataArray();
-        int size =0;
+        if(encoder ==null)
+            encoder = getEncoder();
+        encoder.reset();
         for(int indexPos=0;indexPos < indexColsToMainColMap.length;indexPos++){
             byte[] mainPutPos = mainColPos[indexPos];
             byte[] data = familyMap.get(mainPutPos);
-            rowKeyBuilder[indexPos] = data;
-            size+=data.length;
+            encoder.setRawBytes(data);
         }
 
-        return BytesUtil.concatenate(rowKeyBuilder, size);
+        return encoder.build();
     }
 
     protected void performDelete(final Mutation deleteOp, WriteContext ctx) throws Exception {

@@ -29,13 +29,15 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
 	public static final String TABLE_NAME_4 = "D";
 	public static final String TABLE_NAME_5 = "E";
 	public static final String TABLE_NAME_6 = "F";
+    public static final String TABLE_NAME_7 = "G";
 	public static final String INDEX_11 = "IDX_A1";
 	public static final String INDEX_21 = "IDX_B1";
 	public static final String INDEX_31 = "IDX_C1";
 	public static final String INDEX_41 = "IDX_D1";
 	public static final String INDEX_51 = "IDX_E1";
 	public static final String INDEX_61 = "IDX_F1";
-	
+    public static final String INDEX_62 = "IDX_F2";
+
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,spliceSchemaWatcher.schemaName,"(n_1 varchar(40),n_2 varchar(30),val int)");
@@ -43,6 +45,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
+    protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
 
     @Override
     public String getSchemaName() {
@@ -57,8 +60,9 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
 		.around(spliceTableWatcher3)
 		.around(spliceTableWatcher4)
 		.around(spliceTableWatcher5)
-		.around(spliceTableWatcher6);
-	
+		.around(spliceTableWatcher6)
+        .around(spliceTableWatcher7);
+
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -220,6 +224,22 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
 
         assertSelectCorrect(spliceSchemaWatcher.schemaName,TABLE_NAME_6,newName,1);
     }
+
+    @Test
+    public void testUpdateEveryRowCorrect() throws Exception {
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('sfines',2)",spliceTableWatcher7));
+        new SpliceIndexWatcher(TABLE_NAME_7,spliceSchemaWatcher.schemaName,INDEX_62,spliceSchemaWatcher.schemaName,"(name)").starting(null);
+
+        String newName = "jzhang";
+
+        methodWatcher.getStatement().execute(String.format("update %s set name = '%s'", this.getTableReference(TABLE_NAME_7),newName));
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",this.getTableReference(TABLE_NAME_7),"sfines"));
+        Assert.assertTrue("Rows returned incorrectly",!rs.next());
+
+        assertSelectCorrect(spliceSchemaWatcher.schemaName,TABLE_NAME_7,newName,1);
+    }
+
     /**
      * Regression test for Bug 149. Confirm that we can add a view and then add an index
      * and stuff
