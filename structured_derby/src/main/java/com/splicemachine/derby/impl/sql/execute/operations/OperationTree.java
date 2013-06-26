@@ -1,139 +1,111 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.util.*;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.log4j.Logger;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation.NodeType;
-import com.splicemachine.derby.iapi.sql.execute.operations.IOperationTree;
-import com.splicemachine.utils.SpliceLogUtils;
 
-public class OperationTree implements IOperationTree {
-	private static Logger LOG = Logger.getLogger(OperationTree.class);
-	public enum OperationTreeStatus {
-		CREATED, WAITING, ACTIVE, FINISHED
-	}
-	protected HashMap<SpliceOperation,List<SpliceOperation>> operationTree;
-	protected SpliceOperation currentExecutionOperation;
-	protected LinkedList<SpliceOperation> allWaits = new LinkedList<SpliceOperation>();
-	protected NoPutResultSet output;
-	public OperationTree() {
-		this.operationTree = new LinkedHashMap<SpliceOperation,List<SpliceOperation>>();
-	}
-	@Override
-	public void traverse(SpliceOperation operation) {
-		SpliceLogUtils.trace(LOG, "traversing parent operation: %s",operation);
-		currentExecutionOperation = operation;
-		traverseSingleTree(currentExecutionOperation);
-		while ( (currentExecutionOperation = allWaits.poll()) != null) {
-			SpliceLogUtils.trace(LOG,"   traversing wait operation: %s",currentExecutionOperation);
-			traverseSingleTree(currentExecutionOperation);
-		}		
-		if (LOG.isTraceEnabled()) {	
-			SpliceLogUtils.trace(LOG,"Operation Tree Generated:");
-			for (SpliceOperation op: operationTree.keySet()) {
-				SpliceLogUtils.trace(LOG,"  Operation: %s",op);
-				for (SpliceOperation waitOp: operationTree.get(op)) {
-					SpliceLogUtils.trace(LOG,"      Waiting on Operation: %s",waitOp);
-				}
-			}
-		}
-	}
-	
-	private void traverseSingleTree(SpliceOperation operation) {
-		SpliceLogUtils.trace(LOG, "traverseSingleTree %s", operation);
-		for (SpliceOperation spliceOperation: operation.getSubOperations()) {
-			if (spliceOperation.getNodeTypes().contains(NodeType.REDUCE)) {
-				SpliceLogUtils.trace(LOG,"found reduce operation %s",spliceOperation);
-				allWaits.push(spliceOperation);
-				if (operationTree.containsKey(operation))
-					operationTree.get(currentExecutionOperation).add(spliceOperation);
-				else { 
-					List<SpliceOperation> newWaits = new ArrayList<SpliceOperation>();
-					newWaits.add(spliceOperation);
-					operationTree.put(currentExecutionOperation, newWaits);
-				}
-			}  
-			else if (spliceOperation.getNodeTypes().contains(NodeType.MAP) || spliceOperation.getNodeTypes().contains(NodeType.SCAN)) {
-				traverseSingleTree(spliceOperation);				
-			}
-		}	
-		if (!operationTree.containsKey(currentExecutionOperation)) {
-			operationTree.put(currentExecutionOperation, new ArrayList<SpliceOperation>());
-		}
-	} 
-	
-	public void schedule() {
-		
-	}
-	@Override
-	public NoPutResultSet execute() throws StandardException{	
-		SpliceLogUtils.trace(LOG, "execute with operationTree with %d execution stacks",operationTree.keySet().size());
-		SpliceOperation operation = null;
-		while (operationTree.keySet().size() > 0) {
-            Iterator<Map.Entry<SpliceOperation, List<SpliceOperation>>> treeIterator = operationTree.entrySet().iterator();
-            while(treeIterator.hasNext()){
-                Map.Entry<SpliceOperation,List<SpliceOperation>> ops = treeIterator.next();
-                SpliceOperation op = ops.getKey();
-                if(op.getNodeTypes().contains(NodeType.REDUCE)){
-                    op.executeShuffle();
-                    if(op.getNodeTypes().contains(NodeType.SCAN)&&!treeIterator.hasNext())
-                        output = op.executeScan();
-                }else
-                    output = op.executeScan();
+import java.util.Arrays;
+import java.util.List;
+import java.util.NavigableMap;
+import java.util.concurrent.*;
 
-                operation = op;
-                List<SpliceOperation> waitOperations = ops.getValue();
 
-                //remove the operation from operationTree
-                treeIterator.remove();
+/**
+ * Traverses the operation stack to form Serialization boundaries in "levels". Each
+ * level is then executed in parallel, but *all* operations from *all* lower levels
+ * will complete *before* the next level is executed. E.g., if Operation K is at level i,
+ * then all the levels 1,2,...i-1 MUST complete before K can be shuffled.
+ *
+ * @author Scott Fines
+ *         Created on: 6/26/13
+ */
+public class OperationTree {
+    private final ThreadPoolExecutor levelExecutor;
 
-                Iterator<SpliceOperation> waitOps = waitOperations.iterator();
-                String uniqueSequenceId = op.getUniqueSequenceID();
-                while(waitOps.hasNext()){
-                    SpliceOperation wait = waitOps.next();
-                    if(wait.getUniqueSequenceID().equals(uniqueSequenceId)){
-                        waitOperations.remove(wait);
-                        break;
+    private OperationTree(ThreadPoolExecutor levelExecutor) {
+        this.levelExecutor = levelExecutor;
+    }
+
+    public static OperationTree create(int maxThreads){
+        ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("operation-shuffle-pool-%d")
+                                        .setDaemon(true).build();
+
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(maxThreads,
+                maxThreads,60, TimeUnit.SECONDS,
+                new SynchronousQueue<Runnable>(),factory,
+         new ThreadPoolExecutor.CallerRunsPolicy());
+
+        return new OperationTree(executor);
+    }
+
+    public NoPutResultSet executeTree(SpliceOperation operation) throws StandardException{
+        //first form the level Map
+        NavigableMap<Integer,List<SpliceOperation>> levelMap = split(operation);
+
+        //The levelMap is sorted so that lower level number means higher on the tree, so
+        //since we need to execute from bottom up, we go in descending order
+        for(Integer level:levelMap.descendingKeySet()){
+            List<SpliceOperation> levelOps = levelMap.get(level);
+            if(levelOps.size()>1){
+                List<Future<Void>> shuffleFutures = Lists.newArrayListWithCapacity(levelOps.size());
+                for(final SpliceOperation opToShuffle:levelOps){
+                    shuffleFutures.add(levelExecutor.submit(new Callable<Void>() {
+                        @Override
+                        public Void call() throws Exception {
+                            opToShuffle.executeShuffle();
+                            return null;
+                        }
+                    }));
+                }
+                //wait for all operations to complete before proceeding to the next level
+                for(Future<Void> future:shuffleFutures){
+                    try {
+                        future.get();
+                    } catch (InterruptedException e) {
+                        //TODO -sf- cancel other futures!
+                        throw Exceptions.parseException(e);
+                    } catch (ExecutionException e) {
+                        //TODO -sf- cancel other futures!
+                        throw Exceptions.parseException(e);
                     }
                 }
-
+            }else{
+                //execute on this thread so we don't use up a parallel thread for someone else
+                for(SpliceOperation opToShuffle:levelOps){
+                    opToShuffle.executeShuffle();
+                }
             }
-//			for (SpliceOperation op: operationTree.keySet())
-//				if (operationTree.get(op).size() == 0) {
-//					SpliceLogUtils.trace(LOG, "Executing Set of Operations with executing step %s",op);
-//					if (op.getNodeTypes().contains(NodeType.REDUCE)){
-//						op.executeShuffle();
-//						//if we are also a scan, AND we are the last operationTree to execute, then create the scan
-//						if(op.getNodeTypes().contains(NodeType.SCAN)&&operationTree.keySet().size()==1)
-//							output = op.executeScan();
-//					}else
-//						output = op.executeScan();
-//					operation = op;
-//					operationFinished(op.getUniqueSequenceID());
-//				}
-		}
-		SpliceLogUtils.trace(LOG,"Execution Tree Finalized: %s with object %s", operation,output); 
-		return output;
-	}
-	
-	private void operationFinished(String uniqueID) {
-		SpliceLogUtils.trace(LOG, "operation %s finished, cleaning up operation tree",uniqueID);
-		for (SpliceOperation parentOperation : operationTree.keySet()) {
-			if (parentOperation.getUniqueSequenceID().equals(uniqueID)) {
-				operationTree.remove(parentOperation);
-				break;
-			}
-		}
-		for (List<SpliceOperation> waitOperations : operationTree.values()) {
-			for (SpliceOperation wait : waitOperations) {
-				if (wait.getUniqueSequenceID().equals(uniqueID)) {
-					waitOperations.remove(wait);
-					break;
-				}
-			}
-		}
-	}
+        }
+
+        //operation is the highest level, it has the final scan
+        return operation.executeScan();
+    }
+
+    private NavigableMap<Integer, List<SpliceOperation>> split(SpliceOperation parentOperation) {
+        NavigableMap<Integer,List<SpliceOperation>> levelMap = Maps.newTreeMap();
+        if(parentOperation.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE))
+            levelMap.put(0, Arrays.asList(parentOperation));
+        split(parentOperation, levelMap, 1);
+        return levelMap;
+    }
+
+    private void split(SpliceOperation parentOp,NavigableMap<Integer,List<SpliceOperation>> levelMap, int level){
+        List<SpliceOperation> levelOps = levelMap.get(level);
+        List<SpliceOperation> children = parentOp.getSubOperations();
+        for(SpliceOperation child:children){
+            if(child.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE)){
+                if(levelOps==null){
+                    levelOps = Lists.newArrayListWithCapacity(children.size());
+                    levelMap.put(level,levelOps);
+                }
+                levelOps.add(child);
+            }
+            split(child,levelMap,level+1);
+        }
+    }
+
 }

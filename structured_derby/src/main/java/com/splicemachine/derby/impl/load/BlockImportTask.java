@@ -101,7 +101,10 @@ public class BlockImportTask extends AbstractImportTask{
             while(pos<end){
                 long newSize = reader.readLine(text);
                 pos+=newSize;
-                String[] cols = parser.parseLine(text.toString());
+                String line = text.toString();
+                if(line==null||line.length()==0)
+                    continue; //skip empty lines
+                String[] cols = parser.parseLine(line);
                 doImportRow(importContext.getTransactionId(),cols,importContext.getActiveCols(),row,writeBuffer,rowEncoder);
                 numImported++;
 

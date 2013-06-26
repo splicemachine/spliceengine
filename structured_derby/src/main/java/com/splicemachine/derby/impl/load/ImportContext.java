@@ -78,8 +78,8 @@ public class ImportContext implements Externalizable{
                           FormatableBitSet activeCols,
                           FormatableBitSet pkCols,
                           String timestampFormat,
-                          String timeFormat,
                           String dateFormat,
+                          String timeFormat,
                           long byteOffset,
                           int bytesToRead){
         this.transactionId = transactionId;

@@ -142,12 +142,12 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
         keyColumns = new int[order.length];
         descColumns = new boolean[order.length];
-        descColumns = new boolean[getExecRowDefinition().getRowArray().length];
 
         for (int i = 0; i < order.length; i++) {
             keyColumns[i] = order[i].getColumnId();
-            descColumns[keyColumns[i]] = order[i].getIsAscending();
+            descColumns[i] = order[i].getIsAscending();
         }
+        SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
     }
 
     public ExecRow getNextSinkRow() throws StandardException {

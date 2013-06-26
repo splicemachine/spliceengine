@@ -167,17 +167,10 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
 
+        out.writeInt(typeFormatId);
         out.writeBoolean(sdv != null);
-
-        if(sdv != null){
-            out.writeUTF(sdv.getClass().getCanonicalName());
-        }
-
         writeDvdBytes(out);
 
-        out.writeUTF(dvdSerializer.getClass().getCanonicalName());
-
-        out.writeBoolean(deserialized);
     }
 
     @Override
@@ -185,14 +178,15 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
         StringDataValue extSDV = null;
 
+        int typeId = in.readInt();
+
         if(in.readBoolean()){
-            extSDV = (StringDataValue) createClassInstance(in.readUTF());
-            extSDV.setToNull();
+            extSDV = (StringDataValue) createNullDVD(typeId);
         }
 
         readDvdBytes(in);
 
-        DVDSerializer extSerializer = (DVDSerializer) createClassInstance(in.readUTF());
+        DVDSerializer extSerializer = LazyDataValueFactory.getDVDSerializer(typeId);
 
         init(extSDV, extSerializer);
     }

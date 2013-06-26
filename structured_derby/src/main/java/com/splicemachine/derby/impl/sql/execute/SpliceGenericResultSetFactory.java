@@ -21,14 +21,14 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 	private static Logger LOG = Logger.getLogger(SpliceGenericResultSetFactory.class);
 //	HTablePool htablePool = new HTablePool();
 
-    private final OperationTree2 treeManager;
+    private final OperationTree treeManager;
 
 	public SpliceGenericResultSetFactory() {
 		super();
 		SpliceLogUtils.trace(LOG, "instantiating SpliceGenericResultSetFactory");
         int maxTreeThreads = SpliceConstants.maxTreeThreads;
 
-        treeManager = OperationTree2.create(maxTreeThreads);
+        treeManager = OperationTree.create(maxTreeThreads);
     }
 
 

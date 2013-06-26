@@ -230,9 +230,9 @@ public enum KeyType implements KeyMarshall{
                               byte[] keyPostfix,
                               MultiFieldEncoder keyEncoder) throws StandardException {
             if(sortOrder!=null){
-                for (int keyColumn : keyColumns) {
-                    boolean desc = !sortOrder[keyColumn];
-                    DataValueDescriptor dvd = fields[keyColumn];
+            	for (int i=0;i<keyColumns.length;i++) {
+                    boolean desc = !sortOrder[i];
+                    DataValueDescriptor dvd = fields[keyColumns[i]];
                     if (dvd != null && !dvd.isNull())
                         DerbyBytesUtil.encodeInto(keyEncoder, dvd, desc);
                     else
@@ -253,10 +253,10 @@ public enum KeyType implements KeyMarshall{
         public void decode(DataValueDescriptor[] fields, int[] reversedKeyColumns,
                            boolean[] sortOrder,MultiFieldDecoder rowDecoder) throws StandardException {
             if(sortOrder!=null){
-                for (int rowSpot : reversedKeyColumns) {
-                    boolean desc = !sortOrder[rowSpot];
-                    if (rowSpot != -1) {
-                        DerbyBytesUtil.decodeInto(rowDecoder, fields[rowSpot],desc);
+            	for (int i = 0; i<reversedKeyColumns.length; i++) {
+                    boolean desc = !sortOrder[i];
+                    if (reversedKeyColumns[i] != -1) {
+                        DerbyBytesUtil.decodeInto(rowDecoder, fields[reversedKeyColumns[i]],desc);
                     }
                 }
             }else{

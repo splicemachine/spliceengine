@@ -32,10 +32,6 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class TableScanOperation extends ScanOperation {
-	/*
-	 * Don't forget to change this every time you make a change that could affect serialization
-	 * and/or major class behavior!
-	 */
 	private static final long serialVersionUID = 3l;
 
 	private static Logger LOG = Logger.getLogger(TableScanOperation.class);
