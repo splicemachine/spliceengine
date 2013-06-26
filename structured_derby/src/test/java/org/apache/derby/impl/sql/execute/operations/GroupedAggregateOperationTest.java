@@ -7,9 +7,7 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-
 import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 
@@ -17,11 +15,34 @@ public class GroupedAggregateOperationTest extends SpliceUnitTest {
     public static final String CLASS_NAME = GroupedAggregateOperationTest.class.getSimpleName().toUpperCase();
     public static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("OMS_LOG",CLASS_NAME,"(swh_date date, i integer)");
     private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperationTest.class);
 
     @ClassRule
     public static TestRule rule = RuleChain.outerRule(spliceSchemaWatcher)
-            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee-2table.sql", CLASS_NAME));
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee-2table.sql", CLASS_NAME))
+            .around(spliceTableWatcher)
+            		.around(new SpliceDataWatcher() {
+            @Override
+            protected void starting(Description description) {
+                try {                	
+                    spliceClassWatcher.setAutoCommit(true);    
+                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-01-01'),1)", spliceTableWatcher.toString()));
+                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-02-01'),1)", spliceTableWatcher.toString()));
+                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-03-01'),1)", spliceTableWatcher.toString()));
+                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-03-01'),2)", spliceTableWatcher.toString()));
+                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-03-01'),3)", spliceTableWatcher.toString()));
+                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-04-01'),3)", spliceTableWatcher.toString()));
+                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-05-01'),3)", spliceTableWatcher.toString()));
+
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    spliceClassWatcher.closeAll();
+                }
+            }
+
+        });
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -60,4 +81,37 @@ public class GroupedAggregateOperationTest extends SpliceUnitTest {
         Assert.assertEquals(3, maps.size());
         Assert.assertEquals("P2", maps.get(0).get("PNUM"));
     }
+
+    @Test()
+    // Bugzilla #581: WORKDAY: count(distinct()) fails in a GROUP BY clause
+    public void countDistinctInAGroupByClause() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select distinct month(swh_date), count(distinct(i)) from %s " +
+                "group by month(swh_date) order by month(swh_date)",
+                spliceTableWatcher.toString()));
+        int i = 0;
+        while (rs.next()) {
+        	i++;
+        	if (rs.getInt(1) == 3 && rs.getInt(2) != 3) {
+        		Assert.assertTrue("count distinct did not return 3 for month 3",false);
+        	}
+        }
+        Assert.assertEquals("Should return only rows for the group by columns",5, i);	
+    }
+
+    
+    /*
+     * 
+     * create table omslog (swh_date date, i integer, j integer);
+insert into omslog values (date('2012-01-01'),1,1);
+insert into omslog values (date('2012-02-01'),1,1);
+insert into omslog values (date('2012-03-01'),1,1);
+insert into omslog values (date('2012-03-01'),2,2);
+insert into omslog values (date('2012-03-01'),3,3);
+insert into omslog values (date('2012-04-01'),3,3);
+insert into omslog values (date('2012-05-01'),3,3);
+
+select distinct month(swh_date), count(distinct(i)), count(distinct(j)) from omslog group
+by month(swh_date) order by month(swh_date);
+     */
+    
 }
