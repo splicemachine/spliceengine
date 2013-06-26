@@ -730,6 +730,41 @@ public class InnerJoinTest extends SpliceUnitTest {
     }
 
     @Test
+    public void testJoinUnionWithNotExists() throws Exception {
+        List<Object[]> expected = Arrays.asList(
+                o("Alice","P1",BigDecimal.valueOf(40)), o("Alice","P2",BigDecimal.valueOf(20)), o("Alice","P3",BigDecimal.valueOf(80)), o("Alice","P4",BigDecimal.valueOf(20)),o("Alice","P5",BigDecimal.valueOf(12)),o("Alice","P6",BigDecimal.valueOf(12)),
+                o("Betty","P1",BigDecimal.valueOf(40)), o("Betty","P2",BigDecimal.valueOf(80)),
+                o("Carmen","P2",BigDecimal.valueOf(20)),
+                o("Don","P2",BigDecimal.valueOf(20)),o("Don","P4",BigDecimal.valueOf(40)),o("Don","P5",BigDecimal.valueOf(80))
+        );
+        ResultSet resultSet = methodWatcher.executeQuery("select empname,pnum,hours from staff,works where staff.empnum = works.empnum  union" +
+                "     select empname,pnum,hours from staff,works  where not exists" +
+                "     (select hours from works) order by empname, pnum");
+
+        List result = TestUtils.resultSetToArrays(resultSet);
+
+        Assert.assertArrayEquals(expected.toArray(),result.toArray());
+    }
+
+    @Test
+    public void testJoinUnionWithNotExistsWithCriteria() throws Exception {
+        List<Object[]> expected = Arrays.asList(
+                o("Alice","P1",BigDecimal.valueOf(40)), o("Alice","P2",BigDecimal.valueOf(20)), o("Alice","P3",BigDecimal.valueOf(80)), o("Alice","P4",BigDecimal.valueOf(20)),o("Alice","P5",BigDecimal.valueOf(12)),o("Alice","P6",BigDecimal.valueOf(12)),
+                o("Betty","P1",BigDecimal.valueOf(40)), o("Betty","P2",BigDecimal.valueOf(80)),
+                o("Carmen","P2",BigDecimal.valueOf(20)),
+                o("Don","P2",BigDecimal.valueOf(20)),o("Don","P4",BigDecimal.valueOf(40)),o("Don","P5",BigDecimal.valueOf(80)),
+                o("Ed","P1",BigDecimal.valueOf(40)), o("Ed","P2",BigDecimal.valueOf(20)),o("Ed","P2",BigDecimal.valueOf(80)), o("Ed","P3",BigDecimal.valueOf(80)),o("Ed","P4",BigDecimal.valueOf(20)), o("Ed","P4",BigDecimal.valueOf(40)),o("Ed","P5",BigDecimal.valueOf(12)),o("Ed","P5",BigDecimal.valueOf(80)),o("Ed","P6",BigDecimal.valueOf(12))
+        );
+        ResultSet resultSet = methodWatcher.executeQuery("select empname,pnum,hours from staff,works where staff.empnum = works.empnum  union" +
+                "     select empname,pnum,hours from staff,works  where not exists" +
+                "     (select hours from works where staff.empnum = works.empnum) order by empname, pnum");
+
+        List result = TestUtils.resultSetToArrays(resultSet);
+
+        Assert.assertArrayEquals(expected.toArray(),result.toArray());
+    }
+
+    @Test
     @Ignore("Bugzilla 597")
     public void testSelfJoinWithLessThanSelection() throws Exception {
         List<Object[]> expected = Arrays.asList(

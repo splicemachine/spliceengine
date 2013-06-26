@@ -67,8 +67,9 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
         if(delegate!=null) delegate.close();
         topOperation.openCore();
 
-        operationTree.traverse(topOperation);
-        delegate = operationTree.execute();
+        delegate = operationTree.executeTree(topOperation);
+//        operationTree.traverse(topOperation);
+//        delegate = operationTree.execute();
         //open the delegate
         delegate.openCore();
 

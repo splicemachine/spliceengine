@@ -131,7 +131,8 @@ public class SpliceConstants {
 	public static int maxBufferEntries;
 	public static int maxPendingBuffers;
 	public static int maxThreads;
-	public static long threadKeepAlive; 
+    public static int maxTreeThreads; //max number of threads for concurrent stack execution
+	public static long threadKeepAlive;
     public static int numRetries;
     public static boolean enableRegionCache;
     public static long cacheExpirationPeriod;
@@ -212,7 +213,8 @@ public class SpliceConstants {
 
     public static double debugTaskFailureRate;
     public static final double DEFAULT_DEBUG_TASK_FAILURE_RATE= 0.1; //fail 10% of tasks when enabled
-
+    private static final String CONFIG_MAX_CONCURRENT_OPERATIONS = "splice.tree.maxConcurrentOperations";
+    private static final int DEFAULT_MAX_CONCURRENT_OPERATIONS = 10; //probably too low
 
 
     public static enum TableEnv {
@@ -252,11 +254,12 @@ public class SpliceConstants {
         importTaskPriority = config.getInt(CONFIG_IMPORT_TASK_PRIORITY, DEFAULT_IMPORT_TASK_PRIORITY);
         tablePoolMaxSize = config.getInt(CONFIG_POOL_MAX_SIZE,DEFAULT_POOL_MAX_SIZE);
         tablePoolCoreSize = config.getInt(CONFIG_POOL_CORE_SIZE,DEFAULT_POOL_CORE_SIZE);
-        tablePoolCleanerInterval = config.getLong(CONFIG_POOL_CLEANER_INTERVAL,DEFAULT_POOL_CLEANER_INTERVAL);
+        tablePoolCleanerInterval = config.getLong(CONFIG_POOL_CLEANER_INTERVAL, DEFAULT_POOL_CLEANER_INTERVAL);
         writeBufferSize = config.getLong(CONFIG_WRITE_BUFFER_SIZE, DEFAULT_WRITE_BUFFER_SIZE);
         maxBufferEntries = config.getInt(CONFIG_BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
         maxPendingBuffers = config.getInt(CONFIG_WRITE_BUFFER_MAX_FLUSHES,DEFAULT_MAX_PENDING_BUFFERS);
         maxThreads = config.getInt(CONFIG_HBASE_HTABLE_THREADS_MAX,DEFAULT_HBASE_HTABLE_THREADS_MAX);
+        maxTreeThreads = config.getInt(CONFIG_MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
         int ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
         if(ipcThreads < maxThreads){
             /*
