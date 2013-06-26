@@ -5,6 +5,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.*;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
@@ -88,8 +89,8 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
         }
     }
 
-    protected byte[][] getDataArray() {
-        return new byte[indexColsToMainColMap.length+1][];
+    protected MultiFieldEncoder getEncoder() {
+        return MultiFieldEncoder.create(indexColsToMainColMap.length+1);
     }
 
     protected abstract boolean updateIndex(Mutation mutation, WriteContext ctx);
