@@ -17,10 +17,15 @@ public class Snowflake {
     private static final int workerIdShift = timestampShift-workerIdBits;
 
     private static final long COUNTER_MASK = 0x07ff; //looks like 0111 1111 1111 (e.g. 11 bits of 1s)
+    private static final short MAX_COUNTER_VALUE = 0x07ff; //11 bits of 1s,
 
-    private final AtomicLong lastTimestamp = new AtomicLong(0l);
-    private AtomicInteger counter = new AtomicInteger(Short.MIN_VALUE); //only first workerIdBits bits used
+    private volatile long lastTimestamp = 0l;
+    private volatile short counter = 0;
+
     private final long machineId; //only the first counterBits bits are used;
+
+
+    private volatile boolean looped = false;
 
     public Snowflake(short machineId) {
         this.machineId = (machineId &0x0fff)<<workerIdShift; //take the first 12 bits, then shift it over appropriately
@@ -47,57 +52,40 @@ public class Snowflake {
              * 2 ms in between each run.
              */
             int numTries=10;
-            boolean timeSet = false;
-            short count =0; //we know that count is set no matter what, this just makes the compiler happy
-            while(!timeSet && numTries>0){
-                timestamp = System.currentTimeMillis();
-                long lastTime = lastTimestamp.get();
-                if(timestamp < lastTime){
-                    //wait for just a bit in the hopes it'll catch up
-                    numTries--;
-                    interrupted = waitMs();
-                }else if(lastTime == timestamp){
-                    //need to make sure we didn't loop around our counter--that would be a sign of
-                    //case #1
-                    boolean countSet=false;
-                    while(!countSet){
-                        int currentCount = counter.get();
-                        if(currentCount>=Short.MAX_VALUE){
-                            counter.compareAndSet(currentCount,Short.MIN_VALUE);
-                            countSet=true;
-
-                            //wait a bit, then try again with a new ms
-                            interrupted = waitMs();
-                            numTries--;
+            boolean timeSet=false;
+            short count = counter;
+            while(!timeSet &&numTries>0){
+                synchronized (this){
+                    long time= System.currentTimeMillis();
+                    if(time < lastTimestamp){
+                       interrupted = waitMs(); //everyone has to wait until the times line up
+                       numTries--;
+                    }else if(time == lastTimestamp){
+                        if(counter>=MAX_COUNTER_VALUE){
+                            counter =0;
+                            count = counter;
+                            interrupted = waitMs(); //everyone has to wait until we've pushed to a new  timestamp
                         }else{
-                            count = (short)(currentCount+1);
-                            countSet = counter.compareAndSet(currentCount,count);
-                            timeSet=countSet; //we have a count value, so we don't need to worry about setting an uptodate timestamp
+                            count = counter++;
+                            timeSet=true;
                         }
-                    }
-                }else{
-                    lastTimestamp.compareAndSet(lastTime,timestamp);
-                    //if we lose out on the compareAndSet, someone else set a larger value, so
-                    //we don't have to worry about it
-                    timeSet=true;
-                    //we don't care about the looped counter
-                    boolean countSet=false;
-                    while(!countSet){
-                        int currentCount = counter.get();
-                        if(currentCount>=Short.MAX_VALUE){
-                            count= Short.MIN_VALUE;
+                    }else{
+                        timeSet=true;
+                        if(counter>=MAX_COUNTER_VALUE){
+                            count = counter = 0;
                         }else
-                            count = (short)(currentCount+1);
-                        countSet = counter.compareAndSet(currentCount,count);
+                            count = counter++;
                     }
                 }
             }
+
             if(numTries<0)
                 throw new IllegalStateException("Unable to acquire a UUID after 10 tries, check System clock");
 
             //we now have timestamp and counter--can build the UUID
 
             long uuid = timestamp << timestampShift;
+//            System.out.println("          "+ Long.toBinaryString(uuid));
 
             //push the machine bits
             uuid |= machineId;
@@ -122,14 +110,8 @@ public class Snowflake {
     }
 
     public static void main(String... args) throws Exception{
-        Snowflake snowflake = new Snowflake((short) (1 << 11));
-        Set<Long> existing = Sets.newHashSet();
-        for(int i=0;i<1000;i++){
-            long next = snowflake.nextUUID();
-            if(existing.contains(next))
-                throw new IllegalStateException("Duplicate UUID found!");
-            System.out.println(pad(next));
-        }
+        System.out.println(pad(COUNTER_MASK));
+
     }
 
     private static String pad(long number){

@@ -15,9 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Scott Fines
  * Created on: 6/21/13
  */
-@Ignore
+//@Ignore
 public class BasicSnowflakeTest {
-
     @Test
     public void testcanCreateAUUID() throws Exception {
         Snowflake snowflake = new Snowflake((short)(1<<6));
@@ -38,8 +37,8 @@ public class BasicSnowflakeTest {
 
     @Test
     public void testNoDuplicatesManyThreadsSameSnowflake() throws Exception {
-        int numThreads=10;
-        final int numIterations = 1000;
+        int numThreads=1;
+        final int numIterations = 160000;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         final ConcurrentMap<Long,Boolean> existing = new ConcurrentHashMap<Long, Boolean>();
         List<Future<Boolean>> futures = Lists.newArrayListWithCapacity(numThreads);
@@ -50,12 +49,17 @@ public class BasicSnowflakeTest {
                 @Override
                 public Boolean call() throws Exception {
                     startBarrier.await(); //wait for everyone to force contention
+                    System.out.println("current time: "+Long.toBinaryString(System.currentTimeMillis()));
                     for(int i=0;i<numIterations;i++){
+                        long time = System.currentTimeMillis();
                         long uuid = snowflake.nextUUID();
+//                        System.out.println(Long.toBinaryString(uuid));
                         if(existing.putIfAbsent(uuid,true)!=null){
-                           return false;  //uh-oh, duplicates!
+                            System.out.println("     already present!i= "+i+", value="+Long.toBinaryString(uuid)+", time="+Long.toBinaryString(time));
+                            return false;  //uh-oh, duplicates!
                         }
                     }
+                    System.out.println("current time: "+Long.toBinaryString(System.currentTimeMillis()));
                     return true;
                 }
             }));
