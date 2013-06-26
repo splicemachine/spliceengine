@@ -709,6 +709,22 @@ public class InnerJoinTest extends SpliceUnitTest {
     }
 
     @Test
+    public void testNotExistsWithCorrelatedSubqueryAKAAntiJoin() throws Exception {
+        List<Object[]> expected = Arrays.asList(o("E3"), o("E4"));
+
+        ResultSet rs = methodWatcher.executeQuery("SELECT w1.empnum " +
+                "FROM   works w1 " +
+                "WHERE  w1.pnum = 'P2' " +
+                "       AND NOT EXISTS (SELECT * " +
+                "                       FROM   works w2 " +
+                "                       WHERE  w2.empnum = w1.empnum " +
+                "                              AND w2.pnum = 'P1') " +
+                "ORDER  BY 1 ASC");
+        List results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+    }
+
+    @Test
     public void testSimpleSelfJoin() throws Exception {
         List<Object[]> expected = Arrays.asList(
                 // Single "Akron" row

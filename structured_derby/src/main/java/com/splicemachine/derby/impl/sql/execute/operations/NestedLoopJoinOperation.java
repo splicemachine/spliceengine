@@ -218,11 +218,11 @@ public class NestedLoopJoinOperation extends JoinOperation {
                 /*
                  * notExistsRightSide indicates that we need to reverse the logic of the join.
                  */
-                if(notExistsRightSide || outerJoin){
-                    if(rightRow == null){
-                        rightRow = getEmptyRightRow();
-                    }
-                    returnedRight = (rightRow!=null);
+                if(notExistsRightSide){
+                    rightRow = (rightRow == null) ? rightTemplate : null;
+                }
+                if (outerJoin && rightRow == null){
+                    rightRow = getEmptyRightRow();
                 }
                 if(rightRow!=null){
                     if(oneRowRightSide &&returnedRight){
