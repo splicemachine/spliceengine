@@ -1,39 +1,18 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.impl.sql.execute.Serializer;
-import com.splicemachine.derby.utils.DerbyLogUtils;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.Puts;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecIndexRow;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
-import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
- * Sink data into temp table to sort and filter out duplicate, then do grouped aggregates when iterating the rows
- * @author jessiezhang
+ * Pass through class to GroupedAggregateOperation
  */
-public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
-{
+public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation {
 	private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperation.class);
-    private RowDecoder rowDecoder;
 
     public DistinctGroupedAggregateOperation() {
 		super();
@@ -68,70 +47,9 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 					int resultSetNumber,
 					double optimizerEstimatedRowCount,
 					double optimizerEstimatedCost,
-					boolean isRollup) throws StandardException 
-	{
-		super(s, isInSortedOrder, aggregateItem, orderingItem,
-			  a, ra, maxRowSize, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup);
+					boolean isRollup) throws StandardException {
+		super(s, isInSortedOrder, aggregateItem, orderingItem,a, ra, maxRowSize, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup);
+		SpliceLogUtils.trace(LOG, "instance");
 		recordConstructorTime();
     }
-
-    @Override
-	public ExecRow getExecRowDefinition() {
-		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
-		ExecRow row = sourceExecIndexRow.getClone();
-		try{
-			DataValueDescriptor[] descs = new DataValueDescriptor[order.length+aggregates.length];
-			for(int i=0;i<order.length;i++){
-				descs[i] = row.getColumn(order[i].getColumnId()+1);
-			}
-			
-			for(int i=0;i<aggregates.length;i++){
-				descs[i+order.length] = row.getColumn(aggregates[i].getAggregatorInfo().getAggregatorColNum());
-			}
-			row.setRowArray(descs);
-		}catch(StandardException se){
-			SpliceLogUtils.logAndThrowRuntime(LOG, se);
-		}
-		DerbyLogUtils.traceDescriptors(LOG, "getExecRowDefinition row", row.getRowArray());
-		return row;
-	}
-    
-    @Override
-    protected ExecIndexRow getNextRowFromScan() throws StandardException {
-    	SpliceLogUtils.trace(LOG,"getting next row from scan");
-    	ExecIndexRow inputRow = null;
-    	if(rowProvider!=null){
-    		if(rowProvider.hasNext() && (inputRow = (ExecIndexRow)rowProvider.next())!=null){
-    			SpliceLogUtils.trace(LOG,"inputRow=%",inputRow);
-//    			initializeVectorAggregation(inputRow);
-    			return inputRow;
-
-    		}
-    		else return null;
-    	}else{
-			List<KeyValue> keyValues = new ArrayList<KeyValue>();
-			try{
-				regionScanner.next(keyValues);
-			}catch(IOException ioe){
-				SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,ioe));
-			}
-			
-//			Result result = new Result(keyValues);
-			if (keyValues.isEmpty())
-				return null;
-			else{
-                if(rowDecoder==null)
-                    rowDecoder = getRowEncoder().getDual(sourceExecIndexRow,true);
-                inputRow = (ExecIndexRow)rowDecoder.decode(keyValues);
-
-//				SpliceUtils.populate(result, null, inputRow.getRowArray());
-				SpliceLogUtils.trace(LOG,"inputRow=%s",inputRow);
-				
-				if(inputRow!=null)
-					initializeVectorAggregation(inputRow);
-				
-				return inputRow;
-			}
-		}
-	}
 }
