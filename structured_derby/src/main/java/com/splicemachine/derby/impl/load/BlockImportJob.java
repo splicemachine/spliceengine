@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.BetterHTablePool;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -16,6 +17,8 @@ import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.rest.HBaseRESTTestingUtility;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
@@ -48,7 +51,8 @@ public class BlockImportJob extends FileImportJob{
         HBaseAdmin admin = new HBaseAdmin(SpliceUtils.config);
 
         byte[] tableBytes = Bytes.toBytes(context.getTableName());
-        List<HRegionLocation> regions = getRegionLocations(admin,tableBytes);
+        Map<ServerName,HRegionInfo> regions = getRegionLocations();
+//        List<HRegionLocation> regions = getRegionLocations(admin,tableBytes);
 
         //if we can't find any regions, that's weird. Back off and just import it like
         //any other file
@@ -56,7 +60,7 @@ public class BlockImportJob extends FileImportJob{
             return super.getTasks();
 
         //assign one task per BlockLocation
-        Iterator<HRegionLocation> regionCycle = Iterators.cycle(regions);
+        Iterator<ServerName> regionCycle = Iterators.cycle(regions.keySet());
         Map<BlockImportTask,Pair<byte[],byte[]>> taskMap = Maps.newHashMapWithExpectedSize(locations.length);
         String parentTxnString = getParentTransaction().getTransactionIdString();
         String jobId = getJobId();
@@ -76,11 +80,11 @@ public class BlockImportJob extends FileImportJob{
             int visited = 0;
             boolean found = false;
             while(!found && visited<length){
-                HRegionLocation next = regionCycle.next();
-                String regionHost = next.getHostname();
+                ServerName nextRegionServer = regionCycle.next();
+                String regionHost = nextRegionServer.getHostname();
                 for(String blockHost:blockHosts){
                     if(regionHost.equalsIgnoreCase(blockHost)){
-                        putTask(taskMap, parentTxnString, jobId, location, next);
+                        putTask(taskMap, parentTxnString, jobId, location, regions.get(nextRegionServer));
                         found=true;
                         break;
                     }
@@ -96,13 +100,13 @@ public class BlockImportJob extends FileImportJob{
                  * but the hope is that we'll get at least some local writes and the
                  * whole thing won't suck horrendously.
                  */
-                putTask(taskMap, parentTxnString, jobId, location, regionCycle.next());
+                putTask(taskMap, parentTxnString, jobId, location, regions.get(regionCycle.next()));
             }
         }
         return taskMap;
     }
 
-    private void putTask(Map<BlockImportTask, Pair<byte[], byte[]>> taskMap, String parentTxnString, String jobId, BlockLocation location, HRegionLocation next) {
+    private void putTask(Map<BlockImportTask, Pair<byte[], byte[]>> taskMap, String parentTxnString, String jobId, BlockLocation location, HRegionInfo next) {
         BlockImportTask task = new BlockImportTask(
                 jobId,
                 context,
@@ -110,17 +114,51 @@ public class BlockImportJob extends FileImportJob{
                 SpliceConstants.DEFAULT_IMPORT_TASK_PRIORITY,
                 parentTxnString,
                 false);
-        byte[] end = next.getRegionInfo().getEndKey();
-        byte[] endKey;
-        if(end.length>0){
-            endKey = new byte[end.length];
-            System.arraycopy(end,0,endKey,0,end.length);
-            BytesUtil.decrementAtIndex(endKey, endKey.length - 1);
-        }else
-            endKey = end;
-        byte[] start = next.getRegionInfo().getStartKey();
-        Pair<byte[],byte[]> regionBounds = Pair.newPair(start, endKey);
+//        byte[] end = next.getEndKey();
+//        byte[] endKey;
+//        if(end.length>0){
+//            endKey = new byte[end.length];
+//            System.arraycopy(end,0,endKey,0,end.length);
+//            do{
+//                BytesUtil.decrementAtIndex(endKey, endKey.length - 1);
+//            }while(!HRegion.rowIsInRange(next,endKey));
+//        }else
+//            endKey = end;
+        byte[] start = next.getStartKey();
+        Pair<byte[],byte[]> regionBounds = Pair.newPair(start, start); //should guarantee only one region involved
         taskMap.put(task,regionBounds);
+    }
+
+    private Map<ServerName,HRegionInfo> getRegionLocations() throws IOException{
+        NavigableMap<HRegionInfo,ServerName> regionLocations;
+        if(table instanceof HTable)
+            regionLocations = ((HTable)table).getRegionLocations();
+        else if(table instanceof BetterHTablePool.ReturningHTable){
+            regionLocations = ((BetterHTablePool.ReturningHTable)table).getDelegate().getRegionLocations();
+        }else{
+            throw new IOException("Unexpected Table type: " + table.getClass());
+        }
+
+        //create a map from Server to a SINGLE region
+        Map<ServerName,HRegionInfo> regionsToReturn = new HashMap<ServerName,HRegionInfo>();
+        for(HRegionInfo info:regionLocations.keySet()){
+            ServerName serverName = regionLocations.get(info);
+            HRegionInfo existing = regionsToReturn.get(serverName);
+            if(existing!=null){
+                //accept the tightest region
+                if(BytesUtil.emptyBeforeComparator.compare(existing.getStartKey(),info.getStartKey())==0){
+                    if(BytesUtil.emptyBeforeComparator.compare(existing.getEndKey(),info.getStartKey())<=0){
+                        //existing is a tighter bound than new one, leave it be
+                    }else{
+                        //new one has a tighter bound, so replace it
+                        regionsToReturn.put(serverName,info);
+                    }
+                }
+                //we don't need to change anything--these regions are disjoint
+            }else
+                regionsToReturn.put(serverName,info);
+        }
+        return regionsToReturn;
     }
 
     private List<HRegionLocation> getRegionLocations(HBaseAdmin admin,byte[] tableBytes)
@@ -189,11 +227,22 @@ public class BlockImportJob extends FileImportJob{
     }
 
     public static void main(String... args) throws Exception{
-        InetAddress localhost = InetAddress.getByName("localhost");
-        System.out.println(localhost.getHostAddress());
-        InetAddress localIp = InetAddress.getByAddress(new byte[]{10,0,0,16});
-        System.out.printf("localIp=%s, localIp.getHostAddress()=%s%n",localIp,localIp.getHostAddress());
+        byte[] bytes = Bytes.toBytesBinary("/937:49::5");
+        System.out.println(Bytes.toString(bytes));
+        bytes = Bytes.toBytesBinary("937:49::4");
+        System.out.println(Bytes.toString(bytes));
+        System.out.println("");
 
+        long range = (long)Integer.MAX_VALUE-(long)Integer.MIN_VALUE;
+        for(int i=1;i<3;i++){
+            int splitPoint = (int)(range*i/3 + Integer.MIN_VALUE);
+            String actualSplit = Integer.toString(splitPoint);
+            byte[] bits = Bytes.toBytes(actualSplit);
+            byte[] bits2 = BytesUtil.copyAndIncrement(bits);
+            System.out.println(Bytes.toStringBinary(Encoding.encode(Bytes.toString(bits))));
+            System.out.println(Bytes.toStringBinary(Encoding.encode(Bytes.toString(bits2))));
+            System.out.println("");
+        }
 
     }
 }

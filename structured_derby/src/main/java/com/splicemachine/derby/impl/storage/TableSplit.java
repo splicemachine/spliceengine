@@ -140,7 +140,7 @@ public class TableSplit{
              */
             byte[] pos;
             try{
-                pos = Encoding.encode(splitPosition);
+                pos = Encoding.encode(Integer.parseInt(splitPosition));
             }catch(NumberFormatException nfe){
                 //not an integer, so assume you know what you're doing.
                 pos = Encoding.encode(splitPosition.getBytes());
