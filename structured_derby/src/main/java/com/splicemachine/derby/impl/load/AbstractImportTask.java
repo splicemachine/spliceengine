@@ -163,7 +163,7 @@ public abstract class AbstractImportTask extends ZkTask {
                 if(timestampFormat==null){
                     String tsFormat = importContext.getTimestampFormat();
                     if(tsFormat ==null)
-                        tsFormat = "yyyy-mm-dd hh:mm:ss"; //iso format
+                        tsFormat = "yyyy-MM-dd hh:mm:ss"; //iso format
                     timestampFormat = new SimpleDateFormat(tsFormat);
                 }
                 format = timestampFormat;
@@ -171,7 +171,7 @@ public abstract class AbstractImportTask extends ZkTask {
                 if(dateFormat==null){
                     String dFormat = importContext.getDateFormat();
                     if(dFormat==null)
-                        dFormat = "yyyy-mm-dd";
+                        dFormat = "yyyy-MM-dd";
                     dateFormat = new SimpleDateFormat(dFormat);
                 }
                 format = dateFormat;
