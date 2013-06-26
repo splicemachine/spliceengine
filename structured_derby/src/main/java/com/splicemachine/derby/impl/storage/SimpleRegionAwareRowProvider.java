@@ -3,8 +3,6 @@ package com.splicemachine.derby.impl.storage;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -21,12 +19,15 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
     private final  RegionAwareScanner scanner;
     private final byte[] table;
 
-    public SimpleRegionAwareRowProvider(String txnId,HRegion region,Scan scan,byte[] tableName,byte[] columnFamily,
-                                        RowDecoder decoder){
+    public SimpleRegionAwareRowProvider(String txnId,HRegion region,Scan scan,byte[] tableName,byte[] columnFamily, RowDecoder decoder){
+    	this(txnId,region,scan,tableName,columnFamily,decoder,decoder.getKeyColumns().length);
+    }
+
+    public SimpleRegionAwareRowProvider(String txnId,HRegion region,Scan scan,byte[] tableName,byte[] columnFamily, RowDecoder decoder, int slice){
         super(decoder);
         this.table = tableName;
         this.scanner = RegionAwareScanner.create(txnId,region,scan,tableName,
-                new SingleTypeHashAwareScanBoundary2(columnFamily,decoder));
+                new SingleTypeHashAwareScanBoundary2(columnFamily,decoder,slice));
     }
 
     @Override
