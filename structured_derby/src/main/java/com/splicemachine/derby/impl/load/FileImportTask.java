@@ -42,6 +42,8 @@ public class FileImportTask extends AbstractImportTask{
             CSVReader csvReader = getCsvReader(reader,importContext);
             String[] line;
             while((line = csvReader.readNext())!=null){
+                if(line.length==0||(line.length==1 &&line[0]==null || line[0].length()==0)) continue; //skip empty rows
+
                 doImportRow(importContext.getTransactionId(),line,importContext.getActiveCols(),row, writeBuffer, rowEncoder);
                 numImported++;
                 reportIntermediate(numImported);
