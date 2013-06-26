@@ -11,18 +11,23 @@ import org.apache.hadoop.hbase.client.Result;
  */
 public class SingleTypeHashAwareScanBoundary2 extends BaseHashAwareScanBoundary{
     protected RowDecoder decoder;
+    protected int slice;
+    
+    public SingleTypeHashAwareScanBoundary2(byte[] columnFamily,RowDecoder decoder) {
+        this(columnFamily,decoder,decoder.getKeyColumns().length);
+    }
 
-    public SingleTypeHashAwareScanBoundary2(byte[] columnFamily,
-                                            RowDecoder decoder) {
+    public SingleTypeHashAwareScanBoundary2(byte[] columnFamily,RowDecoder decoder, int slice) {
         super(columnFamily);
         this.decoder = decoder;
+        this.slice = slice;
     }
 
     @Override
     public byte[] getStartKey(Result result) {
         MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow());
         fieldDecoder.skip(); //skip the prefix value
-        return fieldDecoder.slice(decoder.getKeyColumns().length);
+        return fieldDecoder.slice(slice);
     }
 
     @Override
