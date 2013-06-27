@@ -62,7 +62,7 @@ public class ColumnNullableFilter extends FilterBase {
 		if (CompareFilter.CompareOp.EQUAL.equals(compareOp))  //is null
 			this.filterIfMissing = false;
 		else //IS NOT NULL
-			this.filterIfMissing = true; 
+			this.filterIfMissing = true;
 	}
 
 	/**
@@ -103,7 +103,7 @@ public class ColumnNullableFilter extends FilterBase {
 	 * If false, the row will pass if the column is not found.  This is default.
 	 * @param filterIfMissing flag
 	 */
-	public void setFilterIfMissing(boolean filterIfMissing) {
+    void setFilterIfMissing(boolean filterIfMissing) {
 		this.filterIfMissing = filterIfMissing;
 	}
 
@@ -111,10 +111,10 @@ public class ColumnNullableFilter extends FilterBase {
         if (this.foundColumn)
 			return ReturnCode.INCLUDE;
 
-        if (! keyValue.matchingColumn(this.columnFamily, this.columnQualifier)) {
-            this.foundColumn = false;
-        } else {
+        if (keyValue.matchingColumn(this.columnFamily, this.columnQualifier)) {
             this.foundColumn = keyValue.getValue().length > 0;
+        } else {
+            this.foundColumn = false;
         }
 
         return ReturnCode.INCLUDE;
@@ -123,7 +123,18 @@ public class ColumnNullableFilter extends FilterBase {
     public boolean filterRow() {
 		// If column was found, return false if it was filterIfMissing, true if it was not
 		// If column not found, return true if filterMissing, false if not
-        return this.filterIfMissing ? !this.foundColumn : this.foundColumn;
+
+        /*
+         * If foundColumn == true, it means that the col had a non-null value (see filterKeyValue)
+         * Given that, and:
+         *      if filterIfMissing == true (sql IS NOT NULL), and:
+         *          foundColumn == true, return false (don't filter - the col was non null and we want non nulls)
+         *          foundColumn == false, return true (filter - the col was null and we don't want nulls)
+         *      if filterIfMissing == false (sql IS NULL), and:
+         *          foundColumn == true, return true (filter - the col was not null but we want nulls)
+         *          foundColumn == false, return false (don't filter - the col was null and we want nulls)
+         */
+        return this.filterIfMissing ? ! this.foundColumn : this.foundColumn;
 	}
 
 	public void reset() {
@@ -142,7 +153,7 @@ public class ColumnNullableFilter extends FilterBase {
 		//if (CompareFilter.CompareOp.EQUAL.equals(compareOp))  //is null
 		//	filter.setFilterIfMissing(false);
 		//else //IS NOT NULL
-		//	filter.setFilterIfMissing(true); 
+		//	filter.setFilterIfMissing(true);
 		
 		if (filterArguments.size() == 4) {
 			boolean filterIfMissing = ParseFilter.convertByteArrayToBoolean(filterArguments.get(3));

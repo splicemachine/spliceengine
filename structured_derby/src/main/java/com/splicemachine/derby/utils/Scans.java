@@ -305,15 +305,29 @@ public class Scans extends SpliceUtils {
 		return finalFilter;
 	}
 
-	private static Filter buildFilter(Qualifier[] qualifiers, FilterList.Operator operator) throws IOException {
-		FilterList list = new FilterList(operator);
+	private static Filter buildFilter(Qualifier[] qualifiers, FilterList.Operator filterOp) throws IOException {
+		FilterList list = new FilterList(filterOp);
 		try {
 			for(Qualifier qualifier: qualifiers){
 				DataValueDescriptor dvd = null;
 				dvd = qualifier.getOrderable();
 				if(dvd==null||dvd.isNull()||dvd.isNullOp().getBoolean()){
-					CompareFilter.CompareOp compareOp = qualifier.negateCompareResult()?
+//					CompareFilter.CompareOp compareOp = qualifier.negateCompareResult()?
+					CompareFilter.CompareOp compareOp = qualifier.getOrderable().isNullOp().getBoolean()?
 							CompareFilter.CompareOp.NOT_EQUAL: CompareFilter.CompareOp.EQUAL;
+
+                    // TODO
+                    boolean isNullOp = qualifier.getOrderable().isNullOp().getBoolean();  // SQL "IS NULL" op
+                    boolean isNotNullOp = qualifier.getOrderable().isNotNull().getBoolean();  // SQL "IS NOT NULL" op
+                    boolean isNullValue = qualifier.getOrderable().isNull();  // is value null
+                    int operator = qualifier.getOperator();    // the operator
+                    String opStr = getCompareOp(operator, false).toString();
+                    // isOrderedNulls == true => treat SQL null == null and less than or greater than all other values (ordered)
+                    boolean isOrderedNulls = qualifier.getOrderedNulls();
+                    // if isOrderedNulls == false && null involved in comparison, the result is unknown
+                    boolean unknownRV = qualifier.getUnknownRV();
+                    boolean negateCompare = qualifier.negateCompareResult();
+
 					list.addFilter(new ColumnNullableFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
 							Encoding.encode(qualifier.getColumnId()),
 							compareOp));
