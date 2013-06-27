@@ -5,7 +5,6 @@ import java.util.Comparator;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.ClientTransactor;
@@ -127,10 +126,10 @@ public class Scans extends SpliceUtils {
 	 *
 	 * @param startKeyValue the start of the scan, or {@code null} if a full table scan is desired
 	 * @param startSearchOperator the operator for the start. Can be any of
-	 * {@link ScanController.GT}, {@link ScanController.GE}, {@link ScanController.NA}
+	 * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
 	 * @param stopKeyValue the stop of the scan, or {@code null} if a full table scan is desired.
 	 * @param stopSearchOperator the operator for the stop. Can be any of
-	 * {@link ScanController.GT}, {@link ScanController.GE}, {@link ScanController.NA}
+	 * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
 	 * @param qualifiers scan qualifiers to use. This is used to construct equality filters to reduce
 	 *                   the amount of data returned.
 	 * @param sortOrder a sort order to use in how data is to be searched, or {@code null} if the default sort is used.
@@ -175,10 +174,10 @@ public class Scans extends SpliceUtils {
 	 *
 	 * @param startKeyValue the start of the scan, or {@code null} if a full table scan is desired
 	 * @param startSearchOperator the operator for the start. Can be any of
-	 * {@link ScanController.GT}, {@link ScanController.GE}, {@link ScanController.NA}
+	 * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
 	 * @param stopKeyValue the stop of the scan, or {@code null} if a full table scan is desired.
 	 * @param stopSearchOperator the operator for the stop. Can be any of
-	 * {@link ScanController.GT}, {@link ScanController.GE}, {@link ScanController.NA}
+	 * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
 	 * @param qualifiers scan qualifiers to use. This is used to construct equality filters to reduce
 	 *                   the amount of data returned.
 	 * @param sortOrder a sort order to use in how data is to be searched, or {@code null} if the default sort is used.
@@ -223,8 +222,8 @@ public class Scans extends SpliceUtils {
 	 * Situation2 is more complex. There are three basic states to be dealt with(best expressed in SQL):
 	 *
 	 * 1. "select * from t where t.key > start" or "select * from t where t.key >=start"
-	 * 	(e.g. {@code startSearchOperator = }{@link ScanController.GT} or
-	 * 2. "select * from t where t.key = start" (e.g. {@code startSearchOperator = }{@link ScanController.NA}
+	 * 	(e.g. {@code startSearchOperator = }{@link ScanController#GT} or
+	 * 2. "select * from t where t.key = start" (e.g. {@code startSearchOperator = }{@link ScanController#NA}
 	 * 3. "select * from t where t.key < end" or "select * from t where t.key <=end"
 	 *
 	 * Case 1 and 3 are determined entirely by the start and end keys of the scan, so
@@ -309,28 +308,23 @@ public class Scans extends SpliceUtils {
 		FilterList list = new FilterList(filterOp);
 		try {
 			for(Qualifier qualifier: qualifiers){
-				DataValueDescriptor dvd = null;
-				dvd = qualifier.getOrderable();
+				DataValueDescriptor dvd = qualifier.getOrderable();
 				if(dvd==null||dvd.isNull()||dvd.isNullOp().getBoolean()){
-//					CompareFilter.CompareOp compareOp = qualifier.negateCompareResult()?
-					CompareFilter.CompareOp compareOp = qualifier.getOrderable().isNullOp().getBoolean()?
+					CompareFilter.CompareOp compareOp = qualifier.negateCompareResult()?
 							CompareFilter.CompareOp.NOT_EQUAL: CompareFilter.CompareOp.EQUAL;
 
-                    // TODO
-                    boolean isNullOp = qualifier.getOrderable().isNullOp().getBoolean();  // SQL "IS NULL" op
-                    boolean isNotNullOp = qualifier.getOrderable().isNotNull().getBoolean();  // SQL "IS NOT NULL" op
+                    boolean filterIfMissing = qualifier.negateCompareResult();
+
                     boolean isNullValue = qualifier.getOrderable().isNull();  // is value null
-                    int operator = qualifier.getOperator();    // the operator
-                    String opStr = getCompareOp(operator, false).toString();
                     // isOrderedNulls == true => treat SQL null == null and less than or greater than all other values (ordered)
                     boolean isOrderedNulls = qualifier.getOrderedNulls();
-                    // if isOrderedNulls == false && null involved in comparison, the result is unknown
-                    boolean unknownRV = qualifier.getUnknownRV();
-                    boolean negateCompare = qualifier.negateCompareResult();
+                    // if value is null and nulls or unordered, we can't make a numerical comparison
+                    // between this null and other columns
+                    boolean isNullNumericalComparison = (isNullValue && ! isOrderedNulls);
 
 					list.addFilter(new ColumnNullableFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
 							Encoding.encode(qualifier.getColumnId()),
-							compareOp));
+                            isNullNumericalComparison, filterIfMissing));
 				}else{
                     byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
                     SingleColumnValueFilter filter = new SingleColumnValueFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,

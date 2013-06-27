@@ -1,42 +1,34 @@
 package com.splicemachine.hbase.filter;
 
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.filter.FilterBase;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.ArrayList;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.filter.CompareFilter;
-import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.hadoop.hbase.filter.ParseFilter;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import com.google.common.base.Preconditions;
 
 /**
  * This filter is used to filter rows based on whether or not the column key exists
- * (for IS NULL or IS NOT NULL filtering). Since HBase only stores non-null values, 
- * checking whether or not column exists is enough for the filtering.
- * It takes a CompareFilter.CompareOp operator (equal, not equal), a column family 
- * and a column qualifier
- * 
+ * (for IS NULL or IS NOT NULL filtering).  Since HBase only stores non-null values,
+ * checking whether or not column exists is enough for the filtering. Additionally,
+ * this filter will short circuit when an attempt to make a numerical
+ * <code>(<, >, =, <=, >=, etc)</code> with a null value -- no columns will every match.
+ *
+ * @see org.apache.hadoop.hbase.filter.SingleColumnValueFilter
+ *
  * @author jessiezhang
  */
 
 public class ColumnNullableFilter extends FilterBase {
-	static final Log LOG = LogFactory.getLog(ColumnNullableFilter.class);
 
-	protected byte [] columnFamily;
+    protected byte [] columnFamily;
 	protected byte [] columnQualifier;
-	private CompareOp compareOp;
 	private boolean foundColumn = false;
 	private boolean filterIfMissing = false;
+    private boolean isNullNumericalComparison;
 
-	/**
+    /**
 	 * Writable constructor, do not use.
 	 */
 	public ColumnNullableFilter() {
@@ -51,25 +43,22 @@ public class ColumnNullableFilter extends FilterBase {
 	 * in a row will be emitted if the specified column to check is not found in
 	 * the row.
 	 *
-	 * @param family name of column family
-	 * @param qualifier name of column qualifier
-	 * @param compareOp operator
-	 */
-	public ColumnNullableFilter(final byte [] family, final byte [] qualifier, final CompareOp compareOp) {
+     * @param family name of column family
+     * @param qualifier name of column qualifier
+     * @param isNullNumericalComparison comes from the qualifier,
+     *                                  if isOrderedNulls == false && null involved in comparison,
+     *                                  the result is unknown
+     * @param filterIfMissing whether we should us "IS NULL" or "IS NOT NULL" filter
+     *                        criteria. <code>true => "IS NOT NULL"; false => "IS NULL"</code>
+     */
+	public ColumnNullableFilter(final byte[] family,
+                                final byte[] qualifier,
+                                final boolean isNullNumericalComparison,
+                                final boolean filterIfMissing) {
 		this.columnFamily = family;
 		this.columnQualifier = qualifier;
-		this.compareOp = compareOp;
-		if (CompareFilter.CompareOp.EQUAL.equals(compareOp))  //is null
-			this.filterIfMissing = false;
-		else //IS NOT NULL
-			this.filterIfMissing = true;
-	}
-
-	/**
-	 * @return operator
-	 */
-	public CompareOp getOperator() {
-		return compareOp;
+        this.isNullNumericalComparison = isNullNumericalComparison;
+        this.filterIfMissing = filterIfMissing; // true => "IS NOT NULL"; false => "IS NULL"
 	}
 
 	/**
@@ -86,80 +75,45 @@ public class ColumnNullableFilter extends FilterBase {
 		return columnQualifier;
 	}
 
-	/**
-	 * Get whether entire row should be filtered if column is not found.
-	 * @return true if row should be skipped if column not found, false if row
-	 * should be let through anyways
-	 */
-	public boolean getFilterIfMissing() {
-		return filterIfMissing;
-	}
-
-	/**
-	 * Set whether entire row should be filtered if column is not found.
-	 * <p>
-	 * If true, the entire row will be skipped if the column is not found.
-	 * <p>
-	 * If false, the row will pass if the column is not found.  This is default.
-	 * @param filterIfMissing flag
-	 */
-    void setFilterIfMissing(boolean filterIfMissing) {
-		this.filterIfMissing = filterIfMissing;
-	}
-
 	public ReturnCode filterKeyValue(KeyValue keyValue) {
-        if (this.foundColumn)
+        if (this.foundColumn) {
 			return ReturnCode.INCLUDE;
-
-        if (keyValue.matchingColumn(this.columnFamily, this.columnQualifier)) {
-            this.foundColumn = keyValue.getValue().length > 0;
-        } else {
-            this.foundColumn = false;
         }
+
+        if (this.isNullNumericalComparison) {
+            // a numerical comparison with null will never match any columns
+            return ReturnCode.NEXT_ROW;
+        }
+
+        this.foundColumn = keyValue.matchingColumn(this.columnFamily, this.columnQualifier) && keyValue.getValue().length > 0;
 
         return ReturnCode.INCLUDE;
     }
 
     public boolean filterRow() {
-		// If column was found, return false if it was filterIfMissing, true if it was not
-		// If column not found, return true if filterMissing, false if not
-
         /*
+         * For SQL "IS NULL" and "IS NOT NULL" criteria...
          * If foundColumn == true, it means that the col had a non-null value (see filterKeyValue)
          * Given that, and:
-         *      if filterIfMissing == true (sql IS NOT NULL), and:
-         *          foundColumn == true, return false (don't filter - the col was non null and we want non nulls)
+         *      if filterIfMissing == true (SQL "IS NOT NULL"), and:
+         *          foundColumn == true, return false (don't filter - the col was non-null and we want non-nulls)
          *          foundColumn == false, return true (filter - the col was null and we don't want nulls)
-         *      if filterIfMissing == false (sql IS NULL), and:
+         *      if filterIfMissing == false (SQL "IS NULL"), and:
          *          foundColumn == true, return true (filter - the col was not null but we want nulls)
          *          foundColumn == false, return false (don't filter - the col was null and we want nulls)
          */
-        return this.filterIfMissing ? ! this.foundColumn : this.foundColumn;
+        if (isNullNumericalComparison) {
+            // a numerical comparison with null should never match any columns
+            return true;
+        } else if (filterIfMissing) {
+            return !foundColumn;
+        } else {
+            return foundColumn;
+        }
 	}
 
 	public void reset() {
 		foundColumn = false;
-	}
-
-	public static Filter createFilterFromArguments(ArrayList<byte []> filterArguments) {
-		Preconditions.checkArgument(filterArguments.size() == 3 || filterArguments.size() == 4,
-				"Expected 3 or 4 but got: %s", filterArguments.size());
-		byte [] family = ParseFilter.removeQuotesFromByteArray(filterArguments.get(0));
-		byte [] qualifier = ParseFilter.removeQuotesFromByteArray(filterArguments.get(1));
-		CompareOp compareOp = ParseFilter.createCompareOp(filterArguments.get(2));
-
-		ColumnNullableFilter filter = new ColumnNullableFilter(family, qualifier, compareOp);
-
-		//if (CompareFilter.CompareOp.EQUAL.equals(compareOp))  //is null
-		//	filter.setFilterIfMissing(false);
-		//else //IS NOT NULL
-		//	filter.setFilterIfMissing(true);
-		
-		if (filterArguments.size() == 4) {
-			boolean filterIfMissing = ParseFilter.convertByteArrayToBoolean(filterArguments.get(3));
-			filter.setFilterIfMissing(filterIfMissing);
-		}
-		return filter;
 	}
 
 	public void readFields(final DataInput in) throws IOException {
@@ -171,16 +125,16 @@ public class ColumnNullableFilter extends FilterBase {
 		if(this.columnQualifier.length == 0) {
 			this.columnQualifier = null;
 		}
-		this.compareOp = CompareOp.valueOf(in.readUTF());
 		this.foundColumn = in.readBoolean();
+        this.isNullNumericalComparison = in.readBoolean();
 		this.filterIfMissing = in.readBoolean();
 	}
 
 	public void write(final DataOutput out) throws IOException {
 		Bytes.writeByteArray(out, this.columnFamily);
 		Bytes.writeByteArray(out, this.columnQualifier);
-		out.writeUTF(compareOp.name());
 		out.writeBoolean(foundColumn);
+        out.writeBoolean(isNullNumericalComparison);
 		out.writeBoolean(filterIfMissing);
 	}
 }
