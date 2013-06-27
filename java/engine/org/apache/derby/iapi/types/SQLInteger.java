@@ -320,7 +320,9 @@ public final class SQLInteger
 		else
 		{
 		    try {
-		        value = Integer.parseInt(theValue.trim());
+		    	String s = theValue.trim();
+		    	if (s.length() > 0 && s.charAt(0) == '+') s = s.substring(1);  // remove leading + if there
+		        value = Integer.parseInt(s);
 			} catch (NumberFormatException nfe) {
 			    throw invalidFormat();
 			}
