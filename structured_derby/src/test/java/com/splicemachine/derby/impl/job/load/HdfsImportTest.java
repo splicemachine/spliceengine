@@ -103,7 +103,7 @@ public class HdfsImportTest extends SpliceUnitTest {
                         format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s', null, null, '%s', ',', null, null,null,null)",
                                 spliceSchemaWatcher.schemaName,TABLE_5,csvLocation));
 		ps.execute();
-		ResultSet rs = methodWatcher.executeQuery(format("select i, j from %s.%s",spliceSchemaWatcher.schemaName,TABLE_5));
+		ResultSet rs = methodWatcher.executeQuery(format("select i, j from %s.%s order by i",spliceSchemaWatcher.schemaName,TABLE_5));
 		List<String> results = Lists.newArrayList();
 		while(rs.next()){
 			Integer i = rs.getInt(1);

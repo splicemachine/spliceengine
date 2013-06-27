@@ -125,6 +125,24 @@ public class BlockImportJob extends FileImportJob{
 //        }else
 //            endKey = end;
         byte[] start = next.getStartKey();
+        if(start.length<=0){
+            /*
+             * If we are working with the start range of the table, we have to be careful, because
+             * we would create a range containing the entire table, which would submit an additional
+             * task for every region, which is clearly not something that we want.
+             *
+             * To prevent this, when the start key is empty, use the end key instead. If the end key
+             * is also empty, then there can be only one region on the whole table anyway, so we're safe. However,
+             * if the end key isn't empty, then just decrement that end key down by one to keep it in the same
+             * region, then use the end key as our range.
+             */
+            byte[] end = next.getEndKey();
+            if(end.length>0){
+                start = new byte[end.length];
+                System.arraycopy(end,0,start,0,end.length);
+                BytesUtil.decrementAtIndex(start,start.length-1);
+            }
+        }
         Pair<byte[],byte[]> regionBounds = Pair.newPair(start, start); //should guarantee only one region involved
         taskMap.put(task,regionBounds);
     }
