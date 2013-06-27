@@ -48,11 +48,7 @@ public class BlockImportJob extends FileImportJob{
         BlockLocation[] locations = fs.getFileBlockLocations(status,0,status.getLen());
 
         //get the total number of region servers we have to work with
-        HBaseAdmin admin = new HBaseAdmin(SpliceUtils.config);
-
-        byte[] tableBytes = Bytes.toBytes(context.getTableName());
         Map<ServerName,HRegionInfo> regions = getRegionLocations();
-//        List<HRegionLocation> regions = getRegionLocations(admin,tableBytes);
 
         //if we can't find any regions, that's weird. Back off and just import it like
         //any other file
@@ -76,10 +72,10 @@ public class BlockImportJob extends FileImportJob{
              * the region locations list
              */
             String[] blockHosts = location.getHosts();
-            int length = regions.size();
+            int regionCount = regions.size();
             int visited = 0;
             boolean found = false;
-            while(!found && visited<length){
+            while(!found && visited<regionCount){
                 ServerName nextRegionServer = regionCycle.next();
                 String regionHost = nextRegionServer.getHostname();
                 for(String blockHost:blockHosts){

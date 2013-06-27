@@ -14,9 +14,7 @@ import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.fs.BlockLocation;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -30,6 +28,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.net.URI;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -95,11 +95,13 @@ public class BlockImportTask extends AbstractImportTask{
             reader = new LineReader(stream);
             Text text = new Text();
             if(skipFirstLine)
-                start = reader.readLine(text);
+                start += reader.readLine(text);
 
             long pos = start;
             while(pos<end){
                 long newSize = reader.readLine(text);
+                if(newSize==0)
+                    break; //we didn't actually read any more data
                 pos+=newSize;
                 String line = text.toString();
                 if(line==null||line.length()==0)
@@ -269,5 +271,13 @@ public class BlockImportTask extends AbstractImportTask{
             localBuffer.close();
             remoteBuffer.close();
         }
+    }
+
+    public static void main(String... args) throws Exception{
+        FileSystem fs = FileSystem.get(new URI("hdfs://ubuntu5:8020"),SpliceUtils.config);
+        FileStatus fileStatus = fs.getFileStatus(new Path("/data/LU_CUSTOMER.spool"));
+        System.out.println(fileStatus);
+        BlockLocation[] fileBlockLocations = fs.getFileBlockLocations(fileStatus, 0, fileStatus.getLen());
+        System.out.println(Arrays.toString(fileBlockLocations));
     }
 }
