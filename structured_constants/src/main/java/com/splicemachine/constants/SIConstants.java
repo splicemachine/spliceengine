@@ -1,7 +1,6 @@
 package com.splicemachine.constants;
 
 import com.splicemachine.encoding.Encoding;
-import org.apache.hadoop.hbase.util.Bytes;
 
 /**
  * Defines the schema used by SI for the transaction table and for additional metadata on data tables.
@@ -55,4 +54,9 @@ public class SIConstants extends SpliceConstants {
 
     public static final int TRANSACTION_KEEP_ALIVE_INTERVAL = 1 * 60 * 1000;
     public static final int TRANSACTION_TIMEOUT = 10 * TRANSACTION_KEEP_ALIVE_INTERVAL;
+    
+    
+    public static final String SI_TRANSACTION_ID_KEY = "A";
+    
+    
 }

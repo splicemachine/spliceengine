@@ -7,6 +7,8 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import com.splicemachine.constants.SIConstants;
+
 import java.io.IOException;
 
 /**
@@ -31,7 +33,7 @@ public class TestWriteLoader extends BaseEndpointCoprocessor implements LoaderPr
         for(int i=startRow;i<startRow+numRows;i++){
             Put put = new Put(Bytes.toBytes(i));
             //set in case we're used in an SI world
-            put.setAttribute("si-transaction-id",Bytes.toBytes(1));
+            put.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,Bytes.toBytes(1));
             put.add("attributes".getBytes(),Bytes.toBytes(i),Bytes.toBytes(i*10));
             callBuffer.add(put);
         }

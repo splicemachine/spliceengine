@@ -13,6 +13,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.junit.*;
 
+import com.splicemachine.constants.SIConstants;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -26,7 +28,7 @@ import java.util.concurrent.*;
         "server on the same port as the external server does, which causes all these tests" +
         "to just sit there and do nothing. They work, however, for individual testing, and should " +
         "not be discarded")
-public class SITableWriterHBaseTest {
+public class SITableWriterHBaseTest extends SIConstants {
     private static final Logger LOG = Logger.getLogger(TableWriterHBaseTest.class);
 
     private static final String TABLE_NAME = "TEST_TABLE";
@@ -107,7 +109,7 @@ public class SITableWriterHBaseTest {
         for(int i=0;i<20;i+=2){
             LOG.trace("writing row "+i+":"+i+":"+(i*10));
             Put put = new Put(Bytes.toBytes(i));
-            put.setAttribute("si-transaction-id",Bytes.toBytes(1));
+            put.setAttribute(SI_TRANSACTION_ID_KEY,Bytes.toBytes(1));
             put.add("attributes".getBytes(),Bytes.toBytes(i),Bytes.toBytes(i*10));
             writeBuffer.add(put);
         }
@@ -126,7 +128,7 @@ public class SITableWriterHBaseTest {
         for(int i=1;i<=20;i+=2){
             LOG.trace("writing row "+i+":"+i+":"+(i*10));
             Put put = new Put(Bytes.toBytes(i));
-            put.setAttribute("si-transaction-id",Bytes.toBytes(1));
+            put.setAttribute(SI_TRANSACTION_ID_KEY,Bytes.toBytes(1));
             put.add("attributes".getBytes(),Bytes.toBytes(i),Bytes.toBytes(i*10));
             writeBuffer.add(put);
         }
