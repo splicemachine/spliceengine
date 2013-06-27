@@ -188,22 +188,26 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         rightHashKeys = generateHashKeys(rightHashKeyItem, (SpliceBaseOperation) this.rightResultSet);
         mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
         rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
-        byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(sequence[0]);
-        byte[] finish = BytesUtil.copyAndIncrement(start);
-        rowType = (SQLInteger) activation.getDataValueFactory().getNullInteger(null);
-        if(regionScanner==null){
-            reduceScan = Scans.newScan(start,finish, getTransactionID());
-        }else{
-            //get left-side decoder
+        if(uniqueSequenceID!=null){
+            byte[] start = new byte[uniqueSequenceID.length];
+            System.arraycopy(uniqueSequenceID,0,start,0,start.length);
+            byte[] finish = BytesUtil.copyAndIncrement(start);
+            rowType = (SQLInteger) activation.getDataValueFactory().getNullInteger(null);
+            if(regionScanner==null){
+                reduceScan = Scans.newScan(start,finish, getTransactionID());
+            }else{
+                //get left-side decoder
 
-            serverProvider = new MergeSortRegionAwareRowProvider2(getTransactionID(),context.getRegion(),
-                    context.getScan(),
-                    SpliceConstants.TEMP_TABLE_BYTES,
-                                getRowEncoder(leftNumCols,leftHashKeys).getDual(leftResultSet.getExecRowDefinition()),
-                                getRowEncoder(rightNumCols,rightHashKeys).getDual(rightResultSet.getExecRowDefinition()));
-            serverProvider.open();
+                serverProvider = new MergeSortRegionAwareRowProvider2(getTransactionID(),context.getRegion(),
+                        context.getScan(),
+                        SpliceConstants.TEMP_TABLE_BYTES,
+                        getRowEncoder(leftNumCols,leftHashKeys).getDual(leftResultSet.getExecRowDefinition()),
+                        getRowEncoder(rightNumCols,rightHashKeys).getDual(rightResultSet.getExecRowDefinition()));
+                serverProvider.open();
+            }
         }
 	}
+
 
     @Override
     protected JobStats doShuffle() throws StandardException {
@@ -323,7 +327,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             }
         }
 
-        return new RowEncoder(keyColumns,null,rowColumns,DerbyBytesUtil.generateBytes(sequence[0]),keyType,rowType){
+        return new RowEncoder(keyColumns,null,rowColumns,uniqueSequenceID,keyType,rowType){
             @Override
             protected Put doPut(ExecRow row) throws StandardException {
                 Put put =  super.doPut(row);

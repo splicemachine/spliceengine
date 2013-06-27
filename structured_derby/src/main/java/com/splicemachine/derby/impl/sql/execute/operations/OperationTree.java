@@ -74,13 +74,11 @@ public class OperationTree {
                     }
                 }
             }else{
-                //execute on this thread so we don't use up a parallel thread for someone else
-                for(SpliceOperation opToShuffle:levelOps){
-                    opToShuffle.executeShuffle();
+                for(SpliceOperation op:levelOps){
+                    op.executeShuffle();
                 }
             }
         }
-
         //operation is the highest level, it has the final scan
         return operation.executeScan();
     }

@@ -56,25 +56,30 @@ public class Snowflake {
             short count = counter;
             while(!timeSet &&numTries>0){
                 synchronized (this){
-                    long time= System.currentTimeMillis();
-                    if(time < lastTimestamp){
-                       interrupted = waitMs(); //everyone has to wait until the times line up
+                    timestamp= System.currentTimeMillis();
+                    if(timestamp < lastTimestamp){
+                       interrupted = waitMs(); //everyone has to wait until the timestamps line up
                        numTries--;
-                    }else if(time == lastTimestamp){
-                        if(counter>=MAX_COUNTER_VALUE){
+                    }else if(timestamp == lastTimestamp){
+                        if(counter>MAX_COUNTER_VALUE){
                             counter =0;
                             count = counter;
-                            interrupted = waitMs(); //everyone has to wait until we've pushed to a new  timestamp
+                            interrupted = waitMs(); //everyone has to wait until we've pushed to a new  timestampstamp
                         }else{
-                            count = counter++;
+                            counter++;
+                            count = counter;
                             timeSet=true;
                         }
                     }else{
+                        lastTimestamp=timestamp;
                         timeSet=true;
-                        if(counter>=MAX_COUNTER_VALUE){
-                            count = counter = 0;
-                        }else
-                            count = counter++;
+                        if(counter>MAX_COUNTER_VALUE){
+                            counter=0;
+                            count = counter;
+                        }else{
+                            counter++;
+                            count = counter;
+                        }
                     }
                 }
             }
@@ -89,9 +94,11 @@ public class Snowflake {
 
             //push the machine bits
             uuid |= machineId;
+//            System.out.println("          "+ Long.toBinaryString(uuid));
 
             //push the count bits
-            uuid |= (count &COUNTER_MASK);
+            uuid |= (count & COUNTER_MASK);
+//            System.out.println("          "+ Long.toBinaryString(uuid));
             return uuid;
         }finally{
             if(interrupted){ //reset the interrupted flag for others to use

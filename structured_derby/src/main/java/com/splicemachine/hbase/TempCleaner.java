@@ -71,7 +71,7 @@ public class TempCleaner {
      * @param start the start row to be deleted
      * @param finish the finish row to be deleted
      */
-    public void deleteRange(String uid, byte[] start, byte[] finish) throws StandardException {
+    public void deleteRange(byte[] uid, byte[] start, byte[] finish) throws StandardException {
         if(LOG.isTraceEnabled())
             LOG.trace("cleaning temp space for task "+ uid);
         final TempCleanJob job = new TempCleanJob(uid,start,finish,taskPriority);
@@ -101,12 +101,12 @@ public class TempCleaner {
         private TempCleanTask task;
         private final String jobId;
 
-        public TempCleanJob(String uid,byte[] start, byte[] finish,int taskPriority){
-            this.jobId = uid;
+        public TempCleanJob(byte[] uid,byte[] start, byte[] finish,int taskPriority){
+            this.jobId = new String(uid);
             Scan scan = new Scan();
             scan.setStartRow(start);
             scan.setStopRow(finish);
-            this.task = new TempCleanTask(uid,scan,taskPriority);
+            this.task = new TempCleanTask(jobId,scan,taskPriority);
         }
 
         @Override

@@ -148,7 +148,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         
         
         sinkEncoder = MultiFieldEncoder.create(groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
-        DerbyBytesUtil.encodeInto(sinkEncoder, sequence[0],false).mark();
+        sinkEncoder.setRawBytes(uniqueSequenceID).mark();
         scanEncoder = MultiFieldEncoder.create(groupByColumns.size());
     	allKeyColumns = new ArrayList<Integer>(groupByColumns);
     	allKeyColumns.addAll(nonGroupByUniqueColumns);
@@ -175,7 +175,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
         try {
-            reduceScan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
+            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

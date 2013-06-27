@@ -1,6 +1,7 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.google.common.base.Preconditions;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree2;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -37,13 +38,13 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
     private static final Logger LOG = Logger.getLogger(OperationResultSet.class);
     private static Logger PLAN_LOG = Logger.getLogger("com.splicemachine.queryPlan");
     private final Activation activation;
-    private final OperationTree2 operationTree;
+    private final OperationTree operationTree;
     private final SpliceOperation topOperation;
     private NoPutResultSet delegate;
     private boolean closed = false;
 
     public OperationResultSet(Activation activation,
-                              OperationTree2 operationTree,
+                              OperationTree operationTree,
                               SpliceOperation topOperation){
         this.activation = activation;
         this.operationTree = operationTree;

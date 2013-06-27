@@ -37,7 +37,7 @@ public class BasicSnowflakeTest {
 
     @Test
     public void testNoDuplicatesManyThreadsSameSnowflake() throws Exception {
-        int numThreads=1;
+        int numThreads=20;
         final int numIterations = 160000;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         final ConcurrentMap<Long,Boolean> existing = new ConcurrentHashMap<Long, Boolean>();

@@ -138,7 +138,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder rowDecoder) throws StandardException {
         try{
-            reduceScan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
+            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
             //make sure that we filter out failed tasks
             SuccessFilter filter = new SuccessFilter(failedTasks,false);
             reduceScan.setFilter(filter);
@@ -255,7 +255,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     public RowEncoder getRowEncoder() throws StandardException {
         return RowEncoder.create(sourceExecIndexRow.nColumns(),
                 keyColumns,null,
-                DerbyBytesUtil.generateBytes(sequence[0]),
+                uniqueSequenceID,
                 KeyType.FIXED_PREFIX_UNIQUE_POSTFIX,
                 RowMarshaller.columnar());
     }

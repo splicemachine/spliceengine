@@ -52,7 +52,7 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 	private int resultSetNumber;
 	private ExecRow currentRow;
 
-	private String uniqueSequenceId;
+	private byte[] uniqueSequenceId;
 	
 	@Override
 	public void init(SpliceOperationContext context){
@@ -389,7 +389,7 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 	}
 
 	@Override
-	public String getUniqueSequenceID() {
+	public byte[] getUniqueSequenceID() {
 		return this.uniqueSequenceId;
 	}
 

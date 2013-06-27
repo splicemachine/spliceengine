@@ -125,7 +125,7 @@ public abstract class MultiScanRowProvider implements RowProvider {
             List<Scan> scans = getScans();
             TempCleaner cleaner = SpliceDriver.driver().getTempCleaner();
             for(Scan scan:scans){
-                cleaner.deleteRange(SpliceUtils.getUniqueKeyString(),scan.getStartRow(),scan.getStopRow());
+                cleaner.deleteRange(SpliceUtils.getUniqueKey(),scan.getStartRow(),scan.getStopRow());
             }
         } catch (StandardException e) {
             throw new RuntimeException(e);
