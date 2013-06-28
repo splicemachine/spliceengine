@@ -104,7 +104,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
 
     private Filter.ReturnCode processUserDataSetupShortCircuit() throws IOException {
         log("processUserDataSetupShortCircuit");
-        final Filter.ReturnCode result = processUserData();
+        final Filter.ReturnCode result = processUserData(false);
         rowState.inData = true;
         if (rowState.transactionCache.size() == 1) {
             rowState.shortCircuit = result;
@@ -116,7 +116,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         if (rowState.shortCircuit != null) {
             return rowState.shortCircuit;
         } else {
-            return processUserData();
+            return processUserData(false);
         }
     }
 
@@ -137,7 +137,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
             boolean include = false;
             for (KeyValue kv : rowState.getCommitTimestamps()) {
                 keyValue.setKeyValue(kv);
-                if (processUserData().equals(INCLUDE) || processUserData().equals(INCLUDE_AND_NEXT_COL)) {
+                if (processUserData(true).equals(INCLUDE) || processUserData(true).equals(INCLUDE_AND_NEXT_COL)) {
                     include = true;
                     break;
                 }
@@ -147,10 +147,13 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
                 rowState.setSiColumnIncluded();
                 return INCLUDE;
             } else {
-                final Filter.ReturnCode returnCode = processUserData();
+                final Filter.ReturnCode returnCode = processUserData(true);
                 if (returnCode.equals(SKIP)) {
                 } else {
                     rowState.setSiColumnIncluded();
+                }
+                if (returnCode.equals(INCLUDE_AND_NEXT_COL)) {
+                    return INCLUDE;
                 }
                 return returnCode;
             }
@@ -263,16 +266,16 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     /**
      * Handle a cell that represents user data. Filter it based on the various timestamps and transaction status.
      */
-    private Filter.ReturnCode processUserData() throws IOException {
-        return filterUserDataByTimestamp();
+    private Filter.ReturnCode processUserData(boolean checkingCommitTimestamp) throws IOException {
+        return filterUserDataByTimestamp(checkingCommitTimestamp);
     }
 
     /**
      * Consider a cell of user data and decide whether to use it as "the" value for the column (in the context of the
      * current transaction) based on the various timestamp values and transaction status.
      */
-    private Filter.ReturnCode filterUserDataByTimestamp() throws IOException {
-        if (tombstoneAfterData()) {
+    private Filter.ReturnCode filterUserDataByTimestamp(boolean checkingCommitTimestamp) throws IOException {
+        if (tombstoneAfterData(checkingCommitTimestamp)) {
             return NEXT_COL;
         } else if (isVisibleToCurrentTransaction()) {
             return INCLUDE_AND_NEXT_COL;
@@ -296,13 +299,19 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     /**
      * Is there a row level tombstone that supercedes the current cell?
      */
-    private boolean tombstoneAfterData() throws IOException {
+    private boolean tombstoneAfterData(boolean checkingCommitTimestamp) throws IOException {
         for (long tombstone : rowState.tombstoneTimestamps) {
             final Transaction tombstoneTransaction = rowState.transactionCache.get(tombstone);
             final VisibleResult visibleResult = checkVisibility(tombstoneTransaction);
-            if (visibleResult.visible && (keyValue.timestamp() < tombstone
-                    || (keyValue.timestamp() == tombstone && dataStore.isSINull(keyValue.value())))) {
-                return true;
+            if (checkingCommitTimestamp) {
+                if (visibleResult.visible && (keyValue.timestamp() <= tombstone)) {
+                    return true;
+                }
+            } else {
+                if (visibleResult.visible && (keyValue.timestamp() < tombstone
+                        || (keyValue.timestamp() == tombstone && dataStore.isSINull(keyValue.value())))) {
+                    return true;
+                }
             }
         }
         return false;
