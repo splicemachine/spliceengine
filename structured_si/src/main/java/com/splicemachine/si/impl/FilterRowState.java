@@ -20,11 +20,6 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
     private Data currentRowKey = null;
 
     /**
-     * Used to emulate the INCLUDE_AND_NEXT_COLUMN ReturnCode that is in later HBase versions .
-     */
-    Data lastValidQualifier = null;
-
-    /**
      * If a tombstone was detected on the row, then the associated timestamp will be stored here.
      */
     List<Long> tombstoneTimestamps = null;
@@ -54,7 +49,6 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
     public void updateCurrentRow(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> keyValue) {
         if (currentRowKey == null || !dataLib.valuesEqual(currentRowKey, keyValue.row())) {
             currentRowKey = keyValue.row();
-            lastValidQualifier = null;
             tombstoneTimestamps = new ArrayList<Long>();
             antiTombstoneTimestamps = new ArrayList<Long>();
             transactionCache = new HashMap<Long, Transaction>();

@@ -626,6 +626,11 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                         case INCLUDE:
                             filteredCells.add(keyValue);
                             break;
+                        case INCLUDE_AND_NEXT_COL:
+                            filteredCells.add(keyValue);
+                            qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
+                            familyToSkip = dataLib.getKeyValueFamily(keyValue);
+                            break;
                         case NEXT_COL:
                             qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
                             familyToSkip = dataLib.getKeyValueFamily(keyValue);

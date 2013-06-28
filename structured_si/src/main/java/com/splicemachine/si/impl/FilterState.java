@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE;
+import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE_AND_NEXT_COL;
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.NEXT_COL;
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
 
@@ -136,7 +137,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
             boolean include = false;
             for (KeyValue kv : rowState.getCommitTimestamps()) {
                 keyValue.setKeyValue(kv);
-                if (processUserData().equals(INCLUDE)) {
+                if (processUserData().equals(INCLUDE) || processUserData().equals(INCLUDE_AND_NEXT_COL)) {
                     include = true;
                     break;
                 }
@@ -263,11 +264,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
      * Handle a cell that represents user data. Filter it based on the various timestamps and transaction status.
      */
     private Filter.ReturnCode processUserData() throws IOException {
-        if (doneWithColumn()) {
-            return NEXT_COL;
-        } else {
-            return filterUserDataByTimestamp();
-        }
+        return filterUserDataByTimestamp();
     }
 
     /**
@@ -278,8 +275,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         if (tombstoneAfterData()) {
             return NEXT_COL;
         } else if (isVisibleToCurrentTransaction()) {
-            proceedToNextColumn();
-            return INCLUDE;
+            return INCLUDE_AND_NEXT_COL;
         } else {
             if (includeUncommittedAsOfStart) {
                 if (isUncommittedAsOfStart()) {
@@ -295,21 +291,6 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
 
     private boolean isUncommittedAsOfStart() throws IOException {
         return myTransaction.startedWhileOtherActive(loadTransaction(), transactionSource);
-    }
-
-    /**
-     * The version of HBase we are using does not support the newer "INCLUDE & NEXT_COL" return code
-     * so this manually does the equivalent.
-     */
-    private void proceedToNextColumn() {
-        rowState.lastValidQualifier = keyValue.qualifier();
-    }
-
-    /**
-     * The second half of manually implementing our own "INCLUDE & NEXT_COL" return code.
-     */
-    private boolean doneWithColumn() {
-        return dataLib.valuesEqual(keyValue.qualifier(), rowState.lastValidQualifier);
     }
 
     /**
