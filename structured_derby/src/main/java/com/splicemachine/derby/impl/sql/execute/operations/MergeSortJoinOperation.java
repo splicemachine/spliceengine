@@ -63,7 +63,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     protected enum JoinSide {RIGHT,LEFT}
 	protected JoinSide joinSide;
-	protected RowProvider clientProvider;
 	protected MergeSortRegionAwareRowProvider2 serverProvider;
 	protected SQLInteger rowType;
 	protected byte[] priorHash;
@@ -163,14 +162,11 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     @Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
-        if(clientProvider==null){
-            if(failedTasks.size()>0){
-                reduceScan.setFilter(new SuccessFilter(failedTasks,false));
-            }
-            SpliceUtils.setInstructions(reduceScan,activation,top);
-            clientProvider = new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
+        if(failedTasks.size()>0){
+            reduceScan.setFilter(new SuccessFilter(failedTasks,false));
         }
-        return clientProvider;
+        SpliceUtils.setInstructions(reduceScan,activation,top);
+        return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
 	}
 
     @Override
