@@ -82,9 +82,11 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         if (rowState.inData) {
             return processUserDataShortCircuit();
         }
-        final KeyValueType type = dataStore.getKeyValueType(keyValue.family(), keyValue.qualifier());
+        final KeyValueType type = dataStore.getKeyValueType(keyValue.family(), keyValue.qualifier(), keyValue.value());
         if (type.equals(KeyValueType.TOMBSTONE)) {
             return processTombstone();
+        } else if (type.equals(KeyValueType.ANTI_TOMBSTONE)) {
+            return processAntiTombstone();
         } else if (type.equals(KeyValueType.COMMIT_TIMESTAMP)) {
             if (includeSIColumn && !rowState.isSiColumnIncluded()) {
                 processCommitTimestamp();
@@ -100,6 +102,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     }
 
     private Filter.ReturnCode processUserDataSetupShortCircuit() throws IOException {
+        log("processUserDataSetupShortCircuit");
         final Filter.ReturnCode result = processUserData();
         rowState.inData = true;
         if (rowState.transactionCache.size() == 1) {
@@ -117,6 +120,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     }
 
     private Filter.ReturnCode processCommitTimestampAsUserData() throws IOException {
+        log("processCommitTimestampAsUserData");
         boolean later = false;
         for (Long tombstoneTimestamp : rowState.tombstoneTimestamps) {
             if (tombstoneTimestamp < keyValue.timestamp()) {
@@ -157,6 +161,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
      * relevant transaction data to be loaded up into the local cache.
      */
     private Filter.ReturnCode processCommitTimestamp() throws IOException {
+        log("processCommitTimestamp");
         Transaction transaction = transactionCache.getIfPresent(keyValue.timestamp());
         if (transaction == null) {
             transaction = processCommitTimestampDirect();
@@ -238,13 +243,20 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
      * those values in for a given row and stores the tombstone timestamp so it can be used later to filter user data.
      */
     private Filter.ReturnCode processTombstone() throws IOException {
-        rowState.setTombstoneTimestamp(keyValue.timestamp());
-        if (includeUncommittedAsOfStart && !rowState.isSiTombstoneIncluded() && keyValue.timestamp() < myTransaction.getTransactionId().getId()) {
+        log("processTombstone");
+        if (rowState.setTombstoneTimestamp(keyValue.timestamp()) && includeUncommittedAsOfStart
+                && !rowState.isSiTombstoneIncluded() && keyValue.timestamp() < myTransaction.getTransactionId().getId()) {
             rowState.setSiTombstoneIncluded();
             return INCLUDE;
         } else {
             return SKIP;
         }
+    }
+
+    private Filter.ReturnCode processAntiTombstone() throws IOException {
+        log("processAntiTombstone");
+        rowState.setAntiTombstoneTimestamp(keyValue.timestamp());
+        return SKIP;
     }
 
     /**
@@ -343,7 +355,12 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
      * This is not expected to happen, but if there are extra unknown column families in the results they will be skipped.
      */
     private Filter.ReturnCode processUnknownFamilyData() {
+        log("processUnknownFamilyData");
         return SKIP;
+    }
+
+    private void log(String message) {
+        //System.out.println("  " + message);
     }
 
 }

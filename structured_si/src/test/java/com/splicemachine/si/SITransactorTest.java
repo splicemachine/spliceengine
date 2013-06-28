@@ -1089,6 +1089,139 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+    public void writeManyDeleteOneScanWithIncludeSIColumnSameTransaction() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "110joe", 20);
+        insertAge(t1, "110toe", 30);
+        insertAge(t1, "110boe", 40);
+        insertAge(t1, "110moe", 50);
+        insertAge(t1, "110xoe", 60);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        deleteRow(t2, "110moe");
+        String expected = "110boe age=40 job=null[ S.TX@~9 V.age@~9=40 ]\n" +
+                "110joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
+                "110toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
+                "110xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
+        Assert.assertEquals(expected, scanAll(t2, "110a", "110z", null, true));
+    }
+
+    @Test
+    public void writeManyDeleteOneSameTransactionScanWithIncludeSIColumn() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "135joe", 20);
+        insertAge(t1, "135toe", 30);
+        insertAge(t1, "135boe", 40);
+        insertAge(t1, "135xoe", 60);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        insertAge(t1, "135moe", 50);
+        deleteRow(t2, "135moe");
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction();
+        String expected = "135boe age=40 job=null[ S.TX@~9 V.age@~9=40 ]\n" +
+                "135joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
+                "135toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
+                "135xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
+        Assert.assertEquals(expected, scanAll(t3, "135a", "135z", null, true));
+    }
+
+    @Test
+    public void writeManyDeleteOneAllNullsScanWithIncludeSIColumn() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "137joe", 20);
+        insertAge(t1, "137toe", 30);
+        insertAge(t1, "137boe", 40);
+        insertAge(t1, "137moe", null);
+        insertAge(t1, "137xoe", 60);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        deleteRow(t2, "137moe");
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction();
+        String expected = "137boe age=40 job=null[ S.TX@~9 V.age@~9=40 ]\n" +
+                "137joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
+                "137toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
+                "137xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
+        Assert.assertEquals(expected, scanAll(t3, "137a", "137z", null, true));
+    }
+
+    @Test
+    public void writeManyDeleteOneAllNullsSameTransactionScanWithIncludeSIColumn() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "138joe", 20);
+        insertAge(t1, "138toe", 30);
+        insertAge(t1, "138boe", 40);
+        insertAge(t1, "138xoe", 60);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        insertAge(t2, "138moe", null);
+        deleteRow(t2, "138moe");
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction();
+        String expected = "138boe age=40 job=null[ S.TX@~9 V.age@~9=40 ]\n" +
+                "138joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
+                "138toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
+                "138xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
+        Assert.assertEquals(expected, scanAll(t3, "138a", "138z", null, true));
+    }
+
+    @Test
+    public void writeManyDeleteOneBeforeWriteSameTransactionAsWriteScanWithIncludeSIColumn() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "136joe", 20);
+        insertAge(t1, "136toe", 30);
+        insertAge(t1, "136boe", 40);
+        insertAge(t1, "136moe", 50);
+        insertAge(t1, "136xoe", 60);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        deleteRow(t2, "136moe");
+        insertAge(t2, "136moe", 51);
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction();
+        String expected = "136boe age=40 job=null[ S.TX@~9 V.age@~9=40 ]\n" +
+                "136joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
+                "136moe age=51 job=null[ S.TX@~9 V.age@~9=51 ]\n" +
+                "136toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
+                "136xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
+        Assert.assertEquals(expected, scanAll(t3, "136a", "136z", null, true));
+    }
+
+    @Test
+    public void writeManyDeleteOneBeforeWriteAllNullsSameTransactionAsWriteScanWithIncludeSIColumn() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "139joe", 20);
+        insertAge(t1, "139toe", 30);
+        insertAge(t1, "139boe", 40);
+        insertAge(t1, "139moe", 50);
+        insertAge(t1, "139xoe", 60);
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        deleteRow(t2, "139moe");
+        insertAge(t2, "139moe", null);
+        transactor.commit(t2);
+
+        TransactionId t3 = transactor.beginTransaction();
+        String expected = "139boe age=40 job=null[ S.TX@~9 V.age@~9=40 ]\n" +
+                "139joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
+                "139moe age=-1 job=null[ S.TX@~9 V.age@~9=-1 ]\n" +
+                "139toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
+                "139xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
+        Assert.assertEquals(expected, scanAll(t3, "139a", "139z", null, true));
+    }
+
+    @Test
     public void writeManyWithOneAllNullsDeleteOneScan() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "112joe", 20);
@@ -1183,7 +1316,6 @@ public class SITransactorTest extends SIConstants {
 
         TransactionId t4 = transactor.beginTransaction();
         Assert.assertEquals("joe7 age=30 job=null", read(t4, "joe7"));
-        //System.out.println(store);
     }
 
     @Test
@@ -1863,9 +1995,6 @@ public class SITransactorTest extends SIConstants {
         testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             final Object resultTuple = reader.get(testSTable, get);
-            for (Object keyValue : dataLib.listResult(resultTuple)) {
-                //System.out.println(((SITransactor) transactor).shouldKeep(keyValue, t2));
-            }
             final FilterState filterState = transactor.newFilterState(transactorSetup.rollForwardQueue, t2, false, false);
             if (useSimple) {
                 transactor.filterResult(filterState, resultTuple);
@@ -1875,7 +2004,6 @@ public class SITransactorTest extends SIConstants {
         }
 
         transactor.commit(t);
-
         t = transactor.beginTransaction();
 
         dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(35));

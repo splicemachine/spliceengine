@@ -28,7 +28,7 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
-public class SITransactor<Table, OperationWithAttributes, Put extends OperationWithAttributes, Get extends OperationWithAttributes,
+public class SITransactor<Table, OperationWithAttributes, Put extends Mutation, Get extends OperationWithAttributes,
         Scan extends OperationWithAttributes, Mutation extends OperationWithAttributes, Result, KeyValue, Data, Hashable,
         Delete extends OperationWithAttributes, Lock>
         implements Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data, Hashable> {
@@ -287,7 +287,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
      * Create a "put" operation that will effectively delete a given row.
      */
     private Put createDeletePutDirect(long transactionId, Data rowKey) {
-        final Put deletePut = (Put) dataLib.newPut(rowKey);
+        final Put deletePut = dataLib.newPut(rowKey);
         flagForSITreatment(transactionId, false, false, deletePut);
         dataStore.setTombstoneOnPut(deletePut, transactionId);
         dataStore.setDeletePutAttribute(deletePut);
@@ -374,7 +374,7 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
             final Object[] conflictResults = ensureNoWriteConflict(transaction, table, rowKey);
             dataTransactionsToRollForward = (Set<Long>) conflictResults[0];
             final Set<Long> conflictingChildren = (Set<Long>) conflictResults[1];
-            processPutDirect(table, put, transactionId, lock);
+            processPutDirect(table, put, transactionId, lock, (Boolean) conflictResults[2]);
             resolveChildConflicts(table, put, lock, conflictingChildren);
         } finally {
             dataWriter.unLockRow(table, lock);
@@ -385,8 +385,8 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
         }
     }
 
-    private void processPutDirect(Table table, Put put, long transactionId, Lock lock) throws IOException {
-        final Put newPut = createUltimatePut(transactionId, lock, put, table);
+    private void processPutDirect(Table table, Put put, long transactionId, Lock lock, boolean hasTombstone) throws IOException {
+        final Put newPut = createUltimatePut(transactionId, lock, put, table, hasTombstone);
         dataStore.suppressIndexing(newPut);
         dataWriter.write(table, newPut, lock);
     }
@@ -405,11 +405,31 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
      */
     private Object[] ensureNoWriteConflict(ImmutableTransaction updateTransaction, Table table, Data rowKey)
             throws IOException {
-        final List<KeyValue> dataCommitKeyValues = dataStore.getCommitTimestamps(table, rowKey);
-        if (dataCommitKeyValues != null) {
+        final List<KeyValue>[] values = dataStore.getCommitTimestampsAndTombstones(table, rowKey);
+        final Object[] timestampConflicts = checkTimestampsHandleNull(updateTransaction, values[1]);
+        final List<KeyValue> tombstoneValues = values[0];
+        boolean hasTombstone = hasCurrentTransactionTombstone(updateTransaction.getLongTransactionId(), tombstoneValues);
+        return new Object[] {timestampConflicts[0], timestampConflicts[1], hasTombstone};
+    }
+
+    private boolean hasCurrentTransactionTombstone(long transactionId, List<KeyValue> tombstoneValues) {
+        if (tombstoneValues != null) {
+            for (KeyValue tombstone : tombstoneValues) {
+                if (dataLib.getKeyValueTimestamp(tombstone) == transactionId) {
+                    return !dataStore.isAntiTombstone(tombstone);
+                }
+            }
+        }
+        return false;
+    }
+
+    private Object[] checkTimestampsHandleNull(ImmutableTransaction updateTransaction, List<KeyValue> dataCommitKeyValues) throws IOException {
+        if (dataCommitKeyValues == null) {
+            return new Object[]{Collections.EMPTY_SET, Collections.EMPTY_SET};
+        }
+        else {
             return checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValues);
         }
-        return new Object[]{Collections.EMPTY_SET, Collections.EMPTY_SET};
     }
 
     /**
@@ -522,13 +542,15 @@ public class SITransactor<Table, OperationWithAttributes, Put extends OperationW
      * Create a new operation, with the lock, that has all of the keyValues from the original operation.
      * This will also set the timestamp of the data being updated to reflect the transaction doing the update.
      */
-    Put createUltimatePut(long transactionId, Lock lock, Put put, Table table) throws IOException {
+    Put createUltimatePut(long transactionId, Lock lock, Put put, Table table, boolean hasTombstone) throws IOException {
         final Data rowKey = dataLib.getPutKey(put);
         final Put newPut = dataLib.newPut(rowKey, lock);
         dataStore.copyPutKeyValues(put, newPut, transactionId);
         dataStore.addTransactionIdToPutKeyValues(newPut, transactionId);
-        if (isDeletePut((Mutation) put)) {
+        if (isDeletePut(put)) {
             dataStore.setTombstonesOnColumns(table, transactionId, newPut);
+        } else if (hasTombstone) {
+            dataStore.setAntiTombstoneOnPut(newPut, transactionId);
         }
         return newPut;
     }

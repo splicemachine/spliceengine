@@ -7,6 +7,7 @@ package com.splicemachine.si.impl;
 public enum KeyValueType {
     COMMIT_TIMESTAMP,
     TOMBSTONE,
+    ANTI_TOMBSTONE,
     USER_DATA,
     OTHER
 }

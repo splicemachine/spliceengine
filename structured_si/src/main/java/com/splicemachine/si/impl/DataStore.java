@@ -34,6 +34,7 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
     private final Data commitTimestampQualifier;
     private final Data tombstoneQualifier;
     private final Data siNull;
+    private final Data siAntiTombstoneValue;
     final Data siFail;
 
     private final Data userColumnFamily;
@@ -43,7 +44,7 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
                      Object siNeededValue, Object includeSIColumnValue, String includeUncommittedAsOfStartAttribute,
                      Object includeUncommittedAsOfStartValue, String transactionIdAttribute, String deletePutAttribute,
                      String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier,
-                     Object siMetaNull, Object siFail, Object userColumnFamily) {
+                     Object siNull, Object siAntiTombstoneValue, Object siFail, Object userColumnFamily) {
         this.dataLib = dataLib;
         this.reader = reader;
         this.writer = writer;
@@ -57,7 +58,8 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
         this.siFamily = dataLib.encode(siMetaFamily);
         this.commitTimestampQualifier = dataLib.encode(siCommitQualifier);
         this.tombstoneQualifier = dataLib.encode(siTombstoneQualifier);
-        this.siNull = dataLib.encode(siMetaNull);
+        this.siNull = dataLib.encode(siNull);
+        this.siAntiTombstoneValue = dataLib.encode(siAntiTombstoneValue);
         this.siFail = dataLib.encode(siFail);
         this.userColumnFamily = dataLib.encode(userColumnFamily);
     }
@@ -131,22 +133,35 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
         return delete;
     }
 
-    List<KeyValue> getCommitTimestamps(IHTable table, Data rowKey) throws IOException {
-        final List<List<Data>> columns = Arrays.asList(Arrays.asList(siFamily, commitTimestampQualifier));
+    List<KeyValue>[] getCommitTimestampsAndTombstones(IHTable table, Data rowKey) throws IOException {
+        final List<List<Data>> columns = Arrays.asList(
+                Arrays.asList(siFamily, tombstoneQualifier),
+                Arrays.asList(siFamily, commitTimestampQualifier));
         Get get = dataLib.newGet(rowKey, null, columns, null);
         suppressIndexing(get);
         Result result = reader.get(table, get);
         if (result != null) {
-            return dataLib.getResultColumn(result, siFamily, commitTimestampQualifier);
+            return new List[]{dataLib.getResultColumn(result, siFamily, tombstoneQualifier),
+                    dataLib.getResultColumn(result, siFamily, commitTimestampQualifier)};
         }
-        return null;
+        return new List[]{null, null};
     }
 
-    public KeyValueType getKeyValueType(Data family, Data qualifier) {
+    boolean isAntiTombstone(KeyValue keyValue) {
+        return dataLib.valuesEqual(siAntiTombstoneValue, dataLib.getKeyValueValue(keyValue));
+    }
+
+    public KeyValueType getKeyValueType(Data family, Data qualifier, Data value) {
         if (dataLib.valuesEqual(family, siFamily) && dataLib.valuesEqual(qualifier, commitTimestampQualifier)) {
             return KeyValueType.COMMIT_TIMESTAMP;
         } else if (dataLib.valuesEqual(family, siFamily) && dataLib.valuesEqual(qualifier, tombstoneQualifier)) {
-            return KeyValueType.TOMBSTONE;
+            if (dataLib.valuesEqual(value, siNull)) {
+                return KeyValueType.TOMBSTONE;
+            } else if (dataLib.valuesEqual(value, siAntiTombstoneValue)) {
+                return KeyValueType.ANTI_TOMBSTONE;
+            } else {
+                return KeyValueType.OTHER;
+            }
         } else if (dataLib.valuesEqual(family, userColumnFamily)) {
             return KeyValueType.USER_DATA;
         } else {
@@ -206,6 +221,10 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
                 dataLib.addKeyValueToPut(put, userColumnFamily, qualifier, timestamp, siNull);
             }
         }
+    }
+
+    public void setAntiTombstoneOnPut(Put put, long transactionId) throws IOException {
+        dataLib.addKeyValueToPut(put, siFamily, tombstoneQualifier, transactionId, siAntiTombstoneValue);
     }
 
     private Map<Data, Data> getUserData(IHTable table, Data rowKey) throws IOException {

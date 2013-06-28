@@ -28,6 +28,7 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
      * If a tombstone was detected on the row, then the associated timestamp will be stored here.
      */
     List<Long> tombstoneTimestamps = null;
+    List<Long> antiTombstoneTimestamps = null;
 
     /**
      * The transactions that have been loaded as part of processing this row.
@@ -55,6 +56,7 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
             currentRowKey = keyValue.row();
             lastValidQualifier = null;
             tombstoneTimestamps = new ArrayList<Long>();
+            antiTombstoneTimestamps = new ArrayList<Long>();
             transactionCache = new HashMap<Long, Transaction>();
             commitTimestamps = new ArrayList();
             siColumnIncluded = false;
@@ -66,8 +68,19 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
     /**
      * Record that a tombstone marker was encountered on the current row.
      */
-    public void setTombstoneTimestamp(long tombstoneTimestamp) {
-        this.tombstoneTimestamps.add(tombstoneTimestamp);
+    public boolean setTombstoneTimestamp(long tombstoneTimestamp) {
+        if (antiTombstoneTimestamps.contains(tombstoneTimestamp)) {
+            return false;
+        } else {
+            this.tombstoneTimestamps.add(tombstoneTimestamp);
+            return true;
+        }
+    }
+
+    public void setAntiTombstoneTimestamp(long antiTombstoneTimestamp) {
+        if (!tombstoneTimestamps.contains(antiTombstoneTimestamp)) {
+            this.antiTombstoneTimestamps.add(antiTombstoneTimestamp);
+        }
     }
 
     public void rememberCommitTimestamp(KeyValue keyValue) {

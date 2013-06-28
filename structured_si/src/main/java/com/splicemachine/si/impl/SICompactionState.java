@@ -48,7 +48,7 @@ public class SICompactionState<Data, Hashable, Result, KeyValue, OperationWithAt
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
     private KeyValue mutate(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> kv) throws IOException {
-        final KeyValueType keyValueType = dataStore.getKeyValueType(kv.family(), kv.qualifier());
+        final KeyValueType keyValueType = dataStore.getKeyValueType(kv.family(), kv.qualifier(), kv.value());
         if (keyValueType.equals(KeyValueType.COMMIT_TIMESTAMP)){
             return mutateCommitTimestamp(kv);
         }else{
