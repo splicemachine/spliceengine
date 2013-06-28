@@ -28,8 +28,8 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
-public class SITransactor<Table, OperationWithAttributes, Put extends Mutation, Get extends OperationWithAttributes,
-        Scan extends OperationWithAttributes, Mutation extends OperationWithAttributes, Result, KeyValue, Data, Hashable,
+public class SITransactor<Table, OperationWithAttributes, Mutation extends OperationWithAttributes, Put extends Mutation, Get extends OperationWithAttributes,
+        Scan extends OperationWithAttributes, Result, KeyValue, Data, Hashable,
         Delete extends OperationWithAttributes, Lock>
         implements Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data, Hashable> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
