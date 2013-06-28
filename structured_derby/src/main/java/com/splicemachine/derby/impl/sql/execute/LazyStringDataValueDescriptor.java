@@ -191,4 +191,12 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
         init(extSDV, extSerializer);
     }
 
+    public String toString() {
+        try {
+            return getString();
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

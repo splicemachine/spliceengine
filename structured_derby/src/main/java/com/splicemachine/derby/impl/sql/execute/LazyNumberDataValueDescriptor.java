@@ -155,4 +155,12 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
             throw new UnsupportedOperationException("Attempted to setWidth on wrapped " + ndv.getClass().getSimpleName() + " which does not implement VariableSizeDataValue" );
         }
     }
+
+    public String toString() {
+        try {
+            return getString();
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
