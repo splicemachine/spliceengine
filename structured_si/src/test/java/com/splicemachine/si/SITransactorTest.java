@@ -260,7 +260,6 @@ public class SITransactorTest extends SIConstants {
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Iterator results = reader.scan(testSTable, get);
-
             StringBuilder result = new StringBuilder();
             while (results.hasNext()) {
                 final Object value = results.next();
@@ -1087,19 +1086,6 @@ public class SITransactorTest extends SIConstants {
                 "110toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
                 "110xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
         Assert.assertEquals(expected, scanAll(t3, "110a", "110z", null, true));
-    }
-
-    @Test
-    public void writeDeleteScanWithIncludeSIColumn() throws IOException, InterruptedException {
-        TransactionId t1 = transactor.beginTransaction();
-        insertAge(t1, "140moe", 50);
-        deleteRow(t1, "140moe");
-        transactor.commit(t1);
-
-        TransactionId t2 = transactor.beginTransaction();
-        String expected = "";
-        Thread.sleep(2000);
-        Assert.assertEquals(expected, scanAll(t2, "140a", "140z", null, true));
     }
 
     @Test

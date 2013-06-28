@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE;
-import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE_AND_NEXT_COL;
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.NEXT_COL;
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
 
@@ -104,7 +103,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
 
     private Filter.ReturnCode processUserDataSetupShortCircuit() throws IOException {
         log("processUserDataSetupShortCircuit");
-        final Filter.ReturnCode result = processUserData(false);
+        final Filter.ReturnCode result = processUserData();
         rowState.inData = true;
         if (rowState.transactionCache.size() == 1) {
             rowState.shortCircuit = result;
@@ -116,7 +115,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         if (rowState.shortCircuit != null) {
             return rowState.shortCircuit;
         } else {
-            return processUserData(false);
+            return processUserData();
         }
     }
 
@@ -137,7 +136,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
             boolean include = false;
             for (KeyValue kv : rowState.getCommitTimestamps()) {
                 keyValue.setKeyValue(kv);
-                if (processUserData(true).equals(INCLUDE) || processUserData(true).equals(INCLUDE_AND_NEXT_COL)) {
+                if (processUserData().equals(INCLUDE)) {
                     include = true;
                     break;
                 }
@@ -147,13 +146,10 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
                 rowState.setSiColumnIncluded();
                 return INCLUDE;
             } else {
-                final Filter.ReturnCode returnCode = processUserData(true);
+                final Filter.ReturnCode returnCode = processUserData();
                 if (returnCode.equals(SKIP)) {
                 } else {
                     rowState.setSiColumnIncluded();
-                }
-                if (returnCode.equals(INCLUDE_AND_NEXT_COL)) {
-                    return INCLUDE;
                 }
                 return returnCode;
             }
@@ -266,19 +262,24 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     /**
      * Handle a cell that represents user data. Filter it based on the various timestamps and transaction status.
      */
-    private Filter.ReturnCode processUserData(boolean checkingCommitTimestamp) throws IOException {
-        return filterUserDataByTimestamp(checkingCommitTimestamp);
+    private Filter.ReturnCode processUserData() throws IOException {
+        if (doneWithColumn()) {
+            return NEXT_COL;
+        } else {
+            return filterUserDataByTimestamp();
+        }
     }
 
     /**
      * Consider a cell of user data and decide whether to use it as "the" value for the column (in the context of the
      * current transaction) based on the various timestamp values and transaction status.
      */
-    private Filter.ReturnCode filterUserDataByTimestamp(boolean checkingCommitTimestamp) throws IOException {
-        if (tombstoneAfterData(checkingCommitTimestamp)) {
+    private Filter.ReturnCode filterUserDataByTimestamp() throws IOException {
+        if (tombstoneAfterData()) {
             return NEXT_COL;
         } else if (isVisibleToCurrentTransaction()) {
-            return INCLUDE_AND_NEXT_COL;
+            proceedToNextColumn();
+            return INCLUDE;
         } else {
             if (includeUncommittedAsOfStart) {
                 if (isUncommittedAsOfStart()) {
@@ -297,21 +298,30 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     }
 
     /**
+     * The version of HBase we are using does not support the newer "INCLUDE & NEXT_COL" return code
+     * so this manually does the equivalent.
+     */
+    private void proceedToNextColumn() {
+        rowState.lastValidQualifier = keyValue.qualifier();
+    }
+
+    /**
+     * The second half of manually implementing our own "INCLUDE & NEXT_COL" return code.
+     */
+    private boolean doneWithColumn() {
+        return dataLib.valuesEqual(keyValue.qualifier(), rowState.lastValidQualifier);
+    }
+
+    /**
      * Is there a row level tombstone that supercedes the current cell?
      */
-    private boolean tombstoneAfterData(boolean checkingCommitTimestamp) throws IOException {
+    private boolean tombstoneAfterData() throws IOException {
         for (long tombstone : rowState.tombstoneTimestamps) {
             final Transaction tombstoneTransaction = rowState.transactionCache.get(tombstone);
             final VisibleResult visibleResult = checkVisibility(tombstoneTransaction);
-            if (checkingCommitTimestamp) {
-                if (visibleResult.visible && (keyValue.timestamp() <= tombstone)) {
-                    return true;
-                }
-            } else {
-                if (visibleResult.visible && (keyValue.timestamp() < tombstone
-                        || (keyValue.timestamp() == tombstone && dataStore.isSINull(keyValue.value())))) {
-                    return true;
-                }
+            if (visibleResult.visible && (keyValue.timestamp() < tombstone
+                    || (keyValue.timestamp() == tombstone && dataStore.isSINull(keyValue.value())))) {
+                return true;
             }
         }
         return false;
