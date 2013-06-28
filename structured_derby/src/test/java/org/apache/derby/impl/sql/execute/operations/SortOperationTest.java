@@ -2,11 +2,10 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.sql.Timestamp;
+import java.util.*;
+
+import com.google.common.collect.Maps;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -29,8 +28,9 @@ public class SortOperationTest extends SpliceUnitTest {
 
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(name varchar(255),value1 varchar(255),value2 varchar(255))");
-	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(name varchar(255), age float)");
-		
+	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(name varchar(255), age float,created_time timestamp)");
+    private static long startTime;
+
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
@@ -85,9 +85,23 @@ public class SortOperationTest extends SpliceUnitTest {
 				Collections.sort(correctByDescAsc,descAscComparator);
 
 				// add row to person
-				spliceClassWatcher.prepareStatement(format("insert into %s.%s values ('joe', 5.5)",CLASS_NAME,TABLE_NAME_2)).executeUpdate();
-				spliceClassWatcher.prepareStatement(format("insert into %s.%s values ('bob', 1.2)",CLASS_NAME,TABLE_NAME_2)).executeUpdate();
-				spliceClassWatcher.prepareStatement(format("insert into %s.%s values ('tom', 13.4667)",CLASS_NAME,TABLE_NAME_2)).executeUpdate();
+                    startTime = System.currentTimeMillis();
+                    ps = spliceClassWatcher.prepareStatement("insert into "+ spliceTableWatcher2+" values (?,?,?)");
+                    ps.setString(1,"joe");
+                    ps.setFloat(2,5.5f);
+                    ps.setTimestamp(3,new Timestamp(System.currentTimeMillis()));
+                    ps.execute();
+
+                    ps.setString(1,"bob");
+                    ps.setFloat(2,1.2f);
+                    ps.setTimestamp(3,new Timestamp(System.currentTimeMillis()));
+                    ps.execute();
+
+                    ps.setString(1,"tom");
+                    ps.setFloat(2,13.4667f);
+                    ps.setTimestamp(3,new Timestamp(System.currentTimeMillis()));
+                    ps.execute();
+
 				spliceClassWatcher.commit();
 				} catch (Exception e) {
 					throw new RuntimeException(e);
@@ -140,11 +154,9 @@ public class SortOperationTest extends SpliceUnitTest {
 			return compare;
 		}
 	};
-	
 
-	
 
-	@Test
+    @Test
 	public void testSortOperationByKey1Ascending() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by name",this.getTableReference(TABLE_NAME_1)));
 		List<Triplet> returnedByName = new ArrayList<Triplet>();
@@ -236,20 +248,50 @@ public class SortOperationTest extends SpliceUnitTest {
     @Test
 	public void testDistinctOrderByFloat() throws Exception {
         // Tests for columns returning in reverse order (age, name not name, age) which actually causes Derby Network protocol exception
-        try {
+//        try {
             ResultSet rs = methodWatcher.executeQuery(format("select distinct name, age from %s order by age", this.getTableReference(TABLE_NAME_2)));
             List<String> returnedByName = new ArrayList<String>();
+            Map<String,Float> correctResults = Maps.newHashMap();
+            correctResults.put("bob",1.2f);
+            correctResults.put("tom",13.4667f);
+            correctResults.put("joe",5.5f);
             while (rs.next()) {
+                String name = rs.getString(1);
+                float val =rs.getFloat(2);
+                Assert.assertTrue("Incorrect name returned!",correctResults.containsKey(name));
+                Assert.assertEquals("Incorrect value returned!",correctResults.get(name),val,Math.pow(10,-6));
                 String v = rs.getObject(1) + "," + rs.getObject(2);
                 returnedByName.add(v);
             }
-            Assert.assertEquals("results are wrong", Arrays.asList("bob,1.2", "joe,5.5", "tom,13.4667"), returnedByName);
-        } catch (Exception e) {
-            Assert.fail(e.getCause().getMessage());
-        }
+            Assert.assertEquals("Incorrect result size",3,returnedByName.size());
+//            Assert.assertEquals("results are wrong", Arrays.asList("bob,1.2", "joe,5.5", "tom,13.4667"), returnedByName);
+//        } catch (Exception e) {
+//            Assert.fail(e.getCause().getMessage());
+//        }
     }
 
-	private static class Triplet implements Comparable<Triplet>{
+    @Test
+    public void testOrderByTimestamp() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("Select created_time from "+ spliceTableWatcher2+ " order by created_time");
+        List<Timestamp> returnedTimes = Lists.newArrayList();
+        while(rs.next()){
+            Timestamp t = rs.getTimestamp(1);
+            Assert.assertTrue("Incorrect time result!",startTime<=t.getTime());
+
+            returnedTimes.add(t);
+        }
+
+        //check size
+        Assert.assertEquals("Incorrect result count returned!",3,returnedTimes.size());
+
+        //copy the list, and properly sort it
+        List<Timestamp> copiedTimes = Lists.newArrayList(returnedTimes);
+        Collections.sort(copiedTimes);
+
+        Assert.assertArrayEquals(copiedTimes.toArray(), returnedTimes.toArray());
+    }
+
+    private static class Triplet implements Comparable<Triplet>{
 		private final String k1;
 		private final String k2;
 		private final String k3;

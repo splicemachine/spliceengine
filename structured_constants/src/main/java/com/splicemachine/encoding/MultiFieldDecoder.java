@@ -93,7 +93,7 @@ public class MultiFieldDecoder {
             return 0;
         }
 
-        long next = Encoding.decodeInt(data,currentOffset,desc);
+        long next = Encoding.decodeLong(data,currentOffset,desc);
         adjustOffset(9);
         return next;
     }

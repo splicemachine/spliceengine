@@ -512,6 +512,10 @@ public final class Encoding {
         return ScalarEncoding.toLong(data, desc);
     }
 
+    public static long decodeLong(byte[] data, int offset,boolean desc){
+        return ScalarEncoding.toLong(data,offset,desc);
+    }
+
     /**
      * Encode a float into an ascending, order-preserving byte[].
      *
