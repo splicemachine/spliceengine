@@ -98,7 +98,8 @@ public class AlterTableConstantOperationTest extends SpliceUnitTest {
     public void testUpdatingAlteredColumns() throws Exception {
 		Statement s = methodWatcher.getStatement();	
 		s.executeUpdate(String.format("insert into %s values 1,2,3,4,5",this.getTableReference(TABLE_NAME_3)));
-		s.executeUpdate(String.format("update %s set j = 5;",this.getTableReference(TABLE_NAME_3)));
+		s.executeUpdate(String.format("alter table %s add column j int",this.getTableReference(TABLE_NAME_3)));
+		s.executeUpdate(String.format("update %s set j = 5",this.getTableReference(TABLE_NAME_3)));
 		ResultSet rs = methodWatcher.executeQuery(String.format("select j from %s",this.getTableReference(TABLE_NAME_3)));
 		int i=0;
 		while (rs.next()) {
