@@ -319,8 +319,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         for (long tombstone : rowState.tombstoneTimestamps) {
             final Transaction tombstoneTransaction = rowState.transactionCache.get(tombstone);
             final VisibleResult visibleResult = checkVisibility(tombstoneTransaction);
-            if (visibleResult.visible && (keyValue.timestamp() < tombstone
-                    || (keyValue.timestamp() == tombstone && dataStore.isSINull(keyValue.value())))) {
+            if (visibleResult.visible && (keyValue.timestamp() <= tombstone)) {
                 return true;
             }
         }
