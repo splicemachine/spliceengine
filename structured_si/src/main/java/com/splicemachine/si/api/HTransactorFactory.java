@@ -109,8 +109,8 @@ public class HTransactorFactory extends SIConstants {
                     immutableCache, activeCache, cache, committedCache, failedCache, 1000, managedTransactor);
 
             final DataStore rowStore = new DataStore(dataLib, reader, writer,SI_NEEDED, SI_NEEDED_VALUE,
-                    ONLY_SI_FAMILY_NEEDED_VALUE, "si-uncommitted", EMPTY_BYTE_ARRAY, SI_TRANSACTION_ID_KEY,
-                    "si-delete-put", SNAPSHOT_ISOLATION_FAMILY, SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING,
+                    ONLY_SI_FAMILY_NEEDED_VALUE, SI_UNCOMMITTED, EMPTY_BYTE_ARRAY, SI_TRANSACTION_ID_KEY,
+                    SI_DELETE_PUT, SNAPSHOT_ISOLATION_FAMILY, SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING,
                     SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING, EMPTY_BYTE_ARRAY, "zombie",
                     SNAPSHOT_ISOLATION_FAILED_TIMESTAMP, DEFAULT_FAMILY);
             final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan, Result, KeyValue, byte[], ByteBuffer, Delete, HRowLock>
