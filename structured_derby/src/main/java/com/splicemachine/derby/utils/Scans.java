@@ -415,15 +415,12 @@ public class Scans extends SpliceUtils {
 				}
 			}
 			
-			if (scanColumnList.anySetBit() == -1) {
-                final ClientTransactor<Put, Get, Scan, Mutation, byte[]> transactor = getTransactor();
-                transactor.initializeScan(transactor.transactionIdFromScan(scan).getTransactionIdString(), scan, true, false);
-			} else {
-			
-				for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
-					scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, Encoding.encode(i));
-				}
-			} 
+            final ClientTransactor<Put, Get, Scan, Mutation, byte[]> transactor;
+            transactor = getTransactor();
+            transactor.initializeScan(transactor.transactionIdFromScan(scan).getTransactionIdString(), scan, true, false);
+			for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
+				scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, Encoding.encode(i));
+			}
 		}
 
 		try{
