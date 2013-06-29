@@ -1973,7 +1973,7 @@ public class SITransactorTest extends SIConstants {
         transactorSetup.clientTransactor.initializePut(
                 transactorSetup.clientTransactor.transactionIdFromPut(put).getTransactionIdString(),
                 put2);
-        Assert.assertTrue(dataLib.valuesEqual(dataLib.encode((short) 0), dataLib.getAttribute(put2, "si-needed")));
+        Assert.assertTrue(dataLib.valuesEqual(dataLib.encode((short) 0), dataLib.getAttribute(put2, SIConstants.SI_NEEDED)));
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));

@@ -61,7 +61,7 @@ public class TransactorSetup extends SIConstants {
         final String commitTimestampQualifierString = SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
         commitTimestampQualifier = dataLib.encode(commitTimestampQualifierString);
         transactor = new SITransactor(new SimpleTimestampSource(), dataLib, writer,
-                new DataStore(dataLib, reader, writer, "si-needed", SI_NEEDED_VALUE, ONLY_SI_FAMILY_NEEDED_VALUE,
+                new DataStore(dataLib, reader, writer, SI_NEEDED, SI_NEEDED_VALUE, ONLY_SI_FAMILY_NEEDED_VALUE,
                         "si-uncommitted", 1, SI_TRANSACTION_ID_KEY, "si-delete-put", SNAPSHOT_ISOLATION_FAMILY,
                         commitTimestampQualifierString, tombstoneQualifierString, -1, "zombie", -2, userColumnsFamilyName),
                 transactionStore, storeSetup.getClock(), 1500, listener);
