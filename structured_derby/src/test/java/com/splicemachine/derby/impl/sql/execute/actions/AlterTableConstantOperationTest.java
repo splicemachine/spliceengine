@@ -10,6 +10,7 @@ import org.junit.rules.TestRule;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 public class AlterTableConstantOperationTest extends SpliceUnitTest {
     public static final String CLASS_NAME = AlterTableConstantOperationTest.class.getSimpleName().toUpperCase();
@@ -25,7 +26,7 @@ public class AlterTableConstantOperationTest extends SpliceUnitTest {
     private static String tableDef = "(TaskId INT NOT NULL, empId Varchar(3) NOT NULL, StartedAt INT NOT NULL, FinishedAt INT NOT NULL)";
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME, tableDef);
-    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME, tableDef);
+    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME, "(i int)");
     protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME, tableDef);
 
@@ -33,8 +34,8 @@ public class AlterTableConstantOperationTest extends SpliceUnitTest {
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcher1)
-            .around(spliceTableWatcher2);
-//            .around(spliceTableWatcher3)
+            .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3);
 //            .around(spliceTableWatcher4)
 //            .around(spliceTableWatcher5);
 
@@ -93,4 +94,18 @@ public class AlterTableConstantOperationTest extends SpliceUnitTest {
         Assert.assertEquals("Expected to see an additional row.",1, resultSetSize(resultSet));
         Assert.assertEquals("Expected to see another column.", 5, columnWidth(resultSet));
     }
+    @Test
+    public void testUpdatingAlteredColumns() throws Exception {
+		Statement s = methodWatcher.getStatement();	
+		s.executeUpdate(String.format("insert into %s values 1,2,3,4,5",this.getTableReference(TABLE_NAME_3)));
+		s.executeUpdate(String.format("update %s set j = 5;",this.getTableReference(TABLE_NAME_3)));
+		ResultSet rs = methodWatcher.executeQuery(String.format("select j from %s",this.getTableReference(TABLE_NAME_3)));
+		int i=0;
+		while (rs.next()) {
+			i++;
+			Assert.assertEquals("Update did not happen", 5, rs.getInt(1));
+		}
+		Assert.assertEquals("returned values must match", 5,i);
+    }
+    
 }
