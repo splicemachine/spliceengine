@@ -180,10 +180,11 @@ public class TableScanOperation extends ScanOperation {
 				currentRowLocation = null;
 			} else {
                 DataValueDescriptor[] fields = currentRow.getRowArray();
-                for(KeyValue kv:keyValues){
-                    RowMarshaller.mappedColumnar().decode(kv,fields,baseColumnMap,null);
+                if (fields.length != 0) {
+                	for(KeyValue kv:keyValues){
+                		RowMarshaller.mappedColumnar().decode(kv,fields,baseColumnMap,null);
+                	}
                 }
-//				SpliceUtils.populate(keyValues, currentRow.getRowArray(), accessedCols, baseColumnMap);
                 if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
                     /*
                      * If indexName !=null, then we are currently scanning an index,
