@@ -32,9 +32,11 @@
 	</snapshotRepository>
 	</distributionManagement>
 	<properties>
+		<runSuite>*Test</runSuite>
+		<runClass>**/${runSuite}.class</runClass>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<junit.version>4.11</junit.version>
-		<surefire.junit4.version>2.6</surefire.junit4.version>
+<!--  		<surefire.junit4.version>2.6</surefire.junit4.version> -->
 		<gson.version>1.6</gson.version>
 		<maven.compiler.source>1.6</maven.compiler.source>
 		<maven.compiler.target>1.6</maven.compiler.target>
@@ -95,15 +97,8 @@
 						<showDeprecation>true</showDeprecation>
 					</configuration>
 				</plugin>
-				<plugin>
-					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.8</version>
-					<configuration>
-						<forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
-						<argLine>-Xmx1g</argLine>
-						<redirectTestOutputToFile>true</redirectTestOutputToFile>
-					</configuration>
-				</plugin>
+			
+
 			</plugins>
 		</pluginManagement>
 	</build>
