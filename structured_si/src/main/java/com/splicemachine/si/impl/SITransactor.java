@@ -244,12 +244,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     @Override
     public void initializeGet(String transactionId, Get get) throws IOException {
-        initializeOperation(transactionId, get);
-    }
-
-    @Override
-    public void initializeGet(String transactionId, Get get, boolean includeSIColumn) throws IOException {
-        initializeOperation(transactionId, get, includeSIColumn, false);
+        initializeOperation(transactionId, get, true, false);
     }
 
     @Override

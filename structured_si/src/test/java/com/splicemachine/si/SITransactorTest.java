@@ -178,7 +178,7 @@ public class SITransactorTest extends SIConstants {
 
         Object key = dataLib.newRowKey(new Object[]{name});
         Object get = dataLib.newGet(key, null, null, null);
-        transactorSetup.clientTransactor.initializeGet(transactionId.getTransactionIdString(), get, true);
+        transactorSetup.clientTransactor.initializeGet(transactionId.getTransactionIdString(), get);
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Object rawTuple = reader.get(testSTable, get);
