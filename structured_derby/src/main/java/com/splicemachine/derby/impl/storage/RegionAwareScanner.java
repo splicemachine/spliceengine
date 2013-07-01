@@ -4,6 +4,8 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.si.coprocessors.SIFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -12,6 +14,8 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -204,7 +208,7 @@ public class RegionAwareScanner implements Closeable {
             aheadScan.setCaching(1);
             aheadScan.setBatch(1);
             //carry over filters from localscan
-            aheadScan.setFilter(scan.getFilter());
+            aheadScan.setFilter(getCorrectFilter(scan.getFilter(),transactionId));
             ResultScanner aheadScanner = null;
             try{
                 aheadScanner = table.getScanner(aheadScan);
@@ -253,7 +257,7 @@ public class RegionAwareScanner implements Closeable {
             startScan.setCaching(1);
             startScan.setBatch(1);
             //carry over scan filters
-            startScan.setFilter(scan.getFilter());
+            startScan.setFilter(getCorrectFilter(scan.getFilter(), transactionId));
             RegionScanner localScanner = null;
             try{
                 localScanner = region.getScanner(startScan);
@@ -289,6 +293,32 @@ public class RegionAwareScanner implements Closeable {
                 if(localScanner!=null)localScanner.close();
             }
         }
+    }
+
+    private Filter getCorrectFilter(Filter filter, String transactionId) {
+        if(!SpliceUtils.NA_TRANSACTION_ID.equals(transactionId)|| filter==null){
+           return filter;
+        }
+        /*
+         * If we have no transaction id, we need to make sure and remove the SI Filter from the list,
+         * because otherwise shit'll break
+         */
+        if(filter instanceof SIFilter) return null;
+        else if(filter instanceof FilterList){
+            FilterList list = (FilterList)filter;
+            FilterList copy = new FilterList();
+            boolean added = false;
+            for(Filter listedFilter:list.getFilters()){
+                if(!(listedFilter instanceof SIFilter)){
+                    added=true;
+                    copy.addFilter(listedFilter);
+                }
+            }
+            if(added)
+                return copy;
+            else
+                return null;
+        }else return filter;
     }
 
     public Scan toScan() {
