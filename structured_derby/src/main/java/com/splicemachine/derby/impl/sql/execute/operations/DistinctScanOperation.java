@@ -94,9 +94,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                                  boolean tableLocked,
                                  int isolationLevel,
                                  double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost)
-            throws StandardException
-    {
+                                 double optimizerEstimatedCost) throws StandardException {
         super(conglomId,
                 activation,
                 resultSetNumber,
@@ -140,7 +138,6 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     @Override
     public void init(SpliceOperationContext context) throws StandardException {
         super.init(context);
-
         FormatableArrayHolder fah = (FormatableArrayHolder)activation.getPreparedStatement().getSavedObject(hashKeyItem);
         FormatableIntHolder[] fihArray = (FormatableIntHolder[])fah.getArray(FormatableIntHolder.class);
 
@@ -176,9 +173,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                 for(KeyValue kv:values){
                     RowMarshaller.mappedColumnar().decode(kv, rowArray, baseColumnMap, null);
                 }
-//                SpliceUtils.populate(values,currentRow.getRowArray(),accessedCols,baseColumnMap,serializer);
                 ExecRow row = currentRow.getClone();
-
                 keyEncoder.reset();
                 hasher.encodeKey(row.getRowArray(),keyColumns,null,null,keyEncoder);
                 currentByteArray = keyEncoder.build();
