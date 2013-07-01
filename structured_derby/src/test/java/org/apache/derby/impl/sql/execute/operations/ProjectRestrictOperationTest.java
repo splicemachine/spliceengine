@@ -3,29 +3,29 @@ package org.apache.derby.impl.sql.execute.operations;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+
+import static com.splicemachine.homeless.TestUtils.o;
 
 /**
  * This tests basic table scans with and without projection/restriction
  */
 public class ProjectRestrictOperationTest extends SpliceUnitTest  {
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	private static Logger LOG = Logger.getLogger(ProjectRestrictOperationTest.class);
-	public static final String CLASS_NAME = ProjectRestrictOperationTest.class.getSimpleName().toUpperCase();
+    private static Logger LOG = Logger.getLogger(ProjectRestrictOperationTest.class);
+    public static final String CLASS_NAME = ProjectRestrictOperationTest.class.getSimpleName().toUpperCase();
+	protected static SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 	public static final String TABLE_NAME = "A";
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(si varchar(40),sa varchar(40),sc int)");
@@ -36,36 +36,36 @@ public class ProjectRestrictOperationTest extends SpliceUnitTest  {
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher)
         .around(spliceTableWatcher2)
-		.around(new SpliceDataWatcher(){
-			@Override
-			protected void starting(Description description) {
-				try {
-                    PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?,?,?)",CLASS_NAME,TABLE_NAME));
-                    for(int i=0;i<10;i++){
-                        ps.setString(1,Integer.toString(i));
-                        ps.setString(2,Integer.toString(i) + " Times ten");
-                        ps.setInt(3,i);
+        .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
+		.around(new SpliceDataWatcher() {
+            @Override
+            protected void starting(Description description) {
+                try {
+                    PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?,?,?)", CLASS_NAME, TABLE_NAME));
+                    for (int i = 0; i < 10; i++) {
+                        ps.setString(1, Integer.toString(i));
+                        ps.setString(2, Integer.toString(i) + " Times ten");
+                        ps.setInt(3, i);
                         ps.executeUpdate();
                     }
 
-                    ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?,?)",spliceTableWatcher2.toString()));
-                    for(int i=0;i<10;i++){
-                        ps.setInt(1,i);
-                        ps.setInt(2,i*2+1);
-                        ps.setBigDecimal(3, new BigDecimal(i*3));
+                    ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?,?)", spliceTableWatcher2.toString()));
+                    for (int i = 0; i < 10; i++) {
+                        ps.setInt(1, i);
+                        ps.setInt(2, i * 2 + 1);
+                        ps.setBigDecimal(3, new BigDecimal(i * 3));
                         ps.executeUpdate();
                     }
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-				finally {
-					spliceClassWatcher.closeAll();
-				}
-			}
-			
-		});
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    spliceClassWatcher.closeAll();
+                }
+            }
+
+        });
+
+	@Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
     @Test
     public void testCanDivideSafely() throws Exception {
@@ -287,5 +287,17 @@ public class ProjectRestrictOperationTest extends SpliceUnitTest  {
             LOG.info(result);
         }
         Assert.assertEquals("incorrect rows returned",10,results.size());
+    }
+
+    @Test
+    public void testInWithUncorrelatedSubquery() throws Exception {
+        Object[][] expected = new Object[][] { {"Alice"} };
+
+        ResultSet rs = methodWatcher.executeQuery("select t1.empname from staff t1 where t1.empnum in " +
+                "(select t3.empnum from works t3 where t3.pnum in " +
+                "   (select t2.pnum from proj t2 where t2.city='Tampa'))");
+        List results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertArrayEquals(expected, results.toArray());
     }
 }
