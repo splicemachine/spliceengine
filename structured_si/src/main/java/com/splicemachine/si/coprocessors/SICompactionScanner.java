@@ -1,6 +1,7 @@
 package com.splicemachine.si.coprocessors;
 
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.data.hbase.HRowLock;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.KeyValue;
@@ -21,11 +22,11 @@ import java.util.List;
  * SICompactionState.
  */
 public class SICompactionScanner implements InternalScanner {
-    private final Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer> transactor;
+    private final Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor;
     private final  SICompactionState compactionState;
     private final InternalScanner delegate;
 
-    public SICompactionScanner(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer> transactor,
+    public SICompactionScanner(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor,
                                InternalScanner scanner) {
         this.transactor = transactor;
         this.compactionState = transactor.newCompactionState();

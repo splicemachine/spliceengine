@@ -8,6 +8,7 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;
+import com.splicemachine.si.data.hbase.HHasher;
 import com.splicemachine.si.data.hbase.HPoolTableSource;
 import com.splicemachine.si.data.hbase.HRowLock;
 import com.splicemachine.si.data.hbase.HTableReader;
@@ -68,7 +69,7 @@ public class HTransactorFactory extends SIConstants {
         return getTransactorDirect().getTransactor();
     }
 
-    public static Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer> getTransactor() {
+    public static Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> getTransactor() {
         return getTransactorDirect().getTransactor();
     }
 
@@ -113,9 +114,9 @@ public class HTransactorFactory extends SIConstants {
                     SI_DELETE_PUT, SNAPSHOT_ISOLATION_FAMILY, SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING,
                     SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING, EMPTY_BYTE_ARRAY, "zombie",
                     SNAPSHOT_ISOLATION_FAILED_TIMESTAMP, DEFAULT_FAMILY);
-            final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan, Result, KeyValue, byte[], ByteBuffer, Delete, HRowLock>
-                    (timestampSource, dataLib, writer, rowStore, transactionStore,
-                            new SystemClock(), TRANSACTION_TIMEOUT, managedTransactor);
+            final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan,Result, KeyValue, byte[], ByteBuffer, Delete, HRowLock>
+                    (timestampSource, dataLib, writer, rowStore, transactionStore, new SystemClock(), TRANSACTION_TIMEOUT,
+                            new HHasher(), managedTransactor);
             managedTransactor.setTransactor(transactor);
             HTransactorFactory.setTransactor(HTransactorFactory.managedTransactor);
         }

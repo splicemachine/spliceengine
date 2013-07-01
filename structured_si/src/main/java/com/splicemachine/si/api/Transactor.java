@@ -8,18 +8,23 @@ import org.apache.hadoop.hbase.filter.Filter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * The primary interface to the transaction module. This interface has the most burdensome generic signature so it is
  * only exposed in places where it is needed.
  */
-public interface Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data, Hashable>
+public interface Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data, Hashable, Lock>
         extends ClientTransactor<Put, Get, Scan, Mutation, Data> {
 
     /**
      * Execute the put operation (with SI treatment) on the table. Send roll-forward notifications to the rollForwardQueue.
      */
     boolean processPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException;
+    PutToRun<Mutation> preProcessBatchPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put,
+                                          Map<Hashable, Lock> locks) throws IOException;
+    void postProcessBatchPut(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException;
 
     /**
      * Look at the operation and report back whether it has been flagged for SI treatment.

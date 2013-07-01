@@ -18,4 +18,13 @@ public class HRowLock implements SRowLock {
     public HRowLock(org.apache.hadoop.hbase.client.RowLock lock) {
         this.lock = lock;
     }
+
+    @Override
+    public Integer toInteger() {
+        if (regionRowLock == null) {
+            throw new RuntimeException("table lock does not have an integer representation");
+        } else {
+            return regionRowLock;
+        }
+    }
 }

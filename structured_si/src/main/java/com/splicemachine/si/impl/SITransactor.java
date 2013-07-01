@@ -1,14 +1,17 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.Clock;
+import com.splicemachine.si.api.PutToRun;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableWriter;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -16,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
@@ -30,8 +34,8 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  */
 public class SITransactor<Table, OperationWithAttributes, Mutation extends OperationWithAttributes, Put extends Mutation, Get extends OperationWithAttributes,
         Scan extends OperationWithAttributes, Result, KeyValue, Data, Hashable,
-        Delete extends OperationWithAttributes, Lock>
-        implements Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data, Hashable> {
+        Delete extends OperationWithAttributes, Lock extends SRowLock>
+        implements Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data, Hashable, Lock> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
 
     private final TimestampSource timestampSource;
@@ -41,6 +45,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     private final TransactionStore transactionStore;
     private final Clock clock;
     private final int transactionTimeoutMS;
+    private final Hasher<Data, Hashable> hasher;
 
     private final TransactorListener listener;
 
@@ -48,7 +53,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     public SITransactor(TimestampSource timestampSource, SDataLib dataLib, STableWriter dataWriter, DataStore dataStore,
                         final TransactionStore transactionStore, Clock clock, int transactionTimeoutMS,
-                        TransactorListener listener) {
+                        Hasher<Data, Hashable> hasher, TransactorListener listener) {
         transactionSource = new TransactionSource() {
             @Override
             public Transaction getTransaction(long timestamp) throws IOException {
@@ -62,6 +67,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         this.transactionStore = transactionStore;
         this.clock = clock;
         this.transactionTimeoutMS = transactionTimeoutMS;
+        this.hasher = hasher;
         this.listener = listener;
     }
 
@@ -335,6 +341,60 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         return processPutWithSICheck(table, rollForwardQueue, put);
     }
 
+    @Override
+    public PutToRun<Mutation> preProcessBatchPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue,
+                                                 Put put, Map<Hashable, Lock> locks) throws IOException {
+        if (isFlaggedForSITreatment(put)) {
+            final TransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
+            final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
+            ensureTransactionAllowsWrites(transaction);
+            final Data rowKey = dataLib.getPutKey(put);
+            final Set<Long> dataTransactionsToRollForward;
+
+            final Lock lock = obtainLock(locks, table, rowKey);
+            // This is the critical section that runs while the row is locked.
+            //try {
+            final Object[] conflictResults = ensureNoWriteConflict(transaction, table, rowKey);
+            dataTransactionsToRollForward = (Set<Long>) conflictResults[0];
+            final Set<Long> conflictingChildren = (Set<Long>) conflictResults[1];
+            final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table, (Boolean) conflictResults[2]);
+            dataStore.suppressIndexing(newPut);
+            //dataWriter.write(table, newPut, lock);
+            //resolveChildConflicts(table, put, lock, conflictingChildren);
+            //} finally {
+            // dataWriter.unLockRow(table, lock);
+            //}
+            dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), rowKey);
+            for (Long transactionIdToRollForward : dataTransactionsToRollForward) {
+                dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey);
+            }
+            return new PutToRun<Mutation>(new Pair<Mutation, Integer>(newPut, lock.toInteger()), conflictingChildren);
+        } else {
+            return new PutToRun<Mutation>(new Pair<Mutation, Integer>(put, null), Collections.<Long>emptySet());
+        }
+    }
+
+    private Lock obtainLock(Map<Hashable, Lock> locks, Table table, Data rowKey) throws IOException {
+        final Hashable hashableRowKey = hasher.toHashable(rowKey);
+        Lock lock = locks.get(hashableRowKey);
+        if (lock == null) {
+            lock = dataWriter.lockRow(table, rowKey);
+            locks.put(hashableRowKey, lock);
+        }
+        return lock;
+    }
+
+    @Override
+    public void postProcessBatchPut(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
+        if (isFlaggedForSITreatment(put)) {
+            try {
+                resolveChildConflicts(table, put, lock, conflictingChildren);
+            } finally {
+                dataWriter.unLockRow(table, lock);
+            }
+        }
+    }
+
     private boolean processPutWithSICheck(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
         if (isFlaggedForSITreatment(put)) {
             processPutWithWritableCheck(table, rollForwardQueue, put);
@@ -399,7 +459,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         final Object[] timestampConflicts = checkTimestampsHandleNull(updateTransaction, values[1]);
         final List<KeyValue> tombstoneValues = values[0];
         boolean hasTombstone = hasCurrentTransactionTombstone(updateTransaction.getLongTransactionId(), tombstoneValues);
-        return new Object[] {timestampConflicts[0], timestampConflicts[1], hasTombstone};
+        return new Object[]{timestampConflicts[0], timestampConflicts[1], hasTombstone};
     }
 
     private boolean hasCurrentTransactionTombstone(long transactionId, List<KeyValue> tombstoneValues) {
@@ -416,8 +476,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     private Object[] checkTimestampsHandleNull(ImmutableTransaction updateTransaction, List<KeyValue> dataCommitKeyValues) throws IOException {
         if (dataCommitKeyValues == null) {
             return new Object[]{Collections.EMPTY_SET, Collections.EMPTY_SET};
-        }
-        else {
+        } else {
             return checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValues);
         }
     }

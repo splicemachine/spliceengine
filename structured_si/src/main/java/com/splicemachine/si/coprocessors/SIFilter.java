@@ -1,6 +1,7 @@
 package com.splicemachine.si.coprocessors;
 
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.data.hbase.HRowLock;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.FilterState;
 import com.splicemachine.si.impl.RollForwardQueue;
@@ -25,7 +26,7 @@ import java.nio.ByteBuffer;
  */
 public class SIFilter extends FilterBase {
     private static Logger LOG = Logger.getLogger(SIFilter.class);
-    private Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer> transactor = null;
+    private Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor = null;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
     private boolean includeSIColumn;
@@ -36,7 +37,7 @@ public class SIFilter extends FilterBase {
     public SIFilter() {
     }
 
-    public SIFilter(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer> transactor,
+    public SIFilter(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor,
                     TransactionId transactionId, RollForwardQueue rollForwardQueue,
                     boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
         this.transactor = transactor;
