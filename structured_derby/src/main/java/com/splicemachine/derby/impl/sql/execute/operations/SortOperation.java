@@ -220,7 +220,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         }
         if(top!=this)
             SpliceUtils.setInstructions(reduceScan,getActivation(),top);
-		return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
+		return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
 	}
 
 

@@ -146,7 +146,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             throw Exceptions.parseException(e);
         }
         SpliceUtils.setInstructions(reduceScan,activation,top);
-        return new ProvidesDefaultClientScanProvider(SpliceConstants.TEMP_TABLE_BYTES,reduceScan,rowDecoder);
+        return new ProvidesDefaultClientScanProvider("distinctScalarAggregateReduce",SpliceConstants.TEMP_TABLE_BYTES,reduceScan,rowDecoder);
     }
 
     @Override

@@ -557,7 +557,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
          * TEMP table by forgetting to deal with failedTasks/statistics/whatever else needs to be handled.
          */
         JobStats stats = doShuffle();
-        JobStatsUtils.logStats(stats,LOG);
+        JobStatsUtils.logStats(stats);
         failedTasks = Lists.transform(stats.getFailedTasks(),taskToBytes);
 	}
 

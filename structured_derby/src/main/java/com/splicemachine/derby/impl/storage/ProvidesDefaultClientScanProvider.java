@@ -16,10 +16,11 @@ public class ProvidesDefaultClientScanProvider extends ClientScanProvider{
     private boolean defaultReturned = false;
 
 
-    public ProvidesDefaultClientScanProvider(byte[] tableName,
+    public ProvidesDefaultClientScanProvider(String type,
+                                             byte[] tableName,
                                              Scan scan,
                                              RowDecoder decoder) {
-        super(tableName, scan,decoder);
+        super(type,tableName, scan,decoder);
     }
 
     @Override

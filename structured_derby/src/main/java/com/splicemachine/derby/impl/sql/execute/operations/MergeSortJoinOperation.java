@@ -166,7 +166,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             reduceScan.setFilter(new SuccessFilter(failedTasks,false));
         }
         SpliceUtils.setInstructions(reduceScan,activation,top);
-        return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
+        return new ClientScanProvider("mergeSortJoin",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
 	}
 
     @Override

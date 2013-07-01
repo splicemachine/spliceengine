@@ -171,7 +171,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
         try{
             Scan scan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
-            return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,scan,decoder);
+            return new ClientScanProvider("hashScanMap",SpliceOperationCoprocessor.TEMP_TABLE,scan,decoder);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -185,7 +185,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
     @Override
     protected JobStats doShuffle() throws StandardException {
         Scan scan = buildScan();
-        RowProvider provider =  new ClientScanProvider(Bytes.toBytes(tableName),scan,null);
+        RowProvider provider =  new ClientScanProvider("shuffler",Bytes.toBytes(tableName),scan,null);
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
         return provider.shuffleRows(soi);
     }

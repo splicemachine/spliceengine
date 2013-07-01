@@ -19,12 +19,9 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
     private final  RegionAwareScanner scanner;
     private final byte[] table;
 
-    public SimpleRegionAwareRowProvider(String txnId,HRegion region,Scan scan,byte[] tableName,byte[] columnFamily, RowDecoder decoder){
-    	this(txnId,region,scan,tableName,columnFamily,decoder,decoder.getKeyColumns().length);
-    }
 
-    public SimpleRegionAwareRowProvider(String txnId,HRegion region,Scan scan,byte[] tableName,byte[] columnFamily, RowDecoder decoder, int slice){
-        super(decoder);
+    public SimpleRegionAwareRowProvider(String type,String txnId,HRegion region,Scan scan,byte[] tableName,byte[] columnFamily, RowDecoder decoder, int slice){
+        super(decoder, type);
         this.table = tableName;
         this.scanner = RegionAwareScanner.create(txnId,region,scan,tableName,
                 new SingleTypeHashAwareScanBoundary2(columnFamily,decoder,slice));

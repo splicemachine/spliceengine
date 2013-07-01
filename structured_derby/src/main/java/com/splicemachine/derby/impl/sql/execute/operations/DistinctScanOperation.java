@@ -226,7 +226,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
         try{
             reduceScan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
-            return new ClientScanProvider(SpliceConstants.TEMP_TABLE_BYTES,reduceScan,decoder);
+            return new ClientScanProvider("distinctScanMap",SpliceConstants.TEMP_TABLE_BYTES,reduceScan,decoder);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -247,7 +247,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     @Override
     protected JobStats doShuffle() throws StandardException {
         Scan scan = buildScan();
-        RowProvider provider = new ClientScanProvider(Bytes.toBytes(Long.toString(conglomId)),scan,null);
+        RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(conglomId)),scan,null);
 
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this);
         return provider.shuffleRows(soi);

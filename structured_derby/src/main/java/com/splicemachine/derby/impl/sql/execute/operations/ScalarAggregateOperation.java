@@ -105,7 +105,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             throw Exceptions.parseException(e);
         }
         SpliceUtils.setInstructions(reduceScan,activation,top);
-        return new ProvidesDefaultClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,rowDecoder);
+        return new ProvidesDefaultClientScanProvider("scalarAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,rowDecoder);
 	}
 
     @Override

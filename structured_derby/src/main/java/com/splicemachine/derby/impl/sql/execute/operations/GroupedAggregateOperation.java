@@ -160,6 +160,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                     KeyType.FIXED_PREFIX,
                     RowMarshaller.columnar());
             rowProvider = new SimpleRegionAwareRowProvider(
+                    "groupedAggregateRowProvider",
                     SpliceUtils.NA_TRANSACTION_ID,
                     context.getRegion(),
                     context.getScan(),
@@ -182,7 +183,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         SuccessFilter filter = new SuccessFilter(failedTasks,false);
         reduceScan.setFilter(filter);
         SpliceUtils.setInstructions(reduceScan, activation, top);
-        return new ClientScanProvider(SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
+        return new ClientScanProvider("groupedAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
     }
 
     @Override

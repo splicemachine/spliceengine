@@ -33,8 +33,8 @@ public class ClientScanProvider extends AbstractScanProvider {
     private ResultScanner scanner;
 
 
-	public ClientScanProvider( byte[] tableName, Scan scan,RowDecoder decoder) {
-		super(decoder);
+	public ClientScanProvider(String type,byte[] tableName, Scan scan,RowDecoder decoder) {
+		super(decoder, type);
 		SpliceLogUtils.trace(LOG, "instantiated");
 		this.tableName = tableName;
 		this.scan = scan;

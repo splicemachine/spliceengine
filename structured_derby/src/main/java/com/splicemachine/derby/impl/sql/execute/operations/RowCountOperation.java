@@ -348,11 +348,11 @@ public class RowCountOperation extends SpliceBaseOperation{
         private byte[] tableName;
         private HTableInterface table;
 
-        private OffsetScanRowProvider(RowDecoder rowDecoder,
+        private OffsetScanRowProvider(String type,RowDecoder rowDecoder,
                                       Scan fullScan,
                                       long totalOffset,
                                       byte[] tableName) {
-            super(rowDecoder);
+            super(rowDecoder, type);
             this.fullScan = fullScan;
             this.totalOffset = totalOffset;
             this.tableName = tableName;
@@ -366,7 +366,7 @@ public class RowCountOperation extends SpliceBaseOperation{
             RowDecoder rowDecoder = RowDecoder.create(rowTemplate,
                     null,null,null, RowMarshaller.mappedColumnar(),baseColumnMap,false);
 
-            return new OffsetScanRowProvider(rowDecoder,fullScan,totalOffset,tableName);
+            return new OffsetScanRowProvider("offsetScan",rowDecoder,fullScan,totalOffset,tableName);
         }
 
         @Override

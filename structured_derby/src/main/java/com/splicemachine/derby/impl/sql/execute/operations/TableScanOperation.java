@@ -130,7 +130,7 @@ public class TableScanOperation extends ScanOperation {
 		beginTime = System.currentTimeMillis();
 		Scan scan = buildScan();
 		SpliceUtils.setInstructions(scan, activation, top);
-		ClientScanProvider provider = new ClientScanProvider(Bytes.toBytes(tableName),scan,decoder);
+		ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan,decoder);
 		nextTime += System.currentTimeMillis() - beginTime;
 		return provider;
 	}
