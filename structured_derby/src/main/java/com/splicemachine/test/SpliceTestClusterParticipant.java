@@ -1,6 +1,5 @@
 package com.splicemachine.test;
 
-import com.splicemachine.constants.SpliceConfiguration;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.si.coprocessors.SIObserver;
@@ -11,7 +10,7 @@ import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.hbase.SpliceMasterObserver;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 
 public class SpliceTestClusterParticipant extends TestConstants {
@@ -39,10 +38,11 @@ public class SpliceTestClusterParticipant extends TestConstants {
 		}
 	}
 	
-	public void start() throws Exception {
+	public void start() throws Exception {		
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
 		miniHBaseCluster = new MiniHBaseCluster(config,0,1);
+		miniHBaseCluster.startRegionServer();
 	}
 	public void end() throws Exception {
 
@@ -52,7 +52,7 @@ public class SpliceTestClusterParticipant extends TestConstants {
 		configuration.set("hbase.rootdir", "file://" + hbaseTargetDirectory);
 		configuration.set("hbase.rpc.timeout", "6000");
 		configuration.set("hbase.cluster.distributed", "true");
-		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");
+		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
 		configuration.set("hbase.regionserver.handler.count", "40");
 		configuration.setInt("hbase.regionserver.port", port);
 		configuration.setInt("hbase.regionserver.info.port", infoPort);
@@ -65,7 +65,6 @@ public class SpliceTestClusterParticipant extends TestConstants {
     public void coprocessorBaseline(Configuration configuration) {
         configuration.set("hbase.coprocessor.region.classes",
                 SpliceOperationRegionObserver.class.getCanonicalName() + "," +
-//                        SpliceOperationCoprocessor.class.getCanonicalName() + "," +
                         SpliceIndexObserver.class.getCanonicalName() + "," +
                         SpliceDerbyCoprocessor.class.getCanonicalName() + "," +
                         SpliceIndexManagementEndpoint.class.getCanonicalName() + "," +
@@ -73,8 +72,7 @@ public class SpliceTestClusterParticipant extends TestConstants {
                         CoprocessorTaskScheduler.class.getCanonicalName()+","+
                         SIObserver.class.getCanonicalName()
         );
-
-
+        configuration.set("hbase.coprocessor.master.classes", SpliceMasterObserver.class.getCanonicalName() + "");
     }
 
 }
