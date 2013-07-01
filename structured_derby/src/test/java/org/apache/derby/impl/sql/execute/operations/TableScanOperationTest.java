@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
 import com.google.common.collect.Lists;
+import com.splicemachine.homeless.TestUtils;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -458,6 +459,17 @@ public class TableScanOperationTest extends SpliceUnitTest {
         float sd = rs.getFloat(1);
         Assert.assertEquals(sd,50.0,0.0);
         Assert.assertFalse(rs.next());
+    }
+
+    @Test
+    public void testScanWithNoColumns() throws Exception{
+        // In order to produce a table scan in which no columns are actually read, run a cross join where no columns from
+        // the right-hand table are referenced
+        ResultSet rs = methodWatcher.executeQuery(String.format("select o.se1 from %s o, %s t", this.getTableReference("AB"), this.getTableReference("A")));
+
+        List results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertEquals(100, results.size());
     }
 
 }
