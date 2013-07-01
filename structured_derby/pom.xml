@@ -12,10 +12,6 @@
 		<version>1.0.1-SNAPSHOT</version>
 	</parent>
 
-	<properties>
-		<runSuite>*Test</runSuite>
-		<runClass>**/${runSuite}.class</runClass>
-	</properties>
 
 	<dependencies>
 
@@ -224,6 +220,19 @@
 							</arguments>
 						</configuration>
 					</plugin>
+								<plugin>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.15</version>
+				<configuration>
+					<forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
+					<argLine>-Xms256M -Xmx512M -Djava.awt.headless=true</argLine>
+					<redirectTestOutputToFile>true</redirectTestOutputToFile>
+					<includes>
+						<include>${runClass}</include>
+					</includes>
+				<forkCount>4</forkCount>
+				</configuration>
+			</plugin>
 				</plugins>
 			</build>
 		</profile>
