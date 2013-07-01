@@ -12,6 +12,8 @@ import org.junit.Rule;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
@@ -30,6 +32,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
 	public static final String TABLE_NAME_5 = "E";
 	public static final String TABLE_NAME_6 = "F";
     public static final String TABLE_NAME_7 = "G";
+    public static final String TABLE_NAME_8 = "H";
 	public static final String INDEX_11 = "IDX_A1";
 	public static final String INDEX_21 = "IDX_B1";
 	public static final String INDEX_31 = "IDX_C1";
@@ -37,6 +40,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
 	public static final String INDEX_51 = "IDX_E1";
 	public static final String INDEX_61 = "IDX_F1";
     public static final String INDEX_62 = "IDX_F2";
+    public static final String INDEX_81 = "IDX_H2";
 
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
@@ -46,6 +50,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
     protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
+    protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,spliceSchemaWatcher.schemaName,"(oid decimal(5),name varchar(40))");
 
     @Override
     public String getSchemaName() {
@@ -61,7 +66,8 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
 		.around(spliceTableWatcher4)
 		.around(spliceTableWatcher5)
 		.around(spliceTableWatcher6)
-        .around(spliceTableWatcher7);
+        .around(spliceTableWatcher7)
+            .around(spliceTableWatcher8);
 
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -125,6 +131,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
         }
         Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
     }
+
     /**
      * Tests that adding an index to an existing data set will
      * result in a correct and consistent index
@@ -150,6 +157,42 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
             results.add(String.format("name:%s,value:%d",retName,val));
         }
         Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
+    }
+    /**
+     * Tests that adding an index to an existing data set will
+     * result in a correct and consistent index
+     *
+     * Basically, add some data to the table, then create the index,
+     * then perform a lookup on that same data via the index to ensure
+     * that the index will find those values.
+     */
+    @Test(timeout=10000)
+    public void testCanCreateIndexFromExistingDataWithDecimalType() throws Exception{
+        BigDecimal oid = BigDecimal.valueOf(2);
+        String name = "sfines";
+        PreparedStatement preparedStatement = methodWatcher.prepareStatement("insert into " + spliceTableWatcher8 + " values (?,?)");
+        preparedStatement.setBigDecimal(1,oid);
+        preparedStatement.setString(2,name);
+        preparedStatement.execute();
+    	new SpliceIndexWatcher(TABLE_NAME_8,spliceSchemaWatcher.schemaName,INDEX_81,spliceSchemaWatcher.schemaName,"(name)").starting(null);
+        //now check that we can get data out for the proper key
+        preparedStatement = methodWatcher.prepareStatement("select * from "+ spliceTableWatcher8+" where oid = ?");
+        preparedStatement.setBigDecimal(1,oid);
+
+        ResultSet resultSet = preparedStatement.executeQuery();
+        try{
+            List<String> results = Lists.newArrayListWithExpectedSize(1);
+            while(resultSet.next()){
+                BigDecimal retOid = resultSet.getBigDecimal(1);
+                String retName = resultSet.getString(2);
+                Assert.assertEquals("Incorrect name returned!",name,retName);
+                Assert.assertEquals("Incorrect oid returned!",oid,retOid);
+                results.add(String.format("name:%s,value:%s",retName,retOid));
+            }
+            Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
+        }finally{
+            resultSet.close();
+        }
     }
 
     /**
