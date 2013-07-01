@@ -77,11 +77,15 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Scan createScan(String transactionId) {
+        return createScan(transactionId, true);
+    }
+
+    public static Scan createScan(String transactionId, boolean includeSI) {
         try {
-            return attachTransaction(new Scan(), transactionId);
+            return attachTransaction(new Scan(), transactionId, includeSI);
         } catch (Exception e) {
-        	SpliceLogUtils.logAndThrowRuntime(LOG, e);
-        	return null;
+            SpliceLogUtils.logAndThrowRuntime(LOG, e);
+            return null;
         }
     }
 
@@ -158,9 +162,9 @@ public class SpliceUtils extends SpliceUtilities {
         return op;
     }
 
-    public static Scan attachTransaction(Scan op, String transactionId) throws IOException {
+    public static Scan attachTransaction(Scan op, String transactionId, boolean includeSI) throws IOException {
         if (!attachTransactionNA(op, transactionId)) {
-            getTransactor().initializeScan(transactionId, op);
+            getTransactor().initializeScan(transactionId, op, includeSI, false);
         }
         return op;
     }

@@ -146,16 +146,9 @@ public class Scans extends SpliceUtils {
 															 boolean[] sortOrder,
 															 FormatableBitSet scanColumnList,
 															 String transactionId) throws IOException {
-        Scan scan = SpliceUtils.createScan(transactionId);
-		scan.setCaching(DEFAULT_CACHE_SIZE);
-		attachScanKeys(scan, startKeyValue, startSearchOperator,
-				stopKeyValue, stopSearchOperator,
-				qualifiers, null,scanColumnList, sortOrder);
-
-		scan.setFilter(buildKeyFilter(startKeyValue, startSearchOperator, qualifiers));
-
-		return scan;
-	}
+        return setupScan(startKeyValue, startSearchOperator, stopKeyValue, stopSearchOperator, qualifiers, sortOrder,
+                null, scanColumnList, transactionId);
+    }
     /**
 	 * Builds a Scan from qualified starts and stops.
 	 *
@@ -197,7 +190,7 @@ public class Scans extends SpliceUtils {
                                                              FormatableBitSet primaryKeys,
 															 FormatableBitSet scanColumnList,
 															 String transactionId) throws IOException {
-		Scan scan = SpliceUtils.createScan(transactionId);
+		Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null);
 		scan.setCaching(DEFAULT_CACHE_SIZE);
 		attachScanKeys(scan, startKeyValue, startSearchOperator,
 				stopKeyValue, stopSearchOperator,
@@ -415,9 +408,6 @@ public class Scans extends SpliceUtils {
 				}
 			}
 			
-            final ClientTransactor<Put, Get, Scan, Mutation, byte[]> transactor;
-            transactor = getTransactor();
-            transactor.initializeScan(transactor.transactionIdFromScan(scan).getTransactionIdString(), scan, true, false);
 			for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
 				scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, Encoding.encode(i));
 			}

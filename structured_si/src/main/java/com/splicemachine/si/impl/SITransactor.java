@@ -248,11 +248,6 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     @Override
-    public void initializeScan(String transactionId, Scan scan) {
-        initializeOperation(transactionId, scan);
-    }
-
-    @Override
     public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart) {
         initializeOperation(transactionId, scan, includeSIColumn, includeUncommittedAsOfStart);
     }
