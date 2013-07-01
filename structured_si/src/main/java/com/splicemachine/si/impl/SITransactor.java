@@ -352,18 +352,11 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             final Set<Long> dataTransactionsToRollForward;
 
             final Lock lock = obtainLock(locks, table, rowKey);
-            // This is the critical section that runs while the row is locked.
-            //try {
             final Object[] conflictResults = ensureNoWriteConflict(transaction, table, rowKey);
             dataTransactionsToRollForward = (Set<Long>) conflictResults[0];
             final Set<Long> conflictingChildren = (Set<Long>) conflictResults[1];
             final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table, (Boolean) conflictResults[2]);
             dataStore.suppressIndexing(newPut);
-            //dataWriter.write(table, newPut, lock);
-            //resolveChildConflicts(table, put, lock, conflictingChildren);
-            //} finally {
-            // dataWriter.unLockRow(table, lock);
-            //}
             dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), rowKey);
             for (Long transactionIdToRollForward : dataTransactionsToRollForward) {
                 dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey);

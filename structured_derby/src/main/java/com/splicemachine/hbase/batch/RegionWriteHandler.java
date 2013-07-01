@@ -127,55 +127,35 @@ public class RegionWriteHandler implements WriteHandler {
         final Pair<Mutation, Integer>[] mutationsAndLocks = new Pair[toProcess.length];
         final Set<Long>[] conflictingChildren = new Set[toProcess.length];
 
-        try {
-            Map<ByteBuffer, HRowLock> locks = new HashMap<ByteBuffer, HRowLock>();
-            for (int i = 0; i < toProcess.length; i++) {
-                final PutToRun<Mutation> putToRun = transactor.preProcessBatchPut(new HbRegion(region), null,
-                        (Put) toProcess[i].getFirst(), locks);
-                mutationsAndLocks[i] = putToRun.putAndLock;
-                conflictingChildren[i] = putToRun.conflictingChildren;
-            }
+        Map<ByteBuffer, HRowLock> locks = new HashMap<ByteBuffer, HRowLock>();
+        for (int i = 0; i < toProcess.length; i++) {
+            final PutToRun<Mutation> putToRun = transactor.preProcessBatchPut(new HbRegion(region), null,
+                    (Put) toProcess[i].getFirst(), locks);
+            mutationsAndLocks[i] = putToRun.putAndLock;
+            conflictingChildren[i] = putToRun.conflictingChildren;
+        }
 
-            final OperationStatus[] status = region.batchMutate(mutationsAndLocks);
+        final OperationStatus[] status = region.batchMutate(mutationsAndLocks);
 
-            for (int i = 0; i < status.length; i++) {
-                OperationStatus stat = status[i];
-                Mutation mutation = toProcess[i].getFirst();
-                switch (stat.getOperationStatusCode()) {
-                    case NOT_RUN:
-                        ctx.notRun(mutation);
-                        break;
-                    case BAD_FAMILY:
-                    case FAILURE:
-                        ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, stat.getExceptionMsg()));
-                    default:
+        for (int i = 0; i < status.length; i++) {
+            OperationStatus stat = status[i];
+            Mutation mutation = toProcess[i].getFirst();
+            switch (stat.getOperationStatusCode()) {
+                case NOT_RUN:
+                    ctx.notRun(mutation);
+                    break;
+                case BAD_FAMILY:
+                case FAILURE:
+                    ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, stat.getExceptionMsg()));
+                default:
+                    try {
+                        transactor.postProcessBatchPut(new HbRegion(region), (Put) toProcess[i].getFirst(),
+                                new HRowLock(mutationsAndLocks[i].getSecond()), conflictingChildren[i]);
                         ctx.success(mutation);
-                        break;
-                }
-            }
-        } finally {
-            IOException e0 = null;
-            Throwable t0 = null;
-            for (int i = 0; i < mutationsAndLocks.length; i++) {
-                try {
-                    if (mutationsAndLocks[i] != null) {
-                        transactor.postProcessBatchPut(new HbRegion(region), (Put) toProcess[i].getFirst(), new HRowLock(mutationsAndLocks[i].getSecond()), conflictingChildren[i]);
+                    } catch (Throwable t) {
+                        ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, t.getMessage()));
                     }
-                } catch (IOException e) {
-                    if (e0 == null && t0 == null) {
-                        e0 = e;
-                    }
-                } catch (Throwable t) {
-                    if (e0 == null && t0 == null) {
-                        t0 = t;
-                    }
-                }
-            }
-            if (e0 != null) {
-                throw e0;
-            }
-            if (t0 != null) {
-                throw new RuntimeException(t0);
+                    break;
             }
         }
     }
