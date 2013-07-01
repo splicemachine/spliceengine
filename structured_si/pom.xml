@@ -52,7 +52,7 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
 					<forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
-					<argLine>-Xms2g -Xmx2g</argLine>
+					<argLine>-Xms2g -Xmx2g -Djava.awt.headless=true</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
 				</configuration>
 			</plugin>
