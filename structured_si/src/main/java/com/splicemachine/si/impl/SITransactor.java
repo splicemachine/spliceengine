@@ -17,7 +17,9 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -338,30 +340,57 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     @Override
     public boolean processPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
-        return processPutWithSICheck(table, rollForwardQueue, put);
+        if (isFlaggedForSITreatment(put)) {
+            processPutDirect(table, rollForwardQueue, put);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private void processPutDirect(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
+        PutToRun<Mutation, Lock> putToRun = null;
+        final HashMap<Hashable, Lock> locks = new HashMap<Hashable, Lock>();
+        try {
+            // The non-batch Put path uses the batch Put mechanism to avoid code duplication.
+            putToRun = preProcessBatchPutDirect(table, rollForwardQueue, put, locks);
+            dataWriter.write(table, (Put) putToRun.putAndLock.getFirst(), putToRun.lock);
+        } finally {
+            final Iterator<Lock> locksIterator = locks.values().iterator();
+            if (locksIterator.hasNext()) {
+                final Set<Long> conflictingChildren =  (putToRun == null)
+                        ? Collections.<Long>emptySet()
+                        : putToRun.conflictingChildren;
+                postProcessBatchPutDirect(table, put, locksIterator.next(), conflictingChildren);
+            }
+        }
     }
 
     @Override
-    public PutToRun<Mutation> preProcessBatchPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue,
+    public PutToRun<Mutation, Lock> preProcessBatchPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue,
                                                  Put put, Map<Hashable, Lock> locks) throws IOException {
         if (isFlaggedForSITreatment(put)) {
-            final TransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
-            final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
-            ensureTransactionAllowsWrites(transaction);
-            final Data rowKey = dataLib.getPutKey(put);
-
-            final Lock lock = obtainLock(locks, table, rowKey);
-            final ConflictResults conflictResults = ensureNoWriteConflict(transaction, table, rowKey);
-            final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table, conflictResults.hasTombstone);
-            dataStore.suppressIndexing(newPut);
-            dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), rowKey);
-            for (Long transactionIdToRollForward : conflictResults.toRollForward) {
-                dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey);
-            }
-            return new PutToRun<Mutation>(new Pair<Mutation, Integer>(newPut, lock.toInteger()), conflictResults.childConflicts);
+            return preProcessBatchPutDirect(table, rollForwardQueue, put, locks);
         } else {
-            return new PutToRun<Mutation>(new Pair<Mutation, Integer>(put, null), Collections.<Long>emptySet());
+            return new PutToRun<Mutation, Lock>(new Pair<Mutation, Integer>(put, null), null, Collections.<Long>emptySet());
         }
+    }
+
+    private PutToRun<Mutation, Lock> preProcessBatchPutDirect(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put, Map<Hashable, Lock> locks) throws IOException {
+        final TransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
+        final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
+        ensureTransactionAllowsWrites(transaction);
+        final Data rowKey = dataLib.getPutKey(put);
+
+        final Lock lock = obtainLock(locks, table, rowKey);
+        final ConflictResults conflictResults = ensureNoWriteConflict(transaction, table, rowKey);
+        final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table, conflictResults.hasTombstone);
+        dataStore.suppressIndexing(newPut);
+        dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), rowKey);
+        for (Long transactionIdToRollForward : conflictResults.toRollForward) {
+            dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey);
+        }
+        return new PutToRun<Mutation, Lock>(new Pair<Mutation, Integer>(newPut, lock.toInteger()), lock, conflictResults.childConflicts);
     }
 
     private Lock obtainLock(Map<Hashable, Lock> locks, Table table, Data rowKey) throws IOException {
@@ -377,57 +406,18 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     @Override
     public void postProcessBatchPut(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
         if (isFlaggedForSITreatment(put)) {
-            try {
-                resolveChildConflicts(table, put, lock, conflictingChildren);
-            } finally {
-                dataWriter.unLockRow(table, lock);
-            }
+            postProcessBatchPutDirect(table, put, lock, conflictingChildren);
         }
     }
 
-    private boolean processPutWithSICheck(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
-        if (isFlaggedForSITreatment(put)) {
-            processPutWithWritableCheck(table, rollForwardQueue, put);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private void processPutWithWritableCheck(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
-        final TransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
-        final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
-        ensureTransactionAllowsWrites(transaction);
-        processPutWithConflictCheckAndRollforward(table, rollForwardQueue, put, transaction);
-    }
-
-
-    private void processPutWithConflictCheckAndRollforward(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put, ImmutableTransaction transaction)
-            throws IOException {
-        final long transactionId = transaction.getLongTransactionId();
-        final Data rowKey = dataLib.getPutKey(put);
-        ConflictResults conflictResults;
-
-        final Lock lock = dataWriter.lockRow(table, rowKey);
-        // This is the critical section that runs while the row is locked.
+    private void postProcessBatchPutDirect(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
         try {
-            conflictResults = ensureNoWriteConflict(transaction, table, rowKey);
-            processPutDirect(table, put, transactionId, lock, conflictResults.hasTombstone);
-            resolveChildConflicts(table, put, lock, conflictResults.childConflicts);
+            resolveChildConflicts(table, put, lock, conflictingChildren);
         } finally {
             dataWriter.unLockRow(table, lock);
         }
-        dataStore.recordRollForward(rollForwardQueue, transactionId, rowKey);
-        for (Long transactionIdToRollForward : conflictResults.toRollForward) {
-            dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey);
-        }
     }
 
-    private void processPutDirect(Table table, Put put, long transactionId, Lock lock, boolean hasTombstone) throws IOException {
-        final Put newPut = createUltimatePut(transactionId, lock, put, table, hasTombstone);
-        dataStore.suppressIndexing(newPut);
-        dataWriter.write(table, newPut, lock);
-    }
 
     private void resolveChildConflicts(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
         if (!conflictingChildren.isEmpty()) {

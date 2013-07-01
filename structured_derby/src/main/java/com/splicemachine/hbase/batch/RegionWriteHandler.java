@@ -129,7 +129,7 @@ public class RegionWriteHandler implements WriteHandler {
 
         Map<ByteBuffer, HRowLock> locks = new HashMap<ByteBuffer, HRowLock>();
         for (int i = 0; i < toProcess.length; i++) {
-            final PutToRun<Mutation> putToRun = transactor.preProcessBatchPut(new HbRegion(region), null,
+            final PutToRun<Mutation, HRowLock> putToRun = transactor.preProcessBatchPut(new HbRegion(region), null,
                     (Put) toProcess[i].getFirst(), locks);
             mutationsAndLocks[i] = putToRun.putAndLock;
             conflictingChildren[i] = putToRun.conflictingChildren;
