@@ -73,8 +73,6 @@ public class SpliceTestPlatform extends TestConstants {
 	public void start() throws Exception {
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
-		//miniZooKeeperCluster = new MiniZooKeeperCluster();
-		//miniZooKeeperCluster.startup(new File(zookeeperTargetDirectory),3);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
 	}
 	public void end() throws Exception {
@@ -107,7 +105,6 @@ public class SpliceTestPlatform extends TestConstants {
     public void coprocessorBaseline(Configuration configuration) {
         configuration.set("hbase.coprocessor.region.classes",
                 SpliceOperationRegionObserver.class.getCanonicalName() + "," +
-//                        SpliceOperationCoprocessor.class.getCanonicalName() + "," +
                         SpliceIndexObserver.class.getCanonicalName() + "," +
                         SpliceDerbyCoprocessor.class.getCanonicalName() + "," +
                         SpliceIndexManagementEndpoint.class.getCanonicalName() + "," +
