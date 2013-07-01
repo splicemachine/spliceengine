@@ -90,7 +90,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     @Override
     public void readExternal(ObjectInput in) throws IOException,
             ClassNotFoundException {
-//		SpliceLogUtils.trace(LOG, "readExternal");
         super.readExternal(in);
         source = (SpliceOperation) in.readObject();
         distinct = in.readBoolean();
