@@ -234,4 +234,23 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     public void addAdditionalColumnToReturn(byte[] qualifier, byte[] value){
         additionalColumns.add(Pair.newPair(qualifier,value));
     }
+	@Override
+	public long getMvccReadPoint() {
+		return 0;
+	}
+
+	@Override
+	public boolean nextRaw(List<KeyValue> keyValues, String metric) throws IOException {
+		return nextRaw(keyValues);
+	}
+
+	@Override
+	public boolean nextRaw(List<KeyValue> arg0, int arg1, String arg2) throws IOException {
+		throw new IOException("Not Implemented");
+	}
+
+	public boolean nextRaw(List<KeyValue> keyValues) throws IOException {
+		return next(keyValues);
+	}
+
 }
