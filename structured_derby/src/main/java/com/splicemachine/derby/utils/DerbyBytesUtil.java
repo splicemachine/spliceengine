@@ -361,7 +361,7 @@ public class DerbyBytesUtil {
                 try{
                     ByteDataOutput bdo = new ByteDataOutput();
                     bdo.writeObject(dvd.getObject());
-                    return encoder.encodeNext(bdo.toByteArray(), desc);
+                    return encoder.encodeNextUnsorted(bdo.toByteArray());
                 }catch(IOException ioe){
                     throw Exceptions.parseException(ioe);
                 }
@@ -439,6 +439,7 @@ public class DerbyBytesUtil {
                 break;
             case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
                 column.setValue(rowDecoder.decodeNextShort(desc));
+                break;
             case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
                 column.setValue(rowDecoder.decodeNextInt(desc));
                 break;

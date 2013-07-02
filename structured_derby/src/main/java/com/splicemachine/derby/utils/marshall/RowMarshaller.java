@@ -209,7 +209,11 @@ public class RowMarshaller {
 
     private static void pack(DataValueDescriptor[] row, int[] rowColumns,MultiFieldEncoder encoder) throws StandardException{
         for(int rowCol:rowColumns){
-            DerbyBytesUtil.encodeInto(encoder,row[rowCol],false);
+            DataValueDescriptor dvd = row[rowCol];
+            if(dvd!=null&&!dvd.isNull())
+                DerbyBytesUtil.encodeInto(encoder,row[rowCol],false);
+            else
+                encoder.encodeEmpty();
         }
     }
 
@@ -242,10 +246,7 @@ public class RowMarshaller {
                 return; //don't try to unpack unless it's the right column
 
             byte[] data = value.getValue();
-            rowDecoder.set(data);
-            for(int keyCol:reversedKeyColumns){
-                DerbyBytesUtil.decodeInto(rowDecoder,fields[keyCol]);
-            }
+            unpack(fields, reversedKeyColumns, rowDecoder, data);
         }
 
         @Override
@@ -253,6 +254,18 @@ public class RowMarshaller {
             return false;
         }
     };
+
+    private static void unpack(DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder, byte[] data) throws StandardException {
+        rowDecoder.set(data);
+        for(int keyCol:reversedKeyColumns){
+            DataValueDescriptor dvd = fields[keyCol];
+            if(rowDecoder.nextIsNull()){
+                dvd.setToNull();
+                rowDecoder.skip();
+            }else
+                DerbyBytesUtil.decodeInto(rowDecoder, dvd);
+        }
+    }
 
     private static final RowMarshall PACKED_COMPRESSED = new RowMarshall() {
         @Override
@@ -296,10 +309,7 @@ public class RowMarshaller {
 
             try {
                 byte[] data = Snappy.uncompress(value.getValue());
-                rowDecoder.set(data);
-                for(int keyCol:reversedKeyColumns){
-                    DerbyBytesUtil.decodeInto(rowDecoder, fields[keyCol]);
-                }
+                unpack(fields, reversedKeyColumns, rowDecoder, data);
             } catch (IOException e) {
                 throw Exceptions.parseException(e);
             }

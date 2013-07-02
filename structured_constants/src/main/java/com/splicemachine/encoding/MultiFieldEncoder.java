@@ -273,4 +273,10 @@ public class MultiFieldEncoder {
         }
         return setRawBytes(bytes);
     }
+
+    public MultiFieldEncoder encodeEmpty() {
+        fields[currentPos] = null;
+        currentPos++;
+        return this;
+    }
 }

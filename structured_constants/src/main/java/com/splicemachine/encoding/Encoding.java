@@ -430,6 +430,7 @@ public final class Encoding {
         return (int)ScalarEncoding.toLong(data,offset,desc);
     }
 
+
     /**
      * Encode a long into an ascending, order-preserving byte representation of {@code value}.
      *
@@ -514,6 +515,10 @@ public final class Encoding {
 
     public static long decodeLong(byte[] data, int offset,boolean desc){
         return ScalarEncoding.toLong(data,offset,desc);
+    }
+
+    public static void decodeLongWithLength(byte[] data, int offset, boolean  desc, long[] valueAndLength){
+        ScalarEncoding.toLong(data,offset,desc,valueAndLength);
     }
 
     /**

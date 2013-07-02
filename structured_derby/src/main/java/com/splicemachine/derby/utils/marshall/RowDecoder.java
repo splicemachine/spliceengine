@@ -68,6 +68,9 @@ public class RowDecoder {
         ExecRow row = clone?template.getClone(): template;
         boolean rowSet = false;
         DataValueDescriptor[] fields = row.getRowArray();
+        for(DataValueDescriptor field:fields){
+            field.setToNull();
+        }
         for(KeyValue value: keyValues){
             if(!rowSet){
                 if(keyDecoder==null)
@@ -77,7 +80,7 @@ public class RowDecoder {
                     rowSet=true;
                 }
             }
-            rowType.decode(value,fields,reversedKeyColumns,rowDecoder);
+            rowType.decode(value,fields,reversedRowColumns,rowDecoder);
         }
 
         keyType.decode(fields, reversedKeyColumns, sortOrder,keyDecoder);

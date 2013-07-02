@@ -238,7 +238,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         return RowEncoder.create(def.nColumns(), keyColumns,
                 descColumns,
                 DerbyBytesUtil.generateBytes(sequence[0]),
-                keyType, RowMarshaller.columnar());
+                keyType, RowMarshaller.packedCompressed());
     }
 
     @Override
