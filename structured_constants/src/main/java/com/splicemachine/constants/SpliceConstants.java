@@ -58,7 +58,7 @@ public class SpliceConstants {
 	 *
 	 * This determines the default number of rows that will be cached on each scan returned.
 	 */
-	public static final int DEFAULT_CACHE_SIZE = 100;
+	public static final int DEFAULT_CACHE_SIZE = 1000;
 
     
     /*
