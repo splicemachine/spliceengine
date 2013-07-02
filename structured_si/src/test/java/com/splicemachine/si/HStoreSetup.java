@@ -20,8 +20,18 @@ import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Random;
 
 public class HStoreSetup implements StoreSetup {
+    static int nextBasePort = 12000;
+
+    static int getNextBasePort() {
+        synchronized (HStoreSetup.class) {
+            nextBasePort = nextBasePort + 4 + new Random().nextInt(10) * 100;
+            return nextBasePort;
+        }
+    }
+
     SDataLib dataLib;
     STableReader reader;
     STableWriter writer;
@@ -33,10 +43,11 @@ public class HStoreSetup implements StoreSetup {
         setupHBaseHarness();
     }
 
-    private TestHTableSource setupHTableSource() {
+    private TestHTableSource setupHTableSource(int basePort) {
         try {
             testCluster = new HBaseTestingUtility();
             testCluster.getConfiguration().setStrings(CoprocessorHost.USER_REGION_COPROCESSOR_CONF_KEY, SIObserver.class.getName());
+            setTestingUtilityPorts(testCluster, basePort);
 
             testCluster.startMiniCluster(1);
             final TestHTableSource tableSource = new TestHTableSource(testCluster, getPersonTableName(),
@@ -48,9 +59,16 @@ public class HStoreSetup implements StoreSetup {
         }
     }
 
+    static void setTestingUtilityPorts(HBaseTestingUtility testCluster, int basePort) {
+        testCluster.getConfiguration().setInt("hbase.master.port", basePort + 0);
+        testCluster.getConfiguration().setInt("hbase.master.info.port", basePort + 1);
+        testCluster.getConfiguration().setInt("hbase.regionserver.port", basePort + 2);
+        testCluster.getConfiguration().setInt("hbase.regionserver.info.port", basePort + 3);
+    }
+
     private void setupHBaseHarness() {
         dataLib = new HDataLib();
-        final STableReader<IHTable, Result, Get, Scan> rawReader = new HTableReader(setupHTableSource());
+        final STableReader<IHTable, Result, Get, Scan> rawReader = new HTableReader(setupHTableSource(getNextBasePort()));
         reader = new STableReader<IHTable, Result, Get, Scan>() {
             @Override
             public IHTable open(String tableName) {

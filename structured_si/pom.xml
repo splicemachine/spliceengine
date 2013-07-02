@@ -50,10 +50,12 @@
             </plugin>
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
+                <version>2.15</version>
 				<configuration>
 					<forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
 					<argLine>-Xms2g -Xmx2g -Djava.awt.headless=true</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <forkCount>2</forkCount>
 				</configuration>
 			</plugin>
 		</plugins>

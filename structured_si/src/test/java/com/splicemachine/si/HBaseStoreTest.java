@@ -21,7 +21,8 @@ public class HBaseStoreTest {
 	@Test
 	public void testName() throws Exception {
 		final HBaseTestingUtility testCluster = new HBaseTestingUtility();
-		testCluster.startMiniCluster(1);
+        HStoreSetup.setTestingUtilityPorts(testCluster, HStoreSetup.getNextBasePort());
+        testCluster.startMiniCluster(1);
 
         try {
             final TestHTableSource tableSource = new TestHTableSource(testCluster, "table1", new String[]{"foo"});
