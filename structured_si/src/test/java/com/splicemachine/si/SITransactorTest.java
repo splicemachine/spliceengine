@@ -1090,16 +1090,23 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
-    public void writeDeleteScanWithIncludeSIColumn() throws IOException, InterruptedException {
-        TransactionId t1 = transactor.beginTransaction();
-        insertAge(t1, "140moe", 50);
-        deleteRow(t1, "140moe");
-        transactor.commit(t1);
+    public void writeDeleteScanWithIncludeSIColumnAfterRollForward() throws IOException, InterruptedException {
+        try {
+            Tracer.rollForwardDelayOverride = 100;
+            final CountDownLatch latch = makeLatch("140moe");
 
-        TransactionId t2 = transactor.beginTransaction();
-        String expected = "";
-        Thread.sleep(2000);
-        Assert.assertEquals(expected, scanAll(t2, "140a", "140z", null, true));
+            TransactionId t1 = transactor.beginTransaction();
+            insertAge(t1, "140moe", 50);
+            deleteRow(t1, "140moe");
+            transactor.commit(t1);
+
+            TransactionId t2 = transactor.beginTransaction();
+            String expected = "";
+            Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
+            Assert.assertEquals(expected, scanAll(t2, "140a", "140z", null, true));
+        } finally {
+            Tracer.rollForwardDelayOverride = null;
+        }
     }
 
     @Test
