@@ -52,7 +52,7 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
      * Detects when the filter has moved to a new row and updates the state appropriately.
      */
     public void updateCurrentRow(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> keyValue) {
-        if (currentRowKey == null || !dataLib.valuesEqual(currentRowKey, keyValue.row())) {
+        if (currentRowKey == null) {
             currentRowKey = keyValue.row();
             lastValidQualifier = null;
             tombstoneTimestamps = new ArrayList<Long>();
@@ -63,6 +63,10 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
             inData = false;
             shortCircuit = null;
         }
+    }
+
+    public void resetCurrentRow() {
+        currentRowKey = null;
     }
 
     /**

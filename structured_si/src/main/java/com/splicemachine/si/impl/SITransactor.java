@@ -630,6 +630,11 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     @Override
+    public void filterNextRow(FilterState filterState) {
+        filterState.nextRow();
+    }
+
+    @Override
     public Result filterResult(FilterState filterState, Result result) throws IOException {
         final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib = dataStore.dataLib;
         final List<KeyValue> filteredCells = new ArrayList<KeyValue>();
@@ -637,8 +642,13 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         if (keyValues != null) {
             Data qualifierToSkip = null;
             Data familyToSkip = null;
-
+            Data currentRowKey = null;
             for (KeyValue keyValue : keyValues) {
+                final Data rowKey = dataLib.getKeyValueRow(keyValue);
+                if (currentRowKey == null || !dataLib.valuesEqual(currentRowKey, rowKey)) {
+                    currentRowKey = rowKey;
+                    filterNextRow(filterState);
+                }
                 if (familyToSkip != null
                         && dataLib.valuesEqual(familyToSkip, dataLib.getKeyValueFamily(keyValue))
                         && dataLib.valuesEqual(qualifierToSkip, dataLib.getKeyValueQualifier(keyValue))) {

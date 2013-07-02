@@ -72,6 +72,13 @@ public class SIFilter extends FilterBase {
     }
 
     @Override
+    public void reset() {
+        if (filterState != null) {
+            transactor.filterNextRow(filterState);
+        }
+    }
+
+    @Override
     public void readFields(DataInput in) throws IOException {
         transactionIdString = in.readUTF();
     }

@@ -52,13 +52,18 @@ public interface Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, D
      * in light of this state.
      */
     FilterState newFilterState(TransactionId transactionId) throws IOException;
-    FilterState newFilterState(RollForwardQueue<Data, Hashable> rollForwardQueue, TransactionId transactionId, boolean includeSIColumn,
-                               boolean includeUncommittedAsOfStart) throws IOException;
+    FilterState newFilterState(RollForwardQueue<Data, Hashable> rollForwardQueue, TransactionId transactionId,
+                               boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException;
 
     /**
      * Consider whether to use a key value in light of a given filterState.
      */
     Filter.ReturnCode filterKeyValue(FilterState filterState, KeyValue keyValue) throws IOException;
+
+    /**
+     * Indicate that the filterState is now going to be used to process a new row.
+     */
+    void filterNextRow(FilterState filterState);
 
     /**
      * This is for use in code outside of a proper HBase filter that wants to apply the equivalent of SI filter logic.

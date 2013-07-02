@@ -75,6 +75,10 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         return filterByColumnType();
     }
 
+    void nextRow() {
+        rowState.resetCurrentRow();
+    }
+
     /**
      * Look at the column family and qualifier to determine how to "dispatch" the current keyValue.
      */
