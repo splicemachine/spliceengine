@@ -8,7 +8,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-
 import com.splicemachine.derby.utils.marshall.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -21,13 +20,13 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -45,6 +44,7 @@ public class TableScanOperation extends ScanOperation {
 	private Properties scanProperties;
 	public String startPositionString;
 	public String stopPositionString;
+	protected boolean activeRegionOperation;
 	
 	static {
 		nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN);
@@ -173,7 +173,12 @@ public class TableScanOperation extends ScanOperation {
 		beginTime = getCurrentTimeMillis();
 		try {
 	        keyValues.clear();
-	        regionScanner.next(keyValues);
+	        if (!this.activeRegionOperation) {
+	        	MultiVersionConsistencyControl.setThreadReadPoint(regionScanner.getMvccReadPoint());
+	        	region.startRegionOperation();
+	        	activeRegionOperation = true;
+	        }
+	        regionScanner.nextRaw(keyValues,null);
 			if (keyValues.isEmpty()) {
 				SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
 				currentRow = null;
@@ -197,6 +202,8 @@ public class TableScanOperation extends ScanOperation {
                 }
 			}
 		} catch (Exception e) {
+			if (this.activeRegionOperation)
+				region.closeRegionOperation();
 			SpliceLogUtils.logAndThrow(LOG, tableName+":Error during getNextRowCore",
 																				StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
 		}
@@ -213,6 +220,8 @@ public class TableScanOperation extends ScanOperation {
 	@Override
 	public void	close() throws StandardException
 	{
+		if (activeRegionOperation && region != null)
+			region.closeRegionOperation();
 		SpliceLogUtils.trace(LOG, "close in TableScan");
 		beginTime = getCurrentTimeMillis();
 		if ( isOpen )
