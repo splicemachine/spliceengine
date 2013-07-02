@@ -153,16 +153,17 @@ public class MultiFieldDecoder {
        return decodeNextString(false);
     }
 
-    public String decodeNextString(boolean desc){
-        assert currentOffset < data.length;
+    public String decodeNextString(boolean desc) {
+        assert currentOffset <= data.length;
 
-        if(currentOffset>=0 &&data[currentOffset]==0x00){
+        if (currentOffset >= 0 &&
+                (data.length == currentOffset || data[currentOffset] == 0x00)) {
             currentOffset++;
             return null;
         }
 
-         //determine the length of the string ahead of time
-        int offset = currentOffset>=0?currentOffset:0;
+        //determine the length of the string ahead of time
+        int offset = currentOffset >= 0 ? currentOffset : 0;
         adjustOffset(-1);
         //the string length is the number of bytes that we encode
         return Encoding.decodeString(data, offset, currentOffset - offset - 1, desc);

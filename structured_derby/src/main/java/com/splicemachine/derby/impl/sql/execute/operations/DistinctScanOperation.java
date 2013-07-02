@@ -263,7 +263,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                                   boolean[] sortOrder,
                                   byte[] keyPostfix,
                                   MultiFieldEncoder keyEncoder) throws StandardException {
-                keyEncoder.setRawBytes(BytesUtil.concatenate(currentByteArray, keyPostfix));
+                keyEncoder.setRawBytes(currentByteArray);
             }
 
             @Override
