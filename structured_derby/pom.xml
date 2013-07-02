@@ -217,6 +217,7 @@
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
 								<argument>-Xmx2g</argument>
 								<argument>-Xms1g</argument>
+                                <argument>-enableassertions</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
@@ -362,6 +363,7 @@
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
 								<argument>${project.build.directory}/hbase</argument>
+                                <argument>-enableassertions</argument>
 								<argument>60021</argument>
 								<argument>60022</argument>
 								<argument>60023</argument>
@@ -474,6 +476,7 @@
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Xmx2g</argument>
                                 <argument>-Xms1g</argument>
+                                <argument>-enableassertions</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
                                 <argument>com.splicemachine.test.SpliceTestPlatform</argument>
                                 <argument>${project.build.directory}/zookeeper</argument>
