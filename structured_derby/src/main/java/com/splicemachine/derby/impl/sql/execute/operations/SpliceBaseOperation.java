@@ -9,7 +9,6 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.job.JobStats;
@@ -21,18 +20,16 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.*;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.*;
-import org.apache.derby.iapi.sql.execute.xplain.XPLAINVisitor;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.Orderable;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import javax.annotation.Nullable;
 import java.io.*;
 import java.sql.SQLWarning;
@@ -55,7 +52,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	public long nextTime;
 	public long closeTime;
 	protected boolean statisticsTimingOn;
-	
+	protected HRegion region;
 	protected double optimizerEstimatedRowCount;
 	protected double optimizerEstimatedCost;
 	
@@ -487,6 +484,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
 		try {
 			this.regionScanner = context.getScanner();
+			this.region = context.getRegion();
 		} catch (IOException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to get Scanner",e);
 		}
