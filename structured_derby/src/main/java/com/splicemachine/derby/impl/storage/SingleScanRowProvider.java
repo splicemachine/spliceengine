@@ -84,7 +84,7 @@ public abstract class SingleScanRowProvider  implements RowProvider {
         if(!shuffled) return; //no need to clean temp, it's just a scan
         Scan scan = toScan();
         try {
-            SpliceDriver.driver().getTempCleaner().deleteRange(SpliceUtils.getUniqueKeyString(),scan.getStartRow(),scan.getStopRow());
+            SpliceDriver.driver().getTempCleaner().deleteRange(SpliceUtils.getUniqueKey(),scan.getStartRow(),scan.getStopRow());
         } catch (StandardException e) {
             throw new RuntimeException(e);
         }

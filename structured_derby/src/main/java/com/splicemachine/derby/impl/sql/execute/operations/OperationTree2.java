@@ -7,13 +7,11 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.log4j.Logger;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.concurrent.*;
-
 
 /**
  * Traverses the operation stack to form Serialization boundaries in "levels". Each
@@ -24,15 +22,14 @@ import java.util.concurrent.*;
  * @author Scott Fines
  *         Created on: 6/26/13
  */
-public class OperationTree {
-    private static Logger LOG = Logger.getLogger(OperationTree.class);
+public class OperationTree2 {
     private final ThreadPoolExecutor levelExecutor;
 
-    private OperationTree(ThreadPoolExecutor levelExecutor) {
+    private OperationTree2(ThreadPoolExecutor levelExecutor) {
         this.levelExecutor = levelExecutor;
     }
 
-    public static OperationTree create(int maxThreads){
+    public static OperationTree2 create(int maxThreads){
         ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("operation-shuffle-pool-%d")
                                         .setDaemon(true).build();
 
@@ -41,13 +38,12 @@ public class OperationTree {
                 new SynchronousQueue<Runnable>(),factory,
          new ThreadPoolExecutor.CallerRunsPolicy());
 
-        return new OperationTree(executor);
+        return new OperationTree2(executor);
     }
 
     public NoPutResultSet executeTree(SpliceOperation operation) throws StandardException{
         //first form the level Map
         NavigableMap<Integer,List<SpliceOperation>> levelMap = split(operation);
-        LOG.info(String.format("OperationTree levelMap: %s \n\tfor operation %s", levelMap, operation));
 
         //The levelMap is sorted so that lower level number means higher on the tree, so
         //since we need to execute from bottom up, we go in descending order
@@ -77,11 +73,13 @@ public class OperationTree {
                     }
                 }
             }else{
-                for(SpliceOperation op:levelOps){
-                    op.executeShuffle();
+                //execute on this thread so we don't use up a parallel thread for someone else
+                for(SpliceOperation opToShuffle:levelOps){
+                    opToShuffle.executeShuffle();
                 }
             }
         }
+
         //operation is the highest level, it has the final scan
         return operation.executeScan();
     }

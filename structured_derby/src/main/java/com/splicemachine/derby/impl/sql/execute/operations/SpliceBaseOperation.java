@@ -67,7 +67,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
      */
     private String childTransactionID;
 	protected boolean isTopResultSet = false;
-	protected String uniqueSequenceID;
+	protected byte[] uniqueSequenceID;
 	protected ExecRow currentRow;
 	protected RowLocation currentRowLocation;
 	protected List<SpliceOperation> leftOperationStack;
@@ -108,7 +108,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		this.resultSetNumber = resultSetNumber;
 		sequence = new DataValueDescriptor[1];
 		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
-		sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);		
+		sequence[0] = activation.getDataValueFactory().getBitDataValue(uniqueSequenceID);
 		if (activation.getLanguageConnectionContext().getStatementContext() == null) {
 			SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
 			return;
@@ -130,7 +130,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		resultSetNumber = in.readInt();
         transactionID = readNullableString(in);
         isTopResultSet = in.readBoolean();
-		uniqueSequenceID = in.readUTF();
+        uniqueSequenceID = new byte[in.readInt()];
+        in.read(uniqueSequenceID);
+
 		statisticsTimingOn = in.readBoolean();
 		constructorTime = in.readLong();
 		openTime = in.readLong();
@@ -153,7 +155,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		out.writeInt(resultSetNumber);
         writeNullableString(getTransactionID(), out);
 		out.writeBoolean(isTopResultSet);
-		out.writeUTF(uniqueSequenceID);
+        out.writeInt(uniqueSequenceID.length);
+        out.write(uniqueSequenceID);
 		out.writeBoolean(statisticsTimingOn);
 		out.writeLong(constructorTime);
 		out.writeLong(openTime);
@@ -351,7 +354,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 	@Override
 	public void openCore() throws StandardException {
-        this.uniqueSequenceID = SpliceUtils.getUniqueKeyString();
+        this.uniqueSequenceID = SpliceUtils.getUniqueKey();
         init(SpliceOperationContext.newContext(activation));
 	}
 	@Override
@@ -481,7 +484,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	public void init(SpliceOperationContext context) throws StandardException{
 		this.activation = context.getActivation();
 		sequence = new DataValueDescriptor[1];
-        sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
+        sequence[0] = activation.getDataValueFactory().getBitDataValue(uniqueSequenceID);
 		try {
 			this.regionScanner = context.getScanner();
 			this.region = context.getRegion();
@@ -491,7 +494,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	@Override
-	public String getUniqueSequenceID() {
+	public byte[] getUniqueSequenceID() {
 		return uniqueSequenceID;
 	}
 

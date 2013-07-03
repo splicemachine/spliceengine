@@ -40,7 +40,7 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
 
     @Override
     public String getJobId() {
-        return instructions.getTopOperation().getUniqueSequenceID();
+        return new String(instructions.getTopOperation().getUniqueSequenceID());
     }
 
     public Scan getScan(){

@@ -147,7 +147,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         }
 	    hasher = KeyType.FIXED_PREFIX;
         keyEncoder = MultiFieldEncoder.create(keyColumns.length+1);
-        DerbyBytesUtil.encodeInto(keyEncoder,sequence[0],false);
+        keyEncoder.setRawBytes(uniqueSequenceID);
         keyEncoder.mark();
 	    values = new ArrayList<KeyValue>(currentRow.nColumns());
     }
@@ -220,7 +220,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
         try{
-            reduceScan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
+            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
             return new ClientScanProvider("distinctScanMap",SpliceConstants.TEMP_TABLE_BYTES,reduceScan,decoder);
         } catch (IOException e) {
             throw Exceptions.parseException(e);

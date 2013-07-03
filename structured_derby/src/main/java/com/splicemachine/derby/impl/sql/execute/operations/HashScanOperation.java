@@ -170,7 +170,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	@Override
 	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
         try{
-            Scan scan = Scans.buildPrefixRangeScan(sequence[0],SpliceUtils.NA_TRANSACTION_ID);
+            Scan scan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
             return new ClientScanProvider("hashScanMap",SpliceOperationCoprocessor.TEMP_TABLE,scan,decoder);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -195,7 +195,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		SpliceLogUtils.trace(LOG, "executeProbeScan");
 		try {
 			sequence = new DataValueDescriptor[1];
-			sequence[0] = activation.getDataValueFactory().getVarcharDataValue(uniqueSequenceID);
+			sequence[0] = activation.getDataValueFactory().getBitDataValue(uniqueSequenceID);
 //			Qualifier[][] probe = (Qualifier[][]) activation.getClass().getField(nextQualifierField).get(activation);
 //			Scan scan = Scans.newScan(DerbyBytesUtil.generateSortedHashScan(probe,sequence[0]),
 //																DerbyBytesUtil.generateIncrementedSortedHashScan(probe,sequence[0]), getTransactionID());

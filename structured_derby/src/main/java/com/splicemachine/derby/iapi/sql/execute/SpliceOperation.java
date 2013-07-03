@@ -92,7 +92,7 @@ public interface SpliceOperation extends NoPutResultSet {
 	 * @param statement
 	 * @param llc
 	 */
-	public String getUniqueSequenceID();
+	public byte[] getUniqueSequenceID();
 	/**
 	 * Execute a sink operation.  Must be a sink node.  This operation will be called from the OperationTree. 
 	 * 

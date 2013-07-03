@@ -209,7 +209,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     @Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
         try {
-            reduceScan = Scans.buildPrefixRangeScan(sequence[0], SpliceUtils.NA_TRANSACTION_ID);
+            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
             if (failedTasks.size() > 0 && !distinct) {
                 //we don't need the filter when distinct is true, because we'll overwrite duplicates anyway
                 reduceScan.setFilter(new SuccessFilter(failedTasks, distinct));
@@ -237,7 +237,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         KeyType keyType = distinct? KeyType.FIXED_PREFIX: KeyType.FIXED_PREFIX_UNIQUE_POSTFIX;
         return RowEncoder.create(def.nColumns(), keyColumns,
                 descColumns,
-                DerbyBytesUtil.generateBytes(sequence[0]),
+                uniqueSequenceID,
                 keyType, RowMarshaller.packedCompressed());
     }
 

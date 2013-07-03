@@ -25,6 +25,7 @@ import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.derby.shared.common.reference.MessageId;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -57,7 +58,7 @@ public class BroadcastJoinOperation extends JoinOperation {
     protected BroadcastNextRowIterator broadcastIterator;
     protected Map<ByteBuffer, List<ExecRow>> rightSideMap;
     protected boolean isOuterJoin = false;
-    protected static final Cache<String, Map<ByteBuffer, List<ExecRow>>> broadcastJoinCache;
+    protected static final Cache<Integer, Map<ByteBuffer, List<ExecRow>>> broadcastJoinCache;
 
 
     static {
@@ -65,9 +66,9 @@ public class BroadcastJoinOperation extends JoinOperation {
         nodeTypes.add(NodeType.MAP);
         nodeTypes.add(NodeType.SCROLL);
         broadcastJoinCache = CacheBuilder.newBuilder().
-                maximumSize(50000).expireAfterWrite(10, TimeUnit.MINUTES).removalListener(new RemovalListener<String, Map<ByteBuffer, List<ExecRow>>>() {
+                maximumSize(50000).expireAfterWrite(10, TimeUnit.MINUTES).removalListener(new RemovalListener<Integer, Map<ByteBuffer, List<ExecRow>>>() {
             @Override
-            public void onRemoval(RemovalNotification<String, Map<ByteBuffer, List<ExecRow>>> notification) {
+            public void onRemoval(RemovalNotification<Integer, Map<ByteBuffer, List<ExecRow>>> notification) {
                 SpliceLogUtils.trace(LOG, "Removing unique sequence ID %s", notification.getKey());
             }
         }).build();
@@ -250,7 +251,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         try {
             // Cache population is what we want here concurrency-wise: only one Callable will be invoked to
             // populate the cache for a given key; any other concurrent .get(k, callable) calls will block
-            return broadcastJoinCache.get(uniqueSequenceID, new Callable<Map<ByteBuffer, List<ExecRow>>>() {
+            return broadcastJoinCache.get(Bytes.mapKey(uniqueSequenceID), new Callable<Map<ByteBuffer, List<ExecRow>>>() {
                 @Override
                 public Map<ByteBuffer, List<ExecRow>> call() throws Exception {
                     SpliceLogUtils.trace(LOG, "Load right-side cache for BroadcastJoin, uniqueSequenceID " + uniqueSequenceID);

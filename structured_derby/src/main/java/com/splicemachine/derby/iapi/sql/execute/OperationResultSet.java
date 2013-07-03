@@ -2,6 +2,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.google.common.base.Preconditions;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationTree2;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;

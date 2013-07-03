@@ -76,6 +76,27 @@ public class Scans extends SpliceUtils {
 		}
 	}
 
+    /**
+     * Builds a correct scan to scan the range of a table which has the prefix specified by {@code prefix}.
+     *
+     * In essence, this creates a start key which is the prefix, and an end key which is a lexicographic
+     * increment of the prefix, so that all data which is lexicographically between those values will
+     * be returned by the scan.
+     *
+     * @param prefix the prefix to search
+     * @param transactionId the transaction ID
+     * @return a transactionally-aware Scan which will scan all keys stored lexicographically between
+     * {@code prefix} and the lexicographic increment of {@code prefix}
+     * @throws IOException if {@code prefix} is unable to be correctly converted into a byte[]
+     */
+    public static Scan buildPrefixRangeScan(byte[] prefix,String transactionId) throws IOException {
+        byte[] start = new byte[prefix.length];
+        System.arraycopy(prefix,0,start,0,start.length);
+
+        byte[] finish = BytesUtil.copyAndIncrement(start);
+        return newScan(start,finish,transactionId);
+    }
+
 	/**
 	 * Convenience utility for calling {@link #newScan(byte[], byte[], String, int)} when
 	 * the Default cache size is acceptable and the transactionID is a string.
