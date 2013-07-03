@@ -8,6 +8,7 @@ import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.PutToRun;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.hbase.HRowLock;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
@@ -117,12 +118,20 @@ public class RegionWriteHandler implements WriteHandler {
             failed=true;
             MutationResult result = new MutationResult(MutationResult.Code.FAILED,ioe.getClass().getSimpleName()+":"+ioe.getMessage());
             for (Pair<Mutation,Integer> pair : mutations) {
-                ctx.result(pair.getFirst(),result);            	
+                ctx.result(pair.getFirst(),result);
             }
         }
     }
 
     private void doWrite(WriteContext ctx, Pair<Mutation, Integer>[] toProcess) throws IOException {
+        if (SIObserver.doesTableNeedSI(region)) {
+            doSIWrite(ctx, toProcess);
+        } else {
+            mutateAndPostProcess(ctx, toProcess, null, toProcess, null, false);
+        }
+    }
+
+    private void doSIWrite(WriteContext ctx, Pair<Mutation, Integer>[] toProcess) throws IOException {
         final Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor = HTransactorFactory.getTransactor();
         final Pair<Mutation, Integer>[] mutationsAndLocks = new Pair[toProcess.length];
         final Set<Long>[] conflictingChildren = new Set[toProcess.length];
@@ -135,11 +144,17 @@ public class RegionWriteHandler implements WriteHandler {
             conflictingChildren[i] = putToRun.conflictingChildren;
         }
 
-        final OperationStatus[] status = region.batchMutate(mutationsAndLocks);
+        mutateAndPostProcess(ctx, toProcess, transactor, mutationsAndLocks, conflictingChildren, true);
+    }
+
+    private void mutateAndPostProcess(WriteContext ctx, Pair<Mutation, Integer>[] originalToProcess,
+                                      Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor,
+                                      Pair<Mutation, Integer>[] newToProcess, Set<Long>[] conflictingChildren, boolean siNeeded) throws IOException {
+        final OperationStatus[] status = region.batchMutate(newToProcess);
 
         for (int i = 0; i < status.length; i++) {
             OperationStatus stat = status[i];
-            Mutation mutation = toProcess[i].getFirst();
+            Mutation mutation = originalToProcess[i].getFirst();
             switch (stat.getOperationStatusCode()) {
                 case NOT_RUN:
                     ctx.notRun(mutation);
@@ -149,8 +164,10 @@ public class RegionWriteHandler implements WriteHandler {
                     ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, stat.getExceptionMsg()));
                 default:
                     try {
-                        transactor.postProcessBatchPut(new HbRegion(region), (Put) toProcess[i].getFirst(),
-                                new HRowLock(mutationsAndLocks[i].getSecond()), conflictingChildren[i]);
+                        if (siNeeded) {
+                            transactor.postProcessBatchPut(new HbRegion(region), (Put) originalToProcess[i].getFirst(),
+                                    new HRowLock(newToProcess[i].getSecond()), conflictingChildren[i]);
+                        }
                         ctx.success(mutation);
                     } catch (Throwable t) {
                         ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, t.getMessage()));

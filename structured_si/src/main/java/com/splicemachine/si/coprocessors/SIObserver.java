@@ -56,10 +56,7 @@ public class SIObserver extends BaseRegionObserver {
         SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
         region = ((RegionCoprocessorEnvironment) e).getRegion();
         tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
-        tableEnvMatch = (EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.USER_TABLE)
-                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
-                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE))
-                && !tableName.equals(SpliceConstants.TEMP_TABLE);
+        tableEnvMatch = doesTableNeedSI(region);
         RollForwardAction<byte[]> action = new RollForwardAction<byte[]>() {
             @Override
             public void rollForward(long transactionId, List<byte[]> rowList) throws IOException {
@@ -69,6 +66,14 @@ public class SIObserver extends BaseRegionObserver {
         };
         rollForwardQueue = new RollForwardQueue<byte[], ByteBuffer>(new HHasher(), action, 10000, 10 * S, 5 * 60 * S, tableName);
         super.start(e);
+    }
+
+    public static boolean doesTableNeedSI(HRegion region) {
+        final String tableName= region.getTableDesc().getNameAsString();
+        return (EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.USER_TABLE)
+                || EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
+                || EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE))
+                && !tableName.equals(SpliceConstants.TEMP_TABLE);
     }
 
     @Override
