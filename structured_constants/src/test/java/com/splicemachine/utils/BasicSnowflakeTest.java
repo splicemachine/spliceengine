@@ -3,7 +3,6 @@ package com.splicemachine.utils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -37,13 +36,13 @@ public class BasicSnowflakeTest {
 
     @Test
     public void testNoDuplicatesManyThreadsSameSnowflake() throws Exception {
-        int numThreads=20;
+        int numThreads=10;
         final int numIterations = 160000;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         final ConcurrentMap<Long,Boolean> existing = new ConcurrentHashMap<Long, Boolean>();
         List<Future<Boolean>> futures = Lists.newArrayListWithCapacity(numThreads);
         final CyclicBarrier startBarrier = new CyclicBarrier(numThreads+1);
-        final Snowflake snowflake = new Snowflake((short)(1<<8));
+        final Snowflake snowflake = new Snowflake((short)((1<<11)+1));
         for(int i=0;i<numThreads;i++){
             futures.add(executor.submit(new Callable<Boolean>() {
                 @Override
@@ -74,9 +73,25 @@ public class BasicSnowflakeTest {
     }
 
     @Test
+    public void testRepeatedNoDuplicatesManyThreadsSameSnowflake() throws Exception {
+        for(int i=0;i<10;i++){
+            System.out.println(i);
+            testNoDuplicatesManyThreadsSameSnowflake();
+        }
+    }
+
+    @Test
+    public void testRepeatedNoDuplicatesManyThreads() throws Exception {
+        for(int i=0;i<10;i++){
+            System.out.println(i);
+            testNoDuplicatesManyThreads();
+        }
+    }
+
+    @Test
     public void testNoDuplicatesManyThreads() throws Exception {
         int numThreads=10;
-        final int numIterations = 1000;
+        final int numIterations = 200000;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         final ConcurrentMap<Long,Boolean> existing = new ConcurrentHashMap<Long, Boolean>();
         List<Future<Boolean>> futures = Lists.newArrayListWithCapacity(numThreads);
@@ -93,6 +108,7 @@ public class BasicSnowflakeTest {
                     for(int i=0;i<numIterations;i++){
                         long uuid = snowflake.nextUUID();
                         if(existing.putIfAbsent(uuid,true)!=null){
+                            System.out.println("     already present!i= "+i+", value="+Long.toBinaryString(uuid)+", time="+Long.toBinaryString(System.currentTimeMillis()));
                             return false;  //uh-oh, duplicates!
                         }
                     }
