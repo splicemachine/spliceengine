@@ -15,15 +15,16 @@
 
 	<dependencies>
 	<dependency>
-		<groupId>org.spark-project</groupId>
-		<artifactId>spark-core_2.9.2</artifactId>
-		<version>0.7.0</version>
-	</dependency>
-	<dependency>
 		<groupId>com.splicemachine</groupId>
-		<artifactId>structured_serialization</artifactId>
+		<artifactId>splice_machine</artifactId>
 		<version>1.0.1-SNAPSHOT</version>
 	</dependency>
+	<dependency>
+		<groupId>org.spark-project</groupId>
+		<artifactId>spark-core_2.9.3</artifactId>
+		<version>0.7.2</version>
+	</dependency>
+	
 	</dependencies>
 	<build>
 		<!-- Some plugins (javadoc for example) can be used in the normal build- 
@@ -58,68 +59,6 @@
 		</pluginManagement>
 
 		<plugins>
-
-			<plugin>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.5</version>
-				<configuration>
-					<forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
-					<argLine>-Xms2g -Xmx2g</argLine>
-					<redirectTestOutputToFile>true</redirectTestOutputToFile>
-				</configuration>
-				<dependencies>
-					<dependency>
-						<groupId>com.splicemachine</groupId>
-						<artifactId>structured_trx</artifactId>
-						<version>1.0.0-SNAPSHOT</version>
-					</dependency>
-				</dependencies>
-			</plugin>
-
-			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<!-- THIS might not be doable <executions> <execution> <phase>package</phase> 
-					<goals> <goal>single</goal> </goals> </execution> </executions> -->
-				<configuration>
-					<tarLongFileMode>gnu</tarLongFileMode>
-					<descriptors>
-						<descriptor>src/assembly/bin.xml</descriptor>
-					</descriptors>
-				</configuration>
-			</plugin>
 		</plugins>
 	</build>
-	<repositories>
-		<repository>
-			<id>central</id>
-			<url>http://repo1.maven.org/maven2</url>
-		</repository>
-		
-			<repository>
-			<id>inciteretail</id>
-			<url>http://www.inciteretail.com/nexus/content/repositories/releases/</url>
-						<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-		</repository>
-
-		<repository>
-			<id>gson-repo</id>
-			<url>http://google-gson.googlecode.com/svn/mavenrepo</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-		</repository>
-		<repository>
-			<id>clojars.org</id>
-			<url>http://clojars.org/repo</url>
-		</repository>
-
-	</repositories>
 </project>

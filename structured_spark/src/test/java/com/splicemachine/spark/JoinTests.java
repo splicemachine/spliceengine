@@ -1,17 +1,17 @@
 package com.splicemachine.spark;
 
+
 import java.util.ArrayList;
 import java.util.List;
-import junit.framework.Assert;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import com.splicemachine.derby.iapi.types.SQLVarchar;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
-
 import scala.Option;
 import scala.Tuple2;
 import spark.api.java.JavaPairRDD;
