@@ -433,7 +433,8 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         final Table transactionSTable = reader.open(transactionSchema.tableName);
         final Transaction transaction = loadTransactionDirect(transactionId);
         long current = transaction.counter;
-        while (current - transaction.counter < 100) {
+        // TODO: more efficient mechanism for obtaining timestamp
+        while (current - transaction.counter < 10000) {
             final long next = current + 1;
             final Put put = buildBasePut(transactionId);
             addFieldToPut(put, encodedSchema.counterQualifier, next);
