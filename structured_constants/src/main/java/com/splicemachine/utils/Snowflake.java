@@ -1,5 +1,7 @@
 package com.splicemachine.utils;
 
+import org.apache.hadoop.hbase.util.Bytes;
+
 /**
  * An algorithm for generating compact UUIDs efficiently.
  *
@@ -47,6 +49,10 @@ public class Snowflake {
 
     public Snowflake(short machineId) {
         this.machineId = (machineId &0x0fff); //take the first 12 bits, then shift it over appropriately
+    }
+
+    public byte[] nextUUIDBytes(){
+        return Bytes.toBytes(nextUUID());
     }
 
     public long nextUUID(){

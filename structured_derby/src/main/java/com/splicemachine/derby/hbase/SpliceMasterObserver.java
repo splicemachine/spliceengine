@@ -3,6 +3,7 @@ package com.splicemachine.derby.hbase;
 import java.io.IOException;
 import java.sql.Connection;
 
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -67,6 +68,10 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 				ZkUtils.refreshZookeeper();
 				SpliceUtilities.refreshHbase();
 				SpliceUtilities.createSpliceHBaseTables();
+
+                new SpliceAccessManager(); //make sure splice access manager gets loaded
+                //make sure that we have a Snowflake loaded
+                SpliceDriver.driver().loadUUIDGenerator();
 				EmbedConnectionMaker maker = new EmbedConnectionMaker();
 				connection = maker.createNew();
 				ZkUtils.spliceFinishedLoading();

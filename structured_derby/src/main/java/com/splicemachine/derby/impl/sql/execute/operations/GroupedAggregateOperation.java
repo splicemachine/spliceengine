@@ -149,7 +149,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         
         sinkEncoder = MultiFieldEncoder.create(groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
         sinkEncoder.setRawBytes(uniqueSequenceID).mark();
-        scanEncoder = MultiFieldEncoder.create(groupByColumns.size());
+//        scanEncoder = MultiFieldEncoder.create(groupByColumns.size());
     	allKeyColumns = new ArrayList<Integer>(groupByColumns);
     	allKeyColumns.addAll(nonGroupByUniqueColumns);
         if(regionScanner==null){
@@ -209,7 +209,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                                   boolean[] sortOrder,
                                   byte[] keyPostfix,
                                   MultiFieldEncoder keyEncoder) throws StandardException {
-                keyEncoder.setRawBytes(BytesUtil.concatenate(currentKey, keyPostfix));
+                byte[] key = BytesUtil.concatenate(currentKey,keyPostfix);
+                keyEncoder.setRawBytes(key);
             }
 
             @Override
@@ -322,12 +323,14 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     	ExecIndexRow nextRow = getNextRowFromScan();
 		if(nextRow ==null)
             return finalizeResults();
+        //TODO -sf- stash these away somewhere so we're not constantly autoboxing
+        int[] groupByCols = convertIntegers(groupByColumns);
 		do{
 	        resultRows[0] = nextRow;
 	        ExecIndexRow[] rolledUpRows = resultRows;
             for(ExecIndexRow rolledUpRow:rolledUpRows) {
                 sinkEncoder.reset();
-                ((KeyMarshall)hasher).encodeKey(rolledUpRow.getRowArray(), convertIntegers(groupByColumns), null, null, sinkEncoder);
+                ((KeyMarshall)hasher).encodeKey(rolledUpRow.getRowArray(), groupByCols, null, null, sinkEncoder);
                 ByteBuffer keyBuffer = ByteBuffer.wrap(sinkEncoder.build());
 				if(!currentAggregations.merge(keyBuffer, rolledUpRow, merger)){
 					ExecIndexRow row = (ExecIndexRow)rolledUpRow.getClone();
@@ -346,7 +349,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		 ExecRow next = finalizeResults();
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG,"next aggregated row = %s",next);
-		return next;
+        return next;
 	}
 
 	private void refreshDistinctValues(ExecIndexRow row) throws StandardException {

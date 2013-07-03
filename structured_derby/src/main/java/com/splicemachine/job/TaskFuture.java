@@ -19,7 +19,8 @@ public interface TaskFuture {
 
 //    void cancel() throws ExecutionException;
 
-    String getTaskId();
+    byte[] getTaskId();
 
     TaskStats getTaskStats();
+
 }

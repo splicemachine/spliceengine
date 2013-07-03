@@ -223,7 +223,7 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
         }
 
         @Override
-        public String getTaskId() {
+        public byte[] getTaskId() {
             return task.getTaskId();
         }
 

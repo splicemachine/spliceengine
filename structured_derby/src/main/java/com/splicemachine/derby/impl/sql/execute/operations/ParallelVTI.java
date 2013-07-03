@@ -19,6 +19,7 @@ import org.apache.derby.iapi.sql.execute.TargetResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.vti.VTITemplate;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -389,8 +390,8 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 	}
 
 	@Override
-	public byte[] getUniqueSequenceID() {
-		return this.uniqueSequenceId;
+	public String getUniqueSequenceID() {
+		return Long.toString(Bytes.toLong(this.uniqueSequenceId));
 	}
 
 	@Override

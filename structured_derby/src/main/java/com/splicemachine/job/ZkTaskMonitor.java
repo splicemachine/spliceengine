@@ -7,6 +7,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.collections.PredicateUtils;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -55,7 +56,7 @@ public class ZkTaskMonitor implements TaskMonitor{
     private static final Function<Task,String> taskIdMapper = new Function<Task, String>() {
         @Override
         public String apply(@Nullable Task input) {
-            return input.getTaskId();
+            return Bytes.toStringBinary(input.getTaskId());
         }
     };
     @Override

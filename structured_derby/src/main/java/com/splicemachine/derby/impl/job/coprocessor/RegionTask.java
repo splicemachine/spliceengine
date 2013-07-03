@@ -19,4 +19,6 @@ public interface RegionTask extends Task {
      * @return true if task should be invalidated when a region closes.
      */
     boolean invalidateOnClose();
+
+    String getTaskNode();
 }

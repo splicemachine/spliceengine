@@ -99,9 +99,6 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
             throw new ExecutionException(e);
         }
 
-        TransactionId parentTxn = job.getParentTransaction();
-        boolean readOnly = job.isReadOnly();
-
         Watcher watcher = new Watcher(job);
         for(final RegionTask task:tasks.keySet()){
             submit(watcher,task, tasks.get(task), table,0);
@@ -343,7 +340,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         }
 
         private void resubmit() throws ExecutionException{
-            SpliceLogUtils.debug(LOG,"resubmitting task %s",task.getTaskId());
+            SpliceLogUtils.debug(LOG,"resubmitting task %s",task.getTaskNode());
             //only submit so many time
             if(tryNum>=maxResubmissionAttempts){
                 ExecutionException ee = new ExecutionException(
@@ -392,8 +389,8 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         }
 
         @Override
-        public String getTaskId() {
-            return taskFutureContext.getTaskNode();
+        public byte[] getTaskId() {
+            return taskFutureContext.getTaskId();
         }
 
         @Override
@@ -403,6 +400,10 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
 
         public String getTransactionId() {
             return taskStatus.getTransactionId();
+        }
+
+        public String getTaskNode() {
+            return taskFutureContext.getTaskNode();
         }
     }
 
@@ -510,9 +511,9 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                                 throw ke;
                         }
 
-                        for(TaskFuture task:tasksToWatch){
+                        for(RegionTaskWatcher task:tasksToWatch){
                             try{
-                                zooKeeper.delete(task.getTaskId(),-1);
+                                zooKeeper.delete(task.getTaskNode(),-1);
                             }catch(KeeperException ke){
                                 if(ke.code()!= KeeperException.Code.NONODE)
                                     throw ke;
@@ -572,15 +573,15 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                     Status status = changedFuture.getStatus();
                     switch (status) {
                         case INVALID:
-                            SpliceLogUtils.trace(LOG,"Task %s is invalid, resubmitting",changedFuture.getTaskId());
+                            SpliceLogUtils.trace(LOG,"Task %s is invalid, resubmitting",changedFuture.getTaskNode());
                             invalidCount.incrementAndGet();
                             changedFuture.resubmit();
                             found=false;
                             break;
                         case FAILED:
                             try{
-                                SpliceLogUtils.trace(LOG,"Task %s failed",changedFuture.getTaskId());
-                                stats.failedTasks.add(changedFuture.getTaskId());
+                                SpliceLogUtils.trace(LOG,"Task %s failed",changedFuture.getTaskNode());
+                                stats.failedTasks.add(changedFuture.getTaskNode());
                                 changedFuture.dealWithError();
                             }catch(ExecutionException ee){
                                 failedTasks.add(changedFuture);
@@ -599,18 +600,18 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                                 failedTasks.add(changedFuture);
                                 throw new ExecutionException(e);
                             }
-                            SpliceLogUtils.trace(LOG,"Task %s completed successfully",changedFuture.getTaskId());
+                            SpliceLogUtils.trace(LOG,"Task %s completed successfully",changedFuture.getTaskNode());
                             TaskStats stats = changedFuture.getTaskStats();
                             if(stats!=null)
-                                this.stats.taskStatsMap.put(changedFuture.getTaskId(),stats);
+                                this.stats.taskStatsMap.put(changedFuture.getTaskNode(),stats);
                             completedTasks.add(changedFuture);
                             return;
                         case CANCELLED:
-                            SpliceLogUtils.trace(LOG,"Task %s is cancelled",changedFuture.getTaskId());
+                            SpliceLogUtils.trace(LOG,"Task %s is cancelled",changedFuture.getTaskNode());
                             cancelledTasks.add(changedFuture);
                             throw new CancellationException();
                         default:
-                            SpliceLogUtils.trace(LOG,"Task %s is in state %s",changedFuture.getTaskId(),status);
+                            SpliceLogUtils.trace(LOG,"Task %s is in state %s",changedFuture.getTaskNode(),status);
                             found=false;
                     }
                 }

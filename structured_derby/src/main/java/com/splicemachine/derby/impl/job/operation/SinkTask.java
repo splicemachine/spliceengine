@@ -87,7 +87,7 @@ public class SinkTask extends ZkTask {
             SpliceOperation op = instructions.getTopOperation();
             op.init(opContext);
 
-            OperationSink opSink = OperationSink.create((SinkingOperation) op, Encoding.encode(getTaskId()));
+            OperationSink opSink = OperationSink.create((SinkingOperation) op, getTaskId());
 
             TaskStats stats;
             if(op instanceof DMLWriteOperation)

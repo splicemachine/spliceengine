@@ -20,6 +20,7 @@ import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
+import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 import net.sf.ehcache.Cache;
@@ -49,6 +50,8 @@ public class SpliceDriver extends SIConstants {
     private static final Logger LOG = Logger.getLogger(SpliceDriver.class);
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     protected SpliceCache cache;
+
+
     public static enum State{
         NOT_STARTED,
         INITIALIZING,
@@ -80,6 +83,8 @@ public class SpliceDriver extends SIConstants {
     private JobScheduler jobScheduler;
     private TaskMonitor taskMonitor;
     private TempCleaner tempCleaner;
+    private SnowflakeLoader snowLoader;
+    private volatile Snowflake snowflake;
 
     private ResourcePool<Sequence,Sequence.Key> sequences = CachedResourcePool.
             Builder.<Sequence,Sequence.Key>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<Sequence,Sequence.Key>() {
@@ -101,8 +106,8 @@ public class SpliceDriver extends SIConstants {
         executor = Executors.newSingleThreadExecutor(factory);
 
 
-        //TODO -sf- create a separate pool for writing to TEMP
         try {
+            snowLoader = new SnowflakeLoader();
             writerPool = TableWriter.create(SpliceUtils.config);
             threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
             jobScheduler = new AsyncJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
@@ -185,6 +190,8 @@ public class SpliceDriver extends SIConstants {
                     boolean setRunning = true;
                     SpliceLogUtils.debug(LOG, "Booting Database");
                     setRunning = bootDatabase();
+                    //table is set up
+                    snowflake = snowLoader.load();
                     SpliceLogUtils.debug(LOG, "Finished Booting Database");
 
                     //register JMX items --have to wait for the db to boot first
@@ -387,5 +394,12 @@ public class SpliceDriver extends SIConstants {
     public Cache getPropertiesCache() {
     	return cache.getCacheManager().getCache(SpliceConstants.PROPERTIES_CACHE);
     }
-    
+
+    public Snowflake getUUIDGenerator(){
+        return snowflake;
+    }
+
+    public void loadUUIDGenerator() throws IOException {
+        snowflake =  snowLoader.load();
+    }
 }

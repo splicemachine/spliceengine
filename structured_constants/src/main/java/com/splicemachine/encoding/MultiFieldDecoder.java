@@ -310,4 +310,8 @@ public class MultiFieldDecoder {
     public boolean nextIsNull(){
         return currentOffset >= data.length || (currentOffset >= 0 && data[currentOffset] == 0x00);
     }
+
+    public void seek(int newPos) {
+        this.currentOffset=newPos;
+    }
 }

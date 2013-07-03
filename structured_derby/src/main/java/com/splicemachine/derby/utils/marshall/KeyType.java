@@ -39,7 +39,7 @@ public enum KeyType implements KeyMarshall{
                            boolean[] sortOrder,
                            MultiFieldDecoder rowDecoder) throws StandardException {
             //throw away the first bytes--treat them as a string
-            rowDecoder.decodeNextString();
+            rowDecoder.seek(9);
             BARE.decode(fields,reversedKeyColumns,sortOrder,rowDecoder);
         }
 

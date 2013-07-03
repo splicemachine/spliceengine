@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.ByteDataOutput;
@@ -13,6 +14,7 @@ import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -34,16 +36,17 @@ import java.util.concurrent.ExecutionException;
  *         Created on: 5/9/13
  */
 public abstract class ZkTask extends SpliceConstants implements RegionTask,Externalizable {
-    private static final long serialVersionUID = 3l;
+    private static final long serialVersionUID = 5l;
     protected final Logger LOG;
     protected TaskStatus status;
     //job scheduler creates the task id
-    protected String taskId;
+    protected byte[] taskId;
     protected String jobId;
     protected SpliceZooKeeperManager zkManager;
     private int priority;
     private String parentTxnId;
     private boolean readOnly;
+    private String taskPath;
 
     protected ZkTask() {
         this.LOG = Logger.getLogger(this.getClass());
@@ -74,8 +77,11 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
         if(in.readBoolean())
             parentTxnId = in.readUTF();
         readOnly = in.readBoolean();
-        if(in.readBoolean())
-            taskId = in.readUTF();
+        int taskIdSize = in.readInt();
+        if(taskIdSize>0){
+            taskId = new byte[taskIdSize];
+            in.readFully(taskId);
+        }
     }
 
     @Override
@@ -86,9 +92,11 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
         if(parentTxnId!=null)
             out.writeUTF(parentTxnId);
         out.writeBoolean(readOnly);
-        out.writeBoolean(taskId!=null);
-        if(taskId!=null)
-            out.writeUTF(taskId);
+        if(taskId!=null){
+            out.writeInt(taskId.length);
+            out.write(taskId);
+        }else
+            out.writeInt(0);
     }
 
     @Override
@@ -99,7 +107,8 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     @Override
     public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper)
                                                                 throws ExecutionException {
-        taskId = jobId+"_"+ getTaskType()+"-"+SpliceUtils.getUniqueKeyString();
+        taskId = SpliceUtils.getUniqueKey();
+        taskPath = jobId+"_"+ getTaskType()+"-"+ BytesUtil.toHex(taskId);
         this.zkManager = zooKeeper;
         try {
             //create a child transaction
@@ -116,10 +125,11 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
 
             //create a status node
             final byte[] statusData = statusToBytes();
-            taskId = zooKeeper.execute(new SpliceZooKeeperManager.Command<String>() {
+
+            taskPath= zooKeeper.execute(new SpliceZooKeeperManager.Command<String>() {
                 @Override
                 public String execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
-                    return zooKeeper.create(SpliceConstants.zkSpliceTaskPath+"/"+taskId,
+                    return zooKeeper.create(SpliceConstants.zkSpliceTaskPath+"/"+taskPath,
                             statusData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
                 }
             });
@@ -134,6 +144,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
         //attach a listener to the job node
         checkNotCancelled();
     }
+
 
     protected abstract String getTaskType();
 
@@ -192,7 +203,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
             zkManager.executeUnlessExpired(new SpliceZooKeeperManager.Command<Void>() {
                 @Override
                 public Void execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
-                    zooKeeper.setData(taskId,status,-1);
+                    zooKeeper.setData(taskPath,status,-1);
                     return null;
                 }
             });
@@ -255,7 +266,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     }
 
     @Override
-    public String getTaskId() {
+    public byte[] getTaskId() {
         return taskId;
     }
 
@@ -278,5 +289,10 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     public void cleanup() throws ExecutionException {
         throw new UnsupportedOperationException(
                 "Tasks can not be cleaned up on the Task side--use JobScheduler.cleanupJob() instead");
+    }
+
+    @Override
+    public String getTaskNode() {
+        return taskPath;
     }
 }

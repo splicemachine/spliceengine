@@ -494,8 +494,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	@Override
-	public byte[] getUniqueSequenceID() {
-		return uniqueSequenceID;
+	public String getUniqueSequenceID() {
+		return Long.toString(Bytes.toLong(uniqueSequenceID));
 	}
 
     @Override

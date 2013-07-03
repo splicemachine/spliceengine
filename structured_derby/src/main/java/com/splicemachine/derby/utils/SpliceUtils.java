@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -11,6 +12,7 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
@@ -30,6 +32,7 @@ import org.apache.zookeeper.ZooDefs;
 import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
 
 import java.io.*;
+import java.util.UUID;
 
 /**
  * Utility methods
@@ -40,7 +43,6 @@ import java.io.*;
 
 public class SpliceUtils extends SpliceUtilities {
 	private static Logger LOG = Logger.getLogger(SpliceUtils.class);
-	public static UUIDHexGenerator gen = new UUIDHexGenerator("Splice", null);
 
     /**
      * Populates an array of DataValueDescriptors with a default value based on their type.
@@ -298,11 +300,11 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
 	public static byte[] getUniqueKey(){
-		return gen.next().toString().getBytes();
+        return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
 	}
 
     public static String getUniqueKeyString() {
-        return gen.next().toString();
+        return Long.toString(SpliceDriver.driver().getUUIDGenerator().nextUUID());
     }
 
 	public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation) {

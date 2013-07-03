@@ -21,7 +21,7 @@ public interface Task {
 
     boolean isCancelled() throws ExecutionException;
 
-    String getTaskId();
+    byte[] getTaskId();
 
     TaskStatus getTaskStatus();
 

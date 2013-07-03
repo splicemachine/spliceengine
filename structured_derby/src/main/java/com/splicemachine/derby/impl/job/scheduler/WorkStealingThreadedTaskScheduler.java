@@ -403,7 +403,7 @@ public class WorkStealingThreadedTaskScheduler<T extends Task> implements TaskSc
         }
 
         @Override
-        public String getTaskId() {
+        public byte[] getTaskId() {
             return task.getTaskId();
         }
 

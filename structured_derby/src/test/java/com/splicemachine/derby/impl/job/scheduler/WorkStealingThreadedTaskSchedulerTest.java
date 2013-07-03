@@ -74,7 +74,7 @@ public class WorkStealingThreadedTaskSchedulerTest {
             Throwable root = ee.getCause();
             Assert.assertTrue("Incorrect exception type returned",root instanceof IOException);
             IOException ioe = (IOException)root;
-            Assert.assertEquals("Incorrect error message returned!",task.getTaskId(),ioe.getMessage());
+            Assert.assertEquals("Incorrect error message returned!",new String(task.getTaskId()),ioe.getMessage());
         }
 
         //ensure that the state transitions were correct
@@ -171,8 +171,8 @@ public class WorkStealingThreadedTaskSchedulerTest {
         }
 
         @Override
-        public String getTaskId() {
-            return taskString;
+        public byte[] getTaskId() {
+            return taskString.getBytes();
         }
 
         @Override
@@ -209,7 +209,7 @@ public class WorkStealingThreadedTaskSchedulerTest {
 
         @Override
         public void execute() throws ExecutionException, InterruptedException {
-            throw new ExecutionException(new IOException(getTaskId()));
+            throw new ExecutionException(new IOException(new String(getTaskId())));
         }
     }
 
