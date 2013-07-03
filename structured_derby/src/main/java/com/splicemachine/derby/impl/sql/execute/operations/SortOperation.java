@@ -2,6 +2,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
@@ -17,6 +18,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -31,10 +33,12 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+import org.datanucleus.sco.backed.Map;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -54,6 +58,23 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     private Scan reduceScan;
     private ExecRow execRowDefinition = null;
     private Properties sortProperties = new Properties();
+    private byte[] keyBytes;
+    private KeyMarshall hasher;
+    protected MultiFieldEncoder keyEncoder;
+    private HashBuffer<ByteBuffer,ExecRow> currentRows = new HashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize);
+    private boolean doneReadingSource = false;
+    private final HashBuffer.Merger<ByteBuffer,ExecRow> merger = new HashBuffer.Merger<ByteBuffer,ExecRow>() {
+        @Override
+        public ExecRow shouldMerge(ByteBuffer key){
+            return currentRows.get(key);
+        }
+
+        @Override
+        public void merge(ExecRow curr,ExecRow next){
+            //throw away the second row, since we only want to keep the first
+            //this is effectively a no-op
+        }
+    };
 
     static {
         nodeTypes = Arrays.asList(NodeType.REDUCE, NodeType.SCAN);
@@ -146,15 +167,63 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             keyColumns[i] = order[i].getColumnId();
             descColumns[i] = order[i].getIsAscending();
         }
+
+        this.hasher = KeyType.FIXED_PREFIX;
+        this.keyEncoder = MultiFieldEncoder.create(keyColumns.length+1);
+        DerbyBytesUtil.encodeInto(keyEncoder,sequence[0],false);
+        keyEncoder.mark();
+
         SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
     }
 
     public ExecRow getNextSinkRow() throws StandardException {
-        ExecRow sinkRow = source.getNextRowCore();
-        if (sinkRow != null){
-            setCurrentRow(sinkRow);
+
+        ExecRow nextSinkRow = null;
+        ExecRow sinkRowCandidate = null;
+
+        if(!doneReadingSource){
+            sinkRowCandidate = source.getNextRowCore();
         }
-        return sinkRow;
+
+        if(!distinct){
+            nextSinkRow = sinkRowCandidate;
+        } else {
+
+            while(sinkRowCandidate != null && nextSinkRow == null){
+
+                keyEncoder.reset();
+                hasher.encodeKey(sinkRowCandidate.getRowArray(),keyColumns,null,null,keyEncoder);
+                keyBytes = keyEncoder.build();
+                ByteBuffer buffer = ByteBuffer.wrap(keyBytes);
+                if (!currentRows.merge(buffer, sinkRowCandidate, merger)) {
+                    Map.Entry<ByteBuffer,ExecRow> finalized = currentRows.add(buffer,sinkRowCandidate.getClone());
+
+                    if(finalized!=null&&finalized!=sinkRowCandidate){
+                        nextSinkRow = makeCurrent(finalized.getKey().array(),finalized.getValue());
+                    }
+                }else{
+                    sinkRowCandidate = source.getNextRowCore();
+                }
+            }
+        }
+
+        if(nextSinkRow == null && sinkRowCandidate == null && !currentRows.isEmpty()) {
+            doneReadingSource = true;
+            ByteBuffer key = currentRows.keySet().iterator().next();
+            nextSinkRow = makeCurrent(key.array(), currentRows.remove(key));
+        }
+
+        if (nextSinkRow != null){
+            setCurrentRow(nextSinkRow);
+        }
+
+        return nextSinkRow;
+    }
+
+    private <T extends ExecRow> ExecRow makeCurrent(byte[] key, T row) throws StandardException{
+        setCurrentRow(row);
+        keyBytes = key;
+        return row;
     }
 
     @Override
