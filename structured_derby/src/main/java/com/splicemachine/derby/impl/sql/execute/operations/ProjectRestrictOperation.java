@@ -225,7 +225,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow template = getExecRowDefinition();
-        return RowEncoder.create(template.nColumns(),null,null,null, KeyType.BARE, RowMarshaller.columnar());
+        return RowEncoder.create(template.nColumns(),null,null,null, KeyType.BARE, RowMarshaller.packedCompressed());
     }
 
     @Override

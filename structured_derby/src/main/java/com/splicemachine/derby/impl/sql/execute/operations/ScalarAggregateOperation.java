@@ -240,7 +240,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         return RowEncoder.create(sourceExecIndexRow.nColumns(),null,null,
                 DerbyBytesUtil.generateBytes(sequence[0]),
                 KeyType.PREFIX_UNIQUE_POSTFIX_ONLY,
-                RowMarshaller.columnar());
+                RowMarshaller.packedCompressed());
     }
 
     @Override

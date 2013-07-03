@@ -158,7 +158,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             RowEncoder scanEncoder = RowEncoder.create(sourceExecIndexRow.nColumns(),convertIntegers(allKeyColumns),convertBooleans(groupByDescAscInfo),
                     sinkEncoder.getEncodedBytes(0),
                     KeyType.FIXED_PREFIX,
-                    RowMarshaller.columnar());
+                    RowMarshaller.packedCompressed());
             rowProvider = new SimpleRegionAwareRowProvider(
                     "groupedAggregateRowProvider",
                     SpliceUtils.NA_TRANSACTION_ID,
@@ -224,7 +224,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             public int getFieldCount(int[] keyColumns) {
                 return 1;
             }
-        }, RowMarshaller.columnar());
+        }, RowMarshaller.packedCompressed());
     }
 
     @Override

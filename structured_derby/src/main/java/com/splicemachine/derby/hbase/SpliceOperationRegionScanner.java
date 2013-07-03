@@ -13,6 +13,7 @@ import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -51,6 +52,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
     private final List<Pair<byte[],byte[]>> additionalColumns = Lists.newArrayListWithExpectedSize(0);
     private boolean finished = false;
+    private MultiFieldEncoder rowEncoder;
 
     public SpliceOperationRegionScanner(SpliceOperation topOperation,
                                         SpliceOperationContext context) throws StandardException {
@@ -109,7 +111,11 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 DataValueDescriptor[] rowArray = nextRow.getRowArray();
                 RowLocation location = topOperation.getCurrentRowLocation();
                 byte[] row = location!=null? location.getBytes():SpliceUtils.getUniqueKey();
-                RowMarshaller.denseColumnar().encodeKeyValues(rowArray,row,null,null,results);
+
+                if(rowEncoder==null)
+                    rowEncoder = MultiFieldEncoder.create(rowArray.length);
+                rowEncoder.reset();
+                RowMarshaller.packedCompressed().encodeKeyValues(rowArray,row,null,rowEncoder,results);
 
                 //add any additional columns which were specified during the run
                 Iterator<Pair<byte[],byte[]>> addColIter = additionalColumns.iterator();

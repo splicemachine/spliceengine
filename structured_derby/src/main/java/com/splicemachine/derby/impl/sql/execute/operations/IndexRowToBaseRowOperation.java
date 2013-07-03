@@ -250,7 +250,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
         ExecRow template = getExecRowDefinition();
         return RowEncoder.create(template.nColumns(),
                 null, null, null,
-                KeyType.BARE, RowMarshaller.columnar());
+                KeyType.BARE, RowMarshaller.packedCompressed());
     }
 
     @Override

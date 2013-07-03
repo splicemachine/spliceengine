@@ -275,7 +275,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
             public int getFieldCount(int[] keyColumns) {
                 return 1;
             }
-        }, RowMarshaller.columnar());
+        }, RowMarshaller.packedCompressed());
     }
 
     @Override

@@ -235,7 +235,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		SpliceLogUtils.trace(LOG,"regionOperation=%s",opStack);
 
         ExecRow rowDef = getExecRowDefinition();
-        RowEncoder encoder = RowEncoder.create(rowDef.nColumns(),null,null,null,KeyType.BARE,RowMarshaller.columnar());
+        RowEncoder encoder = RowEncoder.create(rowDef.nColumns(),null,null,null,KeyType.BARE,RowMarshaller.packedCompressed());
 		RowProvider provider = getReduceRowProvider(this,encoder.getDual(getExecRowDefinition()));
 		return new SpliceNoPutResultSet(activation,this,provider);
 	}
@@ -295,7 +295,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 return ((KeyMarshall)KeyType.FIXED_PREFIX_UNIQUE_POSTFIX).getFieldCount(keyColumns)+1;
             }
         };
-        RowMarshall rowType = RowMarshaller.columnar();
+        RowMarshall rowType = RowMarshaller.packedCompressed();
         /*
          * Because there may be duplicate entries in keyColumns, we need to make sure
          * that rowColumns deals only with the unique form.

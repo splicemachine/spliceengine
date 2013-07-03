@@ -232,7 +232,7 @@ public class RowCountOperation extends SpliceBaseOperation{
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow row = getExecRowDefinition();
-        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE,RowMarshaller.columnar());
+        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE,RowMarshaller.packedCompressed());
     }
 
     @Override
@@ -364,7 +364,7 @@ public class RowCountOperation extends SpliceBaseOperation{
                                             int[] baseColumnMap,
                                             byte[] tableName){
             RowDecoder rowDecoder = RowDecoder.create(rowTemplate,
-                    null,null,null, RowMarshaller.mappedColumnar(),baseColumnMap,false);
+                    null,null,null, RowMarshaller.packedCompressed(),baseColumnMap,false);
 
             return new OffsetScanRowProvider("offsetScan",rowDecoder,fullScan,totalOffset,tableName);
         }

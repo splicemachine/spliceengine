@@ -157,7 +157,7 @@ public class TableScanOperation extends ScanOperation {
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow row = getExecRowDefinition();
-        return RowEncoder.create(row.nColumns(), null, null, null, KeyType.BARE, RowMarshaller.columnar());
+        return RowEncoder.create(row.nColumns(), null, null, null, KeyType.BARE, RowMarshaller.packedCompressed());
     }
 
     @Override

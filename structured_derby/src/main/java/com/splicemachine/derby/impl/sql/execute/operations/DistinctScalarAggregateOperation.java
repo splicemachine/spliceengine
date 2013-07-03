@@ -257,7 +257,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
                 keyColumns,null,
                 DerbyBytesUtil.generateBytes(sequence[0]),
                 KeyType.FIXED_PREFIX_UNIQUE_POSTFIX,
-                RowMarshaller.columnar());
+                RowMarshaller.packedCompressed());
     }
 
     @Override
