@@ -73,6 +73,9 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
 
     private TaskFutureContext doSubmit(final RegionTask task, RegionCoprocessorEnvironment rce) throws IOException {
         try {
+            //prepare the task for this specific region
+            task.prepareTask(rce,ZkUtils.getZkManager());
+
             runningTasks.add(task);
             /*
              * Here we attach a listener so that when the task completes, fails, or otherwise
@@ -92,8 +95,6 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
                 }
             });
 
-            //prepare the task for this specific region
-            task.prepareTask(rce,ZkUtils.getZkManager());
             TaskFuture future = taskScheduler.submit(task);
             return new TaskFutureContext(future.getTaskId(),future.getEstimatedCost());
         } catch (ExecutionException e) {

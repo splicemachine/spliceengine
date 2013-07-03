@@ -12,7 +12,11 @@ public enum ColumnType {
         @Override public boolean requiresWidth() { return true; }
     },
     FLOAT("float",Types.FLOAT),
-    TIMESTAMP("timestamp",Types.TIMESTAMP);
+    CHAR("char",Types.CHAR){
+        @Override public boolean requiresWidth() { return true; }
+    },
+    TIMESTAMP("timestamp",Types.TIMESTAMP),
+    DATE("date",Types.DATE);
 
     private final int jdbcTypeCode;
     private final String typeName;

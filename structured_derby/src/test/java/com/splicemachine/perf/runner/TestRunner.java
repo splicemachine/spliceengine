@@ -85,6 +85,9 @@ public class TestRunner {
             }else if("--query".equalsIgnoreCase(args[pos])){
                 pos++;
                 queryPhase=true;
+            }else{
+                System.err.println("Unknown argument "+ args[pos]);
+                System.exit(65);
             }
         }
 

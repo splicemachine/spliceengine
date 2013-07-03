@@ -285,6 +285,7 @@ public class TimingStats implements Stats{
         private AtomicDouble timeVariation = new AtomicDouble(0d);
         private AtomicLong maxTime = new AtomicLong(0l);
         private AtomicLong minTime = new AtomicLong(Long.MAX_VALUE);
+        private AtomicLong tickCount = new AtomicLong(0l);
         private Sample processSample;
 
         private long start;
@@ -307,23 +308,24 @@ public class TimingStats implements Stats{
         @Override
         public void tick(long numRecords, long timeTaken) {
             totalTime.addAndGet(timeTaken);
+            totalRecords.addAndGet(numRecords);
             updateMax(timeTaken);
             updateMin(timeTaken);
-            updateAvg(numRecords,timeTaken);
+            updateAvg(timeTaken);
             processSample.update(timeTaken);
         }
 
-        private void updateAvg(long numRecords,long timeTaken) {
+        private void updateAvg(long timeTaken) {
             synchronized (ThreadSafeAccumulator.this){
                 double oldAvg = avgTime.get();
                 double oldVar = timeVariation.get();
-                long newNumRecords = totalRecords.addAndGet(numRecords);
+                long newTickCount = tickCount.incrementAndGet();
 
-                double newAvg = oldAvg+(timeTaken-oldAvg)/newNumRecords;
+                double newAvg = oldAvg+(timeTaken-oldAvg)/newTickCount;
                 double newVar = oldVar+(timeTaken-oldAvg)*(timeTaken-newAvg);
-                totalRecords.set(newNumRecords);
                 avgTime.set(newAvg);
                 timeVariation.set(newVar);
+                tickCount.set(newTickCount);
             }
         }
 
