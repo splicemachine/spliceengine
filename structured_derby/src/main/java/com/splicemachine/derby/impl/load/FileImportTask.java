@@ -28,7 +28,6 @@ public class FileImportTask extends AbstractImportTask{
 
     @Override
     protected long importData(ExecRow row,
-                              RowEncoder rowEncoder,
                               CallBuffer<Mutation> writeBuffer) throws Exception {
         InputStream is = null;
         Reader reader = null;
@@ -44,7 +43,7 @@ public class FileImportTask extends AbstractImportTask{
             while((line = csvReader.readNext())!=null){
                 if(line.length==0||(line.length==1 &&line[0]==null || line[0].length()==0)) continue; //skip empty rows
 
-                doImportRow(importContext.getTransactionId(),line,importContext.getActiveCols(),row, writeBuffer, rowEncoder);
+                doImportRow(importContext.getTransactionId(),line,row, writeBuffer);
                 numImported++;
                 reportIntermediate(numImported);
             }

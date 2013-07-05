@@ -27,6 +27,8 @@ public class EntryDecoder {
         byte headerByte = data[0];
         if((headerByte & 0x10)!=0){
             bitIndex = AllFullBitIndex.INSTANCE;
+            compressedData = (headerByte & 0x20) !=0;
+            dataOffset=2;
             return;
         }
         //find separator byte

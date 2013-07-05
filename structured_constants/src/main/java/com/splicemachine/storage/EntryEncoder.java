@@ -35,6 +35,11 @@ public class EntryEncoder {
         this.encoder = MultiFieldEncoder.create(bitIndex.cardinality());
     }
 
+    public EntryEncoder(int size, AllFullBitIndex allFullBitIndex) {
+        this.encoder = MultiFieldEncoder.create(size);
+        this.bitIndex = allFullBitIndex;
+    }
+
     public MultiFieldEncoder getEntryEncoder(){
         if(encoder==null)
             encoder = MultiFieldEncoder.create(bitIndex.cardinality());
@@ -69,13 +74,13 @@ public class EntryEncoder {
     }
 
     public static EntryEncoder create(int numCols, BitSet setCols){
-        if(setCols.cardinality()==numCols){
+        if(setCols==null||setCols.cardinality()==numCols){
             /*
              * This is a special case where we are writing *every* column. In this case, we just
              * set an indicator flag that tells us to not bother reading the index, because everything
              * is there.
              */
-            return new EntryEncoder(new AllFullBitIndex());
+            return new EntryEncoder(numCols,new AllFullBitIndex());
         }else{
 
             BitIndex indexToUse = UncompressedBitIndex.create(setCols);

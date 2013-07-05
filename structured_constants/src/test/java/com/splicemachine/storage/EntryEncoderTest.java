@@ -84,4 +84,32 @@ public class EntryEncoderTest {
 
     }
 
+    @Test
+    public void testEncodeAllColumnsSafely() throws Exception {
+        EntryEncoder encoder = EntryEncoder.create(3,(BitSet)null);
+        String longTest = "hello this is a tale of woe and sadness from which we will never return";
+        BigDecimal correct = new BigDecimal("22.456789012345667890230456677890192348576");
+        MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
+        entryEncoder.encodeNext(1);
+        entryEncoder.encodeNext(longTest);
+        entryEncoder.encodeNext(correct);
+
+        byte[] encode = encoder.encode();
+
+        EntryDecoder decoder = new EntryDecoder();
+        decoder.set(encode);
+
+        Assert.assertTrue(decoder.isSet(0));
+        Assert.assertTrue(decoder.isSet(1));
+        Assert.assertTrue(decoder.isSet(2));
+
+
+        MultiFieldDecoder fieldDecoder = decoder.getEntryDecoder();
+
+        Assert.assertEquals(1,fieldDecoder.decodeNextInt());
+        Assert.assertEquals(longTest,fieldDecoder.decodeNextString());
+        BigDecimal next = fieldDecoder.decodeNextBigDecimal();
+        Assert.assertTrue("expected: "+ correct+", actual: "+ next,correct.compareTo(next)==0);
+
+    }
 }
