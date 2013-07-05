@@ -135,6 +135,13 @@ public class CallStatementOperationTest extends SpliceUnitTest {
     }
 
     @Test
+    public void testRepeatedCallSQLTABLESInAppSchema() throws Exception {
+       for(int i=0;i<10;i++){
+           testCallSQLTABLESInAppSchema();
+       }
+    }
+
+    @Test
     public void testCastScan() throws Exception{
             PreparedStatement ps = methodWatcher.prepareStatement("select cast('' as varchar(128)) as cat,schemaname from sys.sysschemas");
             ResultSet rs = ps.executeQuery();
