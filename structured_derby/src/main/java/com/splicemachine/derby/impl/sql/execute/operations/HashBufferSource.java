@@ -37,10 +37,10 @@ public class HashBufferSource {
     };
 
 
-    public HashBufferSource(DataValueDescriptor sinkRowPrefix, int[] keyColumnIndexes, RowProviderIterator<ExecRow> sourceRows) throws StandardException {
-        this.hasher = KeyType.FIXED_PREFIX;
-        this.keyEncoder = MultiFieldEncoder.create(keyColumnIndexes.length+1);
-        DerbyBytesUtil.encodeInto(keyEncoder, sinkRowPrefix, false);
+    public HashBufferSource(byte[] sinkRowPrefix, int[] keyColumnIndexes, RowProviderIterator<ExecRow> sourceRows) throws StandardException {
+        hasher = KeyType.FIXED_PREFIX;
+        keyEncoder = MultiFieldEncoder.create(keyColumnIndexes.length+1);
+        keyEncoder.setRawBytes(sinkRowPrefix);
         keyEncoder.mark();
         this.sourceRows = sourceRows;
         this.keyColumnIndexes = keyColumnIndexes;

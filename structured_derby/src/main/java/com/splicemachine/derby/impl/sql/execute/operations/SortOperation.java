@@ -2,7 +2,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
@@ -14,12 +13,10 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -31,15 +28,12 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-import org.datanucleus.sco.backed.Map;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -59,23 +53,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     private Scan reduceScan;
     private ExecRow execRowDefinition = null;
     private Properties sortProperties = new Properties();
-//    private byte[] keyBytes;
-//    private KeyMarshall hasher;
-//    protected MultiFieldEncoder keyEncoder;
-//    private HashBuffer<ByteBuffer,ExecRow> currentRows = new HashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize);
-//    private boolean doneReadingSource = false;
-//    private final HashBuffer.Merger<ByteBuffer,ExecRow> merger = new HashBuffer.Merger<ByteBuffer,ExecRow>() {
-//        @Override
-//        public ExecRow shouldMerge(ByteBuffer key){
-//            return currentRows.get(key);
-//        }
-//
-//        @Override
-//        public void merge(ExecRow curr,ExecRow next){
-//            //throw away the second row, since we only want to keep the first
-//            //this is effectively a no-op
-//        }
-//    };
     private HashBufferSource hbs;
 
     static {
@@ -170,12 +147,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             descColumns[i] = order[i].getIsAscending();
         }
 
-//        this.hasher = KeyType.FIXED_PREFIX;
-//        this.keyEncoder = MultiFieldEncoder.create(keyColumns.length+1);
-//        DerbyBytesUtil.encodeInto(keyEncoder,sequence[0],false);
-//        keyEncoder.mark();
-
-        hbs = new HashBufferSource(sequence[0], keyColumns, wrapOperationWithProvider(source));
+        hbs = new HashBufferSource(uniqueSequenceID, keyColumns, wrapOperationWithProvider(source));
 
         SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
     }

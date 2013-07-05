@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -9,12 +8,11 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -28,18 +26,14 @@ import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.datanucleus.sco.backed.Map;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -62,27 +56,9 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     private String tableName;
     private String indexName;
     private int[] keyColumns;
-    private List<KeyValue> values;
-    private boolean completed = false;
-    private Serializer serializer = Serializer.get();
     private RowDecoder rowDecoder;
-    protected KeyMarshall hasher;
-    protected byte[] currentByteArray;
-    protected MultiFieldEncoder keyEncoder;
-	private HashBuffer<ByteBuffer,ExecRow> currentRows = new HashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize); 
-	private final HashBuffer.Merger<ByteBuffer,ExecRow> merger = new HashBuffer.Merger<ByteBuffer,ExecRow>() {
-		@Override
-		public ExecRow shouldMerge(ByteBuffer key){
-			return currentRows.get(key);
-		}
 
-		@Override
-		public void merge(ExecRow curr,ExecRow next){
-            //throw away the second row, since we only want to keep the first
-            //this is effectively a no-op
-		}
-	};
-	
+    private HashBufferSource hbs;
   
 
     public DistinctScanOperation(long conglomId,
@@ -150,11 +126,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         for(int index=0;index<fihArray.length;index++){
             keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(accessedCols,fihArray[index].getInt());
         }
-	    hasher = KeyType.FIXED_PREFIX;
-        keyEncoder = MultiFieldEncoder.create(keyColumns.length+1);
-        keyEncoder.setRawBytes(uniqueSequenceID);
-        keyEncoder.mark();
-	    values = new ArrayList<KeyValue>(currentRow.nColumns());
+        hbs = new HashBufferSource(uniqueSequenceID, keyColumns, wrapScannerWithProvider(regionScanner, getExecRowDefinition(),baseColumnMap));
     }
 
     @Override
@@ -169,37 +141,13 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
     @Override
     public ExecRow getNextSinkRow() throws StandardException {
-        try {
-            do {
-                values.clear();
-                regionScanner.next(values);
-                if(values.isEmpty()) continue;
-                DataValueDescriptor[] rowArray = currentRow.getRowArray();
-                for(KeyValue kv:values){
-                    RowMarshaller.mappedColumnar().decode(kv, rowArray, baseColumnMap, null);
-                }
-                ExecRow row = currentRow.getClone();
-                keyEncoder.reset();
-                hasher.encodeKey(row.getRowArray(),keyColumns,null,null,keyEncoder);
-                currentByteArray = keyEncoder.build();
-                ByteBuffer buffer = ByteBuffer.wrap(currentByteArray);
-                if (!currentRows.merge(buffer, row, merger)) {
-                    Map.Entry<ByteBuffer,ExecRow> finalized = currentRows.add(buffer,row);
-                    if(finalized!=null&&finalized!=row){
-                        return makeCurrent(finalized.getKey().array(),finalized.getValue());
-                    }
-                }
-            } while (!values.isEmpty());
+        ExecRow row = hbs.getNextAggregatedRow();
 
-            completed = true;
-            if (currentRows.size() > 0) {
-                ByteBuffer key = currentRows.keySet().iterator().next();
-                return makeCurrent(key.array(), currentRows.remove(key));
-            } else
-                return null;
-         } catch (IOException e) {
-            throw Exceptions.parseException(e);
+        if(row != null){
+            setCurrentRow(row);
         }
+
+        return row;
     }
 
     @Override
@@ -267,35 +215,68 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
-        return RowEncoder.create(getExecRowDefinition().nColumns(), keyColumns, null, null, new KeyMarshall() {
-            @Override
-            public void encodeKey(DataValueDescriptor[] columns,
-                                  int[] keyColumns,
-                                  boolean[] sortOrder,
-                                  byte[] keyPostfix,
-                                  MultiFieldEncoder keyEncoder) throws StandardException {
-                keyEncoder.setRawBytes(currentByteArray);
-            }
 
-            @Override
-            public void decode(DataValueDescriptor[] columns, int[] reversedKeyColumns,boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
-                hasher.decode(columns, reversedKeyColumns, sortOrder,rowDecoder);
-            }
-
-            @Override
-            public int getFieldCount(int[] keyColumns) {
-                return 1;
-            }
-        }, RowMarshaller.packedCompressed());
+        ExecRow def = getExecRowDefinition();
+        KeyType keyType = KeyType.FIXED_PREFIX;
+        return RowEncoder.create(def.nColumns(), keyColumns,
+                null,
+                uniqueSequenceID,
+                keyType, RowMarshaller.packedCompressed());
     }
 
     @Override
     public String prettyPrint(int indentLevel) {
         return "Distinct"+super.prettyPrint(indentLevel);
     }	
-	private <T extends ExecRow> ExecRow makeCurrent(byte[] key, T row) throws StandardException{
-		setCurrentRow(row);
-		currentByteArray = key;
-		return row;
-	}
+
+    private static RowProviderIterator<ExecRow> wrapScannerWithProvider(final RegionScanner regionScanner, final ExecRow rowTemplate, final int[] baseColumnMap){
+        return new RowProviderIterator<ExecRow>() {
+
+            private List<KeyValue> values = new ArrayList(rowTemplate.nColumns());
+
+            private ExecRow nextRow;
+            private boolean populated = false;
+
+            @Override
+            public boolean hasNext() throws StandardException {
+                try{
+                    if(!populated){
+
+                        nextRow = null;
+                        values.clear();
+                        regionScanner.next(values);
+                        populated = true;
+
+                        if(!values.isEmpty()){
+                            nextRow = rowTemplate.getClone();
+                            DataValueDescriptor[] rowArray = nextRow.getRowArray();
+
+                            for(KeyValue kv:values){
+                                RowMarshaller.mappedColumnar().decode(kv, rowArray, baseColumnMap, null);
+                            }
+                        }
+
+                    }
+                } catch(IOException e){
+                    throw Exceptions.parseException(e);
+                }
+
+                return nextRow != null;
+            }
+
+            @Override
+            public ExecRow next() throws StandardException {
+
+                if(!populated){
+                    hasNext();
+                }
+
+                if(nextRow != null){
+                    populated = false;
+                }
+
+                return nextRow;
+            }
+        };
+    }
 }
