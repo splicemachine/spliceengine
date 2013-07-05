@@ -48,7 +48,7 @@ public class BasicSnowflakeTest {
                 @Override
                 public Boolean call() throws Exception {
                     startBarrier.await(); //wait for everyone to force contention
-                    System.out.println("current time: "+Long.toBinaryString(System.currentTimeMillis()));
+//                    System.out.println("current time: "+Long.toBinaryString(System.currentTimeMillis()));
                     for(int i=0;i<numIterations;i++){
                         long time = System.currentTimeMillis();
                         long uuid = snowflake.nextUUID();
