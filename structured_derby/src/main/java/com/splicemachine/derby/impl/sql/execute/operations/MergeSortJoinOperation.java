@@ -279,7 +279,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                  * Some Join columns have key sets like [0,0], where the same field is encoded multiple
                  * times. We need to only decode the first instance, or else we'll get incorrect answers
                  */
-                rowDecoder.skip(); //skip the query prefix
+                rowDecoder.seek(9); //skip the query prefix
                 int[] decodedColumns = new int[numCols];
                 for(int key:reversedKeyColumns){
                     if(key==-1) continue;

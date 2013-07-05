@@ -150,7 +150,15 @@ public class InnerJoinTest extends SpliceUnitTest {
 		Assert.assertEquals(9, j);
 	}
 
-	@Test
+    @Test
+    public void testRepeatedScrollableInnerJoin() throws Exception {
+        for(int i=0;i<100;i++){
+            System.out.println(i);
+            testScrollableInnerJoin();
+        }
+    }
+
+    @Test
 	public void testSinkableInnerJoin() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc inner join dd on cc.si = dd.si group by cc.si");
 		int j = 0;

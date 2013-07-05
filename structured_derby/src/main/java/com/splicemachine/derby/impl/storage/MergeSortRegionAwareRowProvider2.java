@@ -96,10 +96,12 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
                 currentRow = rightRow;
                 if(rightSideRow==null){
                     rightKeyDecoder = MultiFieldDecoder.wrap(result.getRow());
-                    rightSideRow = new JoinSideExecRow(rightRow, JoinUtils.JoinSide.RIGHT, rightKeyDecoder.slice(rightDecoder.getKeyColumns().length+1));
+                    rightKeyDecoder.seek(9);
+                    rightSideRow = new JoinSideExecRow(rightRow, JoinUtils.JoinSide.RIGHT, rightKeyDecoder.slice(rightDecoder.getKeyColumns().length));
                 }else{
                     rightKeyDecoder.set(result.getRow());
-                    rightSideRow.setHash(rightKeyDecoder.slice(rightDecoder.getKeyColumns().length+1));
+                    rightKeyDecoder.seek(9);
+                    rightSideRow.setHash(rightKeyDecoder.slice(rightDecoder.getKeyColumns().length));
                 }
                 joinSideRow = rightSideRow;
             }else{
@@ -107,10 +109,12 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
                 currentRow = leftRow;
                 if(leftSideRow==null){
                     leftKeyDecoder = MultiFieldDecoder.wrap(result.getRow());
-                    leftSideRow = new JoinSideExecRow(leftRow, JoinUtils.JoinSide.LEFT,leftKeyDecoder.slice(leftDecoder.getKeyColumns().length+1));
+                    leftKeyDecoder.seek(9);
+                    leftSideRow = new JoinSideExecRow(leftRow, JoinUtils.JoinSide.LEFT,leftKeyDecoder.slice(leftDecoder.getKeyColumns().length));
                 }else{
                     leftKeyDecoder.set(result.getRow());
-                    leftSideRow.setHash(leftKeyDecoder.slice(leftDecoder.getKeyColumns().length+1));
+                    leftKeyDecoder.seek(9);
+                    leftSideRow.setHash(leftKeyDecoder.slice(leftDecoder.getKeyColumns().length));
                 }
                 joinSideRow = leftSideRow;
             }
@@ -147,7 +151,7 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
             if(data==null) return null;
             int ordinal = Encoding.decodeInt(data);
             MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow());
-            decoder.skip(); //skip the prefix value
+            decoder.seek(9); //skip the prefix value
             if(ordinal== JoinUtils.JoinSide.RIGHT.ordinal()){
                 //copy out all the fields from the key until we reach the ordinal
                 return decoder.slice(rightDecoder.getKeyColumns().length);
@@ -162,7 +166,7 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
             if(data==null) return null;
             int ordinal = Encoding.decodeInt(data);
             MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow());
-            decoder.skip(); //skip the prefix value
+            decoder.seek(9); //skip the prefix value
             if(ordinal== JoinUtils.JoinSide.RIGHT.ordinal()){
                 //copy out all the fields from the key until we reach the ordinal
                 return decoder.slice(rightDecoder.getKeyColumns().length);

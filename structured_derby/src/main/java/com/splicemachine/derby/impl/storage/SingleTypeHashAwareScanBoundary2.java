@@ -26,7 +26,7 @@ public class SingleTypeHashAwareScanBoundary2 extends BaseHashAwareScanBoundary{
     @Override
     public byte[] getStartKey(Result result) {
         MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow());
-        fieldDecoder.skip(); //skip the prefix value
+        fieldDecoder.seek(9); //skip the prefix value
         return fieldDecoder.slice(slice);
     }
 

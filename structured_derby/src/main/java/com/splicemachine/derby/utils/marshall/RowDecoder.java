@@ -83,7 +83,9 @@ public class RowDecoder {
             rowType.decode(value,fields,reversedRowColumns,rowDecoder);
         }
 
-        keyType.decode(fields, reversedKeyColumns, sortOrder,keyDecoder);
+        if(keyType!=null)
+            keyType.decode(fields, reversedKeyColumns, sortOrder,keyDecoder);
+
         return row;
     }
 
