@@ -33,8 +33,26 @@ public class DenseCompressedBitIndex implements BitIndex {
     }
 
     @Override
+    public int encodedSize() {
+        return 0;
+    }
+
+    @Override
+    public int nextSetBit(int position) {
+        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
     public int cardinality() {
         return 0;
     }
 
+    @Override
+    public int cardinality(int position) {
+        return 0;
+    }
+
+    public static BitIndex wrap(byte[] data, int offset, int length) {
+        return null;  //To change body of created methods use File | Settings | File Templates.
+    }
 }

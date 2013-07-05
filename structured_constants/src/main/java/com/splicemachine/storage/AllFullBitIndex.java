@@ -7,23 +7,42 @@ package com.splicemachine.storage;
  * Created on: 7/5/13
  */
 public class AllFullBitIndex implements BitIndex {
+
+    private static final byte encodedByte = (byte)(0x80 | 0x10);
+    public static final BitIndex INSTANCE = new AllFullBitIndex();
+
     @Override
     public int length() {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return 0;
     }
 
     @Override
     public boolean isSet(int pos) {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return true;
     }
 
     @Override
     public byte[] encode() {
-        return new byte[0];  //To change body of implemented methods use File | Settings | File Templates.
+        return new byte[]{encodedByte};
+    }
+
+    @Override
+    public int nextSetBit(int position) {
+        return position;
+    }
+
+    @Override
+    public int encodedSize() {
+        return 1;
     }
 
     @Override
     public int cardinality() {
         return length();
+    }
+
+    @Override
+    public int cardinality(int position) {
+        return position; //all bits are set, so all bits < position are also set
     }
 }

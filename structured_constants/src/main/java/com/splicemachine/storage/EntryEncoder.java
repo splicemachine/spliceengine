@@ -7,13 +7,12 @@ import org.xerial.snappy.Snappy;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.NoSuchElementException;
 
 /**
  * @author Scott Fines
  *         Created on: 7/5/13
  */
-public class Entry {
+public class EntryEncoder {
     private final BitIndex bitIndex;
     /*
      * The threshold at which we compress the data. If the data length is less than
@@ -30,28 +29,16 @@ public class Entry {
 
     private MultiFieldEncoder encoder;
 
-    private Entry(BitIndex bitIndex){
+
+    private EntryEncoder(BitIndex bitIndex){
         this.bitIndex = bitIndex;
         this.encoder = MultiFieldEncoder.create(bitIndex.cardinality());
     }
 
     public MultiFieldEncoder getEntryEncoder(){
+        if(encoder==null)
+            encoder = MultiFieldEncoder.create(bitIndex.cardinality());
         return encoder;
-    }
-
-    /**
-     * @param column a 0-indexed column
-     * @return true if this Entry contains data for that column
-     */
-    public boolean hasColumn(int column){
-        return false;
-    }
-
-    public byte[] getColumnData(int column) throws NoSuchElementException{
-        if(!hasColumn(column))
-            throw new NoSuchElementException();
-
-        throw new UnsupportedOperationException("Implement!");
     }
 
     public byte[] encode() throws IOException {
@@ -72,23 +59,23 @@ public class Entry {
         return entry;
     }
 
-    public static Entry buildEntry(int numCols,int[] setCols){
+    public static EntryEncoder create(int numCols,int[] setCols){
         BitSet cols = new BitSet(numCols);
         for(int col:setCols){
             cols.set(col);
         }
 
-        return buildEntry(numCols, cols);
+        return create(numCols, cols);
     }
 
-    public static Entry buildEntry(int numCols, BitSet setCols){
+    public static EntryEncoder create(int numCols, BitSet setCols){
         if(setCols.cardinality()==numCols){
             /*
              * This is a special case where we are writing *every* column. In this case, we just
              * set an indicator flag that tells us to not bother reading the index, because everything
              * is there.
              */
-            return new Entry(new AllFullBitIndex());
+            return new EntryEncoder(new AllFullBitIndex());
         }else{
 
             BitIndex indexToUse = UncompressedBitIndex.create(setCols);
@@ -102,7 +89,7 @@ public class Entry {
             if(sparseBitMap.length()<indexToUse.length()){
                 indexToUse = sparseBitMap;
             }
-            return new Entry(indexToUse);
+            return new EntryEncoder(indexToUse);
         }
     }
 
@@ -112,8 +99,8 @@ public class Entry {
         bitSet.set(3);
         bitSet.set(7);
         bitSet.set(9);
-        Entry entry = Entry.buildEntry(10,bitSet);
-        byte[] bytes = entry.encode();
+        EntryEncoder entryEncoder = EntryEncoder.create(10, bitSet);
+        byte[] bytes = entryEncoder.encode();
         System.out.println(Arrays.toString(bytes));
     }
 }

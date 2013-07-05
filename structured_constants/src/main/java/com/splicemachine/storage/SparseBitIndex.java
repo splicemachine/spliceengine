@@ -27,7 +27,22 @@ public class SparseBitIndex implements BitIndex {
     }
 
     @Override
+    public int encodedSize() {
+        return 0;
+    }
+
+    @Override
+    public int nextSetBit(int position) {
+        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
     public int cardinality() {
+        return 0;
+    }
+
+    @Override
+    public int cardinality(int position) {
         return 0;
     }
 
@@ -35,7 +50,7 @@ public class SparseBitIndex implements BitIndex {
         return new SparseBitIndex(setCols);
     }
 
-    public static SparseBitIndex wrap(byte[] data){
+    public static SparseBitIndex wrap(byte[] data,int position, int limit){
         return null;
     }
 }
