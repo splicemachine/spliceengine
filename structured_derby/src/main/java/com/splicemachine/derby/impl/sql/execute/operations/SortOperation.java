@@ -168,9 +168,10 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             descColumns[i] = order[i].getIsAscending();
         }
 
-        this.hasher = KeyType.FIXED_PREFIX;
-        this.keyEncoder = MultiFieldEncoder.create(keyColumns.length+1);
-        DerbyBytesUtil.encodeInto(keyEncoder,sequence[0],false);
+        hasher = KeyType.FIXED_PREFIX;
+
+        keyEncoder = MultiFieldEncoder.create(keyColumns.length+1);
+        keyEncoder.setRawBytes(uniqueSequenceID);
         keyEncoder.mark();
 
         SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
