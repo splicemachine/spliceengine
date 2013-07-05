@@ -8,9 +8,9 @@
 	<description>Set of modules for getting hbase to function in structure</description>
 	<modules>
 		<module>structured_constants</module>
-<!-- 		<module>structured_orderly</module> -->
 		<module>structured_si</module>
 		<module>structured_derby</module>		
+		<module>structured_spark</module>		
 	</modules>
 	<scm>
 		<connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
@@ -212,6 +212,11 @@
 			<artifactId>hadoop-hdfs</artifactId>
 			<version>${hadoop.version}</version>
 			<classifier>tests</classifier>
+		</dependency>
+						<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-client</artifactId>
+			<version>${hadoop.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.hadoop</groupId>
