@@ -10,7 +10,7 @@
 		<module>structured_constants</module>
 		<module>structured_si</module>
 		<module>structured_derby</module>		
-		<module>structured_spark</module>		
+	<!--  	<module>structured_spark</module>	-->	
 	</modules>
 	<scm>
 		<connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
