@@ -1,10 +1,13 @@
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.storage.EntryEncoder;
@@ -17,7 +20,9 @@ import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
@@ -29,6 +34,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.BitSet;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -42,6 +48,12 @@ public abstract class AbstractImportTask extends ZkTask {
     private DateFormat dateFormat;
     private DateFormat timestampFormat;
     private DateFormat timeFormat;
+
+    private KeyMarshall keyType;
+    private int[] keyColumns = null;
+    private MultiFieldEncoder keyEncoder;
+
+    private EntryEncoder entryEncoder;
 
     public AbstractImportTask() { }
 
@@ -92,10 +104,7 @@ public abstract class AbstractImportTask extends ZkTask {
 
             CallBuffer<Mutation> writeBuffer = getCallBuffer();
 
-            KeyType keyType = pkCols==null?KeyType.SALTED: KeyType.BARE;
-            RowMarshall rowType = RowMarshaller.denseColumnar();
-
-            int[] keyColumns;
+            keyType = pkCols==null?KeyType.SALTED: KeyType.BARE;
             int pos =0;
             if(pkCols!=null){
                 keyColumns = new int[pkCols.size()];
@@ -110,7 +119,7 @@ public abstract class AbstractImportTask extends ZkTask {
 
             Long numImported;
             try{
-                numImported = importData(row,encoder,writeBuffer);
+                numImported = importData(row,writeBuffer);
             }finally{
                 writeBuffer.flushBuffer();
                 writeBuffer.close();
@@ -182,16 +191,6 @@ public abstract class AbstractImportTask extends ZkTask {
         writeBuffer.add(put);
     }
 
-    protected void doImportRow(String transactionId,String[] line,FormatableBitSet activeCols, ExecRow row,
-                               CallBuffer<Mutation> writeBuffer,
-                             RowEncoder encoder) throws Exception {
-        populateRow(line, activeCols, row);
-
-        encoder.write(row,transactionId,writeBuffer);
-
-//        Put put = Puts.buildInsertWithSerializer(rowSerializer.serialize(row.getRowArray()),row.getRowArray(),null,transactionId,serializer);
-//        writeBuffer.add(put);
-    }
 
     private void populateRow(String[] line, FormatableBitSet activeCols, ExecRow row) throws StandardException {
         if(activeCols!=null){

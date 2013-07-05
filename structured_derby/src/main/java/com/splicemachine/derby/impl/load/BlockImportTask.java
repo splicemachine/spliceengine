@@ -73,8 +73,7 @@ public class BlockImportTask extends AbstractImportTask{
 //    }
 
     @Override
-    protected long importData(ExecRow row,
-                              RowEncoder rowEncoder, CallBuffer<Mutation> writeBuffer) throws Exception {
+    protected long importData(ExecRow row,CallBuffer<Mutation> writeBuffer) throws Exception {
         Path path = importContext.getFilePath();
 
         FSDataInputStream is = null;
@@ -107,7 +106,7 @@ public class BlockImportTask extends AbstractImportTask{
                 if(line==null||line.length()==0)
                     continue; //skip empty lines
                 String[] cols = parser.parseLine(line);
-                doImportRow(importContext.getTransactionId(),cols,importContext.getActiveCols(),row,writeBuffer,rowEncoder);
+                doImportRow(importContext.getTransactionId(),cols,row,writeBuffer);
                 numImported++;
 
                 reportIntermediate(numImported);
