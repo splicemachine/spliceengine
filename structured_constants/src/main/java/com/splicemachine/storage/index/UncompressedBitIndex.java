@@ -146,6 +146,11 @@ public class UncompressedBitIndex implements BitIndex {
         return bitSet.hashCode();
     }
 
+    @Override
+    public boolean intersects(BitSet bitSet) {
+        return this.bitSet.intersects(bitSet);
+    }
+
     public static BitIndex create(BitSet setCols) {
         return new UncompressedBitIndex(setCols);
     }

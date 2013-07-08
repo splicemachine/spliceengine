@@ -314,4 +314,12 @@ public class MultiFieldDecoder {
     public void seek(int newPos) {
         this.currentOffset=newPos;
     }
+
+    public int offset() {
+        return currentOffset;
+    }
+
+    public byte[] array() {
+        return data;
+    }
 }

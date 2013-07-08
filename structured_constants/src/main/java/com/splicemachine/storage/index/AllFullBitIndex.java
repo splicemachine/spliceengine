@@ -1,5 +1,7 @@
 package com.splicemachine.storage.index;
 
+import java.util.BitSet;
+
 /**
  * BitIndex representing an all-full bitmap.
  *
@@ -44,5 +46,10 @@ public class AllFullBitIndex implements BitIndex {
     @Override
     public int cardinality(int position) {
         return position; //all bits are set, so all bits < position are also set
+    }
+
+    @Override
+    public boolean intersects(BitSet bitSet) {
+        return true;
     }
 }

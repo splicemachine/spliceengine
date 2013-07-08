@@ -43,6 +43,11 @@ public class DenseCompressedBitIndex implements BitIndex {
     }
 
     @Override
+    public boolean intersects(BitSet bitSet) {
+        return false;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
     public int cardinality() {
         return 0;
     }

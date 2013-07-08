@@ -1,5 +1,7 @@
 package com.splicemachine.storage.index;
 
+import java.util.BitSet;
+
 /**
  *
  * Note: the first 4-bits should be ignored.
@@ -46,4 +48,7 @@ public interface BitIndex {
      * @return the number of set values less than {@code position}
      */
     int cardinality(int position);
+
+    boolean intersects(BitSet bitSet);
+
 }
