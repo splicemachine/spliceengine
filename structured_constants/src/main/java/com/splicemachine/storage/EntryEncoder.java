@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.storage.index.*;
 import org.xerial.snappy.Snappy;
 
 import java.io.IOException;

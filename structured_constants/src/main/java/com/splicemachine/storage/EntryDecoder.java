@@ -1,6 +1,7 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.storage.index.*;
 import org.xerial.snappy.Snappy;
 
 import java.io.IOException;
@@ -41,13 +42,13 @@ public class EntryDecoder {
         }
         if((headerByte & 0x80) !=0){
            if((headerByte & 0x40)!=0){
-               bitIndex = DenseCompressedBitIndex.wrap(data,0,dataOffset);
+               bitIndex = DenseCompressedBitIndex.wrap(data, 0, dataOffset);
            }else{
-               bitIndex = UncompressedBitIndex.wrap(data,0,dataOffset);
+               bitIndex = UncompressedBitIndex.wrap(data, 0, dataOffset);
            }
         }else{
             //sparse index
-            bitIndex = SparseBitIndex.wrap(data,0,dataOffset);
+            bitIndex = SparseBitIndex.wrap(data, 0, dataOffset);
         }
 
         dataOffset++;

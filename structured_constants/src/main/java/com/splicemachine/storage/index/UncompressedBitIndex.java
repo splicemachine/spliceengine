@@ -1,10 +1,16 @@
-package com.splicemachine.storage;
+package com.splicemachine.storage.index;
 
 import java.util.BitSet;
 
 /**
+ * Uncompressed, variable-length BitIndex.
+ *
+ * This index is represented as follows:
+ *
+ * The first four bits are header bits
+ *
  * @author Scott Fines
- *         Created on: 7/5/13
+ * Created on: 7/5/13
  */
 public class UncompressedBitIndex implements BitIndex {
     private final BitSet bitSet;

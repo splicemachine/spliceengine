@@ -1,4 +1,4 @@
-package com.splicemachine.storage;
+package com.splicemachine.storage.index;
 
 /**
  *

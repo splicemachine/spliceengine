@@ -1,6 +1,8 @@
 package com.splicemachine.storage;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.UncompressedBitIndex;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
