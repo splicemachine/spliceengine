@@ -16,6 +16,7 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
@@ -25,11 +26,13 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 import org.datanucleus.sco.backed.Map;
 
 import javax.annotation.Nonnull;
@@ -49,6 +52,7 @@ import java.util.List;
 public class DistinctScanOperation extends ScanOperation implements SinkingOperation{
     private static final long serialVersionUID = 3l;
     private static final List<NodeType> nodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SCAN);
+    private static Logger LOG = Logger.getLogger(DistinctScanOperation.class);
     private Scan reduceScan;
 
     public DistinctScanOperation() {
@@ -61,6 +65,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     private List<KeyValue> values;
     private boolean completed = false;
     private Serializer serializer = Serializer.get();
+    private RowDecoder rowDecoder;
     protected KeyMarshall hasher;
     protected byte[] currentByteArray;
     protected MultiFieldEncoder keyEncoder;
@@ -199,12 +204,18 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
     @Override
     public ExecRow getNextRowCore() throws StandardException {
-        if (currentRows != null && currentRows.size() > 0) {
-            ByteBuffer key = currentRows.keySet().iterator().next();
-            return makeCurrent(key.array(), currentRows.remove(key));
-        } else {
-            return null;
+        List<KeyValue> keyValues = new ArrayList<KeyValue>();
+        try {
+            regionScanner.next(keyValues);
+        } catch (IOException ioe) {
+            SpliceLogUtils.logAndThrow(LOG,
+                    StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION, ioe));
         }
+        if(keyValues.isEmpty()) return null;
+
+        if(rowDecoder==null)
+            rowDecoder = getRowEncoder().getDual(getExecRowDefinition(),true);
+        return rowDecoder.decode(keyValues);
     }
 
     @Override

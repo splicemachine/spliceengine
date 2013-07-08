@@ -9,6 +9,7 @@ import java.util.GregorianCalendar;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -95,9 +96,17 @@ public class DistinctScanOperationTest extends SpliceUnitTest {
             priorResults.add(next);
 		}
 		Assert.assertEquals(size,priorResults.size());
-	}		
-	
-	@Test
+	}
+
+    @Test
+    public void testDistinctScanGetNextRowCore() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(String.format("select count(*) from (select distinct si from %s) a", spliceTableWatcher1.toString()));
+        Assert.assertTrue("No rows returned, 1 row expected", rs.next());
+        Assert.assertEquals("10 distinct results expected",10,rs.getInt(1));
+        Assert.assertFalse("More than one row was returned", rs.next());
+    }
+
+    @Test
 	public void testDistinctString() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select distinct sa from " + spliceTableWatcher1.toString());
         Set<String> priorResults = Sets.newHashSet();
