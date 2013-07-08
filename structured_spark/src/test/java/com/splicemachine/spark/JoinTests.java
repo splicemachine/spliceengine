@@ -1,28 +1,43 @@
 package com.splicemachine.spark;
 
+
 import java.util.ArrayList;
 import java.util.List;
-import junit.framework.Assert;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import com.splicemachine.derby.iapi.types.SQLVarchar;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
-
 import scala.Option;
 import scala.Tuple2;
+import spark.SparkEnv;
 import spark.api.java.JavaPairRDD;
 import spark.api.java.JavaSparkContext;
+import spark.broadcast.Broadcast;
+import spark.scheduler.SparkListener;
+import spark.scheduler.StageCompleted;
 
 public class JoinTests {
 	private static Logger LOG = Logger.getLogger(JoinTests.class);
 	protected static List<Tuple2<ExecRow,ExecRow>> stringBasedRowsSet1 = new ArrayList<Tuple2<ExecRow,ExecRow>>();
 	protected static List<Tuple2<ExecRow,ExecRow>> stringBasedRowsSet2 = new ArrayList<Tuple2<ExecRow,ExecRow>>();
-	protected static JavaSparkContext ctx = new JavaSparkContext("local", "JavaWordCount");		   
+	
 	protected static int[] keyValues = {1};
+	
+	@Before
+	public void setEnv() {
+		SparkEnv.set(SparkEnv.get());
+	}
 	
 	
 	@BeforeClass
@@ -66,6 +81,7 @@ public class JoinTests {
 
 	@Test
 	public void testcartesionJoin() {
+		JavaSparkContext ctx = SpliceSparkContext.getSparkContext();
 		JavaPairRDD<ExecRow, ExecRow> row1 = ctx.parallelizePairs(stringBasedRowsSet1);
 		JavaPairRDD<ExecRow, ExecRow> row2 = ctx.parallelizePairs(stringBasedRowsSet2);
 		JavaPairRDD<Tuple2<ExecRow, ExecRow>,Tuple2<ExecRow, ExecRow>> results = row1.cartesian(row2);
@@ -78,6 +94,7 @@ public class JoinTests {
 
 	@Test
 	public void testLeftOuterJoin() {
+		JavaSparkContext ctx = SpliceSparkContext.getSparkContext();
 		JavaPairRDD<ExecRow, ExecRow> row1 = ctx.parallelizePairs(stringBasedRowsSet1);
 		JavaPairRDD<ExecRow, ExecRow> row2 = ctx.parallelizePairs(stringBasedRowsSet2);
 		JavaPairRDD<ExecRow, Tuple2<ExecRow, Option<ExecRow>>> test = row1.leftOuterJoin(row2);
@@ -90,6 +107,7 @@ public class JoinTests {
 
 	@Test
 	public void testRightOuterJoin() {
+		JavaSparkContext ctx = SpliceSparkContext.getSparkContext();
 		JavaPairRDD<ExecRow, ExecRow> row1 = ctx.parallelizePairs(stringBasedRowsSet1);
 		JavaPairRDD<ExecRow, ExecRow> row2 = ctx.parallelizePairs(stringBasedRowsSet2);
 		JavaPairRDD<ExecRow, Tuple2<Option<ExecRow>, ExecRow>> test = row1.rightOuterJoin(row2);
@@ -103,39 +121,42 @@ public class JoinTests {
 	@Test
 	@Ignore
 	public void testInnerJoin() {
+		JavaSparkContext ctx = SpliceSparkContext.getSparkContext();
 		JavaPairRDD<ExecRow, ExecRow> row1 = ctx.parallelizePairs(stringBasedRowsSet1);
 		JavaPairRDD<ExecRow, ExecRow> row2 = ctx.parallelizePairs(stringBasedRowsSet2);
 		JavaPairRDD<ExecRow, Tuple2<ExecRow, ExecRow>> test = row1.join(row2);
-		List<Tuple2<ExecRow, Tuple2<ExecRow, ExecRow>>> values = test.collect();
-		for (Tuple2<ExecRow, Tuple2<ExecRow, ExecRow>> row : values) {
-			System.out.println(row);
-		}
+//		List<Tuple2<ExecRow, Tuple2<ExecRow, ExecRow>>> values = test.collect();
+//		for (Tuple2<ExecRow, Tuple2<ExecRow, ExecRow>> row : values) {
+//			System.out.println(row);
+//		}
 		Assert.assertEquals(5, test.count());
 	}
 
 	
 	@Test
 	public void testUnionAll() {
+		JavaSparkContext ctx = SpliceSparkContext.getSparkContext();
 		JavaPairRDD<ExecRow, ExecRow> row1 = ctx.parallelizePairs(stringBasedRowsSet1);
 		JavaPairRDD<ExecRow, ExecRow> row2 = ctx.parallelizePairs(stringBasedRowsSet2);
 		JavaPairRDD<ExecRow, ExecRow> results = row1.union(row2);
 		Assert.assertEquals(11,results.count());
 	}
-
 	@Test
 	public void testSortedUnionAll() {
+		JavaSparkContext ctx = SpliceSparkContext.getSparkContext();
 		JavaPairRDD<ExecRow, ExecRow> row1 = ctx.parallelizePairs(stringBasedRowsSet1);
+		row1.cache();
 		JavaPairRDD<ExecRow, ExecRow> row2 = ctx.parallelizePairs(stringBasedRowsSet2);
 		JavaPairRDD<ExecRow, ExecRow> results = row1.union(row2).sortByKey();
+		row2.cache();
 		for (Tuple2<ExecRow, ExecRow> row : results.collect()) {
 			System.out.println(row);
 		}
 
 		Assert.assertEquals(11,results.count());
 	}
-
+/*
 	@Test
-	@Ignore
 	public void testUnion() {
 		JavaPairRDD<ExecRow, ExecRow> row1 = ctx.parallelizePairs(stringBasedRowsSet1);
 		JavaPairRDD<ExecRow, ExecRow> row2 = ctx.parallelizePairs(stringBasedRowsSet2);
@@ -143,7 +164,23 @@ public class JoinTests {
 		for (Tuple2<ExecRow, ExecRow> row: results.collect()) {
 			System.out.println(row);
 		}
+		
 		//Assert.assertEquals(6,results.count());
 	}
-
+	
+	@Test
+	public void testHBase() {
+	    Configuration conf = HBaseConfiguration.create();
+	    conf.set(TableInputFormat.INPUT_TABLE, "32");
+	    conf.setInt(TableInputFormat.SCAN_CACHEDROWS, 16000);
+	    conf.set(TableInputFormat.SCAN_COLUMN_FAMILY, "S");	  
+	    Broadcast<String> test = ctx.broadcast("help?");
+	    for (int i = 0; i<100; i++) {
+	    	JavaPairRDD<ImmutableBytesWritable, Result> rows = ctx.newAPIHadoopRDD(conf, TableInputFormat.class, ImmutableBytesWritable.class, Result.class);	    
+	    	System.out.println("Count : " + rows.count());
+	    	System.out.println("help: "+ test.value());	    	
+	    }
+	    
+	}
+*/
 }
