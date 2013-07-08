@@ -30,10 +30,8 @@ import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.reference.Limits;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.conn.Authorizer;
-
 import org.apache.derby.iapi.sql.dictionary.AliasDescriptor;
 import org.apache.derby.iapi.sql.dictionary.CatalogRowFactory;
-
 import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
 import org.apache.derby.iapi.sql.dictionary.ColumnDescriptorList;
 import org.apache.derby.iapi.sql.dictionary.FileInfoDescriptor;
@@ -71,22 +69,17 @@ import org.apache.derby.iapi.sql.dictionary.ViewDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SystemColumn;
 import org.apache.derby.iapi.sql.dictionary.SequenceDescriptor;
 import org.apache.derby.iapi.sql.dictionary.PermDescriptor;
-
 import org.apache.derby.iapi.sql.depend.DependencyManager;
-
 import org.apache.derby.impl.sql.compile.CollectNodesVisitor;
 import org.apache.derby.impl.sql.compile.ColumnReference;
 import org.apache.derby.impl.sql.compile.TableName;
 import org.apache.derby.impl.sql.depend.BasicDependencyManager;
-
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecutionContext;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.ScanQualifier;
-
 import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.iapi.types.NumberDataValue;
-
 import org.apache.derby.iapi.types.SQLBoolean;
 import org.apache.derby.iapi.types.SQLChar;
 import org.apache.derby.iapi.types.SQLLongint;
@@ -98,7 +91,6 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionFactory;
-
 import org.apache.derby.iapi.store.access.AccessFactory;
 import org.apache.derby.iapi.store.access.ConglomerateController;
 import org.apache.derby.iapi.types.Orderable;
@@ -107,38 +99,23 @@ import org.apache.derby.iapi.store.access.RowUtil;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.store.access.Qualifier;
-
 import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.monitor.ModuleControl;
-import org.apache.derby.iapi.services.monitor.ModuleSupportable;
-
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
-
 import org.apache.derby.iapi.db.Database;
 import org.apache.derby.iapi.error.StandardException;
-
-// RESOLVE - paulat - remove this import when track 3677 is fixed
 import org.apache.derby.iapi.services.sanity.AssertFailure;
-
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.TupleFilter;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.services.cache.CacheFactory;
 import org.apache.derby.iapi.services.cache.CacheManager;
 import org.apache.derby.iapi.services.cache.Cacheable;
-import org.apache.derby.iapi.services.cache.CacheableFactory;
-
 import org.apache.derby.iapi.services.locks.LockFactory;
 import org.apache.derby.iapi.services.locks.C_LockFactory;
-
 import org.apache.derby.iapi.services.property.PropertyUtil;
-
 import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
 import org.apache.derby.impl.services.locks.Timeout;
-
 import org.apache.derby.iapi.services.uuid.UUIDFactory;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.DefaultInfo;
@@ -147,16 +124,13 @@ import org.apache.derby.catalog.TypeDescriptor;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.BaseTypeIdImpl;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
-
 import org.apache.derby.iapi.services.daemon.IndexStatisticsDaemon;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.locks.CompatibilitySpace;
 import org.apache.derby.iapi.services.locks.ShExLockable;
 import org.apache.derby.iapi.services.locks.ShExQual;
 import org.apache.derby.iapi.util.IdUtil;
-
 import java.security.SecureRandom;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -168,19 +142,18 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Vector;
-
 import java.util.List;
 import java.util.Iterator;
 import java.util.LinkedList;
-
 import java.util.Enumeration;
 import java.io.InputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
 import java.sql.Types;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.derby.iapi.store.access.FileResource;
 import org.apache.derby.impl.sql.execute.JarUtil;
 
@@ -188,107 +161,13 @@ import org.apache.derby.impl.sql.execute.JarUtil;
  * Standard database implementation of the data dictionary
  * that stores the information in the system catlogs.
  */
-public class DataDictionaryImpl
-	implements DataDictionary, CacheableFactory, ModuleControl, ModuleSupportable,java.security.PrivilegedAction
-{
-
-    private static final String		CFG_SYSTABLES_ID = "SystablesIdentifier";
-	private static final String		CFG_SYSTABLES_INDEX1_ID = "SystablesIndex1Identifier";
-	private static final String		CFG_SYSTABLES_INDEX2_ID = "SystablesIndex2Identifier";
-	private static final String		CFG_SYSCOLUMNS_ID = "SyscolumnsIdentifier";
-	private static final String		CFG_SYSCOLUMNS_INDEX1_ID = "SyscolumnsIndex1Identifier";
-	private static final String		CFG_SYSCOLUMNS_INDEX2_ID = "SyscolumnsIndex2Identifier";
-	private static final String		CFG_SYSCONGLOMERATES_ID = "SysconglomeratesIdentifier";
-	private static final String		CFG_SYSCONGLOMERATES_INDEX1_ID = "SysconglomeratesIndex1Identifier";
-	private static final String		CFG_SYSCONGLOMERATES_INDEX2_ID = "SysconglomeratesIndex2Identifier";
-	private static final String		CFG_SYSCONGLOMERATES_INDEX3_ID = "SysconglomeratesIndex3Identifier";
-	private static final String		CFG_SYSSCHEMAS_ID = "SysschemasIdentifier";
-	private static final String		CFG_SYSSCHEMAS_INDEX1_ID = "SysschemasIndex1Identifier";
-	private static final String		CFG_SYSSCHEMAS_INDEX2_ID = "SysschemasIndex2Identifier";
-
-	private	static final int		SYSCONGLOMERATES_CORE_NUM = 0;
-	private	static final int		SYSTABLES_CORE_NUM = 1;
-	private static final int		SYSCOLUMNS_CORE_NUM = 2;
-	private	static final int		SYSSCHEMAS_CORE_NUM = 3;
-	protected static final int        NUM_CORE = 4;
-	
-	/**
-	* SYSFUN functions. Table of functions that automatically appear
-	* in the SYSFUN schema. These functions are resolved to directly
-	* if no schema name is given, e.g.
-	* 
-	* <code>
-	* SELECT COS(angle) FROM ROOM_WALLS
-	* </code>
-	* 
-	* Adding a function here is suitable when the function defintion
-	* can have a single return type and fixed parameter types.
-	* 
-	* Functions that need to have a return type based upon the
-	* input type(s) are not supported here. Typically those are
-	* added into the parser and methods added into the DataValueDescriptor interface.
-	* Examples are character based functions whose return type
-	* length is based upon the passed in type, e.g. passed a CHAR(10)
-	* returns a CHAR(10).
-	* 
-	* 
-    * This simple table can handle an arbitrary number of arguments
-	* and RETURNS NULL ON NULL INPUT. The scheme could be expanded
-	* to handle other function options such as other parameters if needed.
-    *[0]    = FUNCTION name
-    *[1]    = RETURNS type
-    *[2]    = Java class
-    *[3]    = method name and signature
-    *[4]    = "true" or "false" depending on whether the function is DETERMINSTIC
-    *[5..N] = arguments (optional, if not present zero arguments is assumed)
-	*
-	*/
-	private static final String[][] SYSFUN_FUNCTIONS = {
-        {"ACOS", "DOUBLE", "java.lang.StrictMath", "acos(double)", "true", "DOUBLE"},
-			{"ASIN", "DOUBLE", "java.lang.StrictMath", "asin(double)",  "true", "DOUBLE"},
-			{"ATAN", "DOUBLE", "java.lang.StrictMath", "atan(double)",  "true", "DOUBLE"},
-            {"ATAN2", "DOUBLE", "java.lang.StrictMath", "atan2(double,double)",  "true", "DOUBLE", "DOUBLE"},
-			{"COS", "DOUBLE", "java.lang.StrictMath", "cos(double)",  "true", "DOUBLE"},
-			{"SIN", "DOUBLE", "java.lang.StrictMath", "sin(double)",  "true", "DOUBLE"},
-			{"TAN", "DOUBLE", "java.lang.StrictMath", "tan(double)",  "true", "DOUBLE"},
-            {"PI", "DOUBLE", "org.apache.derby.catalog.SystemProcedures", "PI()", "true"},
-            {"DEGREES", "DOUBLE", "java.lang.StrictMath", "toDegrees(double)", "true", "DOUBLE"},
-			{"RADIANS", "DOUBLE", "java.lang.StrictMath", "toRadians(double)",  "true", "DOUBLE"},
-			{"LN", "DOUBLE", "java.lang.StrictMath", "log(double)",  "true", "DOUBLE"},
-			{"LOG", "DOUBLE", "java.lang.StrictMath", "log(double)",  "true", "DOUBLE"}, // Same as LN
-			{"LOG10", "DOUBLE", "org.apache.derby.catalog.SystemProcedures", "LOG10(double)",  "true", "DOUBLE"},
-			{"EXP", "DOUBLE", "java.lang.StrictMath", "exp(double)",  "true", "DOUBLE"},
-			{"CEIL", "DOUBLE", "java.lang.StrictMath", "ceil(double)",  "true", "DOUBLE"},
-			{"CEILING", "DOUBLE", "java.lang.StrictMath", "ceil(double)",  "true", "DOUBLE"}, // Same as CEIL
-			{"FLOOR", "DOUBLE", "java.lang.StrictMath", "floor(double)",  "true", "DOUBLE"},
-			{"SIGN", "INTEGER", "org.apache.derby.catalog.SystemProcedures", "SIGN(double)",  "true", "DOUBLE"},
-            {"RANDOM", "DOUBLE", "java.lang.StrictMath", "random()",  "false" },
-			{"RAND", "DOUBLE", "org.apache.derby.catalog.SystemProcedures", "RAND(int)",  "false", "INTEGER"}, // Escape function spec.
-			{"COT", "DOUBLE", "org.apache.derby.catalog.SystemProcedures", "COT(double)",  "true", "DOUBLE"},
-			{"COSH", "DOUBLE", "org.apache.derby.catalog.SystemProcedures", "COSH(double)",  "true", "DOUBLE"},
-			{"SINH", "DOUBLE", "org.apache.derby.catalog.SystemProcedures", "SINH(double)",  "true", "DOUBLE"},
-			{"TANH", "DOUBLE", "org.apache.derby.catalog.SystemProcedures", "TANH(double)",  "true", "DOUBLE"}
-	};
-	
-
-    /**
-     * Index into SYSFUN_FUNCTIONS of the DETERMINISTIC indicator.
-     * Used to determine whether the system function is DETERMINISTIC
-     */
-    private static final int SYSFUN_DETERMINISTIC_INDEX =  4;
-
-    /**
-     * The index of the first parameter in entries in the SYSFUN_FUNCTIONS
-     * table. Used to determine the parameter count (zero to many).
-     */
-    private static final int SYSFUN_FIRST_PARAMETER_INDEX =  5;
+public class DataDictionaryImpl extends BaseDataDictionary {
 
 	/**
 	 * Runtime definition of the functions from SYSFUN_FUNCTIONS.
 	 * Populated dynamically as functions are called.
 	 */
-	private final AliasDescriptor[] sysfunDescriptors =
-		new AliasDescriptor[SYSFUN_FUNCTIONS.length];
+	private final AliasDescriptor[] sysfunDescriptors = new AliasDescriptor[SYSFUN_FUNCTIONS.length];
 
 	// the structure that holds all the core table info
 	private TabInfoImpl[] coreInfo;
@@ -301,61 +180,10 @@ public class DataDictionaryImpl
 	private SchemaDescriptor sysIBMSchemaDesc;
 	private SchemaDescriptor declaredGlobalTemporaryTablesSchemaDesc;
 	private SchemaDescriptor systemUtilSchemaDesc;
-    
-	// This array of non-core table names *MUST* be in the same order
-	// as the non-core table numbers in DataDictionary.
-	private static final String[] nonCoreNames = {
-									"SYSCONSTRAINTS",
-									"SYSKEYS",
-									"SYSDEPENDS",
-									"SYSALIASES",
-									"SYSVIEWS",
-									"SYSCHECKS",
-									"SYSFOREIGNKEYS",
-									"SYSSTATEMENTS",
-									"SYSFILES",
-									"SYSTRIGGERS",
-									"SYSSTATISTICS",
-									"SYSDUMMY1",
-                                    "SYSTABLEPERMS",
-                                    "SYSCOLPERMS",
-                                    "SYSROUTINEPERMS",
-									"SYSROLES",
-                                    "SYSSEQUENCES",
-                                    "SYSPERMS",
-                                    "SYSUSERS"
-                                    };
-
-	private	static final int		NUM_NONCORE = nonCoreNames.length;
-
-    /**
-     * List of all "system" schemas
-     * <p>
-     * This list should contain all schema's used by the system and are
-     * created when the database is created.  Users should not be able to
-     * create or drop these schema's and should not be able to create or
-     * drop objects in these schema's.  This list is used by code that
-     * needs to check if a particular schema is a "system" schema.
-     **/
-    private static final String[] systemSchemaNames = {
-        SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME,
-        SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,
-        SchemaDescriptor.IBM_SYSTEM_PROC_SCHEMA_NAME,
-        SchemaDescriptor.IBM_SYSTEM_STAT_SCHEMA_NAME,
-        SchemaDescriptor.IBM_SYSTEM_NULLID_SCHEMA_NAME,
-        SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME,
-        SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,
-        SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,
-        SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,
-        SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME
-    };
-        
-
 	/** Dictionary version of the on-disk database */
 	private DD_Version  dictionaryVersion;
 	/** Dictionary version of the currently running engine */
 	private DD_Version  softwareVersion;
-
 	private String authorizationDatabaseOwner;
 	private boolean usesSqlAuthorization;
 
@@ -454,26 +282,6 @@ public class DataDictionaryImpl
 	private GregorianCalendar calendarForLastSystemSQLName = new GregorianCalendar();
 	private long timeForLastSystemSQLName;
 	
-	/**
-	 * List of procedures in SYSCS_UTIL schema with PUBLIC access
-	 */
-	private static final String[] sysUtilProceduresWithPublicAccess = { 
-												"SYSCS_SET_RUNTIMESTATISTICS", 
-												"SYSCS_SET_STATISTICS_TIMING", 
-												"SYSCS_INPLACE_COMPRESS_TABLE",
-												"SYSCS_COMPRESS_TABLE",
-												"SYSCS_UPDATE_STATISTICS",
-												"SYSCS_MODIFY_PASSWORD",
-												"SYSCS_DROP_STATISTICS", 
-												};
-	
-	/**
-	 * List of functions in SYSCS_UTIL schema with PUBLIC access
-	 */
-	private static final String[] sysUtilFunctionsWithPublicAccess = { 
-												"SYSCS_GET_RUNTIMESTATISTICS", 
-												"SYSCS_PEEK_AT_SEQUENCE",
-												};
 	
 	/**
 	 * Collation Type for SYSTEM schemas. In Derby 10.3, this will always 
@@ -511,8 +319,7 @@ public class DataDictionaryImpl
 	  @return true if this service requested is for a database engine.
 	  */
 
-	public boolean canSupport(Properties startParams)
-	{
+	public boolean canSupport(Properties startParams) {
         return Monitor.isDesiredType(startParams, EngineType.STANDALONE_DB);
 	}
 
@@ -523,17 +330,11 @@ public class DataDictionaryImpl
 	 *
 	 *	@exception StandardException	Thrown if the module fails to start
 	 */
-	public final void boot(boolean create, Properties startParams)
-			throws StandardException
-	{
+	public final void boot(boolean create, Properties startParams) throws StandardException {
 		softwareVersion = new DD_Version(this, DataDictionary.DD_VERSION_DERBY_10_9);
-
 		startupParameters = startParams;
-
 		uuidFactory = Monitor.getMonitor().getUUIDFactory();
-
 		engineType = Monitor.getEngineType( startParams );
-
 		//Set the collation type of system schemas before we start loading 
 		//built-in schemas's SchemaDescriptor(s). This is because 
 		//SchemaDescriptor will look to DataDictionary to get the correct 
@@ -567,10 +368,7 @@ public class DataDictionaryImpl
 		{ dataDescriptorGenerator = new DataDescriptorGenerator( this ); }
 
 		if (!create) {
-
-
 			// SYSTABLES
-
 			coreInfo[SYSTABLES_CORE_NUM].setHeapConglomerate(
 					getBootParameter(startParams, CFG_SYSTABLES_ID, true));
 
@@ -687,8 +485,7 @@ public class DataDictionaryImpl
 				tdCacheSize,
 				tdCacheSize);
 
-		if (stmtCacheSize > 0)
-		{
+		if (stmtCacheSize > 0) {
 			spsNameCache =
 				cf.newCacheManager(this,
 					"SPSNameDescriptorCache",
@@ -782,7 +579,6 @@ public class DataDictionaryImpl
 			if (create) {
 				String userName = IdUtil.getUserNameFromURLProps(startParams);
 				authorizationDatabaseOwner = IdUtil.getUserAuthorizationId(userName);
-
                 HashSet newlyCreatedRoutines = new HashSet();
                 
 				// create any required tables.
@@ -807,12 +603,10 @@ public class DataDictionaryImpl
 				/* Set properties for current and create time 
 				 * DataDictionary versions.
 				 */
-				bootingTC.setProperty(
-                    DataDictionary.CORE_DATA_DICTIONARY_VERSION,
+				bootingTC.setProperty(DataDictionary.CORE_DATA_DICTIONARY_VERSION,
                     dictionaryVersion, true);
 
-				bootingTC.setProperty(
-                    DataDictionary.CREATE_DATA_DICTIONARY_VERSION,
+				bootingTC.setProperty(DataDictionary.CREATE_DATA_DICTIONARY_VERSION,
                     dictionaryVersion, true);
 
                 //
@@ -821,12 +615,10 @@ public class DataDictionaryImpl
                 //
                 // We also turn on SqlAuthorization if NATIVE authentication has been specified.
                 //
-				if ( PropertyUtil.getSystemBoolean(Property.SQL_AUTHORIZATION_PROPERTY) )
-				{
+				if ( PropertyUtil.getSystemBoolean(Property.SQL_AUTHORIZATION_PROPERTY) ) {
 					bootingTC.setProperty(Property.SQL_AUTHORIZATION_PROPERTY,"true",true);
 				}
-				if ( PropertyUtil.getSystemBoolean(Property.SQL_AUTHORIZATION_PROPERTY) || nativeAuthenticationEnabled )
-				{
+				if ( PropertyUtil.getSystemBoolean(Property.SQL_AUTHORIZATION_PROPERTY) || nativeAuthenticationEnabled ) {
 					usesSqlAuthorization=true;
 				}
 
@@ -7676,8 +7468,7 @@ public class DataDictionaryImpl
 	 *
 	 * @return UUIDFactory	The UUID Factory for this DataDictionary.
 	 */
-	public UUIDFactory getUUIDFactory()
-	{
+	public UUIDFactory getUUIDFactory() {
 		return uuidFactory;
 	}
 
@@ -8083,18 +7874,56 @@ public class DataDictionaryImpl
 
 		@exception StandardException Standard Derby error policy
 	*/
+	
+
+	
+	protected class NonCoreCreation implements Runnable { 
+		private int noncoreCtr;
+		private TransactionController tc;
+		private ExecutionContext ec;
+		public NonCoreCreation(int noncoreCtr, TransactionController tc,ExecutionContext ec) {
+			this.noncoreCtr = noncoreCtr;
+			this.tc = tc;
+			this.ec = ec;
+		}
+		public void run() {
+			try {
+				ContextManager cm  = ContextService.getFactory().newContextManager();
+				cm.pushContext(ec);	
+				ContextService.getFactory().setCurrentContextManager(cm);
+				int catalogNumber = noncoreCtr + NUM_CORE;
+				boolean isDummy = (catalogNumber == SYSDUMMY1_CATALOG_NUM);
+				TabInfoImpl ti = getNonCoreTIByNumber(catalogNumber);
+				makeCatalog(ti, isDummy ? sysIBMSchemaDesc : systemSchemaDesc, tc );
+				if (isDummy)
+					populateSYSDUMMY1(tc);
+				// Clear the table entry for this non-core table,
+				// to allow it to be garbage-collected. The idea
+				// is that a running database might never need to
+				// reference a non-core table after it was created.
+				clearNoncoreTable(noncoreCtr);
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.out.println("Dictionary Table Failure - exiting");
+				System.exit(1);
+			}
+		}
+		
+	
+	}
+
+	
+	
+	
 	protected void createDictionaryTables(Properties params, TransactionController tc,
-			DataDescriptorGenerator ddg)
-					throws StandardException
-	{
+			DataDescriptorGenerator ddg) throws StandardException {
         /*
 		** Create a new schema descriptor -- with no args
 		** creates the system schema descriptor in which 
 		** all tables reside (SYS)
 		*/
 		systemSchemaDesc =
-          newSystemSchemaDesc(
-                  SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME, 
+          newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME, 
                   SchemaDescriptor.SYSTEM_SCHEMA_UUID);
 
 		/* Create the core tables and generate the UUIDs for their
@@ -8102,31 +7931,27 @@ public class DataDictionaryImpl
 		 * RESOLVE - This loop will eventually drive all of the
 		 * work for creating the core tables.
 		 */
-		for (int coreCtr = 0; coreCtr < NUM_CORE; coreCtr++)
-		{
-			TabInfoImpl	ti = coreInfo[coreCtr];
-
-			Properties	heapProperties = ti.getCreateHeapProperties();
-
-			ti.setHeapConglomerate(
-				createConglomerate(
-							ti.getTableName(),
-							tc,
-							ti.getCatalogRowFactory().makeEmptyRow(),
-							heapProperties
-							)
-				);
-
-			// bootstrap indexes on core tables before bootstraping the tables themselves
-			if (coreInfo[coreCtr].getNumberOfIndexes() > 0)
-			{
+		ExecutionContext ec = (ExecutionContext)
+				ContextService.getContext(ExecutionContext.CONTEXT_ID);
+				
+		ExecutorService executor = Executors.newFixedThreadPool(4);
+		for (int coreCtr = 0; coreCtr < NUM_CORE; coreCtr++) {
+			executor.execute(new CoreCreation(coreCtr,tc,ddg,ec));
+		}
+		executor.shutdown();
+	    // Wait until all threads are finish
+	    while (!executor.isTerminated()) {
+	    }
+		for (int coreCtr = 0; coreCtr < NUM_CORE; coreCtr++) {	
+		// bootstrap indexes on core tables before bootstraping the tables themselves
+			if (coreInfo[coreCtr].getNumberOfIndexes() > 0) {
+				TabInfoImpl			ti = coreInfo[coreCtr];
 				bootStrapSystemIndexes(systemSchemaDesc, tc, ddg, ti);
 			}
 		}
-
+		
 		// bootstrap the core tables into the data dictionary
-		for ( int ictr = 0; ictr < NUM_CORE; ictr++ )
-		{
+		for ( int ictr = 0; ictr < NUM_CORE; ictr++ ) {
 			/* RESOLVE - need to do something with COLUMNTYPE in following table creating code */
 			TabInfoImpl			ti = coreInfo[ictr];
 
@@ -8206,28 +8031,18 @@ public class DataDictionaryImpl
 		 * RESOLVE - This loop will eventually drive all of the
 		 * work for creating the non-core tables.
 		 */
-		for (int noncoreCtr = 0; noncoreCtr < NUM_NONCORE; noncoreCtr++)
-		{
-			int catalogNumber = noncoreCtr + NUM_CORE;
-			boolean isDummy = (catalogNumber == SYSDUMMY1_CATALOG_NUM);
-
-			TabInfoImpl ti = getNonCoreTIByNumber(catalogNumber);
-
-			makeCatalog(ti, isDummy ? sysIBMSchemaDesc : systemSchemaDesc, tc );
-
-			if (isDummy)
-				populateSYSDUMMY1(tc);
-
-			// Clear the table entry for this non-core table,
-			// to allow it to be garbage-collected. The idea
-			// is that a running database might never need to
-			// reference a non-core table after it was created.
-			clearNoncoreTable(noncoreCtr);
+		ExecutorService nonCoreExecutor = Executors.newFixedThreadPool(10);
+		for (int noncoreCtr = 0; noncoreCtr < NUM_NONCORE; noncoreCtr++) {
+			nonCoreExecutor.execute(new NonCoreCreation(noncoreCtr,tc,ec));
 		}
 
+		nonCoreExecutor.shutdown();
+	    while (!nonCoreExecutor.isTerminated()) {
+
+	    }
+		
 		//Add ths System Schema
-		addDescriptor(
-                systemSchemaDesc, null, SYSSCHEMAS_CATALOG_NUM, false, tc);
+		addDescriptor(systemSchemaDesc, null, SYSSCHEMAS_CATALOG_NUM, false, tc);
 
 
         // Add the following system Schema's to be compatible with DB2, 
@@ -8285,8 +8100,7 @@ public class DataDictionaryImpl
                                         SchemaDescriptor.STD_DEFAULT_SCHEMA_NAME,
                                         SchemaDescriptor.DEFAULT_USER_NAME,
                                         uuidFactory.recreateUUID( SchemaDescriptor.DEFAULT_SCHEMA_UUID),
-                                        false);
-  
+                                        false);  
   		addDescriptor(appSchemaDesc, null, SYSSCHEMAS_CATALOG_NUM, false, tc);
 	}
 
@@ -8836,8 +8650,7 @@ public class DataDictionaryImpl
 
 		for (int indexCtr = 0; indexCtr < ti.getNumberOfIndexes(); indexCtr++)
 		{
-			addDescriptor(cgd[indexCtr], sd, 
-						  SYSCONGLOMERATES_CATALOG_NUM, false, tc);
+			addDescriptor(cgd[indexCtr], sd, SYSCONGLOMERATES_CATALOG_NUM, false, tc);
 		}
 	}
 
@@ -9249,8 +9062,7 @@ public class DataDictionaryImpl
 		@exception StandardException Standard Derby error policy.
 	 */
 	private long createConglomerate(String name, TransactionController tc,
-									ExecRow rowTemplate,
-									Properties properties)
+									ExecRow rowTemplate, Properties properties)
 						throws StandardException
 	{
 		long				conglomId;
@@ -9262,7 +9074,6 @@ public class DataDictionaryImpl
             null, // default collation ids
 			properties, // default properties
 			TransactionController.IS_DEFAULT); // not temporary
-
 		return conglomId;
 	}
 
@@ -9272,8 +9083,7 @@ public class DataDictionaryImpl
 	  *	@return	the UUID converted to an DataValueDescriptor
 	 *
 	 */
-	protected static SQLChar getIDValueAsCHAR(UUID uuid)
-	{
+	protected static SQLChar getIDValueAsCHAR(UUID uuid) {
 		String	uuidString = uuid.toString();
 		return 	new SQLChar(uuidString);
 	}
@@ -9282,9 +9092,7 @@ public class DataDictionaryImpl
 	  *	Initialize catalog information. This method is overridden by children.
 	  * @exception StandardException		Thrown on error
 	  */
-	public	void	initializeCatalogInfo()
-		throws StandardException
-	{
+	public	void	initializeCatalogInfo() throws StandardException {
 		initializeCoreInfo();
 		initializeNoncoreInfo();
 	}
@@ -9292,13 +9100,9 @@ public class DataDictionaryImpl
 	/**
 	 * Initialized the core info array.
 	 */
-	private void initializeCoreInfo()
-		throws StandardException
-	{
+	private void initializeCoreInfo() throws StandardException {
 		TabInfoImpl[] lcoreInfo = coreInfo = new TabInfoImpl[NUM_CORE];
-
 		UUIDFactory luuidFactory = uuidFactory;
-
 		lcoreInfo[SYSTABLES_CORE_NUM] = 
 			new TabInfoImpl(new SYSTABLESRowFactory(luuidFactory, exFactory, dvf));
 		lcoreInfo[SYSCOLUMNS_CORE_NUM] = 
@@ -9312,8 +9116,7 @@ public class DataDictionaryImpl
 	/**
 	 * Initialized the noncore info array.
 	 */
-	private void initializeNoncoreInfo()
-	{
+	private void initializeNoncoreInfo() {
 		noncoreInfo = new TabInfoImpl[NUM_NONCORE];
 	}
 
@@ -9328,21 +9131,15 @@ public class DataDictionaryImpl
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public TransactionController getTransactionCompile()
-		throws StandardException
-	{
-		if (bootingTC != null)
-		{
-			if (SanityManager.DEBUG)
-			{
+	public TransactionController getTransactionCompile() throws StandardException {
+		if (bootingTC != null) {
+			if (SanityManager.DEBUG) {
 				SanityManager.ASSERT(booting, "booting is expected to be true");
 			}
 			return bootingTC;
 		}
-		else
-		{
-			if (SanityManager.DEBUG)
- 			{
+		else {
+			if (SanityManager.DEBUG) {
 				SanityManager.ASSERT(! booting, "booting is expected to be false");
 			}
 
@@ -14337,4 +14134,42 @@ public class DataDictionaryImpl
             int formatId, byte[] columnBitMap) {
         return new DDColumnDependableFinder(formatId, columnBitMap);
     }
+    
+	protected class CoreCreation implements Runnable { 
+		private int coreCtr;
+		private TransactionController tc;
+		private DataDescriptorGenerator ddg;
+		private ExecutionContext ec;
+		public CoreCreation(int coreCtr, TransactionController tc, DataDescriptorGenerator ddg, ExecutionContext ec) {
+			this.coreCtr = coreCtr;
+			this.tc = tc;
+			this.ddg = ddg;
+			this.ec = ec;
+		}
+		public void run() {
+			try {
+				ContextManager cm  = ContextService.getFactory().newContextManager();
+				cm.pushContext(ec);	
+				ContextService.getFactory().setCurrentContextManager(cm);
+				TabInfoImpl	ti = coreInfo[coreCtr];
+				Properties	heapProperties = ti.getCreateHeapProperties();
+				ti.setHeapConglomerate(
+					createConglomerate(
+								ti.getTableName(),
+								tc,
+								ti.getCatalogRowFactory().makeEmptyRow(),
+								heapProperties
+								)
+					);
+	
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.out.println("Dictionary Table Failure - exiting " + coreCtr);
+				System.exit(1);
+			}
+		}
+		
+	
+	}
+
 }
