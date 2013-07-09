@@ -35,7 +35,8 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     private final boolean includeUncommittedAsOfStart;
 
     private final FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> rowState;
-    private final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> keyValue;
+    final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> keyValue;
+    KeyValueType type;
 
     private final TransactionSource transactionSource;
 
@@ -70,9 +71,14 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
      * The order of the column families is important. It is expected that the SI family will be processed first.
      */
     Filter.ReturnCode filterKeyValue(KeyValue dataKeyValue) throws IOException {
+        setKeyValue(dataKeyValue);
+        return filterByColumnType();
+    }
+
+    void setKeyValue(KeyValue dataKeyValue) {
         keyValue.setKeyValue(dataKeyValue);
         rowState.updateCurrentRow(keyValue);
-        return filterByColumnType();
+        type = dataStore.getKeyValueType(keyValue.family(), keyValue.qualifier(), keyValue.value());
     }
 
     void nextRow() {
@@ -82,11 +88,10 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     /**
      * Look at the column family and qualifier to determine how to "dispatch" the current keyValue.
      */
-    private Filter.ReturnCode filterByColumnType() throws IOException {
+    Filter.ReturnCode filterByColumnType() throws IOException {
         if (rowState.inData) {
             return processUserDataShortCircuit();
         }
-        final KeyValueType type = dataStore.getKeyValueType(keyValue.family(), keyValue.qualifier(), keyValue.value());
         if (type.equals(KeyValueType.TOMBSTONE)) {
             return processTombstone();
         } else if (type.equals(KeyValueType.ANTI_TOMBSTONE)) {

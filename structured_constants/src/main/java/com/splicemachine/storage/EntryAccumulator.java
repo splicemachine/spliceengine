@@ -7,7 +7,7 @@ import java.util.BitSet;
  * @author Scott Fines
  * Created on: 7/8/13
  */
-class EntryAccumulator {
+public class EntryAccumulator {
     private BitSet remainingFields;
     private BitSet allFields;
 

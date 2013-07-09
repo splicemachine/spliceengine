@@ -173,6 +173,11 @@ class DenseCompressedBitIndex implements BitIndex {
     }
 
     @Override
+    public BitSet and(BitSet bitSet) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public int cardinality() {
         return bitSet.cardinality();
     }
