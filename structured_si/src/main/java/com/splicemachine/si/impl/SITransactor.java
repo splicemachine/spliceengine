@@ -656,6 +656,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                 } else {
                     familyToSkip = null;
                     qualifierToSkip = null;
+                    boolean nextRow = false;
                     Filter.ReturnCode returnCode = filterKeyValue(filterState, keyValue);
                     switch (returnCode) {
                         case SKIP:
@@ -667,6 +668,12 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                             qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
                             familyToSkip = dataLib.getKeyValueFamily(keyValue);
                             break;
+                        case NEXT_ROW:
+                            nextRow = true;
+                            break;
+                    }
+                    if (nextRow) {
+                        break;
                     }
                 }
             }

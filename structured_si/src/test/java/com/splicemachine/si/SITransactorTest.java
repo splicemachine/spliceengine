@@ -1254,7 +1254,16 @@ public class SITransactorTest extends SIConstants {
                 "139moe age=-1 job=null[ S.TX@~9 V.age@~9=-1 ]\n" +
                 "139toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
                 "139xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
-        Assert.assertEquals(expected, scanAll(t3, "139a", "139z", null, true));
+
+        final String actual = scanAll(t3, "139a", "139z", null, true);
+        if (usePacked) {
+            expected = "139boe age=40 job=null[ S.TX@~9 V.age@~9=40 ]\n" +
+                    "139joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
+                    "139moe age=null job=null[ S.TX@~9 ]\n" +
+                    "139toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
+                    "139xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
+        }
+        Assert.assertEquals(expected, actual);
     }
 
     @Test
