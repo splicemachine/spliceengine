@@ -14,6 +14,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -62,6 +63,7 @@ public class TableScanOperation extends ScanOperation {
 	}
 
     private boolean shouldContinue = true;
+    private MultiFieldDecoder rowDecoder;
 
 
     public TableScanOperation() {
@@ -209,10 +211,13 @@ public class TableScanOperation extends ScanOperation {
 				currentRow = null;
 				currentRowLocation = null;
 			} else {
+                if(rowDecoder==null)
+                    rowDecoder = MultiFieldDecoder.create();
                 DataValueDescriptor[] fields = currentRow.getRowArray();
                 if (fields.length != 0) {
                 	for(KeyValue kv:keyValues){
-                		RowMarshaller.mappedColumnar().decode(kv,fields,baseColumnMap,null);
+                        //should only be 1
+                		RowMarshaller.packed().decode(kv,fields,null,rowDecoder);
                 	}
                 }
                 if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){

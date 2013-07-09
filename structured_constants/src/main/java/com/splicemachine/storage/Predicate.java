@@ -8,7 +8,5 @@ import java.io.Externalizable;
  */
 public interface Predicate extends Externalizable {
 
-    int getColumn();
-
-    boolean match(byte[] data, int offset, int length);
+    boolean match(int column,byte[] data, int offset, int length);
 }

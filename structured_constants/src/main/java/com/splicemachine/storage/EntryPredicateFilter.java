@@ -1,5 +1,6 @@
 package com.splicemachine.storage;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
 
@@ -9,6 +10,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -16,7 +18,7 @@ import java.util.BitSet;
  */
 public class EntryPredicateFilter implements Externalizable{
     private BitSet fieldsToReturn;
-    private Predicate[] valuePredicates;
+    private List<Predicate> valuePredicates;
 
     /**
      * Used for Serialization, DO NOT USE
@@ -24,8 +26,9 @@ public class EntryPredicateFilter implements Externalizable{
     @Deprecated
     public EntryPredicateFilter(){}
 
-    public EntryPredicateFilter(BitSet fieldsToReturn){
+    public EntryPredicateFilter(BitSet fieldsToReturn, List<Predicate> predicates){
         this.fieldsToReturn = fieldsToReturn;
+        this.valuePredicates = predicates;
     }
 
     public boolean match(EntryDecoder entry,EntryAccumulator accumulator) throws IOException {
@@ -46,10 +49,8 @@ public class EntryPredicateFilter implements Externalizable{
             int limit = decoder.offset()-offset;
 
             for(Predicate valuePredicate : valuePredicates){
-                if(valuePredicate.getColumn()==encodedPos){
-                    if(!valuePredicate.match(decoder.array(), offset,limit)){
-                        return false;
-                    }
+                if(!valuePredicate.match(encodedPos,decoder.array(), offset,limit)){
+                    return false;
                 }
             }
             accumulator.add(encodedPos,ByteBuffer.wrap(decoder.array(), offset,limit));
@@ -60,11 +61,20 @@ public class EntryPredicateFilter implements Externalizable{
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(fieldsToReturn);
+        out.writeInt(valuePredicates.size());
+        for (Predicate valuePredicate : valuePredicates) {
+            out.writeObject(valuePredicate);
+        }
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         fieldsToReturn = (BitSet)in.readObject();
+        int size = in.readInt();
+        valuePredicates = Lists.newArrayListWithCapacity(size);
+        for(int i=0;i<size;i++){
+            valuePredicates.add((Predicate)in.readObject());
+        }
     }
 
     public EntryAccumulator newAccumulator(){

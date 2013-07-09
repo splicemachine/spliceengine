@@ -25,12 +25,8 @@ public class NullPredicate implements Predicate{
     }
 
     @Override
-    public int getColumn() {
-        return column;
-    }
-
-    @Override
-    public boolean match(byte[] data, int offset, int length) {
+    public boolean match(int column,byte[] data, int offset, int length) {
+        if(this.column!=column) return true; //not the right column, don't worry about it
         if(equals){
             //make sure data is null--either data itself is null, or length==0
             return data == null || length == 0;

@@ -33,12 +33,9 @@ public class ValuePredicate implements Predicate {
     }
 
     @Override
-    public int getColumn(){
-        return column;
-    }
+    public boolean match(int column,byte[] data, int offset, int length){
+        if(this.column!=column) return true; //no need to perform anything, because it isn't the correct column
 
-    @Override
-    public boolean match(byte[] data, int offset, int length){
         if(data==null||length==0){
             /*
              * The value passed in was null. Some comparisons can still be done, but numerical ones (for example)

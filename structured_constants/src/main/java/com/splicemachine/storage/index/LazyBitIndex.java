@@ -54,12 +54,23 @@ abstract class LazyBitIndex implements BitIndex{
 
     @Override
     public int nextSetBit(int position) {
-        decodeUntil(position);
-        int count=0;
-        for(int i=decodedBits.nextSetBit(0);i>=0;i=decodedBits.nextSetBit(i+1)){
-            count++;
-        }
-        return count;
+        //try and get the next item out of decodedBits first
+        int val = decodedBits.nextSetBit(position);
+        if(val>=0) return val;
+
+        //try decoding some more
+        int i;
+        do{
+            i = decodeNext();
+            if(i<0) break;
+
+            decodedBits.set(i);
+            if(i>position)
+                return i;
+        }while(i>=0);
+
+        //couldn't find any entries
+        return -1;
     }
 
     @Override
@@ -71,7 +82,11 @@ abstract class LazyBitIndex implements BitIndex{
     @Override
     public int cardinality(int position) {
         decodeUntil(position);
-        return decodedBits.cardinality();
+        int count=0;
+        for(int i=decodedBits.nextSetBit(0);i>=0;i=decodedBits.nextSetBit(i+1)){
+            count++;
+        }
+        return count;
     }
 
     @Override
