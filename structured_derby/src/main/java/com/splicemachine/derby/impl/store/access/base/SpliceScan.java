@@ -7,7 +7,6 @@ import com.splicemachine.derby.impl.sql.execute.ParallelScan;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.EncodingUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -15,6 +14,7 @@ import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -58,6 +58,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	protected String tableName;
     private int[] rowColumns;
     private MultiFieldDecoder fieldDecoder;
+    private EntryEncoder entryEncoder;
 
     public SpliceScan() {
 		if (LOG.isTraceEnabled())

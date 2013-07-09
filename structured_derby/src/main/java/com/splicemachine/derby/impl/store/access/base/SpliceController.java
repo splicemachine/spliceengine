@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access.base;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -8,6 +9,7 @@ import com.splicemachine.derby.utils.EncodingUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -33,6 +35,8 @@ public abstract class SpliceController implements ConglomerateController {
 	protected OpenSpliceConglomerate openSpliceConglomerate;
 	protected Transaction trans;
 	protected String transID;
+
+    protected EntryEncoder entryEncoder;
 	
 	public SpliceController() {}
 
@@ -154,7 +158,7 @@ public abstract class SpliceController implements ConglomerateController {
             if(result==null||result.isEmpty()) return false;
             for(KeyValue kv:result.raw()){
                 MultiFieldDecoder decoder = MultiFieldDecoder.create();
-                RowMarshaller.packed().decode(kv, destRow, null, decoder);
+                RowMarshaller.sparsePacked().decode(kv, destRow, null, decoder);
             }
 			return true;
 		} catch (Exception e) {
