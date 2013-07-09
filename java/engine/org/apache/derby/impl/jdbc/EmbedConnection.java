@@ -1315,6 +1315,7 @@ public abstract class EmbedConnection implements EngineConnection
 	 *            (which is also stored in CNF).
 	 */
 	private void checkUserIsNotARole() throws SQLException {
+		/*
 		TransactionResourceImpl tr = getTR();
 
 		try {
@@ -1352,6 +1353,7 @@ public abstract class EmbedConnection implements EngineConnection
 
 			throw handleException(e);
 		}
+		*/
 	}
 
 	/* Enumerate operations controlled by database owner powers */
