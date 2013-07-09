@@ -148,28 +148,28 @@ public class SITransactorTest extends SIConstants {
 
         Object key = dataLib.newRowKey(new Object[]{name});
         Object put = dataLib.newPut(key);
-        if (usePacked && !useSimple) {
-            int columnIndex;
-            if (dataLib.valuesEqual(qualifier, transactorSetup.ageQualifier)) {
-                columnIndex = 0;
-            } else if (dataLib.valuesEqual(qualifier, transactorSetup.ageQualifier)) {
-                columnIndex = 1;
+        if (fieldValue != null) {
+            if (usePacked && !useSimple) {
+                int columnIndex;
+                if (dataLib.valuesEqual(qualifier, transactorSetup.ageQualifier)) {
+                    columnIndex = 0;
+                } else if (dataLib.valuesEqual(qualifier, transactorSetup.jobQualifier)) {
+                    columnIndex = 1;
+                } else {
+                    throw new RuntimeException("unknown qualifier");
+                }
+                final BitSet bitSet = new BitSet();
+                bitSet.set(columnIndex);
+                final EntryEncoder entryEncoder = EntryEncoder.create(2, bitSet);
+                if (columnIndex == 0) {
+                    entryEncoder.getEntryEncoder().encodeNext((Integer) fieldValue);
+                } else {
+                    entryEncoder.getEntryEncoder().encodeNext((String) fieldValue);
+                }
+                final byte[] packedRow = entryEncoder.encode();
+                dataLib.addKeyValueToPut(put, transactorSetup.family, dataLib.encode("x"), null, packedRow);
             } else {
-                throw new RuntimeException("unknown qualifier");
-            }
-            final BitSet bitSet = new BitSet();
-            bitSet.set(columnIndex);
-            final EntryEncoder entryEncoder = EntryEncoder.create(2, bitSet);
-            if (columnIndex == 0) {
-                entryEncoder.getEntryEncoder().encodeNext((Integer) fieldValue);
-            } else {
-                entryEncoder.getEntryEncoder().encodeNext((String) fieldValue);
-            }
-            final byte[] packedRow = entryEncoder.encode();
-            dataLib.addKeyValueToPut(put, transactorSetup.family, dataLib.encode("x"), null, packedRow);
-        } else {
-            if (fieldValue != null) {
-                dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
+                    dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
             }
         }
         transactorSetup.clientTransactor.initializePut(transactionId.getTransactionIdString(), put);

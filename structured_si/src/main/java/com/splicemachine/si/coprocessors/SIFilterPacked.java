@@ -80,6 +80,11 @@ public class SIFilterPacked extends FilterBase {
 
     @Override
     public void filterRow(List<KeyValue> keyValues) {
+        try {
+            initFilterStateIfNeeded();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         final KeyValue accumulatedValue = filterState.produceAccumulatedKeyValue();
         if (accumulatedValue != null) {
            keyValues.add(accumulatedValue);
