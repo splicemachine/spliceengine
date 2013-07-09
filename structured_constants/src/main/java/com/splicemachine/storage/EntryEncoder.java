@@ -66,6 +66,7 @@ public class EntryEncoder {
 
     public void reset(BitSet newIndex){
         //save effort if they are the same
+        int oldCardinality = bitIndex.cardinality();
         boolean differs=false;
         for(int i=newIndex.nextSetBit(0);i>=0;i=newIndex.nextSetBit(i+1)){
             if(!bitIndex.isSet(i)){
@@ -77,7 +78,10 @@ public class EntryEncoder {
             bitIndex = getBitIndex(newIndex);
         }
 
-        encoder.reset();
+        if(oldCardinality==bitIndex.cardinality())
+            encoder.reset();
+        else
+            encoder = MultiFieldEncoder.create(bitIndex.cardinality());
     }
 
     public static EntryEncoder create(int numCols,int[] setCols){

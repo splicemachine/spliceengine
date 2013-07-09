@@ -57,16 +57,18 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
     @Override
     public BitSet getRemainingFields() {
         BitSet bitSet = new BitSet();
-        for(int i=0;i<fields.length;i++){
-            if(fields[i]==null)
-                bitSet.set(i);
+        if(fields!=null){
+            for(int i=0;i<fields.length;i++){
+                if(fields[i]==null)
+                    bitSet.set(i);
+            }
         }
         /*
          * We always want an entry, because we want to ensure that we run until the entire row is
          * populated, which means running until the end of all versions.
          */
         if(bitSet.cardinality()==0){
-            bitSet.set(0);
+            bitSet.set(0,1024);
         }
         return bitSet;
     }

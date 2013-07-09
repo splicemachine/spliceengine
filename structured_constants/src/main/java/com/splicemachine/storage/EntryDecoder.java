@@ -85,6 +85,8 @@ public class EntryDecoder {
             }
         }
 
+        if(stop>data.length)
+            stop = data.length;
         int length = stop-start;
         byte[] retData = new byte[length];
         System.arraycopy(data,start,retData,0,length);
