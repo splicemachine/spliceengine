@@ -235,8 +235,7 @@ public class ImmutableTransaction {
             if (et1.isAncestorOf(et2)) {
                 return ConflictType.CHILD;
             }
-            return (met2.getEffectiveCommitTimestamp(shared) > et1.getBeginTimestamp()) &&
-                    !et1.isAncestorOf(et2) ? ConflictType.SIBLING : ConflictType.NONE;
+            return (met2.getEffectiveCommitTimestamp(shared) > et1.getBeginTimestamp()) ? ConflictType.SIBLING : ConflictType.NONE;
         } else if (met2.status.isActive()) {
             if (et1.sameTransaction(et2)
                     || et1.immutableParent.sameTransaction(et2)) {
