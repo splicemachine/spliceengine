@@ -44,11 +44,11 @@ public class EntryDecoder {
            if((headerByte & 0x40)!=0){
                bitIndex = DenseCompressedBitIndex.wrap(data, 0, dataOffset);
            }else{
-               bitIndex = UncompressedBitIndex.wrap(data, 0, dataOffset);
+               bitIndex = BitIndexing.uncompressedBitMap(data, 0, dataOffset);
            }
         }else{
             //sparse index
-            bitIndex = SparseBitIndex.wrap(data, 0, dataOffset);
+            bitIndex = BitIndexing.sparseBitMap(data, 0, dataOffset);
         }
 
         dataOffset++;

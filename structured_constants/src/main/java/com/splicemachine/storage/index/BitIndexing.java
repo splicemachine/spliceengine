@@ -14,8 +14,14 @@ public class BitIndexing {
     }
 
     public static BitIndex uncompressedBitMap(byte[] bytes, int indexOffset, int indexSize){
-        //TODO -sf- construct a more intelligent wrap which does not deserialize the entire
-        //structure
-        return UncompressedBitIndex.wrap(bytes,indexOffset,indexSize);
+        return new UncompressedLazyBitIndex(bytes,indexOffset,indexSize);
+    }
+
+    public static BitIndex sparseBitMap(BitSet set){
+        return SparseBitIndex.create(set);
+    }
+
+    public static BitIndex sparseBitMap(byte[] bytes, int indexOffset, int indexSize){
+        return new SparseLazyBitIndex(bytes,indexOffset,indexSize);
     }
 }

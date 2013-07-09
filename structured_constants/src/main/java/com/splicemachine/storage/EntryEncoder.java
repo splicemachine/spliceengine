@@ -84,14 +84,14 @@ public class EntryEncoder {
             return new EntryEncoder(numCols,new AllFullBitIndex());
         }else{
 
-            BitIndex indexToUse = UncompressedBitIndex.create(setCols);
+            BitIndex indexToUse = BitIndexing.uncompressedBitMap(setCols);
             //see if we can improve space via compression
             BitIndex denseCompressedBitIndex = DenseCompressedBitIndex.compress(setCols);
             if(denseCompressedBitIndex.length() < indexToUse.length()){
                 indexToUse = denseCompressedBitIndex;
             }
             //see if sparse is better
-            SparseBitIndex sparseBitMap = SparseBitIndex.create(setCols);
+            BitIndex sparseBitMap = BitIndexing.sparseBitMap(setCols);
             if(sparseBitMap.length()<indexToUse.length()){
                 indexToUse = sparseBitMap;
             }
