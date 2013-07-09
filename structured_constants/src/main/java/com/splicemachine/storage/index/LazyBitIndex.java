@@ -44,7 +44,7 @@ abstract class LazyBitIndex implements BitIndex{
     }
 
     private void decodeUntil(int pos) {
-        while(decodedBits.length()<pos){
+        while(decodedBits.length()<pos+1){
             int next = decodeNext();
             if(next <0) return; //out of data to decode
 

@@ -38,7 +38,7 @@ public class EncodingUtils {
     public static void encodeRow(DataValueDescriptor[] row, Put put,int[] columns,FormatableBitSet validColumns,EntryEncoder encoder) throws StandardException, IOException {
         encoder.reset(getNonNullColumns(row,validColumns));
 
-        RowMarshaller.packedCompressed().fill(row, columns, encoder.getEntryEncoder());
+        RowMarshaller.sparsePacked().fill(row, columns, encoder.getEntryEncoder());
         put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, encoder.encode());
     }
 }
