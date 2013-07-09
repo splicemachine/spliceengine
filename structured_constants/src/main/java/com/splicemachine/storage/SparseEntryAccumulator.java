@@ -18,7 +18,7 @@ public class SparseEntryAccumulator implements EntryAccumulator {
     SparseEntryAccumulator(BitSet remainingFields) {
         this.allFields = remainingFields;
         this.remainingFields = (BitSet)remainingFields.clone();
-        fields = new ByteBuffer[remainingFields.cardinality()];
+        fields = new ByteBuffer[remainingFields.length()];
     }
 
     @Override
@@ -37,7 +37,35 @@ public class SparseEntryAccumulator implements EntryAccumulator {
 
     @Override
     public byte[] finish(){
-        return BytesUtil.concatenate(fields);
+        int size=0;
+        boolean isFirst=true;
+        for(int i=allFields.nextSetBit(0);i>=0;i=allFields.nextSetBit(i+1)){
+            if(isFirst)isFirst=false;
+            else
+                size++;
+
+            ByteBuffer buffer = fields[i];
+            if(buffer!=null){
+                size+=buffer.remaining();
+            }
+        }
+
+        byte[] bytes = new byte[size];
+        int offset=0;
+        isFirst=true;
+        for(int i=allFields.nextSetBit(0);i>=0;i=allFields.nextSetBit(i+1)){
+            if(isFirst)isFirst=false;
+            else
+                offset++;
+
+            ByteBuffer buffer = fields[i];
+            if(buffer!=null){
+                int newOffset = offset+buffer.remaining();
+                buffer.get(bytes,offset,buffer.remaining());
+                offset=newOffset;
+            }
+        }
+        return bytes;
     }
 
     @Override
