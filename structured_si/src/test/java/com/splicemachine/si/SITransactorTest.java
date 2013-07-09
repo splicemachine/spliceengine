@@ -1789,6 +1789,19 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+    public void parentWritesDoNotConflictWithPriorChildDelete2() throws IOException {
+        TransactionId t0 = transactor.beginTransaction();
+        insertAge(t0, "joe141", 20);
+        transactor.commit(t0);
+        TransactionId t1 = transactor.beginTransaction();
+        TransactionId t2 = transactor.beginChildTransaction(t1, true);
+        deleteRow(t2, "joe141");
+        transactor.commit(t2);
+        insertAge(t1, "joe141", 21);
+        Assert.assertEquals("joe141 age=21 job=null", read(t1, "joe141"));
+    }
+
+    @Test
     public void parentDeleteDoesNotConflictWithPriorChildDelete() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         TransactionId t2 = transactor.beginChildTransaction(t1, true);
