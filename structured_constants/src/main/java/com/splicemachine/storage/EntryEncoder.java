@@ -14,7 +14,7 @@ import java.util.BitSet;
  *         Created on: 7/5/13
  */
 public class EntryEncoder {
-    private final BitIndex bitIndex;
+    private BitIndex bitIndex;
     /*
      * The threshold at which we compress the data. If the data length is less than
      * this, we don't compress, but if it's greater, we do.
@@ -29,7 +29,6 @@ public class EntryEncoder {
     private static final byte COMPRESSED_DATA_BIT = 0x20;
 
     private MultiFieldEncoder encoder;
-
 
     private EntryEncoder(BitIndex bitIndex){
         this.bitIndex = bitIndex;
@@ -65,6 +64,22 @@ public class EntryEncoder {
         return entry;
     }
 
+    public void reset(BitSet newIndex){
+        //save effort if they are the same
+        boolean differs=false;
+        for(int i=newIndex.nextSetBit(0);i>=0;i=newIndex.nextSetBit(i+1)){
+            if(!bitIndex.isSet(i)){
+                differs=true;
+                break;
+            }
+        }
+        if(differs){
+            bitIndex = getBitIndex(newIndex);
+        }
+
+        encoder.reset();
+    }
+
     public static EntryEncoder create(int numCols,int[] setCols){
         BitSet cols = new BitSet(numCols);
         for(int col:setCols){
@@ -84,19 +99,24 @@ public class EntryEncoder {
             return new EntryEncoder(numCols,new AllFullBitIndex());
         }else{
 
-            BitIndex indexToUse = BitIndexing.uncompressedBitMap(setCols);
-            //see if we can improve space via compression
-            BitIndex denseCompressedBitIndex = BitIndexing.compressedBitMap(setCols);
-            if(denseCompressedBitIndex.encodedSize() < indexToUse.encodedSize()){
-                indexToUse = denseCompressedBitIndex;
-            }
-            //see if sparse is better
-            BitIndex sparseBitMap = BitIndexing.sparseBitMap(setCols);
-            if(sparseBitMap.encodedSize()<indexToUse.encodedSize()){
-                indexToUse = sparseBitMap;
-            }
+            BitIndex indexToUse = getBitIndex(setCols);
             return new EntryEncoder(indexToUse);
         }
+    }
+
+    private static BitIndex getBitIndex(BitSet setCols) {
+        BitIndex indexToUse = BitIndexing.uncompressedBitMap(setCols);
+        //see if we can improve space via compression
+        BitIndex denseCompressedBitIndex = BitIndexing.compressedBitMap(setCols);
+        if(denseCompressedBitIndex.encodedSize() < indexToUse.encodedSize()){
+            indexToUse = denseCompressedBitIndex;
+        }
+        //see if sparse is better
+        BitIndex sparseBitMap = BitIndexing.sparseBitMap(setCols);
+        if(sparseBitMap.encodedSize()<indexToUse.encodedSize()){
+            indexToUse = sparseBitMap;
+        }
+        return indexToUse;
     }
 
     public static void main(String... args)throws Exception{

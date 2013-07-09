@@ -1,11 +1,14 @@
 
 package com.splicemachine.derby.impl.store.access.btree;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -18,6 +21,8 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 
 
 public class IndexController  extends SpliceController  {
@@ -40,7 +45,8 @@ public class IndexController  extends SpliceController  {
 			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
             Put put = SpliceUtils.createPut(rowKey,transID);
-            RowMarshaller.denseColumnar().encodeRow(row, null, put, null);
+
+            encodeRow(row, put,null,null);
 			htable.put(put);
 			return 0;
 		} catch (Exception e) {
@@ -60,7 +66,7 @@ public class IndexController  extends SpliceController  {
 			byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,order);
 
             Put put = SpliceUtils.createPut(rowKey,transID);
-            RowMarshaller.denseColumnar().encodeRow(row, null, put, null);
+            encodeRow(row, put,null,null);
 
 			destRowLocation.setValue(put.getRow());
 			htable.put(put);
@@ -71,7 +77,7 @@ public class IndexController  extends SpliceController  {
         }
 	}
 
-	@Override
+    @Override
 	public boolean replace(RowLocation loc, DataValueDescriptor[] row, FormatableBitSet validColumns) throws StandardException {
 		SpliceLogUtils.trace(LOG, "replace rowlocation %s, destRow %s, validColumns ", loc, row, validColumns);
         HTableInterface htable = getHTable();
@@ -79,14 +85,16 @@ public class IndexController  extends SpliceController  {
 			boolean[] sortOrder = ((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			if (openSpliceConglomerate.cloneRowTemplate().length == row.length && validColumns == null) {
                 Put put = SpliceUtils.createPut(DerbyBytesUtil.generateIndexKey(row,sortOrder),transID);
-                RowMarshaller.columnar().encodeRow(row, SpliceUtils.bitSetToMap(validColumns), put, null);
+
+                encodeRow(row, put,null, validColumns);
                 htable.put(put);
 			} else {
 				DataValueDescriptor[] oldValues = openSpliceConglomerate.cloneRowTemplate();
 				Get get = SpliceUtils.createGet(loc, oldValues, null, transID);
 				Result result = htable.get(get);
+                MultiFieldDecoder fieldDecoder = MultiFieldDecoder.create();
                 for(KeyValue kv:result.raw()){
-                    RowMarshaller.columnar().decode(kv, oldValues, null, null);
+                    RowMarshaller.sparsePacked().decode(kv, oldValues, null, fieldDecoder);
                 }
                 int[] validCols = new int[validColumns.getNumBitsSet()];
                 int pos=0;
@@ -96,7 +104,9 @@ public class IndexController  extends SpliceController  {
                 }
                 byte[] rowKey = DerbyBytesUtil.generateIndexKey(row,sortOrder);
                 Put put = SpliceUtils.createPut(rowKey,transID);
-                RowMarshaller.columnar().encodeRow(row, validCols, put, null);
+
+                encodeRow(row,put,validCols,validColumns);
+//                RowMarshaller.columnar().encodeRow(row, validCols, put, null);
                 htable.put(put);
 			}
 			super.delete(loc);

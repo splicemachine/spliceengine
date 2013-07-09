@@ -1,11 +1,14 @@
 package com.splicemachine.derby.impl.store.access.base;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.EncodingUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -18,10 +21,12 @@ import org.apache.derby.impl.store.raw.data.SpaceInformation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.BitSet;
 import java.util.Properties;
 
 public abstract class SpliceController implements ConglomerateController {
@@ -29,6 +34,8 @@ public abstract class SpliceController implements ConglomerateController {
 	protected OpenSpliceConglomerate openSpliceConglomerate;
 	protected Transaction trans;
 	protected String transID;
+
+    protected EntryEncoder entryEncoder;
 	
 	public SpliceController() {}
 
@@ -150,7 +157,7 @@ public abstract class SpliceController implements ConglomerateController {
             if(result==null||result.isEmpty()) return false;
             for(KeyValue kv:result.raw()){
                 MultiFieldDecoder decoder = MultiFieldDecoder.create();
-                RowMarshaller.packed().decode(kv, destRow, null, decoder);
+                RowMarshaller.sparsePacked().decode(kv, destRow, null, decoder);
             }
 			return true;
 		} catch (Exception e) {
@@ -181,5 +188,10 @@ public abstract class SpliceController implements ConglomerateController {
             SpliceLogUtils.warn(LOG,"Unable to close htable");
         }
     }
-	
+    protected void encodeRow(DataValueDescriptor[] row, Put put,int[] columns,FormatableBitSet validColumns) throws StandardException, IOException {
+        if(entryEncoder==null)
+            entryEncoder = EntryEncoder.create(row.length, EncodingUtils.getNonNullColumns(row, validColumns));
+
+        EncodingUtils.encodeRow(row,put,columns,validColumns,entryEncoder);
+    }
 }
