@@ -26,7 +26,7 @@ import spark.api.java.JavaSparkContext;
 import spark.broadcast.Broadcast;
 import spark.scheduler.SparkListener;
 import spark.scheduler.StageCompleted;
-
+@Ignore
 public class JoinTests {
 	private static Logger LOG = Logger.getLogger(JoinTests.class);
 	protected static List<Tuple2<ExecRow,ExecRow>> stringBasedRowsSet1 = new ArrayList<Tuple2<ExecRow,ExecRow>>();
