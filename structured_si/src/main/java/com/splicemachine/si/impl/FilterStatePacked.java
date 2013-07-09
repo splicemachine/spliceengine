@@ -1,27 +1,38 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.data.api.SDataLib;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
-public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> {
+public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock>
+        implements IFilterState<KeyValue> {
+
     static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
 
+    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
     private final DataStore dataStore;
     private final FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> simpleFilter;
     private final RowAccumulator<Data> accumulator;
+    private Data qualifier = null;
+    private Data family = null;
+    private Data rowKey = null;
+    private Long timestamp = null;
     private boolean hasAccumulation = false;
 
-    public FilterStatePacked(DataStore dataStore,
+    public FilterStatePacked(SDataLib dataLib, DataStore dataStore,
                              FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> simpleFilter,
                              RowAccumulator<Data> accumulator) {
+        this.dataLib = dataLib;
         this.dataStore = dataStore;
         this.simpleFilter = simpleFilter;
         this.accumulator = accumulator;
+        simpleFilter.setIgnoreDoneWithColumn();
     }
 
-    Filter.ReturnCode filterKeyValue(KeyValue dataKeyValue) throws IOException {
+    @Override
+    public Filter.ReturnCode filterKeyValue(KeyValue dataKeyValue) throws IOException {
         simpleFilter.setKeyValue(dataKeyValue);
         switch (simpleFilter.type) {
             case TOMBSTONE:
@@ -48,7 +59,19 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
             case INCLUDE:
             case INCLUDE_AND_NEXT_COL:
                 accumulator.accumulate(simpleFilter.keyValue.value());
-                hasAccumulation = true;
+                if (hasAccumulation) {
+                    if (!dataLib.valuesEqual(family, simpleFilter.keyValue.family()) ||
+                            !dataLib.valuesEqual(rowKey, simpleFilter.keyValue.row()) ||
+                            !dataLib.valuesEqual(qualifier, simpleFilter.keyValue.qualifier())) {
+                        throw new RuntimeException("key value mis-match");
+                    }
+                } else {
+                    hasAccumulation = true;
+                    family = simpleFilter.keyValue.family();
+                    qualifier = simpleFilter.keyValue.qualifier();
+                    timestamp = simpleFilter.keyValue.timestamp();
+                    rowKey = simpleFilter.keyValue.row();
+                }
                 if (accumulator.isFinished()) {
                     return Filter.ReturnCode.NEXT_ROW;
                 }
@@ -62,17 +85,24 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
         }
     }
 
-    public Data produceAccumulatedKeyValue() {
+    @Override
+    public KeyValue produceAccumulatedKeyValue() {
         if (hasAccumulation) {
-            return accumulator.result();
+            final Data resultData = accumulator.result();
+            return dataLib.newKeyValue(rowKey, family, qualifier, timestamp, resultData);
         } else {
             return null;
         }
     }
 
-    void nextRow() {
+    @Override
+    public void nextRow() {
         simpleFilter.nextRow();
         hasAccumulation = false;
+        qualifier = null;
+        family = null;
+        rowKey = null;
+        timestamp = null;
     }
 
 }

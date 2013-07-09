@@ -17,7 +17,8 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
  * Contains the logic for performing an HBase-style filter using "snapshot isolation" logic. This means it filters out
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
-public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> {
+public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock>
+        implements IFilterState<KeyValue> {
     static final Logger LOG = Logger.getLogger(FilterState.class);
 
     /**
@@ -33,6 +34,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     private final RollForwardQueue rollForwardQueue;
     private final boolean includeSIColumn;
     private final boolean includeUncommittedAsOfStart;
+    private boolean ignoreDoneWithColumn;
 
     private final FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> rowState;
     final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> keyValue;
@@ -65,12 +67,17 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         this.rowState = new FilterRowState(dataLib);
     }
 
+    public void setIgnoreDoneWithColumn() {
+        this.ignoreDoneWithColumn = true;
+    }
+
     /**
      * The public entry point. This returns an HBase filter code and is expected to serve as the heart of an HBase filter
      * implementation.
      * The order of the column families is important. It is expected that the SI family will be processed first.
      */
-    Filter.ReturnCode filterKeyValue(KeyValue dataKeyValue) throws IOException {
+    @Override
+    public Filter.ReturnCode filterKeyValue(KeyValue dataKeyValue) throws IOException {
         setKeyValue(dataKeyValue);
         return filterByColumnType();
     }
@@ -81,7 +88,8 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         type = dataStore.getKeyValueType(keyValue.family(), keyValue.qualifier(), keyValue.value());
     }
 
-    void nextRow() {
+    @Override
+    public void nextRow() {
         rowState.resetCurrentRow();
     }
 
@@ -272,7 +280,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
      * Handle a cell that represents user data. Filter it based on the various timestamps and transaction status.
      */
     private Filter.ReturnCode processUserData() throws IOException {
-        if (doneWithColumn()) {
+        if (doneWithColumn() && !ignoreDoneWithColumn) {
             return NEXT_COL;
         } else {
             return filterUserDataByTimestamp();
@@ -371,4 +379,8 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         //System.out.println("  " + message);
     }
 
+    @Override
+    public KeyValue produceAccumulatedKeyValue() {
+        return null;
+    }
 }

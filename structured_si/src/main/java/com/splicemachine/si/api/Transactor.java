@@ -2,6 +2,8 @@ package com.splicemachine.si.api;
 
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.impl.FilterState;
+import com.splicemachine.si.impl.FilterStatePacked;
+import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.TransactionId;
@@ -51,26 +53,26 @@ public interface Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, D
      * Construct an object to track the stateful aspects of a scan. Each key value from the scan will be considered
      * in light of this state.
      */
-    FilterState newFilterState(TransactionId transactionId) throws IOException;
-    FilterState newFilterState(RollForwardQueue<Data, Hashable> rollForwardQueue, TransactionId transactionId,
+    IFilterState newFilterState(TransactionId transactionId) throws IOException;
+    IFilterState newFilterState(RollForwardQueue<Data, Hashable> rollForwardQueue, TransactionId transactionId,
                                boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException;
 
     /**
      * Consider whether to use a key value in light of a given filterState.
      */
-    Filter.ReturnCode filterKeyValue(FilterState filterState, KeyValue keyValue) throws IOException;
+    Filter.ReturnCode filterKeyValue(IFilterState filterState, KeyValue keyValue) throws IOException;
 
     /**
      * Indicate that the filterState is now going to be used to process a new row.
      */
-    void filterNextRow(FilterState filterState);
+    void filterNextRow(IFilterState filterState);
 
     /**
      * This is for use in code outside of a proper HBase filter that wants to apply the equivalent of SI filter logic.
      * Pass in an entire result object that contains all of the key values for a row. Receive back a new result that only
      * contains the key values that should be visible in light of the filterState.
      */
-    Result filterResult(FilterState filterState, Result result) throws IOException;
+    Result filterResult(IFilterState<KeyValue> filterState, Result result) throws IOException;
 
     /**
      * Attempt to update all of the data rows on the table to reflect the final status of the transaction with the given

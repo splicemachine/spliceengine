@@ -358,7 +358,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         } finally {
             final Iterator<Lock> locksIterator = locks.values().iterator();
             if (locksIterator.hasNext()) {
-                final Set<Long> conflictingChildren =  (putToRun == null)
+                final Set<Long> conflictingChildren = (putToRun == null)
                         ? Collections.<Long>emptySet()
                         : putToRun.conflictingChildren;
                 postProcessBatchPutDirect(table, put, locksIterator.next(), conflictingChildren);
@@ -368,7 +368,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     @Override
     public PutToRun<Mutation, Lock> preProcessBatchPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue,
-                                                 Put put, Map<Hashable, Lock> locks) throws IOException {
+                                                       Put put, Map<Hashable, Lock> locks) throws IOException {
         if (isFlaggedForSITreatment(put)) {
             return preProcessBatchPutDirect(table, rollForwardQueue, put, locks);
         } else {
@@ -612,12 +612,12 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     @Override
-    public FilterState newFilterState(TransactionId transactionId) throws IOException {
+    public IFilterState newFilterState(TransactionId transactionId) throws IOException {
         return newFilterState(null, transactionId, false, false);
     }
 
     @Override
-    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
+    public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
                                       boolean includeSIColumn, boolean includeUncommittedAsOfStart)
             throws IOException {
         return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue, includeSIColumn,
@@ -625,17 +625,17 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     @Override
-    public Filter.ReturnCode filterKeyValue(FilterState filterState, KeyValue keyValue) throws IOException {
+    public Filter.ReturnCode filterKeyValue(IFilterState filterState, KeyValue keyValue) throws IOException {
         return filterState.filterKeyValue(keyValue);
     }
 
     @Override
-    public void filterNextRow(FilterState filterState) {
+    public void filterNextRow(IFilterState filterState) {
         filterState.nextRow();
     }
 
     @Override
-    public Result filterResult(FilterState filterState, Result result) throws IOException {
+    public Result filterResult(IFilterState<KeyValue> filterState, Result result) throws IOException {
         final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib = dataStore.dataLib;
         final List<KeyValue> filteredCells = new ArrayList<KeyValue>();
         final List<KeyValue> keyValues = dataLib.listResult(result);
@@ -670,6 +670,10 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                     }
                 }
             }
+        }
+        final KeyValue finalKeyValue = filterState.produceAccumulatedKeyValue();
+        if (finalKeyValue != null) {
+            filteredCells.add(finalKeyValue);
         }
         if (filteredCells.isEmpty()) {
             return null;
