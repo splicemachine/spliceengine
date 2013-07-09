@@ -136,7 +136,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         // Make sure the lists are clear, who is unique and who is group by
         if (numDistinctAggs > 0) {
         	groupByColumns.addAll(keyColumns.subList(0, keyColumns.size()-1));
-        	nonGroupByUniqueColumns.add(keyColumns.size()-2, keyColumns.get(keyColumns.size()-1));
+        	nonGroupByUniqueColumns.add(nonGroupByUniqueColumns.size(),keyColumns.get(keyColumns.size()-1));
         	groupByDescAscInfo.addAll(descAscInfo.subList(0, descAscInfo.size()-1));
         	for (Integer unique: nonGroupByUniqueColumns) {
         		groupByDescAscInfo.add(true);
