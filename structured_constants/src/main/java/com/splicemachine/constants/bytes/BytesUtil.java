@@ -32,7 +32,7 @@ public class BytesUtil {
 
 
 	/**
-	 * Concats a list of byte[].  
+	 * Concats a list of byte[].  Inserts null byte (0x00) between each element of the list 
 	 * 
 	 * @param list
 	 * @return the result byte array 
@@ -43,11 +43,20 @@ public class BytesUtil {
         for (byte[] bytes : list) {
             length += bytes.length;
         }
+        int listlen = list.size();
+        if (listlen > 1)
+        	length += listlen - 1; // tack on room for null terminators between each element
         byte[] result = new byte[length];
         int pos = 0;
+        int listelem = 0;
         for (byte[] bytes : list) {
+        	listelem++;
             System.arraycopy(bytes, 0, result, pos, bytes.length);
             pos += bytes.length;
+            if (listelem < listlen) { 
+            	result[pos] = 0x00;  // null terminator for bytes string
+            	pos++;
+            }
         }
         return result;
     }
