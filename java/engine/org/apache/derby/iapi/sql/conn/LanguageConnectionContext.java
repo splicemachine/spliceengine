@@ -104,6 +104,15 @@ public interface LanguageConnectionContext extends Context {
 	void initialize() throws StandardException;
 
 	/**
+	 * Initialize Splice. For use after pushing the contexts that initialization needs.
+	 *
+	 *
+	 * @exception StandardException thrown if something goes wrong
+	 */
+	void initializeSplice() throws StandardException;
+
+	
+	/**
 	 * Get value of logStatementText.
 	 * (Whether or not to write info on currently
 	 * executing statement to error log.)
