@@ -15,7 +15,7 @@ public class SparseEntryAccumulator implements EntryAccumulator {
 
     public ByteBuffer[] fields;
 
-    SparseEntryAccumulator(BitSet remainingFields) {
+    public SparseEntryAccumulator(BitSet remainingFields) {
         this.allFields = remainingFields;
         this.remainingFields = (BitSet)remainingFields.clone();
         fields = new ByteBuffer[remainingFields.length()];

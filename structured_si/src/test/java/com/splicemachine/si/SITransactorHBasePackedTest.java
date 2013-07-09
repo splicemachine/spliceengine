@@ -1,7 +1,7 @@
 package com.splicemachine.si;
 
-import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.RollForwardQueue;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -10,13 +10,14 @@ import org.junit.BeforeClass;
 
 import java.util.concurrent.Executors;
 
-public class SITransactorHBaseTest extends SITransactorTest {
+public class SITransactorHBasePackedTest extends SITransactorTest {
 
     private static HStoreSetup classStoreSetup;
     private static TransactorSetup classTransactorSetup;
 
-    public SITransactorHBaseTest() {
+    public SITransactorHBasePackedTest() {
         useSimple = false;
+        usePacked = true;
     }
 
     @Override
@@ -35,7 +36,7 @@ public class SITransactorHBaseTest extends SITransactorTest {
 
     @BeforeClass
     public static void setUpClass() {
-        classStoreSetup = new HStoreSetup(false);
+        classStoreSetup = new HStoreSetup(true);
         classTransactorSetup = new TransactorSetup(classStoreSetup, false);
         Transactor transactor = classTransactorSetup.transactor;
         HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);

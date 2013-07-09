@@ -29,7 +29,7 @@ public class SIFilterHBaseTest extends SIFilterTest {
 
     @BeforeClass
     public static void setUpClass() {
-        classStoreSetup = new HStoreSetup();
+        classStoreSetup = new HStoreSetup(false);
         classTransactorSetup = new TransactorSetup(classStoreSetup, false);
         classTransactor = classTransactorSetup.transactor;
         HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);
