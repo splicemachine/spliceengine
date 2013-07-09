@@ -7,10 +7,14 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.storage.*;
+<<<<<<< HEAD
 import com.splicemachine.utils.ByteDataOutput;
+=======
+>>>>>>> Creating Predicates instead of Filters now
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.Qualifier;
@@ -132,95 +136,103 @@ public class Scans extends SpliceUtils {
 		return scan;
 	}
 
-	/**
-	 * Builds a Scan from qualified starts and stops.
-	 *
-	 * This method does the following:
-	 *
-	 * 1. builds a basic scan with {@link #DEFAULT_CACHE_SIZE} and attaches transaction information to it.
-	 * 2. Constructs start and stop keys for the scan based on {@code startKeyValue} and {@code stopKeyValue},
-	 * according to the following rules:
-	 * 		A. if {@code startKeyValue ==null}, then set "" as the start of the scan
-	 * 	 	B. if {@code startKeyValue !=null}, then serialize the startKeyValue into a start key and set that.
-	 * 	 	C. if {@code stopKeyValue ==null}, then set "" as the end of the scan
-	 * 	 	D. if {@code stopKeyValue !=null}, then serialize the stopKeyValue into a stop key and set that.
-	 * 3. Construct startKeyFilters as necessary, according to the rules defined in
-	 * {@link #buildKeyFilter(org.apache.derby.iapi.types.DataValueDescriptor[],
-	 * 												int, org.apache.derby.iapi.store.access.Qualifier[][])}
-	 *
-	 * @param startKeyValue the start of the scan, or {@code null} if a full table scan is desired
-	 * @param startSearchOperator the operator for the start. Can be any of
-	 * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
-	 * @param stopKeyValue the stop of the scan, or {@code null} if a full table scan is desired.
-	 * @param stopSearchOperator the operator for the stop. Can be any of
-	 * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
-	 * @param qualifiers scan qualifiers to use. This is used to construct equality filters to reduce
-	 *                   the amount of data returned.
-	 * @param sortOrder a sort order to use in how data is to be searched, or {@code null} if the default sort is used.
-	 * @param scanColumnList a bitset determining which columns should be returned by the scan.
-	 * @param transactionId the transactionId to use
-	 * @return a transactionally aware scan from {@code startKeyValue} to {@code stopKeyValue}, with appropriate
-	 * filters aas specified by {@code qualifiers}
-	 * @throws IOException if {@code startKeyValue}, {@code stopKeyValue}, or {@code qualifiers} is unable to be
-	 * properly serialized into a byte[].
-	 */
-	public static Scan setupScan(DataValueDescriptor[] startKeyValue,int startSearchOperator,
-															 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
-															 Qualifier[][] qualifiers,
-															 boolean[] sortOrder,
-															 FormatableBitSet scanColumnList,
-															 String transactionId) throws IOException {
+    /**
+     * Builds a Scan from qualified starts and stops.
+     *
+     * This method does the following:
+     *
+     * 1. builds a basic scan with {@link #DEFAULT_CACHE_SIZE} and attaches transaction information to it.
+     * 2. Constructs start and stop keys for the scan based on {@code startKeyValue} and {@code stopKeyValue},
+     * according to the following rules:
+     * 		A. if {@code startKeyValue ==null}, then set "" as the start of the scan
+     * 	 	B. if {@code startKeyValue !=null}, then serialize the startKeyValue into a start key and set that.
+     * 	 	C. if {@code stopKeyValue ==null}, then set "" as the end of the scan
+     * 	 	D. if {@code stopKeyValue !=null}, then serialize the stopKeyValue into a stop key and set that.
+     * 3. Construct startKeyFilters as necessary, according to the rules defined in
+     * {@link #buildKeyFilter(org.apache.derby.iapi.types.DataValueDescriptor[],
+     * 												int, org.apache.derby.iapi.store.access.Qualifier[][])}
+     *
+     * @param startKeyValue the start of the scan, or {@code null} if a full table scan is desired
+     * @param startSearchOperator the operator for the start. Can be any of
+     * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
+     * @param stopKeyValue the stop of the scan, or {@code null} if a full table scan is desired.
+     * @param stopSearchOperator the operator for the stop. Can be any of
+     * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
+     * @param qualifiers scan qualifiers to use. This is used to construct equality filters to reduce
+     *                   the amount of data returned.
+     * @param sortOrder a sort order to use in how data is to be searched, or {@code null} if the default sort is used.
+     * @param scanColumnList a bitset determining which columns should be returned by the scan.
+     * @param transactionId the transactionId to use
+     * @return a transactionally aware scan from {@code startKeyValue} to {@code stopKeyValue}, with appropriate
+     * filters aas specified by {@code qualifiers}
+     * @throws IOException if {@code startKeyValue}, {@code stopKeyValue}, or {@code qualifiers} is unable to be
+     * properly serialized into a byte[].
+     */
+    public static Scan setupScan(DataValueDescriptor[] startKeyValue,int startSearchOperator,
+                                 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
+                                 Qualifier[][] qualifiers,
+                                 boolean[] sortOrder,
+                                 FormatableBitSet scanColumnList,
+                                 String transactionId) throws StandardException {
         return setupScan(startKeyValue, startSearchOperator, stopKeyValue, stopSearchOperator, qualifiers, sortOrder,
                 null, scanColumnList, transactionId);
     }
     /**
-	 * Builds a Scan from qualified starts and stops.
-	 *
-	 * This method does the following:
-	 *
-	 * 1. builds a basic scan with {@link #DEFAULT_CACHE_SIZE} and attaches transaction information to it.
-	 * 2. Constructs start and stop keys for the scan based on {@code startKeyValue} and {@code stopKeyValue},
-	 * according to the following rules:
-	 * 		A. if {@code startKeyValue ==null}, then set "" as the start of the scan
-	 * 	 	B. if {@code startKeyValue !=null}, then serialize the startKeyValue into a start key and set that.
-	 * 	 	C. if {@code stopKeyValue ==null}, then set "" as the end of the scan
-	 * 	 	D. if {@code stopKeyValue !=null}, then serialize the stopKeyValue into a stop key and set that.
-	 * 3. Construct startKeyFilters as necessary, according to the rules defined in
-	 * {@link #buildKeyFilter(org.apache.derby.iapi.types.DataValueDescriptor[],
-	 * 												int, org.apache.derby.iapi.store.access.Qualifier[][])}
-	 *
-	 * @param startKeyValue the start of the scan, or {@code null} if a full table scan is desired
-	 * @param startSearchOperator the operator for the start. Can be any of
-	 * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
-	 * @param stopKeyValue the stop of the scan, or {@code null} if a full table scan is desired.
-	 * @param stopSearchOperator the operator for the stop. Can be any of
-	 * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
-	 * @param qualifiers scan qualifiers to use. This is used to construct equality filters to reduce
-	 *                   the amount of data returned.
-	 * @param sortOrder a sort order to use in how data is to be searched, or {@code null} if the default sort is used.
+     * Builds a Scan from qualified starts and stops.
+     *
+     * This method does the following:
+     *
+     * 1. builds a basic scan with {@link #DEFAULT_CACHE_SIZE} and attaches transaction information to it.
+     * 2. Constructs start and stop keys for the scan based on {@code startKeyValue} and {@code stopKeyValue},
+     * according to the following rules:
+     * 		A. if {@code startKeyValue ==null}, then set "" as the start of the scan
+     * 	 	B. if {@code startKeyValue !=null}, then serialize the startKeyValue into a start key and set that.
+     * 	 	C. if {@code stopKeyValue ==null}, then set "" as the end of the scan
+     * 	 	D. if {@code stopKeyValue !=null}, then serialize the stopKeyValue into a stop key and set that.
+     * 3. Construct startKeyFilters as necessary, according to the rules defined in
+     * {@link #buildKeyFilter(org.apache.derby.iapi.types.DataValueDescriptor[],
+     * 												int, org.apache.derby.iapi.store.access.Qualifier[][])}
+     *
+     * @param startKeyValue the start of the scan, or {@code null} if a full table scan is desired
+     * @param startSearchOperator the operator for the start. Can be any of
+     * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
+     * @param stopKeyValue the stop of the scan, or {@code null} if a full table scan is desired.
+     * @param stopSearchOperator the operator for the stop. Can be any of
+     * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
+     * @param qualifiers scan qualifiers to use. This is used to construct equality filters to reduce
+     *                   the amount of data returned.
+     * @param sortOrder a sort order to use in how data is to be searched, or {@code null} if the default sort is used.
      * @param primaryKeys the primary keys to use in restricting the scan, or {@code null} if no primary key
      *                    restrictions are desired.
-	 * @param scanColumnList a bitset determining which columns should be returned by the scan.
-	 * @param transactionId the transactionId to use
-	 * @return a transactionally aware scan from {@code startKeyValue} to {@code stopKeyValue}, with appropriate
-	 * filters aas specified by {@code qualifiers}
-	 * @throws IOException if {@code startKeyValue}, {@code stopKeyValue}, or {@code qualifiers} is unable to be
-	 * properly serialized into a byte[].
-	 */
-	public static Scan setupScan(DataValueDescriptor[] startKeyValue,int startSearchOperator,
-															 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
-															 Qualifier[][] qualifiers,
-															 boolean[] sortOrder,
-                                                             FormatableBitSet primaryKeys,
-															 FormatableBitSet scanColumnList,
-															 String transactionId) throws IOException {
-		Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null);
-		scan.setCaching(DEFAULT_CACHE_SIZE);
-		attachScanKeys(scan, startKeyValue, startSearchOperator,
-				stopKeyValue, stopSearchOperator,
-				qualifiers, primaryKeys,scanColumnList, sortOrder);
+     * @param scanColumnList a bitset determining which columns should be returned by the scan.
+     * @param transactionId the transactionId to use
+     * @return a transactionally aware scan from {@code startKeyValue} to {@code stopKeyValue}, with appropriate
+     * filters aas specified by {@code qualifiers}
+     * @throws IOException if {@code startKeyValue}, {@code stopKeyValue}, or {@code qualifiers} is unable to be
+     * properly serialized into a byte[].
+     */
+    public static Scan setupScan(DataValueDescriptor[] startKeyValue,int startSearchOperator,
+                                 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
+                                 Qualifier[][] qualifiers,
+                                 boolean[] sortOrder,
+                                 FormatableBitSet primaryKeys,
+                                 FormatableBitSet scanColumnList,
+                                 String transactionId) throws StandardException {
+        Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null);
+        scan.setCaching(DEFAULT_CACHE_SIZE);
+        try{
+            attachScanKeys(scan, startKeyValue, startSearchOperator,
+                    stopKeyValue, stopSearchOperator,
+                    qualifiers, primaryKeys,scanColumnList, sortOrder);
 
-		scan.setFilter(buildKeyFilter(startKeyValue, startSearchOperator, qualifiers));
+            EntryPredicateFilter pqf = getPredicates(startKeyValue,startSearchOperator,qualifiers);
+            ByteDataOutput bao  = new ByteDataOutput();
+            bao.writeObject(pqf);
+            scan.setAttribute("p",bao.toByteArray());
+        }catch(IOException e){
+            throw Exceptions.parseException(e);
+        }
+//		scan.setFilter(buildKeyFilter(startKeyValue, startSearchOperator, qualifiers));
 
 		return scan;
 	}
@@ -527,23 +539,8 @@ public class Scans extends SpliceUtils {
 																		Qualifier[][] qualifiers,
                                                                         FormatableBitSet primaryKeys,
                                                                         FormatableBitSet scanColumnList,
-																		boolean[] sortOrder) throws IOException {		
-		if(scanColumnList!=null){
-			if(qualifiers!=null && qualifiers.length>0){
-				for(Qualifier[] andQualifiers:qualifiers){
-					for(Qualifier orQualifier:andQualifiers){
-						int pos = orQualifier.getColumnId();
-						if(!scanColumnList.isSet(pos))
-							scanColumnList.set(pos);
-					}
-				}
-			}
-			
-			for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
-				scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, Encoding.encode(i));
-			}
-		}
-
+																		boolean[] sortOrder) throws IOException {
+        scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
 		try{
 			boolean generateKey = true;
 			if(startKeyValue!=null && stopKeyValue!=null){
