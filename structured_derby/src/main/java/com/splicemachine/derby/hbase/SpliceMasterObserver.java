@@ -95,6 +95,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 				try {
 					if (ZkUtils.isSpliceLoaded()) {
 						SpliceLogUtils.info(LOG, "Splice Already Loaded");
+						state = State.RUNNING;
 						return null;
 					} else {
 						SpliceLogUtils.info(LOG, "Booting Splice");
