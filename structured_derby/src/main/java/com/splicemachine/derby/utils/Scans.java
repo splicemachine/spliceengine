@@ -221,7 +221,11 @@ public class Scans extends SpliceUtils {
                     stopKeyValue, stopSearchOperator,
                     qualifiers, primaryKeys, sortOrder);
 
+<<<<<<< HEAD
             buildPredicateFilter(startKeyValue,startSearchOperator,qualifiers,scanColumnList,scan);
+=======
+            buildPredicateFilter(startKeyValue, startSearchOperator, qualifiers, scanColumnList, scan);
+>>>>>>> Making HBaseController properly insert data
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }

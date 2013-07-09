@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
@@ -43,7 +44,9 @@ public class HBaseController  extends SpliceController {
             BitSet bitSet = getNonNullColumns(row);
             EntryEncoder eEncoder = EntryEncoder.create(row.length,bitSet);
 
-            RowMarshaller.sparsePacked().encodeRow(row,null,put, eEncoder.getEntryEncoder());
+            RowMarshaller.sparsePacked().fill(row, null, eEncoder.getEntryEncoder());
+
+            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,eEncoder.encode());
             htable.put(put);
 			return 0;
 		} catch (Exception e) {
@@ -69,7 +72,8 @@ public class HBaseController  extends SpliceController {
             EntryEncoder eEncoder = EntryEncoder.create(row.length,setCols);
 
             MultiFieldEncoder encoder = eEncoder.getEntryEncoder();
-            RowMarshaller.sparsePacked().encodeRow(row, null, put, encoder);
+            RowMarshaller.sparsePacked().fill(row, null, encoder);
+            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,eEncoder.encode());
 			destRowLocation.setValue(put.getRow());
 			htable.put(put);
 		} catch (Exception e) {
@@ -113,7 +117,8 @@ public class HBaseController  extends SpliceController {
             EntryEncoder eEncoder = EntryEncoder.create(row.length,bitSet);
             MultiFieldEncoder encoder = eEncoder.getEntryEncoder();
             encoder.reset();
-            RowMarshaller.sparsePacked().encodeRow(row, SpliceUtils.bitSetToMap(validColumns), put, encoder);
+            RowMarshaller.sparsePacked().fill(row, SpliceUtils.bitSetToMap(validColumns), encoder);
+            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,eEncoder.encode());
             htable.put(put);
 			return true;
 		} catch (Exception e) {

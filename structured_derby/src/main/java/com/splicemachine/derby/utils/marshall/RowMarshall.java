@@ -33,6 +33,8 @@ public interface RowMarshall {
                                 MultiFieldEncoder rowEncoder,
                                 List<KeyValue> kvResults) throws StandardException;
 
+    public void fill(DataValueDescriptor[] row,int[] rowColumns,MultiFieldEncoder encoder) throws StandardException;
+
     void decode(KeyValue value,
                 DataValueDescriptor[] fields,
                 int[] reversedKeyColumns,

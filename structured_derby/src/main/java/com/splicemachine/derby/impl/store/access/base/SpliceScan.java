@@ -14,7 +14,7 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -57,6 +57,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	protected boolean scannerInitialized = false;
 	protected String tableName;
     private int[] rowColumns;
+    private MultiFieldDecoder fieldDecoder;
 
     public SpliceScan() {
 		if (LOG.isTraceEnabled())
@@ -137,7 +138,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 
 	protected void attachFilter() {
 		try {
-				scan.setFilter(Scans.buildKeyFilter(startKeyValue, 2, qualifier));
+            Scans.buildPredicateFilter(startKeyValue, 2, qualifier, null, scan);
 		} catch (Exception e) {
 			throw new RuntimeException("error attaching Filter",e);
 		}
@@ -253,10 +254,13 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 
 	public void fetchWithoutQualify(DataValueDescriptor[] destRow) throws StandardException {
+        if(fieldDecoder==null)
+            fieldDecoder = MultiFieldDecoder.create();
+        fieldDecoder.reset();
         try{
             if(destRow!=null){
                 for(KeyValue kv:currentResult.raw()){
-                    RowMarshaller.columnar().decode(kv, destRow, rowColumns, null);
+                    RowMarshaller.sparsePacked().decode(kv, destRow, rowColumns, fieldDecoder);
                 }
 		    	this.currentRow = destRow;
             }
@@ -304,12 +308,16 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		DataValueDescriptor[] fetchedRow = null;
 		try {
 			while ((currentResult = scanner.next()) != null) {
-				SpliceLogUtils.trace(LOG, "fetch set iterator %s", currentResult);
+				SpliceLogUtils.trace(LOG,"fetch set iterator %s",currentResult);
+                if(fieldDecoder==null)
+                    fieldDecoder = MultiFieldDecoder.create();
+
+                fieldDecoder.reset();
 				fetchedRow = RowUtil.newTemplate(
 						spliceConglomerate.getTransaction().getDataValueFactory(),
 						null, spliceConglomerate.getFormatIds(), spliceConglomerate.getCollationIds());
                 for(KeyValue kv:currentResult.raw()){
-                    RowMarshaller.columnar().decode(kv, fetchedRow, null, null);
+                    RowMarshaller.sparsePacked().decode(kv, fetchedRow, null, fieldDecoder);
                 }
 				hashTable.putRow(false, fetchedRow);
 				this.currentRowLocation = new HBaseRowLocation(currentResult.getRow());
@@ -380,12 +388,16 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 			if (results != null && results.length > 0) {
 				SpliceLogUtils.trace(LOG,"HBaseScan fetchNextGroup total number of results=%d",results.length);
 				for (int i = 0; i < results.length; i++) {
+                    if(fieldDecoder==null)
+                        fieldDecoder = MultiFieldDecoder.create();
+
+                    fieldDecoder.reset();
 					if (results[i] != null) {
 						if (i == 0)
 							template = RowUtil.newRowFromTemplate(row_array[i]);
 						row_array[i] = RowUtil.newRowFromTemplate(template);
                         for(KeyValue kv:results[i].raw()){
-                            RowMarshaller.columnar().decode(kv, row_array[i], null, null);
+                            RowMarshaller.sparsePacked().decode(kv, row_array[i], null, fieldDecoder);
                         }
 //						SpliceUtils.populate(results[i], scanColumnList, row_array[i]);
 					}
@@ -415,6 +427,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
                         DerbyBytesUtil.getDoubleFields(row));
 
             EncodingUtils.encodeRow(row, put, validCols, validColumns, entryEncoder);
+
             table.put(put);
 
 //			table.put(Puts.buildInsert(currentRowLocation.getBytes(), row, validColumns, transID));
