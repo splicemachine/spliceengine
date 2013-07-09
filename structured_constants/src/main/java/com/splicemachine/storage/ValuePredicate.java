@@ -53,17 +53,17 @@ public class ValuePredicate implements Predicate {
         int compare = Bytes.compareTo(compareValue,0,compareValue.length,data,offset,length);
         switch (compareOp) {
             case LESS:
-                return compare<0;
+                return compare>0;
             case LESS_OR_EQUAL:
-                return compare <=0;
+                return compare >=0;
             case EQUAL:
                 return compare==0;
             case NOT_EQUAL:
                 return compare!=0;
             case GREATER_OR_EQUAL:
-                return compare>=0;
+                return compare<=0;
             case GREATER:
-                return compare>0;
+                return compare<0;
             default:
                 return true; //should never happen
         }
