@@ -8,6 +8,7 @@ import java.sql.Statement;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -27,9 +28,11 @@ public class CallStatementOperationTest extends SpliceUnitTest {
 	public static final String CLASS_NAME = CallStatementOperationTest.class.getSimpleName().toUpperCase();
 	private static Logger LOG = Logger.getLogger(CallStatementOperationTest.class);
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1",CLASS_NAME,"(a int)");
-	
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+
 	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).around(spliceTableWatcher);
+	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).
+	around(spliceSchemaWatcher).around(spliceTableWatcher);
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
