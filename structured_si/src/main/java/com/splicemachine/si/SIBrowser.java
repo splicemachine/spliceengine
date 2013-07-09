@@ -44,11 +44,11 @@ public class SIBrowser extends SIConstants {
                 TransactionStatus status = getStatus(r, Bytes.toBytes(TRANSACTION_STATUS_COLUMN));
                 Long commitTimestamp = getLong(r, Bytes.toBytes(TRANSACTION_COMMIT_TIMESTAMP_COLUMN));
                 Long counter = getLong(r, Bytes.toBytes(TRANSACTION_COUNTER_COLUMN));
-                Long parent = getLong(r, Bytes.toBytes(TRANSACTION_PARENT_COLUMN));
-                Boolean writes = getBoolean(r, Bytes.toBytes(TRANSACTION_ALLOW_WRITES_COLUMN));
-                Boolean dependent = getBoolean(r, Bytes.toBytes(TRANSACTION_DEPENDENT_COLUMN));
-                Boolean readUncommitted = getBoolean(r, Bytes.toBytes(TRANSACTION_READ_UNCOMMITTED_COLUMN));
-                Boolean readCommitted = getBoolean(r, Bytes.toBytes(TRANSACTION_READ_COMMITTED_COLUMN));
+                Long parent = getLong(r, TRANSACTION_PARENT_COLUMN_BYTES);
+                Boolean writes = getBoolean(r, TRANSACTION_ALLOW_WRITES_COLUMN_BYTES);
+                Boolean dependent = getBoolean(r, TRANSACTION_DEPENDENT_COLUMN_BYTES);
+                Boolean readUncommitted = getBoolean(r, TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES);
+                Boolean readCommitted = getBoolean(r, TRANSACTION_READ_COMMITTED_COLUMN_BYTES);
                 String keepAliveValue = getTimestampString(r, Bytes.toBytes(TRANSACTION_KEEP_ALIVE_COLUMN));
 
                 x.put(id, new Object[]{beginTimestamp, parent, writes, status, commitTimestamp, globalCommit, keepAliveValue, dependent, readUncommitted, readCommitted, counter});
