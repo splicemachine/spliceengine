@@ -51,4 +51,6 @@ public interface BitIndex {
 
     boolean intersects(BitSet bitSet);
 
+    BitSet and(BitSet bitSet);
+
 }

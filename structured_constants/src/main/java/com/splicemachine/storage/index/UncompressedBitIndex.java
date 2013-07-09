@@ -151,6 +151,13 @@ public class UncompressedBitIndex implements BitIndex {
         return this.bitSet.intersects(bitSet);
     }
 
+    @Override
+    public BitSet and(BitSet bitSet) {
+        final BitSet result = (BitSet) this.bitSet.clone();
+        result.and(bitSet);
+        return result;
+    }
+
     public static BitIndex create(BitSet setCols) {
         return new UncompressedBitIndex(setCols);
     }

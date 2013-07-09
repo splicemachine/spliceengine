@@ -52,4 +52,9 @@ public class AllFullBitIndex implements BitIndex {
     public boolean intersects(BitSet bitSet) {
         return true;
     }
+
+    @Override
+    public BitSet and(BitSet bitSet) {
+        throw new UnsupportedOperationException();
+    }
 }

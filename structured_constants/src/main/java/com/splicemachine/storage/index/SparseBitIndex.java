@@ -79,6 +79,11 @@ public class SparseBitIndex implements BitIndex {
         return false;
     }
 
+    @Override
+    public BitSet and(BitSet bitSet) {
+        throw new UnsupportedOperationException();
+    }
+
     public static SparseBitIndex create(BitSet setCols) {
         return new SparseBitIndex(setCols);
     }
