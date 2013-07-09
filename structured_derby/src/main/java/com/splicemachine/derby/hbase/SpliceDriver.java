@@ -51,7 +51,6 @@ public class SpliceDriver extends SIConstants {
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     protected SpliceCache cache;
 
-
     public static enum State{
         NOT_STARTED,
         INITIALIZING,
@@ -234,7 +233,8 @@ public class SpliceDriver extends SIConstants {
 
         	return false;
         }  catch (PleaseHoldException pe) {
-        	Thread.currentThread().sleep(1000);
+        	Thread.currentThread().sleep(5000);
+        	SpliceLogUtils.info(LOG, "Waiting for Splice Schema to Create");
         	return bootDatabase();
         } catch (Exception e) {
 			EmbedConnectionMaker maker = new EmbedConnectionMaker();
@@ -317,7 +317,8 @@ public class SpliceDriver extends SIConstants {
         }
     }
 
-    private boolean ensureHBaseTablesPresent() {
+    @SuppressWarnings("deprecation")
+	private boolean ensureHBaseTablesPresent() {
         SpliceLogUtils.info(LOG, "Ensuring Required Hbase Tables are present");
         HBaseAdmin admin = null;
         try{
@@ -387,7 +388,7 @@ public class SpliceDriver extends SIConstants {
     }
     
     private boolean startCache() {
-    		cache = new SpliceCache("Splice");
+    		//cache = new SpliceCache("Splice");
     		return true;    	
     }
     
