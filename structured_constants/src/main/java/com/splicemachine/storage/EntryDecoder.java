@@ -79,8 +79,8 @@ public class EntryDecoder {
 
         //seek until we hit the next terminator
         int stop;
-        for(stop = start+1;stop<data.length;start++){
-            if(data[start]==0x00){
+        for(stop = start;stop<data.length;stop++){
+            if(data[stop]==0x00){
                 break;
             }
         }
