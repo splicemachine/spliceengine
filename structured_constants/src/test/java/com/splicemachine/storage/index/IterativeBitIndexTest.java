@@ -1,4 +1,4 @@
-package com.splicemachine.storage;
+package com.splicemachine.storage.index;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.storage.index.BitIndex;
@@ -17,8 +17,8 @@ import java.util.Random;
  *         Created on: 7/5/13
  */
 @RunWith(Parameterized.class)
-public class UncompressedBitIndexTest {
-    private static final int bitSetSize=100;
+public class IterativeBitIndexTest {
+    private static final int bitSetSize=2000;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -36,17 +36,28 @@ public class UncompressedBitIndexTest {
 
     private final BitSet bitSet;
 
-    public UncompressedBitIndexTest(BitSet bitSet) {
+    public IterativeBitIndexTest(BitSet bitSet) {
         this.bitSet = bitSet;
     }
 
     @Test
-    public void testCanEncodeAndDecodeProperly() throws Exception {
+    public void testCanEncodeAndDecodeDenseUncompressedProperly() throws Exception {
         BitIndex bitIndex = UncompressedBitIndex.create(bitSet);
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = UncompressedBitIndex.wrap(encode,0,encode.length);
         Assert.assertEquals(bitIndex,decoded);
 
+    }
+
+    @Test
+    public void testCanEncodeAndDecodeSparseProperly() throws Exception {
+        BitIndex bitIndex = SparseBitIndex.create(bitSet);
+        System.out.println(bitIndex);
+
+        byte[] encode = bitIndex.encode();
+
+        BitIndex decoded = SparseBitIndex.wrap(encode,0,encode.length);
+        Assert.assertEquals(bitIndex,decoded);
     }
 }
