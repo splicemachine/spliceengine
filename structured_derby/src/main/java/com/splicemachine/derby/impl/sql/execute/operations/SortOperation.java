@@ -11,6 +11,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
@@ -58,23 +59,24 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     private Scan reduceScan;
     private ExecRow execRowDefinition = null;
     private Properties sortProperties = new Properties();
-    private byte[] keyBytes;
-    private KeyMarshall hasher;
-    protected MultiFieldEncoder keyEncoder;
-    private HashBuffer<ByteBuffer,ExecRow> currentRows = new HashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize);
-    private boolean doneReadingSource = false;
-    private final HashBuffer.Merger<ByteBuffer,ExecRow> merger = new HashBuffer.Merger<ByteBuffer,ExecRow>() {
-        @Override
-        public ExecRow shouldMerge(ByteBuffer key){
-            return currentRows.get(key);
-        }
-
-        @Override
-        public void merge(ExecRow curr,ExecRow next){
-            //throw away the second row, since we only want to keep the first
-            //this is effectively a no-op
-        }
-    };
+//    private byte[] keyBytes;
+//    private KeyMarshall hasher;
+//    protected MultiFieldEncoder keyEncoder;
+//    private HashBuffer<ByteBuffer,ExecRow> currentRows = new HashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize);
+//    private boolean doneReadingSource = false;
+//    private final HashBuffer.Merger<ByteBuffer,ExecRow> merger = new HashBuffer.Merger<ByteBuffer,ExecRow>() {
+//        @Override
+//        public ExecRow shouldMerge(ByteBuffer key){
+//            return currentRows.get(key);
+//        }
+//
+//        @Override
+//        public void merge(ExecRow curr,ExecRow next){
+//            //throw away the second row, since we only want to keep the first
+//            //this is effectively a no-op
+//        }
+//    };
+    private HashBufferSource hbs;
 
     static {
         nodeTypes = Arrays.asList(NodeType.REDUCE, NodeType.SCAN);
@@ -168,63 +170,29 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             descColumns[i] = order[i].getIsAscending();
         }
 
-        hasher = KeyType.FIXED_PREFIX;
+//        this.hasher = KeyType.FIXED_PREFIX;
+//        this.keyEncoder = MultiFieldEncoder.create(keyColumns.length+1);
+//        DerbyBytesUtil.encodeInto(keyEncoder,sequence[0],false);
+//        keyEncoder.mark();
 
-        keyEncoder = MultiFieldEncoder.create(keyColumns.length+1);
-        keyEncoder.setRawBytes(uniqueSequenceID);
-        keyEncoder.mark();
+        hbs = new HashBufferSource(sequence[0], keyColumns, wrapOperationWithProvider(source));
 
         SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
     }
 
     public ExecRow getNextSinkRow() throws StandardException {
 
-        ExecRow nextSinkRow = null;
-        ExecRow sinkRowCandidate = null;
-
-        if(!doneReadingSource){
-            sinkRowCandidate = source.getNextRowCore();
-        }
+        ExecRow nextRow = null;
 
         if(!distinct){
-            nextSinkRow = sinkRowCandidate;
-        } else {
-
-            while(sinkRowCandidate != null && nextSinkRow == null){
-
-                keyEncoder.reset();
-                hasher.encodeKey(sinkRowCandidate.getRowArray(),keyColumns,null,null,keyEncoder);
-                keyBytes = keyEncoder.build();
-                ByteBuffer buffer = ByteBuffer.wrap(keyBytes);
-                if (!currentRows.merge(buffer, sinkRowCandidate, merger)) {
-                    Map.Entry<ByteBuffer,ExecRow> finalized = currentRows.add(buffer,sinkRowCandidate.getClone());
-
-                    if(finalized!=null&&finalized!=sinkRowCandidate){
-                        nextSinkRow = makeCurrent(finalized.getKey().array(),finalized.getValue());
-                    }
-                }else{
-                    sinkRowCandidate = source.getNextRowCore();
-                }
-            }
+            nextRow = source.getNextRowCore();
+        }else{
+            nextRow = hbs.getNextAggregatedRow();
         }
 
-        if(nextSinkRow == null && sinkRowCandidate == null && !currentRows.isEmpty()) {
-            doneReadingSource = true;
-            ByteBuffer key = currentRows.keySet().iterator().next();
-            nextSinkRow = makeCurrent(key.array(), currentRows.remove(key));
-        }
+        setCurrentRow(nextRow);
 
-        if (nextSinkRow != null){
-            setCurrentRow(nextSinkRow);
-        }
-
-        return nextSinkRow;
-    }
-
-    private <T extends ExecRow> ExecRow makeCurrent(byte[] key, T row) throws StandardException{
-        setCurrentRow(row);
-        keyBytes = key;
-        return row;
+        return nextRow;
     }
 
     @Override
@@ -403,5 +371,38 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
                 .append(indent).append("keyColumns:").append(Arrays.toString(keyColumns))
                 .append(indent).append("source:").append(((SpliceOperation) source).prettyPrint(indentLevel + 1))
                 .toString();
+    }
+
+    private static RowProviderIterator<ExecRow> wrapOperationWithProvider(final NoPutResultSet operationSource){
+        return new RowProviderIterator<ExecRow>() {
+
+            private ExecRow nextRow;
+            private boolean populated = false;
+
+            @Override
+            public boolean hasNext() throws StandardException {
+
+                if(!populated){
+                    nextRow = operationSource.getNextRowCore();
+                    populated=true;
+                }
+
+                return nextRow != null;
+            }
+
+            @Override
+            public ExecRow next() throws StandardException {
+
+                if(!populated){
+                    hasNext();
+                }
+
+                if(nextRow != null){
+                    populated = false;
+                }
+
+                return nextRow;
+            }
+        };
     }
 }
