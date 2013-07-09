@@ -2,6 +2,7 @@ package com.splicemachine.si;
 
 import com.google.common.base.Function;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
@@ -19,9 +20,13 @@ import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.impl.TransactionStatus;
 import com.splicemachine.si.impl.WriteConflict;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.storage.index.BitIndex;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
@@ -39,6 +44,7 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -142,8 +148,29 @@ public class SITransactorTest extends SIConstants {
 
         Object key = dataLib.newRowKey(new Object[]{name});
         Object put = dataLib.newPut(key);
-        if (fieldValue != null) {
-            dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
+        if (usePacked && !useSimple) {
+            int columnIndex;
+            if (dataLib.valuesEqual(qualifier, transactorSetup.ageQualifier)) {
+                columnIndex = 0;
+            } else if (dataLib.valuesEqual(qualifier, transactorSetup.ageQualifier)) {
+                columnIndex = 1;
+            } else {
+                throw new RuntimeException("unknown qualifier");
+            }
+            final BitSet bitSet = new BitSet();
+            bitSet.set(columnIndex);
+            final EntryEncoder entryEncoder = EntryEncoder.create(2, bitSet);
+            if (columnIndex == 0) {
+                entryEncoder.getEntryEncoder().encodeNext((Integer) fieldValue);
+            } else {
+                entryEncoder.getEntryEncoder().encodeNext((String) fieldValue);
+            }
+            final byte[] packedRow = entryEncoder.encode();
+            dataLib.addKeyValueToPut(put, transactorSetup.family, dataLib.encode("x"), null, packedRow);
+        } else {
+            if (fieldValue != null) {
+                dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
+            }
         }
         transactorSetup.clientTransactor.initializePut(transactionId.getTransactionIdString(), put);
 
@@ -312,6 +339,39 @@ public class SITransactorTest extends SIConstants {
             } else {
                 if (((Result) result).size() == 0) {
                     return name + " absent";
+                }
+                if (usePacked && result != null) {
+                    final Object resultKey = dataLib.getResultKey(result);
+                    final List newKeyValues = new ArrayList();
+                    for (Object kv : dataLib.listResult(result)) {
+                        if (dataLib.valuesEqual(dataLib.getKeyValueFamily(kv), transactorSetup.family) &&
+                                dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), dataLib.encode("x"))) {
+                            final byte[] packedColumns = (byte[]) dataLib.getKeyValueValue(kv);
+                            final MultiFieldDecoder decoder = MultiFieldDecoder.create();
+                            decoder.set(packedColumns);
+                            if (decoder.nextIsNull()) {
+                                decoder.skip();
+                            } else {
+                                final int age = decoder.decodeNextInt();
+                                final Object ageKeyValue = dataLib.newKeyValue(resultKey, transactorSetup.family,
+                                        transactorSetup.ageQualifier,
+                                        dataLib.getKeyValueTimestamp(kv),
+                                        dataLib.encode(age));
+                                newKeyValues.add(ageKeyValue);
+                            }
+                            if (!decoder.nextIsNull()) {
+                                final String job = decoder.decodeNextString();
+                                final Object jobKeyValue = dataLib.newKeyValue(resultKey, transactorSetup.family,
+                                        transactorSetup.jobQualifier,
+                                        dataLib.getKeyValueTimestamp(kv),
+                                        dataLib.encode(job));
+                                newKeyValues.add(jobKeyValue);
+                            }
+                        } else {
+                            newKeyValues.add(kv);
+                        }
+                    }
+                    result = dataLib.newResult(resultKey, newKeyValues);
                 }
             }
             if (result != null) {

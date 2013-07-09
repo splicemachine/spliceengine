@@ -28,9 +28,12 @@ public class HRowAccumulator implements RowAccumulator<byte[]> {
     @Override
     public void accumulate(byte[] value) throws IOException {
         decoder.set(value);
-        final BitSet columnsToSet = decoder.getCurrentIndex().and(entryAccumulator.getRemainingFields());
+        final BitIndex decoderIndexSet = decoder.getCurrentIndex();
+        final BitSet accumulatorIndexSet = entryAccumulator.getRemainingFields();
+        final BitSet columnsToSet = decoderIndexSet.and(accumulatorIndexSet);
         for (int i = columnsToSet.nextSetBit(0); i >= 0; i = columnsToSet.nextSetBit(i + 1)) {
-            entryAccumulator.add(i, ByteBuffer.wrap(decoder.getData(i)));
+            final byte[] columnData = decoder.getData(i);
+            entryAccumulator.add(i, ByteBuffer.wrap(columnData));
         }
     }
 

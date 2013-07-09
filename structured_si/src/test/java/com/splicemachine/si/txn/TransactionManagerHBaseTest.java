@@ -9,7 +9,7 @@ import org.junit.BeforeClass;
 public class TransactionManagerHBaseTest extends TransactionManagerTest {
     @BeforeClass
     public static void setUp() {
-        storeSetup = new HStoreSetup();
+        storeSetup = new HStoreSetup(false);
         transactorSetup = new TransactorSetup(storeSetup, false);
         HTransactorFactory.setTransactor(transactorSetup.hTransactor);
         baseSetUp();

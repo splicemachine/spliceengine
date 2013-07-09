@@ -41,8 +41,8 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
 /**
  * An HBase coprocessor that applies SI logic to HBase read/write operations.
  */
-public class SIObserver extends BaseRegionObserver {
-    private static Logger LOG = Logger.getLogger(SIObserver.class);
+public class SIObserverPacked extends BaseRegionObserver {
+    private static Logger LOG = Logger.getLogger(SIObserverPacked.class);
     protected HRegion region;
     private boolean tableEnvMatch = false;
     private String tableName;
@@ -154,7 +154,7 @@ public class SIObserver extends BaseRegionObserver {
     private Filter makeSIFilter(ObserverContext<RegionCoprocessorEnvironment> e, TransactionId transactionId,
                                 Filter currentFilter, boolean includeSIColumn, boolean includeUncommittedAsOfStart,EntryPredicateFilter predicateFilter) throws IOException {
         final Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor = HTransactorFactory.getTransactor();
-        final SIFilter siFilter = new SIFilter(transactor, transactionId, rollForwardQueue, includeSIColumn, includeUncommittedAsOfStart);
+        final SIFilterPacked siFilter = new SIFilterPacked(transactor, transactionId, rollForwardQueue, includeSIColumn, includeUncommittedAsOfStart);
         Filter newFilter;
         if (currentFilter != null) {
             newFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL, siFilter, currentFilter); // Wrap Existing Filters
