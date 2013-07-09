@@ -219,9 +219,9 @@ public class Scans extends SpliceUtils {
         try{
             attachScanKeys(scan, startKeyValue, startSearchOperator,
                     stopKeyValue, stopSearchOperator,
-                    qualifiers, primaryKeys,scanColumnList, sortOrder);
+                    qualifiers, primaryKeys, sortOrder);
 
-            EntryPredicateFilter pqf = getPredicates(startKeyValue,startSearchOperator,qualifiers);
+            EntryPredicateFilter pqf = getPredicates(startKeyValue,startSearchOperator,qualifiers,scanColumnList);
             ByteDataOutput bao  = new ByteDataOutput();
             bao.writeObject(pqf);
             scan.setAttribute("p",bao.toByteArray());
@@ -235,7 +235,8 @@ public class Scans extends SpliceUtils {
 
     private static EntryPredicateFilter getPredicates(DataValueDescriptor[] startKeyValue,
                                                       int startSearchOperator,
-                                                      Qualifier[][] qualifiers) throws StandardException {
+                                                      Qualifier[][] qualifiers,
+                                                      FormatableBitSet scanColumnList) throws StandardException {
         List<Predicate> predicates;
         BitSet colsToReturn = new BitSet();
         if(qualifiers!=null){
@@ -247,10 +248,17 @@ public class Scans extends SpliceUtils {
             }
         }else
             predicates = Lists.newArrayListWithCapacity(1);
+        if(scanColumnList!=null){
+            for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
+                colsToReturn.set(i);
+            }
+        }
 
-        Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
-        if(indexPredicate!=null)
-            predicates.add(indexPredicate);
+        if(startKeyValue!=null){
+            Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
+            if(indexPredicate!=null)
+                predicates.add(indexPredicate);
+        }
 
 
         return new EntryPredicateFilter(colsToReturn,predicates);
@@ -281,9 +289,11 @@ public class Scans extends SpliceUtils {
             }
             andedOrPreds.add(new OrPredicate(orPreds));
         }
-        Predicate secondAndPredicate = new AndPredicate(andedOrPreds);
-
-        return Lists.newArrayList(firstAndPredicate,secondAndPredicate);
+        if(andedOrPreds.size()>0){
+            Predicate secondAndPredicate = new AndPredicate(andedOrPreds);
+            return Lists.newArrayList(firstAndPredicate,secondAndPredicate);
+        }else
+            return Lists.newArrayList(firstAndPredicate);
     }
 
     private static Predicate getPredicate(Qualifier qualifier) throws StandardException {
@@ -511,7 +521,6 @@ public class Scans extends SpliceUtils {
 																		DataValueDescriptor[] stopKeyValue,int stopSearchOperator,
 																		Qualifier[][] qualifiers,
                                                                         FormatableBitSet primaryKeys,
-                                                                        FormatableBitSet scanColumnList,
 																		boolean[] sortOrder) throws IOException {
         scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
 		try{

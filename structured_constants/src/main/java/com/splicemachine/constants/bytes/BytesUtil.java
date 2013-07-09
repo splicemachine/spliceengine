@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -117,6 +118,34 @@ public class BytesUtil {
             concatedBytes = new byte[size];
         copyInto(bytes, concatedBytes);
         return concatedBytes;
+    }
+
+    public static byte[] concatenate(ByteBuffer[] fields){
+        int size = 0;
+        boolean isFirst=true;
+        for (ByteBuffer field : fields) {
+            if (isFirst) isFirst = false;
+            else
+                size++;
+
+            if (field != null)
+                size += field.remaining();
+        }
+
+        byte[] bytes = new byte[size];
+        int offset=0;
+        isFirst=true;
+        for (ByteBuffer field : fields) {
+            if (isFirst) isFirst = false;
+            else {
+                bytes[offset] = 0x00;
+                offset++;
+            }
+            if (field != null) {
+                field.get(bytes, offset, field.remaining());
+            }
+        }
+        return bytes;
     }
 
     private static void copyInto(byte[][] bytes, byte[] concatedBytes) {

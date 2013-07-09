@@ -16,12 +16,7 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -126,8 +121,10 @@ public class SIObserver extends BaseRegionObserver {
 
     private void addSIFilterToGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get) throws IOException {
         final Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor = HTransactorFactory.getTransactor();
+
+        EntryPredicateFilter predicateFilter = getEntryPredicateFilter(get);
         final Filter newFilter = makeSIFilter(e, transactor.transactionIdFromGet(get), get.getFilter(),
-                transactor.isGetIncludeSIColumn(get), false,null);
+                transactor.isGetIncludeSIColumn(get), false,predicateFilter);
         get.setFilter(newFilter);
     }
 
@@ -140,7 +137,7 @@ public class SIObserver extends BaseRegionObserver {
         scan.setFilter(newFilter);
     }
 
-    private EntryPredicateFilter getEntryPredicateFilter(Scan scan) throws IOException {
+    private EntryPredicateFilter getEntryPredicateFilter(OperationWithAttributes scan) throws IOException {
         byte[] predicateAttribute = scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL);
         EntryPredicateFilter predicateFilter = null;
         if(predicateAttribute!=null){

@@ -78,6 +78,9 @@ public class EntryPredicateFilter implements Externalizable{
     }
 
     public EntryAccumulator newAccumulator(){
-        return new EntryAccumulator(fieldsToReturn);
+        if(fieldsToReturn.isEmpty())
+            return new AlwaysAcceptEntryAccumulator();
+        else
+            return new SparseEntryAccumulator(fieldsToReturn);
     }
 }

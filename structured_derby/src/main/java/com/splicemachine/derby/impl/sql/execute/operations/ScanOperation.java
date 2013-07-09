@@ -209,8 +209,6 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
             return getScan();
         } catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
-		} catch (IOException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
 		return null;
 	}
@@ -288,7 +286,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
         return castedQualifiers;
     }
 
-    protected Scan getScan() throws IOException {
+    protected Scan getScan() throws StandardException {
 
         Qualifier[][] autoCastedQuals = null;
 
