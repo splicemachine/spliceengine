@@ -4,7 +4,7 @@ package com.splicemachine.storage.index;
  * @author Scott Fines
  * Created on: 7/8/13
  */
-public class LazyCompressedBitIndex extends LazyBitIndex{
+class LazyCompressedBitIndex extends LazyBitIndex{
     private int[] offsetAndBitPos;
     private int setBitPos=0;
 

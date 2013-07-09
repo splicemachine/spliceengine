@@ -12,7 +12,7 @@ import java.util.BitSet;
  * @author Scott Fines
  * Created on: 7/5/13
  */
-public class UncompressedBitIndex implements BitIndex {
+class UncompressedBitIndex implements BitIndex {
     private final BitSet bitSet;
 
     private UncompressedBitIndex(BitSet bitSet) {

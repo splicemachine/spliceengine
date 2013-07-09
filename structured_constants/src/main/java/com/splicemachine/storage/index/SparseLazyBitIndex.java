@@ -4,7 +4,7 @@ package com.splicemachine.storage.index;
  * @author Scott Fines
  * Created on: 7/8/13
  */
-public class SparseLazyBitIndex extends LazyBitIndex{
+class SparseLazyBitIndex extends LazyBitIndex{
     private int[] offSetAndBitPosition;
 
     protected SparseLazyBitIndex(byte[] encodedBitMap, int offset, int length) {

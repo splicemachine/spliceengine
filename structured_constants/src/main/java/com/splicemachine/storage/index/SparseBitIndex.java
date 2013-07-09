@@ -25,7 +25,7 @@ import java.util.BitSet;
  * @author Scott Fines
  * Created on: 7/5/13
  */
-public class SparseBitIndex implements BitIndex {
+class SparseBitIndex implements BitIndex {
     private final BitSet bitSet;
 
     public SparseBitIndex(BitSet setCols) {
