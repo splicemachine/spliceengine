@@ -9,10 +9,10 @@ import java.util.BitSet;
  * @author Scott Fines
  * Created on: 7/5/13
  */
-public class DenseCompressedBitIndex implements BitIndex {
+class DenseCompressedBitIndex implements BitIndex {
     private final BitSet bitSet;
 
-    private DenseCompressedBitIndex(BitSet bitSet){
+    DenseCompressedBitIndex(BitSet bitSet){
         this.bitSet = bitSet;
     }
 
