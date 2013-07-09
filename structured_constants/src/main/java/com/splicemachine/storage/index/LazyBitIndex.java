@@ -96,6 +96,14 @@ abstract class LazyBitIndex implements BitIndex{
     }
 
     @Override
+    public BitSet and(BitSet bitSet) {
+        decodeUntil(bitSet.length());
+        final BitSet bits = (BitSet) decodedBits.clone();
+        bits.and(bitSet);
+        return bits;
+    }
+
+    @Override
     public byte[] encode() {
         byte[] copy = new byte[length];
         System.arraycopy(encodedBitMap,offset,copy,0,copy.length);
