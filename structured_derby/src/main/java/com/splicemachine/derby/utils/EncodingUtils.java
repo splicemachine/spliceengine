@@ -46,8 +46,12 @@ public class EncodingUtils {
 =======
         encoder.reset(getNonNullColumns(row,validColumns));
 
+<<<<<<< HEAD
         RowMarshaller.packedCompressed().fill(row, columns, encoder.getEntryEncoder());
 >>>>>>> Reorganization of insertion in System Table code
+=======
+        RowMarshaller.sparsePacked().fill(row, columns, encoder.getEntryEncoder());
+>>>>>>> Adding tests for LazyBitIndex encoding/decoding
         put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, encoder.encode());
     }
 }
