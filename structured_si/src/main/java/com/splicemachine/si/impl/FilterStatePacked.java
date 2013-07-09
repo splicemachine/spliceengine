@@ -42,7 +42,18 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
                 return simpleFilter.filterByColumnType();
             case USER_DATA:
                 if (dataStore.isSINull(simpleFilter.keyValue.value())) {
-                    return Filter.ReturnCode.NEXT_ROW;
+                    final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
+                    switch (returnCode) {
+                        case INCLUDE:
+                        case INCLUDE_AND_NEXT_COL:
+                            return Filter.ReturnCode.NEXT_ROW;
+                        case SKIP:
+                        case NEXT_COL:
+                        case NEXT_ROW:
+                            return Filter.ReturnCode.SKIP;
+                        default:
+                            throw new RuntimeException("unknown return code");
+                    }
                 } else if (accumulator.isOfInterest(simpleFilter.keyValue.value())) {
                     return accumulateUserData(dataKeyValue);
                 } else {
