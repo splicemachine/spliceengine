@@ -77,6 +77,8 @@ class DeltaCoding {
         for(int i=1;i<=l;i++){
             if(bitPos==9){
                 byteOffset++;
+                if(byteOffset>=data.length)
+                    return -1;
                 byt = data[byteOffset];
                 bitPos=2;
             }
@@ -91,6 +93,8 @@ class DeltaCoding {
         for(int i=1;i<=n;i++){
             if(bitPos==9){
                 byteOffset++;
+                if(byteOffset>=data.length)
+                    return -1;
                 byt = data[byteOffset];
                 bitPos=2;
             }
