@@ -3,6 +3,8 @@ package com.splicemachine.storage.index;
 import java.util.BitSet;
 
 /**
+ * BitIndex which lazily decodes entries as needed, and which does not re-encode entries.
+ *
  * @author Scott Fines
  * Created on: 7/8/13
  */

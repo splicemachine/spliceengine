@@ -3,8 +3,13 @@ package com.splicemachine.storage.index;
 import java.util.BitSet;
 
 /**
+ * Main class for constructing BitIndices of proper type.
+ *
+ * This class is useful as a mechanism for transparently choosing the most efficient implementation
+ * of a given requirement (e.g. compressed, uncompressed, sparse, etc.).
+ *
  * @author Scott Fines
- *         Created on: 7/7/13
+ * Created on: 7/7/13
  */
 public class BitIndexing {
 

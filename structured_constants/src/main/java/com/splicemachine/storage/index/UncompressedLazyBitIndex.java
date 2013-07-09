@@ -1,6 +1,7 @@
 package com.splicemachine.storage.index;
 
 /**
+ * Lazy implementation of an Uncompressed, Dense BitIndex.
  * @author Scott Fines
  * Created on: 7/8/13
  */

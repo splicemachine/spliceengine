@@ -5,11 +5,14 @@ import java.util.BitSet;
 /**
  * BitIndex representing an all-full bitmap.
  *
+ * This allows for a compact representation of a bitmap which is
+ * entirely composed of 1-entries. If there are any zeros, this won't
+ * be correct.
+ *
  * @author Scott Fines
  * Created on: 7/5/13
  */
 public class AllFullBitIndex implements BitIndex {
-
     private static final byte encodedByte = (byte)(0x80 | 0x10);
     public static final BitIndex INSTANCE = new AllFullBitIndex();
 

@@ -1,6 +1,8 @@
 package com.splicemachine.storage.index;
 
 /**
+ * Lazily decoding version of a Dense, Compressed Bit Index.
+ *
  * @author Scott Fines
  * Created on: 7/8/13
  */

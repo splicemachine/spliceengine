@@ -4,7 +4,23 @@ import java.util.Arrays;
 import java.util.BitSet;
 
 /**
- * Represents a Compressed BitSet
+ * Represents a Dense, Compressed BitSet.
+ *
+ * BitSets are compressed during the Encoding process using Run-Length Encoding, which is a
+ * mechanism where each entry is stored, followed by a count of how many times it's duplicated. For example,
+ * the bit sequence 0 11 000 11111 0 1 0 11 can be represented as 01 12 03 15 01 11 01 12 (E.g. the value,
+ * followed by a count of how many times that value is repeated).
+ *
+ * This is often very efficient when there are highly skewed distributions within the BitSet--say, all
+ * 1s at the beginning, and all zeros at the end, or some similar structure.
+ *
+ * Because there is no clear demarcation between the end of a Dense, Compressed bit index and the
+ * start of another bitstream within the same stream/buffer, this implementation places a 1 into the
+ * Most significant bit (leftmost bit) for every byte after the header.  This way, every byte is guaranteed
+ * to be non-zero, at the expense of a slightly larger index.
+ *
+ * The counts are encoded using Elias Delta Encoding (which has nice size features, plus is re-used from
+ * sparse implementations).
  *
  * @author Scott Fines
  * Created on: 7/5/13
