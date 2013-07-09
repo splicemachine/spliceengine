@@ -145,8 +145,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 
 	protected ExecRow doAggregation(boolean useScan) throws StandardException{
-		ExecIndexRow execIndexRow;
-		ExecIndexRow aggResult = null;
+        ExecRow execIndexRow;
+        ExecRow aggResult = null;
 		if(useScan){
             do{
                 execIndexRow = getNextRowFromScan(false);
@@ -169,10 +169,10 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		return aggResult;
 	}
 	
-	protected ExecIndexRow aggregate(ExecIndexRow execIndexRow, 
-									ExecIndexRow aggResult, boolean doInitialize, boolean isScan) throws StandardException{
+	protected ExecRow aggregate(ExecRow execIndexRow,
+                                ExecRow aggResult, boolean doInitialize, boolean isScan) throws StandardException{
 		if(aggResult==null){
-			aggResult = (ExecIndexRow)execIndexRow.getClone();
+			aggResult = execIndexRow.getClone();
 			if(doInitialize){
 				initializeScalarAggregation(aggResult);
 			}

@@ -164,10 +164,10 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 	 * @exception StandardException Thrown on error
 	 */
 	
-	protected final HashBuffer.AggregateFinisher<ByteBuffer,ExecIndexRow> aggregateFinisher = new HashBuffer.AggregateFinisher<ByteBuffer,ExecIndexRow>() {
+	protected final HashBuffer.AggregateFinisher<ByteBuffer,ExecRow> aggregateFinisher = new HashBuffer.AggregateFinisher<ByteBuffer,ExecRow>() {
 
 		@Override
-		public ExecIndexRow finishAggregation(ExecIndexRow row) throws StandardException {
+		public ExecRow finishAggregation(ExecRow row) throws StandardException {
 			SpliceLogUtils.trace(LOG, "finishAggregation");
 			int	size = aggregates.length;
 
@@ -197,7 +197,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 	
 	};
 	
-	protected final ExecIndexRow finishAggregation(ExecIndexRow row) throws StandardException {
+	protected final ExecRow finishAggregation(ExecRow row) throws StandardException {
 		SpliceLogUtils.trace(LOG, "finishAggregation");
 		int	size = aggregates.length;
 

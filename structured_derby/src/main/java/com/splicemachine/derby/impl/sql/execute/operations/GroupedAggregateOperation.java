@@ -21,7 +21,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
@@ -54,8 +53,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	HashMap<Integer,List<DataValueDescriptor>> distinctValues;
 	private int numDistinctAggs = 0;
 	protected ColumnOrdering[] order;
-	private HashBuffer<ByteBuffer,ExecIndexRow> currentAggregations = new HashBuffer<ByteBuffer,ExecIndexRow>(SpliceConstants.ringBufferSize); 
-	private ExecIndexRow[] resultRows;
+	private HashBuffer<ByteBuffer,ExecRow> currentAggregations = new HashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize);
+	private ExecRow[] resultRows;
 	private boolean completedExecution = false;
     protected KeyMarshall hasher;
     protected byte[] currentKey;
@@ -249,14 +248,14 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return row;
 	}
 	
-	private final HashBuffer.Merger<ByteBuffer,ExecIndexRow> merger = new HashBuffer.Merger<ByteBuffer,ExecIndexRow>() {
+	private final HashBuffer.Merger<ByteBuffer,ExecRow> merger = new HashBuffer.Merger<ByteBuffer,ExecRow>() {
 		@Override
-		public ExecIndexRow shouldMerge(ByteBuffer key){
+		public ExecRow shouldMerge(ByteBuffer key){
 			return currentAggregations.get(key);
 		}
 
 		@Override
-		public void merge(ExecIndexRow curr,ExecIndexRow next){
+		public void merge(ExecRow curr,ExecRow next){
 			try {
 				mergeVectorAggregates(next,curr,-1);
 			} catch (StandardException e) {
@@ -275,24 +274,24 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		}
 		long start = System.nanoTime();
         if(resultRows==null)
-        	resultRows = isRollup?new ExecIndexRow[groupByColumns.size()+1]:new ExecIndexRow[1]; // Need to fix Group By Columns
+        	resultRows = isRollup?new ExecRow[groupByColumns.size()+1]:new ExecRow[1]; // Need to fix Group By Columns
 
-        ExecIndexRow nextRow = getNextRowFromSource();        
+        ExecRow nextRow = getNextRowFromSource();
         
     	if(nextRow ==null)
                return finalizeResults();
     	do{
-            ExecIndexRow[] rolledUpRows = getRolledUpRows(nextRow);
+            ExecRow[] rolledUpRows = getRolledUpRows(nextRow);
             //SpliceLogUtils.trace(LOG,"adding rolledUpRows %s", Arrays.toString(rolledUpRows));
-            for(ExecIndexRow rolledUpRow:rolledUpRows) {
+            for(ExecRow rolledUpRow:rolledUpRows) {
     		
 	    		initializeVectorAggregation(rolledUpRow);
 	            sinkEncoder.reset();
 	            ((KeyMarshall)hasher).encodeKey(rolledUpRow.getRowArray(), convertIntegers(allKeyColumns),convertBooleans(groupByDescAscInfo), null, sinkEncoder);
 	                ByteBuffer keyBuffer = ByteBuffer.wrap(sinkEncoder.build());
 					if(!currentAggregations.merge(keyBuffer, rolledUpRow, merger)){
-						ExecIndexRow row = (ExecIndexRow)rolledUpRow.getClone();
-	                    Map.Entry<ByteBuffer,ExecIndexRow> finalized = currentAggregations.add(keyBuffer,row);
+						ExecRow row = (ExecRow)rolledUpRow.getClone();
+	                    Map.Entry<ByteBuffer,ExecRow> finalized = currentAggregations.add(keyBuffer,row);
 						if(finalized!=null&&finalized !=row){
 							return makeCurrent(finalized.getKey(),finishAggregation(finalized.getValue()));
 						}
@@ -319,23 +318,23 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		}
 		long start = System.nanoTime();
         if(resultRows==null)
-                resultRows = new ExecIndexRow[1];
-    	ExecIndexRow nextRow = getNextRowFromScan();
+                resultRows = new ExecRow[1];
+    	ExecRow nextRow = getNextRowFromScan();
 		if(nextRow ==null)
             return finalizeResults();
         //TODO -sf- stash these away somewhere so we're not constantly autoboxing
         int[] groupByCols = convertIntegers(groupByColumns);
 		do{
 	        resultRows[0] = nextRow;
-	        ExecIndexRow[] rolledUpRows = resultRows;
-            for(ExecIndexRow rolledUpRow:rolledUpRows) {
+	        ExecRow[] rolledUpRows = resultRows;
+            for(ExecRow rolledUpRow:rolledUpRows) {
                 sinkEncoder.reset();
                 ((KeyMarshall)hasher).encodeKey(rolledUpRow.getRowArray(), groupByCols, null, null, sinkEncoder);
                 ByteBuffer keyBuffer = ByteBuffer.wrap(sinkEncoder.build());
 				if(!currentAggregations.merge(keyBuffer, rolledUpRow, merger)){
-					ExecIndexRow row = (ExecIndexRow)rolledUpRow.getClone();
+					ExecRow row = (ExecRow)rolledUpRow.getClone();
                     refreshDistinctValues(row);
-					Map.Entry<ByteBuffer,ExecIndexRow> finalized = currentAggregations.add(keyBuffer,row);
+					Map.Entry<ByteBuffer,ExecRow> finalized = currentAggregations.add(keyBuffer,row);
                     if(finalized!=null&&finalized !=row){
 						return makeCurrent(finalized.getKey(),finishAggregation(finalized.getValue()));
 					}
@@ -352,7 +351,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return next;
 	}
 
-	private void refreshDistinctValues(ExecIndexRow row) throws StandardException {
+	private void refreshDistinctValues(ExecRow row) throws StandardException {
 		distinctValues.clear();
 		for (int i = 0; i < aggregates.length; i++) {				
 			SpliceGenericAggregator agg = aggregates[i];
@@ -367,14 +366,14 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		
 	}
 
-    private ExecIndexRow[] getRolledUpRows(ExecIndexRow rowToRollUp) throws StandardException {
+    private ExecRow[] getRolledUpRows(ExecRow rowToRollUp) throws StandardException {
         if(!isRollup){
             resultRows[0] = rowToRollUp;
             return resultRows;
         }
         int rollUpPos = groupByColumns.size();
         int pos = 0;
-        ExecIndexRow nextRow =  (ExecIndexRow)rowToRollUp.getClone();
+        ExecRow nextRow =  (ExecRow)rowToRollUp.getClone();
         SpliceLogUtils.trace(LOG,"setting rollup cols to null");
         do{
             SpliceLogUtils.trace(LOG,"adding row %s",nextRow);
@@ -382,7 +381,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
             //strip out the next key in the rollup
             if(rollUpPos>0){
-	            nextRow = (ExecIndexRow)nextRow.getClone();
+	            nextRow = nextRow.getClone();
 	            DataValueDescriptor rollUpCol = nextRow.getColumn(order[rollUpPos-1].getColumnId()+1);
 	            rollUpCol.setToNull();
             }
@@ -427,17 +426,17 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		}
 	}
 	
-	protected ExecIndexRow getNextRowFromScan() throws StandardException {
+	protected ExecRow getNextRowFromScan() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getting next row from scan");
         if(rowProvider.hasNext())
-            return (ExecIndexRow)rowProvider.next();
+            return (ExecRow)rowProvider.next();
         else return null;
 	}
 
-	private ExecIndexRow getNextRowFromSource() throws StandardException{
+	private ExecRow getNextRowFromSource() throws StandardException{
 		ExecRow sourceRow;
-		ExecIndexRow inputRow = null;
-		
+		ExecRow inputRow = null;
+
 		if ((sourceRow = source.getNextRowCore())!=null){
 			sourceExecIndexRow.execRowToExecIndexRow(sourceRow);
 			inputRow = sourceExecIndexRow;
