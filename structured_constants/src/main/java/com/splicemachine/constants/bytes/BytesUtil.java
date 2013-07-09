@@ -142,7 +142,9 @@ public class BytesUtil {
                 offset++;
             }
             if (field != null) {
+                int newOffset = offset+field.remaining();
                 field.get(bytes, offset, field.remaining());
+                offset=newOffset;
             }
         }
         return bytes;

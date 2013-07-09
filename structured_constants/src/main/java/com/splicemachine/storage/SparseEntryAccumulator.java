@@ -1,5 +1,7 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.constants.bytes.BytesUtil;
+
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 
@@ -35,31 +37,7 @@ public class SparseEntryAccumulator implements EntryAccumulator {
 
     @Override
     public byte[] finish(){
-        int size = 0;
-        boolean isFirst=true;
-        for (ByteBuffer field : fields) {
-            if (isFirst) isFirst = false;
-            else
-                size++;
-
-            if (field != null)
-                size += field.remaining();
-        }
-
-        byte[] bytes = new byte[size];
-        int offset=0;
-        isFirst=true;
-        for (ByteBuffer field : fields) {
-            if (isFirst) isFirst = false;
-            else {
-                bytes[offset] = 0x00;
-                offset++;
-            }
-            if (field != null) {
-                field.get(bytes, offset, field.remaining());
-            }
-        }
-        return bytes;
+        return BytesUtil.concatenate(fields);
     }
 
     @Override
