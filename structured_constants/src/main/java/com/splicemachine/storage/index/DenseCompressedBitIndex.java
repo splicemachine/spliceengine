@@ -39,7 +39,7 @@ class DenseCompressedBitIndex implements BitIndex {
         //fill the header
         int bitPos = 5;
         int[] offsetAndBitPos = new int[]{0,bitPos};
-        int lastSetBit = 0;
+        int lastSetBit;
         if(bitSet.get(0)){
             lastSetBit=0;
         }else{
@@ -211,7 +211,6 @@ class DenseCompressedBitIndex implements BitIndex {
                 offsetAndBitPos[0]++;
                 if(offsetAndBitPos[0]>=data.length||offsetAndBitPos[0]>=length)
                     break;
-                byt = data[offsetAndBitPos[0]];
                 offsetAndBitPos[1] = 2;
             }
             if(val==0){

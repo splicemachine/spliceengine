@@ -42,7 +42,7 @@ public class EntryDecoder {
         }
         if((headerByte & 0x80) !=0){
            if((headerByte & 0x40)!=0){
-               bitIndex = DenseCompressedBitIndex.wrap(data, 0, dataOffset);
+               bitIndex = BitIndexing.compressedBitMap(data, 0, dataOffset);
            }else{
                bitIndex = BitIndexing.uncompressedBitMap(data, 0, dataOffset);
            }

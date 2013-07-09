@@ -116,9 +116,8 @@ class SparseBitIndex implements BitIndex {
 
         SparseBitIndex that = (SparseBitIndex) o;
 
-        if (!bitSet.equals(that.bitSet)) return false;
+        return bitSet.equals(that.bitSet);
 
-        return true;
     }
 
     @Override
