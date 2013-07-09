@@ -12,6 +12,8 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
@@ -32,6 +34,8 @@ import org.apache.zookeeper.ZooDefs;
 import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
 
 import java.io.*;
+import java.util.BitSet;
+import java.util.Collections;
 import java.util.UUID;
 
 /**
@@ -103,15 +107,31 @@ public class SpliceUtils extends SpliceUtilities {
 		SpliceLogUtils.trace(LOG,"createGet %s",loc.getBytes());
 		try {
 			Get get = createGet(transID, loc.getBytes());
-			if(validColumns!=null){
-				for(int i= validColumns.anySetBit();i!=-1;i = validColumns.anySetBit(i)){
-					get.addColumn(DEFAULT_FAMILY_BYTES, Encoding.encode(i));
-				}
-			}else{
-				for(int i=0;i<destRow.length;i++){
-					get.addColumn(DEFAULT_FAMILY_BYTES, Encoding.encode(i));
-				}
-			}
+            get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
+            BitSet fieldsToReturn;
+            if(validColumns!=null){
+                fieldsToReturn = new BitSet(validColumns.size());
+                for(int i=validColumns.anySetBit();i>=0;i=validColumns.anySetBit(i)){
+                    fieldsToReturn.set(i);
+                }
+            }else{
+                fieldsToReturn = new BitSet(destRow.length);
+                fieldsToReturn.set(0,destRow.length);
+            }
+
+            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, Collections.<Predicate>emptyList());
+            ByteDataOutput bdo = new ByteDataOutput();
+            bdo.writeObject(predicateFilter);
+            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bdo.toByteArray());
+//			if(validColumns!=null){
+//				for(int i= validColumns.anySetBit();i!=-1;i = validColumns.anySetBit(i)){
+//					get.addColumn(DEFAULT_FAMILY_BYTES, Encoding.encode(i));
+//				}
+//			}else{
+//				for(int i=0;i<destRow.length;i++){
+//					get.addColumn(DEFAULT_FAMILY_BYTES, Encoding.encode(i));
+//				}
+//			}
 
 			return get;
 		} catch (Exception e) {

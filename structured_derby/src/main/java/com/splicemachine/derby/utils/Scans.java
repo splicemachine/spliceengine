@@ -11,10 +11,6 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.storage.*;
-<<<<<<< HEAD
-import com.splicemachine.utils.ByteDataOutput;
-=======
->>>>>>> Creating Predicates instead of Filters now
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.Qualifier;
@@ -223,12 +219,9 @@ public class Scans extends SpliceUtils {
         try{
             attachScanKeys(scan, startKeyValue, startSearchOperator,
                     stopKeyValue, stopSearchOperator,
-                    qualifiers, primaryKeys,scanColumnList, sortOrder);
+                    qualifiers, primaryKeys, sortOrder);
 
-            EntryPredicateFilter pqf = getPredicates(startKeyValue,startSearchOperator,qualifiers);
-            ByteDataOutput bao  = new ByteDataOutput();
-            bao.writeObject(pqf);
-            scan.setAttribute("p",bao.toByteArray());
+            buildPredicateFilter(startKeyValue,startSearchOperator,qualifiers,scanColumnList,scan);
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }
@@ -262,6 +255,11 @@ public class Scans extends SpliceUtils {
             }
         }else
             predicates = Lists.newArrayListWithCapacity(1);
+        if(scanColumnList!=null){
+            for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
+                colsToReturn.set(i);
+            }
+        }
 
         if(scanColumnList!=null){
             for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
@@ -538,7 +536,6 @@ public class Scans extends SpliceUtils {
 																		DataValueDescriptor[] stopKeyValue,int stopSearchOperator,
 																		Qualifier[][] qualifiers,
                                                                         FormatableBitSet primaryKeys,
-                                                                        FormatableBitSet scanColumnList,
 																		boolean[] sortOrder) throws IOException {
         scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
 		try{

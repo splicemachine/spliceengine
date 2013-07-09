@@ -676,13 +676,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 stopPosition.getRowArray()[0] = next;
             }
             populateQualifiers();
-            Scan scan;
-            try {
-                scan = getScan();
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
-            return scan;
+            return getScan();
         }
     }
 }

@@ -326,8 +326,7 @@ public class SpliceTransactionManager implements XATransactionController,
 
 		if (conglom == null) {
 			throw StandardException.newException(
-					SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST, new Long(
-							conglomId));
+					SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST, conglomId);
 		} else {
 			return (conglom);
 		}
