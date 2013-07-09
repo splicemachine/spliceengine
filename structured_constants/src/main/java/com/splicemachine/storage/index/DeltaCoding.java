@@ -8,6 +8,13 @@ package com.splicemachine.storage.index;
  */
 class DeltaCoding {
 
+    static int getEncodedLength(int number){
+        //note that floor(log2(x)) = 31-numberOfLeadingZeros(i)
+        int log2x = 31-Integer.numberOfLeadingZeros(number);
+        int log2x1 = 31-Integer.numberOfLeadingZeros(log2x+1);
+        return log2x+2*log2x1+1;
+    }
+
     static int decode(byte[] data, int[] byteAndBitOffset) {
         int byteOffset = byteAndBitOffset[0];
         int bitPos = byteAndBitOffset[1];

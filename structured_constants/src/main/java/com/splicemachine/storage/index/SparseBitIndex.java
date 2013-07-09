@@ -57,7 +57,7 @@ public class SparseBitIndex implements BitIndex {
 
         int[] byteAndBitOffset = new int[]{0,6};
         for(int i=bitSet.nextSetBit(1);i>=0;i=bitSet.nextSetBit(i+1)){
-            DeltaCoding.encode(bytes,i,byteAndBitOffset);
+            DeltaCoding.encode(bytes, i, byteAndBitOffset);
         }
 
         return bytes;
@@ -71,12 +71,8 @@ public class SparseBitIndex implements BitIndex {
          */
         int numBits = 0;
         for(int i=bitSet.nextSetBit(1);i>=0;i=bitSet.nextSetBit(i+1)){
-            //note that floor(log2(x)) = 31-numberOfLeadingZeros(i)
-            int log2x = 31-Integer.numberOfLeadingZeros(i);
-            numBits+=log2x;
-            int log2x1 = 31-Integer.numberOfLeadingZeros(log2x+1);
-            numBits+= 2*log2x1;
-            numBits++;
+            int size = DeltaCoding.getEncodedLength(i);
+            numBits+= size;
         }
 
         int length = numBits-3; //3 bits are set in the header

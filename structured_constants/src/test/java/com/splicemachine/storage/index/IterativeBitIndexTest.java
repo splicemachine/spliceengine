@@ -14,7 +14,7 @@ import java.util.Random;
 
 /**
  * @author Scott Fines
- *         Created on: 7/5/13
+ * Created on: 7/5/13
  */
 @RunWith(Parameterized.class)
 public class IterativeBitIndexTest {
@@ -59,5 +59,17 @@ public class IterativeBitIndexTest {
 
         BitIndex decoded = SparseBitIndex.wrap(encode,0,encode.length);
         Assert.assertEquals(bitIndex,decoded);
+    }
+
+    @Test
+    public void testCanEncodeAndDecodeDenseCompressedProperly() throws Exception {
+        BitIndex bitIndex = DenseCompressedBitIndex.compress(bitSet);
+//        System.out.println(bitIndex);
+
+        byte[] encode = bitIndex.encode();
+
+        BitIndex decoded = DenseCompressedBitIndex.wrap(encode,0,encode.length);
+        Assert.assertEquals(bitIndex,decoded);
+
     }
 }
