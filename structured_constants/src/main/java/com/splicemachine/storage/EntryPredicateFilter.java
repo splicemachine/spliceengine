@@ -45,15 +45,34 @@ public class EntryPredicateFilter implements Externalizable{
             }
 
             int offset = decoder.offset();
-            decoder.skip();
-            int limit = decoder.offset()-offset;
 
+            byte[] array = decoder.array();
+            if(offset>array.length){
+                /*
+                 * It may seem odd that this case can happen, but it occurs when the scan
+                 * doesn't provide information about how many columns it expects back, and
+                 * the bit index is an AllFullBitIndex (This is the case when you want to return
+                 * everything, and everything is present). In that case, there is nothing to stop
+                 * this from looping off the end of the data array (which, in fact, is the correct
+                 * behavior when you want to return everything), so we have to check and make sure that
+                 * there actually IS data to add before adding. In that case, we've finished, so
+                 * tell the accumulator
+                 */
+                if(accumulator instanceof AlwaysAcceptEntryAccumulator)
+                    ((AlwaysAcceptEntryAccumulator)accumulator).complete();
+                return true;
+            }
+            decoder.skip();
+            int limit = decoder.offset()-1-offset;
+            if(offset+limit>array.length){
+                limit = array.length-offset;
+            }
             for(Predicate valuePredicate : valuePredicates){
-                if(!valuePredicate.match(encodedPos,decoder.array(), offset,limit)){
+                if(!valuePredicate.match(encodedPos,array, offset,limit)){
                     return false;
                 }
             }
-            accumulator.add(encodedPos,ByteBuffer.wrap(decoder.array(), offset,limit));
+            accumulator.add(encodedPos,ByteBuffer.wrap(array, offset,limit));
         }
         return true;
     }

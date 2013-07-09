@@ -83,7 +83,7 @@ abstract class LazyBitIndex implements BitIndex{
     public int cardinality(int position) {
         decodeUntil(position);
         int count=0;
-        for(int i=decodedBits.nextSetBit(0);i>=0;i=decodedBits.nextSetBit(i+1)){
+        for(int i=decodedBits.nextSetBit(0);i>=0 && i<position;i=decodedBits.nextSetBit(i+1)){
             count++;
         }
         return count;

@@ -14,8 +14,11 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
 
     private ByteBuffer[] fields;
 
+    private boolean completed;
+
     AlwaysAcceptEntryAccumulator() {
         this.occupiedFields = new BitSet();
+        this.completed = false;
     }
 
     @Override
@@ -27,13 +30,17 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
         occupiedFields.set(position);
     }
 
+    public void complete(){
+        this.completed = true;
+    }
+
     private void growFields(int position) {
         /*
          * Make sure that the fields array is large enough to hold elements up to position.
          */
         if(fields==null){
             fields = new ByteBuffer[position+1];
-        }else if(fields.length<=position){
+        }else if(fields.length<=position && !completed){ //if completed, we know how many to return
             //grow the fields list to be big enough to hold the position
 
             /*
@@ -67,7 +74,7 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
          * We always want an entry, because we want to ensure that we run until the entire row is
          * populated, which means running until the end of all versions.
          */
-        if(bitSet.cardinality()==0){
+        if(!completed&&bitSet.cardinality()==0){
             bitSet.set(0,1024);
         }
         return bitSet;
