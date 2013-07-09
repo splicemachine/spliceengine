@@ -72,4 +72,29 @@ public class IterativeBitIndexTest {
         Assert.assertEquals(bitIndex,decoded);
 
     }
+
+    public static void main(String... args) throws Exception{
+        BitSet comparisonSet = new BitSet(4000);
+        comparisonSet.set(0);
+        comparisonSet.set(2);
+        comparisonSet.set(4);
+//        comparisonSet.set(6);
+//        comparisonSet.set(8);
+        comparisonSet.set(10);
+//        comparisonSet.set(12);
+        comparisonSet.set(14);
+//        comparisonSet.set(16);
+//        comparisonSet.set(18);
+        comparisonSet.set(20);
+        comparisonSet.set(22);
+
+        BitIndex uncompressed = BitIndexing.uncompressedBitMap(comparisonSet);
+        BitIndex compressed = BitIndexing.compressedBitMap(comparisonSet);
+        BitIndex sparse = BitIndexing.sparseBitMap(comparisonSet);
+
+        System.out.printf("uncompressed size=%d%n",uncompressed.encodedSize());
+        System.out.printf("compressed size=%d%n",compressed.encodedSize());
+        System.out.printf("sparse size=%d%n",sparse.encodedSize());
+
+    }
 }

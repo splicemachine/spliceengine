@@ -37,14 +37,17 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
             //grow the fields list to be big enough to hold the position
 
             /*
-             * We grow the array by 3/2 each time, until that number is large enough to hold the
-             * position--this uses a bit more memory, but means that if we are constantly adding in
-             * sequence, that we won't be constantly expanding the array
+             * In Normal circumstances, we would grow by some efficient factor
+             * like 3/2 or something, so that we don't have to copy out entries over and over again.
+             *
+             * However, in this case, we can't grow past what we need, because that would place additional
+             * null entries at the end of our return array. Instead, we must only be as large as needed
+             * to hold position.
+             *
+             * This isn't so bad, though--once the first row has been resolved, we should never have
+             * to grow again, so we'll pay a penalty on the first row only.
              */
-            int newSize = 3*fields.length/2;
-            while(newSize<=position){
-                newSize = 3*newSize/2;
-            }
+            int newSize = position+1;
             ByteBuffer[] oldFields = fields;
             fields = new ByteBuffer[newSize];
             System.arraycopy(oldFields,0,fields,0,oldFields.length);

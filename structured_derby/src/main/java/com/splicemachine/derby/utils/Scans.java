@@ -221,10 +221,7 @@ public class Scans extends SpliceUtils {
                     stopKeyValue, stopSearchOperator,
                     qualifiers, primaryKeys, sortOrder);
 
-            EntryPredicateFilter pqf = getPredicates(startKeyValue,startSearchOperator,qualifiers,scanColumnList);
-            ByteDataOutput bao  = new ByteDataOutput();
-            bao.writeObject(pqf);
-            scan.setAttribute("p",bao.toByteArray());
+            buildPredicateFilter(startKeyValue, startSearchOperator, qualifiers, scanColumnList, scan);
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }
@@ -232,6 +229,16 @@ public class Scans extends SpliceUtils {
 
 		return scan;
 	}
+
+    public static void buildPredicateFilter(DataValueDescriptor[] startKeyValue,
+                                            int startSearchOperator,
+                                            Qualifier[][] qualifiers,
+                                            FormatableBitSet scanColumnList, Scan scan) throws StandardException, IOException {
+        EntryPredicateFilter pqf = getPredicates(startKeyValue,startSearchOperator,qualifiers,scanColumnList);
+        ByteDataOutput bao  = new ByteDataOutput();
+        bao.writeObject(pqf);
+        scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bao.toByteArray());
+    }
 
     private static EntryPredicateFilter getPredicates(DataValueDescriptor[] startKeyValue,
                                                       int startSearchOperator,

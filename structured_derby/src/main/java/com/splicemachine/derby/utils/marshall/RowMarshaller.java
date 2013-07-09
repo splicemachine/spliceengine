@@ -90,6 +90,11 @@ public class RowMarshaller {
         }
 
         @Override
+        public void fill(DataValueDescriptor[] row, int[] rowColumns, MultiFieldEncoder encoder) throws StandardException {
+            COLUMNAR.fill(row,rowColumns,encoder);
+        }
+
+        @Override
         public boolean isColumnar() {
             return true;
         }
@@ -108,6 +113,11 @@ public class RowMarshaller {
                                     MultiFieldEncoder rowEncoder,
                                     List<KeyValue> kvResults) throws StandardException {
             COLUMNAR.encodeKeyValues(row,rowKey,rowColumns,null,kvResults);
+        }
+
+        @Override
+        public void fill(DataValueDescriptor[] row, int[] rowColumns, MultiFieldEncoder encoder) throws StandardException {
+            COLUMNAR.fill(row,rowColumns,encoder);
         }
 
         @Override
@@ -180,6 +190,10 @@ public class RowMarshaller {
         }
 
 
+        @Override
+        public void fill(DataValueDescriptor[] row, int[] rowColumns, MultiFieldEncoder encoder) throws StandardException {
+            //no-op for COLUMNAR Types
+        }
 
         @Override
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder) throws StandardException {
@@ -245,6 +259,10 @@ public class RowMarshaller {
             kvResults.add(getPackedKv(row,rowKey,rowColumns,rowEncoder,false));
         }
 
+        @Override
+        public void fill(DataValueDescriptor[] row, int[] rowColumns, MultiFieldEncoder encoder) throws StandardException {
+            pack(row,rowColumns,encoder,false);
+        }
 
         @Override
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder) throws StandardException {
@@ -282,6 +300,10 @@ public class RowMarshaller {
             kvResults.add(getPackedKv(row,rowKey,rowColumns,rowEncoder,true));
         }
 
+        @Override
+        public void fill(DataValueDescriptor[] row, int[] rowColumns, MultiFieldEncoder encoder) throws StandardException {
+            pack(row,rowColumns,encoder,true);
+        }
 
         @Override
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder) throws StandardException {
@@ -351,6 +373,11 @@ public class RowMarshaller {
             } catch (IOException e) {
                 throw Exceptions.parseException(e);
             }
+        }
+
+        @Override
+        public void fill(DataValueDescriptor[] row, int[] rowColumns, MultiFieldEncoder encoder) throws StandardException {
+            pack(row,rowColumns,encoder,true);
         }
 
         @Override
