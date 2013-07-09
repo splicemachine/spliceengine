@@ -18,8 +18,17 @@ public interface BitIndex {
      */
     int length();
 
+    /**
+     * @param pos the position to check (0-indexed).
+     * @return true if the position is present in the index
+     */
     boolean isSet(int pos);
 
+    /**
+     * Generate a byte representation of this Index for storage.
+     *
+     * @return a byte[] representation of this bit index.
+     */
     byte[] encode();
 
     /**
@@ -49,6 +58,11 @@ public interface BitIndex {
      */
     int cardinality(int position);
 
+    /**
+     * @param bitSet the bitset to compare with
+     * @return true if this index intersects with the specified BitSet. (e.g. If there are bits set in both
+     * {@code bitSet} and this instance).
+     */
     boolean intersects(BitSet bitSet);
 
     BitSet and(BitSet bitSet);
