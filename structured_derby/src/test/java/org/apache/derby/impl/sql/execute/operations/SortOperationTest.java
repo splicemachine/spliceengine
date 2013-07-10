@@ -7,10 +7,7 @@ import java.util.*;
 
 import com.google.common.collect.Maps;
 import com.splicemachine.homeless.TestUtils;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -249,7 +246,20 @@ public class SortOperationTest extends SpliceUnitTest {
 	}
 
     @Test
-	public void testDistinctOrderByFloat() throws Exception {
+    @Ignore("Bugzilla 560")
+    public void testOrderByFloatDesc() throws Exception {
+        List<Object[]> expected = Arrays.asList(
+                o("tom", 13.4667),
+                o("joe", 5.5),
+                o("bob", 1.2));
+        ResultSet rs = methodWatcher.executeQuery(format("select name, age from %s order by age desc", this.getTableReference(TABLE_NAME_2)));
+        List<Object[]> results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertArrayEquals("results are wrong", expected.toArray(), results.toArray());
+    }
+
+    @Test
+    public void testDistinctOrderByFloat() throws Exception {
         // Tests for columns returning in reverse order (age, name not name, age) which actually causes Derby Network protocol exception
 //        try {
             ResultSet rs = methodWatcher.executeQuery(format("select distinct name, age from %s order by age", this.getTableReference(TABLE_NAME_2)));
