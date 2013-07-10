@@ -35,6 +35,8 @@ import java.util.List;
  * Operation for performing Scalar Aggregations (sum, avg, max/min, etc.). 
  *  
  * @author Scott Fines
+ * 
+ * 
  *
  */
 public class ScalarAggregateOperation extends GenericAggregateOperation {
@@ -156,7 +158,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                 execIndexRow = getNextRowFromSource(false);
                 if(execIndexRow==null) continue;
                 aggResult = aggregate(execIndexRow,aggResult,true,false);
-            }while(execIndexRow!=null);
+            }while(execIndexRow!=null && countOfRows <= 0);
 		}
 		if(aggResult==null) return null; //we didn't have any rows to aggregate
 		if(countOfRows==0){
