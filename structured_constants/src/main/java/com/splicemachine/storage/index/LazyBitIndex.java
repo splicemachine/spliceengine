@@ -1,5 +1,7 @@
 package com.splicemachine.storage.index;
 
+import com.splicemachine.storage.BitReader;
+
 import java.util.BitSet;
 
 /**
@@ -14,12 +16,14 @@ abstract class LazyBitIndex implements BitIndex{
     protected byte[] encodedBitMap;
     protected int offset;
     protected int length;
+    protected BitReader bitReader;
 
-    protected LazyBitIndex(byte[] encodedBitMap,int offset,int length){
+    protected LazyBitIndex(byte[] encodedBitMap,int offset,int length,int bitPos){
         this.encodedBitMap = encodedBitMap;
         this.offset = offset;
         this.length = length;
         this.decodedBits = new BitSet();
+        this.bitReader = new BitReader(encodedBitMap,offset,length,bitPos);
     }
 
     @Override

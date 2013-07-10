@@ -50,6 +50,58 @@ public class StringEncoding {
         return data;
     }
 
+    public static byte[] toBytes(String value, boolean desc, boolean encodeNull){
+        if(value==null){
+            /*
+             * The UTF-8 spec includes several invalid byte sequences, including 0xf5-0xff, which
+             * allows us to shift everything up by 3 bytes so as to encode nulls explicitly.
+             *
+             * Thus, we encode null as 0x01, "" as 0x02, and everything else as the same byte +3
+             */
+            if(encodeNull){
+                if(desc)
+                    return new byte[]{(byte)(0x01 ^ 0xff)};
+                return new byte[]{(byte)0x01};
+            }else
+                return new byte[]{};
+        }
+        if(value.length()==0) {
+            if(desc)
+                return new byte[]{(byte)(0x02 ^ 0xff)};
+            return new byte[]{0x02};
+        }
+
+        byte[] data = Bytes.toBytes(value);
+        for(int i=0;i<data.length;i++){
+            byte newD = (byte)(data[i]+3);
+            if(desc)
+                newD ^= 0xff;
+            data[i] = newD;
+        }
+
+        return data;
+    }
+
+    public static String getString(byte[] data, boolean desc, boolean encodedNull){
+        if(data==null) return null;
+        if(data.length==1){
+            byte byt = data[0];
+            if(desc)
+                byt ^= 0xff;
+            if(byt == 0x01){
+                return null;
+            }else if(byt == 0x02){
+                return "";
+            }
+        }
+        byte[] copy = new byte[data.length];
+
+        for(int i=0;i<data.length;i++){
+            copy[i] = (byte)(data[i]-3);
+        }
+        return new String(copy);
+    }
+
     /**
      * SIDE EFFECT WARNING: Transforms the passed in byte[] in place!
      *
@@ -83,9 +135,8 @@ public class StringEncoding {
     }
 
     public static void main(String... args) throws Exception{
-        String test = "";
-        System.out.println(test.charAt(0));
-        String testBack = getString(toBytes(test,false),false);
-        System.out.println(testBack);
+        byte[] testNull = new byte[]{(byte)(0xf7)};
+        String maybeNull = new String(testNull);
+        System.out.println(maybeNull);
     }
 }

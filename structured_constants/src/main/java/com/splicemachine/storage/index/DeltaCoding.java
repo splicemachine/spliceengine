@@ -1,5 +1,8 @@
 package com.splicemachine.storage.index;
 
+import com.splicemachine.storage.BitReader;
+import com.splicemachine.storage.BitWriter;
+
 /**
  * Utility class to conform to correctness of an Elias Delta Encoding.
  *
@@ -108,6 +111,32 @@ class DeltaCoding {
         return retVal;
     }
 
+    static int decode(BitReader bitReader){
+        int l = 0;
+        while(bitReader.hasNext()&&(bitReader.next()==0)){
+            l++;
+        }
+
+        //read the next l digits in
+        int n = 1<<l;
+        for(int i=1;i<=l;i++){
+            if(!bitReader.hasNext()) return -1;
+            int next = bitReader.next();
+            if(next!=0)
+                n |= (1<<l-i);
+        }
+        n--;
+        int retVal = 1<<n;
+        //read remaining digits
+        for(int i=1;i<=n;i++){
+            if(!bitReader.hasNext()) return -1;
+            int val = bitReader.next();
+            if(val!=0)
+                retVal |= (1<<n-i);
+        }
+        return retVal;
+    }
+
     /**
      * Delta-Encode a number into a stream/buffer, updating positional information as we go.
      *
@@ -178,5 +207,52 @@ class DeltaCoding {
         }
         byteAndBitOffset[0] = byteOffset;
         byteAndBitOffset[1] = bitPos;
+    }
+
+    static void encode(int val,BitWriter bitWriter) {
+        int x = 32-Integer.numberOfLeadingZeros(val);
+        int numZeros = 32-Integer.numberOfLeadingZeros(x)-1;
+
+        bitWriter.skip(numZeros);
+
+        //append bits of x
+        int numBitsToWrite = 32-Integer.numberOfLeadingZeros(x);
+        for(int i=1;i<=numBitsToWrite;i++){
+            int v = x & (1<<numBitsToWrite-i);
+            if(v!=0)
+                bitWriter.setNext();
+            else
+                bitWriter.skipNext();
+        }
+
+        //append bits of y
+        int pos = 1<<x-1;
+        int y = val & ~pos;
+        numBitsToWrite = 32-Integer.numberOfLeadingZeros(pos)-1;
+        //y might be a bunch of zeros, so if y
+        for(int i=1;i<=numBitsToWrite;i++){
+            int v = (y & (1<<numBitsToWrite-i));
+            if(v!=0)
+                bitWriter.setNext();
+            else
+                bitWriter.skipNext();
+        }
+    }
+
+    public static void main(String... args) throws Exception{
+        int numBits = DeltaCoding.getEncodedLength(4);
+        int length = numBits-3;
+        int numBytes = length/7;
+        if(length%7!=0){
+            numBytes++;
+        }
+        numBytes++;
+        byte[] buffer = new byte[numBytes];
+        BitWriter writer = new BitWriter(buffer,0,buffer.length,5,true);
+        DeltaCoding.encode(4,writer);
+
+        int val =DeltaCoding.decode(buffer,new int[]{0,5});
+        System.out.println(val);
+
     }
 }

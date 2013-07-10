@@ -45,7 +45,7 @@ public class IterativeBitIndexTest {
         BitIndex bitIndex = UncompressedBitIndex.create(bitSet);
         byte[] encode = bitIndex.encode();
 
-        BitIndex decoded = UncompressedBitIndex.wrap(encode,0,encode.length);
+        BitIndex decoded = UncompressedBitIndex.wrap(encode, 0, encode.length);
         Assert.assertEquals(bitIndex,decoded);
     }
 
@@ -76,12 +76,10 @@ public class IterativeBitIndexTest {
     @Test
     public void testCanEncodeAndDecodeSparseLazyProperly() throws Exception {
         BitIndex bitIndex = SparseBitIndex.create(bitSet);
-        System.out.println(bitIndex);
 
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = BitIndexing.sparseBitMap(encode,0,encode.length);
-        System.out.println(bitIndex);
         //equality is defined as the same bits set in each index
         for(int i=bitIndex.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1)){
             Assert.assertTrue(decoded.isSet(i));
@@ -105,37 +103,11 @@ public class IterativeBitIndexTest {
         BitIndex bitIndex =BitIndexing.compressedBitMap(bitSet);
         byte[] encode = bitIndex.encode();
 
-        BitIndex decoded = BitIndexing.compressedBitMap(encode,0,encode.length);
+        BitIndex decoded = BitIndexing.compressedBitMap(encode, 0, encode.length);
 
         //equality is defined as the same bits set in each index
         for(int i=bitIndex.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1)){
             Assert.assertTrue(decoded.isSet(i));
         }
-    }
-
-    public static void main(String... args) throws Exception{
-        BitSet comparisonSet = new BitSet(4000);
-        comparisonSet.set(0);
-        comparisonSet.set(1);
-        comparisonSet.set(2);
-        comparisonSet.set(3);
-        comparisonSet.set(4);
-        comparisonSet.set(5);
-
-
-        BitIndex uncompressed = BitIndexing.uncompressedBitMap(comparisonSet);
-
-        byte[] encoded = uncompressed.encode();
-        BitIndex lazy = BitIndexing.uncompressedBitMap(encoded,0,encoded.length);
-
-        for(int i=uncompressed.nextSetBit(0);i>=0;i=uncompressed.nextSetBit(i+1)){
-            if(!lazy.isSet(i)){
-                System.out.println(i);
-            }
-        }
-//        System.out.printf("uncompressed size=%d%n",uncompressed.encodedSize());
-//        System.out.printf("compressed size=%d%n",compressed.encodedSize());
-//        System.out.printf("sparse size=%d%n",sparse.encodedSize());
-
     }
 }

@@ -7,19 +7,17 @@ package com.splicemachine.storage.index;
  * Created on: 7/8/13
  */
 class SparseLazyBitIndex extends LazyBitIndex{
-    private int[] offSetAndBitPosition;
 
     protected SparseLazyBitIndex(byte[] encodedBitMap, int offset, int length) {
-        super(encodedBitMap, offset, length);
-        offSetAndBitPosition = new int[]{offset,6};
+        super(encodedBitMap, offset, length,5);
 
-        //check the 0 position
-        if((encodedBitMap[offSetAndBitPosition[0]] & 0x08) !=0)
-            decodedBits.set(0);
+        if(bitReader.hasNext()&&bitReader.next()!=0){
+            decodedBits.set(0); //check the zero bit
+        }
     }
 
     @Override
     protected int decodeNext() {
-        return DeltaCoding.decode(encodedBitMap,offSetAndBitPosition);
+        return DeltaCoding.decode(bitReader);
     }
 }

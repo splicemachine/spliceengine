@@ -1,5 +1,7 @@
 package com.splicemachine.storage.index;
 
+import com.splicemachine.storage.BitWriter;
+
 import java.util.BitSet;
 
 /**
@@ -28,8 +30,9 @@ import java.util.BitSet;
 class SparseBitIndex implements BitIndex {
     private final BitSet bitSet;
 
+    private byte[] encodedVersion;
     public SparseBitIndex(BitSet setCols) {
-        this.bitSet = setCols;
+        this.bitSet = (BitSet)setCols.clone();
     }
 
     @Override
@@ -44,7 +47,9 @@ class SparseBitIndex implements BitIndex {
 
     @Override
     public byte[] encode() {
-        byte[] bytes = new byte[encodedSize()];
+        if(encodedVersion!=null) return encodedVersion;
+
+        encodedVersion = new byte[encodedSize()];
 
         /*
          * Zero is special, since it can't be encoded using Delta Encoding, we
@@ -52,15 +57,16 @@ class SparseBitIndex implements BitIndex {
          * or not.
          */
         if(bitSet.get(0)){
-            bytes[0] = 0x08;
+            encodedVersion[0] = 0x08;
         }
 
-        int[] byteAndBitOffset = new int[]{0,6};
+        BitWriter writer = new BitWriter(encodedVersion,0,encodedVersion.length,6,true);
+
         for(int i=bitSet.nextSetBit(1);i>=0;i=bitSet.nextSetBit(i+1)){
-            DeltaCoding.encode(bytes, i, byteAndBitOffset);
+            DeltaCoding.encode(i,writer);
         }
 
-        return bytes;
+        return encodedVersion;
     }
 
     @Override
@@ -76,6 +82,8 @@ class SparseBitIndex implements BitIndex {
         }
 
         int length = numBits-3; //3 bits are set in the header
+        if(length<=0) return 1; //use only the header
+
         int numBytes = length/7;
         if(length%7!=0){
             numBytes++;
