@@ -3,20 +3,27 @@ package com.splicemachine.spark;
 import java.io.IOException;
 
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-public class SpliceRecordReader extends RecordReader<byte[],ExecRow> {
+import com.splicemachine.derby.iapi.storage.RowProvider;
 
+public class SpliceRecordReader extends RecordReader<RowLocation,ExecRow> {
+	protected RowProvider rowProvider;
+	public SpliceRecordReader(RowProvider rowProvider) {
+		this.rowProvider = rowProvider;
+	}
+	
+	
 	@Override
 	public void close() throws IOException {
-		// TODO Auto-generated method stub
-		
+		rowProvider.close();
 	}
 
 	@Override
-	public byte[] getCurrentKey() throws IOException, InterruptedException {
+	public RowLocation getCurrentKey() throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		return null;
 	}
