@@ -230,7 +230,6 @@ public class TableScanOperation extends ScanOperation {
                 }
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
 			if (this.activeRegionOperation)
 				region.closeRegionOperation();
 			SpliceLogUtils.logAndThrow(LOG, tableName+":Error during getNextRowCore",
