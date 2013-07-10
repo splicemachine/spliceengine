@@ -269,10 +269,13 @@ final class DecimalEncoding {
         long l = Double.doubleToLongBits(value);
         l = (l^ ((l >> Long.SIZE-1) | Long.MIN_VALUE))+1;
 
-        if(desc)
-            l ^= 0xffffffffffffffffl;
-
-        return Bytes.toBytes(l);
+        byte[] bytes = Bytes.toBytes(l);
+        if(desc) {
+        	for(int i=0;i<bytes.length;i++){
+        		bytes[i] ^= 0xff;
+        	}
+        }
+        return bytes;
     }
 
     public static double toDouble(byte[] data, boolean desc){
@@ -290,9 +293,17 @@ final class DecimalEncoding {
     }
 
     public static double toDouble(byte[] data, int offset,boolean desc){
-        long l = Bytes.toLong(data,offset);
-        if(desc)
-            l ^= 0xffffffffffffffffl;
+    	byte[] val = data;
+    	if(desc){
+    		val = new byte[8];
+    		System.arraycopy(data,offset,val,0,val.length);
+    		for(int i=offset;i<8;i++){
+    			val[i] ^= 0xff;
+    		}
+    		offset=0;
+    	}
+    		
+        long l = Bytes.toLong(val,offset);
 
         l--;
         l ^= (~l >> Long.SIZE-1) | Long.MIN_VALUE;
