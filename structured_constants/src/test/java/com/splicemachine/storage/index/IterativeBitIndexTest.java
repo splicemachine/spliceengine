@@ -18,7 +18,7 @@ import java.util.Random;
  */
 @RunWith(Parameterized.class)
 public class IterativeBitIndexTest {
-    private static final int bitSetSize=2000;
+    private static final int bitSetSize=1000;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -46,7 +46,7 @@ public class IterativeBitIndexTest {
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = UncompressedBitIndex.wrap(encode, 0, encode.length);
-        Assert.assertEquals(bitIndex,decoded);
+        Assert.assertEquals("Incorrect encode-decode of bitmap "+ bitSet,bitIndex,decoded);
     }
 
     @Test
@@ -58,19 +58,18 @@ public class IterativeBitIndexTest {
 
         //equality is defined as the same bits set in each index
         for(int i=bitIndex.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1)){
-            Assert.assertTrue(decoded.isSet(i));
+            Assert.assertTrue("Incorrect encode-decode of bitmap "+ bitSet,decoded.isSet(i));
         }
     }
 
     @Test
     public void testCanEncodeAndDecodeSparseProperly() throws Exception {
         BitIndex bitIndex = SparseBitIndex.create(bitSet);
-        System.out.println(bitIndex);
 
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = SparseBitIndex.wrap(encode,0,encode.length);
-        Assert.assertEquals(bitIndex,decoded);
+        Assert.assertEquals("Incorrect encode-ecode of bitmap "+ bitSet,bitIndex,decoded);
     }
 
     @Test
@@ -82,20 +81,18 @@ public class IterativeBitIndexTest {
         BitIndex decoded = BitIndexing.sparseBitMap(encode,0,encode.length);
         //equality is defined as the same bits set in each index
         for(int i=bitIndex.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1)){
-            Assert.assertTrue(decoded.isSet(i));
+            Assert.assertTrue("Incorrect encode/decode of bitmap "+ bitSet,decoded.isSet(i));
         }
     }
 
     @Test
     public void testCanEncodeAndDecodeDenseCompressedProperly() throws Exception {
         BitIndex bitIndex = DenseCompressedBitIndex.compress(bitSet);
-//        System.out.println(bitIndex);
 
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = DenseCompressedBitIndex.wrap(encode,0,encode.length);
-        Assert.assertEquals(bitIndex,decoded);
-
+        Assert.assertEquals("Incorrect encode/decode of bitmap "+ bitSet,bitIndex,decoded);
     }
 
     @Test
@@ -107,7 +104,7 @@ public class IterativeBitIndexTest {
 
         //equality is defined as the same bits set in each index
         for(int i=bitIndex.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1)){
-            Assert.assertTrue(decoded.isSet(i));
+            Assert.assertTrue("Incorrect encode/decode of bitmap "+ bitSet,decoded.isSet(i));
         }
     }
 }
