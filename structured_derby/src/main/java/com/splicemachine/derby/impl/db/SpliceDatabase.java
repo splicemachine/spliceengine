@@ -1,9 +1,12 @@
 package com.splicemachine.derby.impl.db;
 
-import java.util.Properties;
+import java.util.*;
 
 import javax.security.auth.login.Configuration;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.ast.ISpliceVisitor;
+import com.splicemachine.derby.impl.ast.JoinConditionVisitor;
+import com.splicemachine.derby.impl.ast.SpliceASTWalker;
 import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -62,6 +65,20 @@ public class SpliceDatabase extends BasicDatabase {
 			SpliceLogUtils.trace(LOG,"bootStore create %s, startParams %s",create,startParams);
 			af = (AccessFactory) Monitor.bootServiceModule(create, this, AccessFactory.MODULE, startParams);
 		}
+
+      public LanguageConnectionContext setupConnection(ContextManager cm, String user, String drdaID, String dbname)
+		throws StandardException {
+
+        LanguageConnectionContext lctx = super.setupConnection(cm, user, drdaID, dbname);
+
+        List<Class<? extends ISpliceVisitor>> afterOptVisitors = new ArrayList<Class<? extends ISpliceVisitor>>();
+        afterOptVisitors.add(JoinConditionVisitor.class);
+        lctx.setASTVisitor(new SpliceASTWalker(Collections.EMPTY_LIST, Collections.EMPTY_LIST, afterOptVisitors));
+
+		   return lctx;
+	   }
+
+
 		/**
 		 * This is the light creation of languageConnectionContext that removes 4 rpc calls per context creation.
 		 * 
@@ -111,6 +128,4 @@ public class SpliceDatabase extends BasicDatabase {
 			return lctx;
 		}
 
-
-		
 }
