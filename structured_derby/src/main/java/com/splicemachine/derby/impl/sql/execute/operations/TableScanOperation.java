@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
@@ -9,10 +8,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.CopyOnWriteArrayList;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -24,22 +20,20 @@ import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class TableScanOperation extends ScanOperation {
 	private static final long serialVersionUID = 3l;
-	protected boolean finished = false;
+
 	private static Logger LOG = Logger.getLogger(TableScanOperation.class);
 	protected static List<NodeType> nodeTypes;
 	protected int indexColItem;
@@ -51,20 +45,12 @@ public class TableScanOperation extends ScanOperation {
 	private Properties scanProperties;
 	public String startPositionString;
 	public String stopPositionString;
-	protected boolean activeRegionOperation;
-
-    private List<List<KeyValue>> buffer = new CopyOnWriteArrayList<List<KeyValue>>();
-    private int bufferPos = -1;
-    private final int bufferSize = 100; //TODO -sf- make this configurable
-
+	
 	static {
 		nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN);
 	}
 
-    private boolean shouldContinue = true;
-
-
-    public TableScanOperation() {
+	public TableScanOperation() {
 		super();
 	}
 
@@ -91,9 +77,9 @@ public class TableScanOperation extends ScanOperation {
                                boolean oneRowScan,
                                double optimizerEstimatedRowCount,
                                double optimizerEstimatedCost) throws StandardException {
-        super(conglomId, activation, resultSetNumber, startKeyGetter, startSearchOperator, stopKeyGetter, stopSearchOperator,
-                sameStartStopPosition, qualifiersField, resultRowAllocator, lockMode, tableLocked, isolationLevel,
-                colRefItem, optimizerEstimatedRowCount, optimizerEstimatedCost);
+        super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
+                sameStartStopPosition,qualifiersField, resultRowAllocator,lockMode,tableLocked,isolationLevel,
+                colRefItem,optimizerEstimatedRowCount,optimizerEstimatedCost);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.forUpdate = forUpdate;
@@ -103,9 +89,9 @@ public class TableScanOperation extends ScanOperation {
         this.indexColItem = indexColItem;
         this.indexName = indexName;
         runTimeStatisticsOn = (activation != null && activation.getLanguageConnectionContext().getRunTimeStatisticsMode());
-        SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s,isTopResultSet=%s,runTimeStatisticsOn%s", statisticsTimingOn, isTopResultSet, runTimeStatisticsOn);
+        SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s,isTopResultSet=%s,runTimeStatisticsOn%s",statisticsTimingOn,isTopResultSet,runTimeStatisticsOn);
         init(SpliceOperationContext.newContext(activation));
-        recordConstructorTime();
+        recordConstructorTime(); 
     }
 
     @Override
@@ -183,34 +169,15 @@ public class TableScanOperation extends ScanOperation {
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
-    	if (finished)
-    		return null;
-        beginTime = getCurrentTimeMillis();
-        List<KeyValue> keyValues;
-        if(!shouldContinue){
-            if(buffer.size()>0&&bufferPos>=0){
-                keyValues = buffer.remove(bufferPos);
-                bufferPos--;
-            }else{
-                currentRow=null;
-                currentRowLocation=null;
-                return null;
-            }
-        }else{
-            if(bufferPos>=0){
-                keyValues = buffer.get(bufferPos);
-                bufferPos--;
-            }else {
-                keyValues = fillBuffer();
-            }
-        }
+	public ExecRow getNextRowCore() throws StandardException {
+		beginTime = getCurrentTimeMillis();
 		try {
+	        keyValues.clear();
+	        regionScanner.next(keyValues);
 			if (keyValues.isEmpty()) {
 				SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
 				currentRow = null;
 				currentRowLocation = null;
-				finished = true;
 			} else {
                 DataValueDescriptor[] fields = currentRow.getRowArray();
                 if (fields.length != 0) {
@@ -230,8 +197,6 @@ public class TableScanOperation extends ScanOperation {
                 }
 			}
 		} catch (Exception e) {
-			if (this.activeRegionOperation)
-				region.closeRegionOperation();
 			SpliceLogUtils.logAndThrow(LOG, tableName+":Error during getNextRowCore",
 																				StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
 		}
@@ -240,52 +205,7 @@ public class TableScanOperation extends ScanOperation {
 		return currentRow;
 	}
 
-    private List<KeyValue> fillBuffer() throws StandardException {
-        List<KeyValue> keyValues;//fill the buffer
-        MultiVersionConsistencyControl.setThreadReadPoint(regionScanner.getMvccReadPoint());
-        boolean started = false;
-        try{
-            region.startRegionOperation();
-            started=true;
-
-            shouldContinue = true;
-            bufferPos=0;
-            while(shouldContinue && bufferPos<bufferSize){
-
-                List<KeyValue> values;
-                if(bufferPos < buffer.size()){
-                    values = buffer.get(bufferPos);
-                }else{
-                    values = new ArrayList<KeyValue>();
-                    buffer.add(values);
-                }
-
-                values.clear();
-                shouldContinue = regionScanner.nextRaw(values,null);
-                bufferPos++;
-            }
-        } catch (NotServingRegionException e) {
-            throw Exceptions.parseException(e);
-        } catch (InterruptedIOException e) {
-            throw Exceptions.parseException(e);
-        } catch (RegionTooBusyException e) {
-            throw Exceptions.parseException(e);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        } finally{
-            if(started)
-                region.closeRegionOperation();
-        }
-
-        Collections.reverse(buffer);
-        if(bufferPos>=buffer.size())
-            bufferPos=buffer.size()-1;
-        keyValues = buffer.get(bufferPos);
-        bufferPos--;
-        return keyValues;
-    }
-
-    @Override
+	@Override
 	public String toString() {
 		return String.format("TableScanOperation {tableName=%s,isKeyed=%b,resultSetNumber=%s}",tableName,isKeyed,resultSetNumber);
 	}
