@@ -10,6 +10,8 @@ import org.junit.runners.Parameterized;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -77,7 +79,7 @@ public class DoubleEncodingTest {
         }
 
         Arrays.sort(data);
-
+        
         Assert.assertArrayEquals("Incorrect sort ordering",data,deserialized,Math.pow(10,-12));
     }
 
@@ -96,11 +98,14 @@ public class DoubleEncodingTest {
         }
 
         Arrays.sort(data);
-
         double[] reversed = new double[data.length];
         for(int i=data.length-1,j=0;i>=0;i--,j++){
-            reversed[j] = data[i];
+        	reversed[j] = data[i];
         }
+        for (int i = 0; i<deserialized.length;i++) {
+        	System.out.println("deserialized value " + deserialized[i]);
+        }
+        
         Assert.assertArrayEquals("Incorrect sort ordering",reversed,deserialized,Math.pow(10,-12));
     }
 }
