@@ -3,7 +3,6 @@ package com.splicemachine.si.coprocessors;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.HRowLock;
 import com.splicemachine.si.data.hbase.IHTable;
-import com.splicemachine.si.impl.FilterStatePacked;
 import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.TransactionId;
@@ -34,14 +33,17 @@ public class SIFilterPacked extends FilterBase {
     private boolean includeSIColumn;
     private boolean includeUncommittedAsOfStart;
 
+    // always include at least one keyValue so that we can use the "hook" of filterRow(...) to generate the accumulated key value
+    private Boolean extraKeyValueIncluded = null;
+
     private IFilterState<KeyValue> filterState = null;
 
     public SIFilterPacked() {
     }
 
     public SIFilterPacked(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor,
-                    TransactionId transactionId, RollForwardQueue rollForwardQueue,
-                    boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
+                          TransactionId transactionId, RollForwardQueue rollForwardQueue,
+                          boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
         this.transactor = transactor;
         this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
@@ -55,7 +57,22 @@ public class SIFilterPacked extends FilterBase {
             SpliceLogUtils.trace(LOG, "filterKeyValue %s", keyValue);
         try {
             initFilterStateIfNeeded();
-            return transactor.filterKeyValue(filterState, keyValue);
+            ReturnCode returnCode = transactor.filterKeyValue(filterState, keyValue);
+            switch (returnCode) {
+                case INCLUDE:
+                case INCLUDE_AND_NEXT_COL:
+                    if (extraKeyValueIncluded == null) {
+                        extraKeyValueIncluded = false;
+                    }
+                    break;
+                case SKIP:
+                    if (extraKeyValueIncluded == null) {
+                        extraKeyValueIncluded = true;
+                        returnCode = ReturnCode.INCLUDE;
+                    }
+                    break;
+            }
+            return returnCode;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -80,6 +97,9 @@ public class SIFilterPacked extends FilterBase {
 
     @Override
     public void filterRow(List<KeyValue> keyValues) {
+        if (extraKeyValueIncluded != null && extraKeyValueIncluded) {
+            keyValues.remove(0);
+        }
         try {
             initFilterStateIfNeeded();
         } catch (IOException e) {
@@ -87,12 +107,13 @@ public class SIFilterPacked extends FilterBase {
         }
         final KeyValue accumulatedValue = filterState.produceAccumulatedKeyValue();
         if (accumulatedValue != null) {
-           keyValues.add(accumulatedValue);
+            keyValues.add(accumulatedValue);
         }
     }
 
     @Override
     public void reset() {
+        extraKeyValueIncluded = null;
         if (filterState != null) {
             transactor.filterNextRow(filterState);
         }
