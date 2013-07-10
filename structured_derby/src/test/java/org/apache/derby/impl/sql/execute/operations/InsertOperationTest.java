@@ -1,5 +1,10 @@
 package org.apache.derby.impl.sql.execute.operations;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.sql.Blob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -33,7 +38,7 @@ public class InsertOperationTest extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("L",InsertOperationTest.class.getSimpleName(),"(name varchar(40))");
 	protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher("Y",InsertOperationTest.class.getSimpleName(),"(name varchar(40))");
 	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher("Z",InsertOperationTest.class.getSimpleName(),"(name varchar(40),count int)");
-	
+	protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher("FILES",InsertOperationTest.class.getSimpleName(),"(name varchar(32) not null primary key, doc blob(16M))");
 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -47,7 +52,8 @@ public class InsertOperationTest extends SpliceUnitTest {
 		.around(spliceTableWatcher7)
 		.around(spliceTableWatcher8)
 		.around(spliceTableWatcher9)
-		.around(spliceTableWatcher10);	
+		.around(spliceTableWatcher10)	
+		.around(spliceTableWatcher11);	
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 	
@@ -182,6 +188,33 @@ public class InsertOperationTest extends SpliceUnitTest {
 			groupCount++;
 		}
 		Assert.assertEquals("Incorrect number of groups returned!",nameCountMap.size(),groupCount);
+	}
+	
+	@Test
+	@Ignore
+	public void testInsertBlob() throws Exception{
+		InputStream fin = new FileInputStream(getResourceDirectory()+"customer_iso_10k.csv");		
+		PreparedStatement ps = methodWatcher.prepareStatement("insert into"+this.getPaddedTableReference("FILES")+"(name, doc) values (?,?)");
+		ps.setString(1, "csv_file");
+	    ps.setBinaryStream(2, fin);
+	    ps.execute();
+        ResultSet rs = methodWatcher.executeQuery("SELECT doc FROM"+this.getPaddedTableReference("FILES")+"WHERE name = 'csv_file'");
+        byte buff[] = new byte[1024];
+        while (rs.next()) {
+            Blob ablob = rs.getBlob(1);
+            File newFile = new File(this.getBaseDirectory()+"/target/newimage.jpg");
+            if (newFile.exists()) {
+            	newFile.delete();
+            }
+            newFile.createNewFile();
+            InputStream is = ablob.getBinaryStream();
+            FileOutputStream fos = new FileOutputStream(newFile);
+            for (int b = is.read(buff); b != -1; b = is.read(buff)) {
+                fos.write(buff, 0, b);
+            }
+            is.close();
+            fos.close();
+        }
 	}
 	
 }
