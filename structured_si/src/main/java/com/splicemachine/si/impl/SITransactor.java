@@ -384,13 +384,15 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
         final Lock lock = obtainLock(locks, table, rowKey);
         final ConflictResults conflictResults = ensureNoWriteConflict(transaction, table, rowKey);
-        final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table, conflictResults.hasTombstone);
+        final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table,
+                conflictResults.hasTombstone);
         dataStore.suppressIndexing(newPut);
         dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), rowKey);
         for (Long transactionIdToRollForward : conflictResults.toRollForward) {
             dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey);
         }
-        return new PutToRun<Mutation, Lock>(new Pair<Mutation, Integer>(newPut, lock.toInteger()), lock, conflictResults.childConflicts);
+        return new PutToRun<Mutation, Lock>(new Pair<Mutation, Integer>(newPut, lock.toInteger()), lock,
+                conflictResults.childConflicts);
     }
 
     private Lock obtainLock(Map<Hashable, Lock> locks, Table table, Data rowKey) throws IOException {
@@ -737,4 +739,12 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
     }
 
+    @Override
+    public void cleanupLock(Table table, Lock lock) {
+        try {
+            dataWriter.unLockRow(table, lock);
+        } catch (IOException e) {
+            LOG.error("Couldn't unlock row", e);
+        }
+    }
 }

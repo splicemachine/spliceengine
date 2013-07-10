@@ -12,7 +12,9 @@ import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.hbase.HRowLock;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.impl.SITransactor;
 import com.splicemachine.tools.ResettableCountDownLatch;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -22,7 +24,10 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
+
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -36,6 +41,8 @@ import java.util.Set;
  * Created on: 4/30/13
  */
 public class RegionWriteHandler implements WriteHandler {
+    static final Logger LOG = Logger.getLogger(RegionWriteHandler.class);
+
     private final HRegion region;
     private final List<Pair<Mutation,Integer>> mutations = Lists.newArrayList();
     private final ResettableCountDownLatch writeLatch;
@@ -137,14 +144,33 @@ public class RegionWriteHandler implements WriteHandler {
         final Set<Long>[] conflictingChildren = new Set[toProcess.length];
 
         Map<ByteBuffer, HRowLock> locks = new HashMap<ByteBuffer, HRowLock>();
-        for (int i = 0; i < toProcess.length; i++) {
-            final PutToRun<Mutation, HRowLock> putToRun = transactor.preProcessBatchPut(new HbRegion(region), null,
-                    (Put) toProcess[i].getFirst(), locks);
-            mutationsAndLocks[i] = putToRun.putAndLock;
-            conflictingChildren[i] = putToRun.conflictingChildren;
-        }
+        try {
+            for (int i = 0; i < toProcess.length; i++) {
+                final PutToRun<Mutation, HRowLock> putToRun = transactor.preProcessBatchPut(new HbRegion(region), null,
+                        (Put) toProcess[i].getFirst(), locks);
+                mutationsAndLocks[i] = putToRun.putAndLock;
+                conflictingChildren[i] = putToRun.conflictingChildren;
+            }
 
-        mutateAndPostProcess(ctx, toProcess, transactor, mutationsAndLocks, conflictingChildren, true);
+            mutateAndPostProcess(ctx, toProcess, transactor, mutationsAndLocks, conflictingChildren, true);
+        } finally {
+            cleanupLockedRows(transactor, locks);
+        }
+    }
+
+    private void cleanupLockedRows(Transactor<IHTable, ?, ?, ?, ?, ?, ?, ?, ?, HRowLock> transactor, Map<ByteBuffer, HRowLock> locks) throws IOException {
+        IHTable table = new HbRegion(region);
+        for (HRowLock lock : locks.values()) {
+            if (lock == null) {
+                continue;
+            }
+            try {
+                transactor.cleanupLock(table, lock);
+            } catch (Throwable t) {
+                LOG.error("Exception while cleaning up locks", t);
+                // ignore
+            }
+        }
     }
 
     private void mutateAndPostProcess(WriteContext ctx, Pair<Mutation, Integer>[] originalToProcess,

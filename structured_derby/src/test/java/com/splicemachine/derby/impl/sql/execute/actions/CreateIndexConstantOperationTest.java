@@ -1,9 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -11,10 +14,10 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.ResultSet;
-import java.sql.SQLIntegrityConstraintViolationException;
-import java.util.ArrayList;
-import java.util.List;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
  * Index tests. Using more manual SQL, rather than SpliceIndexWatcher.
@@ -30,6 +33,7 @@ public class CreateIndexConstantOperationTest extends SpliceUnitTest {
     public static final String TABLE_NAME_3 = "C";
     public static final String TABLE_NAME_4 = "D";
     public static final String TABLE_NAME_5 = "E";
+    public static final String TABLE_NAME_6 = "F";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static String tableDef = "(TaskId INT NOT NULL, empId Varchar(3) NOT NULL, StartedAt INT NOT NULL, FinishedAt INT NOT NULL)";
@@ -38,6 +42,7 @@ public class CreateIndexConstantOperationTest extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME, tableDef);
+    protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME, tableDef);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -46,7 +51,8 @@ public class CreateIndexConstantOperationTest extends SpliceUnitTest {
             .around(spliceTableWatcher2)
             .around(spliceTableWatcher3)
             .around(spliceTableWatcher4)
-            .around(spliceTableWatcher5);
+            .around(spliceTableWatcher5)
+            .around(spliceTableWatcher6);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -94,5 +100,30 @@ public class CreateIndexConstantOperationTest extends SpliceUnitTest {
         methodWatcher.getStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_5)+"(TaskId, empId, StartedAt, FinishedAt) values (1234,'JC',0500,0600)");
         methodWatcher.getStatement().execute("drop index "+this.getSchemaName()+".empIndex");
         methodWatcher.getStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_5)+"(TaskId, empId, StartedAt, FinishedAt) values (1234,'JC',0500,0600)");
+    }
+
+    @Test
+    public void testCreateUniqueIndexInsertDupRowConcurrent() throws Exception {
+        methodWatcher.getStatement().execute("create unique index taskIndex on "+this.getPaddedTableReference(TABLE_NAME_6)+"(empId,StartedAt)");
+        Connection c1 = methodWatcher.createConnection();
+        c1.setAutoCommit(false);
+        c1.createStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_6)+"(TaskId, empId, StartedAt, FinishedAt) values (1234,'JC',0500,0600)");
+
+        Connection c2 = methodWatcher.createConnection();
+        c2.setAutoCommit(false);
+        try {
+            c2.createStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_6)+"(TaskId, empId, StartedAt, FinishedAt) values (1235,'JC',0500,0630)");
+            Assert.fail("Didn't raise write-conflict exception");
+        } catch (Exception e) {
+            // ignore;
+        }
+        Connection c3 = methodWatcher.createConnection();
+        c3.setAutoCommit(false);
+        try {
+            c3.createStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_6)+"(TaskId, empId, StartedAt, FinishedAt) values (1236,'JC',0500,0630)");
+            Assert.fail("Didn't raise write-conflict exception");
+        } catch (SQLException e) {
+            Assert.assertTrue("Didn't detect write-write conflict", e.getCause().getCause().getMessage().contains("WriteConflict"));
+        }
     }
 }

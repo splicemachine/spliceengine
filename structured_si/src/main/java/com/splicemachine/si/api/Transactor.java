@@ -26,6 +26,7 @@ public interface Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, D
     PutToRun<Mutation, Lock> preProcessBatchPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put,
                                           Map<Hashable, Lock> locks) throws IOException;
     void postProcessBatchPut(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException;
+    void cleanupLock(Table table, Lock lock);
 
     /**
      * Look at the operation and report back whether it has been flagged for SI treatment.
