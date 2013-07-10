@@ -68,7 +68,7 @@ public class SpliceDatabase extends BasicDatabase {
 			pushClassFactoryContext(cm, lcf.getClassFactory());
 			ExecutionFactory ef = lcf.getExecutionFactory();
 			ef.newExecutionContext(cm);
-			lctx.initializeSplice();		
+			lctx.initialize();		
 			return lctx;
 		}
 		
