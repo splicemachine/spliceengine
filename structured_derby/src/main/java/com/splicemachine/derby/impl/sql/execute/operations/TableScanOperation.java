@@ -39,7 +39,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class TableScanOperation extends ScanOperation {
 	private static final long serialVersionUID = 3l;
-
+	protected boolean finished = false;
 	private static Logger LOG = Logger.getLogger(TableScanOperation.class);
 	protected static List<NodeType> nodeTypes;
 	protected int indexColItem;
@@ -184,6 +184,8 @@ public class TableScanOperation extends ScanOperation {
 
     @Override
     public ExecRow getNextRowCore() throws StandardException {
+    	if (finished)
+    		return null;
         beginTime = getCurrentTimeMillis();
         List<KeyValue> keyValues;
         if(!shouldContinue){
@@ -208,6 +210,7 @@ public class TableScanOperation extends ScanOperation {
 				SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
 				currentRow = null;
 				currentRowLocation = null;
+				finished = true;
 			} else {
                 DataValueDescriptor[] fields = currentRow.getRowArray();
                 if (fields.length != 0) {
@@ -227,6 +230,7 @@ public class TableScanOperation extends ScanOperation {
                 }
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
 			if (this.activeRegionOperation)
 				region.closeRegionOperation();
 			SpliceLogUtils.logAndThrow(LOG, tableName+":Error during getNextRowCore",
