@@ -300,7 +300,7 @@ public class HdfsImport extends ParallelVTI {
                             "s.schemaname = ? and " +
                             "t.tablename = ?");
             s.setString(1,schemaName.toUpperCase());
-            s.setString(2,tableName);
+            s.setString(2,tableName.toUpperCase());
             rs = s.executeQuery();
             if(rs.next()){
                 return rs.getLong(1);
