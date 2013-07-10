@@ -163,8 +163,31 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         ExecRow nextRow = null;
 
         if(!distinct){
+<<<<<<< HEAD
             nextRow = source.getNextRowCore();
         }else{
+=======
+            nextSinkRow = sinkRowCandidate;
+        } else {
+
+            while(sinkRowCandidate != null && nextSinkRow == null){
+
+                keyEncoder.reset();
+                hasher.encodeKey(sinkRowCandidate.getRowArray(),keyColumns,descColumns,null,keyEncoder);
+                keyBytes = keyEncoder.build();
+                ByteBuffer buffer = ByteBuffer.wrap(keyBytes);
+                if (!currentRows.merge(buffer, sinkRowCandidate, merger)) {
+                    Map.Entry<ByteBuffer,ExecRow> finalized = currentRows.add(buffer,sinkRowCandidate.getClone());
+
+                    if(finalized!=null&&finalized!=sinkRowCandidate){
+                        nextSinkRow = makeCurrent(finalized.getKey().array(),finalized.getValue());
+                    }
+                }else{
+                    sinkRowCandidate = source.getNextRowCore();
+                }
+            }
+        }
+>>>>>>> Sort Operation Ordering
 
             Pair<ByteBuffer,ExecRow> result = hbs.getNextAggregatedRow();
 
