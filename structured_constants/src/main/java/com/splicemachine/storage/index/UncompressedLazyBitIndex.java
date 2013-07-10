@@ -10,8 +10,6 @@ class UncompressedLazyBitIndex extends LazyBitIndex{
     private int bytePosition;
     private int bitPos = 5;
 
-    private int numBitsSeen;
-
     protected UncompressedLazyBitIndex(byte[] encodedBitMap,
                                        int offset, int length) {
         super(encodedBitMap, offset, length);
@@ -31,15 +29,14 @@ class UncompressedLazyBitIndex extends LazyBitIndex{
                 byt = encodedBitMap[bytePosition];
                 bitPos=2;
             }
-            numBitsSeen++;
             bitPos++;
         }
 
         int pos;
-        if(bytePosition==0)
+        if(bytePosition==offset)
             pos= bitPos-5;
         else{
-            pos = 3+ 7*(bytePosition-offset)+bitPos-1;
+            pos = 3+ 7*((bytePosition-1)-offset)+bitPos-1;
         }
         bitPos++;
         return pos;
