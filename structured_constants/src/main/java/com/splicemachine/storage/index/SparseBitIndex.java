@@ -143,6 +143,11 @@ class SparseBitIndex implements BitIndex {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public boolean isEmpty() {
+        return bitSet.isEmpty();
+    }
+
     public static SparseBitIndex create(BitSet setCols) {
         return new SparseBitIndex(setCols);
     }

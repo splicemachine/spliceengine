@@ -178,6 +178,11 @@ class DenseCompressedBitIndex implements BitIndex {
     }
 
     @Override
+    public boolean isEmpty() {
+        return bitSet.isEmpty();
+    }
+
+    @Override
     public int cardinality() {
         return bitSet.cardinality();
     }

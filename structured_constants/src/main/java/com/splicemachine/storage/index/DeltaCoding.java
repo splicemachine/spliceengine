@@ -113,7 +113,9 @@ class DeltaCoding {
 
     static int decode(BitReader bitReader){
         int l = 0;
-        while(bitReader.hasNext()&&(bitReader.next()==0)){
+        if(!bitReader.hasNext()) return -1;
+        while(bitReader.next()==0){
+            if(!bitReader.hasNext()) return -1;
             l++;
         }
 

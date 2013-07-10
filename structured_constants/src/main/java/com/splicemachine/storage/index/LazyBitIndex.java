@@ -100,6 +100,12 @@ abstract class LazyBitIndex implements BitIndex{
     }
 
     @Override
+    public boolean isEmpty() {
+        decodeAll();
+        return decodedBits.isEmpty();
+    }
+
+    @Override
     public BitSet and(BitSet bitSet) {
         decodeUntil(bitSet.length());
         final BitSet bits = (BitSet) decodedBits.clone();

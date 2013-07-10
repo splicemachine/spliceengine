@@ -152,6 +152,11 @@ class UncompressedBitIndex implements BitIndex {
     }
 
     @Override
+    public boolean isEmpty() {
+        return bitSet.isEmpty();
+    }
+
+    @Override
     public BitSet and(BitSet bitSet) {
         final BitSet result = (BitSet) this.bitSet.clone();
         result.and(bitSet);

@@ -1,8 +1,6 @@
 package com.splicemachine.storage.index;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.storage.index.UncompressedBitIndex;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,7 +16,7 @@ import java.util.Random;
  */
 @RunWith(Parameterized.class)
 public class IterativeBitIndexTest {
-    private static final int bitSetSize=1000;
+    private static final int bitSetSize=100;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -63,6 +61,19 @@ public class IterativeBitIndexTest {
     }
 
     @Test
+    public void testCanEncodeAndDecodeIntersectsDenseUncompressedLazyProperly() throws Exception {
+        BitIndex bitIndex = UncompressedBitIndex.create(bitSet);
+        byte[] encode = bitIndex.encode();
+
+        BitIndex decoded = BitIndexing.uncompressedBitMap(encode,0,encode.length);
+
+        if(bitSet.isEmpty())
+            Assert.assertTrue("Incorrect decoding of bitset "+ bitSet,decoded.isEmpty());
+        else
+            Assert.assertTrue("Intersection incorrect with bitset "+ bitSet,decoded.intersects(bitSet));
+    }
+
+    @Test
     public void testCanEncodeAndDecodeSparseProperly() throws Exception {
         BitIndex bitIndex = SparseBitIndex.create(bitSet);
 
@@ -86,6 +97,20 @@ public class IterativeBitIndexTest {
     }
 
     @Test
+    public void testCanEncodeAndDecodeIntersectsSparseLazyProperly() throws Exception {
+        BitIndex bitIndex = SparseBitIndex.create(bitSet);
+
+        byte[] encode = bitIndex.encode();
+
+        BitIndex decoded = BitIndexing.sparseBitMap(encode,0,encode.length);
+        //equality is defined as the same bits set in each index
+        if(bitSet.isEmpty())
+            Assert.assertTrue("Incorrect decoding of bitset "+ bitSet,decoded.isEmpty());
+        else
+            Assert.assertTrue("Intersection incorrect with bitset "+ bitSet,decoded.intersects(bitSet));
+    }
+
+    @Test
     public void testCanEncodeAndDecodeDenseCompressedProperly() throws Exception {
         BitIndex bitIndex = DenseCompressedBitIndex.compress(bitSet);
 
@@ -93,6 +118,20 @@ public class IterativeBitIndexTest {
 
         BitIndex decoded = DenseCompressedBitIndex.wrap(encode,0,encode.length);
         Assert.assertEquals("Incorrect encode/decode of bitmap "+ bitSet,bitIndex,decoded);
+    }
+
+    @Test
+    public void testIntersectsLazyCompressedProperly() throws Exception {
+        BitIndex bitIndex =BitIndexing.compressedBitMap(bitSet);
+        byte[] encode = bitIndex.encode();
+
+        BitIndex decoded = BitIndexing.compressedBitMap(encode, 0, encode.length);
+
+        //equality is defined as the same bits set in each index
+        if(bitSet.isEmpty())
+            Assert.assertTrue("Incorrect decoding of bitset "+ bitSet,decoded.isEmpty());
+        else
+            Assert.assertTrue("Intersection incorrect with bitset "+ bitSet,decoded.intersects(bitSet));
     }
 
     @Test

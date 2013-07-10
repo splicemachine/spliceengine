@@ -67,4 +67,5 @@ public interface BitIndex {
 
     BitSet and(BitSet bitSet);
 
+    boolean isEmpty();
 }

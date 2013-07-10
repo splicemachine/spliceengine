@@ -60,4 +60,9 @@ public class AllFullBitIndex implements BitIndex {
     public BitSet and(BitSet bitSet) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public boolean isEmpty() {
+        return false;
+    }
 }

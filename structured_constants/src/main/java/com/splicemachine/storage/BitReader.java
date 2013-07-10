@@ -58,9 +58,9 @@ public class BitReader {
      */
     @SuppressWarnings("SimplifiableIfStatement") // it's clearer unsimplified, and the JVM will optimize it anyway
     public boolean hasNext(){
-        if(byteAndBitOffset[0]<length)
+        if(byteAndBitOffset[0]<length-1)
             return true;
-        else if(byteAndBitOffset[0]>length)
+        else if(byteAndBitOffset[0]>=length)
             return false;
         else{
             return byteAndBitOffset[1]<9;
