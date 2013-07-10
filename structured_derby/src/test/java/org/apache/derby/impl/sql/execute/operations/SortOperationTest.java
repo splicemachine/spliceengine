@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 import java.util.*;
 
 import com.google.common.collect.Maps;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -19,6 +20,8 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+
+import static com.splicemachine.homeless.TestUtils.*;
 
 public class SortOperationTest extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -289,6 +292,20 @@ public class SortOperationTest extends SpliceUnitTest {
         Collections.sort(copiedTimes);
 
         Assert.assertArrayEquals(copiedTimes.toArray(), returnedTimes.toArray());
+    }
+
+    @Test
+    public void testOrderByOnValues() throws Exception{
+        List<Object[]> expected = Arrays.asList(
+                o(0,0,1),
+                o(0,1,0),
+                o(1,0,0),
+                o(1,0,1));
+
+        ResultSet rs = methodWatcher.executeQuery("values (1,0,1),(1,0,0),(0,0,1),(0,1,0) order by 1,2,3");
+        List result = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertArrayEquals(expected.toArray(), result.toArray());
     }
 
     private static class Triplet implements Comparable<Triplet>{
