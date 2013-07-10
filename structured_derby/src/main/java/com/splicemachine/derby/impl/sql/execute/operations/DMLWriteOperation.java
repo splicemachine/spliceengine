@@ -230,22 +230,26 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
     private final ModifiedRowProvider modifiedProvider = new ModifiedRowProvider();
 
     private class ModifiedRowProvider extends SingleScanRowProvider{
+        private volatile boolean isOpen;
 		private long rowsModified=0;
 		@Override public boolean hasNext() { return false; }
 
 		@Override public ExecRow next() { return null; }
 
         public void setRowsModified(long rowsModified){
+            this.isOpen = true;
             this.rowsModified = rowsModified;
         }
 
         public void addRowsModified(long rowsModified){
+            this.isOpen = true;
             this.rowsModified += rowsModified;
         }
 
 		@Override
 		public void open()  {
 			SpliceLogUtils.trace(LOG, "open");
+            this.isOpen = true;
 			try {
 				source.openCore();
 				/* Cache query plan text for source, before it gets blown away */
@@ -276,13 +280,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		@Override
 		public void close() {
 			SpliceLogUtils.trace(LOG, "close in modifiedProvider for Delete/Insert/Update");
-            if (!isOpen)
+            if (! this.isOpen)
 				return;
 			if (isTopResultSet && activation.getLanguageConnectionContext().getRunTimeStatisticsMode() &&
                     !activation.getLanguageConnectionContext().getStatementContext().getStatementWasInvalidated())
 				endExecutionTime = getCurrentTimeMillis();
 
             this.rowsModified = 0;
+            this.isOpen = false;
             try {
 				source.close();
 			} catch (StandardException e) {

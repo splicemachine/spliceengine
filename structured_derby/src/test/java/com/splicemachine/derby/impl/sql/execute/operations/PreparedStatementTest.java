@@ -23,17 +23,17 @@ public class PreparedStatementTest {
     private static final String CLASS_NAME = PreparedStatementTest.class.getSimpleName().toUpperCase();
 
     private static final List<String> customerVals = Arrays.asList(
-            "(1, 'Smith', 'Will', 'California','CA')",
-            "(2, 'Smith', 'Jones', 'California','CA')",
-            "(3, 'Smith', 'Jane', 'California','CA')",
-            "(4, 'Smith', 'Lauren', 'California','CA')",
+            "(1, 'Smith', 'Will', 'Berkeley','CA')",
+            "(2, 'Smith', 'Jones', 'San Francisco','CA')",
+            "(3, 'Smith', 'Jane', 'Los Angeles','CA')",
+            "(4, 'Smith', 'Lauren', 'Sacramento','CA')",
             "(5, 'Doe', 'Jane', 'Baltimore','MD')");
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static final String CUST_TABLE_NAME = "customers";
-    private static final String CUST_TABLE_DEF = "(customerid integer not null primary key, firstname varchar(10), lastname varchar(30), city varchar(19), state char(2))";
+    private static final String CUST_TABLE_DEF = "(customerid integer not null primary key, lastname varchar(30), firstname varchar(10), city varchar(19), state char(2))";
     protected static SpliceTableWatcher custTable = new SpliceTableWatcher(CUST_TABLE_NAME,CLASS_NAME, CUST_TABLE_DEF);
     public static final String SELECT_STAR_QUERY = String.format("select * from %s.%s", tableSchema.schemaName, CUST_TABLE_NAME);
 
@@ -132,6 +132,35 @@ public class PreparedStatementTest {
         effected = psc2.executeUpdate();
         // no rows updated
         Assert.assertEquals(0, effected);
+    }
+
+    /**
+     * Bug 534 - update PS accumulating modified row results
+     *
+     * @throws Exception fail
+     */
+    @Test
+    public void testPrepStatementMultipleUpdateResultCount() throws Exception {
+        // should see all 5 rows
+        ResultSet rs = methodWatcher.executeQuery(SELECT_STAR_QUERY);
+        Assert.assertEquals(5, SpliceUnitTest.resultSetSize(rs));
+
+        PreparedStatement ps1 = methodWatcher.prepareStatement(String.format("update %s.%s set city = ? where lastname = 'Smith' and state = 'CA'",
+                tableSchema.schemaName, CUST_TABLE_NAME));
+        ps1.setString(1, "Sacto");
+        int effected = ps1.executeUpdate();
+        // should update 1 row
+        Assert.assertEquals(4, effected);
+
+        int total = 0;
+        for (int i=0; i<10; i++) {
+            ps1.setString(1, "Sacto"+i);
+            effected = ps1.executeUpdate();
+            // 4 rows updated
+            Assert.assertEquals(4, effected);
+            total += effected;
+        }
+        Assert.assertEquals(40, total);
     }
 
 
