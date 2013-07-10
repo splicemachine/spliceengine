@@ -221,7 +221,8 @@ public class MultiFieldDecoder {
         int offset = currentOffset>=0?currentOffset:0;
         //read off the length
         int length = Encoding.decodeInt(data,currentOffset,false);
-        adjustOffset(length+5);
+        adjustOffset(5); //adjust the length field
+        currentOffset+=length+1; //adjust the data field
 
         byte[] bytes = new byte[length];
         System.arraycopy(data,offset,bytes,0,length);
