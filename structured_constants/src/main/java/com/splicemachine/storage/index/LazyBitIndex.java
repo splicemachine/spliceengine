@@ -69,7 +69,7 @@ abstract class LazyBitIndex implements BitIndex{
             if(i<0) break;
 
             decodedBits.set(i);
-            if(i>position)
+            if(i>=position)
                 return i;
         }while(i>=0);
 

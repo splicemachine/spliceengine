@@ -16,7 +16,7 @@ import java.util.Random;
  */
 @RunWith(Parameterized.class)
 public class IterativeBitIndexTest {
-    private static final int bitSetSize=100;
+    private static final int bitSetSize=1000;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -54,6 +54,9 @@ public class IterativeBitIndexTest {
 
         BitIndex decoded = BitIndexing.uncompressedBitMap(encode,0,encode.length);
 
+        for(int i=decoded.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1))
+            Assert.assertTrue("Incorrect encode-decode of bitmap "+ bitSet,bitIndex.isSet(i));
+
         //equality is defined as the same bits set in each index
         for(int i=bitIndex.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1)){
             Assert.assertTrue("Incorrect encode-decode of bitmap "+ bitSet,decoded.isSet(i));
@@ -90,6 +93,10 @@ public class IterativeBitIndexTest {
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = BitIndexing.sparseBitMap(encode,0,encode.length);
+
+        for(int i=decoded.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1))
+            Assert.assertTrue("Incorrect encode-decode of bitmap "+ bitSet,bitIndex.isSet(i));
+
         //equality is defined as the same bits set in each index
         for(int i=bitIndex.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1)){
             Assert.assertTrue("Incorrect encode/decode of bitmap "+ bitSet,decoded.isSet(i));
@@ -140,6 +147,9 @@ public class IterativeBitIndexTest {
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = BitIndexing.compressedBitMap(encode, 0, encode.length);
+
+        for(int i=decoded.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1))
+            Assert.assertTrue("Incorrect encode-decode of bitmap "+ bitSet,bitIndex.isSet(i));
 
         //equality is defined as the same bits set in each index
         for(int i=bitIndex.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1)){
