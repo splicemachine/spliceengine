@@ -10,7 +10,7 @@ import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.SparseEntryAccumulator;
+import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -19,7 +19,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -629,15 +628,11 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     @Override
-    public IFilterState newFilterStatePacked(RollForwardQueue<Data, Hashable> rollForwardQueue, TransactionId transactionId, boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
-        // TODO: bitset needs to be passed in as a parameter here, rather than being hard-coded
-        final BitSet bitSet = new BitSet(2);
-        bitSet.set(0);
-        bitSet.set(1);
-
+    public IFilterState newFilterStatePacked(RollForwardQueue<Data, Hashable> rollForwardQueue, EntryPredicateFilter predicateFilter,
+                                             TransactionId transactionId, boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
         return new FilterStatePacked(dataLib, dataStore,
                 (FilterState) newFilterState(rollForwardQueue, transactionId, includeSIColumn, includeUncommittedAsOfStart),
-                new HRowAccumulator(new SparseEntryAccumulator(bitSet), new EntryDecoder()));
+                new HRowAccumulator(predicateFilter, new EntryDecoder()));
     }
 
     @Override

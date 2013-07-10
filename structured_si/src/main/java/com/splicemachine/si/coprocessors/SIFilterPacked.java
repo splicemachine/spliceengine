@@ -6,6 +6,7 @@ import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
@@ -30,6 +31,7 @@ public class SIFilterPacked extends FilterBase {
     private Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor = null;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
+    private EntryPredicateFilter predicateFilter;
     private boolean includeSIColumn;
     private boolean includeUncommittedAsOfStart;
 
@@ -42,11 +44,12 @@ public class SIFilterPacked extends FilterBase {
     }
 
     public SIFilterPacked(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor,
-                          TransactionId transactionId, RollForwardQueue rollForwardQueue,
+                          TransactionId transactionId, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter,
                           boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
         this.transactor = transactor;
         this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
+        this.predicateFilter = predicateFilter;
         this.includeSIColumn = includeSIColumn;
         this.includeUncommittedAsOfStart = includeUncommittedAsOfStart;
     }
@@ -80,14 +83,14 @@ public class SIFilterPacked extends FilterBase {
 
     private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
-            filterState = transactor.newFilterStatePacked(rollForwardQueue, transactor.transactionIdFromString(transactionIdString),
-                    includeSIColumn, includeUncommittedAsOfStart);
+            filterState = transactor.newFilterStatePacked(rollForwardQueue, predicateFilter,
+                    transactor.transactionIdFromString(transactionIdString), includeSIColumn, includeUncommittedAsOfStart);
         }
     }
 
     @Override
     public boolean filterRow() {
-        return super.filterRow();
+        return filterState.getExcludeRow();
     }
 
     @Override

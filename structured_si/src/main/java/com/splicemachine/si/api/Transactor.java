@@ -7,6 +7,7 @@ import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 
 import java.io.IOException;
@@ -56,8 +57,9 @@ public interface Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, D
     IFilterState newFilterState(TransactionId transactionId) throws IOException;
     IFilterState newFilterState(RollForwardQueue<Data, Hashable> rollForwardQueue, TransactionId transactionId,
                                 boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException;
-    IFilterState newFilterStatePacked(RollForwardQueue<Data, Hashable> rollForwardQueue, TransactionId transactionId,
-                                boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException;
+    IFilterState newFilterStatePacked(RollForwardQueue<Data, Hashable> rollForwardQueue, EntryPredicateFilter predicateFilter,
+                                      TransactionId transactionId, boolean includeSIColumn, boolean includeUncommittedAsOfStart)
+            throws IOException;
 
     /**
      * Consider whether to use a key value in light of a given filterState.

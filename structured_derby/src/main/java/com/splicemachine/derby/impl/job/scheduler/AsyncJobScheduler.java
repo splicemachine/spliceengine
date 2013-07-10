@@ -9,7 +9,7 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerProtocol;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.ByteDataInput;
+import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobScheduler;
 import com.splicemachine.job.JobSchedulerManagement;

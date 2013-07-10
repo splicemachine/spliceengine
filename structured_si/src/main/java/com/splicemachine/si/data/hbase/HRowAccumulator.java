@@ -3,18 +3,19 @@ package com.splicemachine.si.data.hbase;
 import com.splicemachine.si.impl.RowAccumulator;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.index.BitIndex;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.BitSet;
 
 public class HRowAccumulator implements RowAccumulator<byte[]> {
+    private final EntryPredicateFilter predicateFilter;
     private final EntryAccumulator entryAccumulator;
     private final EntryDecoder decoder;
 
-    public HRowAccumulator(EntryAccumulator entryAccumulator, EntryDecoder decoder) {
-        this.entryAccumulator = entryAccumulator;
+    public HRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder) {
+        this.predicateFilter = predicateFilter;
+        this.entryAccumulator = predicateFilter.newAccumulator();
         this.decoder = decoder;
     }
 
@@ -26,15 +27,9 @@ public class HRowAccumulator implements RowAccumulator<byte[]> {
     }
 
     @Override
-    public void accumulate(byte[] value) throws IOException {
+    public boolean accumulate(byte[] value) throws IOException {
         decoder.set(value);
-        final BitIndex decoderIndexSet = decoder.getCurrentIndex();
-        final BitSet accumulatorIndexSet = entryAccumulator.getRemainingFields();
-        final BitSet columnsToSet = decoderIndexSet.and(accumulatorIndexSet);
-        for (int i = columnsToSet.nextSetBit(0); i >= 0; i = columnsToSet.nextSetBit(i + 1)) {
-            final byte[] columnData = decoder.getData(i);
-            entryAccumulator.add(i, ByteBuffer.wrap(columnData));
-        }
+        return predicateFilter.match(decoder, entryAccumulator);
     }
 
     @Override

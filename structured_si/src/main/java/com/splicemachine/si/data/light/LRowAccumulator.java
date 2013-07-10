@@ -15,12 +15,13 @@ public class LRowAccumulator implements RowAccumulator<Map<String, Object>> {
     }
 
     @Override
-    public void accumulate(Map<String, Object> packedRow) throws IOException {
+    public boolean accumulate(Map<String, Object> packedRow) throws IOException {
         for (String k : packedRow.keySet()) {
             if (!accumulation.containsKey(k)) {
                 accumulation.put(k, packedRow.get(k));
             }
         }
+        return true;
     }
 
     @Override

@@ -383,4 +383,9 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     public KeyValue produceAccumulatedKeyValue() {
         return null;
     }
+
+    @Override
+    public boolean getExcludeRow() {
+        return false;
+    }
 }

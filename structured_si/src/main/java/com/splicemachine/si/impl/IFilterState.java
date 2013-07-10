@@ -8,4 +8,5 @@ public interface IFilterState<KeyValue> {
     Filter.ReturnCode filterKeyValue(KeyValue keyValue) throws IOException;
     void nextRow();
     KeyValue produceAccumulatedKeyValue();
+    boolean getExcludeRow();
 }

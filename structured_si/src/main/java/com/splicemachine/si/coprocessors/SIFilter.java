@@ -49,8 +49,9 @@ public class SIFilter extends FilterBase {
 
     @Override
     public ReturnCode filterKeyValue(KeyValue keyValue) {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "filterKeyValue %s", keyValue);
+        if (LOG.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG, "filterKeyValue %s", keyValue);
+        }
         try {
             initFilterStateIfNeeded();
             return transactor.filterKeyValue(filterState, keyValue);

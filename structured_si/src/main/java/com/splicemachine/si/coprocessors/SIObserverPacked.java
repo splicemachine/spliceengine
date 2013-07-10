@@ -1,5 +1,6 @@
 package com.splicemachine.si.coprocessors;
 
+import com.google.common.io.ByteArrayDataInput;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.si.api.Transactor;
@@ -13,6 +14,7 @@ import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
@@ -121,40 +123,36 @@ public class SIObserverPacked extends BaseRegionObserver {
     private void addSIFilterToGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get) throws IOException {
         final Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor = HTransactorFactory.getTransactor();
 
-        EntryPredicateFilter predicateFilter = getEntryPredicateFilter(get);
         final Filter newFilter = makeSIFilter(e, transactor.transactionIdFromGet(get), get.getFilter(),
-                transactor.isGetIncludeSIColumn(get), false,predicateFilter);
+                getPredicateFilter(get),
+                transactor.isGetIncludeSIColumn(get), false);
         get.setFilter(newFilter);
     }
 
     private void addSIFilterToScan(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan) throws IOException {
         final Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor = HTransactorFactory.getTransactor();
 
-        EntryPredicateFilter predicateFilter = getEntryPredicateFilter(scan);
         final Filter newFilter = makeSIFilter(e, transactor.transactionIdFromScan(scan), scan.getFilter(),
-                transactor.isScanIncludeSIColumn(scan), transactor.isScanIncludeUncommittedAsOfStart(scan),predicateFilter);
+                getPredicateFilter(scan),
+                transactor.isScanIncludeSIColumn(scan), transactor.isScanIncludeUncommittedAsOfStart(scan));
         scan.setFilter(newFilter);
     }
 
-    private EntryPredicateFilter getEntryPredicateFilter(OperationWithAttributes scan) throws IOException {
-        byte[] predicateAttribute = scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL);
-        EntryPredicateFilter predicateFilter = null;
-        if(predicateAttribute!=null){
-            ByteArrayInputStream bais = new ByteArrayInputStream(predicateAttribute);
-            ObjectInputStream ois = new ObjectInputStream(bais);
-            try {
-                predicateFilter = (EntryPredicateFilter)ois.readObject();
-            } catch (ClassNotFoundException e1) {
-                throw new IOException(e1);
-            }
+    private EntryPredicateFilter getPredicateFilter(OperationWithAttributes operation) throws IOException {
+        final byte[] serializedPredicateFilter = operation.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL);
+        try {
+            return (EntryPredicateFilter) new ByteDataInput(serializedPredicateFilter).readObject();
+        } catch (ClassNotFoundException ex) {
+            throw new IOException(ex);
         }
-        return predicateFilter;
+
     }
 
     private Filter makeSIFilter(ObserverContext<RegionCoprocessorEnvironment> e, TransactionId transactionId,
-                                Filter currentFilter, boolean includeSIColumn, boolean includeUncommittedAsOfStart,EntryPredicateFilter predicateFilter) throws IOException {
+                                Filter currentFilter, EntryPredicateFilter predicateFilter, boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
         final Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor = HTransactorFactory.getTransactor();
-        final SIFilterPacked siFilter = new SIFilterPacked(transactor, transactionId, rollForwardQueue, includeSIColumn, includeUncommittedAsOfStart);
+        final SIFilterPacked siFilter = new SIFilterPacked(transactor, transactionId, rollForwardQueue, predicateFilter,
+                includeSIColumn, includeUncommittedAsOfStart);
         Filter newFilter;
         if (currentFilter != null) {
             newFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL, siFilter, currentFilter); // Wrap Existing Filters

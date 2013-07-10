@@ -2,6 +2,7 @@ package com.splicemachine.si;
 
 import com.google.common.base.Function;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
@@ -22,7 +23,9 @@ import com.splicemachine.si.impl.TransactionStatus;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.ByteDataOutput;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -213,7 +216,7 @@ public class SITransactorTest extends SIConstants {
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{name});
-        Object get = dataLib.newGet(key, null, null, null);
+        Object get = makeGet(dataLib, key);
         transactorSetup.clientTransactor.initializeGet(transactionId.getTransactionIdString(), get);
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
@@ -231,7 +234,7 @@ public class SITransactorTest extends SIConstants {
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{name});
-        Object scan = dataLib.newScan(key, key, null, null, null);
+        Object scan = makeScan(dataLib, key, null, key);
         transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), scan, true, includeUncommittedAsOfStart);
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
@@ -254,8 +257,10 @@ public class SITransactorTest extends SIConstants {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
-        Object key = dataLib.newRowKey(new Object[]{name});
-        Object scan = dataLib.newScan(key, key, new ArrayList(), null, null);
+        final Object endKey = dataLib.newRowKey(new Object[]{name});
+        final ArrayList families = new ArrayList();
+        final Object startKey = endKey;
+        Object scan = makeScan(dataLib, endKey, families, startKey);
         transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), scan, true, false);
         transactorSetup.transactor.preProcessScan(scan);
         Object testSTable = reader.open(storeSetup.getPersonTableName());
@@ -281,7 +286,7 @@ public class SITransactorTest extends SIConstants {
 
         Object key = dataLib.newRowKey(new Object[]{startKey});
         Object endKey = dataLib.newRowKey(new Object[]{stopKey});
-        Object get = dataLib.newScan(key, endKey, null, null, null);
+        Object get = makeScan(dataLib, endKey, null, key);
         if (!useSimple && filterValue != null) {
             final Scan scan = (Scan) get;
             SingleColumnValueFilter filter = new SingleColumnValueFilter((byte[]) transactorSetup.family,
@@ -2096,7 +2101,7 @@ public class SITransactorTest extends SIConstants {
         try {
             Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
             Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put2));
-            Object get1 = dataLib.newGet(testKey, null, null, null);
+            Object get1 = makeGet(dataLib, testKey);
             transactorSetup.clientTransactor.initializeGet(t.getTransactionIdString(), get1);
             Object result = reader.get(testSTable, get1);
             if (useSimple) {
@@ -2109,7 +2114,7 @@ public class SITransactorTest extends SIConstants {
         }
 
         TransactionId t2 = transactor.beginTransaction();
-        Object get = dataLib.newGet(testKey, null, null, null);
+        Object get = makeGet(dataLib, testKey);
         testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             final Object resultTuple = reader.get(testSTable, get);
@@ -2453,7 +2458,7 @@ public class SITransactorTest extends SIConstants {
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{name});
-        Object get = dataLib.newGet(key, null, null, null);
+        Object get = makeGet(dataLib, key);
         if (allversions) {
             dataLib.setGetMaxVersions(get);
         }
@@ -2463,6 +2468,27 @@ public class SITransactorTest extends SIConstants {
         } finally {
             reader.close(testSTable);
         }
+    }
+
+    private static Object makeGet(SDataLib dataLib, Object key) throws IOException {
+        final Object get = dataLib.newGet(key, null, null, null);
+        addPredicateFilter(dataLib, get);
+        return get;
+    }
+
+    private static Object makeScan(SDataLib dataLib, Object endKey, ArrayList families, Object startKey) throws IOException {
+        final Object scan = dataLib.newScan(startKey, endKey, families, null, null);
+        addPredicateFilter(dataLib, scan);
+        return scan;
+    }
+
+    private static void addPredicateFilter(SDataLib dataLib, Object operation) throws IOException {
+        final BitSet bitSet = new BitSet(2);
+        bitSet.set(0);
+        bitSet.set(1);
+        final ByteDataOutput bdo = new ByteDataOutput();
+        bdo.writeObject(new EntryPredicateFilter(bitSet, new ArrayList()));
+        dataLib.addAttribute(operation, SpliceConstants.ENTRY_PREDICATE_LABEL, bdo.toByteArray());
     }
 
     @Test

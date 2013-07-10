@@ -20,6 +20,7 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
     private Data rowKey = null;
     private Long timestamp = null;
     private boolean hasAccumulation = false;
+    private boolean excludeRow = false;
 
     public FilterStatePacked(SDataLib dataLib, DataStore dataStore,
                              FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> simpleFilter,
@@ -69,7 +70,10 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
         switch (returnCode) {
             case INCLUDE:
             case INCLUDE_AND_NEXT_COL:
-                accumulator.accumulate(simpleFilter.keyValue.value());
+                if (!accumulator.accumulate(simpleFilter.keyValue.value())) {
+                    excludeRow = true;
+                    return Filter.ReturnCode.NEXT_ROW;
+                }
                 if (hasAccumulation) {
                     if (!dataLib.valuesEqual(family, simpleFilter.keyValue.family()) ||
                             !dataLib.valuesEqual(rowKey, simpleFilter.keyValue.row()) ||
@@ -100,16 +104,23 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
     public KeyValue produceAccumulatedKeyValue() {
         if (hasAccumulation) {
             final Data resultData = accumulator.result();
-            return dataLib.newKeyValue(rowKey, family, qualifier, timestamp, resultData);
+            final KeyValue keyValue = dataLib.newKeyValue(rowKey, family, qualifier, timestamp, resultData);
+            return keyValue;
         } else {
             return null;
         }
     }
 
     @Override
+    public boolean getExcludeRow() {
+        return excludeRow;
+    }
+
+    @Override
     public void nextRow() {
         simpleFilter.nextRow();
         hasAccumulation = false;
+        excludeRow = false;
         qualifier = null;
         family = null;
         rowKey = null;
