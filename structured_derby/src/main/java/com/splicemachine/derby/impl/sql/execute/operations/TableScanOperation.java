@@ -217,7 +217,7 @@ public class TableScanOperation extends ScanOperation {
                 if (fields.length != 0) {
                 	for(KeyValue kv:keyValues){
                         //should only be 1
-                		RowMarshaller.packed().decode(kv,fields,null,rowDecoder);
+                		RowMarshaller.sparsePacked().decode(kv,fields,null,rowDecoder);
                 	}
                 }
                 if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){

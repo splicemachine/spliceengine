@@ -1,7 +1,5 @@
 package com.splicemachine.storage;
 
-import com.splicemachine.constants.bytes.BytesUtil;
-
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 

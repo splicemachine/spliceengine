@@ -74,8 +74,11 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
          * We always want an entry, because we want to ensure that we run until the entire row is
          * populated, which means running until the end of all versions.
          */
-        if(!completed&&bitSet.cardinality()==0){
-            bitSet.set(0,1024);
+        if(!completed){
+            if(fields!=null)
+                bitSet.set(fields.length,1024);
+            else
+                bitSet.set(0,1024);
         }
         return bitSet;
     }
@@ -84,11 +87,10 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
     public byte[] finish() {
         int size=0;
         boolean isFirst=true;
-        for(int i=occupiedFields.nextSetBit(0);i>=0;i=occupiedFields.nextSetBit(i+1)){
+        for(int i=0;i<fields.length;i++){
             if(isFirst)isFirst=false;
             else
                 size++;
-
             ByteBuffer buffer = fields[i];
             if(buffer!=null){
                 size+=buffer.remaining();
@@ -98,7 +100,7 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
         byte[] bytes = new byte[size];
         int offset=0;
         isFirst=true;
-        for(int i=occupiedFields.nextSetBit(0);i>=0;i=occupiedFields.nextSetBit(i+1)){
+        for(int i=0;i<fields.length;i++){
             if(isFirst)isFirst=false;
             else
                 offset++;
@@ -115,9 +117,12 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
 
     @Override
     public void reset() {
-        occupiedFields.clear();
-        for(int i=0;i<fields.length;i++){
-            fields[i] = null;
+        if(occupiedFields!=null)
+            occupiedFields.clear();
+        if(fields!=null){
+            for(int i=0;i<fields.length;i++){
+                fields[i] = null;
+            }
         }
     }
 }

@@ -29,7 +29,10 @@ public class HRowAccumulator implements RowAccumulator<byte[]> {
     @Override
     public boolean accumulate(byte[] value) throws IOException {
         decoder.set(value);
-        return predicateFilter.match(decoder, entryAccumulator);
+        boolean pass = predicateFilter.match(decoder, entryAccumulator);
+        if(!pass)
+            entryAccumulator.reset();
+        return pass;
     }
 
     @Override

@@ -294,8 +294,10 @@ public class DerbyBytesUtil {
     }
 
     public static void decodeInto(MultiFieldDecoder rowDecoder, DataValueDescriptor column,boolean desc) throws StandardException{
-        if(column.isLazy())
+        if(column.isLazy()){
             lazySerializer.decodeInto(column,rowDecoder,desc);
+            return;
+        }
 
         serializationMap.get(Format.formatFor(column)).decodeInto(column,rowDecoder,desc);
     }
