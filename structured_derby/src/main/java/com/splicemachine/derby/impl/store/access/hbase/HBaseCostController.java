@@ -319,7 +319,7 @@ public class HBaseCostController implements StoreCostController
         if (scan_type == StoreCostController.STORECOST_SCAN_NORMAL)
             cost += cached_row_count * BASE_GROUPSCAN_ROW_COST;
         else
-            cost += cached_row_count * 0.02;
+            cost += cached_row_count * BASE_HASHSCAN_ROW_FETCH_COST;
 
         if (SanityManager.DEBUG)
         {
