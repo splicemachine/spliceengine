@@ -68,4 +68,6 @@ public interface BitIndex {
     BitSet and(BitSet bitSet);
 
     boolean isEmpty();
+
+    boolean isLengthDelimited(int position);
 }

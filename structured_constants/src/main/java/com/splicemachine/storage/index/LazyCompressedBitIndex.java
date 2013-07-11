@@ -31,4 +31,9 @@ class LazyCompressedBitIndex extends LazyBitIndex{
             return bitPos;
         }
     }
+
+    @Override
+    public boolean isLengthDelimited(int position) {
+        throw new UnsupportedOperationException();
+    }
 }

@@ -183,6 +183,11 @@ class DenseCompressedBitIndex implements BitIndex {
     }
 
     @Override
+    public boolean isLengthDelimited(int position) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public int cardinality() {
         return bitSet.cardinality();
     }

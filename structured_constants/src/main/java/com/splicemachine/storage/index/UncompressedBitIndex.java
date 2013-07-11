@@ -1,5 +1,9 @@
 package com.splicemachine.storage.index;
 
+import com.splicemachine.storage.BitReader;
+import com.splicemachine.storage.BitWriter;
+
+import java.util.Arrays;
 import java.util.BitSet;
 
 /**
@@ -14,9 +18,11 @@ import java.util.BitSet;
  */
 class UncompressedBitIndex implements BitIndex {
     private final BitSet bitSet;
+    private final BitSet lengthDelimitedBits;
 
-    private UncompressedBitIndex(BitSet bitSet) {
+    private UncompressedBitIndex(BitSet bitSet, BitSet lengthDelimitedBits) {
         this.bitSet = bitSet;
+        this.lengthDelimitedBits = lengthDelimitedBits;
     }
 
     @Override
@@ -45,54 +51,24 @@ class UncompressedBitIndex implements BitIndex {
 
     @Override
     public byte[] encode() {
-        byte headerByte = (byte)0x80;
-        //fill the first byte specially
-        int setPos;
-        for(setPos = bitSet.nextSetBit(0);setPos>=0&&setPos<4;setPos=bitSet.nextSetBit(setPos+1)){
-            if(setPos==0){
-                headerByte |= 0x8;
-            }else if(setPos==1){
-                headerByte |= 0x4;
-            }else if(setPos==2){
-                headerByte |= 0x2;
-            }else if(setPos==3){
-                headerByte |= 0x1;
-            }
-        }
-
-        if(setPos<0){
-            //we've populated the entire bitset, just return it
-            return new byte[]{headerByte};
-        }
-
         byte[] bytes = new byte[encodedSize()];
-        //set the header bits
-        bytes[0] = headerByte;
-        for(int i=1;i<bytes.length;i++){
-            bytes[i] = (byte)0x80; //set a 1 to indicate bitset membership
-        }
-
-        int bitPos;
-        while(setPos>=0){
+        bytes[0] = (byte)0x80;
+        BitWriter bitWriter = new BitWriter(bytes,0,bytes.length,5,true);
+        int lastSetBit =-1;
+        for(int setPos=bitSet.nextSetBit(0);setPos>=0;setPos=bitSet.nextSetBit(setPos+1)){
+            //skip the distance between setPos and lastSetBit
+            bitWriter.skip(setPos-lastSetBit-1);
             /*
-             * Each setPos is > 3 (since 0,1,2,3 are packed into the header byte).
-             *
-             * We need to find which byte this position belongs to. We adjust the position down by four, to
-             * account for the header bits, making setPos-4.Since there are 7 bits per additional byte,
-             * the byte index would be setPos/7. Since the header byte is special, we add one to offset, giving
-             * (setPos-4)/7+1 for the byteIndex.
-             *
-             * Within the byte, there are 7 available positions, so we take (setPos-4)%7. Because of the continuation
-             * bit, we shift these values up by 1. This gives us the left-to-right position of the bit within
-             * the bytes. We then shift to place a 1 in that position (shifts are always 1<<(x-1)), so we end up
-             * shifting as 1<<Byte.SIZE-((setPos-4)%7+1)-1
-             *
+             * Because this field is present, we need to use a bit to indicate whether or not
+             * the field is length-delimited.
              */
-            bitPos = setPos-4;
-            int byteIndex = (bitPos/7)+1;
-            bitPos = (bitPos%7+1);
-            bytes[byteIndex] |= (1<<Byte.SIZE-bitPos-1);
-            setPos = bitSet.nextSetBit(setPos+1);
+            if(lengthDelimitedBits.get(setPos)){
+                bitWriter.set(2);
+            }else{
+                bitWriter.setNext();
+                bitWriter.skipNext();
+            }
+            lastSetBit=setPos;
         }
         return bytes;
     }
@@ -108,27 +84,29 @@ class UncompressedBitIndex implements BitIndex {
          * The number of bytes goes as follows:
          *
          * you need at least as many bits as the highest 1-bit in the bitSet(equivalent
-         *  to bitSet.length()).
+         *  to bitSet.length()). Because each set bit will have an additional "length delimiter"
+         *  bit set afterwords, we need to have 2 bits for every set bit, but 1 for every non-set bit
          *
-         *  you can take 4 bits away because you can fit the first four bits in the header byte
+         * This is equivalent to length()+numSetBits().
          *
-         *  so the total number of bits needed (in addition to the header) is bitSet.length()-4.
-         *
-         *  There are 7 bits in each byte (ignore the continuation byte at the first entry). Thus, the total
-         *  number of bytes should be bitSet.length()-4/7. If bitSet.length()-4 < 7, then it is 2.
+         * we have 4 available bits in the header, and 7 bits in each subsequent byte (we use a continuation
+         * bit).
          */
-        int length = bitSet.length()-4; //four bits have already been set
-        int numBytes = length/7;
-        if(length%7!=0){
-            numBytes++;
+        int numBits = bitSet.length()+bitSet.cardinality();
+        int numBytes = 1;
+        numBits-=4;
+        if(numBits>0){
+           numBytes+=numBits/7;
+            if(numBits%7!=0)
+                numBytes++;
         }
-        numBytes++; //add the header byte
+
         return numBytes;
     }
 
     @Override
     public String toString() {
-        return bitSet.toString();
+        return "{"+bitSet.toString()+","+lengthDelimitedBits.toString()+"}";
     }
 
     @Override
@@ -138,12 +116,15 @@ class UncompressedBitIndex implements BitIndex {
 
         UncompressedBitIndex that = (UncompressedBitIndex) o;
 
-        return bitSet.equals(that.bitSet);
+        return bitSet.equals(that.bitSet) && lengthDelimitedBits.equals(that.lengthDelimitedBits);
+
     }
 
     @Override
     public int hashCode() {
-        return bitSet.hashCode();
+        int result = bitSet.hashCode();
+        result = 31 * result + lengthDelimitedBits.hashCode();
+        return result;
     }
 
     @Override
@@ -157,46 +138,55 @@ class UncompressedBitIndex implements BitIndex {
     }
 
     @Override
+    public boolean isLengthDelimited(int position) {
+        return lengthDelimitedBits.get(position);
+    }
+
+    @Override
     public BitSet and(BitSet bitSet) {
         final BitSet result = (BitSet) this.bitSet.clone();
         result.and(bitSet);
         return result;
     }
 
-    public static BitIndex create(BitSet setCols) {
-        return new UncompressedBitIndex(setCols);
+    public static BitIndex create(BitSet setCols,BitSet lengthDelimitedFields) {
+        return new UncompressedBitIndex(setCols,lengthDelimitedFields);
     }
 
     public static BitIndex wrap(byte[] data, int position, int limit) {
         //create a BitSet underneath
         BitSet bitSet = new BitSet();
-        //set the header entries
-        byte headerByte = data[position];
-        for(int i=5;i<=8;i++){
-            bitSet.set(i-5,(headerByte&(1<<Byte.SIZE-i))!=0);
-        }
+        BitSet lengthDelimitedFields = new BitSet();
+        BitReader bitReader = new BitReader(data,position,limit,5,true);
 
-        //set any additional bytes
-        for(int i=1;i<limit;i++){
-            byte posByte = data[position+i];
-            int bitPos = (i-1)*7+4;
-            for(int pos=2;pos<=8;pos++){
-                bitSet.set(bitPos+pos-2,(posByte & (1<<Byte.SIZE-pos))!=0);
+        int bitPos = 0;
+        while(bitReader.hasNext()){
+            int zeros = bitReader.nextSetBit();
+            if(zeros<0) break;
+            bitPos+= zeros;
+            bitSet.set(bitPos);
+            if(bitReader.next()!=0){
+                lengthDelimitedFields.set(bitPos);
             }
+            bitPos++;
         }
-        return new UncompressedBitIndex(bitSet);
+        return new UncompressedBitIndex(bitSet,lengthDelimitedFields);
     }
 
     public static void main(String... args) throws Exception{
         BitSet bitSet = new BitSet(11);
-        bitSet.set(0);
+        bitSet.set(2);
         bitSet.set(1);
-        bitSet.set(3);
-        bitSet.set(4);
+//        bitSet.set(3);
+//        bitSet.set(4);
 
-        BitIndex bits = UncompressedBitIndex.create(bitSet);
+        BitSet lengthDelimited = new BitSet();
+//        lengthDelimited.set(4);
+
+        BitIndex bits = UncompressedBitIndex.create(bitSet,lengthDelimited);
 
         byte[] data =bits.encode();
+        System.out.println(Arrays.toString(data));
 
         BitIndex decoded = UncompressedBitIndex.wrap(data,0,data.length);
         System.out.println(decoded);

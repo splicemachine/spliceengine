@@ -16,7 +16,7 @@ import java.util.Random;
  */
 @RunWith(Parameterized.class)
 public class IterativeBitIndexTest {
-    private static final int bitSetSize=1000;
+    private static final int bitSetSize=100;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -24,23 +24,28 @@ public class IterativeBitIndexTest {
         Collection<Object[]> data = Lists.newArrayListWithCapacity(bitSetSize);
         for(int i=0;i<bitSetSize;i++){
             BitSet bitSet  = new BitSet(i);
+            BitSet lengthDelimitedBits = new BitSet(i);
             for(int j=0;j<=i;j++){
                 bitSet.set(j,random.nextBoolean());
+                if(bitSet.get(j))
+                    lengthDelimitedBits.set(j,random.nextBoolean());
             }
-            data.add(new Object[]{bitSet});
+            data.add(new Object[]{bitSet,lengthDelimitedBits});
         }
         return data;
     }
 
     private final BitSet bitSet;
+    private final BitSet lengthDelimitedBits;
 
-    public IterativeBitIndexTest(BitSet bitSet) {
+    public IterativeBitIndexTest(BitSet bitSet,BitSet lengthDelimitedBits) {
         this.bitSet = bitSet;
+        this.lengthDelimitedBits =lengthDelimitedBits;
     }
 
     @Test
     public void testCanEncodeAndDecodeDenseUncompressedProperly() throws Exception {
-        BitIndex bitIndex = UncompressedBitIndex.create(bitSet);
+        BitIndex bitIndex = UncompressedBitIndex.create(bitSet,lengthDelimitedBits);
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = UncompressedBitIndex.wrap(encode, 0, encode.length);
@@ -49,7 +54,7 @@ public class IterativeBitIndexTest {
 
     @Test
     public void testCanEncodeAndDecodeDenseUncompressedLazyProperly() throws Exception {
-        BitIndex bitIndex = UncompressedBitIndex.create(bitSet);
+        BitIndex bitIndex = UncompressedBitIndex.create(bitSet,lengthDelimitedBits);
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = BitIndexing.uncompressedBitMap(encode,0,encode.length);
@@ -65,7 +70,7 @@ public class IterativeBitIndexTest {
 
     @Test
     public void testCanEncodeAndDecodeIntersectsDenseUncompressedLazyProperly() throws Exception {
-        BitIndex bitIndex = UncompressedBitIndex.create(bitSet);
+        BitIndex bitIndex = UncompressedBitIndex.create(bitSet,lengthDelimitedBits);
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = BitIndexing.uncompressedBitMap(encode,0,encode.length);

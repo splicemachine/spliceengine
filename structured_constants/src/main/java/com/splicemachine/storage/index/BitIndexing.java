@@ -31,7 +31,8 @@ public class BitIndexing {
      * @return an Uncompressed BitIndex
      */
     public static BitIndex uncompressedBitMap(BitSet set){
-        return UncompressedBitIndex.create(set);
+        throw new UnsupportedOperationException();
+//        return UncompressedBitIndex.create(set);
     }
 
     /**

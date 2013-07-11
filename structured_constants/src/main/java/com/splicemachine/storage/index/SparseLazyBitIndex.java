@@ -20,4 +20,9 @@ class SparseLazyBitIndex extends LazyBitIndex{
     protected int decodeNext() {
         return DeltaCoding.decode(bitReader);
     }
+
+    @Override
+    public boolean isLengthDelimited(int position) {
+        throw new UnsupportedOperationException();
+    }
 }

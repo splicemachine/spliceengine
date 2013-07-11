@@ -148,6 +148,11 @@ class SparseBitIndex implements BitIndex {
         return bitSet.isEmpty();
     }
 
+    @Override
+    public boolean isLengthDelimited(int position) {
+        throw new UnsupportedOperationException();
+    }
+
     public static SparseBitIndex create(BitSet setCols) {
         return new SparseBitIndex(setCols);
     }

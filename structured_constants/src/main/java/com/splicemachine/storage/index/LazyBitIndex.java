@@ -12,17 +12,20 @@ import java.util.BitSet;
  */
 abstract class LazyBitIndex implements BitIndex{
     protected BitSet decodedBits;
+    protected BitSet decodedLengthDelimitedFields;
 
     protected byte[] encodedBitMap;
     protected int offset;
     protected int length;
     protected BitReader bitReader;
 
+
     protected LazyBitIndex(byte[] encodedBitMap,int offset,int length,int bitPos){
         this.encodedBitMap = encodedBitMap;
         this.offset = offset;
         this.length = length;
         this.decodedBits = new BitSet();
+        this.decodedLengthDelimitedFields = new BitSet();
         this.bitReader = new BitReader(encodedBitMap,offset,length,bitPos);
     }
 
@@ -54,6 +57,11 @@ abstract class LazyBitIndex implements BitIndex{
 
             decodedBits.set(next);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "{"+decodedBits+","+decodedLengthDelimitedFields+"}";
     }
 
     @Override
@@ -123,6 +131,11 @@ abstract class LazyBitIndex implements BitIndex{
     @Override
     public int encodedSize() {
         return length;
+    }
+
+    @Override
+    public boolean isLengthDelimited(int position) {
+        return decodedLengthDelimitedFields.get(position);
     }
 }
 

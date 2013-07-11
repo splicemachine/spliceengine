@@ -65,4 +65,9 @@ public class AllFullBitIndex implements BitIndex {
     public boolean isEmpty() {
         return false;
     }
+
+    @Override
+    public boolean isLengthDelimited(int position) {
+        throw new UnsupportedOperationException();
+    }
 }

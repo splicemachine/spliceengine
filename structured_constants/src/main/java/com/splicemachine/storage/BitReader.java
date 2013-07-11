@@ -39,6 +39,13 @@ public class BitReader {
      * @throws IndexOutOfBoundsException if a bit is asked past the end of the Buffer
      */
     public int next(){
+        adjustBit();
+        int val = data[byteAndBitOffset[0]] & (1<<Byte.SIZE-byteAndBitOffset[1]);
+        byteAndBitOffset[1]++;
+        return val;
+    }
+
+    private void adjustBit() {
         if(byteAndBitOffset[1]==9){
             byteAndBitOffset[0]++;
             if(byteAndBitOffset[0]>=length) throw new IndexOutOfBoundsException();
@@ -47,9 +54,11 @@ public class BitReader {
             else
                 byteAndBitOffset[1]=1;
         }
-        int val = data[byteAndBitOffset[0]] & (1<<Byte.SIZE-byteAndBitOffset[1]);
-        byteAndBitOffset[1]++;
-        return val;
+    }
+
+    public int peek(){
+        if(!hasNext()) throw new IndexOutOfBoundsException();
+        return data[byteAndBitOffset[0]] & (1<<Byte.SIZE-byteAndBitOffset[1]);
     }
 
     /**
@@ -97,5 +106,46 @@ public class BitReader {
 
     public int bytePosition(){
         return byteAndBitOffset[0];
+    }
+
+    public int nextSetBit() {
+        //read until the next bit is set to 1
+        //check if there are bits remaining in this byte
+        if(!hasNext()) return -1;
+        int zerosSkipped=0;
+        while(byteAndBitOffset[1]<9){
+            adjustBit();
+            if((data[byteAndBitOffset[0]] &(1<<Byte.SIZE-byteAndBitOffset[1]))!=0){
+                byteAndBitOffset[1]++;
+                return zerosSkipped;
+            }else
+                zerosSkipped++;
+            byteAndBitOffset[1]++;
+        }
+        if(!hasNext()) return -1;
+
+        adjustBit();
+
+        //skip all zero bytes
+        if(useContinuationBit){
+            while(data[byteAndBitOffset[0]]==(byte)0x80){
+                zerosSkipped+=7;
+                byteAndBitOffset[0]++;
+                if(!hasNext()) return -1;
+            }
+        }else{
+            while(data[byteAndBitOffset[0]]==(byte)0x00){
+                zerosSkipped+=8;
+                byteAndBitOffset[0]++;
+                if(!hasNext()) return -1;
+            }
+        }
+        //read from the remainder
+        if(!hasNext()) return -1;
+        while(next()==0){
+            zerosSkipped++;
+            if(!hasNext())return -1;
+        }
+        return zerosSkipped;
     }
 }
