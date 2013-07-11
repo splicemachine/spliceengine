@@ -188,11 +188,7 @@ public class MultiFieldEncoder {
     public MultiFieldEncoder encodeNextUnsorted(byte[] value){
         assert currentPos<fields.length;
         //append a length field
-        byte[] length = ScalarEncoding.toBytes(value.length,false);
-        byte[] total = new byte[length.length+value.length+1];
-        System.arraycopy(length,0,total,0,length.length);
-        total[length.length] = 0x00;
-        System.arraycopy(value,0,total,length.length+1,value.length);
+        byte[] total = Encoding.encodeBytesUnsorted(value);
 
         currentSize+=total.length;
         fields[currentPos] = total;

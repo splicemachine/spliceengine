@@ -17,6 +17,7 @@ import java.util.List;
  * Created on: 7/8/13
  */
 public class EntryPredicateFilter implements Externalizable{
+    private static final long serialVersionUID = 1l;
     private BitSet fieldsToReturn;
     private List<Predicate> valuePredicates;
 

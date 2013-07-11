@@ -943,4 +943,12 @@ public final class Encoding {
     public static byte[] decodeBytes(byte[] encodedData,int offset,boolean desc){
         return ByteEncoding.decode(encodedData,offset,desc);
     }
+
+    public static byte[] decodeBytesUnsortd(byte[] encodedData,int offset,int length){
+        return ByteEncoding.decodeUnsorted(encodedData,offset,length);
+    }
+
+    public static byte[] encodeBytesUnsorted(byte[] dataToEncode){
+        return ByteEncoding.encodeUnsorted(dataToEncode);
+    }
 }

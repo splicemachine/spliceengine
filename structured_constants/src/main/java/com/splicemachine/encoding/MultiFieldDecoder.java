@@ -175,15 +175,10 @@ public class MultiFieldDecoder {
             return new byte[]{};
         }
 
-        if(intValueLength==null)
-            intValueLength = new long[2];
-        Encoding.decodeLongWithLength(data, currentOffset, false,intValueLength);
-        int length = (int)intValueLength[0];
-        currentOffset+=intValueLength[1]+1;
-        byte[] copy = new byte[length];
-        System.arraycopy(data,currentOffset,copy,0,length);
-        currentOffset+=length+1;
-        return copy;
+        int offset = currentOffset;
+        adjustOffset(-1);
+        int length = currentOffset-offset-1;
+        return Encoding.decodeBytesUnsortd(data,offset,length);
     }
 
     /**

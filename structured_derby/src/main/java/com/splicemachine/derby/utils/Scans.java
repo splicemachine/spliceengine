@@ -252,10 +252,13 @@ public class Scans extends SpliceUtils {
             }
         }else
             predicates = Lists.newArrayListWithCapacity(1);
+
         if(scanColumnList!=null){
             for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
                 colsToReturn.set(i);
             }
+        }else{
+            colsToReturn.clear(); //we want everything
         }
 
         if(startKeyValue!=null){

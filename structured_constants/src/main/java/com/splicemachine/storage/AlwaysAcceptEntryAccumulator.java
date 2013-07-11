@@ -116,5 +116,8 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
     @Override
     public void reset() {
         occupiedFields.clear();
+        for(int i=0;i<fields.length;i++){
+            fields[i] = null;
+        }
     }
 }

@@ -50,11 +50,11 @@ public class EntryEncoder {
         byte[] finalData = encoder.build();
 
         byte[] bitData = bitIndex.encode();
-        if(finalData.length>DATA_COMPRESSION_THRESHOLD){
-            finalData = Snappy.compress(finalData);
-            //mark the header bit for compressed data
-            bitData[0] = (byte)(bitData[0] | COMPRESSED_DATA_BIT);
-        }
+//        if(finalData.length>DATA_COMPRESSION_THRESHOLD){
+//            finalData = Snappy.compress(finalData);
+//            //mark the header bit for compressed data
+//            bitData[0] = (byte)(bitData[0] | COMPRESSED_DATA_BIT);
+//        }
 
         byte[] entry = new byte[bitData.length+finalData.length+1];
         System.arraycopy(bitData, 0, entry, 0, bitData.length);

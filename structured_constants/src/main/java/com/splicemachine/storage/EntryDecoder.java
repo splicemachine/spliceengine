@@ -94,14 +94,14 @@ public class EntryDecoder {
     }
 
     private void decompressIfNeeded() throws IOException {
-        if(compressedData){
-            //uncompress the data, then flag it off so we don't keep uncompressing
-            byte[] uncompressed = new byte[Snappy.uncompressedLength(data, dataOffset, data.length - dataOffset)];
-            Snappy.uncompress(data,dataOffset,data.length-dataOffset,uncompressed,0);
-            data = uncompressed;
-            compressedData=false;
-            dataOffset=0;
-        }
+//        if(compressedData){
+//            //uncompress the data, then flag it off so we don't keep uncompressing
+//            byte[] uncompressed = new byte[Snappy.uncompressedLength(data, dataOffset, data.length - dataOffset)];
+//            Snappy.uncompress(data,dataOffset,data.length-dataOffset,uncompressed,0);
+//            data = uncompressed;
+//            compressedData=false;
+//            dataOffset=0;
+//        }
     }
 
     public MultiFieldDecoder getEntryDecoder() throws IOException{
