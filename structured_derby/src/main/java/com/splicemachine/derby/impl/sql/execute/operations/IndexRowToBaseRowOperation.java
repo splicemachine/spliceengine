@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.google.common.base.Strings;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -81,6 +82,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
  	 */
 //	private ExecRow definition;
 	private HTableInterface table;
+    private MultiFieldDecoder fieldDecoder;
 
 
     public IndexRowToBaseRowOperation () {
@@ -319,8 +321,12 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                         indexName,Arrays.toString(rowArray),accessedHeapCols,heapOnlyCols,Arrays.toString(baseColumnMap));
                 rowExists = result!=null && !result.isEmpty();
                 if(rowExists){
+
+                    if(fieldDecoder==null)
+                        fieldDecoder = MultiFieldDecoder.create();
+                    fieldDecoder.reset();
                     for(KeyValue kv:result.raw()){
-                        RowMarshaller.mappedColumnar().decode(kv, compactRow.getRowArray(), baseColumnMap, null);
+                        RowMarshaller.sparsePacked().decode(kv, compactRow.getRowArray(), baseColumnMap, fieldDecoder);
                     }
                 }
             }catch(IOException ioe){
