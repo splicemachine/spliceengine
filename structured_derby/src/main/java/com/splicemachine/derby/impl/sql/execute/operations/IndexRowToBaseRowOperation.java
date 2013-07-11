@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -83,6 +84,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 //	private ExecRow definition;
 	private HTableInterface table;
     private MultiFieldDecoder fieldDecoder;
+    private FormatableBitSet heapCols; //used during the fetch to access the correct heap columns --0-indexed
+    private int[] adjustedBaseColumnMap;
 
 
     public IndexRowToBaseRowOperation () {
@@ -172,15 +175,24 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 			if (allColRefItem != -1) {
 				this.accessedAllCols = (FormatableBitSet)saved[allColRefItem];
 			}
+
+            // retrieve the array of columns coming from the index
+            indexCols = ((ReferencedColumnsDescriptorImpl) saved[indexColMapItem]).getReferencedColumnPositions();
+			/* Get the result row template */
+            resultRow = (ExecRow) generatedMethod.invoke(activation);
+
+            compactRow = getCompactRow(activation.getLanguageConnectionContext(),resultRow, accessedAllCols, false);
+
 			if(heapOnlyColRefItem!=-1){
 				this.heapOnlyCols = (FormatableBitSet)saved[heapOnlyColRefItem];
+                if(heapOnlyCols!=null){
+                    this.heapCols = new FormatableBitSet(heapOnlyCols.size());
+                    for(int i=heapOnlyCols.anySetBit();i>=0;i=heapOnlyCols.anySetBit(i)){
+                        heapCols.set(i-1);
+                    }
+                }
+                //adjust the base column map down by 1
 			}
-			// retrieve the array of columns coming from the index
-			indexCols = ((ReferencedColumnsDescriptorImpl) saved[indexColMapItem]).getReferencedColumnPositions();			
-			/* Get the result row template */
-			resultRow = (ExecRow) generatedMethod.invoke(activation);
-			
-			compactRow = getCompactRow(activation.getLanguageConnectionContext(),resultRow, accessedAllCols, false);
 
             if (accessedHeapCols == null) {
                 rowArray = resultRow.getRowArray();
@@ -313,12 +325,12 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
             if(table==null)
                 table = SpliceAccessManager.getHTable(conglomId);
             baseRowLocation = (RowLocation)sourceRow.getColumn(sourceRow.nColumns());
-            Get get =  SpliceUtils.createGet(baseRowLocation, rowArray, heapOnlyCols, getTransactionID());
+            Get get =  SpliceUtils.createGet(baseRowLocation, rowArray, heapCols, getTransactionID());
             boolean rowExists = false;
             try{
                 Result result = table.get(get);
                 SpliceLogUtils.trace(LOG,"<%s> rowArray=%s,accessedHeapCols=%s,heapOnlyCols=%s,baseColumnMap=%s",
-                        indexName,Arrays.toString(rowArray),accessedHeapCols,heapOnlyCols,Arrays.toString(baseColumnMap));
+                        indexName,Arrays.toString(rowArray),accessedHeapCols,heapCols,Arrays.toString(baseColumnMap));
                 rowExists = result!=null && !result.isEmpty();
                 if(rowExists){
 
