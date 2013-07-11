@@ -14,6 +14,14 @@
 
 
 	<dependencies>
+
+	<dependency>
+		<groupId>org.scala-lang</groupId>
+		<artifactId>scala-library</artifactId>
+		<version>2.9.3</version>
+	</dependency>
+
+
 	<dependency>
 		<groupId>com.splicemachine</groupId>
 		<artifactId>splice_machine</artifactId>
