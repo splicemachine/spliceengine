@@ -257,10 +257,17 @@ public class DerbyBytesUtil {
 	
 	public static byte[] generateIndexKey(DataValueDescriptor[] descriptors, boolean[] sortOrder) throws IOException, StandardException {
         MultiFieldEncoder encoder = MultiFieldEncoder.create(descriptors.length);
+        /*
+         * The last entry is a RowLocation (for indices). They must be sortable, but the default encoding
+         * for RowLocations is unsorted. Thus, we have to be careful to encode any RowLocation values differently
+         */
         for(int i=0;i<descriptors.length;i++){
             DataValueDescriptor dvd = descriptors[i];
             boolean desc = sortOrder!=null && !sortOrder[i];
-            encodeInto(encoder,dvd,desc);
+            if(dvd.getTypeFormatId()==StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
+                encoder = encoder.encodeNext(dvd.getBytes(),desc);
+            }else
+                encodeInto(encoder,dvd,desc);
         }
         return encoder.build();
 	}

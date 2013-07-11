@@ -261,7 +261,7 @@ public class Scans extends SpliceUtils {
             colsToReturn.clear(); //we want everything
         }
 
-        if(startKeyValue!=null){
+        if(startKeyValue!=null && startSearchOperator != ScanController.GT){
             Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
             if(indexPredicate!=null)
                 predicates.add(indexPredicate);
