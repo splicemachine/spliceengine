@@ -164,7 +164,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 	 * @exception StandardException Thrown on error
 	 */
 	
-	protected final HashBuffer.AggregateFinisher<ByteBuffer,ExecRow> aggregateFinisher = new HashBuffer.AggregateFinisher<ByteBuffer,ExecRow>() {
+	protected final AggregateFinisher<ByteBuffer,ExecRow> aggregateFinisher = new AggregateFinisher<ByteBuffer,ExecRow>() {
 
 		@Override
 		public ExecRow finishAggregation(ExecRow row) throws StandardException {

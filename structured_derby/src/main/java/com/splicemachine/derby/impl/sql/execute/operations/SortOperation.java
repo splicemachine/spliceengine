@@ -17,6 +17,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -29,11 +30,13 @@ import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -43,6 +46,9 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     private static final long serialVersionUID = 2l;
     private static Logger LOG = Logger.getLogger(SortOperation.class);
     private static final List<NodeType> nodeTypes;
+
+    private static final HashMerger merger = new DistinctMerger();
+
     protected NoPutResultSet source;
     protected boolean distinct;
     protected int orderingItem;
@@ -147,7 +153,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             descColumns[i] = order[i].getIsAscending();
         }
 
-        hbs = new HashBufferSource(uniqueSequenceID, keyColumns, wrapOperationWithProvider(source));
+        hbs = new HashBufferSource(uniqueSequenceID, keyColumns, wrapOperationWithProviderIterator(source), merger, KeyType.FIXED_PREFIX, MultiFieldEncoder.create(keyColumns.length + 1));
 
         SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
     }
@@ -159,7 +165,12 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         if(!distinct){
             nextRow = source.getNextRowCore();
         }else{
-            nextRow = hbs.getNextAggregatedRow();
+
+            Pair<ByteBuffer,ExecRow> result = hbs.getNextAggregatedRow();
+
+            if(result != null){
+                nextRow = result.getSecond();
+            }
         }
 
         setCurrentRow(nextRow);
@@ -253,7 +264,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder) throws StandardException {
-        return getReduceRowProvider(top,rowDecoder);
+        return getReduceRowProvider(top, rowDecoder);
     }
 
     @Override
@@ -345,7 +356,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
                 .toString();
     }
 
-    private static RowProviderIterator<ExecRow> wrapOperationWithProvider(final NoPutResultSet operationSource){
+    private RowProviderIterator<ExecRow> wrapOperationWithProviderIterator(final NoPutResultSet operationSource){
         return new RowProviderIterator<ExecRow>() {
 
             private ExecRow nextRow;

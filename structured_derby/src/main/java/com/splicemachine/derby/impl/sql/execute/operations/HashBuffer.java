@@ -33,11 +33,11 @@ public class HashBuffer<K,T extends ExecRow> extends LinkedHashMap<K,T>{
 		return null;
 	}
 	
-	public boolean merge(K key, T element, Merger<K,T> merger){
-		if ( (matchedRow = merger.shouldMerge(key)) == null) {
+	public boolean merge(K key, T element, HashMerger<K,T> merger){
+		if ( (matchedRow = merger.shouldMerge(this, key)) == null) {
 			return false;
 		}
-		merger.merge(matchedRow, element);
+		merger.merge(this, matchedRow, element);
 		return true;
 	}
 	
@@ -53,13 +53,5 @@ public class HashBuffer<K,T extends ExecRow> extends LinkedHashMap<K,T>{
 	@Override
 	public String toString(){
 		return "RingBuffer{maxSize="+maxCapacity+",LinkedHashMap="+super.toString()+"}";
-	}
-	public interface Merger<K,T extends ExecRow> {
-		void merge(T currentRow, T nextRow);
-		T shouldMerge(K key);
-	}
-
-	public interface AggregateFinisher<K, T extends ExecRow> {
-		T finishAggregation(T row) throws StandardException;
 	}
 }

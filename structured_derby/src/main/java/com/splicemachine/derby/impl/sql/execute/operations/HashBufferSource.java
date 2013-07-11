@@ -2,18 +2,16 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
-import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.util.Pair;
 import org.datanucleus.sco.backed.Map;
 
 import java.nio.ByteBuffer;
 
-public class HashBufferSource {
+public class HashBufferSource{
 
     private byte[] keyBytes;
     private KeyMarshall hasher;
@@ -22,58 +20,60 @@ public class HashBufferSource {
     private boolean doneReadingSource = false;
     private RowProviderIterator<ExecRow> sourceRows;
     private int[] keyColumnIndexes;
+    private HashMerger merger;
+    private AggregateFinisher<ByteBuffer,ExecRow> finisher;
+    private boolean[] sortOrder;
 
-    private final HashBuffer.Merger<ByteBuffer,ExecRow> merger = new HashBuffer.Merger<ByteBuffer,ExecRow>() {
-        @Override
-        public ExecRow shouldMerge(ByteBuffer key){
-            return currentRows.get(key);
-        }
+    public HashBufferSource(byte[] sinkRowPrefix, int[] keyColumnIndexes, RowProviderIterator<ExecRow> sourceRows, HashMerger merger, KeyMarshall hasher, MultiFieldEncoder keyEncoder) throws StandardException {
+        this(sinkRowPrefix, keyColumnIndexes, sourceRows, merger, hasher, keyEncoder, null, null);
+    }
 
-        @Override
-        public void merge(ExecRow curr,ExecRow next){
-            //throw away the second row, since we only want to keep the first
-            //this is effectively a no-op
-        }
-    };
-
-
-    public HashBufferSource(byte[] sinkRowPrefix, int[] keyColumnIndexes, RowProviderIterator<ExecRow> sourceRows) throws StandardException {
-        hasher = KeyType.FIXED_PREFIX;
-        keyEncoder = MultiFieldEncoder.create(keyColumnIndexes.length+1);
+    public HashBufferSource(byte[] sinkRowPrefix, int[] keyColumnIndexes, RowProviderIterator<ExecRow> sourceRows, HashMerger merger, KeyMarshall hasher, MultiFieldEncoder keyEncoder, boolean[] sortOrder, AggregateFinisher finisher) throws StandardException {
+        this.hasher = hasher;
+        this.keyEncoder = keyEncoder;
         keyEncoder.setRawBytes(sinkRowPrefix);
         keyEncoder.mark();
         this.sourceRows = sourceRows;
         this.keyColumnIndexes = keyColumnIndexes;
-
+        this.merger = merger;
+        this.finisher = finisher;
+        this.sortOrder = sortOrder;
     }
 
-    public ExecRow getNextAggregatedRow() throws StandardException {
-
-        ExecRow resultRow = null;
+    public Pair<ByteBuffer, ExecRow> getNextAggregatedRow() throws StandardException {
+        Pair<ByteBuffer, ExecRow> result = null;
 
         if(!doneReadingSource){
-            while(sourceRows.hasNext() && resultRow == null){
+            while(sourceRows.hasNext() && result == null){
                 ExecRow nextRow = sourceRows.next();
                 keyEncoder.reset();
-                hasher.encodeKey(nextRow.getRowArray(),keyColumnIndexes,null,null,keyEncoder);
+                hasher.encodeKey(nextRow.getRowArray(),keyColumnIndexes,sortOrder,null,keyEncoder);
                 keyBytes = keyEncoder.build();
                 ByteBuffer buffer = ByteBuffer.wrap(keyBytes);
                 if (!currentRows.merge(buffer, nextRow, merger)) {
                     Map.Entry<ByteBuffer,ExecRow> finalized = currentRows.add(buffer,nextRow.getClone());
 
                     if(finalized!=null&&finalized!=nextRow){
-                        resultRow = finalized.getValue();
+                        result = new Pair(finalized.getKey(), finalized.getValue());
+
+                        if(finisher != null){
+                            finisher.finishAggregation(result.getSecond());
+                        }
                     }
                 }
             }
             doneReadingSource = true;
+
+            if(finisher != null){
+                currentRows = currentRows.finishAggregates(finisher);
+            }
         }
 
-        if(resultRow == null && doneReadingSource && !currentRows.isEmpty()){
+        if(result == null && doneReadingSource && !currentRows.isEmpty()){
             ByteBuffer key = currentRows.keySet().iterator().next();
-            resultRow = currentRows.remove(key);
+            result = new Pair(key, currentRows.remove(key));
         }
 
-        return resultRow;
+        return result;
     }
 }

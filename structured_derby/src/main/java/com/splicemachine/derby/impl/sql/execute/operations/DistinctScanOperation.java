@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -29,11 +30,13 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,6 +50,9 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     private static final long serialVersionUID = 3l;
     private static final List<NodeType> nodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SCAN);
     private static Logger LOG = Logger.getLogger(DistinctScanOperation.class);
+
+    private static final HashMerger merger = new DistinctMerger();
+
     private Scan reduceScan;
 
     public DistinctScanOperation() {
@@ -126,7 +132,11 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         for(int index=0;index<fihArray.length;index++){
             keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(accessedCols,fihArray[index].getInt());
         }
-        hbs = new HashBufferSource(uniqueSequenceID, keyColumns, wrapScannerWithProvider(regionScanner, getExecRowDefinition(),baseColumnMap));
+
+        RowProviderIterator<ExecRow> sourceProvider = wrapScannerWithProvider(regionScanner, getExecRowDefinition(),baseColumnMap);
+        MultiFieldEncoder mfe = MultiFieldEncoder.create(keyColumns.length + 1);
+
+        hbs = new HashBufferSource(uniqueSequenceID, keyColumns, sourceProvider, merger, KeyType.FIXED_PREFIX, mfe);
     }
 
     @Override
@@ -141,9 +151,12 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
     @Override
     public ExecRow getNextSinkRow() throws StandardException {
-        ExecRow row = hbs.getNextAggregatedRow();
 
-        if(row != null){
+        Pair<ByteBuffer,ExecRow> result = hbs.getNextAggregatedRow();
+        ExecRow row = null;
+
+        if(result != null){
+            row = result.getSecond();
             setCurrentRow(row);
         }
 
