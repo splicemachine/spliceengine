@@ -109,15 +109,26 @@ public class SpliceUtils extends SpliceUtilities {
 			Get get = createGet(transID, loc.getBytes());
             get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
             BitSet fieldsToReturn;
+            BitSet lengthDelimitedFields;
             if(validColumns!=null){
                 fieldsToReturn = new BitSet(validColumns.size());
+                lengthDelimitedFields = new BitSet(validColumns.size());
                 for(int i=validColumns.anySetBit();i>=0;i=validColumns.anySetBit(i)){
                     fieldsToReturn.set(i);
+                    if(DerbyBytesUtil.isLengthDelimited(destRow[i]))
+                        lengthDelimitedFields.set(i);
                 }
             }else{
                 fieldsToReturn = new BitSet(destRow.length);
                 fieldsToReturn.set(0,destRow.length);
+                lengthDelimitedFields = new BitSet(destRow.length);
+                for(int i=0;i<destRow.length;i++){
+                    if(DerbyBytesUtil.isLengthDelimited(destRow[i]))
+                        lengthDelimitedFields.set(i);
+                }
             }
+
+
 
             EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, Collections.<Predicate>emptyList());
             ByteDataOutput bdo = new ByteDataOutput();

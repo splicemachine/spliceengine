@@ -6,6 +6,12 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
+import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 
@@ -13,15 +19,13 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -48,11 +52,21 @@ public class ConglomerateUtils extends SpliceConstants {
 		HTableInterface table = null;
 		try {
 			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
-			SpliceUtils.createGet(transactionID, Bytes.toBytes(conglomId));
-			Result result = table.get(SpliceUtils.createGet(transactionID, Bytes.toBytes(conglomId)));		
-			byte[] data = result.getValue(DEFAULT_FAMILY_BYTES, VALUE_COLUMN);
+			Get get = SpliceUtils.createGet(transactionID, Bytes.toBytes(conglomId));
+            get.addColumn(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+            EntryPredicateFilter predicateFilter  = new EntryPredicateFilter(new BitSet(), Collections.<Predicate>emptyList());
+            ByteDataOutput bdo = new ByteDataOutput();
+            bdo.writeObject(predicateFilter);
+            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bdo.toByteArray());
+
+			Result result = table.get(get);
+			byte[] data = result.getValue(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+
 			if(data!=null) {
-				return DerbyBytesUtil.fromBytes(data, instanceClass);
+                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data);
+                byte[] nextRaw = decoder.decodeNextBytesUnsorted();
+
+                return DerbyBytesUtil.fromBytes(nextRaw, instanceClass);
 			}
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG,"readConglomerateException",Exceptions.parseException(e));
@@ -125,8 +139,7 @@ public class ConglomerateUtils extends SpliceConstants {
             entryEncoder.getEntryEncoder().encodeNextUnsorted(DerbyBytesUtil.toBytes(conglomerate));
 			put.add(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, entryEncoder.encode());
 			table.put(put);
-		}
-		catch (Exception e) {
+		}catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "update Conglomerate Failed", Exceptions.parseException(e));
 		}
 		finally{
