@@ -1,13 +1,19 @@
 package com.splicemachine.derby.utils.marshall;
 
 import com.google.common.base.Preconditions;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.storage.EntryEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
+
+import java.io.IOException;
+import java.util.BitSet;
 
 /**
  * @author Scott Fines
@@ -91,6 +97,23 @@ public class RowEncoder {
         return new RowEncoder(keyColumns,keySortOrder,rowColumns,keyPrefix,keyType,rowType);
     }
 
+    public static RowEncoder createEntryEncoder(int numCols,
+                                                int[] keyColumns,
+                                                boolean[] keySortOrder,
+                                                byte[] keyPrefix,
+                                                KeyMarshall keyType,
+                                                BitSet lengthDelimitedFields){
+        if(keyColumns==null)
+            keyColumns = new int[0];
+
+        int[] rowCols = new int[numCols];
+        for(int rowPos=0;rowPos<numCols;rowPos++){
+            rowCols[rowPos] = rowPos;
+        }
+
+        return new EntryRowEncoder(keyColumns,keySortOrder,rowCols,keyPrefix,keyType,lengthDelimitedFields);
+    }
+
     public static RowEncoder createDoubleWritingEncoder(int numCols,
                                                         int[] keyColumns,
                                                         boolean[] keySortOrder,
@@ -151,5 +174,46 @@ public class RowEncoder {
         Put element = doPut(row);
         SpliceUtils.attachTransaction(element,txnId);
         buffer.add(element);
+    }
+
+    private static class EntryRowEncoder extends RowEncoder{
+        private EntryEncoder entryEncoder;
+
+        protected EntryRowEncoder(int[] keyColumns,
+                                  boolean[] keySortOrder,
+                                  int[] rowColumns,
+                                  byte[] keyPrefix,
+                                  KeyMarshall keyType,
+                                  BitSet lengthDelimitedFields) {
+            super(keyColumns, keySortOrder, rowColumns, keyPrefix, keyType, RowMarshaller.sparsePacked());
+
+            BitSet rowCols = new BitSet();
+            for(int rowCol:rowColumns){
+                rowCols.set(rowCol);
+            }
+
+            this.entryEncoder = EntryEncoder.create(rowColumns.length,rowCols,lengthDelimitedFields);
+            rowEncoder = entryEncoder.getEntryEncoder();
+        }
+
+        @Override
+        protected Put doPut(ExecRow row) throws StandardException {
+            //construct the row key
+            keyEncoder.reset();
+            keyType.encodeKey(row.getRowArray(),keyColumns,keySortOrder,keyPostfix,keyEncoder);
+            Put put = new Put(keyEncoder.build());
+
+            if(rowEncoder!=null)
+                rowEncoder.reset();
+
+            rowType.fill(row.getRowArray(), rowColumns, rowEncoder);
+
+            try {
+                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,entryEncoder.encode());
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
+            return put;
+        }
     }
 }

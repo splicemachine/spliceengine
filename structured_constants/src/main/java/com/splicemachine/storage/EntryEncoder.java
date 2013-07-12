@@ -64,7 +64,7 @@ public class EntryEncoder {
         return entry;
     }
 
-    public void reset(BitSet newIndex){
+    public void reset(BitSet newIndex,BitSet newLengthFields){
         //save effort if they are the same
         int oldCardinality = bitIndex.cardinality();
         boolean differs=false;
@@ -72,10 +72,13 @@ public class EntryEncoder {
             if(!bitIndex.isSet(i)){
                 differs=true;
                 break;
+            }else if(newLengthFields.get(i)!=bitIndex.isLengthDelimited(i)){
+                differs=true;
+                break;
             }
         }
         if(differs){
-            bitIndex = getBitIndex(newIndex);
+            bitIndex = getBitIndex(newIndex,newLengthFields);
         }
 
         if(oldCardinality==bitIndex.cardinality())
@@ -84,54 +87,36 @@ public class EntryEncoder {
             encoder = MultiFieldEncoder.create(bitIndex.cardinality());
     }
 
-    public static EntryEncoder create(int numCols,int[] setCols){
-        BitSet cols = new BitSet(numCols);
-        for(int col:setCols){
-            cols.set(col);
-        }
+    public static EntryEncoder create(int numCols, BitSet setCols,BitSet lengthFields){
+        //TODO -sf- enable ALL Full indices
+//        if(setCols==null||setCols.cardinality()==numCols){
+//            /*
+//             * This is a special case where we are writing *every* column. In this case, we just
+//             * set an indicator flag that tells us to not bother reading the index, because everything
+//             * is there.
+//             */
+//            return new EntryEncoder(numCols,new AllFullBitIndex());
+//        }else{
 
-        return create(numCols, cols);
-    }
-
-    public static EntryEncoder create(int numCols, BitSet setCols){
-        if(setCols==null||setCols.cardinality()==numCols){
-            /*
-             * This is a special case where we are writing *every* column. In this case, we just
-             * set an indicator flag that tells us to not bother reading the index, because everything
-             * is there.
-             */
-            return new EntryEncoder(numCols,new AllFullBitIndex());
-        }else{
-
-            BitIndex indexToUse = getBitIndex(setCols);
+            BitIndex indexToUse = getBitIndex(setCols,lengthFields);
             return new EntryEncoder(indexToUse);
-        }
+//        }
     }
 
-    private static BitIndex getBitIndex(BitSet setCols) {
-        BitIndex indexToUse = BitIndexing.uncompressedBitMap(setCols);
+    private static BitIndex getBitIndex(BitSet setCols,BitSet lengthFields) {
+        if(lengthFields==null)lengthFields = new BitSet(); //default to no length-delimited fields
+        BitIndex indexToUse = BitIndexing.uncompressedBitMap(setCols,lengthFields);
         //see if we can improve space via compression
-        BitIndex denseCompressedBitIndex = BitIndexing.compressedBitMap(setCols);
+        BitIndex denseCompressedBitIndex = BitIndexing.compressedBitMap(setCols,lengthFields); //TODO -sf- correct this
         if(denseCompressedBitIndex.encodedSize() < indexToUse.encodedSize()){
             indexToUse = denseCompressedBitIndex;
         }
         //see if sparse is better
-        BitIndex sparseBitMap = BitIndexing.sparseBitMap(setCols);
+        BitIndex sparseBitMap = BitIndexing.sparseBitMap(setCols,lengthFields);
         if(sparseBitMap.encodedSize()<indexToUse.encodedSize()){
             indexToUse = sparseBitMap;
         }
         return indexToUse;
-    }
-
-    public static void main(String... args)throws Exception{
-        BitSet bitSet = new BitSet(10);
-        bitSet.set(0);
-        bitSet.set(3);
-        bitSet.set(7);
-        bitSet.set(9);
-        EntryEncoder entryEncoder = EntryEncoder.create(10, bitSet);
-        byte[] bytes = entryEncoder.encode();
-        System.out.println(Arrays.toString(bytes));
     }
 }
 

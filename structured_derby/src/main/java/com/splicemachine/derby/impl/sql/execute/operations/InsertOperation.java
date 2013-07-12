@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
@@ -21,6 +22,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.BitSet;
 
 /**
  * 
@@ -77,9 +79,11 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
             }
             keyType = KeyType.BARE;
         }
-        return RowEncoder.createDoubleWritingEncoder(
-                getExecRowDefinition().nColumns(),
-                keyColumns,null,null,keyType, RowMarshaller.denseColumnar());
+
+
+        ExecRow defnRow = getExecRowDefinition();
+        BitSet lengthDelimitedFields = DerbyBytesUtil.getLengthDelimitedFields(defnRow.getRowArray());
+        return RowEncoder.createEntryEncoder(defnRow.nColumns(),keyColumns,null,null,keyType,lengthDelimitedFields);
     }
 
     @Override

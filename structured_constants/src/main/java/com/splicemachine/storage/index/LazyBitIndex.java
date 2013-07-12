@@ -135,6 +135,7 @@ abstract class LazyBitIndex implements BitIndex{
 
     @Override
     public boolean isLengthDelimited(int position) {
+        decodeUntil(position);
         return decodedLengthDelimitedFields.get(position);
     }
 }

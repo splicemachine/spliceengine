@@ -1,5 +1,6 @@
 package com.splicemachine.storage.index;
 
+import com.splicemachine.storage.BitReader;
 import com.splicemachine.storage.BitWriter;
 
 import java.util.BitSet;
@@ -29,10 +30,12 @@ import java.util.BitSet;
  */
 class SparseBitIndex implements BitIndex {
     private final BitSet bitSet;
+    private final BitSet lengthDelimitedFields;
 
     private byte[] encodedVersion;
-    public SparseBitIndex(BitSet setCols) {
+    public SparseBitIndex(BitSet setCols,BitSet lengthDelimitedFields) {
         this.bitSet = (BitSet)setCols.clone();
+        this.lengthDelimitedFields = (BitSet)lengthDelimitedFields.clone();
     }
 
     @Override
@@ -56,14 +59,27 @@ class SparseBitIndex implements BitIndex {
          * need to use bit-5 in the header to determine if position zero is present
          * or not.
          */
+        int initBitPos=6;
         if(bitSet.get(0)){
-            encodedVersion[0] = 0x08;
+            initBitPos++;
+            if(lengthDelimitedFields.get(0)){
+                encodedVersion[0] = 0x0C;
+            }else
+                encodedVersion[0] = 0x08;
+
         }
 
-        BitWriter writer = new BitWriter(encodedVersion,0,encodedVersion.length,6,true);
+        BitWriter writer = new BitWriter(encodedVersion,0,encodedVersion.length,initBitPos,true);
 
+        int lastSetPos=0;
         for(int i=bitSet.nextSetBit(1);i>=0;i=bitSet.nextSetBit(i+1)){
-            DeltaCoding.encode(i,writer);
+            int valueToEncode = i-lastSetPos;
+            DeltaCoding.encode(valueToEncode,writer);
+            if(lengthDelimitedFields.get(i))
+                writer.setNext();
+            else
+                writer.skipNext();
+            lastSetPos=i;
         }
 
         return encodedVersion;
@@ -73,15 +89,21 @@ class SparseBitIndex implements BitIndex {
     public int encodedSize() {
         /*
          * Delta coding requires log2(x)+2*floor(log2(floor(log2(x))+1))+1 bits for each number, which helps
-         * us to compute our size correctly
+         * us to compute our size correctly. For each set bit, we also need a bit to indicate whether
+         * that field is length-delimited or not
          */
         int numBits = 0;
+        int lastSetPos=0;
         for(int i=bitSet.nextSetBit(1);i>=0;i=bitSet.nextSetBit(i+1)){
-            int size = DeltaCoding.getEncodedLength(i);
-            numBits+= size;
+            int valToEncode = i-lastSetPos;
+            int size = DeltaCoding.getEncodedLength(valToEncode);
+            numBits+= size+1;
+            lastSetPos=i;
         }
 
-        int length = numBits-3; //3 bits are set in the header
+        int length = numBits-3;
+        if(bitSet.get(0))
+            length++; //reserve a bit for field information about position 0
         if(length<=0) return 1; //use only the header
 
         int numBytes = length/7;
@@ -135,7 +157,7 @@ class SparseBitIndex implements BitIndex {
 
     @Override
     public String toString() {
-        return bitSet.toString();
+        return "{"+bitSet.toString()+","+lengthDelimitedFields+"}";
     }
 
     @Override
@@ -153,45 +175,69 @@ class SparseBitIndex implements BitIndex {
         throw new UnsupportedOperationException();
     }
 
-    public static SparseBitIndex create(BitSet setCols) {
-        return new SparseBitIndex(setCols);
+    public static SparseBitIndex create(BitSet setCols,BitSet lengthDelimitedFields) {
+        return new SparseBitIndex(setCols,lengthDelimitedFields);
     }
 
     public static SparseBitIndex wrap(byte[] data,int position, int limit){
         BitSet bitSet = new BitSet();
+        BitSet lengthFields = new BitSet();
 
         //there are no entries
         if(data[position]==0x00)
-            return new SparseBitIndex(bitSet);
+            return new SparseBitIndex(bitSet,lengthFields);
 
         //check if the zero-bit is set
+        int startBitPos=6;
         if ((data[position] & 0x08) !=0){
             bitSet.set(0);
+            startBitPos++;
+            //check if zero-bit is length-delimited
+            if((data[position] &0x04)!=0){
+                lengthFields.set(0);
+            }
         }
 
-        int[] byteAndBitOffset = new int[]{position,6};
-
+        int lastPosition=0;
+        BitReader reader = new BitReader(data,position,limit,startBitPos,true);
         do{
-            int val = DeltaCoding.decode(data,byteAndBitOffset);
-            if(val>=0)
-                bitSet.set(val);
-            else
-                break;
-        }while(byteAndBitOffset[0]<position+limit);
-        return new SparseBitIndex(bitSet);
+            int val = DeltaCoding.decode(reader);
+            if(val>=0){
+                int pos = val+lastPosition;
+                bitSet.set(pos);
+                if(reader.hasNext()&&reader.next()!=0)
+                    lengthFields.set(pos);
+                lastPosition=pos;
+            }
+        }while(reader.hasNext());
+
+        return new SparseBitIndex(bitSet,lengthFields);
     }
 
     public static void main(String... args) throws Exception{
         BitSet test = new BitSet();
+        test.set(0);
         test.set(1);
-        test.set(5);
-        test.set(6);
-        test.set(7);
-        test.set(8);
+//        test.set(2);
+//        test.set(3);
+//        test.set(4);
+//        test.set(5);
+//        test.set(6);
+//        test.set(7);
+//        test.set(8);
 
-        SparseBitIndex index = SparseBitIndex.create(test);
+        BitSet lengthFields = new BitSet();
+        lengthFields.set(1);
+//        lengthFields.set(3);
+//        lengthFields.set(4);
+//        lengthFields.set(5);
+//        lengthFields.set(6);
+//        lengthFields.set(7);
+
+        SparseBitIndex index = SparseBitIndex.create(test,lengthFields);
         byte[] encode = index.encode();
-        SparseBitIndex index2 = SparseBitIndex.wrap(encode,0,encode.length);
+        BitIndex index2 = BitIndexing.sparseBitMap(encode,0,encode.length);
+        for(int i=index2.nextSetBit(0);i>=0;i=index2.nextSetBit(i+1));
         System.out.println(index2);
     }
 }

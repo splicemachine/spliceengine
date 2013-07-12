@@ -165,7 +165,8 @@ public final class Encoding {
      * @return an order-preserving byte encoding.
      */
     public static byte[] encode(byte value){
-        return new byte[]{value};
+        //TODO -sf- is this the most effective way to do this?
+        return encode(new byte[]{value}); //have to encode this to avoid 0-entries
     }
 
     /**
@@ -175,17 +176,7 @@ public final class Encoding {
      * @return the decoded byte.
      */
     public static byte decodeByte(byte[] data){
-        return data[0];
-    }
-
-    /**
-     * Decode an ascending, order-preserving  byte encoding into a byte.
-     *
-     * @param data an order-preserving representation of a byte
-     * @return the decoded byte.
-     */
-    public static byte decodeByte(ByteBuffer data){
-        return data.get();
+        return decodeBytes(data)[0];
     }
 
     /**
@@ -200,9 +191,7 @@ public final class Encoding {
      * @return an order-preserving representation of {@code value}
      */
     public static byte[] encode(byte value,boolean desc){
-        if(desc)
-            value ^= 0xff;
-        return new byte[]{value};
+        return encode(new byte[]{value},desc);
     }
 
     /**
@@ -216,38 +205,15 @@ public final class Encoding {
      * @return the byte represented by {@code data}
      */
     public static byte decodeByte(byte[] data,boolean desc){
-        byte first = data[0];
-        if(desc)
-            first ^=0xff;
-        return first;
-    }
-
-    /**
-     * Decode a byte from an order-preserving encoding, with ordering determined by the {@code desc} flag.
-     *
-     * WARNING: Encoding and decoding <em>must</em> use the same {@code desc} flag, or else incorrect results
-     * may be returned.
-     *
-     * @param data the encoded data
-     * @param desc {@code true} if the data is encoded in descending order, {@code false} otherwise.
-     * @return the byte represented by {@code data}
-     */
-    public static byte decodeByte(ByteBuffer data,boolean desc){
-        byte first = data.get();
-        if(desc)
-            first ^=0xff;
-        return first;
+        return decodeBytes(data,desc)[0];
     }
 
     public static byte decodeByte(byte[] data, int offset){
-        return data[offset];
+        return decodeBytes(data,offset,false)[0];
     }
 
     public static byte decodeByte(byte[] data, int offset,boolean desc){
-        byte first = data[offset];
-        if(desc)
-            first ^=0xff;
-        return first;
+        return decodeBytes(data,offset,desc)[0];
     }
 
     /**

@@ -63,7 +63,22 @@ public class EntryPredicateFilter implements Externalizable{
                     ((AlwaysAcceptEntryAccumulator)accumulator).complete();
                 return true;
             }
-            decoder.skip();
+            if(encodedIndex.isLengthDelimited(encodedPos)){
+                /*
+                 * The field we are after has a length field in front denoting how long it is.
+                 * This is so that we can allow zeros within the byte sequence without screwing up
+                 * the packing algorithm.
+                 *
+                 * To set the correct place, we have to decode the length header, get how long the
+                 * length header was, seek past that, then skip the next entry so that we are in the proper
+                 * place. The easiest way to do that, is to just decode a long, then adjust offset from there(
+                 * essentially call decoder.skip()).
+                 *
+                 */
+                decoder.decodeNextLong(); //don't need the value, just need to seek past it
+            }else
+                decoder.skip();
+
             int limit = decoder.offset()-1-offset;
             if(offset+limit>array.length){
                 limit = array.length-offset;

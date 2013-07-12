@@ -5,6 +5,9 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.BitSet;
+import java.util.EnumMap;
+
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.encoding.Encoding;
@@ -413,46 +416,307 @@ public class DerbyBytesUtil {
     public static void decodeInto(MultiFieldDecoder rowDecoder, DataValueDescriptor column,boolean desc) throws StandardException{
         int colFormatId = column.getTypeFormatId();
         if(column.isLazy()){
-            byte[] buffer;
-            if(colFormatId== StoredFormatIds.SQL_REF_ID
-             ||colFormatId == StoredFormatIds.SQL_USERTYPE_ID_V3
-             ||colFormatId == StoredFormatIds.SQL_VARBIT_ID
-             ||colFormatId == StoredFormatIds.SQL_LONGVARBIT_ID
-             ||colFormatId == StoredFormatIds.SQL_BLOB_ID
-             ||colFormatId == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID
-             ||colFormatId == StoredFormatIds.SQL_BIT_ID){
-                buffer = rowDecoder.getNextRawBytes();
-            }else{
-                buffer = rowDecoder.getNextRaw();
-            }
-            ((LazyDataValueDescriptor)column).initForDeserialization(buffer,desc);
+            lazySerializer.decodeInto(column,rowDecoder,desc);
             return;
         }
 
-        switch(colFormatId){
-            case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
-                column.setValue(rowDecoder.decodeNextBoolean(desc));
-                break;
-            case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
-                column.setValue(new Date(rowDecoder.decodeNextLong(desc)));
-                break;
-            case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
-                column.setValue(rowDecoder.decodeNextDouble(desc));
-                break;
-            case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
-                column.setValue(rowDecoder.decodeNextShort(desc));
-                break;
-            case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
-                column.setValue(rowDecoder.decodeNextInt(desc));
-                break;
-            case StoredFormatIds.SQL_LONGINT_ID: //return new SQLLongint();
-                column.setValue(rowDecoder.decodeNextLong(desc));
-                break;
-            case StoredFormatIds.SQL_REAL_ID: //return new SQLReal();
-                column.setValue(rowDecoder.decodeNextFloat(desc));
-                break;
-            case StoredFormatIds.SQL_REF_ID: //return new SQLRef();
-            case StoredFormatIds.SQL_USERTYPE_ID_V3: //return new UserType();
+        serializationMap.get(Format.formatFor(column)).decodeInto(column,rowDecoder,desc);
+    }
+
+    public static boolean isLengthDelimited(DataValueDescriptor descriptor) {
+        if(descriptor==null) return false;
+
+        return serializationMap.get(Format.formatFor(descriptor)).isLengthDelimited();
+    }
+
+    public static BitSet getLengthDelimitedFields(DataValueDescriptor[] rowArray) {
+        BitSet bitSet = new BitSet();
+        for(int i=0;i<rowArray.length;i++){
+            DataValueDescriptor dvd = rowArray[i];
+            if(dvd!=null){
+                Format format = Format.formatFor(dvd);
+                Serializer serializer = serializationMap.get(format);
+                if(serializer.isLengthDelimited()){
+                    bitSet.set(i);
+                }
+            }
+        }
+        return bitSet;
+    }
+
+    private enum Format{
+        BOOLEAN(StoredFormatIds.SQL_BOOLEAN_ID),
+        TINYINT(StoredFormatIds.SQL_TINYINT_ID),
+        SMALLINT(StoredFormatIds.SQL_SMALLINT_ID),
+        INTEGER(StoredFormatIds.SQL_INTEGER_ID),
+        LONGINT(StoredFormatIds.SQL_LONGINT_ID),
+        REAL(StoredFormatIds.SQL_REAL_ID),
+        DOUBLE(StoredFormatIds.SQL_DOUBLE_ID),
+        DECIMAL(StoredFormatIds.SQL_DECIMAL_ID),
+        REF(StoredFormatIds.SQL_REF_ID),
+        USERTYPE(StoredFormatIds.SQL_USERTYPE_ID_V3),
+        DATE(StoredFormatIds.SQL_DATE_ID),
+        TIME(StoredFormatIds.SQL_TIME_ID),
+        TIMESTAMP(StoredFormatIds.SQL_TIMESTAMP_ID),
+        VARCHAR(StoredFormatIds.SQL_VARCHAR_ID),
+        LONGVARCHAR(StoredFormatIds.SQL_LONGVARCHAR_ID),
+        CLOB(StoredFormatIds.SQL_CLOB_ID),
+        XML(StoredFormatIds.XML_ID),
+        CHAR(StoredFormatIds.SQL_CHAR_ID),
+        VARBIT(StoredFormatIds.SQL_VARBIT_ID),
+        LONGVARBIT(StoredFormatIds.SQL_LONGVARBIT_ID),
+        BLOB(StoredFormatIds.SQL_BLOB_ID),
+        BIT(StoredFormatIds.SQL_BIT_ID),
+        ROW_LOCATION(StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID);
+
+        private final int storedFormatId;
+
+        private Format(int storedFormatId) {
+            this.storedFormatId = storedFormatId;
+        }
+
+        public static Format formatFor(DataValueDescriptor dvd){
+            for(Format format:values()){
+                if(format.storedFormatId==dvd.getTypeFormatId()){
+                    return format;
+                }
+            }
+            return null;
+        }
+    }
+
+    private interface Serializer{
+        byte[] encode(DataValueDescriptor dvd) throws StandardException;
+
+        void decode(byte[] data,DataValueDescriptor dvd) throws StandardException;
+
+        void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException;
+
+        void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException;
+
+        boolean isLengthDelimited();
+    }
+
+    private static EnumMap<Format,Serializer> serializationMap = new EnumMap<Format, Serializer>(Format.class);
+    static{
+        serializationMap.put(Format.BOOLEAN, new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return Encoding.encode(dvd.getBoolean());
+            }
+
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(Encoding.decodeBoolean(data));
+            }
+
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNext(dvd.getBoolean(),desc);
+            }
+
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                dvd.setValue(decoder.decodeNextBoolean(desc));
+            }
+
+            @Override public boolean isLengthDelimited() { return false;   }
+        } );
+
+        serializationMap.put(Format.DOUBLE, new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return Encoding.encode(dvd.getDouble());
+            }
+
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(Encoding.decodeDouble(data));
+            }
+
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNext(dvd.getDouble(),desc);
+            }
+
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                dvd.setValue(decoder.decodeNextDouble(desc));
+            }
+
+            @Override public boolean isLengthDelimited() { return false;   }
+        });
+
+        serializationMap.put(Format.TINYINT,new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return Encoding.encode(dvd.getByte());
+            }
+
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(Encoding.decodeByte(data));
+            }
+
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNext(dvd.getByte(),desc);
+            }
+
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                dvd.setValue(decoder.decodeNextByte(desc));
+            }
+
+            @Override public boolean isLengthDelimited() { return false;   }
+        });
+
+        serializationMap.put(Format.SMALLINT,new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return Encoding.encode(dvd.getShort());
+            }
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(Encoding.decodeShort(data));
+            }
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNext(dvd.getShort(),desc);
+            }
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                dvd.setValue(decoder.decodeNextShort(desc));
+            }
+
+            @Override public boolean isLengthDelimited() { return true;   }
+        });
+
+        serializationMap.put(Format.INTEGER,new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return Encoding.encode(dvd.getInt());
+            }
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(Encoding.decodeInt(data));
+            }
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNext(dvd.getInt(),desc);
+            }
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                dvd.setValue(decoder.decodeNextInt(desc));
+            }
+
+            @Override public boolean isLengthDelimited() { return true; }
+        });
+
+        serializationMap.put(Format.LONGINT,new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return Encoding.encode(dvd.getLong());
+            }
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(Encoding.decodeLong(data));
+            }
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNext(dvd.getLong(),desc);
+            }
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                dvd.setValue(decoder.decodeNextLong(desc));
+            }
+
+            @Override public boolean isLengthDelimited() { return true; }
+        });
+
+        serializationMap.put(Format.REAL,new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return Encoding.encode(dvd.getFloat());
+            }
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(Encoding.decodeFloat(data));
+            }
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNext(dvd.getFloat(),desc);
+            }
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                dvd.setValue(decoder.decodeNextFloat(desc));
+            }
+
+            @Override public boolean isLengthDelimited() { return false;   }
+        });
+         serializationMap.put(Format.DECIMAL,new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return Encoding.encode((BigDecimal)dvd.getObject());
+            }
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(Encoding.decodeBigDecimal(data));
+            }
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNext((BigDecimal)dvd.getObject(),desc);
+            }
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                dvd.setValue(decoder.decodeNextBigDecimal(desc));
+            }
+
+             @Override public boolean isLengthDelimited() { return false; }
+         });
+        Serializer refSerializer = new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return getBytes(dvd,false);
+            }
+
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(getObject(data,false));
+            }
+
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNextUnsorted(getBytes(dvd,desc));
+            }
+
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                try{
+                    ByteDataInput bdi = new ByteDataInput(decoder.decodeNextBytesUnsorted());
+                    dvd.setValue(bdi.readObject());
+                } catch (ClassNotFoundException e) {
+                    throw Exceptions.parseException(e);
+                } catch (IOException e) {
+                    throw Exceptions.parseException(e);
+                }
+            }
+
+            @Override public boolean isLengthDelimited() { return false; }
+
+            private Object getObject(byte[] data, boolean desc) throws StandardException{
+                byte[] actualData = stripLength(data, desc);
+                try{
+                    ByteDataInput bdi = new ByteDataInput(actualData);
+                    return bdi.readObject();
+                } catch (ClassNotFoundException e) {
+                    throw Exceptions.parseException(e);
+                } catch (IOException e) {
+                    throw Exceptions.parseException(e);
+                }
+            }
+
+            private byte[] getBytes(DataValueDescriptor dvd,boolean desc) throws StandardException{
                 try{
                     ByteDataInput bdi = new ByteDataInput(rowDecoder.decodeNextBytesUnsorted());
                     column.setValue(bdi.readObject());
@@ -461,36 +725,149 @@ public class DerbyBytesUtil {
                 } catch (ClassNotFoundException e) {
                     throw Exceptions.parseException(e);
                 }
-                break;
-            case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
-                column.setValue(rowDecoder.decodeNextByte(desc));
-                break;
-            case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
-                column.setValue(new Time(rowDecoder.decodeNextLong(desc)));
-                break;
-            case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
-                column.setValue(new Timestamp(rowDecoder.decodeNextLong(desc)));
-                break;
-            case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
-            case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
-            case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
-            case StoredFormatIds.XML_ID: //return new XML();
-            case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
-                column.setValue(rowDecoder.decodeNextString(desc));
-                break;
-            case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
-            case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit();
-            case StoredFormatIds.SQL_BLOB_ID: //return new SQLBlob();
-            case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
-            case StoredFormatIds.SQL_BIT_ID: //return new SQLBit();
-                column.setValue(rowDecoder.decodeNextBytesUnsorted());
-                break;
-            case StoredFormatIds.SQL_DECIMAL_ID:
-                column.setBigDecimal(rowDecoder.decodeNextBigDecimal(desc));
-                break;
-            default:
-                LOG.error("Byte array generation failed " + column.getClass());
-                throw new RuntimeException("Attempt to serialize an unimplemented serializable object " + column.getClass());
+            }
+        };
+        serializationMap.put(Format.REF,refSerializer);
+        serializationMap.put(Format.USERTYPE,refSerializer);
+
+        serializationMap.put(Format.DATE,new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return Encoding.encode(dvd.getDate(null).getTime());
+            }
+
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(new Date(Encoding.decodeLong(data)));
+            }
+
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNext(dvd.getDate(null).getTime(),desc);
+            }
+
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                dvd.setValue(new Date(decoder.decodeNextLong(desc)));
+            }
+
+            @Override public boolean isLengthDelimited() { return true;   }
+        });
+
+        serializationMap.put(Format.TIME,new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return Encoding.encode(dvd.getTime(null).getTime());
+            }
+
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(new Time(Encoding.decodeLong(data)));
+            }
+
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNext(dvd.getTime(null).getTime(),desc);
+            }
+
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                dvd.setValue(new Time(decoder.decodeNextLong(desc)));
+            }
+
+            @Override public boolean isLengthDelimited() { return true; }
+        });
+        serializationMap.put(Format.TIMESTAMP,new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return Encoding.encode(dvd.getTimestamp(null).getTime());
+            }
+
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(new Timestamp(Encoding.decodeLong(data)));
+            }
+
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNext(dvd.getTimestamp(null).getTime(),desc);
+            }
+
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                dvd.setValue(new Timestamp(decoder.decodeNextLong(desc)));
+            }
+
+            @Override public boolean isLengthDelimited() { return true; }
+        });
+
+        Serializer stringSerializer = new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return Encoding.encode(dvd.getString());
+            }
+
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(Encoding.decodeString(data));
+            }
+
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNext(dvd.getString(),desc);
+            }
+
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                dvd.setValue(decoder.decodeNextString(desc));
+            }
+
+            @Override public boolean isLengthDelimited() { return false; }
+        };
+        serializationMap.put(Format.VARCHAR,stringSerializer);
+        serializationMap.put(Format.LONGVARCHAR,stringSerializer);
+        serializationMap.put(Format.CLOB,stringSerializer);
+        serializationMap.put(Format.XML,stringSerializer);
+        serializationMap.put(Format.CHAR,stringSerializer);
+
+        Serializer byteSerializer = new Serializer() {
+            @Override
+            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+                return Encoding.encodeBytesUnsorted(dvd.getBytes());
+            }
+
+            @Override
+            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+                dvd.setValue(Encoding.decodeBytesUnsortd(data,0,data.length));
+            }
+
+            @Override
+            public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+                encoder.encodeNextUnsorted(dvd.getBytes());
+            }
+
+            @Override
+            public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+                dvd.setValue(decoder.decodeNextBytesUnsorted());
+            }
+
+            @Override public boolean isLengthDelimited() { return false; }
+        };
+        serializationMap.put(Format.VARBIT,byteSerializer);
+        serializationMap.put(Format.LONGVARBIT,byteSerializer);
+        serializationMap.put(Format.BLOB,byteSerializer); //TODO -sf- this isn't going to be right for long
+        serializationMap.put(Format.BIT,byteSerializer);
+        serializationMap.put(Format.ROW_LOCATION,byteSerializer);
+    }
+
+    private static byte[] stripLength(byte[] data, boolean desc) {
+        int length = Encoding.decodeInt(data, desc);
+        int offset=1;
+        for(int i=0;i<5;i++){
+            if(data[length]==0x00){
+                offset = i;
+            }
         }
+        return null;
     }
 }

@@ -20,7 +20,7 @@ public class EntryEncoderTest {
         setBits.set(1);
         setBits.set(3);
         setBits.set(8);
-        EntryEncoder encoder = EntryEncoder.create(10,setBits);
+        EntryEncoder encoder = EntryEncoder.create(10,setBits,null);
 
         String longTest = "hello this is a tale of woe and sadness from which we will never returnaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbeeeeeeeeeeeeeeeeeeeeeeeeeeeeea";
         BigDecimal correct = new BigDecimal("22.456789012345667890230456677890192348576");
@@ -55,7 +55,7 @@ public class EntryEncoderTest {
         setBits.set(1);
         setBits.set(3);
         setBits.set(8);
-        EntryEncoder encoder = EntryEncoder.create(10,setBits);
+        EntryEncoder encoder = EntryEncoder.create(10,setBits,null);
 
         String longTest = "hello this is a tale of woe and sadness from which we will never return";
         BigDecimal correct = new BigDecimal("22.456789012345667890230456677890192348576");
@@ -86,7 +86,7 @@ public class EntryEncoderTest {
 
     @Test
     public void testEncodeAllColumnsSafely() throws Exception {
-        EntryEncoder encoder = EntryEncoder.create(3,(BitSet)null);
+        EntryEncoder encoder = EntryEncoder.create(3, null,null);
         String longTest = "hello this is a tale of woe and sadness from which we will never return";
         BigDecimal correct = new BigDecimal("22.456789012345667890230456677890192348576");
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();

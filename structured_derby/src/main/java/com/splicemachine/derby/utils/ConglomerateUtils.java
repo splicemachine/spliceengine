@@ -4,6 +4,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 
@@ -19,6 +21,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -89,7 +92,11 @@ public class ConglomerateUtils extends SpliceConstants {
 			admin.createTable(td);
 			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
 			Put put = SpliceUtils.createPut(Bytes.toBytes(conglomId), transactionID);
-			put.add(DEFAULT_FAMILY_BYTES, VALUE_COLUMN, conglomData);
+            BitSet fields = new BitSet();
+            fields.set(0);
+            EntryEncoder entryEncoder = EntryEncoder.create(1, fields, null);
+            entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
+            put.add(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, entryEncoder.encode());
 			table.put(put);
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));
@@ -112,8 +119,11 @@ public class ConglomerateUtils extends SpliceConstants {
 		try{
 			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
 			Put put = SpliceUtils.createPut(Bytes.toBytes(conglomerate.getContainerid()), transactionID);
-			SpliceUtils.createPut(Bytes.toBytes(conglomerate.getContainerid()), transactionID);
-			put.add(DEFAULT_FAMILY_BYTES, VALUE_COLUMN, DerbyBytesUtil.toBytes(conglomerate));
+            BitSet setFields = new BitSet();
+            setFields.set(0);
+            EntryEncoder entryEncoder = EntryEncoder.create(1,setFields,null); //no need to set length-delimited, we aren't
+            entryEncoder.getEntryEncoder().encodeNextUnsorted(DerbyBytesUtil.toBytes(conglomerate));
+			put.add(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, entryEncoder.encode());
 			table.put(put);
 		}
 		catch (Exception e) {

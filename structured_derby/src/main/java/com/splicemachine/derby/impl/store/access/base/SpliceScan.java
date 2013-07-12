@@ -7,10 +7,13 @@ import com.splicemachine.derby.impl.sql.execute.ParallelScan;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.EncodingUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -133,7 +136,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 
 	protected void attachFilter() {
 		try {
-				scan.setFilter(Scans.buildKeyFilter(startKeyValue,2,qualifier));
+				scan.setFilter(Scans.buildKeyFilter(startKeyValue, 2, qualifier));
 		} catch (Exception e) {
 			throw new RuntimeException("error attaching Filter",e);
 		}
@@ -300,7 +303,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		DataValueDescriptor[] fetchedRow = null;
 		try {
 			while ((currentResult = scanner.next()) != null) {
-				SpliceLogUtils.trace(LOG,"fetch set iterator %s",currentResult);
+				SpliceLogUtils.trace(LOG, "fetch set iterator %s", currentResult);
 				fetchedRow = RowUtil.newTemplate(
 						spliceConglomerate.getTransaction().getDataValueFactory(),
 						null, spliceConglomerate.getFormatIds(), spliceConglomerate.getCollationIds());
@@ -403,7 +406,11 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		try {
             int[] validCols = SpliceUtils.bitSetToMap(validColumns);
             Put put = SpliceUtils.createPut(currentRowLocation.getBytes(),transID);
-            RowMarshaller.columnar().encodeRow(row, validCols, put, null);
+
+            if(entryEncoder==null)
+                entryEncoder = EntryEncoder.create(row.length, EncodingUtils.getNonNullColumns(row, validColumns), DerbyBytesUtil.getLengthDelimitedFields(row));
+
+            EncodingUtils.encodeRow(row, put, validCols, validColumns, entryEncoder);
             table.put(put);
 
 //			table.put(Puts.buildInsert(currentRowLocation.getBytes(), row, validColumns, transID));

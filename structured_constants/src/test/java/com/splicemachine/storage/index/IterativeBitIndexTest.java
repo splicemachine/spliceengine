@@ -83,7 +83,7 @@ public class IterativeBitIndexTest {
 
     @Test
     public void testCanEncodeAndDecodeSparseProperly() throws Exception {
-        BitIndex bitIndex = SparseBitIndex.create(bitSet);
+        BitIndex bitIndex = SparseBitIndex.create(bitSet,lengthDelimitedBits);
 
         byte[] encode = bitIndex.encode();
 
@@ -93,7 +93,7 @@ public class IterativeBitIndexTest {
 
     @Test
     public void testCanEncodeAndDecodeSparseLazyProperly() throws Exception {
-        BitIndex bitIndex = SparseBitIndex.create(bitSet);
+        BitIndex bitIndex = BitIndexing.sparseBitMap(bitSet,lengthDelimitedBits);
 
         byte[] encode = bitIndex.encode();
 
@@ -110,7 +110,7 @@ public class IterativeBitIndexTest {
 
     @Test
     public void testCanEncodeAndDecodeIntersectsSparseLazyProperly() throws Exception {
-        BitIndex bitIndex = SparseBitIndex.create(bitSet);
+        BitIndex bitIndex = SparseBitIndex.create(bitSet,lengthDelimitedBits);
 
         byte[] encode = bitIndex.encode();
 
@@ -124,8 +124,7 @@ public class IterativeBitIndexTest {
 
     @Test
     public void testCanEncodeAndDecodeDenseCompressedProperly() throws Exception {
-        BitIndex bitIndex = DenseCompressedBitIndex.compress(bitSet);
-
+        BitIndex bitIndex = BitIndexing.compressedBitMap(bitSet,lengthDelimitedBits);
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = DenseCompressedBitIndex.wrap(encode,0,encode.length);
@@ -134,7 +133,7 @@ public class IterativeBitIndexTest {
 
     @Test
     public void testIntersectsLazyCompressedProperly() throws Exception {
-        BitIndex bitIndex =BitIndexing.compressedBitMap(bitSet);
+        BitIndex bitIndex =BitIndexing.compressedBitMap(bitSet,lengthDelimitedBits);
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = BitIndexing.compressedBitMap(encode, 0, encode.length);
@@ -148,7 +147,7 @@ public class IterativeBitIndexTest {
 
     @Test
     public void testCanEncodeAndDecodeDenseCompressedLazyProperly() throws Exception {
-        BitIndex bitIndex =BitIndexing.compressedBitMap(bitSet);
+        BitIndex bitIndex =BitIndexing.compressedBitMap(bitSet,lengthDelimitedBits);
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = BitIndexing.compressedBitMap(encode, 0, encode.length);

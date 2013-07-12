@@ -2,9 +2,11 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
@@ -24,6 +26,7 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.BitSet;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
 
@@ -81,6 +84,7 @@ public abstract class AbstractImportTask extends ZkTask {
     public void execute() throws ExecutionException, InterruptedException {
         try{
             ExecRow row = getExecRow(importContext);
+            BitSet lengthDelimitedFields = DerbyBytesUtil.getLengthDelimitedFields(row.getRowArray());
             FormatableBitSet pkCols = importContext.getPrimaryKeys();
 
             CallBuffer<Mutation> writeBuffer = getCallBuffer();
@@ -98,6 +102,15 @@ public abstract class AbstractImportTask extends ZkTask {
                 }
             }else
                 keyColumns = new int[0];
+            FormatableBitSet fbt = importContext.getActiveCols();
+            BitSet bitSet = null;
+            if(fbt!=null){
+                bitSet = new BitSet(fbt.size());
+                for(int i=fbt.anySetBit();i>=0;i=fbt.anySetBit(i)){
+                    bitSet.set(i);
+                }
+            }
+            entryEncoder = EntryEncoder.create(row.nColumns(), bitSet, lengthDelimitedFields);
 
             RowEncoder encoder = RowEncoder.createDoubleWritingEncoder(row.nColumns(),keyColumns,null,null,keyType,rowType);
 

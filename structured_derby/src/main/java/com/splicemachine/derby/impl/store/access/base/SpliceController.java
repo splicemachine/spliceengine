@@ -3,8 +3,14 @@ package com.splicemachine.derby.impl.store.access.base;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+<<<<<<< HEAD
+=======
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.EncodingUtils;
+>>>>>>> Moving towards a slighty type-resolved bit index, to deal with issues where scalar, double, and float types include zeros in their serialized form
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -17,10 +23,12 @@ import org.apache.derby.impl.store.raw.data.SpaceInformation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.BitSet;
 import java.util.Properties;
 
 public abstract class SpliceController implements ConglomerateController {
@@ -179,5 +187,11 @@ public abstract class SpliceController implements ConglomerateController {
             SpliceLogUtils.warn(LOG,"Unable to close htable");
         }
     }
-	
+    protected void encodeRow(DataValueDescriptor[] row, Put put,int[] columns,FormatableBitSet validColumns) throws StandardException, IOException {
+        BitSet lengthDelimitedFields = DerbyBytesUtil.getLengthDelimitedFields(row);
+        if(entryEncoder==null)
+            entryEncoder = EntryEncoder.create(row.length, EncodingUtils.getNonNullColumns(row, validColumns), lengthDelimitedFields);
+
+        EncodingUtils.encodeRow(row, put, columns, validColumns, entryEncoder);
+    }
 }

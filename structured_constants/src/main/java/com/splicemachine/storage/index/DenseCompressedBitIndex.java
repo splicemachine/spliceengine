@@ -1,5 +1,8 @@
 package com.splicemachine.storage.index;
 
+import com.splicemachine.storage.BitReader;
+import com.splicemachine.storage.BitWriter;
+
 import java.util.Arrays;
 import java.util.BitSet;
 
@@ -27,13 +30,15 @@ import java.util.BitSet;
  */
 class DenseCompressedBitIndex implements BitIndex {
     private final BitSet bitSet;
+    private final BitSet lengthDelimitedFields;
 
-    DenseCompressedBitIndex(BitSet bitSet){
+    DenseCompressedBitIndex(BitSet bitSet,BitSet lengthDelimitedFields){
         this.bitSet = bitSet;
+        this.lengthDelimitedFields =lengthDelimitedFields;
     }
 
-    public static BitIndex compress(BitSet bitSet){
-        return new DenseCompressedBitIndex(bitSet);
+    public static BitIndex compress(BitSet bitSet,BitSet lengthDelimitedFields){
+        return new DenseCompressedBitIndex(bitSet,lengthDelimitedFields);
     }
 
     public int length() {
@@ -48,109 +53,102 @@ class DenseCompressedBitIndex implements BitIndex {
     @Override
     public byte[] encode() {
         byte[] bytes = new byte[encodedSize()];
-
-        int onesSequence = 0;
         bytes[0] = (byte)0xC0;
-        byte byt = bytes[0];
-        //fill the header
-        int bitPos = 5;
-        int[] offsetAndBitPos = new int[]{0,bitPos};
-        int lastSetBit;
-        if(bitSet.get(0)){
-            lastSetBit=0;
-        }else{
-            lastSetBit=-1;
-        }
-        for(int nextSetBit = bitSet.nextSetBit(0);nextSetBit>=0;nextSetBit=bitSet.nextSetBit(nextSetBit+1)){
-            int numZeros = nextSetBit-lastSetBit-1;
-            if(numZeros<=0){
-                onesSequence++;
-            }else{
-                //write out the ones that exist
-                if(onesSequence>0){
-                    if(bitPos==9){
-                        bytes[offsetAndBitPos[0]] = byt;
-                        offsetAndBitPos[0]++;
-                        byt = bytes[offsetAndBitPos[0]] = (byte)0x80;
-                        bitPos=2;
-                    }
-                    //set a 1-delimiter
-                    byt |= (1<<Byte.SIZE-bitPos);
-                    bitPos++;
-                    offsetAndBitPos[1] = bitPos;
-                    //write out the number of 1s in Delta code
-                    bytes[offsetAndBitPos[0]] = byt;
-                    DeltaCoding.encode(bytes,onesSequence,offsetAndBitPos);
-                    bitPos = offsetAndBitPos[1];
-                    byt = bytes[offsetAndBitPos[0]];
-                }
 
-                //write out the zeros
-                if(bitPos==9){
-                    bytes[offsetAndBitPos[0]] = byt;
-                    offsetAndBitPos[0]++;
-                    byt = bytes[offsetAndBitPos[0]] = (byte)0x80;
-                    bitPos=2;
+        BitWriter bitWriter = new BitWriter(bytes,0,bytes.length,5,true);
+        int onesCount=0;
+        int lastSetBit = -1;
+
+        int nextSetBit = bitSet.nextSetBit(0);
+        boolean addZero=false;
+        while(nextSetBit>=0){
+            int numZeros = nextSetBit-lastSetBit-1;
+            if(addZero){
+                numZeros++;
+                addZero=false;
+            }
+            if(numZeros<=0){
+                onesCount++;
+                if(lengthDelimitedFields.get(nextSetBit)){
+                    onesCount++;
+                }else{
+                    addZero=true;
                 }
-                bitPos++;
-                offsetAndBitPos[1] = bitPos;
-                bytes[offsetAndBitPos[0]] = byt;
-                DeltaCoding.encode(bytes,numZeros,offsetAndBitPos);
-                bitPos = offsetAndBitPos[1];
-                byt = bytes[offsetAndBitPos[0]];
-                onesSequence=1;
+                lastSetBit=nextSetBit;
+                nextSetBit = bitSet.nextSetBit(nextSetBit+1);
+                continue;
             }
-            lastSetBit=nextSetBit;
+            //our ones are terminated
+            if(onesCount>0){
+                bitWriter.setNext();
+                DeltaCoding.encode(onesCount,bitWriter);
+            }
+
+            //write out the zeros count
+            bitWriter.skipNext();
+            DeltaCoding.encode(numZeros,bitWriter);
+
+            lastSetBit = nextSetBit;
+            nextSetBit = bitSet.nextSetBit(nextSetBit+1);
+            onesCount=1;
+            if(lengthDelimitedFields.get(lastSetBit))
+                onesCount++;
+            else{
+                addZero=true;
+            }
         }
-        if(onesSequence!=0){
-            if(bitPos==9){
-                bytes[offsetAndBitPos[0]] = byt;
-                offsetAndBitPos[0]++;
-                byt = bytes[offsetAndBitPos[0]] = (byte)0x80;
-                bitPos=2;
-            }
-            byt |= (1<<Byte.SIZE-bitPos);
-            bitPos++;
-            offsetAndBitPos[1] = bitPos;
-            bytes[offsetAndBitPos[0]] = byt;
-            DeltaCoding.encode(bytes,onesSequence,offsetAndBitPos);
+        if(onesCount>0){
+            bitWriter.setNext();
+            DeltaCoding.encode(onesCount,bitWriter);
         }
         return bytes;
     }
 
     @Override
     public int encodedSize() {
-        int lastSetBit;
+        int onesCount=0;
+        int lastSetBit = -1;
+
+        int nextSetBit = bitSet.nextSetBit(0);
         int numBits=0;
-        int onesSequence = 0;
-        if(bitSet.get(0)){
-            lastSetBit=0;
-        }else{
-            lastSetBit=-1;
-        }
 
-        for(int nextSetBit = bitSet.nextSetBit(0);nextSetBit>=0;nextSetBit=bitSet.nextSetBit(nextSetBit+1)){
+        boolean addZero=false;
+        while(nextSetBit>=0){
             int numZeros = nextSetBit-lastSetBit-1;
-            if(numZeros<=0){
-                onesSequence++;
-            }else{
-                /*
-                 *There were zeros in between the last ones. Thus, take the onesSequence and write out its
-                 * length, then reset it to zero. Since we use Delta encoding to
-                 * do the actual run length encoding, we add in those values as well
-                 *
-                 */
-                if(onesSequence>0)
-                    numBits+= DeltaCoding.getEncodedLength(onesSequence)+1;
-
-                numBits+=DeltaCoding.getEncodedLength(numZeros)+1;
-                onesSequence=1;
+            if(addZero){
+                numZeros++;
+                addZero=false;
             }
+            if(numZeros<=0){
+                onesCount++;
+                if(lengthDelimitedFields.get(nextSetBit)){
+                    onesCount++;
+                }else{
+                    addZero=true;
+                }
+                lastSetBit=nextSetBit;
+                nextSetBit = bitSet.nextSetBit(nextSetBit+1);
+                continue;
+            }
+            //our ones are terminated
+            if(onesCount>0){
+                numBits+=DeltaCoding.getEncodedLength(onesCount)+1;
+            }
+
+            numBits+=DeltaCoding.getEncodedLength(numZeros)+1;
+
             lastSetBit = nextSetBit;
+            nextSetBit = bitSet.nextSetBit(nextSetBit+1);
+            onesCount=1;
+            if(lengthDelimitedFields.get(lastSetBit))
+                onesCount++;
+            else{
+                addZero=true;
+            }
         }
-        if(onesSequence!=0){
+        if(onesCount!=0){
             //last bit were 1s
-            numBits+= DeltaCoding.getEncodedLength(onesSequence)+1;
+            numBits+= DeltaCoding.getEncodedLength(onesCount)+1;
         }
 
         int length = numBits - 4; //four bits fit in the header
@@ -203,7 +201,7 @@ class DenseCompressedBitIndex implements BitIndex {
 
     @Override
     public String toString() {
-        return bitSet.toString();
+        return "{"+bitSet+","+lengthDelimitedFields+"}";
     }
 
     @Override
@@ -213,61 +211,76 @@ class DenseCompressedBitIndex implements BitIndex {
 
         DenseCompressedBitIndex that = (DenseCompressedBitIndex) o;
 
-        return bitSet.equals(that.bitSet);
+        return bitSet.equals(that.bitSet) && lengthDelimitedFields.equals(that.lengthDelimitedFields);
     }
 
     @Override
     public int hashCode() {
-        return bitSet.hashCode();
+        int result = bitSet.hashCode();
+        result = 31 * result + lengthDelimitedFields.hashCode();
+        return result;
     }
 
     public static BitIndex wrap(byte[] data, int offset, int length) {
-        int[] offsetAndBitPos = new int[]{offset,5};
 
+        BitReader reader = new BitReader(data,offset,length,5,true);
         BitSet bitSet = new BitSet();
-        byte byt = data[offsetAndBitPos[0]];
-        int setBitPos = 0;
-        while(offsetAndBitPos[0]<length){
-            if(offsetAndBitPos[1]==9){
-                offsetAndBitPos[0]++;
-                if(offsetAndBitPos[0]>=data.length||offsetAndBitPos[0]>=length)
-                    break;
-                byt = data[offsetAndBitPos[0]];
-                offsetAndBitPos[1] =2;
-            }
-            //read the position to determine what type it is
-            int val = (byt & (1<<Byte.SIZE-offsetAndBitPos[1]));
-            offsetAndBitPos[1]++;
-            if(offsetAndBitPos[1]==9){
-                offsetAndBitPos[0]++;
-                if(offsetAndBitPos[0]>=data.length||offsetAndBitPos[0]>=length)
-                    break;
-                offsetAndBitPos[1] = 2;
-            }
-            if(val==0){
-                int numZeros = DeltaCoding.decode(data,offsetAndBitPos);
-                if(numZeros<0) break; //we're out of data in the index
-                setBitPos+=numZeros;
-            }else{
-                //read the range
-                int numOnes = DeltaCoding.decode(data,offsetAndBitPos);
-                if(numOnes<0) break; //we're out of data in the index
-                bitSet.set(setBitPos,setBitPos+numOnes);
-                setBitPos+=numOnes;
-            }
-            byt = data[offsetAndBitPos[0]];
+        BitSet lengthDelimitedFields = new BitSet();
 
+        int setBitPos=0;
+        boolean extraZero = false;
+        while(reader.hasNext()){
+            if(reader.next()!=0){
+                //decode ones
+                int numOnes = DeltaCoding.decode(reader);
+                if(numOnes<0) break;
+                int numBitsToSet;
+                int numDelimitedFields;
+                if(numOnes%2==0){
+                    numBitsToSet = numOnes/2;
+                    numDelimitedFields = numBitsToSet;
+                }else{
+                    numBitsToSet = (numOnes-1)/2+1;
+                    numDelimitedFields = numOnes/2;
+                    extraZero=true;
+                }
+                bitSet.set(setBitPos,setBitPos+numBitsToSet);
+                lengthDelimitedFields.set(setBitPos,setBitPos+numDelimitedFields);
+                setBitPos+=numBitsToSet;
+            }else{
+                //decode zeros
+                int numZeros = DeltaCoding.decode(reader);
+                if(numZeros<0)break;
+                setBitPos+=numZeros;
+                if(extraZero){
+                    setBitPos--;
+                    extraZero=false;
+                }
+
+            }
         }
 
-        return new DenseCompressedBitIndex(bitSet);
+        return new DenseCompressedBitIndex(bitSet,lengthDelimitedFields);
     }
 
     public static void main(String... args) throws Exception{
         BitSet set = new BitSet();
         set.set(0);
+        set.set(1);
+        set.set(2);
         set.set(3);
+        set.set(4);
+        set.set(8);
 
-        BitIndex index = new DenseCompressedBitIndex(set);
+        BitSet lengthFields = new BitSet();
+//        lengthFields.set(0);
+        lengthFields.set(1);
+//        lengthFields.set(2);
+        lengthFields.set(3);
+        lengthFields.set(4);
+        lengthFields.set(8);
+
+        BitIndex index = new DenseCompressedBitIndex(set,lengthFields);
         byte[] data  = index.encode();
         System.out.println(Arrays.toString(data));
         BitIndex decoded = DenseCompressedBitIndex.wrap(data,0,data.length);

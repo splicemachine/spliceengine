@@ -30,9 +30,8 @@ public class BitIndexing {
      * @param set the set to represent.
      * @return an Uncompressed BitIndex
      */
-    public static BitIndex uncompressedBitMap(BitSet set){
-        throw new UnsupportedOperationException();
-//        return UncompressedBitIndex.create(set);
+    public static BitIndex uncompressedBitMap(BitSet set,BitSet lengthFields){
+        return UncompressedBitIndex.create(set,lengthFields);
     }
 
     /**
@@ -80,8 +79,8 @@ public class BitIndexing {
      * @param set the set to use for the index
      * @return a BitIndex which encodes using a Sparse format.
      */
-    public static BitIndex sparseBitMap(BitSet set){
-        return SparseBitIndex.create(set);
+    public static BitIndex sparseBitMap(BitSet set,BitSet lengthFields){
+        return SparseBitIndex.create(set,lengthFields);
     }
 
     /**
@@ -131,8 +130,8 @@ public class BitIndexing {
      * @param set the set to encode
      * @return a BitIndex which encodes using a Dense format.
      */
-    public static BitIndex compressedBitMap(BitSet set){
-        return new DenseCompressedBitIndex(set);
+    public static BitIndex compressedBitMap(BitSet set,BitSet lengthDelimitedFields){
+        return new DenseCompressedBitIndex(set,lengthDelimitedFields);
     }
 
     /**
@@ -158,8 +157,10 @@ public class BitIndexing {
         BitSet t = new BitSet(30);
         t.set(1);
 //        t.set(2);
-//        t.set(3);
+        t.set(3);
 //        t.set(4);
+        t.set(5);
+        t.set(6);
 //        t.set(9);
 //        t.set(11);
 //        t.set(12);
@@ -171,10 +172,14 @@ public class BitIndexing {
 //        t.set(29);
 //        t.set(30);
 
-        BitIndex uncompressed = sparseBitMap(t);
+        BitSet lengthFields = new BitSet();
+        lengthFields.set(3);
+        lengthFields.set(5);
+
+        BitIndex uncompressed = compressedBitMap(t,lengthFields);
         byte[] encoded = uncompressed.encode();
 
-        BitIndex decoded = sparseBitMap(encoded, 0,encoded.length);
+        BitIndex decoded = compressedBitMap(encoded, 0,encoded.length);
         for(int i=uncompressed.nextSetBit(0);i>=0;i=uncompressed.nextSetBit(i+1)){
             if(!decoded.isSet(i))
                 System.out.println(i);

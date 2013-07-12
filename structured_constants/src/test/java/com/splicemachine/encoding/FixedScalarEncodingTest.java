@@ -10,7 +10,7 @@ public class FixedScalarEncodingTest {
 
     @Test
     public void testEncodeDecodeInteger() throws Exception {
-        byte[] data = Encoding.encode(1280);
+        byte[] data = Encoding.encode(86);
         int val = Encoding.decodeInt(data);
         System.out.println(val);
     }
