@@ -102,7 +102,9 @@ public class RowEncoder {
                                                 boolean[] keySortOrder,
                                                 byte[] keyPrefix,
                                                 KeyMarshall keyType,
-                                                BitSet lengthDelimitedFields){
+                                                BitSet scalarFields,
+                                                BitSet floatFields,
+                                                BitSet doubleFields){
         if(keyColumns==null)
             keyColumns = new int[0];
 
@@ -111,7 +113,7 @@ public class RowEncoder {
             rowCols[rowPos] = rowPos;
         }
 
-        return new EntryRowEncoder(keyColumns,keySortOrder,rowCols,keyPrefix,keyType,lengthDelimitedFields);
+        return new EntryRowEncoder(keyColumns,keySortOrder,rowCols,keyPrefix,keyType,scalarFields,floatFields,doubleFields);
     }
 
     public static RowEncoder createDoubleWritingEncoder(int numCols,
@@ -184,7 +186,9 @@ public class RowEncoder {
                                   int[] rowColumns,
                                   byte[] keyPrefix,
                                   KeyMarshall keyType,
-                                  BitSet lengthDelimitedFields) {
+                                  BitSet scalarFields,
+                                  BitSet floatFields,
+                                  BitSet doubleFields) {
             super(keyColumns, keySortOrder, rowColumns, keyPrefix, keyType, RowMarshaller.sparsePacked());
 
             BitSet rowCols = new BitSet();
@@ -192,7 +196,7 @@ public class RowEncoder {
                 rowCols.set(rowCol);
             }
 
-            this.entryEncoder = EntryEncoder.create(rowColumns.length,rowCols,lengthDelimitedFields);
+            this.entryEncoder = EntryEncoder.create(rowColumns.length,rowCols,scalarFields,floatFields,doubleFields);
             rowEncoder = entryEncoder.getEntryEncoder();
         }
 

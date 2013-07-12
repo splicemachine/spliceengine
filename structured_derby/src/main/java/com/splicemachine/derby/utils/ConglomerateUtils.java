@@ -94,7 +94,7 @@ public class ConglomerateUtils extends SpliceConstants {
 			Put put = SpliceUtils.createPut(Bytes.toBytes(conglomId), transactionID);
             BitSet fields = new BitSet();
             fields.set(0);
-            EntryEncoder entryEncoder = EntryEncoder.create(1, fields, null);
+            EntryEncoder entryEncoder = EntryEncoder.create(1, fields,null,null,null);
             entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
             put.add(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, entryEncoder.encode());
 			table.put(put);
@@ -121,7 +121,7 @@ public class ConglomerateUtils extends SpliceConstants {
 			Put put = SpliceUtils.createPut(Bytes.toBytes(conglomerate.getContainerid()), transactionID);
             BitSet setFields = new BitSet();
             setFields.set(0);
-            EntryEncoder entryEncoder = EntryEncoder.create(1,setFields,null); //no need to set length-delimited, we aren't
+            EntryEncoder entryEncoder = EntryEncoder.create(1,setFields,null,null,null); //no need to set length-delimited, we aren't
             entryEncoder.getEntryEncoder().encodeNextUnsorted(DerbyBytesUtil.toBytes(conglomerate));
 			put.add(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, entryEncoder.encode());
 			table.put(put);

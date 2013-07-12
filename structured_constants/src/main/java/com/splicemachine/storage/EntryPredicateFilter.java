@@ -41,7 +41,7 @@ public class EntryPredicateFilter implements Externalizable{
             encodedPos>=0&&encodedPos<=remainingFields.length();
             encodedPos=encodedIndex.nextSetBit(encodedPos+1)){
             if(!remainingFields.get(encodedPos)){
-                decoder.skip();
+                seekForward(encodedIndex,decoder,encodedPos,decoder.offset());
                 continue;
             }
 
@@ -63,21 +63,8 @@ public class EntryPredicateFilter implements Externalizable{
                     ((AlwaysAcceptEntryAccumulator)accumulator).complete();
                 return true;
             }
-            if(encodedIndex.isLengthDelimited(encodedPos)){
-                /*
-                 * The field we are after has a length field in front denoting how long it is.
-                 * This is so that we can allow zeros within the byte sequence without screwing up
-                 * the packing algorithm.
-                 *
-                 * To set the correct place, we have to decode the length header, get how long the
-                 * length header was, seek past that, then skip the next entry so that we are in the proper
-                 * place. The easiest way to do that, is to just decode a long, then adjust offset from there(
-                 * essentially call decoder.skip()).
-                 *
-                 */
-                decoder.decodeNextLong(); //don't need the value, just need to seek past it
-            }else
-                decoder.skip();
+            seekForward(encodedIndex, decoder, encodedPos, offset);
+
 
             int limit = decoder.offset()-1-offset;
             if(offset+limit>array.length){
@@ -91,6 +78,26 @@ public class EntryPredicateFilter implements Externalizable{
             accumulator.add(encodedPos,ByteBuffer.wrap(array, offset,limit));
         }
         return true;
+    }
+
+    private void seekForward(BitIndex encodedIndex, MultiFieldDecoder decoder, int encodedPos, int offset) {
+    /*
+     * Certain fields may contain zeros--in particular, scalar, float, and double types. We need
+     * to skip past those zeros without treating them as delimiters. Since we have that information
+     * in the index, we can simply decode and throw away the proper type to adjust the offset properly.
+     * However, in some cases it's more efficient to skip the count directly, since we may know the
+     * byte size already.
+     */
+        if(encodedIndex.isScalarType(encodedPos)){
+            decoder.decodeNextLong(); //don't need the value, just need to seek past it
+        }else if(encodedIndex.isFloatType(encodedPos)){
+            //floats are always 4 bytes, so skip the after delimiter
+            decoder.seek(offset + 5);
+        }else if(encodedIndex.isDoubleType(encodedPos)){
+            //doubles are always 8 bytes, so skip the after delimiter as well
+            decoder.seek(offset + 9);
+        }else
+            decoder.skip();
     }
 
     @Override

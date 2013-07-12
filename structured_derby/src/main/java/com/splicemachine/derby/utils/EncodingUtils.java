@@ -36,8 +36,10 @@ public class EncodingUtils {
     }
 
     public static void encodeRow(DataValueDescriptor[] row, Put put,int[] columns,FormatableBitSet validColumns,EntryEncoder encoder) throws StandardException, IOException {
-        BitSet lengthFields = DerbyBytesUtil.getLengthDelimitedFields(row);
-        encoder.reset(getNonNullColumns(row,validColumns),lengthFields);
+        BitSet lengthFields = DerbyBytesUtil.getScalarFields(row);
+        BitSet floatFields = DerbyBytesUtil.getFloatFields(row);
+        BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row);
+        encoder.reset(getNonNullColumns(row,validColumns),lengthFields,floatFields,doubleFields);
 
         RowMarshaller.sparsePacked().fill(row, columns, encoder.getEntryEncoder());
         put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, encoder.encode());

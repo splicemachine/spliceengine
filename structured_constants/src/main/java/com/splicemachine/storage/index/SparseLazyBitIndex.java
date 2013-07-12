@@ -1,7 +1,5 @@
 package com.splicemachine.storage.index;
 
-import java.util.BitSet;
-
 /**
  * Lazy implementation of a Sparse Bit Index, which decodes values as needed.
  *
@@ -16,9 +14,7 @@ class SparseLazyBitIndex extends LazyBitIndex{
 
         if(bitReader.hasNext()&&bitReader.next()!=0){
             decodedBits.set(0); //check the zero bit
-            if(bitReader.hasNext()&&bitReader.next()!=0){
-                decodedLengthDelimitedFields.set(0);
-            }
+            getNextType(0);
         }
     }
 
@@ -30,9 +26,47 @@ class SparseLazyBitIndex extends LazyBitIndex{
             return val;
 
         int pos = lastPos+val;
-        if(bitReader.hasNext()&&bitReader.next()!=0)
-            decodedLengthDelimitedFields.set(pos);
+        getNextType(pos);
+
         lastPos=pos;
         return pos;
+    }
+
+    private void getNextType(int pos) {
+    /*
+     * Determine type information:
+     *
+     * Untyped: 00
+     * Double: 01
+     * Float: 10
+     * Scalar: 11
+     */
+        if(!bitReader.hasNext()){
+            //type information truncated, assume untyped
+            return;
+        }
+        if(bitReader.next()!=0){
+            //either scalar or float
+            if(!bitReader.hasNext()){
+                //type information truncated, assume float
+                decodedFloatFields.set(pos);
+                return;
+            }
+
+            if(bitReader.next()!=0)
+                decodedScalarFields.set(pos);
+            else
+                decodedFloatFields.set(pos);
+        }else{
+            //either double or untyped
+            if(!bitReader.hasNext()){
+                //type information truncated -- assume untyped
+                return;
+            }
+
+            if(bitReader.next()!=0){
+                decodedDoubleFields.set(pos);
+            }
+        }
     }
 }

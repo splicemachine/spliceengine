@@ -3,10 +3,8 @@ package com.splicemachine.storage;
 
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.index.*;
-import org.xerial.snappy.Snappy;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.BitSet;
 
 /**
@@ -64,7 +62,7 @@ public class EntryEncoder {
         return entry;
     }
 
-    public void reset(BitSet newIndex,BitSet newLengthFields){
+    public void reset(BitSet newIndex,BitSet newScalarFields,BitSet newFloatFields,BitSet newDoubleFields){
         //save effort if they are the same
         int oldCardinality = bitIndex.cardinality();
         boolean differs=false;
@@ -72,13 +70,19 @@ public class EntryEncoder {
             if(!bitIndex.isSet(i)){
                 differs=true;
                 break;
-            }else if(newLengthFields.get(i)!=bitIndex.isLengthDelimited(i)){
+            }else if(newScalarFields.get(i)!=bitIndex.isScalarType(i)){
+                differs=true;
+                break;
+            }else if(newFloatFields.get(i)!=bitIndex.isFloatType(i)){
+                differs=true;
+                break;
+            }else if(newDoubleFields.get(i)!=bitIndex.isDoubleType(i)){
                 differs=true;
                 break;
             }
         }
         if(differs){
-            bitIndex = getBitIndex(newIndex,newLengthFields);
+            bitIndex = getBitIndex(newIndex,newScalarFields,newFloatFields,newDoubleFields);
         }
 
         if(oldCardinality==bitIndex.cardinality())
@@ -87,7 +91,7 @@ public class EntryEncoder {
             encoder = MultiFieldEncoder.create(bitIndex.cardinality());
     }
 
-    public static EntryEncoder create(int numCols, BitSet setCols,BitSet lengthFields){
+    public static EntryEncoder create(int numCols, BitSet setCols,BitSet scalarFields,BitSet floatFields,BitSet doubleFields){
         //TODO -sf- enable ALL Full indices
 //        if(setCols==null||setCols.cardinality()==numCols){
 //            /*
@@ -98,21 +102,23 @@ public class EntryEncoder {
 //            return new EntryEncoder(numCols,new AllFullBitIndex());
 //        }else{
 
-            BitIndex indexToUse = getBitIndex(setCols,lengthFields);
+            BitIndex indexToUse = getBitIndex(setCols,scalarFields,floatFields,doubleFields);
             return new EntryEncoder(indexToUse);
 //        }
     }
 
-    private static BitIndex getBitIndex(BitSet setCols,BitSet lengthFields) {
-        if(lengthFields==null)lengthFields = new BitSet(); //default to no length-delimited fields
-        BitIndex indexToUse = BitIndexing.uncompressedBitMap(setCols,lengthFields);
+    private static BitIndex getBitIndex(BitSet setCols,BitSet scalarFields,BitSet floatFields, BitSet doubleFields) {
+        if(scalarFields==null)scalarFields = new BitSet(); //default to no length-delimited fields
+        if(floatFields==null)floatFields = new BitSet();
+        if(doubleFields==null)doubleFields= new BitSet();
+        BitIndex indexToUse = BitIndexing.uncompressedBitMap(setCols,scalarFields,floatFields,doubleFields);
         //see if we can improve space via compression
-        BitIndex denseCompressedBitIndex = BitIndexing.compressedBitMap(setCols,lengthFields); //TODO -sf- correct this
+        BitIndex denseCompressedBitIndex = BitIndexing.compressedBitMap(setCols,scalarFields,floatFields,doubleFields);
         if(denseCompressedBitIndex.encodedSize() < indexToUse.encodedSize()){
             indexToUse = denseCompressedBitIndex;
         }
         //see if sparse is better
-        BitIndex sparseBitMap = BitIndexing.sparseBitMap(setCols,lengthFields);
+        BitIndex sparseBitMap = BitIndexing.sparseBitMap(setCols,scalarFields,floatFields,doubleFields);
         if(sparseBitMap.encodedSize()<indexToUse.encodedSize()){
             indexToUse = sparseBitMap;
         }

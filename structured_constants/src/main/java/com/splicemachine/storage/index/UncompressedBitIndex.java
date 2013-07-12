@@ -18,11 +18,18 @@ import java.util.BitSet;
  */
 class UncompressedBitIndex implements BitIndex {
     private final BitSet bitSet;
-    private final BitSet lengthDelimitedBits;
+    private final BitSet scalarFields;
+    private final BitSet floatFields;
+    private final BitSet doubleFields;
 
-    private UncompressedBitIndex(BitSet bitSet, BitSet lengthDelimitedBits) {
+    private UncompressedBitIndex(BitSet bitSet, BitSet scalarFields,BitSet floatFields,BitSet doubleFields) {
         this.bitSet = bitSet;
-        this.lengthDelimitedBits = lengthDelimitedBits;
+        this.scalarFields = (BitSet)scalarFields.clone();
+        this.scalarFields.and(bitSet);
+        this.floatFields = (BitSet)floatFields.clone();
+        this.floatFields.and(bitSet);
+        this.doubleFields = (BitSet)doubleFields.clone();
+        this.doubleFields.and(bitSet);
     }
 
     @Override
@@ -59,14 +66,26 @@ class UncompressedBitIndex implements BitIndex {
             //skip the distance between setPos and lastSetBit
             bitWriter.skip(setPos-lastSetBit-1);
             /*
-             * Because this field is present, we need to use a bit to indicate whether or not
-             * the field is length-delimited.
+             * Because this field is present, we need to use 2 bits to indicate the
+             * type information necessary to parse. The format for the type bit is
+             *
+             * Untyped: 00
+             * Double: 01
+             * Float: 10
+             * Scalar: 11
              */
-            if(lengthDelimitedBits.get(setPos)){
+            if(scalarFields.get(setPos)){
+                bitWriter.set(3);
+            }else if(floatFields.get(setPos)){
                 bitWriter.set(2);
-            }else{
+                bitWriter.skipNext();
+            }else if(doubleFields.get(setPos)){
                 bitWriter.setNext();
                 bitWriter.skipNext();
+                bitWriter.setNext();
+            }else{
+                bitWriter.setNext();
+                bitWriter.skip(2);
             }
             lastSetBit=setPos;
         }
@@ -84,15 +103,15 @@ class UncompressedBitIndex implements BitIndex {
          * The number of bytes goes as follows:
          *
          * you need at least as many bits as the highest 1-bit in the bitSet(equivalent
-         *  to bitSet.length()). Because each set bit will have an additional "length delimiter"
-         *  bit set afterwords, we need to have 2 bits for every set bit, but 1 for every non-set bit
+         *  to bitSet.length()). Because each set bit will have an additional 2-bit "type delimiter"
+         *  set afterwords, we need to have 3 bits for every set bit, but 1 for every non-set bit
          *
-         * This is equivalent to length()+numSetBits().
+         * This is equivalent to length()+2*numSetBits().
          *
          * we have 4 available bits in the header, and 7 bits in each subsequent byte (we use a continuation
          * bit).
          */
-        int numBits = bitSet.length()+bitSet.cardinality();
+        int numBits = bitSet.length()+2*bitSet.cardinality();
         int numBytes = 1;
         numBits-=4;
         if(numBits>0){
@@ -105,26 +124,36 @@ class UncompressedBitIndex implements BitIndex {
     }
 
     @Override
-    public String toString() {
-        return "{"+bitSet.toString()+","+lengthDelimitedBits.toString()+"}";
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof UncompressedBitIndex)) return false;
 
         UncompressedBitIndex that = (UncompressedBitIndex) o;
 
-        return bitSet.equals(that.bitSet) && lengthDelimitedBits.equals(that.lengthDelimitedBits);
+        return bitSet.equals(that.bitSet)
+                && doubleFields.equals(that.doubleFields)
+                && floatFields.equals(that.floatFields)
+                && scalarFields.equals(that.scalarFields);
 
     }
 
     @Override
     public int hashCode() {
         int result = bitSet.hashCode();
-        result = 31 * result + lengthDelimitedBits.hashCode();
+        result = 31 * result + scalarFields.hashCode();
+        result = 31 * result + floatFields.hashCode();
+        result = 31 * result + doubleFields.hashCode();
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return "{" +
+                bitSet +
+                "," + scalarFields +
+                "," + floatFields +
+                "," + doubleFields +
+                '}';
     }
 
     @Override
@@ -138,8 +167,18 @@ class UncompressedBitIndex implements BitIndex {
     }
 
     @Override
-    public boolean isLengthDelimited(int position) {
-        return lengthDelimitedBits.get(position);
+    public boolean isScalarType(int position) {
+        return scalarFields.get(position);
+    }
+
+    @Override
+    public boolean isDoubleType(int position) {
+        return doubleFields.get(position);
+    }
+
+    @Override
+    public boolean isFloatType(int position) {
+        return floatFields.get(position);
     }
 
     @Override
@@ -149,14 +188,16 @@ class UncompressedBitIndex implements BitIndex {
         return result;
     }
 
-    public static BitIndex create(BitSet setCols,BitSet lengthDelimitedFields) {
-        return new UncompressedBitIndex(setCols,lengthDelimitedFields);
+    public static BitIndex create(BitSet setCols,BitSet lengthDelimitedFields,BitSet floatFields,BitSet doubleFields) {
+        return new UncompressedBitIndex(setCols,lengthDelimitedFields,floatFields,doubleFields);
     }
 
     public static BitIndex wrap(byte[] data, int position, int limit) {
         //create a BitSet underneath
         BitSet bitSet = new BitSet();
-        BitSet lengthDelimitedFields = new BitSet();
+        BitSet scalarFields = new BitSet();
+        BitSet floatFields = new BitSet();
+        BitSet doubleFields = new BitSet();
         BitReader bitReader = new BitReader(data,position,limit,5,true);
 
         int bitPos = 0;
@@ -166,11 +207,19 @@ class UncompressedBitIndex implements BitIndex {
             bitPos+= zeros;
             bitSet.set(bitPos);
             if(bitReader.next()!=0){
-                lengthDelimitedFields.set(bitPos);
+                //either float or scalar
+                if(bitReader.next()!=0){
+                    scalarFields.set(bitPos);
+                }else
+                    floatFields.set(bitPos);
+            }else{
+                //either a double or untyped
+                if(bitReader.next()!=0)
+                    doubleFields.set(bitPos);
             }
             bitPos++;
         }
-        return new UncompressedBitIndex(bitSet,lengthDelimitedFields);
+        return new UncompressedBitIndex(bitSet,scalarFields,floatFields,doubleFields);
     }
 
     public static void main(String... args) throws Exception{
@@ -180,10 +229,14 @@ class UncompressedBitIndex implements BitIndex {
 //        bitSet.set(3);
 //        bitSet.set(4);
 
-        BitSet lengthDelimited = new BitSet();
+        BitSet scalarFields = new BitSet();
 //        lengthDelimited.set(4);
 
-        BitIndex bits = UncompressedBitIndex.create(bitSet,lengthDelimited);
+        BitSet floatFields = new BitSet();
+
+        BitSet doubleFields = new BitSet();
+
+        BitIndex bits = UncompressedBitIndex.create(bitSet,scalarFields,floatFields,doubleFields);
 
         byte[] data =bits.encode();
         System.out.println(Arrays.toString(data));

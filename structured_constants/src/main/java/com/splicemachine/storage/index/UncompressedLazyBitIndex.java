@@ -11,6 +11,7 @@ import java.util.BitSet;
 class UncompressedLazyBitIndex extends LazyBitIndex{
 
     int lastSetBit = -1;
+
     protected UncompressedLazyBitIndex(byte[] encodedBitMap,
                                        int offset, int length) {
         super(encodedBitMap, offset, length,5);
@@ -22,12 +23,43 @@ class UncompressedLazyBitIndex extends LazyBitIndex{
         int unsetCount = bitReader.nextSetBit();
         if(unsetCount<0) return -1;
         int pos = lastSetBit+unsetCount+1;
-        if(!bitReader.hasNext())//assume that the next bit would be zero, which means unset
+        /*
+         * We need the next two bits to determine the type information,
+         * which goes as
+         *
+         * Untyped: 00
+         * Double: 01
+         * Float: 10
+         * Scalar:11
+         *
+         * A truncated setup for Float or untyped values is not likely (the encoding
+         * implementation always sets those bits at the moment), but later improvements may
+         * include truncating extra zero bits. Thus, we assume that is possible.
+         */
+        if(!bitReader.hasNext()){
+            //no type bits set, so this must be untyped
             return pos;
-
-        if(bitReader.next()!=0){
-            decodedLengthDelimitedFields.set(pos);
         }
+        if(bitReader.next()!=0){
+            //either float or scalar type
+            if(!bitReader.hasNext()){
+                //must be 10 = float type
+                decodedFloatFields.set(pos);
+                return pos;
+            }
+            if(bitReader.next()!=0)
+                decodedScalarFields.set(pos);
+            else
+                decodedFloatFields.set(pos);
+        }else{
+            //either a double or untyped
+            if(!bitReader.hasNext())
+                return pos; //untyped
+
+            if(bitReader.next()!=0)
+                decodedDoubleFields.set(pos);
+        }
+
         lastSetBit=pos;
         return pos;
     }
@@ -43,7 +75,7 @@ class UncompressedLazyBitIndex extends LazyBitIndex{
         BitSet lengthDelimited = new BitSet();
         lengthDelimited.set(0);
 
-        BitIndex bits = UncompressedBitIndex.create(bitSet,lengthDelimited);
+        BitIndex bits = UncompressedBitIndex.create(bitSet,lengthDelimited,null,null);
 
         byte[] data =bits.encode();
         System.out.println(Arrays.toString(data));

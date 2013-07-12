@@ -13,6 +13,7 @@ import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -408,7 +409,10 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
             Put put = SpliceUtils.createPut(currentRowLocation.getBytes(),transID);
 
             if(entryEncoder==null)
-                entryEncoder = EntryEncoder.create(row.length, EncodingUtils.getNonNullColumns(row, validColumns), DerbyBytesUtil.getLengthDelimitedFields(row));
+                entryEncoder = EntryEncoder.create(row.length, EncodingUtils.getNonNullColumns(row,validColumns),
+                        DerbyBytesUtil.getScalarFields(row),
+                        DerbyBytesUtil.getFloatFields(row),
+                        DerbyBytesUtil.getDoubleFields(row));
 
             EncodingUtils.encodeRow(row, put, validCols, validColumns, entryEncoder);
             table.put(put);

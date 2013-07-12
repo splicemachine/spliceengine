@@ -16,7 +16,6 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.ByteDataOutput;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
@@ -29,6 +28,46 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class DerbyBytesUtil {
 	private static Logger LOG = Logger.getLogger(DerbyBytesUtil.class);
+
+    private static final Serializer lazySerializer = new Serializer() {
+        @Override
+        public byte[] encode(DataValueDescriptor dvd) throws StandardException {
+            return dvd.getBytes();
+        }
+
+        @Override
+        public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
+            LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor)dvd;
+            ldvd.initForDeserialization(data);
+        }
+
+        @Override
+        public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+            encoder.setRawBytes(((LazyDataValueDescriptor) dvd).getBytes(desc));
+        }
+
+        @Override
+        public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
+            LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor)dvd;
+            int colFormatId = ldvd.getTypeFormatId();
+
+            if(colFormatId== StoredFormatIds.SQL_REF_ID
+                    ||colFormatId == StoredFormatIds.SQL_USERTYPE_ID_V3
+                    ||colFormatId == StoredFormatIds.SQL_VARBIT_ID
+                    ||colFormatId == StoredFormatIds.SQL_LONGVARBIT_ID
+                    ||colFormatId == StoredFormatIds.SQL_BLOB_ID
+                    ||colFormatId == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID
+                    ||colFormatId == StoredFormatIds.SQL_BIT_ID){
+                ((LazyDataValueDescriptor)dvd).initForDeserialization(decoder.getNextRawBytes(),desc);
+            }else
+                ((LazyDataValueDescriptor)dvd).initForDeserialization(decoder.getNextRaw(),desc);
+        }
+
+        @Override
+        public boolean isScalarType() {
+            throw new UnsupportedOperationException("Unable to get length from Lazy serializer");
+        }
+    };
 
 	@SuppressWarnings("unchecked")
 	public static <T> T fromBytes(byte[] bytes, Class<T> instanceClass) throws StandardException {
@@ -423,22 +462,42 @@ public class DerbyBytesUtil {
         serializationMap.get(Format.formatFor(column)).decodeInto(column,rowDecoder,desc);
     }
 
-    public static boolean isLengthDelimited(DataValueDescriptor descriptor) {
-        if(descriptor==null) return false;
-
-        return serializationMap.get(Format.formatFor(descriptor)).isLengthDelimited();
-    }
-
-    public static BitSet getLengthDelimitedFields(DataValueDescriptor[] rowArray) {
+    public static BitSet getScalarFields(DataValueDescriptor[] rowArray) {
         BitSet bitSet = new BitSet();
         for(int i=0;i<rowArray.length;i++){
             DataValueDescriptor dvd = rowArray[i];
             if(dvd!=null){
                 Format format = Format.formatFor(dvd);
                 Serializer serializer = serializationMap.get(format);
-                if(serializer.isLengthDelimited()){
+                if(serializer.isScalarType()){
                     bitSet.set(i);
                 }
+            }
+        }
+        return bitSet;
+    }
+
+    public static BitSet getFloatFields(DataValueDescriptor[] rowArray){
+        BitSet bitSet = new BitSet();
+        for(int i=0;i<rowArray.length;i++){
+            DataValueDescriptor dvd = rowArray[i];
+            if(dvd!=null){
+                Format format = Format.formatFor(dvd);
+                if(format==Format.REAL)
+                    bitSet.set(i);
+            }
+        }
+        return bitSet;
+    }
+
+    public static BitSet getDoubleFields(DataValueDescriptor[] rowArray){
+        BitSet bitSet = new BitSet();
+        for(int i=0;i<rowArray.length;i++){
+            DataValueDescriptor dvd = rowArray[i];
+            if(dvd!=null){
+                Format format = Format.formatFor(dvd);
+                if(format==Format.DOUBLE)
+                    bitSet.set(i);
             }
         }
         return bitSet;
@@ -494,7 +553,7 @@ public class DerbyBytesUtil {
 
         void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException;
 
-        boolean isLengthDelimited();
+        boolean isScalarType();
     }
 
     private static EnumMap<Format,Serializer> serializationMap = new EnumMap<Format, Serializer>(Format.class);
@@ -520,7 +579,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(decoder.decodeNextBoolean(desc));
             }
 
-            @Override public boolean isLengthDelimited() { return false;   }
+            @Override public boolean isScalarType() { return false;   }
         } );
 
         serializationMap.put(Format.DOUBLE, new Serializer() {
@@ -544,7 +603,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(decoder.decodeNextDouble(desc));
             }
 
-            @Override public boolean isLengthDelimited() { return false;   }
+            @Override public boolean isScalarType() { return false;   }
         });
 
         serializationMap.put(Format.TINYINT,new Serializer() {
@@ -568,7 +627,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(decoder.decodeNextByte(desc));
             }
 
-            @Override public boolean isLengthDelimited() { return false;   }
+            @Override public boolean isScalarType() { return false;   }
         });
 
         serializationMap.put(Format.SMALLINT,new Serializer() {
@@ -589,7 +648,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(decoder.decodeNextShort(desc));
             }
 
-            @Override public boolean isLengthDelimited() { return true;   }
+            @Override public boolean isScalarType() { return true;   }
         });
 
         serializationMap.put(Format.INTEGER,new Serializer() {
@@ -610,7 +669,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(decoder.decodeNextInt(desc));
             }
 
-            @Override public boolean isLengthDelimited() { return true; }
+            @Override public boolean isScalarType() { return true; }
         });
 
         serializationMap.put(Format.LONGINT,new Serializer() {
@@ -631,7 +690,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(decoder.decodeNextLong(desc));
             }
 
-            @Override public boolean isLengthDelimited() { return true; }
+            @Override public boolean isScalarType() { return true; }
         });
 
         serializationMap.put(Format.REAL,new Serializer() {
@@ -652,7 +711,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(decoder.decodeNextFloat(desc));
             }
 
-            @Override public boolean isLengthDelimited() { return false;   }
+            @Override public boolean isScalarType() { return false;   }
         });
          serializationMap.put(Format.DECIMAL,new Serializer() {
             @Override
@@ -672,7 +731,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(decoder.decodeNextBigDecimal(desc));
             }
 
-             @Override public boolean isLengthDelimited() { return false; }
+             @Override public boolean isScalarType() { return false; }
          });
         Serializer refSerializer = new Serializer() {
             @Override
@@ -702,7 +761,7 @@ public class DerbyBytesUtil {
                 }
             }
 
-            @Override public boolean isLengthDelimited() { return false; }
+            @Override public boolean isScalarType() { return false; }
 
             private Object getObject(byte[] data, boolean desc) throws StandardException{
                 byte[] actualData = stripLength(data, desc);
@@ -751,7 +810,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(new Date(decoder.decodeNextLong(desc)));
             }
 
-            @Override public boolean isLengthDelimited() { return true;   }
+            @Override public boolean isScalarType() { return true;   }
         });
 
         serializationMap.put(Format.TIME,new Serializer() {
@@ -775,7 +834,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(new Time(decoder.decodeNextLong(desc)));
             }
 
-            @Override public boolean isLengthDelimited() { return true; }
+            @Override public boolean isScalarType() { return true; }
         });
         serializationMap.put(Format.TIMESTAMP,new Serializer() {
             @Override
@@ -798,7 +857,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(new Timestamp(decoder.decodeNextLong(desc)));
             }
 
-            @Override public boolean isLengthDelimited() { return true; }
+            @Override public boolean isScalarType() { return true; }
         });
 
         Serializer stringSerializer = new Serializer() {
@@ -822,7 +881,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(decoder.decodeNextString(desc));
             }
 
-            @Override public boolean isLengthDelimited() { return false; }
+            @Override public boolean isScalarType() { return false; }
         };
         serializationMap.put(Format.VARCHAR,stringSerializer);
         serializationMap.put(Format.LONGVARCHAR,stringSerializer);
@@ -851,7 +910,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(decoder.decodeNextBytesUnsorted());
             }
 
-            @Override public boolean isLengthDelimited() { return false; }
+            @Override public boolean isScalarType() { return false; }
         };
         serializationMap.put(Format.VARBIT,byteSerializer);
         serializationMap.put(Format.LONGVARBIT,byteSerializer);

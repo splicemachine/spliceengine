@@ -30,15 +30,27 @@ import java.util.BitSet;
  */
 class DenseCompressedBitIndex implements BitIndex {
     private final BitSet bitSet;
-    private final BitSet lengthDelimitedFields;
+    private final BitSet scalarFields;
+    private final BitSet floatFields;
+    private final BitSet doubleFields;
 
-    DenseCompressedBitIndex(BitSet bitSet,BitSet lengthDelimitedFields){
+    DenseCompressedBitIndex(BitSet bitSet,BitSet scalarFields,BitSet floatFields,BitSet doubleFields){
         this.bitSet = bitSet;
-        this.lengthDelimitedFields =lengthDelimitedFields;
+        this.scalarFields =scalarFields;
+        this.floatFields = floatFields;
+        this.doubleFields = doubleFields;
     }
 
-    public static BitIndex compress(BitSet bitSet,BitSet lengthDelimitedFields){
-        return new DenseCompressedBitIndex(bitSet,lengthDelimitedFields);
+    public static BitIndex compress(BitSet bitSet, BitSet scalarFields,BitSet floatFields,BitSet doubleFields){
+        BitSet setCols = (BitSet)bitSet.clone();
+        BitSet sF = (BitSet)scalarFields.clone();
+        sF.and(setCols);
+        BitSet fF = (BitSet)floatFields.clone();
+        fF.and(setCols);
+        BitSet dF = (BitSet)doubleFields.clone();
+        dF.and(setCols);
+
+        return new DenseCompressedBitIndex(setCols,sF,fF,dF);
     }
 
     public int length() {
@@ -56,108 +68,183 @@ class DenseCompressedBitIndex implements BitIndex {
         bytes[0] = (byte)0xC0;
 
         BitWriter bitWriter = new BitWriter(bytes,0,bytes.length,5,true);
-        int onesCount=0;
+
         int lastSetBit = -1;
-
-        int nextSetBit = bitSet.nextSetBit(0);
-        boolean addZero=false;
-        while(nextSetBit>=0){
+        int numScalars=0;
+        int numFloats=0;
+        int numDoubles=0;
+        int numUntyped=0;
+        for(int nextSetBit = bitSet.nextSetBit(0);nextSetBit>=0;nextSetBit=bitSet.nextSetBit(nextSetBit+1)){
             int numZeros = nextSetBit-lastSetBit-1;
-            if(addZero){
-                numZeros++;
-                addZero=false;
-            }
-            if(numZeros<=0){
-                onesCount++;
-                if(lengthDelimitedFields.get(nextSetBit)){
-                    onesCount++;
-                }else{
-                    addZero=true;
-                }
-                lastSetBit=nextSetBit;
-                nextSetBit = bitSet.nextSetBit(nextSetBit+1);
-                continue;
-            }
-            //our ones are terminated
-            if(onesCount>0){
-                bitWriter.setNext();
-                DeltaCoding.encode(onesCount,bitWriter);
+
+            if(numZeros>0){
+                writeTypedData(bitWriter,numScalars,numFloats,numDoubles,numUntyped);
+                numScalars=0;
+                numFloats=0;
+                numDoubles=0;
+                numUntyped = 0;
+                //we have a run of unset values
+                bitWriter.skipNext();
+                DeltaCoding.encode(numZeros,bitWriter);
             }
 
-            //write out the zeros count
-            bitWriter.skipNext();
-            DeltaCoding.encode(numZeros,bitWriter);
+            //get our new type
+            if(scalarFields.get(nextSetBit)){
+                if(numScalars==0){
+                    writeTypedData(bitWriter, numScalars, numFloats, numDoubles, numUntyped);
+                    numScalars=0;
+                    numFloats=0;
+                    numDoubles=0;
+                    numUntyped=0;
+                }
+                numScalars++;
+            }else if(floatFields.get(nextSetBit)){
+                if(numFloats==0){
+                    writeTypedData(bitWriter, numScalars, numFloats, numDoubles, numUntyped);
+                    numScalars=0;
+                    numFloats=0;
+                    numDoubles=0;
+                    numUntyped=0;
+                }
+                numFloats++;
+            }else if(doubleFields.get(nextSetBit)){
+                if(numDoubles==0){
+                    writeTypedData(bitWriter, numScalars, numFloats, numDoubles, numUntyped);
+                    numScalars=0;
+                    numFloats=0;
+                    numDoubles=0;
+                    numUntyped=0;
+                }
+                numDoubles++;
+            }else{
+                if(numUntyped==0){
+                    writeTypedData(bitWriter, numScalars, numFloats, numDoubles, numUntyped);
+                    numScalars=0;
+                    numFloats=0;
+                    numDoubles=0;
+                    numUntyped=0;
+                }
+                numUntyped++;
+            }
 
             lastSetBit = nextSetBit;
-            nextSetBit = bitSet.nextSetBit(nextSetBit+1);
-            onesCount=1;
-            if(lengthDelimitedFields.get(lastSetBit))
-                onesCount++;
-            else{
-                addZero=true;
-            }
         }
-        if(onesCount>0){
-            bitWriter.setNext();
-            DeltaCoding.encode(onesCount,bitWriter);
-        }
+        writeTypedData(bitWriter,numScalars,numFloats,numDoubles,numUntyped);
+
         return bytes;
+    }
+
+    private void writeTypedData(BitWriter bitWriter, int numScalars, int numFloats, int numDoubles, int numUntyped) {
+        int count=0;
+        if(numScalars>0){
+            bitWriter.set(3);
+            count=numScalars;
+        }else if(numFloats>0){
+            bitWriter.set(2);
+            bitWriter.skipNext();
+            count = numFloats;
+        }else if(numDoubles>0){
+            bitWriter.setNext();
+            bitWriter.skipNext();
+            bitWriter.setNext();
+            count=numDoubles;
+        }else if(numUntyped>0){
+            bitWriter.setNext();
+            bitWriter.skip(2);
+            count=numUntyped;
+        }
+        if(count>0)
+            DeltaCoding.encode(count,bitWriter);
     }
 
     @Override
     public int encodedSize() {
-        int onesCount=0;
-        int lastSetBit = -1;
 
-        int nextSetBit = bitSet.nextSetBit(0);
+        int lastSetBit=-1;
+        int numScalars = 0;
+        int numFloats = 0;
+        int numDoubles = 0;
+        int numUntyped = 0;
         int numBits=0;
-
-        boolean addZero=false;
-        while(nextSetBit>=0){
+        for(int nextSetBit = bitSet.nextSetBit(0);nextSetBit>=0;nextSetBit=bitSet.nextSetBit(nextSetBit+1)){
             int numZeros = nextSetBit-lastSetBit-1;
-            if(addZero){
-                numZeros++;
-                addZero=false;
+            if(numZeros>0){
+                numBits += countTypedData(numScalars, numFloats, numDoubles, numUntyped);
+                numScalars=0;
+                numFloats=0;
+                numDoubles=0;
+                numUntyped=0;
+                numBits+=DeltaCoding.getEncodedLength(numZeros)+1;
             }
-            if(numZeros<=0){
-                onesCount++;
-                if(lengthDelimitedFields.get(nextSetBit)){
-                    onesCount++;
-                }else{
-                    addZero=true;
+            if(scalarFields.get(nextSetBit)){
+                if(numScalars==0){
+                    //a change in type
+                    numBits +=countTypedData(numScalars,numFloats,numDoubles,numUntyped);
+                    numScalars=0;
+                    numFloats=0;
+                    numDoubles=0;
+                    numUntyped=0;
                 }
-                lastSetBit=nextSetBit;
-                nextSetBit = bitSet.nextSetBit(nextSetBit+1);
-                continue;
+                numScalars++;
+            }else if(floatFields.get(nextSetBit)){
+                if(numFloats==0){
+                    //a change in type
+                    numBits +=countTypedData(numScalars,numFloats,numDoubles,numUntyped);
+                    numScalars=0;
+                    numFloats=0;
+                    numDoubles=0;
+                    numUntyped=0;
+                }
+                numFloats++;
+            }else if(doubleFields.get(nextSetBit)){
+                if(numDoubles==0){
+                    //a change in type
+                    numBits +=countTypedData(numScalars,numFloats,numDoubles,numUntyped);
+                    numScalars=0;
+                    numFloats=0;
+                    numDoubles=0;
+                    numUntyped=0;
+                }
+                numDoubles++;
+            }else{
+                if(numUntyped==0){
+                    //a change in type
+                    numBits +=countTypedData(numScalars,numFloats,numDoubles,numUntyped);
+                    numScalars=0;
+                    numFloats=0;
+                    numDoubles=0;
+                    numUntyped=0;
+                }
+                numUntyped++;
             }
-            //our ones are terminated
-            if(onesCount>0){
-                numBits+=DeltaCoding.getEncodedLength(onesCount)+1;
-            }
-
-            numBits+=DeltaCoding.getEncodedLength(numZeros)+1;
-
-            lastSetBit = nextSetBit;
-            nextSetBit = bitSet.nextSetBit(nextSetBit+1);
-            onesCount=1;
-            if(lengthDelimitedFields.get(lastSetBit))
-                onesCount++;
-            else{
-                addZero=true;
-            }
+            lastSetBit=nextSetBit;
         }
-        if(onesCount!=0){
-            //last bit were 1s
-            numBits+= DeltaCoding.getEncodedLength(onesCount)+1;
-        }
+        numBits+=countTypedData(numScalars,numFloats,numDoubles,numUntyped);
 
-        int length = numBits - 4; //four bits fit in the header
+        int length = numBits-4; //fit four bits into the header
         int numBytes = length/7;
-        if(length %7>0)
+        if(length%7!=0){
             numBytes++;
+        }
+        numBytes++;
 
-        numBytes++; //add the header byte
         return numBytes;
+    }
+
+    private int countTypedData(int numScalars, int numFloats, int numDoubles, int numUntyped) {
+        int count;
+        if(numScalars>0)
+            count=numScalars;
+        else if(numFloats>0)
+            count=numFloats;
+        else if(numDoubles>0)
+            count = numDoubles;
+        else
+            count = numUntyped;
+        if(count>0)
+            return 3+ DeltaCoding.getEncodedLength(count);
+        else
+            return 0;
     }
 
     @Override
@@ -181,8 +268,18 @@ class DenseCompressedBitIndex implements BitIndex {
     }
 
     @Override
-    public boolean isLengthDelimited(int position) {
-        throw new UnsupportedOperationException();
+    public boolean isScalarType(int position) {
+        return scalarFields.get(position);
+    }
+
+    @Override
+    public boolean isDoubleType(int position) {
+        return doubleFields.get(position);
+    }
+
+    @Override
+    public boolean isFloatType(int position) {
+        return floatFields.get(position);
     }
 
     @Override
@@ -201,7 +298,12 @@ class DenseCompressedBitIndex implements BitIndex {
 
     @Override
     public String toString() {
-        return "{"+bitSet+","+lengthDelimitedFields+"}";
+        return "{" +
+                bitSet +
+                "," + scalarFields +
+                "," + floatFields +
+                "," + doubleFields +
+                '}';
     }
 
     @Override
@@ -211,13 +313,19 @@ class DenseCompressedBitIndex implements BitIndex {
 
         DenseCompressedBitIndex that = (DenseCompressedBitIndex) o;
 
-        return bitSet.equals(that.bitSet) && lengthDelimitedFields.equals(that.lengthDelimitedFields);
+        return bitSet.equals(that.bitSet)
+                && doubleFields.equals(that.doubleFields)
+                && floatFields.equals(that.floatFields)
+                && scalarFields.equals(that.scalarFields);
+
     }
 
     @Override
     public int hashCode() {
         int result = bitSet.hashCode();
-        result = 31 * result + lengthDelimitedFields.hashCode();
+        result = 31 * result + scalarFields.hashCode();
+        result = 31 * result + floatFields.hashCode();
+        result = 31 * result + doubleFields.hashCode();
         return result;
     }
 
@@ -226,64 +334,87 @@ class DenseCompressedBitIndex implements BitIndex {
         BitReader reader = new BitReader(data,offset,length,5,true);
         BitSet bitSet = new BitSet();
         BitSet lengthDelimitedFields = new BitSet();
+        BitSet floatFields = new BitSet();
+        BitSet doubleFields = new BitSet();
 
-        int setBitPos=0;
-        boolean extraZero = false;
+        int lastSetPos=0;
+
         while(reader.hasNext()){
-            if(reader.next()!=0){
-                //decode ones
-                int numOnes = DeltaCoding.decode(reader);
-                if(numOnes<0) break;
-                int numBitsToSet;
-                int numDelimitedFields;
-                if(numOnes%2==0){
-                    numBitsToSet = numOnes/2;
-                    numDelimitedFields = numBitsToSet;
-                }else{
-                    numBitsToSet = (numOnes-1)/2+1;
-                    numDelimitedFields = numOnes/2;
-                    extraZero=true;
-                }
-                bitSet.set(setBitPos,setBitPos+numBitsToSet);
-                lengthDelimitedFields.set(setBitPos,setBitPos+numDelimitedFields);
-                setBitPos+=numBitsToSet;
+            if(reader.next()==0){
+                //reading a sequence of unset values
+                int next = DeltaCoding.decode(reader);
+                if(next<0)
+                    break;
+                else
+                    lastSetPos+=next;
             }else{
-                //decode zeros
-                int numZeros = DeltaCoding.decode(reader);
-                if(numZeros<0)break;
-                setBitPos+=numZeros;
-                if(extraZero){
-                    setBitPos--;
-                    extraZero=false;
+                //get the type from the next two bits
+                if(reader.next()!=0){
+                    //either a float or a scalar
+                    if(reader.next()!=0){
+                        //scalar type
+                        int numScalars = DeltaCoding.decode(reader);
+                        bitSet.set(lastSetPos,lastSetPos+numScalars);
+                        lengthDelimitedFields.set(lastSetPos,lastSetPos+numScalars);
+                        lastSetPos+=numScalars;
+                    }else{
+                        //float type
+                        int count = DeltaCoding.decode(reader);
+                        bitSet.set(lastSetPos,lastSetPos+count);
+                        floatFields.set(lastSetPos,lastSetPos+count);
+                        lastSetPos+=count;
+                    }
+                }else{
+                    if(reader.next()!=0){
+                        int numDoubles = DeltaCoding.decode(reader);
+                        bitSet.set(lastSetPos,lastSetPos+numDoubles);
+                        doubleFields.set(lastSetPos,lastSetPos+numDoubles);
+                        lastSetPos+=numDoubles;
+                    }else{
+                        int numUntyped = DeltaCoding.decode(reader);
+                        bitSet.set(lastSetPos,lastSetPos+numUntyped);
+                        lastSetPos+=numUntyped;
+                    }
                 }
-
             }
         }
 
-        return new DenseCompressedBitIndex(bitSet,lengthDelimitedFields);
+        return new DenseCompressedBitIndex(bitSet,lengthDelimitedFields,floatFields,doubleFields);
     }
 
     public static void main(String... args) throws Exception{
         BitSet set = new BitSet();
         set.set(0);
-        set.set(1);
+//        set.set(1);
         set.set(2);
         set.set(3);
         set.set(4);
-        set.set(8);
+        set.set(5);
+        set.set(6);
+        set.set(7);
+//        set.set(8);
 
         BitSet lengthFields = new BitSet();
-//        lengthFields.set(0);
-        lengthFields.set(1);
-//        lengthFields.set(2);
-        lengthFields.set(3);
-        lengthFields.set(4);
-        lengthFields.set(8);
+        lengthFields.set(0);
+//        lengthFields.set(1);
+        lengthFields.set(2);
+//        lengthFields.set(3);
+//        lengthFields.set(4);
+        lengthFields.set(6);
+//        lengthFields.set(8);
 
-        BitIndex index = new DenseCompressedBitIndex(set,lengthFields);
+        BitSet floatFields = new BitSet();
+        floatFields.set(5);
+
+        BitSet doubleFields = new BitSet();
+        doubleFields.set(3);
+        doubleFields.set(4);
+
+        BitIndex index = new DenseCompressedBitIndex(set,lengthFields,floatFields,doubleFields);
         byte[] data  = index.encode();
         System.out.println(Arrays.toString(data));
-        BitIndex decoded = DenseCompressedBitIndex.wrap(data,0,data.length);
+        BitIndex decoded = BitIndexing.compressedBitMap(data,0,data.length);
+        for(int i=decoded.nextSetBit(0);i>=0;i=decoded.nextSetBit(i+1));
         System.out.println(decoded);
     }
 }

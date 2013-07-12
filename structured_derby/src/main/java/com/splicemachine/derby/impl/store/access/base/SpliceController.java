@@ -3,11 +3,8 @@ package com.splicemachine.derby.impl.store.access.base;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-<<<<<<< HEAD
-=======
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.EncodingUtils;
->>>>>>> Moving towards a slighty type-resolved bit index, to deal with issues where scalar, double, and float types include zeros in their serialized form
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.storage.EntryEncoder;
@@ -188,9 +185,11 @@ public abstract class SpliceController implements ConglomerateController {
         }
     }
     protected void encodeRow(DataValueDescriptor[] row, Put put,int[] columns,FormatableBitSet validColumns) throws StandardException, IOException {
-        BitSet lengthDelimitedFields = DerbyBytesUtil.getLengthDelimitedFields(row);
+        BitSet scalarFields = DerbyBytesUtil.getScalarFields(row);
+        BitSet floatFields = DerbyBytesUtil.getFloatFields(row);
+        BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row);
         if(entryEncoder==null)
-            entryEncoder = EntryEncoder.create(row.length, EncodingUtils.getNonNullColumns(row, validColumns), lengthDelimitedFields);
+            entryEncoder = EntryEncoder.create(row.length, EncodingUtils.getNonNullColumns(row, validColumns),scalarFields,floatFields,doubleFields);
 
         EncodingUtils.encodeRow(row, put, columns, validColumns, entryEncoder);
     }

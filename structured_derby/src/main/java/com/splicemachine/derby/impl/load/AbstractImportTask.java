@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -84,7 +85,9 @@ public abstract class AbstractImportTask extends ZkTask {
     public void execute() throws ExecutionException, InterruptedException {
         try{
             ExecRow row = getExecRow(importContext);
-            BitSet lengthDelimitedFields = DerbyBytesUtil.getLengthDelimitedFields(row.getRowArray());
+            BitSet scalarFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
+            BitSet floatFields = DerbyBytesUtil.getFloatFields(row.getRowArray());
+            BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row.getRowArray());
             FormatableBitSet pkCols = importContext.getPrimaryKeys();
 
             CallBuffer<Mutation> writeBuffer = getCallBuffer();
@@ -110,9 +113,7 @@ public abstract class AbstractImportTask extends ZkTask {
                     bitSet.set(i);
                 }
             }
-            entryEncoder = EntryEncoder.create(row.nColumns(), bitSet, lengthDelimitedFields);
-
-            RowEncoder encoder = RowEncoder.createDoubleWritingEncoder(row.nColumns(),keyColumns,null,null,keyType,rowType);
+            entryEncoder = EntryEncoder.create(row.nColumns(),bitSet,scalarFields,floatFields,doubleFields);
 
             Long numImported;
             try{

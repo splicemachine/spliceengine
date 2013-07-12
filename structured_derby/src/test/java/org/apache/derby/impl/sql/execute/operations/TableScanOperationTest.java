@@ -390,7 +390,7 @@ public class TableScanOperationTest extends SpliceUnitTest {
     public void testScanDecimalWithEqualsOperator() throws Exception{
         ResultSet rs = methodWatcher.executeQuery("select se3 from" + this.getPaddedTableReference("AB") +"where se3 = 50.0");
 
-        rs.next();
+        Assert.assertTrue("No rows returned!",rs.next());
 
         double res = rs.getDouble(1);
         Assert.assertEquals(50.0,res,0.0);

@@ -12,7 +12,9 @@ import java.util.BitSet;
  */
 abstract class LazyBitIndex implements BitIndex{
     protected BitSet decodedBits;
-    protected BitSet decodedLengthDelimitedFields;
+    protected BitSet decodedScalarFields;
+    protected BitSet decodedFloatFields;
+    protected BitSet decodedDoubleFields;
 
     protected byte[] encodedBitMap;
     protected int offset;
@@ -25,7 +27,9 @@ abstract class LazyBitIndex implements BitIndex{
         this.offset = offset;
         this.length = length;
         this.decodedBits = new BitSet();
-        this.decodedLengthDelimitedFields = new BitSet();
+        this.decodedScalarFields = new BitSet();
+        this.decodedFloatFields = new BitSet();
+        this.decodedDoubleFields = new BitSet();
         this.bitReader = new BitReader(encodedBitMap,offset,length,bitPos);
     }
 
@@ -61,7 +65,12 @@ abstract class LazyBitIndex implements BitIndex{
 
     @Override
     public String toString() {
-        return "{"+decodedBits+","+decodedLengthDelimitedFields+"}";
+        return "{" +
+                decodedBits +
+                "," + decodedScalarFields +
+                "," + decodedFloatFields +
+                "," + decodedDoubleFields +
+                '}';
     }
 
     @Override
@@ -134,9 +143,21 @@ abstract class LazyBitIndex implements BitIndex{
     }
 
     @Override
-    public boolean isLengthDelimited(int position) {
+    public boolean isScalarType(int position) {
         decodeUntil(position);
-        return decodedLengthDelimitedFields.get(position);
+        return decodedScalarFields.get(position);
+    }
+
+    @Override
+    public boolean isDoubleType(int position) {
+        decodeUntil(position);
+        return decodedDoubleFields.get(position);
+    }
+
+    @Override
+    public boolean isFloatType(int position) {
+        decodeUntil(position);
+        return decodedFloatFields.get(position);
     }
 }
 

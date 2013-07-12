@@ -30,8 +30,8 @@ public class BitIndexing {
      * @param set the set to represent.
      * @return an Uncompressed BitIndex
      */
-    public static BitIndex uncompressedBitMap(BitSet set,BitSet lengthFields){
-        return UncompressedBitIndex.create(set,lengthFields);
+    public static BitIndex uncompressedBitMap(BitSet set,BitSet scalarFields,BitSet floatFields,BitSet doubleFields){
+        return UncompressedBitIndex.create(set,scalarFields,floatFields,doubleFields);
     }
 
     /**
@@ -80,7 +80,12 @@ public class BitIndexing {
      * @return a BitIndex which encodes using a Sparse format.
      */
     public static BitIndex sparseBitMap(BitSet set,BitSet lengthFields){
-        return SparseBitIndex.create(set,lengthFields);
+        throw new UnsupportedOperationException();
+//        return SparseBitIndex.create(set,lengthFields);
+    }
+
+    public static BitIndex sparseBitMap(BitSet set,BitSet scalarFields,BitSet floatFields, BitSet doubleFields){
+        return SparseBitIndex.create(set,scalarFields,floatFields,doubleFields);
     }
 
     /**
@@ -131,9 +136,13 @@ public class BitIndexing {
      * @return a BitIndex which encodes using a Dense format.
      */
     public static BitIndex compressedBitMap(BitSet set,BitSet lengthDelimitedFields){
-        return new DenseCompressedBitIndex(set,lengthDelimitedFields);
+        throw new UnsupportedOperationException();
+//        return new DenseCompressedBitIndex(set,lengthDelimitedFields);
     }
 
+    public static BitIndex compressedBitMap(BitSet set,BitSet scalarFields,BitSet floatFields, BitSet doubleFields){
+        return new DenseCompressedBitIndex(set,scalarFields,floatFields,doubleFields);
+    }
     /**
      * Constructs a Dense,Compressed BitIndex from the specified buffer, beginning at {@code indexOffset} and
      * consuming {@code indexSize} bytes.

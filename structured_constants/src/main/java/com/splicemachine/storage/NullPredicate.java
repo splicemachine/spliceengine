@@ -9,8 +9,9 @@ import java.io.ObjectOutput;
  * Created on: 7/8/13
  */
 public class NullPredicate implements Predicate{
-    private static final long serialVersionUID = 1l;
-    private boolean equals; //when true, equivalent to equals null
+    private static final long serialVersionUID = 2l;
+    private boolean filterIfMissing; //when true, equivalent to filterIfMissing null
+    private boolean isNullNumericalComparision;
     private int column;
 
     /**
@@ -19,32 +20,36 @@ public class NullPredicate implements Predicate{
     @Deprecated
     public NullPredicate() { }
 
-    public NullPredicate(boolean equals, int column) {
-        this.equals = equals;
+    public NullPredicate(boolean filterIfMissing, boolean isNullNumericalComparison,int column) {
+        this.filterIfMissing = filterIfMissing;
+        this.isNullNumericalComparision = isNullNumericalComparison;
         this.column = column;
     }
 
     @Override
     public boolean match(int column,byte[] data, int offset, int length) {
         if(this.column!=column) return true; //not the right column, don't worry about it
-        if(equals){
-            //make sure data is null--either data itself is null, or length==0
-            return data == null || length == 0;
-        }else{
+        if(isNullNumericalComparision){
+            return data!=null && length>0;
+        }
+        if(filterIfMissing){
             //make sure data is NOT null---data cannot be null, and length >0
             return data!=null && length>0;
+        }else{
+            //make sure data is null--either data itself is null, or length==0
+            return data==null ||length==0;
         }
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(equals);
+        out.writeBoolean(filterIfMissing);
         out.writeInt(column);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        equals = in.readBoolean();
+        filterIfMissing = in.readBoolean();
         column = in.readInt();
     }
 }

@@ -10,7 +10,6 @@ import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -82,8 +81,10 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 
 
         ExecRow defnRow = getExecRowDefinition();
-        BitSet lengthDelimitedFields = DerbyBytesUtil.getLengthDelimitedFields(defnRow.getRowArray());
-        return RowEncoder.createEntryEncoder(defnRow.nColumns(),keyColumns,null,null,keyType,lengthDelimitedFields);
+        BitSet scalarFields = DerbyBytesUtil.getScalarFields(defnRow.getRowArray());
+        BitSet floatFields = DerbyBytesUtil.getFloatFields(defnRow.getRowArray());
+        BitSet doubleFields = DerbyBytesUtil.getDoubleFields(defnRow.getRowArray());
+        return RowEncoder.createEntryEncoder(defnRow.nColumns(),keyColumns,null,null,keyType,scalarFields,floatFields,doubleFields);
     }
 
     @Override

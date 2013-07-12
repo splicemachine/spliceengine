@@ -67,7 +67,17 @@ public class AllFullBitIndex implements BitIndex {
     }
 
     @Override
-    public boolean isLengthDelimited(int position) {
+    public boolean isScalarType(int position) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isDoubleType(int position) {
+        return false;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public boolean isFloatType(int position) {
+        return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 }

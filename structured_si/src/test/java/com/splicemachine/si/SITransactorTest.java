@@ -163,7 +163,7 @@ public class SITransactorTest extends SIConstants {
                 }
                 final BitSet bitSet = new BitSet();
                 bitSet.set(columnIndex);
-                final EntryEncoder entryEncoder = EntryEncoder.create(2, bitSet,null);
+                final EntryEncoder entryEncoder = EntryEncoder.create(2, bitSet,null,null,null);
                 if (columnIndex == 0) {
                     entryEncoder.getEntryEncoder().encodeNext((Integer) fieldValue);
                 } else {

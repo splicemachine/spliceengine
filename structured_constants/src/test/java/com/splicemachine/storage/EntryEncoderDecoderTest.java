@@ -15,7 +15,7 @@ public class EntryEncoderDecoderTest {
 
     @Test
     public void testGetData() throws Exception {
-        EntryEncoder encoder = EntryEncoder.create(2, null, null);
+        EntryEncoder encoder = EntryEncoder.create(2, null, null,null,null);
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.encodeNext(1);
@@ -31,7 +31,7 @@ public class EntryEncoderDecoderTest {
 
     @Test
     public void testGetDataWithNull() throws Exception {
-        EntryEncoder encoder = EntryEncoder.create(3, null,null);
+        EntryEncoder encoder = EntryEncoder.create(3, null,null,null,null);
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.encodeNext(1);
@@ -49,7 +49,7 @@ public class EntryEncoderDecoderTest {
 
     @Test
     public void testGetDataWithHeadNull() throws Exception {
-        EntryEncoder encoder = EntryEncoder.create(3, null,null);
+        EntryEncoder encoder = EntryEncoder.create(3, null,null,null,null);
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.setRawBytes(null);
@@ -67,7 +67,7 @@ public class EntryEncoderDecoderTest {
 
     @Test
     public void testGetDataWithTailNull() throws Exception {
-        EntryEncoder encoder = EntryEncoder.create(3, null,null);
+        EntryEncoder encoder = EntryEncoder.create(3, null,null,null,null);
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.encodeNext(1);

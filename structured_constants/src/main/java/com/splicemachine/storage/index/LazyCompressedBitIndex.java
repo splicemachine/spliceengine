@@ -7,9 +7,8 @@ package com.splicemachine.storage.index;
  * Created on: 7/8/13
  */
 class LazyCompressedBitIndex extends LazyBitIndex{
-    private int setBitPos=0;
+    private int lastSetPos=0;
 
-    private boolean extraZero=false;
     protected LazyCompressedBitIndex(byte[] encodedBitMap,
                                      int offset, int length) {
         super(encodedBitMap, offset, length,5);
@@ -18,56 +17,51 @@ class LazyCompressedBitIndex extends LazyBitIndex{
     @Override
     protected int decodeNext() {
         if(!bitReader.hasNext()) return -1;
-        if(bitReader.next()==0){
+        int next = bitReader.next();
+        if(next==0){
+            //reading a sequence of unset values
             int numZeros = DeltaCoding.decode(bitReader);
-            if(numZeros<0) return -1;
-            setBitPos+=numZeros;
-            if(extraZero){
-                setBitPos--;
-                extraZero=false;
-            }
-            //next block is a block of 1s, which has to be decoded to make sure
-            //that we can set the length delimiter appropriately
-            if(!bitReader.hasNext()){
-                //assume the last position is zero, so we're good
-                return setBitPos;
-            }
+            if(numZeros<0)
+                return numZeros;
 
-            bitReader.next(); //skip the one separator
-            int numOnes = DeltaCoding.decode(bitReader);
-            if(numOnes<0) {
-                //assume the last position is zero, so this isn't a length-delimited field
-                return setBitPos;
-            }
-            return decodeAndSetOnes(numOnes);
-        }else{
-            int numOnes = DeltaCoding.decode(bitReader);
-            if(numOnes<0) return -1;
-            return decodeAndSetOnes(numOnes);
+            lastSetPos+=numZeros;
+            if(!bitReader.hasNext()) return -1;
+            bitReader.next(); //next field is a 1, so ignore it
         }
-    }
 
-    @Override
-    public boolean isLengthDelimited(int position) {
-        throw new UnsupportedOperationException();
-    }
+        if(!bitReader.hasNext())
+            return -1;
+        int pos = lastSetPos;
+        //get the type from the next two bits
 
-    private int decodeAndSetOnes(int numOnes){
-        int bitsToSet;
-        int lengthFields;
-        if(numOnes%2==0){
-            bitsToSet = numOnes/2;
-            lengthFields = bitsToSet;
+        if(bitReader.next()!=0){
+            //either a float or a scalar
+            if(bitReader.next()!=0){
+                //scalar type
+                int numScalars = DeltaCoding.decode(bitReader);
+                decodedBits.set(lastSetPos,lastSetPos+numScalars);
+                decodedScalarFields.set(lastSetPos,lastSetPos+numScalars);
+                lastSetPos+=numScalars;
+            }else{
+                //float type
+                int count = DeltaCoding.decode(bitReader);
+                decodedBits.set(lastSetPos,lastSetPos+count);
+                decodedFloatFields.set(lastSetPos,lastSetPos+count);
+                lastSetPos+=count;
+            }
         }else{
-            bitsToSet = (numOnes-1)/2+1;
-            lengthFields = numOnes/2;
-            extraZero=true;
+            if(bitReader.next()!=0){
+                int numDoubles = DeltaCoding.decode(bitReader);
+                decodedBits.set(lastSetPos,lastSetPos+numDoubles);
+                decodedDoubleFields.set(lastSetPos,lastSetPos+numDoubles);
+                lastSetPos+=numDoubles;
+            }else{
+                int numUntyped = DeltaCoding.decode(bitReader);
+                decodedBits.set(lastSetPos,lastSetPos+numUntyped);
+                lastSetPos+=numUntyped;
+            }
         }
-        decodedBits.set(setBitPos,setBitPos+bitsToSet);
-        decodedLengthDelimitedFields.set(setBitPos,setBitPos+lengthFields);
-        int bitPos = setBitPos;
-        setBitPos+=bitsToSet;
-
-        return bitPos;
+        return pos;
     }
+
 }

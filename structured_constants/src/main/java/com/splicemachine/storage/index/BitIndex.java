@@ -69,5 +69,9 @@ public interface BitIndex {
 
     boolean isEmpty();
 
-    boolean isLengthDelimited(int position);
+    boolean isScalarType(int position);
+
+    boolean isDoubleType(int position);
+
+    boolean isFloatType(int position);
 }

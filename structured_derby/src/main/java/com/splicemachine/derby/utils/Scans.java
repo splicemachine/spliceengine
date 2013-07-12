@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils;
 
 import java.io.IOException;
+import java.util.BitSet;
 import java.util.Comparator;
 import java.util.List;
 
@@ -8,6 +9,8 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.ClientTransactor;
+import com.splicemachine.storage.*;
+import com.splicemachine.utils.ByteDataOutput;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.Qualifier;
@@ -222,7 +225,114 @@ public class Scans extends SpliceUtils {
 		return scan;
 	}
 
-	/**
+    public static void buildPredicateFilter(DataValueDescriptor[] startKeyValue,
+                                            int startSearchOperator,
+                                            Qualifier[][] qualifiers,
+                                            FormatableBitSet scanColumnList, Scan scan) throws StandardException, IOException {
+        EntryPredicateFilter pqf = getPredicates(startKeyValue,startSearchOperator,qualifiers,scanColumnList);
+        ByteDataOutput bao  = new ByteDataOutput();
+        bao.writeObject(pqf);
+        scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bao.toByteArray());
+    }
+
+    private static EntryPredicateFilter getPredicates(DataValueDescriptor[] startKeyValue,
+                                                      int startSearchOperator,
+                                                      Qualifier[][] qualifiers,
+                                                      FormatableBitSet scanColumnList) throws StandardException {
+        List<Predicate> predicates;
+        BitSet colsToReturn = new BitSet();
+        if(qualifiers!=null){
+            predicates = getQualifierPredicates(qualifiers);
+            for(Qualifier[] qualifierList:qualifiers){
+                for(Qualifier qualifier:qualifierList){
+                    colsToReturn.set(qualifier.getColumnId()); //make sure that that column is returned
+                }
+            }
+        }else
+            predicates = Lists.newArrayListWithCapacity(1);
+
+        if(scanColumnList!=null){
+            for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
+                colsToReturn.set(i);
+            }
+        }else{
+            colsToReturn.clear(); //we want everything
+        }
+
+        if(startKeyValue!=null && startSearchOperator != ScanController.GT){
+            Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
+            if(indexPredicate!=null)
+                predicates.add(indexPredicate);
+        }
+
+
+        return new EntryPredicateFilter(colsToReturn,predicates);
+    }
+
+    private static List<Predicate> getQualifierPredicates(Qualifier[][] qualifiers) throws StandardException {
+        /*
+         * Qualifiers are set up as follows:
+         *
+         * 1. qualifiers[0] is a list of AND clauses which MUST be satisfied
+         * 2. [qualifiers[1]:] is a collection of OR clauses, of which at least one from each list must
+         * be satisfied. E.g. for an i in [1:qualifiers.length], qualifiers[i] is a collection of OR clauses,
+         * but ALL the OR-clause collections are bound together using an AND clause.
+         */
+        List<Predicate> andPreds = Lists.newArrayListWithExpectedSize(qualifiers[0].length);
+        for(Qualifier andQual:qualifiers[0]){
+            andPreds.add(getPredicate(andQual));
+        }
+
+        Predicate firstAndPredicate = new AndPredicate(andPreds);
+
+        List<Predicate> andedOrPreds = Lists.newArrayList();
+        for(int i=1;i<qualifiers.length;i++){
+            Qualifier[] orQuals = qualifiers[i];
+            List<Predicate> orPreds = Lists.newArrayListWithCapacity(orQuals.length);
+            for(Qualifier orQual:orQuals){
+                orPreds.add(getPredicate(orQual));
+            }
+            andedOrPreds.add(new OrPredicate(orPreds));
+        }
+        if(andedOrPreds.size()>0){
+            Predicate secondAndPredicate = new AndPredicate(andedOrPreds);
+            return Lists.newArrayList(firstAndPredicate,secondAndPredicate);
+        }else
+            return Lists.newArrayList(firstAndPredicate);
+    }
+
+    private static Predicate getPredicate(Qualifier qualifier) throws StandardException {
+        DataValueDescriptor dvd = qualifier.getOrderable();
+        if(dvd==null||dvd.isNull()||dvd.isNullOp().getBoolean()){
+            boolean filterIfMissing = qualifier.negateCompareResult();
+            boolean isNullvalue = dvd==null||dvd.isNull();
+            boolean isOrderedNulls = qualifier.getOrderedNulls();
+            boolean isNullNumericalComparison = (isNullvalue && !isOrderedNulls);
+            //TODO -sf- this is not likely fully correct
+            return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId());
+        }else{
+            byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
+            return new ValuePredicate(getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),
+                    qualifier.getColumnId(),
+                                bytes,true);
+        }
+    }
+
+    public static Predicate generateIndexPredicate(DataValueDescriptor[] descriptors, int compareOp) throws StandardException {
+        List<Predicate> predicates = Lists.newArrayListWithCapacity(descriptors.length);
+        for(int i=0;i<descriptors.length;i++){
+            DataValueDescriptor dvd = descriptors[i];
+            if(dvd!=null &&!dvd.isNull()){
+                byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
+                if(bytes.length>0){
+                    predicates.add(new ValuePredicate(getCompareOp(compareOp,false),i,bytes,true));
+                }
+            }
+        }
+        return new AndPredicate(predicates);
+    }
+
+    /**
 	 * Builds a key filter based on {@code startKeyValue}, {@code startSearchOperator}, and {@code qualifiers}.
 	 *
 	 * There are two separate filters that need to be constructed:

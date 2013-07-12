@@ -94,7 +94,7 @@ public class MultiFieldDecoder {
         }
 
         float next = Encoding.decodeFloat(data,currentOffset,desc);
-        adjustOffset(5);
+        currentOffset+=5;
         return next;
     }
 
