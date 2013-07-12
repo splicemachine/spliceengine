@@ -503,6 +503,23 @@ public class DerbyBytesUtil {
         return bitSet;
     }
 
+    public static boolean isScalarType(DataValueDescriptor dvd) {
+        if(dvd==null) return false;
+        Format format = Format.formatFor(dvd);
+        Serializer serializer = serializationMap.get(format);
+        return serializer.isScalarType();
+    }
+
+    public static boolean isFloatType(DataValueDescriptor dvd){
+        if(dvd==null) return false;
+        return Format.formatFor(dvd)==Format.REAL;
+    }
+
+    public static boolean isDoubleType(DataValueDescriptor dvd){
+        if(dvd==null) return false;
+        return Format.formatFor(dvd)==Format.DOUBLE;
+    }
+
     private enum Format{
         BOOLEAN(StoredFormatIds.SQL_BOOLEAN_ID),
         TINYINT(StoredFormatIds.SQL_TINYINT_ID),

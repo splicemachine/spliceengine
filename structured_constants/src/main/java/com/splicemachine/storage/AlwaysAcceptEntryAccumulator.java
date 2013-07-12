@@ -1,6 +1,7 @@
 package com.splicemachine.storage;
 
-import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.BitIndexing;
 
 import java.nio.ByteBuffer;
 import java.util.BitSet;
@@ -16,9 +17,19 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
 
     private boolean completed;
 
-    AlwaysAcceptEntryAccumulator() {
+    private boolean returnIndex;
+    private BitSet scalarFields = new BitSet();
+    private BitSet floatFields = new BitSet();
+    private BitSet doubleFields = new BitSet();
+
+    AlwaysAcceptEntryAccumulator(){
+        this(false);
+    }
+
+    AlwaysAcceptEntryAccumulator(boolean returnIndex) {
         this.occupiedFields = new BitSet();
         this.completed = false;
+        this.returnIndex = returnIndex;
     }
 
     @Override
@@ -28,6 +39,24 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
         growFields(position); //make sure we're big enough
         fields[position] = buffer;
         occupiedFields.set(position);
+    }
+
+    @Override
+    public void addScalar(int position, ByteBuffer buffer) {
+        add(position,buffer);
+        scalarFields.set(position);
+    }
+
+    @Override
+    public void addFloat(int position, ByteBuffer buffer) {
+        add(position,buffer);
+        floatFields.set(position);
+    }
+
+    @Override
+    public void addDouble(int position, ByteBuffer buffer) {
+        add(position,buffer);
+        doubleFields.set(position);
     }
 
     public void complete(){
@@ -85,6 +114,26 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
 
     @Override
     public byte[] finish() {
+        if(returnIndex){
+            BitSet setFields = new BitSet(fields.length);
+            for(int i=0;i<fields.length;i++){
+                if(fields[i]!=null)
+                    setFields.set(i);
+            }
+            BitIndex index = BitIndexing.getBestIndex(setFields,scalarFields,floatFields,doubleFields);
+            byte[] indexBytes = index.encode();
+
+            byte[] dataBytes = getDataBytes();
+
+            byte[] finalBytes = new byte[indexBytes.length+dataBytes.length+1];
+            System.arraycopy(indexBytes,0,finalBytes,0,indexBytes.length);
+            System.arraycopy(dataBytes,0,finalBytes,indexBytes.length+1,finalBytes.length);
+            return finalBytes;
+        }
+        return getDataBytes();
+    }
+
+    private byte[] getDataBytes() {
         int size=0;
         boolean isFirst=true;
         for(int i=0;i<fields.length;i++){

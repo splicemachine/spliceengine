@@ -1,5 +1,8 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.BitIndexing;
+
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 
@@ -12,11 +15,26 @@ public class SparseEntryAccumulator implements EntryAccumulator {
     private BitSet allFields;
 
     public ByteBuffer[] fields;
+    private final boolean returnIndex;
+    private BitSet scalarFields;
+    private BitSet floatFields;
+    private BitSet doubleFields;
 
     public SparseEntryAccumulator(BitSet remainingFields) {
         this.allFields = remainingFields;
         this.remainingFields = (BitSet)remainingFields.clone();
         fields = new ByteBuffer[remainingFields.length()];
+        this.returnIndex = false;
+    }
+
+    public SparseEntryAccumulator(BitSet remainingFields,boolean returnIndex) {
+        this.allFields = remainingFields;
+        this.remainingFields = (BitSet)remainingFields.clone();
+        fields = new ByteBuffer[remainingFields.length()];
+        this.returnIndex = returnIndex;
+        this.scalarFields = new BitSet();
+        this.floatFields = new BitSet();
+        this.doubleFields = new BitSet();
     }
 
     @Override
@@ -29,12 +47,48 @@ public class SparseEntryAccumulator implements EntryAccumulator {
     }
 
     @Override
+    public void addScalar(int position, ByteBuffer buffer) {
+        add(position,buffer);
+        if(returnIndex)
+            scalarFields.set(position);
+    }
+
+    @Override
+    public void addFloat(int position, ByteBuffer buffer) {
+        add(position,buffer);
+        if(returnIndex)
+            floatFields.set(position);
+    }
+
+    @Override
+    public void addDouble(int position, ByteBuffer buffer) {
+        add(position,buffer);
+        if(returnIndex)
+            doubleFields.set(position);
+    }
+
+    @Override
     public BitSet getRemainingFields(){
         return remainingFields;
     }
 
     @Override
     public byte[] finish(){
+        if(returnIndex){
+            BitIndex index = BitIndexing.getBestIndex(allFields,scalarFields,floatFields,doubleFields);
+            byte[] indexBytes = index.encode();
+
+            byte[] dataBytes = getDataBytes();
+
+            byte[] finalBytes = new byte[indexBytes.length+dataBytes.length+1];
+            System.arraycopy(indexBytes,0,finalBytes,0,indexBytes.length);
+            System.arraycopy(dataBytes,0,finalBytes,indexBytes.length+1,finalBytes.length);
+            return finalBytes;
+        }
+        return getDataBytes();
+    }
+
+    private byte[] getDataBytes() {
         int size=0;
         boolean isFirst=true;
         for(int i=allFields.nextSetBit(0);i>=0;i=allFields.nextSetBit(i+1)){

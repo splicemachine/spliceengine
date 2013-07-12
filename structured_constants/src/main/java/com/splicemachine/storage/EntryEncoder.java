@@ -82,7 +82,7 @@ public class EntryEncoder {
             }
         }
         if(differs){
-            bitIndex = getBitIndex(newIndex,newScalarFields,newFloatFields,newDoubleFields);
+            bitIndex = BitIndexing.getBestIndex(newIndex, newScalarFields, newFloatFields, newDoubleFields);
         }
 
         if(oldCardinality==bitIndex.cardinality())
@@ -92,37 +92,15 @@ public class EntryEncoder {
     }
 
     public static EntryEncoder create(int numCols, BitSet setCols,BitSet scalarFields,BitSet floatFields,BitSet doubleFields){
-        //TODO -sf- enable ALL Full indices
-//        if(setCols==null||setCols.cardinality()==numCols){
-//            /*
-//             * This is a special case where we are writing *every* column. In this case, we just
-//             * set an indicator flag that tells us to not bother reading the index, because everything
-//             * is there.
-//             */
-//            return new EntryEncoder(numCols,new AllFullBitIndex());
-//        }else{
-
-            BitIndex indexToUse = getBitIndex(setCols,scalarFields,floatFields,doubleFields);
-            return new EntryEncoder(indexToUse);
-//        }
+        //TODO -sf- return all full stuff as well
+        BitIndex indexToUse = BitIndexing.getBestIndex(setCols, scalarFields, floatFields, doubleFields);
+        return new EntryEncoder(indexToUse);
     }
 
-    private static BitIndex getBitIndex(BitSet setCols,BitSet scalarFields,BitSet floatFields, BitSet doubleFields) {
-        if(scalarFields==null)scalarFields = new BitSet(); //default to no length-delimited fields
-        if(floatFields==null)floatFields = new BitSet();
-        if(doubleFields==null)doubleFields= new BitSet();
-        BitIndex indexToUse = BitIndexing.uncompressedBitMap(setCols,scalarFields,floatFields,doubleFields);
-        //see if we can improve space via compression
-        BitIndex denseCompressedBitIndex = BitIndexing.compressedBitMap(setCols,scalarFields,floatFields,doubleFields);
-        if(denseCompressedBitIndex.encodedSize() < indexToUse.encodedSize()){
-            indexToUse = denseCompressedBitIndex;
-        }
-        //see if sparse is better
-        BitIndex sparseBitMap = BitIndexing.sparseBitMap(setCols,scalarFields,floatFields,doubleFields);
-        if(sparseBitMap.encodedSize()<indexToUse.encodedSize()){
-            indexToUse = sparseBitMap;
-        }
-        return indexToUse;
+    public static EntryEncoder create(BitIndex newIndex){
+        return new EntryEncoder(newIndex);
     }
+
+
 }
 

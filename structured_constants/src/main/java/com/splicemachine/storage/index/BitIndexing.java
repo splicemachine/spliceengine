@@ -162,6 +162,24 @@ public class BitIndexing {
         return new LazyCompressedBitIndex(bytes,indexOffset,indexSize);
     }
 
+    public static BitIndex getBestIndex(BitSet setCols,BitSet scalarFields,BitSet floatFields, BitSet doubleFields) {
+            if(scalarFields==null)scalarFields = new BitSet(); //default to no length-delimited fields
+            if(floatFields==null)floatFields = new BitSet();
+            if(doubleFields==null)doubleFields= new BitSet();
+            BitIndex indexToUse = BitIndexing.uncompressedBitMap(setCols,scalarFields,floatFields,doubleFields);
+            //see if we can improve space via compression
+            BitIndex denseCompressedBitIndex = BitIndexing.compressedBitMap(setCols,scalarFields,floatFields,doubleFields);
+            if(denseCompressedBitIndex.encodedSize() < indexToUse.encodedSize()){
+                indexToUse = denseCompressedBitIndex;
+            }
+            //see if sparse is better
+            BitIndex sparseBitMap = BitIndexing.sparseBitMap(setCols,scalarFields,floatFields,doubleFields);
+            if(sparseBitMap.encodedSize()<indexToUse.encodedSize()){
+                indexToUse = sparseBitMap;
+            }
+            return indexToUse;
+    }
+
     public static void main(String...args) throws Exception{
         BitSet t = new BitSet(30);
         t.set(1);

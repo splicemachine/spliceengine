@@ -258,6 +258,16 @@ public class MultiFieldEncoder {
         return this;
     }
 
+    public MultiFieldEncoder setRawBytes(byte[] value, int offset, int length){
+        assert currentPos < numFields;
+        byte[] copy = new byte[length];
+        System.arraycopy(value,offset,copy,0,length);
+        fields[currentPos] = copy;
+        currentPos++;
+        currentSize+=length;
+        return this;
+    }
+
     public MultiFieldEncoder setRawBuffer(ByteBuffer buffer){
         assert currentPos < numFields;
         byte[] bytes;

@@ -318,4 +318,8 @@ public class MultiFieldDecoder {
     public byte[] array() {
         return data;
     }
+
+    public boolean available() {
+        return currentOffset<data.length;
+    }
 }

@@ -17,9 +17,10 @@ import java.util.List;
  * Created on: 7/8/13
  */
 public class EntryPredicateFilter implements Externalizable{
-    private static final long serialVersionUID = 1l;
+    private static final long serialVersionUID = 2l;
     private BitSet fieldsToReturn;
     private List<Predicate> valuePredicates;
+    private boolean returnIndex;
 
     /**
      * Used for Serialization, DO NOT USE
@@ -30,6 +31,13 @@ public class EntryPredicateFilter implements Externalizable{
     public EntryPredicateFilter(BitSet fieldsToReturn, List<Predicate> predicates){
         this.fieldsToReturn = fieldsToReturn;
         this.valuePredicates = predicates;
+        this.returnIndex=false;
+    }
+
+    public EntryPredicateFilter(BitSet fieldsToReturn, List<Predicate> predicates,boolean returnIndex){
+        this.fieldsToReturn = fieldsToReturn;
+        this.valuePredicates = predicates;
+        this.returnIndex=returnIndex;
     }
 
     public boolean match(EntryDecoder entry,EntryAccumulator accumulator) throws IOException {
@@ -41,7 +49,7 @@ public class EntryPredicateFilter implements Externalizable{
             encodedPos>=0&&encodedPos<=remainingFields.length();
             encodedPos=encodedIndex.nextSetBit(encodedPos+1)){
             if(!remainingFields.get(encodedPos)){
-                seekForward(encodedIndex,decoder,encodedPos,decoder.offset());
+                entry.seekForward(decoder,encodedPos);
                 continue;
             }
 
@@ -63,7 +71,7 @@ public class EntryPredicateFilter implements Externalizable{
                     ((AlwaysAcceptEntryAccumulator)accumulator).complete();
                 return true;
             }
-            seekForward(encodedIndex, decoder, encodedPos, offset);
+            entry.seekForward(decoder, encodedPos);
 
 
             int limit = decoder.offset()-1-offset;
@@ -80,25 +88,7 @@ public class EntryPredicateFilter implements Externalizable{
         return true;
     }
 
-    private void seekForward(BitIndex encodedIndex, MultiFieldDecoder decoder, int encodedPos, int offset) {
-    /*
-     * Certain fields may contain zeros--in particular, scalar, float, and double types. We need
-     * to skip past those zeros without treating them as delimiters. Since we have that information
-     * in the index, we can simply decode and throw away the proper type to adjust the offset properly.
-     * However, in some cases it's more efficient to skip the count directly, since we may know the
-     * byte size already.
-     */
-        if(encodedIndex.isScalarType(encodedPos)){
-            decoder.decodeNextLong(); //don't need the value, just need to seek past it
-        }else if(encodedIndex.isFloatType(encodedPos)){
-            //floats are always 4 bytes, so skip the after delimiter
-            decoder.seek(offset + 5);
-        }else if(encodedIndex.isDoubleType(encodedPos)){
-            //doubles are always 8 bytes, so skip the after delimiter as well
-            decoder.seek(offset + 9);
-        }else
-            decoder.skip();
-    }
+
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
@@ -121,8 +111,8 @@ public class EntryPredicateFilter implements Externalizable{
 
     public EntryAccumulator newAccumulator(){
         if(fieldsToReturn.isEmpty())
-            return new AlwaysAcceptEntryAccumulator();
+            return new AlwaysAcceptEntryAccumulator(returnIndex);
         else
-            return new SparseEntryAccumulator(fieldsToReturn);
+            return new SparseEntryAccumulator(fieldsToReturn,returnIndex);
     }
 }

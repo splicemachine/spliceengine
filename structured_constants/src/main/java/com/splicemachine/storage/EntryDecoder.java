@@ -113,5 +113,23 @@ public class EntryDecoder {
     }
 
 
-
+    public void seekForward(MultiFieldDecoder decoder,int position) {
+    /*
+     * Certain fields may contain zeros--in particular, scalar, float, and double types. We need
+     * to skip past those zeros without treating them as delimiters. Since we have that information
+     * in the index, we can simply decode and throw away the proper type to adjust the offset properly.
+     * However, in some cases it's more efficient to skip the count directly, since we may know the
+     * byte size already.
+     */
+        if(bitIndex.isScalarType(position)){
+            decoder.decodeNextLong(); //don't need the value, just need to seek past it
+        }else if(bitIndex.isFloatType(position)){
+            //floats are always 4 bytes, so skip the after delimiter
+            decoder.seek(decoder.offset() + 5);
+        }else if(bitIndex.isDoubleType(position)){
+            //doubles are always 8 bytes, so skip the after delimiter as well
+            decoder.seek(decoder.offset()+ 9);
+        }else
+            decoder.skip();
+    }
 }

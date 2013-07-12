@@ -10,6 +10,12 @@ import java.util.BitSet;
 public interface EntryAccumulator {
     void add(int position, ByteBuffer buffer);
 
+    void addScalar(int position, ByteBuffer buffer);
+
+    void addFloat(int position, ByteBuffer buffer);
+
+    void addDouble(int position, ByteBuffer buffer);
+
     BitSet getRemainingFields();
 
     byte[] finish();
