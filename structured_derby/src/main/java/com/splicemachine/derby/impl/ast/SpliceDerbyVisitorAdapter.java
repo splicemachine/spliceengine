@@ -1,10 +1,16 @@
 package com.splicemachine.derby.impl.ast;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.ASTVisitor;
 import org.apache.derby.iapi.sql.compile.Visitable;
-import org.apache.derby.impl.sql.compile.ResultSetNode;
 import org.apache.log4j.Logger;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 /**
  * User: pjt
@@ -15,7 +21,33 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
 
     ISpliceVisitor v;
 
-    public SpliceDerbyVisitorAdapter(ISpliceVisitor v){
+    // Method lookup
+    private static Cache<Class, Method> methods = CacheBuilder.newBuilder().build();
+
+    private static Visitable invokeVisit(ISpliceVisitor visitor, Visitable node) {
+        final Class<? extends Visitable> nClass = node.getClass();
+        try {
+            Method m = methods.get(nClass, new Callable<Method>() {
+                @Override
+                public Method call() throws Exception {
+                    Method m = ISpliceVisitor.class.getMethod("visit", new Class[]{nClass});
+                    m.setAccessible(true);
+                    return m;
+                }
+            });
+            return (Visitable) m.invoke(visitor, node);
+
+        } catch (ExecutionException e) {
+            throw new RuntimeException(String.format("Problem finding ISpliceVisitor visit method for %s", nClass), e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(String.format("Problem invoking ISpliceVisitor visit method for %s", nClass), e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(String.format("Problem invoking ISpliceVisitor visit method for %s", nClass), e);
+        }
+    }
+
+
+    public SpliceDerbyVisitorAdapter(ISpliceVisitor v) {
         this.v = v;
     }
 
@@ -38,10 +70,7 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
 
     @Override
     public Visitable visit(Visitable node) throws StandardException {
-        if (node instanceof ResultSetNode){
-            return v.visit((ResultSetNode) node);
-        }
-        return v.visit(node);
+        return invokeVisit(v, node);
     }
 
     @Override
