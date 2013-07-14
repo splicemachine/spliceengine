@@ -43,6 +43,7 @@ public class SparseEntryAccumulator implements EntryAccumulator {
             return; //already populated that field
 
         fields[position] = buffer;
+        buffer.mark(); //assume that we are adding the buffer at the correct position
         remainingFields.clear(position);
     }
 
@@ -91,13 +92,13 @@ public class SparseEntryAccumulator implements EntryAccumulator {
     private byte[] getDataBytes() {
         int size=0;
         boolean isFirst=true;
-        for(int i=allFields.nextSetBit(0);i>=0;i=allFields.nextSetBit(i+1)){
+        for(ByteBuffer buffer:fields){
             if(isFirst)isFirst=false;
             else
                 size++;
 
-            ByteBuffer buffer = fields[i];
             if(buffer!=null){
+                buffer.reset();
                 size+=buffer.remaining();
             }
         }
@@ -105,12 +106,11 @@ public class SparseEntryAccumulator implements EntryAccumulator {
         byte[] bytes = new byte[size];
         int offset=0;
         isFirst=true;
-        for(int i=allFields.nextSetBit(0);i>=0;i=allFields.nextSetBit(i+1)){
+        for(ByteBuffer buffer:fields){
             if(isFirst)isFirst=false;
             else
                 offset++;
 
-            ByteBuffer buffer = fields[i];
             if(buffer!=null){
                 int newOffset = offset+buffer.remaining();
                 buffer.get(bytes,offset,buffer.remaining());
@@ -123,6 +123,9 @@ public class SparseEntryAccumulator implements EntryAccumulator {
     @Override
     public void reset(){
         remainingFields = (BitSet)allFields.clone();
+        for(int i=0;i<fields.length;i++){
+            fields[i] = null;
+        }
     }
 
     @Override

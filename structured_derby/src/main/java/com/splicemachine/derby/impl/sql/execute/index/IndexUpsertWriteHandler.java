@@ -89,11 +89,11 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 if(indexedColumns.get(i)){
                     ByteBuffer entry = newPutDecoder.nextAsBuffer(mutationDecoder, i);
                     accumulate(newKeyAccumulator,mutationIndex,entry,i);
-                    accumulate(newRowAccumulator,mutationIndex,entry,i);
+                    accumulate(newRowAccumulator,mutationIndex,entry.duplicate(),i);
                 }
             }
 
-            //add the row to the end of the index row
+            //add the row to the end of the index rob
             newRowAccumulator.add(indexedColumns.length(), ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
             byte[] indexRowKey = getIndexRowKey(newKeyAccumulator);
             Put indexPut = Mutations.translateToPut(mutation,indexRowKey);
