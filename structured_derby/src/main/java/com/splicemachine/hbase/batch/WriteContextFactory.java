@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.batch;
 
 import java.io.IOException;
+import java.util.BitSet;
 
 /**
  * @author Scott Fines
@@ -21,5 +22,5 @@ public interface WriteContextFactory<T> {
 
     void dropIndex(long indexConglomId);
 
-    void addIndex(long indexConglomId, int[] indexColsToBaseColMap, boolean unique);
+    void addIndex(long indexConglomId, BitSet indexedColumns, int[] mainColToIndexPosMap, boolean unique);
 }

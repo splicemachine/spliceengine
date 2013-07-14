@@ -8,6 +8,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
 
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Map;
 
@@ -20,27 +21,38 @@ public class CreateIndexJob implements CoprocessorJob{
     private final String transactionId;
     private final long indexConglomId;
     private final long baseConglomId;
-    private final int[] indexColsToBaseColMap;
+    private final int[] mainColToIndexPosMap;
+    private final BitSet indexedColumns;
     private final boolean isUnique;
 
     public CreateIndexJob(HTableInterface table,
                           String transactionId,
                           long indexConglomId,
                           long baseConglomId,
-                          int[] indexColsToBaseColMap,
+                          int[] indexColToMainColPosMap,
                           boolean unique) {
         this.table = table;
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
         this.baseConglomId = baseConglomId;
-        this.indexColsToBaseColMap = indexColsToBaseColMap;
         isUnique = unique;
+
+
+        this.indexedColumns = new BitSet();
+        for(int indexCol:indexColToMainColPosMap){
+            indexedColumns.set(indexCol-1);
+        }
+        this.mainColToIndexPosMap = new int[indexedColumns.length()];
+        for(int indexCol=0;indexCol<indexColToMainColPosMap.length;indexCol++){
+            int mainCol = indexColToMainColPosMap[indexCol];
+            mainColToIndexPosMap[mainCol-1] = indexCol;
+        }
     }
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
         CreateIndexTask task = new CreateIndexTask(transactionId,indexConglomId,
-                baseConglomId,indexColsToBaseColMap,isUnique,getJobId());
+                        baseConglomId, mainColToIndexPosMap, indexedColumns,isUnique,getJobId());
         return Collections.singletonMap(task,Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
     }
 

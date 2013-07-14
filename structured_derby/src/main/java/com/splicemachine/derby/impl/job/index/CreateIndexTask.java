@@ -8,10 +8,14 @@ import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.*;
 import com.splicemachine.hbase.batch.WriteContextFactory;
+import com.splicemachine.storage.*;
+import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.KeyValue;
@@ -28,6 +32,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
+import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -37,12 +43,14 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/5/13
  */
 public class CreateIndexTask extends ZkTask {
-    private static final long serialVersionUID = 2l;
+    private static final long serialVersionUID = 3l;
     private String transactionId;
     private long indexConglomId;
     private long baseConglomId;
-    private int[] indexColsToBaseColMap;
+    private int[] mainColToIndexPosMap;
     private boolean isUnique;
+    private BitSet indexedColumns;
+    private BitSet nonUniqueIndexColumns;
 
     private MultiFieldEncoder translateEncoder;
 
@@ -53,14 +61,16 @@ public class CreateIndexTask extends ZkTask {
     public CreateIndexTask(String transactionId,
                            long indexConglomId,
                            long baseConglomId,
-                           int[] indexColsToBaseColMap,
+                           int[] mainColToIndexPosMap,
+                           BitSet indexedColumns,
                            boolean unique,
                            String jobId ) {
         super(jobId, OperationJob.operationTaskPriority,transactionId,false);
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
         this.baseConglomId = baseConglomId;
-        this.indexColsToBaseColMap = indexColsToBaseColMap;
+        this.mainColToIndexPosMap = mainColToIndexPosMap;
+        this.indexedColumns = indexedColumns;
         isUnique = unique;
     }
 
@@ -81,7 +91,8 @@ public class CreateIndexTask extends ZkTask {
         out.writeUTF(transactionId);
         out.writeLong(indexConglomId);
         out.writeLong(baseConglomId);
-        ArrayUtil.writeIntArray(out, indexColsToBaseColMap);
+        out.writeObject(indexedColumns);
+        ArrayUtil.writeIntArray(out, mainColToIndexPosMap);
         out.writeBoolean(isUnique);
     }
 
@@ -91,7 +102,8 @@ public class CreateIndexTask extends ZkTask {
         transactionId = in.readUTF();
         indexConglomId = in.readLong();
         baseConglomId = in.readLong();
-        indexColsToBaseColMap = ArrayUtil.readIntArray(in);
+        indexedColumns = (BitSet)in.readObject();
+        mainColToIndexPosMap = ArrayUtil.readIntArray(in);
         isUnique = in.readBoolean();
     }
 
@@ -106,15 +118,17 @@ public class CreateIndexTask extends ZkTask {
         regionScan.setCaching(DEFAULT_CACHE_SIZE);
         regionScan.setStartRow(region.getStartKey());
         regionScan.setStopRow(region.getEndKey());
+        regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
+        regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
-        for(int mainTablePos:indexColsToBaseColMap){
-            regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, Encoding.encode(mainTablePos - 1));
-        }
+        nonUniqueIndexColumns = (BitSet)indexedColumns.clone();
+        nonUniqueIndexColumns.set(indexedColumns.length());
 
         try{
             //add index to table watcher
             WriteContextFactory contextFactory = WriteContextFactoryPool.getContextFactory(baseConglomId);
-            contextFactory.addIndex(indexConglomId, indexColsToBaseColMap, isUnique);
+            contextFactory.addIndex(indexConglomId, indexedColumns,mainColToIndexPosMap, isUnique);
             
             //backfill the index with previously committed data
             RegionScanner sourceScanner = region.getScanner(regionScan);
@@ -145,17 +159,12 @@ public class CreateIndexTask extends ZkTask {
                         }
                     });
 
-            List < KeyValue > nextRow = Lists.newArrayListWithExpectedSize(indexColsToBaseColMap.length);
-            //translate down to zero-indexed
-            int[] indexColMap = new int[indexColsToBaseColMap.length];
-            for(int pos=0;pos<indexColsToBaseColMap.length;pos++){
-                indexColMap[pos] = indexColsToBaseColMap[pos]-1;
-            }
+            List < KeyValue > nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
             boolean shouldContinue = true;
             while(shouldContinue){
                 nextRow.clear();
                 shouldContinue  = sourceScanner.next(nextRow);
-                List<Put> indexPuts = translateResult(nextRow,indexColMap);
+                List<Put> indexPuts = translateResult(nextRow);
 
                 writeBuffer.addAll(indexPuts);
             }
@@ -169,73 +178,61 @@ public class CreateIndexTask extends ZkTask {
         }
     }
 
-    private List<Put> translateResult(List<KeyValue> result,int[] indexColsToMainColMap) throws IOException{
-        Map<ByteBuffer, List<KeyValue>> putConstructors = bucketByRow(result, indexColsToMainColMap);
-        //build Puts for each row
-        List<Put> indexPuts = Lists.newArrayListWithExpectedSize(putConstructors.size());
-        int length = indexColsToMainColMap.length;
-        if(!isUnique)
-            length++;
-        if(translateEncoder==null)
-            translateEncoder = MultiFieldEncoder.create(length);
+    private List<Put> translateResult(List<KeyValue> result) throws IOException{
+        EntryAccumulator keyAccumulator;
+        if(isUnique)
+            keyAccumulator = new SparseEntryAccumulator(indexedColumns,false);
+        else
+            keyAccumulator = new SparseEntryAccumulator(nonUniqueIndexColumns,false);
 
-        for(ByteBuffer mainRowBuffer: putConstructors.keySet()){
-            List<KeyValue> rowData = putConstructors.get(mainRowBuffer);
-            translateEncoder.reset();
-            byte[][] indexData = getIndexData(indexColsToMainColMap, rowData);
-            for (byte[] anIndexData : indexData) {
-                translateEncoder.setRawBytes(anIndexData);
+        EntryAccumulator rowAccumulator = new SparseEntryAccumulator(nonUniqueIndexColumns,true);
+
+
+        EntryDecoder decoder = new EntryDecoder();
+        //we know that there is only one KeyValue for each row
+        List<Put> indexPuts = Lists.newArrayListWithExpectedSize(result.size());
+        for(KeyValue kv:result){
+            keyAccumulator.reset();
+            rowAccumulator.reset();
+
+            decoder.set(kv.getValue());
+
+            BitIndex mainTableIndex = decoder.getCurrentIndex();
+
+            MultiFieldDecoder fieldDecoder = decoder.getEntryDecoder();
+            for(int mainTableCol=mainTableIndex.nextSetBit(0);
+                mainTableCol>=0&&mainTableCol<=indexedColumns.length();
+                mainTableCol=mainTableIndex.nextSetBit(mainTableCol+1)){
+
+                if(indexedColumns.get(mainTableCol)){
+                    ByteBuffer buffer = decoder.nextAsBuffer(fieldDecoder,mainTableCol);
+                    accumulate(keyAccumulator,mainTableIndex,buffer,mainTableCol);
+                    accumulate(rowAccumulator,mainTableIndex,buffer,mainTableCol);
+                }
             }
+
             if(!isUnique){
-                translateEncoder.setRawBytes(SpliceUtils.getUniqueKey());
+                keyAccumulator.add(indexedColumns.length(),ByteBuffer.wrap(SpliceUtils.getUniqueKey()));
             }
+            byte[] finalIndexRow = keyAccumulator.finish();
+            Put put = SpliceUtils.createPut(finalIndexRow,transactionId);
 
-            byte[] finalIndexRow = translateEncoder.build();
+            rowAccumulator.add(indexedColumns.length(),ByteBuffer.wrap(kv.getRow()));
+            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,rowAccumulator.finish());
 
-            indexPuts.add(buildPut(mainRowBuffer,rowData,indexData,finalIndexRow));
+            indexPuts.add(put);
         }
-
         return indexPuts;
     }
 
-    private Put buildPut(ByteBuffer mainRowBuffer, List<KeyValue> rowData, byte[][] indexData, byte[] finalIndexRow) throws IOException {
-        Put indexPut = SpliceUtils.createPut(finalIndexRow, transactionId);
-        for(int dataPos=0;dataPos<indexData.length;dataPos++){
-            byte[] putPos = Encoding.encode(dataPos);
-            indexPut.add(DEFAULT_FAMILY_BYTES,putPos,indexData[dataPos]);
-        }
-
-        indexPut.add(DEFAULT_FAMILY_BYTES,
-                Encoding.encode(rowData.size()),mainRowBuffer.array());
-        return indexPut;
-    }
-
-    private byte[][] getIndexData(int[] indexColsToMainColMap, List<KeyValue> rowData) {
-        byte[][] indexData = new byte[indexColsToMainColMap.length][];
-        for(KeyValue kv:rowData){
-            int colPos = Encoding.decodeInt(kv.getQualifier());
-            for(int indexPos=0;indexPos<indexColsToMainColMap.length;indexPos++){
-                if(colPos==indexColsToMainColMap[indexPos]){
-                    byte[] val = kv.getValue();
-                    indexData[indexPos] = val;
-                    break;
-                }
-            }
-        }
-        return indexData;
-    }
-
-    private Map<ByteBuffer, List<KeyValue>> bucketByRow(List<KeyValue> result, int[] indexColsToMainColMap) {
-        Map<ByteBuffer,List<KeyValue>> putConstructors = Maps.newHashMapWithExpectedSize(1);
-        for(KeyValue keyValue:result){
-            ByteBuffer rowBuffer = ByteBuffer.wrap(keyValue.getRow());
-            List<KeyValue> cols = putConstructors.get(rowBuffer);
-            if(cols==null){
-                cols = Lists.newArrayListWithExpectedSize(indexColsToMainColMap.length);
-                putConstructors.put(rowBuffer,cols);
-            }
-            cols.add(keyValue);
-        }
-        return putConstructors;
+    protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, ByteBuffer newBuffer, int newPos) {
+        if(updateIndex.isScalarType(newPos))
+            newKeyAccumulator.addScalar(mainColToIndexPosMap[newPos],newBuffer);
+        else if(updateIndex.isFloatType(newPos))
+            newKeyAccumulator.addFloat(mainColToIndexPosMap[newPos],newBuffer);
+        else if(updateIndex.isDoubleType(newPos))
+            newKeyAccumulator.addDouble(mainColToIndexPosMap[newPos],newBuffer);
+        else
+            newKeyAccumulator.add(mainColToIndexPosMap[newPos],newBuffer);
     }
 }

@@ -124,11 +124,11 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     @Override
-    public void addIndex(long indexConglomId, int[] indexColsToBaseColMap, boolean unique) {
+    public void addIndex(long indexConglomId, BitSet indexedColumns,int[] mainColToIndexPosMap, boolean unique) {
         synchronized (tableWriteLatch){
             tableWriteLatch.reset();
             try{
-                indexFactories.add(IndexFactory.create(indexConglomId, indexColsToBaseColMap, unique));
+                indexFactories.add(new IndexFactory(indexConglomId, indexedColumns, mainColToIndexPosMap, unique));
             }finally{
                 tableWriteLatch.countDown();
             }

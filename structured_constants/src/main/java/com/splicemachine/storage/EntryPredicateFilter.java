@@ -3,6 +3,7 @@ package com.splicemachine.storage;
 import com.google.common.collect.Lists;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.ByteDataOutput;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -49,7 +50,7 @@ public class EntryPredicateFilter implements Externalizable{
             encodedPos>=0&&encodedPos<=remainingFields.length();
             encodedPos=encodedIndex.nextSetBit(encodedPos+1)){
             if(!remainingFields.get(encodedPos)){
-                entry.seekForward(decoder,encodedPos);
+                entry.seekForward(decoder, encodedPos);
                 continue;
             }
 
@@ -114,5 +115,15 @@ public class EntryPredicateFilter implements Externalizable{
             return new AlwaysAcceptEntryAccumulator(returnIndex);
         else
             return new SparseEntryAccumulator(fieldsToReturn,returnIndex);
+    }
+
+    public byte[] toBytes() {
+        ByteDataOutput bdo = new ByteDataOutput();
+        try{
+            bdo.writeObject(this);
+            return bdo.toByteArray();
+        }catch(IOException ioe){
+            throw new RuntimeException(ioe);
+        }
     }
 }
