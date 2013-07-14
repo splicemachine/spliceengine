@@ -5,6 +5,8 @@ import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.batch.WriteContext;
 import org.apache.hadoop.hbase.client.Mutation;
 
+import java.util.BitSet;
+
 /**
  * @author Scott Fines
  * Created on: 5/1/13
@@ -12,11 +14,8 @@ import org.apache.hadoop.hbase.client.Mutation;
 public class UniqueIndexDeleteWriteHandler extends IndexDeleteWriteHandler{
 
     private CallBuffer<Mutation> indexBuffer;
-    public UniqueIndexDeleteWriteHandler(int[] indexColsToMainColMap,
-                                         byte[][] mainColPos,
-                                         byte[] indexConglomBytes) {
-        super(indexColsToMainColMap, mainColPos, indexConglomBytes);
-
+    public UniqueIndexDeleteWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes) {
+        super(indexedColumns,mainColToIndexPosMap, indexConglomBytes);
     }
 
     @Override
@@ -37,10 +36,5 @@ public class UniqueIndexDeleteWriteHandler extends IndexDeleteWriteHandler{
             indexBuffer.flushBuffer();
             indexBuffer.close();
         }
-    }
-
-    @Override
-    protected MultiFieldEncoder getEncoder() {
-        return MultiFieldEncoder.create(indexColsToMainColMap.length);
     }
 }

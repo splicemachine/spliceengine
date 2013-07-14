@@ -2,18 +2,28 @@ package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
-import org.apache.hadoop.hbase.client.*;
+import com.splicemachine.storage.*;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.ByteDataOutput;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
+
 import java.io.IOException;
+import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
-import java.util.NavigableMap;
 
 /**
  * @author Scott Fines
@@ -22,12 +32,9 @@ import java.util.NavigableMap;
 public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     private final List<Mutation> deletes = Lists.newArrayListWithExpectedSize(0);
-    private MultiFieldEncoder encoder;
 
-    public IndexDeleteWriteHandler(int[] indexColsToMainColMap,
-                                   byte[][] mainColPos,
-                                   byte[] indexConglomBytes){
-        super(indexColsToMainColMap,mainColPos,indexConglomBytes);
+    public IndexDeleteWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes){
+        super(indexedColumns,mainColToIndexPosMap,indexConglomBytes);
 
 
     }
@@ -74,11 +81,12 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
          * delete request against the index.
          */
         try {
-            Get get = SpliceUtils.createGet(mutation, mutation.getRow());
 
-            for(byte[] mainColumn:mainColPos){
-                get.addColumn(DEFAULT_FAMILY_BYTES,mainColumn);
-            }
+            Get get = SpliceUtils.createGet(mutation, mutation.getRow());
+            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
+            ByteDataOutput bdo = new ByteDataOutput();
+            bdo.writeObject(predicateFilter);
+            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bdo.toByteArray());
 
             Result result = ctx.getRegion().get(get,null);
             if(result==null||result.isEmpty()){
@@ -87,8 +95,17 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
                 return;
             }
 
-            NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(DEFAULT_FAMILY_BYTES);
-            final byte[] indexRowKey = getDeleteKey(familyMap);
+            EntryDecoder getDecoder = new EntryDecoder();
+            getDecoder.set(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
+
+            EntryAccumulator indexKeyAccumulator = new SparseEntryAccumulator(indexedColumns,false);
+            BitIndex getIndex = getDecoder.getCurrentIndex();
+            MultiFieldDecoder fieldDecoder = getDecoder.getEntryDecoder();
+            for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
+                accumulate(indexKeyAccumulator,getIndex,getDecoder.nextAsBuffer(fieldDecoder,i),i);
+            }
+
+            byte[] indexRowKey = indexKeyAccumulator.finish();
 
             Mutation delete = Mutations.getDeleteOp(mutation,indexRowKey);
             indexToMainMutationMap.put(delete,mutation);
@@ -101,19 +118,6 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
             failed=true;
             ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
         }
-    }
-
-    private byte[] getDeleteKey(NavigableMap<byte[], byte[]> familyMap) {
-        if(encoder ==null)
-            encoder = getEncoder();
-        encoder.reset();
-        for(int indexPos=0;indexPos < indexColsToMainColMap.length;indexPos++){
-            byte[] mainPutPos = mainColPos[indexPos];
-            byte[] data = familyMap.get(mainPutPos);
-            encoder.setRawBytes(data);
-        }
-
-        return encoder.build();
     }
 
     protected void performDelete(final Mutation deleteOp, WriteContext ctx) throws Exception {

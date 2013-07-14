@@ -5,6 +5,7 @@ import com.splicemachine.storage.index.*;
 import org.xerial.snappy.Snappy;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
 
 /**
@@ -131,5 +132,12 @@ public class EntryDecoder {
             decoder.seek(decoder.offset()+ 9);
         }else
             decoder.skip();
+    }
+
+    public ByteBuffer nextAsBuffer(MultiFieldDecoder decoder,int position) {
+        int offset = decoder.offset();
+        seekForward(decoder,position);
+        int length = decoder.offset()-1-offset;
+        return ByteBuffer.wrap(decoder.array(),offset,length);
     }
 }

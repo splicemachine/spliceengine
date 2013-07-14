@@ -1,46 +1,28 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
-import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
-import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintHandler;
-import com.splicemachine.derby.impl.sql.execute.constraint.PrimaryKey;
-import com.splicemachine.derby.impl.sql.execute.constraint.UniqueConstraint;
-import com.splicemachine.derby.impl.sql.execute.index.IndexDeleteWriteHandler;
-import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
-import com.splicemachine.derby.impl.sql.execute.index.IndexUpsertWriteHandler;
-import com.splicemachine.derby.impl.sql.execute.index.UniqueIndexDeleteWriteHandler;
-import com.splicemachine.derby.impl.sql.execute.index.UniqueIndexUpsertWriteHandler;
+import com.splicemachine.derby.impl.sql.execute.constraint.*;
+import com.splicemachine.derby.impl.sql.execute.index.*;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.hbase.batch.PipelineWriteContext;
-import com.splicemachine.hbase.batch.RegionWriteHandler;
-import com.splicemachine.hbase.batch.WriteContext;
-import com.splicemachine.hbase.batch.WriteContextFactory;
-import com.splicemachine.hbase.batch.WriteHandler;
+import com.splicemachine.hbase.batch.*;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResettableCountDownLatch;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
+import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -146,7 +128,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         synchronized (tableWriteLatch){
             tableWriteLatch.reset();
             try{
-                indexFactories.add(new IndexFactory(indexConglomId,indexColsToBaseColMap,unique));
+                indexFactories.add(IndexFactory.create(indexConglomId, indexColsToBaseColMap, unique));
             }finally{
                 tableWriteLatch.countDown();
             }
@@ -338,23 +320,23 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         IndexRowGenerator irg = conglomDesc.getIndexDescriptor();
         IndexDescriptor indexDescriptor = irg.getIndexDescriptor();
         if(indexDescriptor.isUnique())
-            return new IndexFactory(conglomDesc.getConglomerateNumber(),indexDescriptor);
+            return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor);
 
         /*
          * just because the conglom descriptor doesn't claim it's unique, doesn't mean that it isn't
          * actually unique. You also need to check the ConstraintDescriptor (if there is one) to see
          * if it has the proper type
          */
-        for(int i=0;i<constraints.size();i++){
-            ConstraintDescriptor constraint = (ConstraintDescriptor)constraints.get(i);
-            org.apache.derby.catalog.UUID conglomerateId = constraint.getConglomerateId();
-            if(constraint.getConstraintType()==DataDictionary.UNIQUE_CONSTRAINT &&
-                    (conglomerateId != null && conglomerateId.equals(conglomDesc.getUUID()))){
-               return new IndexFactory(conglomDesc.getConglomerateNumber(),indexDescriptor,true);
+        for (Object constraint1 : constraints) {
+            ConstraintDescriptor constraint = (ConstraintDescriptor) constraint1;
+            UUID conglomerateId = constraint.getConglomerateId();
+            if (constraint.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT &&
+                    (conglomerateId != null && conglomerateId.equals(conglomDesc.getUUID()))) {
+                return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor, true);
             }
         }
 
-        return new IndexFactory(conglomDesc.getConglomerateNumber(),indexDescriptor);
+        return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor);
     }
 
     private ConstraintFactory buildPrimaryKey(ConstraintDescriptor cDescriptor) {
@@ -376,57 +358,55 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     private static class IndexFactory{
         private final long indexConglomId;
         private final byte[] indexConglomBytes;
-        private final byte[][] mainColPos;
-        private final int[] indexColsToMainColMap;
         private final boolean isUnique;
+        private BitSet indexedColumns;
+        private int[] mainColToIndexPosMap;
 
         private IndexFactory(long indexConglomId){
             this.indexConglomId = indexConglomId;
             this.indexConglomBytes = Long.toString(indexConglomId).getBytes();
-            this.indexColsToMainColMap=null;
             this.isUnique=false;
-            this.mainColPos=null;
         }
 
-        private IndexFactory(long indexConglomId,int[] baseIndexedColumns,boolean isUnique) {
+        private IndexFactory(long indexConglomId,BitSet indexedColumns,int[] mainColToIndexPosMap,boolean isUnique) {
             this.indexConglomId = indexConglomId;
             this.indexConglomBytes = Long.toString(indexConglomId).getBytes();
-            this.indexColsToMainColMap = translate(baseIndexedColumns);
-            this.isUnique = isUnique;
+            this.isUnique=isUnique;
+            this.indexedColumns=indexedColumns;
+            this.mainColToIndexPosMap=mainColToIndexPosMap;
+        }
 
-            mainColPos = new byte[baseIndexedColumns.length][];
-            for(int i=0;i<baseIndexedColumns.length;i++){
-                mainColPos[i] = Encoding.encode(baseIndexedColumns[i] - 1);
+        public static IndexFactory create(long conglomerateNumber,int[] indexColsToMainColMap,boolean isUnique){
+            BitSet indexedCols = new BitSet();
+            for(int indexCol:indexColsToMainColMap){
+                indexedCols.set(indexCol-1);
             }
-        }
-
-        public IndexFactory(long conglomerateNumber, IndexDescriptor indexDescriptor) {
-            this(conglomerateNumber,indexDescriptor.baseColumnPositions(),indexDescriptor.isUnique());
-        }
-
-        public IndexFactory(long conglomerateNumber, IndexDescriptor indexDescriptor,boolean isUnique) {
-            this(conglomerateNumber,indexDescriptor.baseColumnPositions(),isUnique);
-        }
-
-        /*
-         * convert a one-based int[] into a zero-based. In essence, shift all values in the array down by one
-         */
-        private static int[] translate(int[] ints) {
-            int[] zeroBased = new int[ints.length];
-            for(int pos=0;pos<ints.length;pos++){
-                zeroBased[pos] = ints[pos]-1;
+            int[] mainColToIndexPosMap = new int[indexedCols.length()];
+            for(int indexCol=0;indexCol<indexColsToMainColMap.length;indexCol++){
+                int mainCol = indexColsToMainColMap[indexCol];
+                mainColToIndexPosMap[mainCol-1] = indexCol;
             }
-            return zeroBased;
+
+            return new IndexFactory(conglomerateNumber,indexedCols,mainColToIndexPosMap,isUnique);
+        }
+
+        public static IndexFactory create(long conglomerateNumber, IndexDescriptor indexDescriptor) {
+            return create(conglomerateNumber, indexDescriptor,indexDescriptor.isUnique());
+        }
+
+        public static IndexFactory create(long conglomerateNumber, IndexDescriptor indexDescriptor,boolean isUnique) {
+            int[] indexColsToMainColMap = indexDescriptor.baseColumnPositions();
+            return create(conglomerateNumber,indexColsToMainColMap,isUnique);
         }
 
         public void addTo(PipelineWriteContext ctx){
 
             if(isUnique){
-                ctx.addLast(new UniqueIndexDeleteWriteHandler(indexColsToMainColMap,mainColPos,indexConglomBytes));
-                ctx.addLast(new UniqueIndexUpsertWriteHandler(indexColsToMainColMap,mainColPos,indexConglomBytes));
+                ctx.addLast(new UniqueIndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes));
+                ctx.addLast(new UniqueIndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes));
             }else{
-                ctx.addLast(new IndexDeleteWriteHandler(indexColsToMainColMap,mainColPos,indexConglomBytes));
-                ctx.addLast(new IndexUpsertWriteHandler(indexColsToMainColMap,mainColPos,indexConglomBytes));
+                ctx.addLast(new IndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes));
+                ctx.addLast(new IndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes));
             }
         }
 

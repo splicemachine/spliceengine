@@ -1,21 +1,29 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.google.common.base.Throwables;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.storage.*;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.ByteDataOutput;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.BitSet;
+import java.util.Collections;
 
 /**
  * @author Scott Fines
@@ -24,10 +32,18 @@ import java.io.IOException;
 public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     protected CallBuffer<Mutation> indexBuffer;
-    protected MultiFieldEncoder encoder;
+    private EntryAccumulator newKeyAccumulator;
+    private EntryAccumulator newRowAccumulator;
+    private EntryDecoder newPutDecoder;
+    private EntryDecoder oldDataDecoder;
 
-    public IndexUpsertWriteHandler(int[] indexColsToMainColMap, byte[][] mainColPos, byte[] indexConglomBytes) {
-        super(indexColsToMainColMap, mainColPos, indexConglomBytes);
+    private BitSet nonUniqueIndexedColumns;
+
+    public IndexUpsertWriteHandler(BitSet indexedColumns, int[] mainColToIndexPos,byte[] indexConglomBytes) {
+        super(indexedColumns,mainColToIndexPos,indexConglomBytes);
+
+        nonUniqueIndexedColumns = (BitSet)indexedColumns.clone();
+        nonUniqueIndexedColumns.set(indexedColumns.length());
     }
 
     @Override
@@ -50,128 +66,186 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     }
 
     private void upsert(Put mutation, WriteContext ctx) {
-        Put put = update(mutation,ctx);
-        if(put==null) return; //we updated the table, but it didn't change the index any!
-        if(encoder==null)
-            encoder = getEncoder();
+        Put put = update(mutation, ctx);
+        if(put==null) return; //we updated the table, and the index during the update process
 
-        encoder.reset();
+        if(newKeyAccumulator==null)
+            newKeyAccumulator = getKeyAccumulator();
+        if(newRowAccumulator==null)
+            newRowAccumulator = new SparseEntryAccumulator(nonUniqueIndexedColumns,true);
 
-        for(int indexPos=0;indexPos<indexColsToMainColMap.length;indexPos++){
-            byte[] putPos = mainColPos[indexPos];
-            byte[] data = put.get(DEFAULT_FAMILY_BYTES,putPos).get(0).getValue();
-            encoder.setRawBytes(data);
-        }
+        newKeyAccumulator.reset();
+        newRowAccumulator.reset();
 
-        byte[] indexRowKey = getIndexRowKey(encoder);
+        if(newPutDecoder==null)
+            newPutDecoder = new EntryDecoder();
 
-        try {
-            Put indexPut = SpliceUtils.createPut(indexRowKey, put);
-            for(int i=0;i<indexColsToMainColMap.length;i++){
-                byte[] indexPos = Encoding.encode(i);
-                indexPut.add(DEFAULT_FAMILY_BYTES,indexPos,encoder.getEncodedBytes(i));
+        newPutDecoder.set(mutation.get(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY).get(0).getValue());
+
+        BitIndex mutationIndex = newPutDecoder.getCurrentIndex();
+        try{
+            MultiFieldDecoder mutationDecoder = newPutDecoder.getEntryDecoder();
+            for(int i=mutationIndex.nextSetBit(0);i>=0&&i<=indexedColumns.length();i=mutationIndex.nextSetBit(i+1)){
+                if(indexedColumns.get(i)){
+                    ByteBuffer entry = newPutDecoder.nextAsBuffer(mutationDecoder, i);
+                    accumulate(newKeyAccumulator,mutationIndex,entry,i);
+                    accumulate(newRowAccumulator,mutationIndex,entry,i);
+                }
             }
 
-            byte[] locPos = Encoding.encode(indexColsToMainColMap.length);
-            indexPut.add(DEFAULT_FAMILY_BYTES, locPos, put.getRow());
+            //add the row to the end of the index row
+            newRowAccumulator.add(indexedColumns.length(), ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
+            byte[] indexRowKey = getIndexRowKey(newKeyAccumulator);
+            Put indexPut = Mutations.translateToPut(mutation,indexRowKey);
+            indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,newRowAccumulator.finish());
 
-            indexToMainMutationMap.put(indexPut,put);
+            indexToMainMutationMap.put(indexPut,mutation);
             indexBuffer.add(indexPut);
             ctx.sendUpstream(mutation);
-        } catch (IOException e) {
+        }catch (IOException e) {
             failed=true;
             ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
         } catch (Exception e) {
             failed=true;
             ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
         }
-
     }
 
-    protected byte[] getIndexRowKey(MultiFieldEncoder encoder) {
+    protected SparseEntryAccumulator getKeyAccumulator() {
+        return new SparseEntryAccumulator(nonUniqueIndexedColumns,false);
+    }
+
+    protected byte[] getIndexRowKey(EntryAccumulator accumulator) {
         byte[] postfix = SpliceUtils.getUniqueKey();
-        encoder.setRawBytes(postfix);
-        return encoder.build();
+        accumulator.add(indexedColumns.length(), ByteBuffer.wrap(postfix));
+        return accumulator.finish();
     }
 
     private Put update(Put mutation, WriteContext ctx) {
         if(!Bytes.equals(mutation.getAttribute(Puts.PUT_TYPE), Puts.FOR_UPDATE))
             return mutation; //not an update, nothing to do here
 
-        boolean indexNeedsUpdating = false;
-        for(byte[] indexColPos:mainColPos){
-            if(mutation.has(DEFAULT_FAMILY_BYTES,indexColPos)){
-                indexNeedsUpdating=true;
+        if(newPutDecoder==null)
+            newPutDecoder = new EntryDecoder();
+
+        newPutDecoder.set(mutation.get(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY).get(0).getValue());
+
+        BitIndex updateIndex = newPutDecoder.getCurrentIndex();
+        boolean needsIndexUpdating = false;
+        for(int i=updateIndex.nextSetBit(0);i>=0;i=updateIndex.nextSetBit(i+1)){
+            if(indexedColumns.get(i)){
+                needsIndexUpdating=true;
                 break;
             }
         }
-        if(!indexNeedsUpdating){
-            //nothing in the index has changed! Whoo!
+        if(!needsIndexUpdating){
+            //nothing in the index has changed, whoo!
             ctx.sendUpstream(mutation);
             return null;
         }
 
-        //bummer, we have to update the index
-        try {
-            Get oldGet = SpliceUtils.createGet(mutation, mutation.getRow());
-            for(byte[] indexColPos:mainColPos){
-                oldGet.addColumn(DEFAULT_FAMILY_BYTES,indexColPos);
-            }
+
+        /*
+         * To update the index now, we must find the old index row and delete it, then
+         * insert a new index row with the correct values.
+         */
+        try{
+            Get oldGet = SpliceUtils.createGet(mutation,mutation.getRow());
+            //TODO -sf- when it comes time to add additional (non-indexed data) to the index, you'll need to add more fields than just what's in indexedColumns
+            EntryPredicateFilter filter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
+            ByteDataOutput bdo = new ByteDataOutput();
+            bdo.writeObject(filter);
+            oldGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bdo.toByteArray());
+
             Result r = ctx.getRegion().get(oldGet,null);
-            if(r ==null|| r.isEmpty()){
-                //no row exists in the main table, so this is actually an insert, no matter what
-                //the attribute says.
+            if(r==null||r.isEmpty()){
+                /*
+                 * There is no entry in the main table, so this is an insert, regardless of what it THINKS it is
+                 */
                 return mutation;
             }
 
-            if(encoder==null)
-                encoder = getEncoder();
+            //build the new row key and row entry
+            if(newKeyAccumulator==null)
+                newKeyAccumulator = getKeyAccumulator();
+            if(newRowAccumulator==null)
+                newRowAccumulator = new SparseEntryAccumulator(indexedColumns,true);
 
-            encoder.reset();
+            newKeyAccumulator.reset();
+            newRowAccumulator.reset();
+
+            if(newPutDecoder==null)
+                newPutDecoder = new EntryDecoder();
+
+            newPutDecoder.set(mutation.get(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY).get(0).getValue());
+
+            MultiFieldDecoder newDecoder = newPutDecoder.getEntryDecoder();
+
+            if(oldDataDecoder==null)
+                oldDataDecoder = new EntryDecoder();
+
+            oldDataDecoder.set(r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
+            BitIndex oldIndex = oldDataDecoder.getCurrentIndex();
+            MultiFieldDecoder oldDecoder = oldDataDecoder.getEntryDecoder();
+            EntryAccumulator oldKeyAccumulator = new SparseEntryAccumulator(indexedColumns);
+
+            //fill in all the index fields that have changed
+            for(int newPos=updateIndex.nextSetBit(0);newPos>=0 && newPos<=indexedColumns.length();newPos=updateIndex.nextSetBit(newPos+1)){
+                if(indexedColumns.get(newPos)){
+                    ByteBuffer newBuffer = newPutDecoder.nextAsBuffer(newDecoder, newPos); // next indexed key
+                    accumulate(newKeyAccumulator,updateIndex,newBuffer,newPos);
+                    accumulate(newRowAccumulator,updateIndex,newBuffer,newPos);
+                }
+            }
+
+            BitSet newRemainingCols = newKeyAccumulator.getRemainingFields();
+            for(int oldPos=oldIndex.nextSetBit(0);oldPos>=0&&oldPos<=indexedColumns.length();oldPos=updateIndex.nextSetBit(oldPos+1)){
+                if(indexedColumns.get(oldPos)){
+                    ByteBuffer oldBuffer = oldDataDecoder.nextAsBuffer(oldDecoder,oldPos);
+                    //fill in the old key for checking
+                    accumulate(oldKeyAccumulator,oldIndex,oldBuffer,oldPos);
+
+                    if(newRemainingCols.get(oldPos)){
+                        //we are missing this field from the new update, so add in the field from the old position
+                        accumulate(newKeyAccumulator,oldIndex,oldBuffer,oldPos);
+                        accumulate(newRowAccumulator,oldIndex,oldBuffer,oldPos);
+                    }
+                }
+            }
+
             /*
-             * We get a free optimization here in that we don't have to do any update if the row already
-             * looks like what we want.
+             * There is a free optimization in that we don't have to update the index if the new entry
+             * would be the same as the old one.
              *
-             * This can only occur when the row to delete looks like the row that we're putting on the index.
-             * Since we might potentially be adding a UUID to the end of the key, we check the already-present
-             * row key with the new row key BEFORE adding a UUID to it.
+             * This can only happen if an update happens to set EVERY indexed field to the same value as it used to be.
+             * E.g., if the index row was (a,b), then the new mutation must also generate an index row (a,b) and
+             * NO OTHER.
+             *
+             * In practice, this means that we must iterate over the old data, and check it against the new data.
+             * If they are the same, then needn't change anything.
              */
-            for (byte[] mainColPo : mainColPos) {
-                byte[] data = r.getValue(DEFAULT_FAMILY_BYTES, mainColPo);
-                encoder.setRawBytes(data);
-            }
-
-            byte[] currentIndexRowKey = encoder.build();
-
-            //TODO -sf- don't waste this work, reuse it to build the index update somwhow!
-            encoder.reset();
-
-            for(int indexPos=0;indexPos<indexColsToMainColMap.length;indexPos++){
-                byte[] putPos = mainColPos[indexPos];
-                byte[] data = mutation.get(DEFAULT_FAMILY_BYTES,putPos).get(0).getValue();
-                encoder.setRawBytes(data);
-            }
-
-            byte[] newRowKey = encoder.build();
-            if(Bytes.compareTo(newRowKey, currentIndexRowKey)==0){
-                //whoo! we don't need to update the index after all!
+            if(newKeyAccumulator.fieldsMatch(oldKeyAccumulator)){
+                //our fields match exactly, nothing to update! don't insert into the index either
                 return null;
             }
 
-            Mutation delete = Mutations.translateToDelete(mutation,currentIndexRowKey);
-            doDelete(ctx, delete);
+            //bummer, we have to update the index--specifically, we have to delete the old row, then
+            //insert the new one
 
-            Put newPut = Mutations.translateToPut(mutation,null);
-            for(byte[] indexPos:mainColPos){
-                byte[] data;
-                if(mutation.has(DEFAULT_FAMILY_BYTES,indexPos))
-                    data = mutation.get(DEFAULT_FAMILY_BYTES,indexPos).get(0).getValue();
-                else
-                    data = r.getValue(DEFAULT_FAMILY_BYTES,indexPos);
+            //delete the old record
+            byte[] existingIndexRowKey = oldKeyAccumulator.finish();
+            Mutation indexDelete = Mutations.translateToDelete(mutation,existingIndexRowKey);
+            doDelete(ctx,indexDelete);
 
-                newPut.add(DEFAULT_FAMILY_BYTES,indexPos,data);
-            }
-            return newPut;
+            //insert the new
+            byte[] newIndexRowKey = getIndexRowKey(newKeyAccumulator);
+            Put newPut = Mutations.translateToPut(mutation,newIndexRowKey);
+            newPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,newRowAccumulator.finish());
+            indexToMainMutationMap.put(mutation,newPut);
+            indexBuffer.add(newPut);
+
+            ctx.sendUpstream(mutation);
+            return null;
         } catch (IOException e) {
             failed=true;
             ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
@@ -179,9 +253,12 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             failed=true;
             ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
         }
+
         //if we get an exception, then return null so we don't try and insert anything
         return null;
     }
+
+
 
     protected void doDelete(WriteContext ctx, final Mutation delete) throws Exception {
         HTableInterface hTable = ctx.getHTable(indexConglomBytes);

@@ -5,10 +5,11 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.*;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
+import com.splicemachine.storage.EntryAccumulator;
+import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -17,6 +18,8 @@ import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 
@@ -30,13 +33,13 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
     * e.g. if indexColsToMainColMap[0] = 1, then the first entry
     * in the index is the second column in the main table, and so on.
     */
-    protected final int[] indexColsToMainColMap;
+//    protected final int[] indexColsToMainColMap;
     /*
      * A cache of column positions in the main table puts. This speeds
      * access and transformation of Puts and Deletes into Index Puts and
      * Deletes.
      */
-    protected final byte[][] mainColPos;
+//    protected final byte[][] mainColPos;
     /*
      * The id for the index table
      *
@@ -50,11 +53,21 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
     protected final Map<Mutation,Mutation> indexToMainMutationMap = Maps.newHashMap();
 
-    protected AbstractIndexWriteHandler(int[] indexColsToMainColMap,
-                                        byte[][] mainColPos,
-                                        byte[] indexConglomBytes) {
-        this.indexColsToMainColMap = indexColsToMainColMap;
-        this.mainColPos = mainColPos;
+    /*
+     * The columns in the main table which are indexed (ordered by the position in the main table).
+     */
+    protected final BitSet indexedColumns;
+
+    /*
+     * Mapping between the position in the main column's data stream, and the position in the index
+     * key. The length of this is the same as the number of columns in the main table, and if the
+     * fields isn't in the index, then the value of this map should be -1.
+     */
+    protected final int[] mainColToIndexPosMap;
+
+    protected AbstractIndexWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes) {
+        this.indexedColumns = indexedColumns;
+        this.mainColToIndexPosMap = mainColToIndexPosMap;
         this.indexConglomBytes = indexConglomBytes;
     }
 
@@ -87,10 +100,6 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
             else throw new IOException(e); //something unexpected went bad, need to propagate
 
         }
-    }
-
-    protected MultiFieldEncoder getEncoder() {
-        return MultiFieldEncoder.create(indexColsToMainColMap.length+1);
     }
 
     protected abstract boolean updateIndex(Mutation mutation, WriteContext ctx);
@@ -151,5 +160,16 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
                 }
             }
         });
+    }
+
+    protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, ByteBuffer newBuffer, int newPos) {
+        if(updateIndex.isScalarType(newPos))
+            newKeyAccumulator.addScalar(mainColToIndexPosMap[newPos],newBuffer);
+        else if(updateIndex.isFloatType(newPos))
+            newKeyAccumulator.addFloat(mainColToIndexPosMap[newPos],newBuffer);
+        else if(updateIndex.isDoubleType(newPos))
+            newKeyAccumulator.addDouble(mainColToIndexPosMap[newPos],newBuffer);
+        else
+            newKeyAccumulator.add(mainColToIndexPosMap[newPos],newBuffer);
     }
 }

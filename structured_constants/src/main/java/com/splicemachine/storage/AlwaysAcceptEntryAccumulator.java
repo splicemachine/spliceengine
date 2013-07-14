@@ -174,4 +174,17 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
             }
         }
     }
+
+    @Override
+    public boolean fieldsMatch(EntryAccumulator oldKeyAccumulator) {
+        for(int myFields=occupiedFields.nextSetBit(0);myFields>=0;myFields=occupiedFields.nextSetBit(myFields+1)){
+            if(!oldKeyAccumulator.hasField(myFields)) return false;
+        }
+        return true;
+    }
+
+    @Override
+    public boolean hasField(int myFields) {
+        return occupiedFields.get(myFields);
+    }
 }

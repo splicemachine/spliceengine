@@ -21,4 +21,8 @@ public interface EntryAccumulator {
     byte[] finish();
 
     void reset();
+
+    boolean fieldsMatch(EntryAccumulator oldKeyAccumulator);
+
+    boolean hasField(int myFields);
 }
