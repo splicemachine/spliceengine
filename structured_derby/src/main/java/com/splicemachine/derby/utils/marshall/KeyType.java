@@ -204,8 +204,8 @@ public enum KeyType implements KeyMarshall{
                               MultiFieldEncoder keyEncoder) {
             //salted ignores row, keyColumns,sortOrder, because it generates
             //a row key randomly
-            keyEncoder.encodeNext(ThreadLocalRandom.current().nextInt());
-            keyEncoder.encodeNextUnsorted(SpliceUtils.getUniqueKey());
+//            keyEncoder.encodeNext(ThreadLocalRandom.current().nextInt());
+            keyEncoder.setRawBytes(SpliceUtils.getUniqueKey());
         }
 
         @Override

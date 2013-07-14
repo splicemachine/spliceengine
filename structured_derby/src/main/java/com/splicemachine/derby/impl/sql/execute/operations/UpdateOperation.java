@@ -198,6 +198,7 @@ public class UpdateOperation extends DMLWriteOperation{
                 EntryEncoder encoder = getNonPkEncoder(nextRow);
 
                 MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
+                fieldEncoder.reset();
                 for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
                     DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[i]];
                     DerbyBytesUtil.encodeInto(fieldEncoder,dvd,false);

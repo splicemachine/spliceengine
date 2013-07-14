@@ -217,7 +217,7 @@ public class CreateIndexTask extends ZkTask {
             byte[] finalIndexRow = keyAccumulator.finish();
             Put put = SpliceUtils.createPut(finalIndexRow,transactionId);
 
-            rowAccumulator.add(indexedColumns.length(),ByteBuffer.wrap(kv.getRow()));
+            rowAccumulator.add(indexedColumns.length(),ByteBuffer.wrap(Encoding.encodeBytesUnsorted(kv.getRow())));
             put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,rowAccumulator.finish());
 
             indexPuts.add(put);

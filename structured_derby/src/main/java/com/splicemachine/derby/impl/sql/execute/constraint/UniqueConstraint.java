@@ -7,6 +7,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -18,7 +19,9 @@ import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * A Unique Constraint
@@ -51,6 +54,8 @@ public class UniqueConstraint implements Constraint {
             try {
                 Get get = SpliceUtils.createGet(input, input.getRow());
                 get.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
+                EntryPredicateFilter predicateFilter = new EntryPredicateFilter(new BitSet(), Collections.<com.splicemachine.storage.Predicate>emptyList());
+                get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
                 return get;
             } catch (IOException e) {
                 throw new RuntimeException(e);

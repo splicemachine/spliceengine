@@ -27,12 +27,12 @@ public class EntryDecoder {
     private void rebuildBitIndex() {
         //build a new bitIndex from the data
         byte headerByte = data[0];
-        if((headerByte & 0x10)!=0){
-            bitIndex = AllFullBitIndex.INSTANCE;
-            compressedData = (headerByte & 0x20) !=0;
-            dataOffset=2;
-            return;
-        }
+//        if((headerByte & 0x10)!=0){
+//            bitIndex = AllFullBitIndex.INSTANCE;
+//            compressedData = (headerByte & 0x20) !=0;
+//            dataOffset=2;
+//            return;
+//        }
         //find separator byte
         dataOffset = 0;
         for(int i=0;i<data.length;i++){
@@ -139,5 +139,16 @@ public class EntryDecoder {
         seekForward(decoder,position);
         int length = decoder.offset()-1-offset;
         return ByteBuffer.wrap(decoder.array(),offset,length);
+    }
+
+    public void accumulate(int position, ByteBuffer buffer,EntryAccumulator accumulator) {
+        if(bitIndex.isScalarType(position)){
+            accumulator.addScalar(position,buffer);
+        }else if(bitIndex.isFloatType(position)){
+            accumulator.addFloat(position,buffer);
+        }else if(bitIndex.isDoubleType(position))
+            accumulator.addDouble(position,buffer);
+        else
+            accumulator.add(position,buffer);
     }
 }

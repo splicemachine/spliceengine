@@ -84,7 +84,7 @@ public class EntryPredicateFilter implements Externalizable{
                     return false;
                 }
             }
-            accumulator.add(encodedPos,ByteBuffer.wrap(array, offset,limit));
+            entry.accumulate(encodedPos, ByteBuffer.wrap(array, offset, limit), accumulator);
         }
         return true;
     }

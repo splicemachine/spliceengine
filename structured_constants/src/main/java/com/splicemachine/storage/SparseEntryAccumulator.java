@@ -92,11 +92,11 @@ public class SparseEntryAccumulator implements EntryAccumulator {
     private byte[] getDataBytes() {
         int size=0;
         boolean isFirst=true;
-        for(ByteBuffer buffer:fields){
+        for(int n = allFields.nextSetBit(0);n>=0;n=allFields.nextSetBit(n+1)){
             if(isFirst)isFirst=false;
             else
                 size++;
-
+            ByteBuffer buffer = fields[n];
             if(buffer!=null){
                 buffer.reset();
                 size+=buffer.remaining();
@@ -106,11 +106,12 @@ public class SparseEntryAccumulator implements EntryAccumulator {
         byte[] bytes = new byte[size];
         int offset=0;
         isFirst=true;
-        for(ByteBuffer buffer:fields){
+        for(int n=allFields.nextSetBit(0);n>=0;n=allFields.nextSetBit(n+1)){
             if(isFirst)isFirst=false;
             else
                 offset++;
 
+            ByteBuffer buffer = fields[n];
             if(buffer!=null){
                 int newOffset = offset+buffer.remaining();
                 buffer.get(bytes,offset,buffer.remaining());

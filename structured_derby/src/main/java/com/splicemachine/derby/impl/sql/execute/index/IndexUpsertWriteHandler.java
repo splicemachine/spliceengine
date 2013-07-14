@@ -89,7 +89,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 if(indexedColumns.get(i)){
                     ByteBuffer entry = newPutDecoder.nextAsBuffer(mutationDecoder, i);
                     accumulate(newKeyAccumulator,mutationIndex,entry,i);
-                    accumulate(newRowAccumulator,mutationIndex,entry.duplicate(),i);
+                    accumulate(newRowAccumulator,mutationIndex,entry,i);
                 }
             }
 
