@@ -25,4 +25,6 @@ public interface EntryAccumulator {
     boolean fieldsMatch(EntryAccumulator oldKeyAccumulator);
 
     boolean hasField(int myFields);
+
+    ByteBuffer getField(int myFields);
 }

@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.job.index;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
@@ -27,6 +28,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -119,6 +121,7 @@ public class CreateIndexTask extends ZkTask {
         regionScan.setStartRow(region.getStartKey());
         regionScan.setStopRow(region.getEndKey());
         regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+        //need to manually add the SIFilter, because it doesn't get added by region.getScanner(
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
         regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
@@ -131,8 +134,9 @@ public class CreateIndexTask extends ZkTask {
             contextFactory.addIndex(indexConglomId, indexedColumns,mainColToIndexPosMap, isUnique);
             
             //backfill the index with previously committed data
-            RegionScanner sourceScanner = region.getScanner(regionScan);
-
+            RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
+            if(sourceScanner==null)
+                sourceScanner = region.getScanner(regionScan);
             byte[] indexBytes = Long.toString(indexConglomId).getBytes();
             CallBuffer<Mutation> writeBuffer =
                     SpliceDriver.driver().getTableWriter().writeBuffer(indexBytes, new TableWriter.FlushWatcher() {
@@ -192,6 +196,8 @@ public class CreateIndexTask extends ZkTask {
         //we know that there is only one KeyValue for each row
         List<Put> indexPuts = Lists.newArrayListWithExpectedSize(result.size());
         for(KeyValue kv:result){
+            if(Bytes.equals(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,kv.getFamily()))
+                continue; //ignore SI keyValues
             keyAccumulator.reset();
             rowAccumulator.reset();
 

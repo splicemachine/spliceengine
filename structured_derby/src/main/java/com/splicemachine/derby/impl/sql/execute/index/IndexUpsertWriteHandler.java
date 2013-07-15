@@ -205,7 +205,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                     //fill in the old key for checking
                     accumulate(oldKeyAccumulator,oldIndex,oldBuffer,oldPos);
 
-                    if(newRemainingCols.get(oldPos)){
+                    if(oldPos!=indexedColumns.length()&&newRemainingCols.get(oldPos)){
                         //we are missing this field from the new update, so add in the field from the old position
                         accumulate(newKeyAccumulator,oldIndex,oldBuffer,oldPos);
                         accumulate(newRowAccumulator,oldIndex,oldBuffer,oldPos);

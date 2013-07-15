@@ -1,6 +1,7 @@
 package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
 import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
@@ -12,6 +13,8 @@ import com.splicemachine.hbase.MutationResponse;
 import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteContextFactory;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
@@ -29,6 +32,8 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -129,13 +134,22 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         Scan scan = SpliceUtils.createScan(transactionId);
         scan.setStartRow(rowKey);
         scan.setStopRow(limit);
-        scan.setCaching(1);
-        scan.setBatch(1);
+//        scan.setCaching(1);
+//        scan.setBatch(1);
+        //TODO -sf- make us only pull back one entry instead of everything
+        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(new BitSet(), Collections.<Predicate>emptyList());
+        scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
-        RegionScanner scanner = region.getScanner(scan);
+        RegionScanner scanner = region.getCoprocessorHost().preScannerOpen(scan);
+        if(scanner==null)
+            scanner = region.getScanner(scan);
+
         List<KeyValue> row = Lists.newArrayList();
-        if(scanner.next(row)){
-            //get the row for the first entry
+        boolean shouldContinue;
+        do{
+            shouldContinue = scanner.next(row);
+            if(row.size()<=0) continue; //nothing returned
+
             byte[] rowBytes =  row.get(0).getRow();
             if(Bytes.compareTo(rowBytes,limit)<0){
                 Mutation mutation = Mutations.getDeleteOp(transactionId,rowBytes);
@@ -143,7 +157,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                 if(mutation instanceof Put){
                     try{
                         @SuppressWarnings("deprecation")
-						OperationStatus[] statuses = region.put(new Pair[]{Pair.newPair((Put)mutation,null)});
+                        OperationStatus[] statuses = region.put(new Pair[]{Pair.newPair((Put)mutation,null)});
                         OperationStatus status = statuses[0];
                         switch (status.getOperationStatusCode()) {
                             case NOT_RUN:
@@ -165,13 +179,14 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                     }
                 }
             }else{
-                //we've gone past our stop point, so we can't delete anything
+                //we've gone past our limit value without finding anything, so return notRun() to indicate
+                //no action
                 return MutationResult.notRun();
             }
-        }else{
-            //there are no rows matching this scan, so we can't delete anything
-            return MutationResult.notRun();
-        }
+        }while(shouldContinue);
+
+        //no rows were found, so nothing to delete
+        return MutationResult.notRun();
     }
 
 }

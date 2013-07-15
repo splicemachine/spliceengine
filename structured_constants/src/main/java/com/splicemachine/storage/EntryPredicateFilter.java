@@ -18,7 +18,7 @@ import java.util.List;
  * Created on: 7/8/13
  */
 public class EntryPredicateFilter implements Externalizable{
-    private static final long serialVersionUID = 2l;
+    private static final long serialVersionUID = 3l;
     private BitSet fieldsToReturn;
     private List<Predicate> valuePredicates;
     private boolean returnIndex;
@@ -94,6 +94,7 @@ public class EntryPredicateFilter implements Externalizable{
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(fieldsToReturn);
+        out.writeBoolean(returnIndex);
         out.writeInt(valuePredicates.size());
         for (Predicate valuePredicate : valuePredicates) {
             out.writeObject(valuePredicate);
@@ -103,6 +104,7 @@ public class EntryPredicateFilter implements Externalizable{
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         fieldsToReturn = (BitSet)in.readObject();
+        returnIndex = in.readBoolean();
         int size = in.readInt();
         valuePredicates = Lists.newArrayListWithCapacity(size);
         for(int i=0;i<size;i++){

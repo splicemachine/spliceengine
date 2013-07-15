@@ -187,4 +187,9 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
     public boolean hasField(int myFields) {
         return occupiedFields.get(myFields);
     }
+
+    @Override
+    public ByteBuffer getField(int myFields) {
+        return fields[myFields];
+    }
 }
