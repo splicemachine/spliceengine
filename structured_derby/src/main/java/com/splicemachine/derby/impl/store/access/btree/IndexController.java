@@ -6,6 +6,7 @@ import java.io.IOException;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -58,7 +59,7 @@ public class IndexController  extends SpliceController  {
 			return 0;
 		} catch (Exception e) {
 			LOG.error(e.getMessage(),e);
-			throw StandardException.plainWrapException(e);
+			throw Exceptions.parseException(e);
 		}finally{
            closeHTable(htable);
         }
