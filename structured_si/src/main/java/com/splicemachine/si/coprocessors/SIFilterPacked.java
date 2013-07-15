@@ -1,7 +1,6 @@
 package com.splicemachine.si.coprocessors;
 
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.data.hbase.HRowLock;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.RollForwardQueue;
@@ -15,6 +14,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FilterBase;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.log4j.Logger;
 
 import java.io.DataInput;
@@ -28,7 +28,7 @@ import java.util.List;
  */
 public class SIFilterPacked extends FilterBase {
     private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
-    private Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor = null;
+    private Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor = null;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
     private EntryPredicateFilter predicateFilter;
@@ -43,7 +43,7 @@ public class SIFilterPacked extends FilterBase {
     public SIFilterPacked() {
     }
 
-    public SIFilterPacked(Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor,
+    public SIFilterPacked(Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor,
                           TransactionId transactionId, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter,
                           boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
         this.transactor = transactor;

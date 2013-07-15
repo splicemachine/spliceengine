@@ -7,7 +7,7 @@ import java.util.Map;
  * Defines an abstraction over the construction and manipulate of HBase operations. Having this abstraction allows an
  * alternate lightweight store to be used instead of HBase (e.g. for rapid testing).
  */
-public interface SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> {
+public interface SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> {
     Data newRowKey(Object[] args);
 
     Data encode(Object value);
@@ -29,6 +29,8 @@ public interface SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, 
     void addKeyValueToPut(Put put, Data family, Data qualifier, Long timestamp, Data value);
     Iterable<KeyValue> listPut(Put put);
     Data getPutKey(Put put);
+
+    OperationStatus newFailStatus();
 
     KeyValue newKeyValue(Data rowKey, Data family, Data qualifier, Long timestamp, Data value);
     Data getKeyValueRow(KeyValue keyValue);

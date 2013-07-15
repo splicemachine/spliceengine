@@ -47,7 +47,7 @@ public class HbTable implements IHTable {
     }
 
     @Override
-    public void put(Put put, HRowLock rowLock) throws IOException {
+    public void put(Put put, Integer rowLock) throws IOException {
         table.put(put);
     }
 
@@ -72,17 +72,17 @@ public class HbTable implements IHTable {
     }
 
     @Override
-    public void delete(Delete delete, HRowLock rowLock) throws IOException {
+    public void delete(Delete delete, Integer rowLock) throws IOException {
         throw new RuntimeException("not implemented");
     }
 
     @Override
-    public HRowLock lockRow(byte[] rowKey) throws IOException {
-        return new HRowLock(table.lockRow(rowKey));
+    public Integer lockRow(byte[] rowKey) throws IOException {
+        throw new RuntimeException("not implemented");
     }
 
     @Override
-    public void unLockRow(HRowLock lock) throws IOException {
-        table.unlockRow(lock.lock);
+    public void unLockRow(Integer lock) throws IOException {
+        throw new RuntimeException("not implemented");
     }
 }

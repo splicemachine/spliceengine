@@ -11,8 +11,8 @@ import java.util.Map;
 /**
  * Helper class for FilterState. Captures the state associated with the current row being processed by the filter.
  */
-public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> {
-    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
+public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> {
+    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
 
     /**
      * The key of the row currently being processed.
@@ -51,7 +51,7 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
      * Called for every key-value encountered by the filter. It is expected that key-values are read in row order.
      * Detects when the filter has moved to a new row and updates the state appropriately.
      */
-    public void updateCurrentRow(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> keyValue) {
+    public void updateCurrentRow(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> keyValue) {
         if (currentRowKey == null) {
             currentRowKey = keyValue.row();
             lastValidQualifier = null;

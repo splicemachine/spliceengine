@@ -3,7 +3,6 @@ package com.splicemachine.si.impl;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
@@ -20,10 +19,10 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
  * transaction table).
  */
 public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put extends OperationWithAttributes,
-        Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock> {
-    final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
+        Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock, OperationStatus> {
+    final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
     private final STableReader<IHTable, Result, Get, Scan> reader;
-    private final STableWriter<IHTable, Mutation, Put, Delete, Data, Lock> writer;
+    private final STableWriter<IHTable, Mutation, Put, Delete, Data, Lock, OperationStatus> writer;
 
     private final String siNeededAttribute;
     private final Data siNeededValue;
@@ -42,7 +41,7 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
 
     private final Data userColumnFamily;
 
-    public DataStore(SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock>
+    public DataStore(SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus>
                              dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
                      Object siNeededValue, Object includeSIColumnValue, String includeUncommittedAsOfStartAttribute,
                      Object includeUncommittedAsOfStartValue, String transactionIdAttribute, String deletePutAttribute,
@@ -264,7 +263,7 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
         }
     }
 
-    public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, Integer>[] mutationsAndLocks) throws IOException {
+    public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, Lock>[] mutationsAndLocks) throws IOException {
         return writer.writeBatch(table, mutationsAndLocks);
     }
 }

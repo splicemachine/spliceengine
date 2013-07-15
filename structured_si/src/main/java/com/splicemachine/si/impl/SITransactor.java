@@ -6,17 +6,13 @@ import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
-import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -42,14 +38,14 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  */
 public class SITransactor<Table, OperationWithAttributes, Mutation extends OperationWithAttributes, Put extends Mutation, Get extends OperationWithAttributes,
         Scan extends OperationWithAttributes, Result, KeyValue, Data, Hashable,
-        Delete extends OperationWithAttributes, Lock extends SRowLock>
-        implements Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, Data, Hashable, Lock> {
+        Delete extends OperationWithAttributes, Lock, OperationStatus>
+        implements Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, Data, Hashable, Lock> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
 
     private final TimestampSource timestampSource;
-    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
-    private final STableWriter<Table, Mutation, Put, Delete, Data, Lock> dataWriter;
-    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put, Delete, Get, Scan, Table, Lock> dataStore;
+    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
+    private final STableWriter<Table, Mutation, Put, Delete, Data, Lock, org.apache.hadoop.hbase.regionserver.OperationStatus> dataWriter;
+    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put, Delete, Get, Scan, Table, Lock, OperationStatus> dataStore;
     private final TransactionStore transactionStore;
     private final Clock clock;
     private final int transactionTimeoutMS;
@@ -360,7 +356,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         try {
             // The non-batch Put path uses the batch Put mechanism to avoid code duplication.
             putToRun = preProcessBatchPutDirect(table, rollForwardQueue, put, locks);
-            dataWriter.write(table, (Put) putToRun.putAndLock.getFirst(), putToRun.lock);
+            dataWriter.write(table, (Put) putToRun.putAndLock.getFirst(), putToRun.putAndLock.getSecond());
         } finally {
             final Iterator<Lock> locksIterator = locks.values().iterator();
             if (locksIterator.hasNext()) {
@@ -373,52 +369,48 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     @Override
-    public OperationStatus[] processBatch(Table table, List<Mutation> mutations) throws IOException {
+    public OperationStatus[] processPutBatch(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Mutation[] mutations)
+            throws IOException {
         Map<Hashable, Lock> locks = new HashMap<Hashable, Lock>();
         try {
-            final Pair<Mutation, Integer>[] mutationsAndLocks = new Pair[mutations.size()];
-            final Set<Long>[] conflictingChildren = new Set[mutations.size()];
-            int i = 0;
-            for (Mutation m : mutations) {
-                preProcessBatchPut(table, null, (Put) m, locks);
-                final PutToRun<Mutation, Lock> putToRun = preProcessBatchPut(table, null, (Put) m, locks);
-                mutationsAndLocks[i] = putToRun.putAndLock;
-                conflictingChildren[i] = putToRun.conflictingChildren;
-                i++;
+            final Pair<Mutation, Lock>[] mutationsAndLocks = new Pair[mutations.length];
+            final Set<Long>[] conflictingChildren = new Set[mutations.length];
+            for (int i = 0; i < mutations.length; i++) {
+                if (isFlaggedForSITreatment(mutations[i])) {
+                    Put put = (Put) mutations[i];
+                    final PutToRun<Mutation, Lock> putToRun = preProcessBatchPutDirect(table, rollForwardQueue, put, locks);
+                    mutationsAndLocks[i] = putToRun.putAndLock;
+                    conflictingChildren[i] = putToRun.conflictingChildren;
+                } else {
+                    mutationsAndLocks[i] = new Pair<Mutation, Lock>(mutations[i], null);
+                    conflictingChildren[i] = Collections.EMPTY_SET;
+                }
             }
             final OperationStatus[] status = dataStore.writeBatch(table, mutationsAndLocks);
 
-            i = 0;
-            for (Mutation m : mutations) {
+            for (int i = 0; i < mutations.length; i++) {
                 try {
-                    postProcessBatchPut(table, (Put) mutations.get(i),
-                            locks.get(hasher.toHashable(dataLib.getPutKey((Put) m))), conflictingChildren[i]);
-                } catch (Throwable t) {
-                    status[i] = new OperationStatus(HConstants.OperationStatusCode.FAILURE);
+                    if (isFlaggedForSITreatment(mutations[i])) {
+                        Put put = (Put) mutations[i];
+                        postProcessBatchPutDirect(table, put, locks.get(hasher.toHashable(dataLib.getPutKey(put))), conflictingChildren[i]);
+                    }
+                } catch (Exception ex) {
+                    LOG.error("Exception while post processing batch put", ex);
+                    status[i] = dataLib.newFailStatus();
                 }
-                i++;
             }
             return status;
         } finally {
             for (Lock lock : locks.values()) {
                 if (lock != null) {
                     try {
-                        cleanupLock(table, lock);
-                    } catch (Throwable t) {
-                        LOG.error("Exception while cleaning up locks", t);
+                        dataWriter.unLockRow(table, lock);
+                    } catch (Exception ex) {
+                        LOG.error("Exception while cleaning up locks", ex);
                         // ignore
                     }
                 }
             }
-        }
-    }
-
-    public PutToRun<Mutation, Lock> preProcessBatchPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue,
-                                                       Put put, Map<Hashable, Lock> locks) throws IOException {
-        if (isFlaggedForSITreatment(put)) {
-            return preProcessBatchPutDirect(table, rollForwardQueue, put, locks);
-        } else {
-            return new PutToRun<Mutation, Lock>(new Pair<Mutation, Integer>(put, null), null, Collections.<Long>emptySet());
         }
     }
 
@@ -437,8 +429,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         for (Long transactionIdToRollForward : conflictResults.toRollForward) {
             dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey);
         }
-        return new PutToRun<Mutation, Lock>(new Pair<Mutation, Integer>(newPut, lock.toInteger()), lock,
-                conflictResults.childConflicts);
+        return new PutToRun<Mutation, Lock>(new Pair<Mutation, Lock>(newPut, lock), conflictResults.childConflicts);
     }
 
     private Lock obtainLock(Map<Hashable, Lock> locks, Table table, Data rowKey) throws IOException {
@@ -449,12 +440,6 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             locks.put(hashableRowKey, lock);
         }
         return lock;
-    }
-
-    public void postProcessBatchPut(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
-        if (isFlaggedForSITreatment(put)) {
-            postProcessBatchPutDirect(table, put, lock, conflictingChildren);
-        }
     }
 
     private void postProcessBatchPutDirect(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
@@ -691,7 +676,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     @Override
     public Result filterResult(IFilterState<KeyValue> filterState, Result result) throws IOException {
-        final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib = dataStore.dataLib;
+        final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib = dataStore.dataLib;
         final List<KeyValue> filteredCells = new ArrayList<KeyValue>();
         final List<KeyValue> keyValues = dataLib.listResult(result);
         if (keyValues != null) {
@@ -803,11 +788,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
     }
 
-    public void cleanupLock(Table table, Lock lock) {
-        try {
-            dataWriter.unLockRow(table, lock);
-        } catch (IOException e) {
-            LOG.error("Couldn't unlock row", e);
-        }
+    public void cleanupLock(Table table, Lock lock) throws IOException {
+        dataWriter.unLockRow(table, lock);
     }
 }

@@ -6,14 +6,14 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
-public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock>
+public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus>
         implements IFilterState<KeyValue> {
 
     static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
 
-    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
+    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
     private final DataStore dataStore;
-    private final FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> simpleFilter;
+    private final FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> simpleFilter;
     private final RowAccumulator<Data> accumulator;
     private Data qualifier = null;
     private Data family = null;
@@ -23,7 +23,7 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
     private boolean excludeRow = false;
 
     public FilterStatePacked(SDataLib dataLib, DataStore dataStore,
-                             FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> simpleFilter,
+                             FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> simpleFilter,
                              RowAccumulator<Data> accumulator) {
         this.dataLib = dataLib;
         this.dataStore = dataStore;

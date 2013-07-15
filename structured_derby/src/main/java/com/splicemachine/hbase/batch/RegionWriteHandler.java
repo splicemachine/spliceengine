@@ -6,14 +6,13 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
 import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.PutToRun;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.coprocessors.RollForwardQueueMap;
 import com.splicemachine.si.coprocessors.SIObserver;
-import com.splicemachine.si.data.hbase.HRowLock;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.tools.ResettableCountDownLatch;
-
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -26,15 +25,10 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -44,7 +38,7 @@ public class RegionWriteHandler implements WriteHandler {
     static final Logger LOG = Logger.getLogger(RegionWriteHandler.class);
 
     private final HRegion region;
-    private final List<Pair<Mutation, Integer>> mutations = Lists.newArrayList();
+    private final List<Mutation> mutations = Lists.newArrayList();
     private final ResettableCountDownLatch writeLatch;
     private final int writeBatchSize;
 
@@ -62,7 +56,7 @@ public class RegionWriteHandler implements WriteHandler {
          */
         mutation.setAttribute(IndexSet.INDEX_UPDATED, IndexSet.INDEX_ALREADY_UPDATED);
         if (HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(), mutation.getRow())) {
-            mutations.add(new Pair<Mutation, Integer>(mutation, null));
+            mutations.add(mutation);
         } else {
             ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, "WrongRegion"));
         }
@@ -87,28 +81,28 @@ public class RegionWriteHandler implements WriteHandler {
         }
         //write all the puts first, since they are more likely
         boolean failed = false;
-        Pair<Mutation, Integer>[] toProcess = null;
-        List<Pair<Mutation, Integer>> toProcessList = Lists.newArrayListWithCapacity(writeBatchSize);
+        Mutation[] toProcess = null;
+        List<Mutation> toProcessList = Lists.newArrayListWithCapacity(writeBatchSize);
         try {
-            Collection<Pair<Mutation, Integer>> filteredMutations = Collections2.filter(mutations, new Predicate<Pair<Mutation, Integer>>() {
+            Collection<Mutation> filteredMutations = Collections2.filter(mutations, new Predicate<Mutation>() {
                 @Override
-                public boolean apply(@Nullable Pair<Mutation, Integer> input) {
+                public boolean apply(@Nullable Mutation input) {
                     return ctx.canRun(input);
                 }
             });
 
-            for (Pair<Mutation, Integer> mutation : filteredMutations) {
+            for (Mutation mutation : filteredMutations) {
                 toProcessList.add(mutation);
                 if (toProcessList.size() == writeBatchSize) {
                     if (toProcess == null)
-                        toProcess = new Pair[writeBatchSize];
+                        toProcess = new Mutation[writeBatchSize];
                     toProcess = toProcessList.toArray(toProcess);
                     doWrite(ctx, toProcess);
                     toProcessList.clear();
                 }
             }
             if (toProcessList.size() > 0) {
-                toProcess = toProcessList.toArray(new Pair[toProcessList.size()]);
+                toProcess = toProcessList.toArray(new Mutation[toProcessList.size()]);
                 doWrite(ctx, toProcess);
             }
         } catch (IOException ioe) {
@@ -123,19 +117,19 @@ public class RegionWriteHandler implements WriteHandler {
              */
             failed = true;
             MutationResult result = new MutationResult(MutationResult.Code.FAILED, ioe.getClass().getSimpleName() + ":" + ioe.getMessage());
-            for (Pair<Mutation, Integer> pair : mutations) {
-                ctx.result(pair.getFirst(), result);
+            for (Mutation mutation : mutations) {
+                ctx.result(mutation, result);
             }
         }
     }
 
-    private void doWrite(WriteContext ctx, Pair<Mutation, Integer>[] toProcess) throws IOException {
+    private void doWrite(WriteContext ctx, Mutation[] toProcess) throws IOException {
         final OperationStatus[] status = SIObserver.doesTableNeedSI(region) ?
                 doSIWrite(toProcess) :
-                region.batchMutate(toProcess);
+                doNonSIWrite(toProcess);
         for (int i = 0; i < status.length; i++) {
             OperationStatus stat = status[i];
-            Mutation mutation = toProcess[i].getFirst();
+            Mutation mutation = toProcess[i];
             switch (stat.getOperationStatusCode()) {
                 case NOT_RUN:
                     ctx.notRun(mutation);
@@ -150,14 +144,19 @@ public class RegionWriteHandler implements WriteHandler {
         }
     }
 
-    private OperationStatus[] doSIWrite(Pair<Mutation, Integer>[] toProcess) throws IOException {
-        final Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> transactor = HTransactorFactory.getTransactor();
-
-        List<Mutation> processList = new ArrayList<Mutation>(toProcess.length);
-        for (Pair<Mutation, Integer> p : toProcess) {
-            processList.add(p.getFirst());
+    private OperationStatus[] doNonSIWrite(Mutation[] toProcess) throws IOException {
+        Pair<Mutation, Integer>[] pairsToProcess = new Pair[toProcess.length];
+        for (int i=0; i<toProcess.length; i++) {
+            pairsToProcess[i] = new Pair<Mutation, Integer>(toProcess[i], null);
         }
-        return transactor.processBatch(new HbRegion(region), processList);
+        return region.batchMutate(pairsToProcess);
+    }
+
+    private OperationStatus[] doSIWrite(Mutation[] toProcess) throws IOException {
+        final Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor = HTransactorFactory.getTransactor();
+        final String tableName = region.getTableDesc().getNameAsString();
+        final RollForwardQueue<byte[],ByteBuffer> rollForwardQueue = RollForwardQueueMap.lookupRollForwardQueue(tableName);
+        return transactor.processPutBatch(new HbRegion(region), rollForwardQueue, toProcess);
     }
 
 }

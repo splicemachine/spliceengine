@@ -108,7 +108,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
                 return Lists.newArrayList(Collections2.filter(mutations, new Predicate<Mutation>() {
                     @Override
                     public boolean apply(@Nullable Mutation input) {
-                        return ctx.canRun(new Pair<Mutation,Integer>(input,null));
+                        return ctx.canRun(input);
                     }
                 }));
             }

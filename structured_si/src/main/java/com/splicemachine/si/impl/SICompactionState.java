@@ -14,11 +14,11 @@ import java.util.Map;
  * It is handed key-values and can change them.
  */
 public class SICompactionState<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation,
-        Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock> {
-    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
-    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put, Delete, Get, Scan, IHTable, Lock> dataStore;
+        Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock, OperationStatus> {
+    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
+    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put, Delete, Get, Scan, IHTable, Lock, OperationStatus> dataStore;
     private final TransactionStore transactionStore;
-    private final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> keyValue;
+    private final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> keyValue;
 
     /**
      * Cache of transactions that have been read during the execution of this compaction.
@@ -48,7 +48,7 @@ public class SICompactionState<Data, Hashable, Result, KeyValue, OperationWithAt
     /**
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
-    private KeyValue mutate(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> kv) throws IOException {
+    private KeyValue mutate(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> kv) throws IOException {
         final KeyValueType keyValueType = dataStore.getKeyValueType(kv.family(), kv.qualifier(), kv.value());
         if (keyValueType.equals(KeyValueType.COMMIT_TIMESTAMP)){
             return mutateCommitTimestamp(kv);
@@ -60,7 +60,7 @@ public class SICompactionState<Data, Hashable, Result, KeyValue, OperationWithAt
     /**
      * Replace unknown commit timestamps with actual commit times.
      */
-    private KeyValue mutateCommitTimestamp(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> kv) throws IOException {
+    private KeyValue mutateCommitTimestamp(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> kv) throws IOException {
         KeyValue result = kv.keyValue();
         if (dataStore.isSINull(kv.value())) {
             final Transaction transaction = getFromCache(kv.timestamp());

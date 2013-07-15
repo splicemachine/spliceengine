@@ -10,7 +10,6 @@ import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.data.hbase.HHasher;
 import com.splicemachine.si.data.hbase.HPoolTableSource;
-import com.splicemachine.si.data.hbase.HRowLock;
 import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.data.hbase.IHTable;
@@ -35,6 +34,7 @@ import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
@@ -69,7 +69,7 @@ public class HTransactorFactory extends SIConstants {
         return getTransactorDirect().getTransactor();
     }
 
-    public static Transactor<IHTable, Put, Get, Scan, Mutation, Result, KeyValue, byte[], ByteBuffer, HRowLock> getTransactor() {
+    public static Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> getTransactor() {
         return getTransactorDirect().getTransactor();
     }
 
@@ -114,7 +114,7 @@ public class HTransactorFactory extends SIConstants {
                     SI_DELETE_PUT, SNAPSHOT_ISOLATION_FAMILY, SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING,
                     SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING, EMPTY_BYTE_ARRAY, SI_ANTI_TOMBSTONE_VALUE,
                     SNAPSHOT_ISOLATION_FAILED_TIMESTAMP, DEFAULT_FAMILY);
-            final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan,Result, KeyValue, byte[], ByteBuffer, Delete, HRowLock>
+            final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan,Result, KeyValue, byte[], ByteBuffer, Delete, Integer, OperationStatus>
                     (timestampSource, dataLib, writer, rowStore, transactionStore, new SystemClock(), TRANSACTION_TIMEOUT,
                             new HHasher(), managedTransactor);
             managedTransactor.setTransactor(transactor);

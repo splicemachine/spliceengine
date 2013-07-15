@@ -3,6 +3,7 @@ package com.splicemachine.si.data.hbase;
 import com.google.common.collect.Iterables;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.data.api.SDataLib;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -10,6 +11,7 @@ import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
@@ -21,7 +23,7 @@ import java.util.Map;
 /**
  * Implementation of SDataLib that is specific to the HBase operation and result types.
  */
-public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, HRowLock> {
+public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Integer, OperationStatus> {
 
     @Override
     public Result newResult(byte[] key, List<KeyValue> keyValues) {
@@ -157,8 +159,13 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
     }
 
     @Override
-    public Put newPut(byte[] key, HRowLock lock) {
-        return new Put(key, lock.lock);
+    public Put newPut(byte[] key, Integer lock) {
+        return new Put(key, lock);
+    }
+
+    @Override
+    public OperationStatus newFailStatus() {
+        return new OperationStatus(HConstants.OperationStatusCode.FAILURE);
     }
 
     @Override

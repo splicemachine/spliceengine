@@ -45,8 +45,8 @@ public class HbRegion implements IHTable {
     }
 
     @Override
-    public void put(Put put, HRowLock rowLock) throws IOException {
-        region.put(put, rowLock.regionRowLock);
+    public void put(Put put, Integer rowLock) throws IOException {
+        region.put(put, rowLock);
     }
 
     @Override
@@ -70,21 +70,21 @@ public class HbRegion implements IHTable {
     }
 
     @Override
-    public void delete(Delete delete, HRowLock rowLock) throws IOException {
-        region.delete(delete, rowLock.regionRowLock, true);
+    public void delete(Delete delete, Integer rowLock) throws IOException {
+        region.delete(delete, rowLock, true);
     }
 
     @Override
-    public HRowLock lockRow(byte[] rowKey) throws IOException {
+    public Integer lockRow(byte[] rowKey) throws IOException {
         final Integer lock = region.obtainRowLock(rowKey);
         if (lock == null) {
             throw new RuntimeException("Unable to obtain row lock on region of table " + region.getTableDesc().getNameAsString());
         }
-        return new HRowLock(lock);
+        return lock;
     }
 
     @Override
-    public void unLockRow(HRowLock lock) throws IOException {
-        region.releaseRowLock(lock.regionRowLock);
+    public void unLockRow(Integer lock) throws IOException {
+        region.releaseRowLock(lock);
     }
 }

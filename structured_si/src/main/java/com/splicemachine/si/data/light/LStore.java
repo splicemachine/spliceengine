@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 public class LStore implements STableReader<LTable, LTuple, LGet, LGet>,
-        STableWriter<LTable, LTuple, LTuple, LTuple, Object, LRowLock> {
+        STableWriter<LTable, LTuple, LTuple, LTuple, Object, LRowLock, OperationStatus> {
     private final Map<String, Map<String, LRowLock>> locks = new HashMap<String, Map<String, LRowLock>>();
     private final Map<String, Map<LRowLock, String>> reverseLocks = new HashMap<String, Map<LRowLock, String>>();
     private final Map<String, List<LTuple>> relations = new HashMap<String, List<LTuple>>();
@@ -156,8 +156,8 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet>,
     }
 
     @Override
-    public OperationStatus[] writeBatch(LTable table, Pair<LTuple, Integer>[] puts) throws IOException {
-        for (Pair<LTuple, Integer> p : puts) {
+    public OperationStatus[] writeBatch(LTable table, Pair<LTuple, LRowLock>[] puts) throws IOException {
+        for (Pair<LTuple, LRowLock> p : puts) {
             write(table, p.getFirst());
         }
         OperationStatus[] result = new OperationStatus[puts.length];

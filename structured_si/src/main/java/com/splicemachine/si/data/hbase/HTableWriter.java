@@ -10,7 +10,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import java.io.IOException;
 import java.util.List;
 
-public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete, byte[], HRowLock> {
+public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete, byte[], Integer, OperationStatus> {
 
     @Override
     public void write(IHTable table, Put put) throws IOException {
@@ -18,7 +18,7 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     }
 
     @Override
-    public void write(IHTable table, Put put, HRowLock rowLock) throws IOException {
+    public void write(IHTable table, Put put, Integer rowLock) throws IOException {
         table.put(put, rowLock);
     }
 
@@ -38,7 +38,7 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     }
 
     @Override
-    public void delete(IHTable table, Delete delete, HRowLock rowLock) throws IOException {
+    public void delete(IHTable table, Delete delete, Integer rowLock) throws IOException {
         table.delete(delete, rowLock);
     }
 
@@ -48,12 +48,12 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     }
 
     @Override
-    public HRowLock lockRow(IHTable table, byte[] rowKey) throws IOException {
+    public Integer lockRow(IHTable table, byte[] rowKey) throws IOException {
         return table.lockRow(rowKey);
     }
 
     @Override
-    public void unLockRow(IHTable table, HRowLock lock) throws IOException {
+    public void unLockRow(IHTable table, Integer lock) throws IOException {
         table.unLockRow(lock);
     }
 }

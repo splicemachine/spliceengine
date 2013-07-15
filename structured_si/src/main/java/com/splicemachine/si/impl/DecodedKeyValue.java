@@ -5,8 +5,8 @@ import com.splicemachine.si.data.api.SDataLib;
 /**
  * Lazily read individual elements out of a KeyValue object and cache them for subsequent calls.
  */
-public class DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> {
-    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
+public class DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> {
+    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
 
     private KeyValue keyValue;
 

@@ -85,7 +85,7 @@ public class PipelineWriteContext implements WriteContext{
         }
 
         @Override
-        public boolean canRun(Pair<Mutation,Integer> input) {
+        public boolean canRun(Mutation input) {
             return PipelineWriteContext.this.canRun(input);
         }
     }
@@ -186,8 +186,8 @@ public class PipelineWriteContext implements WriteContext{
     }
 
     @Override
-    public boolean canRun(Pair<Mutation,Integer> input) {
-        MutationResult result = resultsMap.get(input.getFirst());
+    public boolean canRun(Mutation input) {
+        MutationResult result = resultsMap.get(input);
         return result == null || result.getCode() == MutationResult.Code.SUCCESS;
     }
 }

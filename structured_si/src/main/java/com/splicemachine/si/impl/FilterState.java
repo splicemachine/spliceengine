@@ -17,7 +17,7 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
  * Contains the logic for performing an HBase-style filter using "snapshot isolation" logic. This means it filters out
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
-public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock>
+public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus>
         implements IFilterState<KeyValue> {
     static final Logger LOG = Logger.getLogger(FilterState.class);
 
@@ -28,7 +28,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     final Cache<Long, VisibleResult> visibleCache;
 
     private final ImmutableTransaction myTransaction;
-    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
+    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
     private final DataStore dataStore;
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
@@ -36,8 +36,8 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     private final boolean includeUncommittedAsOfStart;
     private boolean ignoreDoneWithColumn;
 
-    private final FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> rowState;
-    final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> keyValue;
+    private final FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> rowState;
+    final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> keyValue;
     KeyValueType type;
 
     private final TransactionSource transactionSource;

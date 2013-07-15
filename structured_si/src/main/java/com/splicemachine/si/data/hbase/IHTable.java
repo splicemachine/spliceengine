@@ -22,15 +22,15 @@ public interface IHTable {
     Iterator<Result> scan(Scan scan) throws IOException;
 
     void put(Put put) throws IOException;
-    void put(Put put, HRowLock rowLock) throws IOException;
+    void put(Put put, Integer rowLock) throws IOException;
     void put(Put put, boolean durable) throws IOException;
     void put(List<Put> puts) throws IOException;
     OperationStatus[] batchPut(Pair<Mutation, Integer>[] puts) throws IOException;
 
     boolean checkAndPut(byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException;
 
-    void delete(Delete delete, HRowLock rowLock) throws IOException;
+    void delete(Delete delete, Integer rowLock) throws IOException;
 
-    HRowLock lockRow(byte[] rowKey) throws IOException;
-    void unLockRow(HRowLock lock) throws IOException;
+    Integer lockRow(byte[] rowKey) throws IOException;
+    void unLockRow(Integer lock) throws IOException;
 }

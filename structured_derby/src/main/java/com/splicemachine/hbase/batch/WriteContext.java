@@ -37,5 +37,5 @@ public interface WriteContext {
 
     Map<Mutation,MutationResult> finish() throws IOException;
 
-    boolean canRun(Pair<Mutation,Integer> input);
+    boolean canRun(Mutation input);
 }
