@@ -113,14 +113,7 @@ public class IndexConglomerate extends SpliceConglomerate {
     	            // There must be at least one key column
     	    if (rowLocationColumn < 1)
     	    	SanityManager.THROWASSERT("rowLocationColumn (" + rowLocationColumn +") expected to be >= 1");
-    	}    			
-    	ascDescInfo = new boolean[template.length];
-    	for (int i=0 ; i < ascDescInfo.length; i++) {
-    		if (columnOrder != null && i < columnOrder.length)
-    			ascDescInfo[i] = columnOrder[i].getIsAscending();
-    		else
-    			ascDescInfo[i] = true;  // default values - ascending order
-    	}
+    	} 
     	
         // Check input arguments
         allowDuplicates = (Boolean.valueOf(properties.getProperty(PROPERTY_ALLOWDUPLICATES, "false"))).booleanValue();
@@ -134,13 +127,19 @@ public class IndexConglomerate extends SpliceConglomerate {
             throw(StandardException.newException(SQLState.BTREE_PROPERTY_NOT_FOUND, PROPERTY_NUNIQUECOLUMNS));
         nUniqueColumns = Integer.parseInt(property_value);
         
+        ascDescInfo = new boolean[nUniqueColumns];
+        for (int i=0 ; i < ascDescInfo.length; i++) {
+            if (columnOrder != null && i < columnOrder.length)
+                ascDescInfo[i] = columnOrder[i].getIsAscending();
+            else
+                ascDescInfo[i] = true;  // default values - ascending order
+        }
+
         property_value = properties.getProperty(PROPERTY_UNIQUE_WITH_DUPLICATE_NULLS, "false");
         uniqueWithDuplicateNulls = new Boolean (property_value).booleanValue();
         maintainParentLinks = (Boolean.valueOf(properties.getProperty(PROPERTY_PARENTLINKS, "true"))).booleanValue();
 
         if (SanityManager.DEBUG) {
-			if (template.length != nKeyFields)
-				SanityManager.THROWASSERT("template.length (" + template.length +") expected to equal nKeyFields (" + nKeyFields + ")");
             SanityManager.ASSERT((nUniqueColumns == nKeyFields) || (nUniqueColumns == (nKeyFields - 1)));
         }    	
         try {
@@ -287,7 +286,7 @@ public class IndexConglomerate extends SpliceConglomerate {
 	   DynamicCompiledOpenConglomInfo  dynamic_info) throws StandardException {
 		SpliceLogUtils.trace(LOG, "open conglomerate id: %s", id);
 	        OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,hold,open_mode,lock_level,locking_policy,static_info,dynamic_info,this);
-					return new IndexController(open_conglom, rawtran);
+					return new IndexController(open_conglom, rawtran, nUniqueColumns);
 	}
 
     /**
@@ -316,9 +315,20 @@ public class IndexConglomerate extends SpliceConglomerate {
     DynamicCompiledOpenConglomInfo  dynamic_info)
 		throws StandardException
 	{
-        OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,hold,open_mode,lock_level, locking_policy, static_info, dynamic_info,this);
-		SpliceScan indexScan = new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,qualifier,stopKeyValue,stopSearchOperator,rawtran,true);
+		OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,hold,open_mode,lock_level, locking_policy, static_info, dynamic_info,this);
+		DataValueDescriptor[] uniqueStartKey = rowKeyForUniqueFields(startKeyValue);
+		DataValueDescriptor[] uniqueStopKey = rowKeyForUniqueFields(stopKeyValue);
+		SpliceScan indexScan = new SpliceScan(open_conglom,scanColumnList,uniqueStartKey,startSearchOperator,qualifier,uniqueStopKey,stopSearchOperator,rawtran,true);
 		return(indexScan);
+	}
+
+	private DataValueDescriptor[] rowKeyForUniqueFields(DataValueDescriptor[] rowKey) {
+		if (rowKey == null || rowKey.length <= nUniqueColumns) {
+			return rowKey;
+		}
+		DataValueDescriptor[] uniqueRowKey = new DataValueDescriptor[nUniqueColumns];
+		System.arraycopy(rowKey, 0, uniqueRowKey, 0, nUniqueColumns);
+		return uniqueRowKey;
 	}
 
 	public void purgeConglomerate(

@@ -43,6 +43,7 @@ public class TableConstantOperationTest extends SpliceUnitTest {
     public static final String EMP_NAME_TABLE2 = "emp_name2";
     public static final String EMP_NAME_TABLE3 = "emp_name3";
     public static final String EMP_NAME_TABLE4 = "emp_name4";
+    public static final String EMP_NAME_TABLE5 = "emp_name5";
 
     public static final String EMP_PRIV_TABLE1 = "emp_priv1";
     public static final String EMP_PRIV_TABLE2 = "emp_priv2";
@@ -259,6 +260,55 @@ public class TableConstantOperationTest extends SpliceUnitTest {
             // drop/delete the damn thing
             try {
                 connection1.createStatement().execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE4));
+                connection1.commit();
+            } catch (SQLException e) {
+                // ignore
+            }
+        }
+    }
+
+    @Test
+    public void testTableCreationConflict() throws Exception {
+        String create = String.format("create table %s.%s %s",tableSchema.schemaName,EMP_NAME_TABLE5,ePrivDef);
+        String query = String.format("select * from %s.%s", tableSchema.schemaName, EMP_NAME_TABLE5);
+
+        Connection connection1 = methodWatcher.createConnection();
+        Connection connection2 = methodWatcher.createConnection();
+        try {
+            connection1.setAutoCommit(false);
+            connection2.setAutoCommit(false);
+            connection1.createStatement().execute(create);
+            loadTable(connection1.createStatement(), tableSchema.schemaName + "." + EMP_NAME_TABLE5, empNameVals);
+
+            ResultSet resultSet;
+            try {
+                connection2.createStatement().execute(create);
+                Assert.fail("Isolation violated, write conflict undetected");
+            } catch (SQLException e) {
+                Assert.assertTrue("Unknown exception", e.getCause().getCause().getMessage().contains("WriteConflict"));
+            }
+            connection2.rollback();
+            try {
+                resultSet = connection2.createStatement().executeQuery(query);
+                Assert.fail("Read committed violated, access to not-in-snapshot table didn't raise exception");
+            } catch (SQLException e) {
+                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+            }
+
+            resultSet = connection1.createStatement().executeQuery(query);
+            Assert.assertTrue("Connection should see its own writes",resultSet.next());
+
+            connection1.rollback();
+
+            connection2.createStatement().execute(create);
+            loadTable(connection2.createStatement(), tableSchema.schemaName + "." + EMP_NAME_TABLE5, empNameVals);
+            connection2.commit();
+            resultSet = connection2.createStatement().executeQuery(query);
+            Assert.assertTrue("New Transaction cannot see created object",resultSet.next());
+        } finally {
+            // drop/delete the damn thing
+            try {
+                connection1.createStatement().execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE5));
                 connection1.commit();
             } catch (SQLException e) {
                 // ignore
