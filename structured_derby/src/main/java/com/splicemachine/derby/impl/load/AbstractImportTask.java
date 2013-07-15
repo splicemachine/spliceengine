@@ -106,10 +106,14 @@ public abstract class AbstractImportTask extends ZkTask {
             }else
                 keyColumns = new int[0];
             FormatableBitSet fbt = importContext.getActiveCols();
-            BitSet bitSet = null;
+            BitSet bitSet = new BitSet();
             if(fbt!=null){
-                bitSet = new BitSet(fbt.size());
                 for(int i=fbt.anySetBit();i>=0;i=fbt.anySetBit(i)){
+                    bitSet.set(i);
+                }
+            }else{
+                DataValueDescriptor[] rowArray = row.getRowArray();
+                for(int i=0;i<rowArray.length;i++){
                     bitSet.set(i);
                 }
             }
@@ -134,9 +138,40 @@ public abstract class AbstractImportTask extends ZkTask {
         return SpliceDriver.driver().getTableWriter().writeBuffer(importContext.getTableName().getBytes());
     }
 
-    protected abstract long importData(ExecRow row,
-                                       RowEncoder rowEncoder,
-                                       CallBuffer<Mutation> writeBuffer) throws Exception;
+    protected abstract long importData(ExecRow row,CallBuffer<Mutation> writeBuffer) throws Exception;
+
+    protected void doImportRow(String transactionId,String[] line, ExecRow row,CallBuffer<Mutation> writeBuffer) throws Exception {
+        populateRow(line, importContext.getActiveCols(), row);
+
+        DataValueDescriptor[] fields = row.getRowArray();
+
+        //create the key
+        keyEncoder.reset();
+        keyType.encodeKey(fields,keyColumns,null,null,keyEncoder);
+
+        Put put = SpliceUtils.createPut(keyEncoder.build(),transactionId);
+
+        //create the row data
+        FormatableBitSet activeCols = importContext.getActiveCols();
+        MultiFieldEncoder rowEncoder = entryEncoder.getEntryEncoder();
+        rowEncoder.reset();
+        if(activeCols!=null){
+            for(int i=activeCols.anySetBit();i>=0;i=activeCols.anySetBit(i)){
+                DerbyBytesUtil.encodeInto(rowEncoder, fields[i],false);
+            }
+        }else{
+            for(int i=0;i<row.nColumns();i++){
+                DataValueDescriptor field = fields[i];
+                if(field==null||field.isNull())
+                    rowEncoder.encodeEmpty();
+                else
+                    DerbyBytesUtil.encodeInto(rowEncoder,fields[i],false);
+            }
+        }
+        put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,entryEncoder.encode());
+
+        writeBuffer.add(put);
+    }
 
     protected void doImportRow(String transactionId,String[] line,FormatableBitSet activeCols, ExecRow row,
                                CallBuffer<Mutation> writeBuffer,
