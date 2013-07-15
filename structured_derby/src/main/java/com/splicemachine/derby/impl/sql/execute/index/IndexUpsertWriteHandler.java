@@ -169,7 +169,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             if(newKeyAccumulator==null)
                 newKeyAccumulator = getKeyAccumulator();
             if(newRowAccumulator==null)
-                newRowAccumulator = new SparseEntryAccumulator(indexedColumns,true);
+                newRowAccumulator = new SparseEntryAccumulator(nonUniqueIndexedColumns,true);
 
             newKeyAccumulator.reset();
             newRowAccumulator.reset();
@@ -240,6 +240,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             //insert the new
             byte[] newIndexRowKey = getIndexRowKey(newKeyAccumulator);
             Put newPut = Mutations.translateToPut(mutation,newIndexRowKey);
+            newRowAccumulator.add(indexedColumns.length(),ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
             newPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,newRowAccumulator.finish());
             indexToMainMutationMap.put(mutation,newPut);
             indexBuffer.add(newPut);
