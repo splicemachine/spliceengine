@@ -245,7 +245,6 @@ public class ViewConstantOperationTest extends SpliceUnitTest {
      * @throws Exception
      */
     @Test
-    @Ignore("Bug 548")
     public void testViewCreationIsolation() throws Exception {
         String create =  String.format("create view %s.%s (id, lname, fname, dob, ssn) as select n.id, n.lname, n.fname, p.dob, p.ssn from %s n, %s p where n.id = p.id",
                 tableSchema.schemaName,
@@ -262,15 +261,24 @@ public class ViewConstantOperationTest extends SpliceUnitTest {
             connection2.setAutoCommit(false);
             statement1.execute(create);
 
-            ResultSet resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertEquals("Read Committed Violated", 0, resultSetSize(resultSet));
+            ResultSet resultSet;
+            try {
+                resultSet = connection2.createStatement().executeQuery(query);
+                Assert.fail("Access to non-existing view didn't raise exception");
+            } catch (SQLException e) {
+                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+            }
 
             resultSet = connection1.createStatement().executeQuery(query);
             Assert.assertTrue("Connection should see its own writes",resultSet.next());
 
             connection1.commit();
-            resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertEquals("Read Committed Violated", 0, resultSetSize(resultSet));
+            try {
+                resultSet = connection2.createStatement().executeQuery(query);
+                Assert.fail("Access to non-existing view didn't raise exception");
+            } catch (SQLException e) {
+                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+            }
 
             connection2.commit();
             resultSet = connection2.createStatement().executeQuery(query);
@@ -278,7 +286,8 @@ public class ViewConstantOperationTest extends SpliceUnitTest {
         } finally {
             // drop/delete the damn thing
             try {
-                statement1.execute(String.format("drop view %s.%s", tableSchema.schemaName, VIEW_NAME_1));
+                connection1.createStatement().execute(String.format("drop view %s.%s", tableSchema.schemaName, VIEW_NAME_1));
+                connection1.commit();
             } catch (SQLException e) {
                 // ignore
             }
@@ -290,7 +299,6 @@ public class ViewConstantOperationTest extends SpliceUnitTest {
      * @throws Exception
      */
     @Test
-    @Ignore("Bug 548")
     public void testViewRollbackIsolation() throws Exception {
         String create =  String.format("create view %s.%s (id, lname, fname, dob, ssn) as select n.id, n.lname, n.fname, p.dob, p.ssn from %s n, %s p where n.id = p.id",
                 tableSchema.schemaName,
@@ -307,23 +315,37 @@ public class ViewConstantOperationTest extends SpliceUnitTest {
             connection2.setAutoCommit(false);
             statement1.execute(create);
 
-            ResultSet resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertEquals("Read Committed Violated", 0, resultSetSize(resultSet));
+            ResultSet resultSet;
+            try {
+                resultSet = connection2.createStatement().executeQuery(query);
+                Assert.fail("Access to non-existing view didn't raise exception");
+            } catch (SQLException e) {
+                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+            }
 
             resultSet = connection1.createStatement().executeQuery(query);
             Assert.assertTrue("Connection should see its own writes",resultSet.next());
 
             connection1.rollback();
-            resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertEquals("Read Committed Violated", 0, resultSetSize(resultSet));
+            try {
+                resultSet = connection2.createStatement().executeQuery(query);
+                Assert.fail("Access to non committed view didn't raise exception");
+            } catch (SQLException e) {
+                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+            }
 
             connection2.commit();
-            resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertFalse("New Transaction can see rolledback object", resultSet.next());
+            try {
+                resultSet = connection2.createStatement().executeQuery(query);
+                Assert.fail("Access to non committed view didn't raise exception");
+            } catch (SQLException e) {
+                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+            }
         } finally {
             // drop/delete the damn thing
             try {
-                statement1.execute(String.format("drop view %s.%s", tableSchema.schemaName, VIEW_NAME_1));
+                connection1.createStatement().execute(String.format("drop view %s.%s", tableSchema.schemaName, VIEW_NAME_1));
+                connection1.commit();
             } catch (SQLException e) {
                 // ignore
             }

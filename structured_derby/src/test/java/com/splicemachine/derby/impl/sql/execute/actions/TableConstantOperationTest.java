@@ -182,15 +182,24 @@ public class TableConstantOperationTest extends SpliceUnitTest {
             statement1.execute(create);
             loadTable(statement1, tableSchema.schemaName + "." + EMP_NAME_TABLE3, empNameVals);
 
-            ResultSet resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertFalse("Read Committed Violated", resultSet.next());
+            ResultSet resultSet;
+            try {
+                resultSet = connection2.createStatement().executeQuery(query);
+                Assert.fail("Read committed violated, access to non committed table didn't raise exception");
+            } catch (SQLException e) {
+                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+            }
 
             resultSet = connection1.createStatement().executeQuery(query);
             Assert.assertTrue("Connection should see its own writes",resultSet.next());
 
             connection1.commit();
-            resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertFalse("Read Timestamp Violated",resultSet.next());
+            try {
+                resultSet = connection2.createStatement().executeQuery(query);
+                Assert.fail("Read committed violated, access to not-in-snapshot table didn't raise exception");
+            } catch (SQLException e) {
+                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+            }
 
             connection2.commit();
             resultSet = connection2.createStatement().executeQuery(query);
@@ -198,7 +207,8 @@ public class TableConstantOperationTest extends SpliceUnitTest {
         } finally {
             // drop/delete the damn thing
             try {
-                statement1.execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE3));
+                connection1.createStatement().execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE3));
+                connection1.commit();
             } catch (SQLException e) {
                 // ignore
             }
@@ -219,26 +229,41 @@ public class TableConstantOperationTest extends SpliceUnitTest {
             statement1.execute(create);
             loadTable(statement1, tableSchema.schemaName + "." + EMP_NAME_TABLE4, empNameVals);
 
-            ResultSet resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertFalse("Read Committed Violated", resultSet.next());
+            ResultSet resultSet;
+            try {
+                resultSet = connection2.createStatement().executeQuery(query);
+                Assert.fail("Read committed violated, access to non committed table didn't raise exception");
+            } catch (SQLException e) {
+                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+            }
 
             resultSet = connection1.createStatement().executeQuery(query);
             Assert.assertTrue("Connection should see its own writes",resultSet.next());
 
             connection1.rollback();
-            resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertFalse("Read Timestamp Violated",resultSet.next());
+            try {
+                resultSet = connection2.createStatement().executeQuery(query);
+                Assert.fail("Read committed violated, access to non committed table didn't raise exception");
+            } catch (SQLException e) {
+                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+            }
 
             connection2.commit();
-            resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertFalse("New Transaction can see rolledback object", resultSet.next());
+            try {
+                resultSet = connection2.createStatement().executeQuery(query);
+                Assert.fail("Read committed violated, access to non committed table didn't raise exception");
+            } catch (SQLException e) {
+                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+            }
         } finally {
             // drop/delete the damn thing
             try {
-                statement1.execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE4));
+                connection1.createStatement().execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE4));
+                connection1.commit();
             } catch (SQLException e) {
                 // ignore
             }
         }
     }
+
 }
