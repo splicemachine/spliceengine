@@ -21,6 +21,7 @@
 
 package org.apache.derby.impl.sql.execute;
 
+import java.util.Arrays;
 import java.util.Properties;
 
 import org.apache.derby.catalog.UUID;
@@ -177,10 +178,9 @@ public class IndexChanger
 								RowLocation baseRowLoc)
 		 throws StandardException
 	{
-			if (ourIndexRow == null)
-				ourIndexRow = irg.getIndexRowTemplate();
-		
-			irg.getIndexRow(baseRow, baseRowLoc, ourIndexRow, baseRowReadMap);
+			ourIndexRow = irg.getIndexRowKeyTemplate();
+
+			irg.getIndexRowKey(baseRow, baseRowLoc, ourIndexRow, baseRowReadMap);
 	}
 
 	/**
@@ -193,12 +193,11 @@ public class IndexChanger
 	  */
 	private void setOurUpdatedIndexRow(ExecRow baseRow,
 								RowLocation baseRowLoc)
-		 throws StandardException
+		throws StandardException
 	{
-			if (ourUpdatedIndexRow == null)
-				ourUpdatedIndexRow = irg.getIndexRowTemplate();
-		
-			irg.getIndexRow(baseRow, baseRowLoc, ourUpdatedIndexRow, baseRowReadMap);
+		ourUpdatedIndexRow = irg.getIndexRowKeyTemplate();
+
+		irg.getIndexRowKey(baseRow, baseRowLoc, ourUpdatedIndexRow, baseRowReadMap);
 	}
 
 	/**

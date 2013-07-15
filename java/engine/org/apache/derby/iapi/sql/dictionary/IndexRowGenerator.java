@@ -137,12 +137,26 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	/**
 	 * Get a template for the index row, to be used with getIndexRow.
 	 *
-	 * @return	A row template for the index row.
+	 * @return  A row template for the index row.
 	 */
 	public ExecIndexRow getIndexRowTemplate()
 	{
 		return getExecutionFactory().getIndexableRow(
-										id.baseColumnPositions().length + 1);
+				id.baseColumnPositions().length + 1);
+	}
+
+	/**
+	 * Get a template for the index row key, to be used with getIndexRowKey.
+	 *
+	 * @return  A row template for the index row.
+	 */
+	public ExecIndexRow getIndexRowKeyTemplate()
+	{
+		if (id.isUnique()) {
+			return getExecutionFactory().getIndexableRow(id.baseColumnPositions().length);
+		} else {
+			return getIndexRowTemplate();
+		}
 	}
 
     /**
@@ -172,14 +186,44 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
             return indexRow;
     }
 
+    /**
+     * Get an index row for this index given a row from the base table
+     * and the RowLocation of the base row.  This method can be used
+     * to get the new index row for inserts, and the old and new index
+     * rows for deletes and updates.  For updates, the result row has
+     * all the old column values followed by all of the new column values,
+     * so you must form a row using the new column values to pass to
+     * this method to get the new index row.
+     *
+     * @param baseRow   A row in the base table
+     * @param rowLocation   The RowLocation of the row in the base table
+     * @param indexRow  A template for the index row.  It must have the
+     *                  correct number of columns.
+     * @param bitSet    If non-null, then baseRow is a partial row and the
+     *                  set bits in bitSet represents the column mapping for
+     *                  the partial row to the complete base row. <B> WARNING:
+     *                  </B> ONE based!!!
+     *
+     * @exception StandardException     Thrown on error
+     */
+    public void getIndexRow(ExecRow baseRow,
+                            RowLocation rowLocation,
+                            ExecIndexRow indexRow,
+                            FormatableBitSet bitSet)
+                        throws StandardException
+    {
+        getIndexRowHelper(baseRow, rowLocation, indexRow, bitSet, true);
+    }
+
 	/**
-	 * Get an index row for this index given a row from the base table
+	 * Get an index row key for this index given a row from the base table
 	 * and the RowLocation of the base row.  This method can be used
 	 * to get the new index row for inserts, and the old and new index
 	 * rows for deletes and updates.  For updates, the result row has
 	 * all the old column values followed by all of the new column values,
 	 * so you must form a row using the new column values to pass to
-	 * this method to get the new index row.
+	 * this method to get the new index row. For unique indices the row
+	 * location is not included in the row key.
 	 *
 	 * @param baseRow	A row in the base table
 	 * @param rowLocation	The RowLocation of the row in the base table
@@ -192,10 +236,20 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void getIndexRow(ExecRow baseRow,
+	public void getIndexRowKey(ExecRow baseRow,
 							RowLocation rowLocation,
 							ExecIndexRow indexRow,
 							FormatableBitSet bitSet)
+						throws StandardException
+	{
+	    getIndexRowHelper(baseRow, rowLocation, indexRow, bitSet, false);
+	}
+
+	private void getIndexRowHelper(ExecRow baseRow,
+							RowLocation rowLocation,
+							ExecIndexRow indexRow,
+							FormatableBitSet bitSet,
+							boolean alwaysIncludeLocation)
 						throws StandardException
 	{
 		/*
@@ -244,8 +298,10 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 			}
 		}
 
-		/* Set the row location in the last column of the index row */
-		indexRow.setColumn(colCount + 1, rowLocation);
+		if (alwaysIncludeLocation || !id.isUnique()) {
+			/* Set the row location in the last column of the index row */
+			indexRow.setColumn(colCount + 1, rowLocation);
+		}
 	}
 
     /**
