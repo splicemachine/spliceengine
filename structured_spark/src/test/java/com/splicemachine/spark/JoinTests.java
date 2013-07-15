@@ -6,11 +6,6 @@ import java.util.List;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLVarchar;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
-import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Before;
@@ -23,9 +18,7 @@ import scala.Tuple2;
 import spark.SparkEnv;
 import spark.api.java.JavaPairRDD;
 import spark.api.java.JavaSparkContext;
-import spark.broadcast.Broadcast;
-import spark.scheduler.SparkListener;
-import spark.scheduler.StageCompleted;
+
 @Ignore
 public class JoinTests {
 	private static Logger LOG = Logger.getLogger(JoinTests.class);

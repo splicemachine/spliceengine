@@ -1,5 +1,5 @@
 package com.splicemachine.spark;
 
-public class SpliceOutputFormat {
 
+public class SpliceOutputFormat {
 }

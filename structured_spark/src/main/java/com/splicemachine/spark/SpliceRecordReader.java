@@ -12,6 +12,10 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 
 public class SpliceRecordReader extends RecordReader<RowLocation,ExecRow> {
 	protected RowProvider rowProvider;
+	
+	public SpliceRecordReader() {
+	}
+	
 	public SpliceRecordReader(RowProvider rowProvider) {
 		this.rowProvider = rowProvider;
 	}

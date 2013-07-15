@@ -7,11 +7,12 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
+import org.junit.Ignore;
 
 import scala.Tuple2;
 import spark.api.java.JavaPairRDD;
 import spark.api.java.JavaSparkContext;
-
+@Ignore
 public class HBaseTest {
 	  private static String tableName;
 	  public HBaseTest(String tableName) {
